@@ -82,7 +82,7 @@ export default async function SettingsPage() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <form action={updateTenantProfile} className="space-y-6">
+                            <form action={async (formData) => { await updateTenantProfile(formData) }} className="space-y-6">
                                 <div className="space-y-2">
                                     <Label htmlFor="name">Firma Adı</Label>
                                     <Input
@@ -137,7 +137,7 @@ export default async function SettingsPage() {
                                             Kullanıcıya e-posta ile davetiye gönderilecektir.
                                         </DialogDescription>
                                     </DialogHeader>
-                                    <form action={inviteUser}>
+                                    <form action={async (formData) => { await inviteUser(formData) }}>
                                         <div className="grid gap-4 py-4">
                                             <div className="space-y-2">
                                                 <Label htmlFor="invite-name">Ad Soyad</Label>

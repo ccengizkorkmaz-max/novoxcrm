@@ -46,7 +46,7 @@ export function StartNegotiationDialog({
                 <DialogHeader>
                     <DialogTitle>Görüşme Başlat</DialogTitle>
                 </DialogHeader>
-                <form action={handleSubmit}>
+                <form action={async (formData) => { await handleSubmit(formData) }}>
                     <input type="hidden" name="unit_id" value={unitId} />
 
                     <div className="grid gap-4 py-4">

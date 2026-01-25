@@ -73,7 +73,7 @@ export function ReserveUnitDialog({ unitId, unitNumber, projectName, customers, 
                 <DialogHeader>
                     <DialogTitle>Üniteyi Opsiyonla</DialogTitle>
                 </DialogHeader>
-                <form action={handleSubmit}>
+                <form action={async (formData) => { await handleSubmit(formData) }}>
                     <input type="hidden" name="unit_id" value={unitId} />
                     <input type="hidden" name="customer_id" value={selectedCustomerId} />
 

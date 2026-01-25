@@ -109,7 +109,7 @@ export default function ActivitiesTab({ activities, customers }: { activities: a
                                     </TableCell>
                                     <TableCell className="text-right">
                                         {act.status !== 'Completed' && (
-                                            <form action={completeActivity}>
+                                            <form action={async (formData) => { await completeActivity(formData) }}>
                                                 <input type="hidden" name="id" value={act.id} />
                                                 <Button size="sm" variant="outline" type="submit">Tamamla</Button>
                                             </form>

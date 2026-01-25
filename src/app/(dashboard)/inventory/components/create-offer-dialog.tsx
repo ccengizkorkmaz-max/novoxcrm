@@ -51,7 +51,7 @@ export function CreateOfferDialog({
                 <DialogHeader>
                     <DialogTitle>Yeni Teklif Oluştur</DialogTitle>
                 </DialogHeader>
-                <form action={handleSubmit}>
+                <form action={async (formData) => { await handleSubmit(formData) }}>
                     <input type="hidden" name="unit_id" value={unitId} />
                     <input type="hidden" name="currency" value={unitCurrency} />
 

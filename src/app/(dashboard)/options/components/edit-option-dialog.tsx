@@ -48,7 +48,7 @@ export function EditOptionDialog({ unitId, unitNumber, projectName, currentExpir
                 <DialogHeader>
                     <DialogTitle>Opsiyonu Düzenle</DialogTitle>
                 </DialogHeader>
-                <form action={handleSubmit}>
+                <form action={async (formData) => { await handleSubmit(formData) }}>
                     <input type="hidden" name="unit_id" value={unitId} />
 
                     <div className="grid gap-4 py-4">
