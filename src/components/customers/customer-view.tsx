@@ -7,6 +7,9 @@ import { Phone, Mail, Filter } from 'lucide-react'
 import { ActivityTimeline } from '@/components/activities/activity-timeline'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { ShieldCheck } from 'lucide-react'
 
 interface CustomerViewProps {
     customer: any
@@ -145,6 +148,52 @@ export function CustomerView({ customer, activities, contracts = [] }: CustomerV
                                     ))}
                                 </div>
                             </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Portal Access Card */}
+                    <Card className="border-blue-100 bg-blue-50/30">
+                        <CardHeader className="pb-3">
+                            <div className="flex items-center gap-2 text-blue-700">
+                                <ShieldCheck className="h-4 w-4" />
+                                <CardTitle className="text-base font-bold">Portal Erişimi</CardTitle>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="portal_user" className="text-xs">Kullanıcı Adı</Label>
+                                <Input
+                                    id="portal_user"
+                                    placeholder="Kullanıcı adı..."
+                                    defaultValue={customer.portal_username || ''}
+                                    className="h-8 text-sm"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="portal_pass" className="text-xs">Şifre</Label>
+                                <Input
+                                    id="portal_pass"
+                                    type="password"
+                                    placeholder="Şifre belirleyin..."
+                                    defaultValue={customer.portal_password || ''}
+                                    className="h-8 text-sm"
+                                />
+                            </div>
+                            <Button
+                                className="w-full h-8 text-xs bg-blue-600 hover:bg-blue-700"
+                                onClick={async () => {
+                                    const user = (document.getElementById('portal_user') as HTMLInputElement).value
+                                    const pass = (document.getElementById('portal_pass') as HTMLInputElement).value
+                                    if (!user || !pass) return alert('Lütfen bilgileri eksiksiz girin.')
+
+                                    const { syncPortalAccess } = await import('@/lib/actions/customer-portal')
+                                    const res = await syncPortalAccess(customer.id, user, pass)
+                                    if (res.success) alert('Portal erişimi güncellendi!')
+                                    else alert('Hata: ' + res.error)
+                                }}
+                            >
+                                Kaydet & Yetkilendir
+                            </Button>
                         </CardContent>
                     </Card>
 

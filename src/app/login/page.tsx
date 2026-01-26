@@ -79,7 +79,7 @@ export default function LoginPage({
 
                     <form className="grid gap-6">
                         <div className="grid gap-2">
-                            <Label htmlFor="email" className="font-semibold text-gray-700">Email Adresi</Label>
+                            <Label htmlFor="email" className="font-semibold text-gray-700">Email veya Kullanıcı Adı</Label>
                             <Input
                                 id="email"
                                 name="email"

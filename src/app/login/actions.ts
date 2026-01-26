@@ -8,12 +8,28 @@ import { createClient } from '@/lib/supabase/server'
 export async function login(formData: FormData) {
     const supabase = await createClient()
 
-    const data = {
-        email: formData.get('email') as string,
-        password: formData.get('password') as string,
+    const emailOrUsername = formData.get('email') as string
+    const password = formData.get('password') as string
+
+    let loginEmail = emailOrUsername
+
+    // If it's not a valid email, assume it's a portal username
+    if (!emailOrUsername.includes('@')) {
+        const { data: customer } = await supabase
+            .from('customers')
+            .select('portal_username')
+            .eq('portal_username', emailOrUsername)
+            .single()
+
+        if (customer) {
+            loginEmail = `${emailOrUsername.toLowerCase()}@portal.novoxcrm.com`
+        }
     }
 
-    const { error } = await supabase.auth.signInWithPassword(data)
+    const { error } = await supabase.auth.signInWithPassword({
+        email: loginEmail,
+        password: password
+    })
 
     if (error) {
         redirect('/login?error=Could not authenticate user')

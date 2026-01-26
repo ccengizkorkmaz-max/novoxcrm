@@ -20,7 +20,8 @@ export default async function PortalLayout({
         .eq('id', user.id)
         .single()
 
-    if (profile?.role !== 'customer') redirect('/')
+    const isAllowed = profile?.role === 'customer' || profile?.role === 'admin' || profile?.role === 'owner'
+    if (!isAllowed) redirect('/')
 
     return (
         <div className="flex h-screen w-full bg-slate-50/50">
