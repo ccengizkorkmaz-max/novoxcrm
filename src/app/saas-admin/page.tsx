@@ -74,6 +74,25 @@ export default function SaasAdminPage() {
         }
     }
 
+    // New Tenant State
+    const [newTenantOpen, setNewTenantOpen] = useState(false)
+    const [saving, setSaving] = useState(false)
+
+    async function handleCreateTenant(formData: FormData) {
+        setSaving(true)
+        const { provisionTenant } = await import('./actions') // Dynamic import to avoid hydration matches
+        const res = await provisionTenant(formData)
+        setSaving(false)
+
+        if (res.error) {
+            alert(res.error)
+        } else {
+            setNewTenantOpen(false)
+            loadData()
+            alert('Firma ve yönetici hesabı başarıyla oluşturuldu.')
+        }
+    }
+
     const filteredTenants = tenants.filter(t =>
         t.name.toLowerCase().includes(search.toLowerCase()) ||
         t.id.includes(search)
@@ -84,6 +103,87 @@ export default function SaasAdminPage() {
 
     return (
         <div className="space-y-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <h1 className="text-3xl font-bold tracking-tight">Genel Bakış</h1>
+                <Dialog open={newTenantOpen} onOpenChange={setNewTenantOpen}>
+                    <DialogTrigger asChild>
+                        <Button className="bg-primary text-primary-foreground hover:bg-primary/90">
+                            <Building2 className="mr-2 h-4 w-4" /> Yeni Firma Ekle
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[425px]">
+                        <DialogHeader>
+                            <DialogTitle>Manuel Firma Kurulumu</DialogTitle>
+                            <DialogDescription>
+                                Yeni bir müşteri için firma ve yönetici hesabı oluşturun.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <form action={handleCreateTenant} className="grid gap-4 py-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="name">Firma Adı</Label>
+                                <Input id="name" name="name" placeholder="ABC Lojistik" required />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="adminName">Yönetici Adı</Label>
+                                    <Input id="adminName" name="adminName" placeholder="Ahmet Yılmaz" required />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="adminEmail">Yönetici Email</Label>
+                                    <Input id="adminEmail" name="adminEmail" type="email" placeholder="ahmet@abc.com" required />
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="adminPassword">Geçici Şifre</Label>
+                                <Input id="adminPassword" name="adminPassword" type="text" placeholder="123456" required minLength={6} />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="plan">Paket</Label>
+                                    <Select name="plan" defaultValue="Pro">
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Seçiniz" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="Free">Free (Ücretsiz)</SelectItem>
+                                            <SelectItem value="Pro">Pro</SelectItem>
+                                            <SelectItem value="Enterprise">Enterprise</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="userLimit">Kullanıcı Limiti</Label>
+                                    <Input id="userLimit" name="userLimit" type="number" defaultValue="5" required />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="duration">Lisans Süresi (Ay)</Label>
+                                <Select name="duration" defaultValue="12">
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Seçiniz" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="1">1 Ay</SelectItem>
+                                        <SelectItem value="6">6 Ay</SelectItem>
+                                        <SelectItem value="12">1 Yıl</SelectItem>
+                                        <SelectItem value="24">2 Yıl</SelectItem>
+                                        <SelectItem value="999">Süresiz</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <DialogFooter>
+                                <Button type="submit" disabled={saving}>
+                                    {saving ? 'Oluşturuluyor...' : 'Firma Oluştur'}
+                                </Button>
+                            </DialogFooter>
+                        </form>
+                    </DialogContent>
+                </Dialog>
+            </div>
+
             <div className="grid gap-4 md:grid-cols-3">
                 <div className="rounded-xl border bg-card p-6 shadow-sm">
                     <div className="flex items-center gap-4">
