@@ -58,7 +58,7 @@ export default function OnboardingPage() {
         <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
             <Card className="w-full max-w-lg">
                 <CardHeader>
-                    <CardTitle className="text-2xl">NovoCRM Kurulumu</CardTitle>
+                    <CardTitle className="text-2xl">NovoxCrm Kurulumu</CardTitle>
                     <CardDescription>
                         Kendi CRM ortamınızı oluşturmak için şirket bilgilerinizi girin.
                     </CardDescription>

@@ -72,6 +72,29 @@ export async function addUser(formData: FormData) {
     try {
         const adminClient = createAdminClient()
 
+        // --- Limit Check ---
+        // 1. Get Tenant Limit
+        const { data: tenant, error: tenantErr } = await adminClient
+            .from('tenants')
+            .select('user_limit')
+            .eq('id', profile.tenant_id)
+            .single()
+
+        if (tenantErr) throw tenantErr
+
+        // 2. Count current users
+        const { count, error: countErr } = await adminClient
+            .from('profiles')
+            .select('*', { count: 'exact', head: true })
+            .eq('tenant_id', profile.tenant_id)
+
+        if (countErr) throw countErr
+
+        if (count && count >= tenant.user_limit) {
+            return { error: `Kullanıcı limitine ulaşıldı (${tenant.user_limit}). Yeni kullanıcı eklemek için paketinizi yükseltin.` }
+        }
+        // --- End Limit Check ---
+
         const { data, error } = await adminClient.auth.admin.createUser({
             email,
             password,

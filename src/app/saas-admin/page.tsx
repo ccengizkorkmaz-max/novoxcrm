@@ -12,6 +12,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table"
+import { Progress } from "@/components/ui/progress"
 import {
     Dialog,
     DialogContent,
@@ -30,7 +31,7 @@ import {
 } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Users, Building2, AlertTriangle, CheckCircle, XCircle, Search } from "lucide-react"
-import { getAllTenants, updateTenantLimits, updateTenantStatus, provisionTenant } from './actions'
+import { getAllTenants, updateTenantSubscription, updateTenantStatus, provisionTenant } from './actions'
 import { useEffect } from 'react'
 import { format } from 'date-fns'
 import { tr } from 'date-fns/locale'
@@ -45,6 +46,7 @@ export default function SaasAdminPage() {
     const [limit, setLimit] = useState(5)
     const [endDate, setEndDate] = useState('')
     const [status, setStatus] = useState('Active')
+    const [plan, setPlan] = useState('Pro')
     const [dialogOpen, setDialogOpen] = useState(false)
 
     useEffect(() => {
@@ -62,7 +64,12 @@ export default function SaasAdminPage() {
 
     async function handleSaveLimits() {
         if (!selectedTenant) return
-        await updateTenantLimits(selectedTenant.id, limit, endDate)
+        await updateTenantSubscription(selectedTenant.id, {
+            user_limit: limit,
+            subscription_end_date: endDate,
+            plan_type: plan,
+            subscription_status: status
+        })
         setDialogOpen(false)
         loadData()
     }
@@ -238,6 +245,8 @@ export default function SaasAdminPage() {
                             <TableHead>Firma Adı</TableHead>
                             <TableHead>Durum</TableHead>
                             <TableHead>Kullanıcılar</TableHead>
+                            <TableHead className="text-center">Proje</TableHead>
+                            <TableHead className="text-center">Müşteri</TableHead>
                             <TableHead>Paket</TableHead>
                             <TableHead>Bitiş Tarihi</TableHead>
                             <TableHead className="text-right">İşlemler</TableHead>
@@ -265,16 +274,30 @@ export default function SaasAdminPage() {
                                         </Badge>
                                     </TableCell>
                                     <TableCell>
-                                        <div className="flex items-center gap-2">
-                                            <span className="font-bold">{tenant.user_count}</span>
-                                            <span className="text-muted-foreground">/ {tenant.user_limit}</span>
+                                        <div className="flex flex-col gap-1.5 min-w-[140px]">
+                                            <div className="flex items-center justify-between text-xs">
+                                                <span className="font-bold">{tenant.user_count} / {tenant.user_limit}</span>
+                                                <span className="text-muted-foreground">%{Math.round((tenant.user_count / tenant.user_limit) * 100)}</span>
+                                            </div>
+                                            <Progress
+                                                value={(tenant.user_count / tenant.user_limit) * 100}
+                                                className={`h-1.5 ${tenant.user_count >= tenant.user_limit ? 'bg-red-100' : ''}`}
+                                            />
                                             {tenant.user_count >= tenant.user_limit && (
-                                                <AlertTriangle className="h-4 w-4 text-amber-500" />
+                                                <div className="flex items-center gap-1 text-[10px] text-amber-600 font-medium">
+                                                    <AlertTriangle className="h-3 w-3" /> Dolu
+                                                </div>
                                             )}
                                         </div>
                                     </TableCell>
-                                    <TableCell>{tenant.plan_type}</TableCell>
+                                    <TableCell className="text-center font-semibold text-blue-600">{tenant.project_count}</TableCell>
+                                    <TableCell className="text-center font-semibold text-emerald-600">{tenant.customer_count}</TableCell>
                                     <TableCell>
+                                        <Badge variant="outline" className="font-medium bg-slate-50">
+                                            {tenant.plan_type}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell className="text-sm">
                                         {tenant.subscription_end_date ? (
                                             format(new Date(tenant.subscription_end_date), 'dd MMM yyyy', { locale: tr })
                                         ) : '-'}
@@ -306,6 +329,8 @@ export default function SaasAdminPage() {
                                                     setSelectedTenant(tenant)
                                                     setLimit(tenant.user_limit)
                                                     setEndDate(tenant.subscription_end_date ? new Date(tenant.subscription_end_date).toISOString().split('T')[0] : '')
+                                                    setPlan(tenant.plan_type)
+                                                    setStatus(tenant.subscription_status)
                                                     setDialogOpen(true)
                                                 } else {
                                                     setDialogOpen(false)
@@ -322,6 +347,36 @@ export default function SaasAdminPage() {
                                                         </DialogDescription>
                                                     </DialogHeader>
                                                     <div className="grid gap-4 py-4">
+                                                        <div className="grid grid-cols-4 items-center gap-4">
+                                                            <Label className="text-right">Paket</Label>
+                                                            <div className="col-span-3">
+                                                                <Select value={plan} onValueChange={setPlan}>
+                                                                    <SelectTrigger>
+                                                                        <SelectValue />
+                                                                    </SelectTrigger>
+                                                                    <SelectContent>
+                                                                        <SelectItem value="Free">Free</SelectItem>
+                                                                        <SelectItem value="Pro">Pro</SelectItem>
+                                                                        <SelectItem value="Enterprise">Enterprise</SelectItem>
+                                                                    </SelectContent>
+                                                                </Select>
+                                                            </div>
+                                                        </div>
+                                                        <div className="grid grid-cols-4 items-center gap-4">
+                                                            <Label className="text-right">Durum</Label>
+                                                            <div className="col-span-3">
+                                                                <Select value={status} onValueChange={setStatus}>
+                                                                    <SelectTrigger>
+                                                                        <SelectValue />
+                                                                    </SelectTrigger>
+                                                                    <SelectContent>
+                                                                        <SelectItem value="Active">Active (Aktif)</SelectItem>
+                                                                        <SelectItem value="Suspended">Suspended (Askıda)</SelectItem>
+                                                                        <SelectItem value="Trial">Trial (Deneme)</SelectItem>
+                                                                    </SelectContent>
+                                                                </Select>
+                                                            </div>
+                                                        </div>
                                                         <div className="grid grid-cols-4 items-center gap-4">
                                                             <Label className="text-right">Kullanıcı Limiti</Label>
                                                             <Input

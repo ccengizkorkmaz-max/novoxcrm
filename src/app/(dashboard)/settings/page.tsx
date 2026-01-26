@@ -94,7 +94,10 @@ export default async function SettingsPage() {
                         </CardHeader>
                         <CardContent>
                             {tenant ? (
-                                <TenantProfileForm tenant={tenant} />
+                                <TenantProfileForm
+                                    tenant={tenant}
+                                    userCount={users?.length || 0}
+                                />
                             ) : (
                                 <div className="p-4 border border-yellow-200 bg-yellow-50 text-yellow-700 rounded-md">
                                     <p>Şirket bilgileri yüklenemedi. Lütfen RLS yetkilerini kontrol edin.</p>

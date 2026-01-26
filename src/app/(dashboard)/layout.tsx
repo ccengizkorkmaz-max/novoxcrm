@@ -22,15 +22,32 @@ export default async function DashboardLayout({
         redirect('/login')
     }
 
+    // Fetch profile and tenant info
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name, tenant_id')
+        .eq('id', user.id)
+        .single()
+
+    const { data: tenant } = profile?.tenant_id ? await supabase
+        .from('tenants')
+        .select('name')
+        .eq('id', profile.tenant_id)
+        .single() : { data: null }
+
     return (
         <div className="flex h-screen w-full bg-muted/40">
             {/* Sidebar */}
             <aside className="fixed inset-y-0 left-0 z-10 hidden w-64 flex-col border-r bg-background sm:flex print:hidden">
-                <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
-                    <Link href="/" className="flex items-center gap-2 font-semibold">
+                <div className="flex flex-col border-b px-4 py-3 lg:px-6">
+                    <Link href="/" className="flex items-center gap-2 font-bold text-blue-600">
                         <Building2 className="h-6 w-6" />
-                        <span className="">NovoCRM</span>
+                        <span className="text-lg tracking-tight">NovoxCrm</span>
                     </Link>
+                    <div className="mt-1 flex flex-col">
+                        <span className="text-xs font-bold text-foreground truncate">{tenant?.name || 'Yükleniyor...'}</span>
+                        <span className="text-[10px] text-muted-foreground truncate">{profile?.full_name || user.email}</span>
+                    </div>
                 </div>
                 <div className="flex-1 overflow-auto py-2">
                     <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
@@ -188,7 +205,7 @@ export default async function DashboardLayout({
                                     className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
                                 >
                                     <Home className="h-5 w-5" />
-                                    NovoCRM
+                                    NovoxCrm
                                 </Link>
                                 <Link
                                     href="/"
@@ -310,7 +327,14 @@ export default async function DashboardLayout({
                             </nav>
                         </SheetContent>
                     </Sheet>
-                    <span className="font-semibold">NovoCRM</span>
+                    <div className="flex flex-col ml-2">
+                        <span className="font-bold text-sm leading-none">NovoxCrm</span>
+                        <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-[10px] text-muted-foreground font-medium">{tenant?.name}</span>
+                            <span className="text-[10px] text-muted-foreground/60">•</span>
+                            <span className="text-[10px] text-muted-foreground/60">{profile?.full_name || user.email}</span>
+                        </div>
+                    </div>
                 </header>
                 <main className="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
                     {children}

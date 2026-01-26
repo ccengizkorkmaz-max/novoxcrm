@@ -28,7 +28,7 @@ export default function LoginPage({
                         <div className="bg-white/10 p-2 rounded-lg backdrop-blur-sm">
                             <Building2 className="h-6 w-6" />
                         </div>
-                        <span className="tracking-tight font-bold">NovoCRM</span>
+                        <span className="tracking-tight font-bold">NovoxCrm</span>
                     </div>
 
                     <div className="space-y-6 max-w-lg">

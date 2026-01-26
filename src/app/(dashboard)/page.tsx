@@ -62,26 +62,29 @@ async function getDashboardStats() {
 
 
   // Process chart data for Leads (Pie Chart)
-  const leadsByStatus = leads?.reduce((acc: any, curr: any) => {
-    acc[curr.status] = (acc[curr.status] || 0) + 1
-    return acc
-  }, {})
+  const leadStatusMap: Record<string, number> = {}
+  leads?.forEach(curr => {
+    const translation = curr.status === 'Lead' || curr.status === 'Prospect' ? 'Aday' :
+      curr.status === 'Contacted' ? 'İletişim' :
+        curr.status === 'Proposal' ? 'Teklif' :
+          curr.status === 'Negotiation' ? 'Pazarlık' :
+            curr.status === 'Reservation' ? 'Rezervasyon' :
+              curr.status === 'Contract' ? 'Sözleşme' :
+                curr.status === 'Completed' || curr.status === 'Sold' ? 'Kazanıldı' :
+                  curr.status === 'Lost' ? 'Kaybedildi' : curr.status;
 
-  const leadStatusData = Object.entries(leadsByStatus || {}).map(([name, value]) => ({
-    name: name === 'Lead' ? 'Aday' :
-      name === 'Contacted' ? 'İletişimde' :
-        name === 'Proposal' ? 'Teklif' :
-          name === 'Negotiation' ? 'Pazarlık' :
-            name === 'Sold' ? 'Kazanıldı' :
+    leadStatusMap[translation] = (leadStatusMap[translation] || 0) + 1
+  })
 
-              name === 'Lost' ? 'Kaybedildi' : name,
+  const leadStatusData = Object.entries(leadStatusMap).map(([name, value]) => ({
+    name,
     value: Number(value)
   }))
 
   // 6. Recent Activities
   const { data: recentActivities } = await supabase
     .from('activities')
-    .select('*, customers(name)')
+    .select('*, customers(full_name)')
     .order('created_at', { ascending: false })
     .limit(5)
 
@@ -180,7 +183,13 @@ export default async function DashboardPage() {
                   <div key={activity.id} className="flex items-center">
                     <div className="space-y-1">
                       <p className="text-sm font-medium leading-none">
-                        {activity.customers?.name} ile {activity.type}
+                        {activity.customers?.full_name} ile {
+                          activity.type === 'Call' || activity.type === 'Phone' ? 'Telefon Görüşmesi' :
+                            activity.type === 'Meeting' ? 'Toplantı' :
+                              activity.type === 'Visit' || activity.type === 'Site Visit' ? 'Saha Ziyareti' :
+                                activity.type === 'Whatsapp' ? 'WhatsApp Mesajı' :
+                                  activity.type === 'Email' ? 'E-posta' : activity.type
+                        }
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {activity.summary}

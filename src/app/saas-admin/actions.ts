@@ -35,21 +35,44 @@ export async function getAllTenants() {
     // Fetch user counts for each tenant
     // Note: Doing this in a loop for MVP simplicity, eventually should be a view or join
     const tenantsWithCounts = await Promise.all(tenants.map(async (t) => {
-        const { count } = await adminClient
+        // User count
+        const { count: userCount } = await adminClient
             .from('profiles')
+            .select('*', { count: 'exact', head: true })
+            .eq('tenant_id', t.id)
+
+        // Project count
+        const { count: projectCount } = await adminClient
+            .from('projects')
+            .select('*', { count: 'exact', head: true })
+            .eq('tenant_id', t.id)
+
+        // Customer count
+        const { count: customerCount } = await adminClient
+            .from('customers')
             .select('*', { count: 'exact', head: true })
             .eq('tenant_id', t.id)
 
         return {
             ...t,
-            user_count: count || 0
+            user_count: userCount || 0,
+            project_count: projectCount || 0,
+            customer_count: customerCount || 0
         }
     }))
 
     return { tenants: tenantsWithCounts }
 }
 
-export async function updateTenantLimits(id: string, user_limit: number, end_date: string) {
+export async function updateTenantSubscription(
+    id: string,
+    data: {
+        user_limit?: number,
+        subscription_end_date?: string,
+        plan_type?: string,
+        subscription_status?: string
+    }
+) {
     const isAdmin = await checkSuperAdmin()
     if (!isAdmin) return { error: 'Unauthorized' }
 
@@ -57,10 +80,7 @@ export async function updateTenantLimits(id: string, user_limit: number, end_dat
 
     const { error } = await adminClient
         .from('tenants')
-        .update({
-            user_limit,
-            subscription_end_date: end_date
-        })
+        .update(data)
         .eq('id', id)
 
     if (error) return { error: error.message }
@@ -69,21 +89,10 @@ export async function updateTenantLimits(id: string, user_limit: number, end_dat
     return { success: true }
 }
 
+// updateTenantStatus is now redundant, but keeping a wrapper for legacy calls if any, 
+// though I'll update the UI to call the new unified function.
 export async function updateTenantStatus(id: string, status: string) {
-    const isAdmin = await checkSuperAdmin()
-    if (!isAdmin) return { error: 'Unauthorized' }
-
-    const adminClient = createAdminClient()
-
-    const { error } = await adminClient
-        .from('tenants')
-        .update({ subscription_status: status })
-        .eq('id', id)
-
-    if (error) return { error: error.message }
-
-    revalidatePath('/saas-admin')
-    return { success: true }
+    return updateTenantSubscription(id, { subscription_status: status })
 }
 
 export async function provisionTenant(formData: FormData) {
