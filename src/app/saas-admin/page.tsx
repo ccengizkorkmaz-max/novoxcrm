@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Users, Building2, AlertTriangle, CheckCircle, XCircle, Search } from "lucide-react"
-import { getAllTenants, updateTenantLimits, updateTenantStatus } from './actions'
+import { getAllTenants, updateTenantLimits, updateTenantStatus, provisionTenant } from './actions'
 import { useEffect } from 'react'
 import { format } from 'date-fns'
 import { tr } from 'date-fns/locale'
@@ -80,7 +80,6 @@ export default function SaasAdminPage() {
 
     async function handleCreateTenant(formData: FormData) {
         setSaving(true)
-        const { provisionTenant } = await import('./actions') // Dynamic import to avoid hydration matches
         const res = await provisionTenant(formData)
         setSaving(false)
 
