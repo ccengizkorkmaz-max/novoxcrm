@@ -55,5 +55,30 @@ export async function updateSession(request: NextRequest) {
         return NextResponse.redirect(url)
     }
 
+    if (user) {
+        // Fetch user profile to check role
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .single()
+
+        const isPortalPath = request.nextUrl.pathname.startsWith('/portal')
+
+        // If customer tries to access dashboard, redirect to portal
+        if (profile?.role === 'customer' && !isPortalPath && !request.nextUrl.pathname.startsWith('/auth')) {
+            const url = request.nextUrl.clone()
+            url.pathname = '/portal'
+            return NextResponse.redirect(url)
+        }
+
+        // If employee tries to access portal, redirect to dashboard (optional, but safer)
+        if (profile?.role !== 'customer' && isPortalPath) {
+            const url = request.nextUrl.clone()
+            url.pathname = '/'
+            return NextResponse.redirect(url)
+        }
+    }
+
     return response
 }
