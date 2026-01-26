@@ -427,3 +427,33 @@ export async function seedDefaultPaymentTemplates() {
 
     return { success: true }
 }
+export async function updateContractDeliveryDetails(id: string, deliveryStatus: string, titleDeedStatus: string) {
+    const supabase = await createClient()
+    try {
+        const { error } = await supabase
+            .from('contracts')
+            .update({
+                delivery_status: deliveryStatus,
+                title_deed_status: titleDeedStatus,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', id)
+
+        if (error) throw error
+
+        // Log activity
+        await logContractActivity(
+            supabase,
+            id,
+            'status_changed',
+            `Teslimat/Tapu durumları güncellendi. (Teslimat: ${deliveryStatus}, Tapu: ${titleDeedStatus})`,
+            { delivery_status: deliveryStatus, title_deed_status: titleDeedStatus }
+        )
+
+        revalidatePath(`/contracts/${id}`)
+        return { success: true }
+    } catch (error: any) {
+        console.error('Update Delivery Details Error:', error)
+        return { error: error.message }
+    }
+}

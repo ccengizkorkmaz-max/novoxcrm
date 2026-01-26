@@ -35,9 +35,51 @@ export async function createServiceRequest(formData: FormData) {
 
     if (error) {
         console.error('Create Service Request Error:', error)
-        return { error: 'Talep oluşturulurken bir hata oluştu.' }
+        return { error: `Hata: ${error.message}` }
     }
 
+    revalidatePath('/customerservices/service-requests')
+    return { success: true }
+}
+
+export async function sendRequestMessage(requestId: string, message: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    const { error } = await supabase
+        .from('service_request_messages')
+        .insert({
+            service_request_id: requestId,
+            sender_id: user.id,
+            message
+        })
+
+    if (error) {
+        console.error('Send Request Message Error:', error)
+        return { error: `Hata: ${error.message}` }
+    }
+
+    revalidatePath(`/customerservices/service-requests/${requestId}`)
+    return { success: true }
+}
+
+export async function updateServiceRequestStatus(requestId: string, status: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    const { error } = await supabase
+        .from('service_requests')
+        .update({ status, updated_at: new Date().toISOString() })
+        .eq('id', requestId)
+
+    if (error) {
+        console.error('Update Service Request Status Error:', error)
+        return { error: `Hata: ${error.message}` }
+    }
+
+    revalidatePath(`/customerservices/service-requests/${requestId}`)
     revalidatePath('/customerservices/service-requests')
     return { success: true }
 }

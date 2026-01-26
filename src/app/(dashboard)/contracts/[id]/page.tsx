@@ -23,6 +23,7 @@ import { BackButton } from '@/components/back-button'
 
 import { ContractStatusActions, IndividualPaymentAction, ContractLegalActions } from '@/components/contracts/contract-detail-actions'
 import { formatCurrency } from '@/lib/utils'
+import { ContractDeliveryManagement } from '@/components/contracts/contract-delivery-management'
 import { ContractDocumentUpload } from '@/components/contracts/contract-document-upload'
 import { uploadContractDocument } from './documents-actions'
 import { Download } from 'lucide-react'
@@ -307,6 +308,12 @@ export default async function ContractDetailPage({ params }: ContractPageProps) 
 
                 {/* Right Column: Actions / Legal */}
                 <div className="space-y-6">
+                    <ContractDeliveryManagement
+                        contractId={contract.id}
+                        initialDeliveryStatus={contract.delivery_status}
+                        initialTitleDeedStatus={contract.title_deed_status}
+                    />
+
                     <Card>
                         <CardHeader>
                             <CardTitle className="text-lg">Hukuki / İdari İşlemler</CardTitle>

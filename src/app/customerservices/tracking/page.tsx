@@ -14,19 +14,18 @@ export default async function PortalTracking() {
         .eq('id', user?.id)
         .single()
 
-    // Get contracts with delivery info
+    // Get contracts with delivery info via contract_customers link
     const { data: contracts } = await supabase
         .from('contracts')
         .select(`
             *,
-            sales!inner(
-                units!inner(
-                    unit_number,
-                    projects!inner(name)
-                )
+            contract_customers!inner(customer_id),
+            unit: units(
+                unit_number,
+                projects(name)
             )
         `)
-        .eq('sales.customer_id', profile?.customer_id)
+        .eq('contract_customers.customer_id', profile?.customer_id)
 
     return (
         <div className="space-y-8">
@@ -47,8 +46,8 @@ export default async function PortalTracking() {
                                     <Building2 className="h-5 w-5" />
                                 </div>
                                 <div>
-                                    <p className="font-semibold">{contract.sales.units.projects.name}</p>
-                                    <p className="text-xs text-slate-500">No: {contract.sales.units.unit_number}</p>
+                                    <p className="font-semibold">{contract.unit?.projects?.name}</p>
+                                    <p className="text-xs text-slate-500">No: {contract.unit?.unit_number}</p>
                                 </div>
                             </div>
                             <div className="pt-4 space-y-2">
@@ -59,7 +58,7 @@ export default async function PortalTracking() {
                                 <div className="flex justify-between text-sm">
                                     <span className="text-slate-500">Teslimat Durumu</span>
                                     <Badge variant="outline" className="text-blue-600 border-blue-100 bg-blue-50">
-                                        {contract.delivery_status}
+                                        {translateDeliveryStatus(contract.delivery_status)}
                                     </Badge>
                                 </div>
                             </div>
@@ -89,7 +88,7 @@ export default async function PortalTracking() {
                                 {/* Step 2: Title Deed Process */}
                                 <div className="relative flex items-start gap-6">
                                     <div className={`z-10 flex h-10 w-10 items-center justify-center rounded-full border-4 border-white ${contract.title_deed_status === 'Handed Over' ? 'bg-emerald-500 text-white' :
-                                            contract.title_deed_status === 'In Progress' ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'bg-slate-200 text-slate-400'
+                                        contract.title_deed_status === 'In Progress' ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'bg-slate-200 text-slate-400'
                                         }`}>
                                         <MapPin className="h-5 w-5" />
                                     </div>
@@ -107,7 +106,7 @@ export default async function PortalTracking() {
                                 {/* Step 3: Physical Delivery */}
                                 <div className="relative flex items-start gap-6">
                                     <div className={`z-10 flex h-10 w-10 items-center justify-center rounded-full border-4 border-white ${contract.delivery_status === 'Delivered' ? 'bg-emerald-500 text-white' :
-                                            contract.delivery_status === 'Ready' ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-400'
+                                        contract.delivery_status === 'Ready' ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-400'
                                         }`}>
                                         <Key className="h-5 w-5" />
                                     </div>
@@ -135,4 +134,24 @@ export default async function PortalTracking() {
             )}
         </div>
     )
+}
+
+function translateDeliveryStatus(status: string) {
+    const map: Record<string, string> = {
+        'Pending': 'Beklemede',
+        'In Progress': 'Hazırlanıyor',
+        'Ready': 'Teslime Hazır',
+        'Delivered': 'Teslim Edildi'
+    }
+    return map[status] || 'İnşaat Sürüyor'
+}
+
+function translateTitleDeedStatus(status: string) {
+    const map: Record<string, string> = {
+        'Pending': 'Hazırlık Aşamasında',
+        'In Progress': 'Başvuru Yapıldı',
+        'Ready': 'Tapu Hazır',
+        'Handed Over': 'Tapu Teslim Edildi'
+    }
+    return map[status] || 'Beklemede'
 }

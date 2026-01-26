@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { LayoutDashboard, Building2, Home, Users, FileText, LogOut, Menu, Settings, Package, Activity, CalendarCheck, Banknote } from 'lucide-react'
+import { LayoutDashboard, Building2, Home, Users, FileText, LogOut, Menu, Settings, Package, Activity, CalendarCheck, Banknote, MessageSquare } from 'lucide-react'
 
 
 
@@ -127,6 +127,13 @@ export default async function DashboardLayout({
                         >
                             <CalendarCheck className="h-4 w-4" />
                             Aktiviteler
+                        </Link>
+                        <Link
+                            href="/customer-support"
+                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
+                        >
+                            <MessageSquare className="h-4 w-4" />
+                            Servis Talepleri
                         </Link>
 
                         <div className="mt-4 mb-2 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
@@ -283,6 +290,13 @@ export default async function DashboardLayout({
                                 >
                                     <CalendarCheck className="h-5 w-5" />
                                     Aktiviteler
+                                </Link>
+                                <Link
+                                    href="/customer-support"
+                                    className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
+                                >
+                                    <MessageSquare className="h-5 w-5" />
+                                    Servis Talepleri
                                 </Link>
 
                                 <div className="px-2.5 py-4 text-xs font-bold uppercase tracking-wider text-muted-foreground/70">
