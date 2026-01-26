@@ -56,6 +56,16 @@ export default function EditUserForm({ user, onClose }: EditUserFormProps) {
                         <option value="admin">Admin</option>
                     </select>
                 </div>
+                <div className="space-y-2">
+                    <Label htmlFor="edit-password">Yeni Şifre (Opsiyonel)</Label>
+                    <Input
+                        id="edit-password"
+                        name="password"
+                        type="text"
+                        placeholder="Değiştirmek için doldurun"
+                        minLength={6}
+                    />
+                </div>
             </div>
             <DialogFooter>
                 <Button type="submit" disabled={isPending}>

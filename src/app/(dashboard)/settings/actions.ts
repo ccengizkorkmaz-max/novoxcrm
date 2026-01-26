@@ -238,14 +238,32 @@ export async function updateUser(userId: string, formData: FormData) {
 
     const full_name = formData.get('name') as string
     const role = formData.get('role') as string
+    const password = formData.get('password') as string
 
+    // 1. Update Profile
     const { error } = await supabase
         .from('profiles')
         .update({ full_name, role })
         .eq('id', userId)
 
     if (error) {
-        return { error: 'Güncelleme başarısız: ' + error.message }
+        return { error: 'Profil güncellenemedi: ' + error.message }
+    }
+
+    // 2. Update Password if provided
+    if (password && password.length >= 6) {
+        try {
+            const adminClient = createAdminClient()
+            const { error: passError } = await adminClient.auth.admin.updateUserById(userId, {
+                password: password
+            })
+
+            if (passError) throw passError
+        } catch (e: any) {
+            console.error('Password Update Error:', e)
+            // We don't fail the whole request if profile update worked, but ideally should warn
+            return { error: 'Profil güncellendi ancak şifre değiştirilemedi: ' + e.message }
+        }
     }
 
     revalidatePath('/settings')
