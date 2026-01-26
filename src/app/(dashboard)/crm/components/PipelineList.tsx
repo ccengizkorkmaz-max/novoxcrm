@@ -12,8 +12,8 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
-import { Calculator } from 'lucide-react'
-import { updateSaleStatus } from '../actions'
+import { Calculator, Sparkles, User } from 'lucide-react'
+import { updateSaleStatus, autoAssignLead } from '../actions'
 import PaymentPlanCalculator from './PaymentPlanCalculator'
 import MatchUnitDialog from './MatchUnitDialog'
 import PipelineReservationDialog from './PipelineReservationDialog'
@@ -37,9 +37,23 @@ export default function PipelineList({
     const [selectedSaleId, setSelectedSaleId] = useState<string | null>(null)
     const [isPlanOpen, setIsPlanOpen] = useState(false)
 
+    const [isAssigning, setIsAssigning] = useState<string | null>(null)
+
     const handlePlanClick = (saleId: string) => {
         setSelectedSaleId(saleId)
         setIsPlanOpen(true)
+    }
+
+    const handleAutoAssign = async (saleId: string) => {
+        setIsAssigning(saleId)
+        const result = await autoAssignLead(saleId)
+        setIsAssigning(null)
+
+        if (result.error) {
+            toast.error(result.error)
+        } else {
+            toast.success('Satış başarıyla atandı.')
+        }
     }
 
     const handleStatusChange = async (id: string, newStatus: string) => {
@@ -57,6 +71,7 @@ export default function PipelineList({
                             <TableHead className="w-[240px]">Durum</TableHead>
                             <TableHead className="w-[120px]">Tarih</TableHead>
                             <TableHead className="w-[140px] text-right">Tutar</TableHead>
+                            <TableHead className="min-w-[150px]">Temsilci</TableHead>
                             <TableHead className="min-w-[180px] text-right">İşlemler</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -111,6 +126,33 @@ export default function PipelineList({
                                                     formatCurrency(sale.units.price, sale.units.currency)
                                                     : '-'
                                             }
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex items-center gap-2">
+                                                {sale.profiles?.full_name ? (
+                                                    <div className="flex items-center gap-2 text-sm">
+                                                        <User className="w-3 h-3 text-muted-foreground" />
+                                                        <span className={isCompleted ? 'text-white' : ''}>{sale.profiles.full_name}</span>
+                                                    </div>
+                                                ) : (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-7 text-blue-600 hover:text-blue-700 hover:bg-blue-50 text-[11px] px-2 border border-blue-100 dashed"
+                                                        onClick={() => handleAutoAssign(sale.id)}
+                                                        disabled={isAssigning === sale.id || !sale.units?.projects?.id}
+                                                        title={!sale.units?.projects?.id ? "Önce bir ünite/proje seçilmelidir" : "Ekibe otomatik ata"}
+                                                    >
+                                                        {isAssigning === sale.id ? (
+                                                            "Atanıyor..."
+                                                        ) : (
+                                                            <>
+                                                                <Sparkles className="w-3 h-3 mr-1" /> Otomatik Ata
+                                                            </>
+                                                        )}
+                                                    </Button>
+                                                )}
+                                            </div>
                                         </TableCell>
                                         <TableCell className="text-right">
                                             {!isCompleted && (

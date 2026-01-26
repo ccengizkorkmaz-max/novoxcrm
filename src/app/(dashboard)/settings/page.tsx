@@ -6,19 +6,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { updateTenantProfile, inviteUser } from './actions'
+import { updateTenantProfile } from './actions'
 import { FormImageUpload } from '@/components/ui/form-image-upload'
-import { Building2, Users, Mail, FileText } from 'lucide-react'
+import { Building2, Users, FileText } from 'lucide-react'
+import UserManagementHeader from './components/UserManagementHeader'
+import UserTableActions from './components/UserTableActions'
+import TenantProfileForm from './components/TenantProfileForm'
 import { PaymentTemplatesTab } from './templates/payment-templates-tab'
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from "@/components/ui/dialog"
+
 
 export default async function SettingsPage() {
     const supabase = await createClient()
@@ -26,21 +21,34 @@ export default async function SettingsPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return <div>Unauthorized</div>
 
-    // Get tenant info
-    const { data: profile } = await supabase
+    // 1. Get profile (Simple query, no join)
+    const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('tenant_id, tenants(name, logo_url)')
+        .select('tenant_id, role, full_name, email')
         .eq('id', user.id)
         .single()
 
-    const tenant = profile?.tenants as any
+    if (profileError || !profile?.tenant_id) {
+        return (
+            <div className="p-4 border border-red-200 bg-red-50 text-red-700 rounded-md">
+                <h2 className="font-bold">Hata</h2>
+                <p>Oturum bilgileriniz yüklenemedi. Lütfen tekrar giriş yapın.</p>
+            </div>
+        )
+    }
 
-    // Get all users in tenant
+    // 2. Get tenant (Separate simple query)
+    const { data: tenant } = await supabase
+        .from('tenants')
+        .select('*')
+        .eq('id', profile.tenant_id)
+        .single()
+
+    // 3. Get all users in tenant (Simple query)
     const { data: users } = await supabase
         .from('profiles')
         .select('id, full_name, email, role, created_at')
-        .select('id, full_name, email, role, created_at')
-        .eq('tenant_id', profile?.tenant_id)
+        .eq('tenant_id', profile.tenant_id)
         .order('created_at', { ascending: false })
 
     // Get templates
@@ -48,6 +56,9 @@ export default async function SettingsPage() {
         .from('payment_plan_templates')
         .select('*')
         .order('created_at', { ascending: false })
+
+
+
 
     return (
         <div className="flex flex-col gap-6">
@@ -82,33 +93,13 @@ export default async function SettingsPage() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <form action={async (formData) => { await updateTenantProfile(formData) }} className="space-y-6">
-                                <div className="space-y-2">
-                                    <Label htmlFor="name">Firma Adı</Label>
-                                    <Input
-                                        id="name"
-                                        name="name"
-                                        defaultValue={tenant?.name}
-                                        placeholder="Örn: ABC Gayrimenkul"
-                                        required
-                                    />
+                            {tenant ? (
+                                <TenantProfileForm tenant={tenant} />
+                            ) : (
+                                <div className="p-4 border border-yellow-200 bg-yellow-50 text-yellow-700 rounded-md">
+                                    <p>Şirket bilgileri yüklenemedi. Lütfen RLS yetkilerini kontrol edin.</p>
                                 </div>
-
-                                <div className="space-y-2">
-                                    <Label>Firma Logosu</Label>
-                                    <FormImageUpload
-                                        name="logo_url"
-                                        defaultValue={tenant?.logo_url}
-                                    />
-                                    <p className="text-xs text-muted-foreground">
-                                        Logo, raporlarda ve teklif belgelerinde görünecektir.
-                                    </p>
-                                </div>
-
-                                <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
-                                    Değişiklikleri Kaydet
-                                </Button>
-                            </form>
+                            )}
                         </CardContent>
                     </Card>
                 </TabsContent>
@@ -116,56 +107,7 @@ export default async function SettingsPage() {
                 {/* User Management Tab */}
                 <TabsContent value="users" className="space-y-4">
                     <Card>
-                        <CardHeader className="flex flex-row items-center justify-between">
-                            <div>
-                                <CardTitle>Kullanıcı Yönetimi</CardTitle>
-                                <CardDescription>
-                                    Firmadaki tüm kullanıcıları görüntüleyin ve yeni kullanıcı davet edin.
-                                </CardDescription>
-                            </div>
-                            <Dialog>
-                                <DialogTrigger asChild>
-                                    <Button className="bg-blue-600 hover:bg-blue-700">
-                                        <Mail className="w-4 h-4 mr-2" />
-                                        Kullanıcı Davet Et
-                                    </Button>
-                                </DialogTrigger>
-                                <DialogContent>
-                                    <DialogHeader>
-                                        <DialogTitle>Yeni Kullanıcı Davet Et</DialogTitle>
-                                        <DialogDescription>
-                                            Kullanıcıya e-posta ile davetiye gönderilecektir.
-                                        </DialogDescription>
-                                    </DialogHeader>
-                                    <form action={async (formData) => { await inviteUser(formData) }}>
-                                        <div className="grid gap-4 py-4">
-                                            <div className="space-y-2">
-                                                <Label htmlFor="invite-name">Ad Soyad</Label>
-                                                <Input id="invite-name" name="name" placeholder="Ahmet Yılmaz" required />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Label htmlFor="invite-email">E-posta</Label>
-                                                <Input id="invite-email" name="email" type="email" placeholder="ahmet@example.com" required />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Label htmlFor="invite-role">Rol</Label>
-                                                <select
-                                                    id="invite-role"
-                                                    name="role"
-                                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                                >
-                                                    <option value="user">Kullanıcı</option>
-                                                    <option value="admin">Admin</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                        <DialogFooter>
-                                            <Button type="submit">Davet Gönder</Button>
-                                        </DialogFooter>
-                                    </form>
-                                </DialogContent>
-                            </Dialog>
-                        </CardHeader>
+                        <UserManagementHeader />
                         <CardContent>
                             <Table>
                                 <TableHeader>
@@ -174,27 +116,35 @@ export default async function SettingsPage() {
                                         <TableHead>E-posta</TableHead>
                                         <TableHead>Rol</TableHead>
                                         <TableHead>Kayıt Tarihi</TableHead>
+                                        <TableHead className="w-[50px]"></TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {users && users.length > 0 ? (
-                                        users.map((u: any) => (
-                                            <TableRow key={u.id}>
-                                                <TableCell className="font-medium">{u.full_name || '-'}</TableCell>
-                                                <TableCell>{u.email}</TableCell>
-                                                <TableCell>
-                                                    <Badge variant={u.role === 'admin' ? 'default' : 'secondary'}>
-                                                        {u.role === 'admin' ? 'Admin' : 'Kullanıcı'}
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell>
-                                                    {new Date(u.created_at).toLocaleDateString('tr-TR')}
-                                                </TableCell>
-                                            </TableRow>
-                                        ))
-                                    ) : (
+                                    {users?.map((u: any) => (
+                                        <TableRow key={u.id}>
+                                            <TableCell className="font-medium">{u.full_name}</TableCell>
+                                            <TableCell>{u.email}</TableCell>
+                                            <TableCell>
+                                                <Badge
+                                                    variant={u.role === 'admin' || u.role === 'owner' ? 'default' : 'secondary'}
+                                                    className="capitalize"
+                                                >
+                                                    {u.role === 'admin' ? 'Admin' :
+                                                        u.role === 'owner' ? 'Sahip' :
+                                                            u.role === 'manager' ? 'Yönetici' : 'Kullanıcı'}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell>
+                                                {new Date(u.created_at).toLocaleDateString('tr-TR')}
+                                            </TableCell>
+                                            <TableCell>
+                                                <UserTableActions user={u} />
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                    {!users || users.length === 0 && (
                                         <TableRow>
-                                            <TableCell colSpan={4} className="text-center h-24 text-muted-foreground">
+                                            <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">
                                                 Kullanıcı bulunamadı.
                                             </TableCell>
                                         </TableRow>

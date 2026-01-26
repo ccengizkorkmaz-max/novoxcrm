@@ -85,7 +85,7 @@ export default async function InventoryPage({
     const { data: units } = await query
 
     return (
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-6 w-full overflow-hidden">
             <InventoryStats units={units || []} />
             <div className="flex items-center gap-4">
                 <h1 className="text-2xl font-bold tracking-tight">Stok Yönetimi</h1>

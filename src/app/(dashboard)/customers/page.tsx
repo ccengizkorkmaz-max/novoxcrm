@@ -7,7 +7,7 @@ export default async function CustomersPage() {
     // Fetch Customers with Demands
     const { data: customers } = await supabase
         .from('customers')
-        .select('*, customer_demands(*)')
+        .select('*, customer_demands(*), contract_customers(id)')
         .order('created_at', { ascending: false })
 
     return (

@@ -67,6 +67,8 @@ export default function CustomerDemands({ customerId, demand, onClose }: Custome
                             <SelectItem value="Apartment">Daire</SelectItem>
                             <SelectItem value="Villa">Villa</SelectItem>
                             <SelectItem value="Office">Ofis</SelectItem>
+                            <SelectItem value="Shop">Dükkan</SelectItem>
+                            <SelectItem value="Commercial">Ticari Alan</SelectItem>
                             <SelectItem value="Land">Arsa</SelectItem>
                         </SelectContent>
                     </Select>

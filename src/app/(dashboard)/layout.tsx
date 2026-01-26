@@ -63,6 +63,13 @@ export default async function DashboardLayout({
                             Müşteriler
                         </Link>
                         <Link
+                            href="/teams"
+                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
+                        >
+                            <Users className="h-4 w-4" />
+                            Satış Ekipleri
+                        </Link>
+                        <Link
                             href="/crm"
                             className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
                         >
@@ -104,6 +111,39 @@ export default async function DashboardLayout({
                             <CalendarCheck className="h-4 w-4" />
                             Aktiviteler
                         </Link>
+
+                        <div className="mt-4 mb-2 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
+                            Raporlar
+                        </div>
+                        <Link
+                            href="/reports/sales"
+                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
+                        >
+                            <Activity className="h-4 w-4" />
+                            Satış Performansı
+                        </Link>
+                        <Link
+                            href="/reports/inventory"
+                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
+                        >
+                            <Building2 className="h-4 w-4" />
+                            Stok & Proje Analizi
+                        </Link>
+                        <Link
+                            href="/reports/finance"
+                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
+                        >
+                            <Banknote className="h-4 w-4" />
+                            Finansal Analiz
+                        </Link>
+                        <Link
+                            href="/reports/activities"
+                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
+                        >
+                            <CalendarCheck className="h-4 w-4" />
+                            Saha & Ekip Verimliliği
+                        </Link>
+
                         <Link
                             href="/settings"
                             className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
@@ -132,7 +172,7 @@ export default async function DashboardLayout({
             </aside>
 
             {/* Main Content */}
-            <div className="flex flex-col sm:gap-4 sm:py-4 sm:pl-64 print:pl-0">
+            <div className="flex-1 min-w-0 flex flex-col sm:gap-4 sm:py-4 sm:pl-64 print:pl-0">
                 <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 sm:hidden print:hidden">
                     <Sheet>
                         <SheetTrigger asChild>
@@ -179,6 +219,13 @@ export default async function DashboardLayout({
                                     Müşteriler
                                 </Link>
                                 <Link
+                                    href="/teams"
+                                    className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
+                                >
+                                    <Users className="h-5 w-5" />
+                                    Satış Ekipleri
+                                </Link>
+                                <Link
                                     href="/crm"
                                     className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
                                 >
@@ -220,6 +267,39 @@ export default async function DashboardLayout({
                                     <CalendarCheck className="h-5 w-5" />
                                     Aktiviteler
                                 </Link>
+
+                                <div className="px-2.5 py-4 text-xs font-bold uppercase tracking-wider text-muted-foreground/70">
+                                    Raporlar
+                                </div>
+                                <Link
+                                    href="/reports/sales"
+                                    className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground pl-6"
+                                >
+                                    <Activity className="h-5 w-5" />
+                                    Satış Performansı
+                                </Link>
+                                <Link
+                                    href="/reports/inventory"
+                                    className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground pl-6"
+                                >
+                                    <Building2 className="h-5 w-5" />
+                                    Stok & Proje Analizi
+                                </Link>
+                                <Link
+                                    href="/reports/finance"
+                                    className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground pl-6"
+                                >
+                                    <Banknote className="h-5 w-5" />
+                                    Finansal Analiz
+                                </Link>
+                                <Link
+                                    href="/reports/activities"
+                                    className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground pl-6"
+                                >
+                                    <CalendarCheck className="h-5 w-5" />
+                                    Saha & Ekip Verimliliği
+                                </Link>
+
                                 <Link
                                     href="/settings"
                                     className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"

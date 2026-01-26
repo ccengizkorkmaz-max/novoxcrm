@@ -76,7 +76,7 @@ export async function createCustomer(formData: FormData) {
                     await supabase.from('sales').insert({
                         tenant_id: profile?.tenant_id,
                         customer_id: data.id,
-                        assigned_to: user.id,
+                        assigned_to: null,
                         status: 'Lead',
                         unit_id: null
                     })
@@ -161,7 +161,7 @@ export async function createSale(formData: FormData) {
         tenant_id: profile?.tenant_id,
         customer_id,
         unit_id,
-        assigned_to: user?.id,
+        assigned_to: null,
         status: unit_id ? 'Prospect' : 'Lead'
     })
 
@@ -757,7 +757,7 @@ export async function saveCustomerDemand(formData: FormData) {
         await supabase.from('sales').insert({
             tenant_id: profile?.tenant_id,
             customer_id: customer_id,
-            assigned_to: user.id,
+            assigned_to: null,
             status: 'Lead',
             unit_id: null
         })
@@ -893,5 +893,96 @@ export async function approveOfferDirectly(offerId: string) {
         console.error('Approve Offer Error:', error)
         return { error: error.message || 'Teklif onaylanırken bir hata oluştu' }
     }
+}
+
+export async function autoAssignLead(saleId: string) {
+    const supabase = await createClient()
+
+    // 1. Get Sale info with Project
+    const { data: sale, error: saleError } = await supabase
+        .from('sales')
+        .select(`
+            id,
+            tenant_id,
+            unit_id,
+            units(project_id)
+        `)
+        .eq('id', saleId)
+        .single()
+
+    if (saleError || !sale) return { error: 'Satış kaydı bulunamadı' }
+
+    const projectId = (sale.units as any)?.project_id
+
+    if (!projectId) {
+        return { error: 'Bu işlem için satış kaydının bir ünite veya proje ile eşleşmiş olması gerekir.' }
+    }
+
+    // 2. Find Sales Teams assigned to this project
+    const { data: teamAssignments, error: teamError } = await supabase
+        .from('team_project_assignments')
+        .select('team_id')
+        .eq('project_id', projectId)
+
+    if (teamError || !teamAssignments || teamAssignments.length === 0) {
+        return { error: 'Bu projeye atanmış herhangi bir satış ekibi bulunamadı. Lider paneli -> Ekipler kısmından atama yapmalısınız.' }
+    }
+
+    const teamIds = teamAssignments.map(a => a.team_id)
+
+    // 3. Get all members of these teams
+    const { data: members, error: memberError } = await supabase
+        .from('team_members')
+        .select('profile_id')
+        .in('team_id', teamIds)
+
+    if (memberError || !members || members.length === 0) {
+        return { error: 'Atanmış ekiplerde üye bulunamadı.' }
+    }
+
+    const profileIds = Array.from(new Set(members.map(m => m.profile_id)))
+
+    // 4. Calculate current load for each member (active sales count)
+    const { data: loadCounts, error: loadError } = await supabase
+        .from('sales')
+        .select('assigned_to')
+        .in('assigned_to', profileIds)
+        .not('status', 'in', '("Sold", "Lost", "Completed", "Contract")')
+
+    if (loadError) return { error: 'Yük analizi yapılamadı: ' + loadError.message }
+
+    // Count appearances
+    const counts = profileIds.reduce((acc, id) => {
+        acc[id] = 0
+        return acc
+    }, {} as Record<string, number>)
+
+    loadCounts.forEach(s => {
+        if (s.assigned_to) {
+            counts[s.assigned_to] = (counts[s.assigned_to] || 0) + 1
+        }
+    })
+
+    // 5. Pick the member with the minimum load
+    let bestMemberId = profileIds[0]
+    let minLoad = counts[bestMemberId]
+
+    profileIds.forEach(id => {
+        if (counts[id] < minLoad) {
+            minLoad = counts[id]
+            bestMemberId = id
+        }
+    })
+
+    // 6. Assign
+    const { error: updateError } = await supabase
+        .from('sales')
+        .update({ assigned_to: bestMemberId })
+        .eq('id', saleId)
+
+    if (updateError) return { error: 'Atama yapılamadı: ' + updateError.message }
+
+    revalidatePath('/crm')
+    return { success: true, assignedToId: bestMemberId }
 }
 

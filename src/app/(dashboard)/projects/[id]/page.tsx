@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
@@ -11,7 +11,7 @@ import { updateProject, batchCreateUnits } from './actions'
 import { uploadDocument, deleteDocument } from './documents-actions'
 import { importUnitsFromExcel } from './import-actions'
 import { deleteUnit } from '../../inventory/[id]/actions'
-import { Globe, ExternalLink, MapPin, FileText, Download, Trash2, Home } from 'lucide-react'
+import { Globe, ExternalLink, MapPin, FileText, Download, Trash2, Home, Users } from 'lucide-react'
 import Link from 'next/link'
 import { FormImageUpload } from '@/components/ui/form-image-upload'
 import { LocationPicker } from '@/components/location-picker'
@@ -38,13 +38,44 @@ export default async function ProjectDetailPage({
     const { tab } = await searchParams
     const activeTab = tab || 'info'
 
-    const { data: project } = await supabase
+    // Fetch project
+    const { data: project, error: projectError } = await supabase
         .from('projects')
         .select('*')
         .eq('id', id)
         .single()
 
-    if (!project) return <div>Proje bulunamadı.</div>
+    if (projectError || !project) {
+        return (
+            <div className="p-8 text-center border border-red-200 bg-red-50 rounded-lg text-red-700">
+                <h2 className="text-xl font-bold mb-2">Proje Yüklenemedi</h2>
+                <p>{projectError?.message || 'Proje bulunamadı.'}</p>
+                <Link href="/projects" className="mt-4 inline-block">
+                    <Button variant="outline">Listeye Dön</Button>
+                </Link>
+            </div>
+        )
+    }
+
+    // Fetch teams separately (Safe fetch)
+    const { data: teamAssignments, error: teamsError } = await supabase
+        .from('team_project_assignments')
+        .select(`
+            sales_teams(
+                id,
+                name,
+                region,
+                office_name,
+                team_members(
+                    profiles(full_name, role)
+                )
+            )
+        `)
+        .eq('project_id', id)
+
+    if (teamsError) {
+        console.warn('Teams could not be fetched (schema might be missing):', teamsError.message)
+    }
 
     // Fetch project documents
     const { data: documents, error: docsError } = await supabase
@@ -75,6 +106,21 @@ export default async function ProjectDetailPage({
         .eq('project_id', id)
         .order('unit_number', { ascending: true })
 
+    async function handleUpdateProject(formData: FormData) {
+        'use server'
+        await updateProject(formData)
+    }
+
+    async function handleDeleteUnit(unitId: string) {
+        'use server'
+        await deleteUnit(unitId, id)
+    }
+
+    async function handleDeleteDocument(docId: string) {
+        'use server'
+        await deleteDocument(docId, id)
+    }
+
     return (
         <div className="flex flex-col gap-6">
             <div className="flex items-center justify-between">
@@ -101,14 +147,15 @@ export default async function ProjectDetailPage({
                             <Badge variant="secondary" className="ml-2">{documents.length}</Badge>
                         )}
                     </TabsTrigger>
+                    <TabsTrigger value="teams">
+                        <Users className="w-4 h-4 mr-2" />
+                        Satış Ekipleri
+                    </TabsTrigger>
                 </TabsList>
 
                 {/* Project Info Tab */}
                 <TabsContent value="info" className="space-y-6">
-                    <form action={async (formData) => {
-                        "use server"
-                        await updateProject(formData)
-                    }}>
+                    <form action={handleUpdateProject}>
                         <input type="hidden" name="id" value={project.id} />
 
                         <Card>
@@ -319,10 +366,7 @@ export default async function ProjectDetailPage({
                                                         <Link href={`/inventory/${unit.id}`}>
                                                             <Button size="sm" variant="outline">Detay</Button>
                                                         </Link>
-                                                        <form action={async () => {
-                                                            "use server"
-                                                            await deleteUnit(unit.id, project.id)
-                                                        }}>
+                                                        <form action={handleDeleteUnit.bind(null, unit.id)}>
                                                             <Button size="sm" variant="ghost" type="submit">
                                                                 <Trash2 className="h-4 w-4 text-destructive" />
                                                             </Button>
@@ -386,10 +430,7 @@ export default async function ProjectDetailPage({
                                                                 <Download className="h-4 w-4" />
                                                             </Button>
                                                         </Link>
-                                                        <form action={async () => {
-                                                            "use server"
-                                                            await deleteDocument(doc.id, project.id)
-                                                        }}>
+                                                        <form action={handleDeleteDocument.bind(null, doc.id)}>
                                                             <Button size="sm" variant="destructive" type="submit">
                                                                 <Trash2 className="h-4 w-4" />
                                                             </Button>
@@ -409,6 +450,48 @@ export default async function ProjectDetailPage({
                             </Table>
                         </CardContent>
                     </Card>
+                </TabsContent>
+
+                {/* Teams Tab */}
+                <TabsContent value="teams" className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {teamAssignments?.map((assignment: any) => (
+                            <Card key={assignment.sales_teams.id}>
+                                <CardHeader>
+                                    <div className="flex items-center justify-between">
+                                        <CardTitle className="text-lg">{assignment.sales_teams.name}</CardTitle>
+                                        <Badge variant="outline">{assignment.sales_teams.region || 'Genel'}</Badge>
+                                    </div>
+                                    <CardDescription>{assignment.sales_teams.office_name}</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="space-y-2">
+                                        <h4 className="text-sm font-medium flex items-center gap-2">
+                                            <Users className="w-4 h-4" /> Ekip Üyeleri
+                                        </h4>
+                                        <div className="flex flex-wrap gap-1">
+                                            {assignment.sales_teams.team_members?.map((member: any, idx: number) => (
+                                                <Badge key={idx} variant="secondary">
+                                                    {member.profiles.full_name}
+                                                </Badge>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ))}
+                        {(!teamAssignments || teamAssignments.length === 0) && (
+                            <Card className="col-span-full border-dashed">
+                                <CardContent className="flex flex-col items-center justify-center p-12 text-muted-foreground">
+                                    <Users className="w-12 h-12 mb-4 opacity-20" />
+                                    <p>Bu projeye henüz bir satış ekibi atanmamış.</p>
+                                    <Link href="/teams" className="mt-4">
+                                        <Button variant="outline">Ekipleri Yönet</Button>
+                                    </Link>
+                                </CardContent>
+                            </Card>
+                        )}
+                    </div>
                 </TabsContent>
             </Tabs>
         </div>

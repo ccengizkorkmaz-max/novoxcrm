@@ -68,8 +68,8 @@ export function CustomerView({ customer, activities, contracts = [] }: CustomerV
         <div className="flex flex-col gap-6">
             <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-bold tracking-tight">{customer.full_name}</h1>
-                <Badge variant={customer.customer_demands?.length ? 'default' : 'secondary'}>
-                    {customer.customer_demands?.length ? 'Lead' : 'Kontak'}
+                <Badge className={contracts.length > 0 ? 'bg-blue-600' : customer.customer_demands?.length ? 'bg-green-600' : ''} variant={contracts.length > 0 || customer.customer_demands?.length ? 'default' : 'secondary'}>
+                    {contracts.length > 0 ? 'Müşteri' : customer.customer_demands?.length ? 'Lead' : 'Kontak'}
                 </Badge>
             </div>
 

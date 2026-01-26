@@ -30,6 +30,7 @@ interface Customer {
     source: string
     created_at: string
     customer_demands?: any[]
+    contract_customers?: any[]
 }
 
 export default function CustomerList({ customers }: { customers: Customer[] }) {
@@ -52,7 +53,7 @@ export default function CustomerList({ customers }: { customers: Customer[] }) {
 
     return (
         <div className="space-y-4">
-            <div className="flex justify-end">
+            <div className="flex justify-start">
                 <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
                     <DialogTrigger asChild>
                         <Button variant="outline">
@@ -138,6 +139,8 @@ export default function CustomerList({ customers }: { customers: Customer[] }) {
                                                         <SelectItem value="Apartment">Daire</SelectItem>
                                                         <SelectItem value="Villa">Villa</SelectItem>
                                                         <SelectItem value="Office">Ofis</SelectItem>
+                                                        <SelectItem value="Shop">Dükkan</SelectItem>
+                                                        <SelectItem value="Commercial">Ticari Alan</SelectItem>
                                                         <SelectItem value="Land">Arsa</SelectItem>
                                                     </SelectContent>
                                                 </Select>
@@ -196,7 +199,9 @@ export default function CustomerList({ customers }: { customers: Customer[] }) {
                                     <TableCell>{c.email}</TableCell>
                                     <TableCell>{c.source}</TableCell>
                                     <TableCell>
-                                        {c.customer_demands && c.customer_demands.length > 0 ? (
+                                        {c.contract_customers && c.contract_customers.length > 0 ? (
+                                            <Badge className="bg-blue-600">Müşteri</Badge>
+                                        ) : c.customer_demands && c.customer_demands.length > 0 ? (
                                             <Badge className="bg-green-600">Lead</Badge>
                                         ) : (
                                             <Badge variant="secondary">Kontak</Badge>

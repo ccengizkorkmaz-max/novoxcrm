@@ -20,11 +20,32 @@ import Image from 'next/image'
 export default async function ProjectsPage() {
     const supabase = await createClient()
 
+    const { data: { user } } = await supabase.auth.getUser()
+
+    // Get profile to check tenant
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', user?.id)
+        .single()
+
     // Get projects for this user's tenant
-    const { data: projects } = await supabase
+    const { data: projects, error } = await supabase
         .from('projects')
         .select('*')
         .order('created_at', { ascending: false })
+
+    console.log('Projects Page - Debug:', {
+        userId: user?.id,
+        tenantId: profile?.tenant_id,
+        projectsCount: projects?.length,
+        error
+    })
+
+    async function handleCreateProject(formData: FormData) {
+        'use server'
+        await createProject(formData)
+    }
 
     const statusMap: Record<string, string> = {
         'Active': 'Satışa AÇIK',
@@ -49,10 +70,7 @@ export default async function ProjectsPage() {
                                 Projenize bir isim verin ve konumunu belirtin.
                             </DialogDescription>
                         </DialogHeader>
-                        <form action={async (formData) => {
-                            "use server"
-                            await createProject(formData)
-                        }}>
+                        <form action={handleCreateProject}>
                             <div className="grid gap-4 py-4">
                                 <div className="grid grid-cols-4 items-center gap-4">
                                     <Label htmlFor="name" className="text-right">
@@ -75,8 +93,18 @@ export default async function ProjectsPage() {
                 </Dialog>
             </div>
 
-            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-                {projects && projects.length > 0 ? (
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6">
+                {error ? (
+                    <div className="col-span-full p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+                        <p className="font-medium">Hata oluştu:</p>
+                        <p className="text-sm">{error.message}</p>
+                    </div>
+                ) : !profile?.tenant_id ? (
+                    <div className="col-span-full p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-700">
+                        <p className="font-medium">Tenant Bulunamadı</p>
+                        <p className="text-sm">Hesabınıza atanmış bir firma (tenant) bulunamadı. Lütfen yönetici ile iletişime geçin.</p>
+                    </div>
+                ) : projects && projects.length > 0 ? (
                     projects.map((project: any) => (
                         <Card key={project.id} className="overflow-hidden">
                             {project.image_url && (

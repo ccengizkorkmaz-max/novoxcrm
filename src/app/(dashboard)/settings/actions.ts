@@ -16,7 +16,10 @@ export async function updateTenantProfile(formData: FormData) {
         .eq('id', user.id)
         .single()
 
-    if (!profile?.tenant_id) return { error: 'No tenant found' }
+    if (!profile?.tenant_id) {
+        console.error('updateTenantProfile: No tenant found for user', user.id)
+        return { error: 'No tenant found' }
+    }
 
     const updates = {
         name: formData.get('name') as string,
@@ -37,7 +40,9 @@ export async function updateTenantProfile(formData: FormData) {
     return { success: true }
 }
 
-export async function inviteUser(formData: FormData) {
+import { createAdminClient } from '@/lib/supabase/admin'
+
+export async function addUser(formData: FormData) {
     const supabase = await createClient()
 
     const { data: { user } } = await supabase.auth.getUser()
@@ -50,23 +55,46 @@ export async function inviteUser(formData: FormData) {
         .eq('id', user.id)
         .single()
 
-    if (!profile?.tenant_id) return { error: 'No tenant found' }
+    if (!profile?.tenant_id) {
+        console.error('addUser: No tenant found for user', user.id)
+        return { error: 'No tenant found' }
+    }
 
     const email = formData.get('email') as string
     const name = formData.get('name') as string
+    const password = formData.get('password') as string
     const role = formData.get('role') as string || 'user'
 
-    // For MVP: We'll create a simplified invitation
-    // In production, you'd use Supabase Auth Admin API to send invite emails
-    // For now, we'll just create a profile entry (user must sign up separately)
+    if (!password || password.length < 6) {
+        return { error: 'Şifre en az 6 karakter olmalıdır.' }
+    }
 
-    // Note: This is a simplified approach. In production, use:
-    // const { data, error } = await supabase.auth.admin.inviteUserByEmail(email)
+    try {
+        const adminClient = createAdminClient()
 
-    // For now, just return success with a message
-    return {
-        success: true,
-        message: `Invitation prepared for ${email}. User must sign up with this email.`
+        const { data, error } = await adminClient.auth.admin.createUser({
+            email,
+            password,
+            email_confirm: true,
+            user_metadata: {
+                full_name: name,
+                role: role,
+                tenant_id: profile.tenant_id
+            }
+        })
+
+        if (error) {
+            console.error('Create User Error:', error)
+            return { error: `Kullanıcı oluşturulamadı: ${error.message}` }
+        }
+
+        revalidatePath('/settings')
+        return { success: true }
+    } catch (e: any) {
+        if (e.message.includes('SUPABASE_SERVICE_ROLE_KEY')) {
+            return { error: 'Sistem hatası: SUPABASE_SERVICE_ROLE_KEY tanımlanmamış. Lütfen yöneticiye başvurun.' }
+        }
+        return { error: 'Bir hata oluştu: ' + e.message }
     }
 }
 
@@ -152,6 +180,72 @@ export async function updatePaymentPlanTemplate(formData: FormData) {
     if (error) {
         console.error('Update Template Error:', error)
         return { error: 'Failed to update template' }
+    }
+
+    revalidatePath('/settings')
+    return { success: true }
+}
+
+export async function deleteUser(userId: string) {
+    const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    // Check if user is owner/admin
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+
+    if (!profile || !['owner', 'admin'].includes(profile.role)) {
+        return { error: 'Bu işlem için yetkiniz yok.' }
+    }
+
+    // Protect self-deletion
+    if (userId === user.id) {
+        return { error: 'Kendi hesabınızı buradan silemezsiniz.' }
+    }
+
+    try {
+        const adminClient = createAdminClient()
+
+        // 1. Delete from Auth
+        const { error: authError } = await adminClient.auth.admin.deleteUser(userId)
+        if (authError) throw authError
+
+        // 2. Delete from Profiles
+        const { error: profError } = await supabase
+            .from('profiles')
+            .delete()
+            .eq('id', userId)
+
+        if (profError) console.error('Profile cleanup error:', profError)
+
+        revalidatePath('/settings')
+        return { success: true }
+    } catch (e: any) {
+        return { error: 'Silme işlemi başarısız: ' + e.message }
+    }
+}
+
+export async function updateUser(userId: string, formData: FormData) {
+    const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    const full_name = formData.get('name') as string
+    const role = formData.get('role') as string
+
+    const { error } = await supabase
+        .from('profiles')
+        .update({ full_name, role })
+        .eq('id', userId)
+
+    if (error) {
+        return { error: 'Güncelleme başarısız: ' + error.message }
     }
 
     revalidatePath('/settings')
