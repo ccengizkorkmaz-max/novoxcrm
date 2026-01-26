@@ -28,6 +28,8 @@ interface Customer {
     phone: string
     email: string
     source: string
+    portal_username?: string
+    portal_password?: string
     created_at: string
     customer_demands?: any[]
     contract_customers?: any[]
@@ -90,6 +92,19 @@ export default function CustomerList({ customers }: { customers: Customer[] }) {
                                         <div className="grid gap-2">
                                             <Label>Kaynak</Label>
                                             <Input name="source" placeholder="Örn: Sahibinden, Referans" />
+                                        </div>
+                                        <div className="pt-2 border-t mt-2">
+                                            <Label className="text-blue-600 font-bold text-xs uppercase">Portal Erişimi (Opsiyonel)</Label>
+                                            <div className="grid grid-cols-2 gap-4 mt-2">
+                                                <div className="grid gap-2">
+                                                    <Label className="text-xs">Kullanıcı Adı</Label>
+                                                    <Input name="portal_username" placeholder="Kullanıcı adı" />
+                                                </div>
+                                                <div className="grid gap-2">
+                                                    <Label className="text-xs">Şifre</Label>
+                                                    <Input name="portal_password" type="password" placeholder="Şifre" />
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </TabsContent>
@@ -259,6 +274,19 @@ export default function CustomerList({ customers }: { customers: Customer[] }) {
                                         <div className="grid gap-2">
                                             <Label>Kaynak</Label>
                                             <Input name="source" defaultValue={editingCustomer.source} />
+                                        </div>
+                                        <div className="pt-2 border-t mt-2">
+                                            <Label className="text-blue-600 font-bold text-xs uppercase">Portal Erişimi</Label>
+                                            <div className="grid grid-cols-2 gap-4 mt-2">
+                                                <div className="grid gap-2">
+                                                    <Label className="text-xs">Kullanıcı Adı</Label>
+                                                    <Input name="portal_username" defaultValue={editingCustomer.portal_username} placeholder="Kullanıcı adı" />
+                                                </div>
+                                                <div className="grid gap-2">
+                                                    <Label className="text-xs">Şifre</Label>
+                                                    <Input name="portal_password" type="password" defaultValue={editingCustomer.portal_password} placeholder="Şifre" />
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                     <DialogFooter>

@@ -83,8 +83,8 @@ export default function LoginPage({
                             <Input
                                 id="email"
                                 name="email"
-                                type="email"
-                                placeholder="name@example.com"
+                                type="text"
+                                placeholder="Email veya kullanıcı adı"
                                 required
                                 className="h-11 bg-white border-gray-200 focus:border-blue-500 transition-colors"
                             />

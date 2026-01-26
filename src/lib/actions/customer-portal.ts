@@ -6,47 +6,62 @@ import { revalidatePath } from 'next/cache'
 export async function syncPortalAccess(customerId: string, username: string, password: string) {
     const supabase = await createClient()
 
-    // 1. Get customer and tenant info
+    const cleanUsername = username.trim().toLowerCase()
+    const cleanPassword = password.trim()
+
+    // 1. Get customer
     const { data: customer, error: customerError } = await supabase
         .from('customers')
         .select('*')
         .eq('id', customerId)
         .single()
 
-    if (customerError || !customer) {
-        return { error: 'Customer not found' }
-    }
+    if (customerError || !customer) return { error: 'Customer not found' }
 
-    // 2. Format a virtual email for Supabase Auth
-    // Using a dedicated domain for portal users
-    const virtualEmail = `${username}@portal.novoxcrm.com`.toLowerCase()
+    // 2. Format virtual email
+    const virtualEmail = `${cleanUsername}@portal.novoxcrm.com`
 
-    // 3. Check if an auth user already exists for this virtual email
-    // Since we are using service role sometimes or just standard client, 
-    // we need to be careful. For MVP, we'll try to find by email if possible or just handle error.
+    // 3. Admin Client
+    const { createAdminClient } = await import('@/lib/supabase/admin')
+    const admin = createAdminClient()
 
-    // We use the admin API (if available) or standard signUp.
-    // Note: Standard signUp might trigger email confirmation unless disabled in Supabase.
-    // In many SaaS setups, we use a service_role client for this.
+    // 4. Update DB
+    await supabase.from('customers').update({
+        portal_username: cleanUsername,
+        portal_password: cleanPassword
+    }).eq('id', customerId)
 
-    // For now, let's update the customer record first
-    const { error: updateError } = await supabase
-        .from('customers')
-        .update({
-            portal_username: username,
-            portal_password: password
+    // 5. Auth Sync
+    // Try to find user by email first (more reliable than listUsers find)
+    const { data: { users }, error: listError } = await admin.auth.admin.listUsers()
+    const existingUser = users?.find(u => u.email === virtualEmail)
+
+    if (existingUser) {
+        const { error: updateError } = await admin.auth.admin.updateUserById(
+            existingUser.id,
+            { password: cleanPassword }
+        )
+        if (updateError) return { error: `Auth Update Error: ${updateError.message}` }
+    } else {
+        const { data: newUser, error: createError } = await admin.auth.admin.createUser({
+            email: virtualEmail,
+            password: cleanPassword,
+            email_confirm: true,
+            user_metadata: { full_name: customer.full_name },
+            app_metadata: { role: 'customer' }
         })
-        .eq('id', customerId)
+        if (createError) return { error: `Auth Creation Error: ${createError.message}` }
 
-    if (updateError) return { error: 'Failed to update customer record' }
-
-    // 4. Create or Update Auth User
-    // We'll use a specific action for this that uses the admin client if necessary.
-    // For this demonstration, we assume we want to link the profile and auth user.
-
-    // Ideally, we'd call a Supabase Edge Function or a Service Role action here.
-    // Since I can't easily create a service role client in a standard 'use server' file without env exposure,
-    // I will focus on the UI and DB update part first, and provide the logic.
+        if (newUser.user) {
+            await admin.from('profiles').upsert({
+                id: newUser.user.id,
+                tenant_id: customer.tenant_id,
+                role: 'customer',
+                full_name: customer.full_name,
+                customer_id: customer.id
+            })
+        }
+    }
 
     revalidatePath(`/customers/${customerId}`)
     return { success: true }

@@ -18,6 +18,8 @@ export async function createCustomer(formData: FormData) {
     const phone = formData.get('phone') as string
     const email = formData.get('email') as string
     const source = formData.get('source') as string
+    const portal_username = formData.get('portal_username') as string
+    const portal_password = formData.get('portal_password') as string
 
     const { data, error } = await supabase
         .from('customers')
@@ -26,7 +28,9 @@ export async function createCustomer(formData: FormData) {
             full_name,
             phone,
             email,
-            source
+            source,
+            portal_username,
+            portal_password
         })
         .select()
         .single()
@@ -37,6 +41,12 @@ export async function createCustomer(formData: FormData) {
     }
 
     if (data) {
+        // Sync Portal Access if credentials provided
+        if (portal_username && portal_password) {
+            const { syncPortalAccess } = await import('@/lib/actions/customer-portal')
+            await syncPortalAccess(data.id, portal_username, portal_password)
+        }
+
         const min_price = formData.get('min_price')
         const max_price = formData.get('max_price')
         const location_preference = formData.get('location_preference')
@@ -104,6 +114,8 @@ export async function updateCustomer(formData: FormData) {
     const phone = formData.get('phone') as string
     const email = formData.get('email') as string
     const source = formData.get('source') as string
+    const portal_username = formData.get('portal_username') as string
+    const portal_password = formData.get('portal_password') as string
 
     if (!id) return { error: 'Customer ID required' }
 
@@ -113,13 +125,21 @@ export async function updateCustomer(formData: FormData) {
             full_name,
             phone,
             email,
-            source
+            source,
+            portal_username,
+            portal_password
         })
         .eq('id', id)
 
     if (error) {
         console.error('Update Customer Error:', error)
         return { error: 'Failed to update customer' }
+    }
+
+    // Sync Portal Access if credentials provided
+    if (portal_username && portal_password) {
+        const { syncPortalAccess } = await import('@/lib/actions/customer-portal')
+        await syncPortalAccess(id, portal_username, portal_password)
     }
 
     revalidatePath('/crm')

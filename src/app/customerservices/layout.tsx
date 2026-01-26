@@ -12,7 +12,10 @@ export default async function PortalLayout({
     const supabase = await createClient()
 
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) redirect('/login')
+
+    // Check if we are on the login page - if so, just render children without further checks
+    // This handles the case where there is no user yet
+    if (!user) return <>{children}</>
 
     const { data: profile } = await supabase
         .from('profiles')
