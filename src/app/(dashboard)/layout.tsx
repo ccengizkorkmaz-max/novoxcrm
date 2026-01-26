@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { LayoutDashboard, Building2, Home, Users, FileText, LogOut, Menu, Settings, Package, Activity, CalendarCheck, Banknote, MessageSquare } from 'lucide-react'
+import { LayoutDashboard, Building2, Home, Users, FileText, LogOut, Menu, Settings, Package, Activity, CalendarCheck, Banknote, MessageSquare, Gift, BarChart3, Settings2, Clock } from 'lucide-react'
 
 
 
@@ -137,6 +137,45 @@ export default async function DashboardLayout({
                         </Link>
 
                         <div className="mt-4 mb-2 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
+                            Broker Yönetimi Bölümü
+                        </div>
+                        <Link
+                            href="/admin/broker-applications"
+                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
+                        >
+                            <Clock className="h-4 w-4" />
+                            Gelen Başvurular
+                        </Link>
+                        <Link
+                            href="/admin/broker-leads"
+                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
+                        >
+                            <Users className="h-4 w-4" />
+                            Adaylar / Başvurular
+                        </Link>
+                        <Link
+                            href="/admin/broker-leads/campaigns"
+                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
+                        >
+                            <Gift className="h-4 w-4" />
+                            Teşvik Kampanyaları
+                        </Link>
+                        <Link
+                            href="/admin/broker-leads/analytics"
+                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
+                        >
+                            <BarChart3 className="h-4 w-4" />
+                            Analitik & Raporlar
+                        </Link>
+                        <Link
+                            href="/admin/broker-leads/commission-settings"
+                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
+                        >
+                            <Settings2 className="h-4 w-4" />
+                            Komisyon Ayarları
+                        </Link>
+
+                        <div className="mt-4 mb-2 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
                             Raporlar
                         </div>
                         <Link
@@ -200,7 +239,7 @@ export default async function DashboardLayout({
                 <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 sm:hidden print:hidden">
                     <Sheet>
                         <SheetTrigger asChild>
-                            <Button size="icon" variant="outline" className="sm:hidden">
+                            <Button size="icon" variant="outline" className="sm:hidden" suppressHydrationWarning>
                                 <Menu className="h-5 w-5" />
                                 <span className="sr-only">Toggle Menu</span>
                             </Button>
@@ -297,6 +336,45 @@ export default async function DashboardLayout({
                                 >
                                     <MessageSquare className="h-5 w-5" />
                                     Servis Talepleri
+                                </Link>
+
+                                <div className="px-2.5 py-4 text-xs font-bold uppercase tracking-wider text-muted-foreground/70">
+                                    Broker Yönetimi Bölümü
+                                </div>
+                                <Link
+                                    href="/admin/broker-applications"
+                                    className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground pl-6"
+                                >
+                                    <Clock className="h-5 w-5" />
+                                    Gelen Başvurular
+                                </Link>
+                                <Link
+                                    href="/admin/broker-leads"
+                                    className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
+                                >
+                                    <Users className="h-5 w-5" />
+                                    Adaylar / Başvurular
+                                </Link>
+                                <Link
+                                    href="/admin/broker-leads/campaigns"
+                                    className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
+                                >
+                                    <Gift className="h-5 w-5" />
+                                    Teşvik Kampanyaları
+                                </Link>
+                                <Link
+                                    href="/admin/broker-leads/analytics"
+                                    className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
+                                >
+                                    <BarChart3 className="h-5 w-5" />
+                                    Analitik & Raporlar
+                                </Link>
+                                <Link
+                                    href="/admin/broker-leads/commission-settings"
+                                    className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
+                                >
+                                    <Settings2 className="h-5 w-5" />
+                                    Komisyon Ayarları
                                 </Link>
 
                                 <div className="px-2.5 py-4 text-xs font-bold uppercase tracking-wider text-muted-foreground/70">

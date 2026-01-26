@@ -25,7 +25,7 @@ export default async function CRMPage({ searchParams }: { searchParams: Promise<
     // 3. Build Sales Query with Filters
     let query = supabase
         .from('sales')
-        .select('*, customers!inner(full_name), units!inner(unit_number, price, currency, projects!inner(id, name)), profiles(full_name)')
+        .select('*, customers!inner(full_name), units(unit_number, price, currency, projects(id, name)), profiles(full_name)')
 
     if (filterProject) query = query.eq('units.projects.id', filterProject)
     if (filterRep) query = query.eq('assigned_to', filterRep)
@@ -57,16 +57,16 @@ export default async function CRMPage({ searchParams }: { searchParams: Promise<
                             projects={projectsData || []}
                             profiles={profilesData || []}
                         />
+                        <NewSaleButton
+                            customers={customers || []}
+                            availableUnits={availableUnits || []}
+                            initialState={{
+                                openNewSale: params.newSale === 'true',
+                                unitId: params.unitId as string,
+                                projectId: params.projectId as string
+                            }}
+                        />
                     </div>
-                    <NewSaleButton
-                        customers={customers || []}
-                        availableUnits={availableUnits || []}
-                        initialState={{
-                            openNewSale: params.newSale === 'true',
-                            unitId: params.unitId as string,
-                            projectId: params.projectId as string
-                        }}
-                    />
                 </div>
 
                 <PipelineStats sales={sales || []} />

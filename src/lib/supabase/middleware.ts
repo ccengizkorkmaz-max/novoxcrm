@@ -44,12 +44,15 @@ export async function updateSession(request: NextRequest) {
         data: { user },
     } = await supabase.auth.getUser()
 
-    if (
-        !user &&
-        !request.nextUrl.pathname.startsWith('/login') &&
-        !request.nextUrl.pathname.startsWith('/customerservices/login') &&
-        !request.nextUrl.pathname.startsWith('/auth')
-    ) {
+    // 1. Handle Public Routes first
+    const isPublicRoute =
+        request.nextUrl.pathname.startsWith('/login') ||
+        request.nextUrl.pathname.startsWith('/customerservices/login') ||
+        request.nextUrl.pathname.startsWith('/auth') ||
+        request.nextUrl.pathname.startsWith('/p/') ||
+        request.nextUrl.pathname.startsWith('/broker/apply')
+
+    if (!user && !isPublicRoute) {
         const isPortalRoute = request.nextUrl.pathname.startsWith('/customerservices')
         const url = request.nextUrl.clone()
         url.pathname = isPortalRoute ? '/customerservices/login' : '/login'
@@ -65,17 +68,18 @@ export async function updateSession(request: NextRequest) {
             .single()
 
         const isPortalPath = request.nextUrl.pathname.startsWith('/customerservices')
+        const isBrokerPath = request.nextUrl.pathname.startsWith('/broker')
+        const isPublicPath = request.nextUrl.pathname.startsWith('/p/')
 
-        // If customer tries to access dashboard, redirect to portal
-        if (profile?.role === 'customer' && !isPortalPath && !request.nextUrl.pathname.startsWith('/auth')) {
+        // If customer tries to access dashboard or broker portal, redirect to portal
+        if (profile?.role === 'customer' && !isPortalPath && !isPublicPath && !isBrokerPath && !request.nextUrl.pathname.startsWith('/auth')) {
             const url = request.nextUrl.clone()
             url.pathname = '/customerservices'
             return NextResponse.redirect(url)
         }
 
         // If employee tries to access portal, redirect to dashboard 
-        // We now ALLOW 'admin' and 'owner' to access for testing/support
-        const isEmployee = profile?.role === 'admin' || profile?.role === 'owner' || profile?.role === 'sales'
+        const isEmployee = profile?.role === 'admin' || profile?.role === 'owner' || profile?.role === 'sales' || profile?.role === 'broker'
 
         if (!isEmployee && profile?.role !== 'customer' && isPortalPath) {
             const url = request.nextUrl.clone()

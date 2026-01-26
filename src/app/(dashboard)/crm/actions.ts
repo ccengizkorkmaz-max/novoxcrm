@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { syncBrokerLeadFromSale } from '@/app/broker/actions'
 
 export async function createCustomer(formData: FormData) {
     const supabase = await createClient()
@@ -190,6 +191,11 @@ export async function createSale(formData: FormData) {
     if (error) return { error: 'Failed to start sale' }
 
     revalidatePath('/crm')
+
+    // Broker Sync
+    const { data: newSale } = await supabase.from('sales').select('id').eq('customer_id', customer_id).order('created_at', { ascending: false }).limit(1).single()
+    if (newSale) await syncBrokerLeadFromSale(newSale.id, unit_id ? 'Prospect' : 'Lead')
+
     return { success: true }
 }
 
@@ -221,6 +227,10 @@ export async function restartSale(saleId: string) {
 
     // Mark old sale as restarted
     await supabase.from('sales').update({ restarted_at: new Date().toISOString() }).eq('id', saleId)
+
+    // Broker Sync
+    const { data: newSale } = await supabase.from('sales').select('id').eq('customer_id', oldSale.customer_id).order('created_at', { ascending: false }).limit(1).single()
+    if (newSale) await syncBrokerLeadFromSale(newSale.id, targetUnitId ? 'Prospect' : 'Lead')
 
     revalidatePath('/crm')
     return { success: true }
@@ -284,6 +294,10 @@ export async function updateSaleStatus(id: string, status: string) {
 
     revalidatePath('/crm')
     revalidatePath('/offers')
+
+    // Broker Sync
+    await syncBrokerLeadFromSale(id, status)
+
     return { success: true }
 }
 
@@ -497,6 +511,9 @@ export async function finalizeOffer(offerId: string) {
     revalidatePath('/inventory')
     revalidatePath('/finance/deposits')
 
+    // Broker Sync
+    await syncBrokerLeadFromSale(sale?.id || '', 'Sold')
+
     return { success: true }
 }
 
@@ -527,6 +544,10 @@ export async function matchUnitToSale(saleId: string, unitId: string) {
     }
 
     revalidatePath('/crm')
+
+    // Broker Sync
+    await syncBrokerLeadFromSale(saleId, newStatus || '')
+
     return { success: true }
 }
 
@@ -628,6 +649,10 @@ export async function updateSaleToReservation(saleId: string, unitId: string, ex
     revalidatePath('/options')
     revalidatePath('/inventory')
     revalidatePath('/offers')
+
+    // Broker Sync
+    await syncBrokerLeadFromSale(saleId, initialStatus)
+
     return { success: true }
 }
 
@@ -677,10 +702,11 @@ export async function cancelReservation(saleId: string) {
         await supabase.from('units').update({ status: 'For Sale' }).eq('id', sale.unit_id)
     }
 
-    revalidatePath('/crm')
-    revalidatePath('/options')
-    revalidatePath('/inventory')
     revalidatePath('/finance/deposits')
+
+    // Broker Sync
+    await syncBrokerLeadFromSale(saleId, 'Prospect')
+
     return { success: true }
 }
 

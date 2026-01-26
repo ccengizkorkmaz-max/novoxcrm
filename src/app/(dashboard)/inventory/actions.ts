@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { syncBrokerLeadFromSale } from '@/app/broker/actions'
 
 export async function createUnit(formData: FormData) {
     const supabase = await createClient()
@@ -114,6 +115,9 @@ export async function reserveUnit(formData: FormData) {
         return { error: 'Reservation record creation failed' }
     }
 
+    // Broker Sync
+    await syncBrokerLeadFromSale(sale.id, initialSaleStatus)
+
     // 3. Create Deposit record if > 0
     if (depositAmount > 0) {
         const { error: depositError } = await supabase.from('deposits').insert({
@@ -218,6 +222,9 @@ export async function convertReservationToOffer(unitId: string) {
         .eq('id', sale.id)
 
     if (saleError) return { error: 'Failed to update sale status' }
+
+    // Broker Sync
+    await syncBrokerLeadFromSale(sale.id, 'Proposal')
 
     // 4. Update the active offer with the new price and payment plan
     // We need to fetch the payment plan snapshot for the offer

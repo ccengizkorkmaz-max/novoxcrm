@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { finalizeOffer } from '../crm/actions'
+import { syncBrokerLeadFromSale } from '@/app/broker/actions'
 
 export async function getDeposits() {
     const supabase = await createClient()
@@ -65,6 +66,9 @@ export async function confirmDeposit(depositId: string) {
             .eq('id', deposit.sale_id)
 
         if (saleError) return { error: saleError.message }
+
+        // Broker Sync
+        await syncBrokerLeadFromSale(deposit.sale_id, 'Reservation')
     } else if (deposit.offer_id) {
         // Use the centralized finalization logic
         const finalizeResult = await finalizeOffer(deposit.offer_id)
@@ -113,6 +117,9 @@ export async function confirmRefund(depositId: string) {
         if (sale?.unit_id) {
             await supabase.from('units').update({ status: 'For Sale' }).eq('id', sale.unit_id)
         }
+
+        // Broker Sync
+        await syncBrokerLeadFromSale(deposit.sale_id, 'Lost')
     } else if (deposit.offer_id) {
         // Update Offer status
         await supabase.from('offers').update({ status: 'Cancelled' }).eq('id', deposit.offer_id)

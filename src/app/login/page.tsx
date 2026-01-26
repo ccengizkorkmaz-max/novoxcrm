@@ -2,6 +2,7 @@ import { login, signup } from './actions'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import Link from 'next/link'
 import { Building2, ArrowRight, ShieldCheck } from 'lucide-react'
 
 export default function LoginPage({
@@ -112,6 +113,15 @@ export default function LoginPage({
                             </Button>
                         </div>
                     </form>
+
+                    <div className="flex flex-col items-center">
+                        <Link
+                            href="/broker/apply"
+                            className="text-center text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline py-2"
+                        >
+                            Satış Ortağımız (Broker) Olun →
+                        </Link>
+                    </div>
 
                     <p className="px-8 text-center text-sm text-muted-foreground">
                         Giriş yaparak{" "}
