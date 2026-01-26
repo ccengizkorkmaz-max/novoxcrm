@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Building2, User, Phone, Mail, Globe, Wallet, Calendar, MessageSquare, Loader2 } from 'lucide-react'
-import { submitBrokerLead } from '../../../actions'
+import { submitBrokerLead } from '../../../../actions'
 
 interface Project {
     id: string
