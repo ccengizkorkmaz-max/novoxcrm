@@ -41,35 +41,35 @@ export default async function PortalLayout({
                 <div className="flex-1 overflow-auto py-4">
                     <nav className="grid items-start px-4 gap-1 text-sm font-medium">
                         <Link
-                            href="/portal"
+                            href="/customerservices"
                             className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-blue-600 bg-blue-50 transition-all"
                         >
                             <LayoutDashboard className="h-4 w-4" />
                             Genel Bakış
                         </Link>
                         <Link
-                            href="/portal/financials"
+                            href="/customerservices/financials"
                             className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-600 hover:bg-slate-100 transition-all"
                         >
                             <CreditCard className="h-4 w-4" />
                             Ödemelerim
                         </Link>
                         <Link
-                            href="/portal/tracking"
+                            href="/customerservices/tracking"
                             className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-600 hover:bg-slate-100 transition-all"
                         >
                             <CalendarCheck className="h-4 w-4" />
                             Tapu & Teslimat
                         </Link>
                         <Link
-                            href="/portal/service-requests"
+                            href="/customerservices/service-requests"
                             className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-600 hover:bg-slate-100 transition-all"
                         >
                             <Activity className="h-4 w-4" />
                             Servis Talepleri
                         </Link>
                         <Link
-                            href="/portal/documents"
+                            href="/customerservices/documents"
                             className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-slate-600 hover:bg-slate-100 transition-all"
                         >
                             <FileText className="h-4 w-4" />

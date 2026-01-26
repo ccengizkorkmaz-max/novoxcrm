@@ -121,7 +121,7 @@ export default async function PortalDashboard() {
                                         <p className="text-xs text-slate-500">No: {contract.sales.units.unit_number} | {contract.sales.units.type}</p>
                                     </div>
                                 </div>
-                                <Link href="/portal/tracking" className="p-2 rounded-full hover:bg-blue-100 text-slate-400 hover:text-blue-600">
+                                <Link href="/customerservices/tracking" className="p-2 rounded-full hover:bg-blue-100 text-slate-400 hover:text-blue-600">
                                     <ChevronRight className="h-5 w-5" />
                                 </Link>
                             </div>

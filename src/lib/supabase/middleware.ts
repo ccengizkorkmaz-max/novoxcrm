@@ -63,17 +63,20 @@ export async function updateSession(request: NextRequest) {
             .eq('id', user.id)
             .single()
 
-        const isPortalPath = request.nextUrl.pathname.startsWith('/portal')
+        const isPortalPath = request.nextUrl.pathname.startsWith('/customerservices')
 
         // If customer tries to access dashboard, redirect to portal
         if (profile?.role === 'customer' && !isPortalPath && !request.nextUrl.pathname.startsWith('/auth')) {
             const url = request.nextUrl.clone()
-            url.pathname = '/portal'
+            url.pathname = '/customerservices'
             return NextResponse.redirect(url)
         }
 
-        // If employee tries to access portal, redirect to dashboard (optional, but safer)
-        if (profile?.role !== 'customer' && isPortalPath) {
+        // If employee tries to access portal, redirect to dashboard 
+        // We now ALLOW 'admin' and 'owner' to access for testing/support
+        const isEmployee = profile?.role === 'admin' || profile?.role === 'owner' || profile?.role === 'sales'
+
+        if (!isEmployee && profile?.role !== 'customer' && isPortalPath) {
             const url = request.nextUrl.clone()
             url.pathname = '/'
             return NextResponse.redirect(url)
