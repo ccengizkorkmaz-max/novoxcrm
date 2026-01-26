@@ -23,7 +23,8 @@ export async function login(formData: FormData) {
     })
 
     if (error) {
-        redirect('/customerservices/login?error=true')
+        console.error('Portal Login Error:', error.message)
+        redirect(`/customerservices/login?error=${encodeURIComponent(error.message)}`)
     }
 
     revalidatePath('/customerservices', 'layout')

@@ -254,8 +254,9 @@ export default function CustomerList({ customers }: { customers: Customer[] }) {
                             </TabsList>
                             <TabsContent value="details">
                                 <form action={async (formData) => {
-                                    await updateCustomer(formData)
-                                    setIsEditOpen(false)
+                                    const res = await updateCustomer(formData)
+                                    if (res?.error) alert(res.error)
+                                    else setIsEditOpen(false)
                                 }}>
                                     <input type="hidden" name="id" value={editingCustomer.id} />
                                     <div className="grid gap-4 py-4">

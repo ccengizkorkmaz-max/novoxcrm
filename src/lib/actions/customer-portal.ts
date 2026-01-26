@@ -32,18 +32,21 @@ export async function syncPortalAccess(customerId: string, username: string, pas
     }).eq('id', customerId)
 
     // 5. Auth Sync
-    // Try to find user by email first (more reliable than listUsers find)
+    // Find user by email
     const { data: { users }, error: listError } = await admin.auth.admin.listUsers()
-    const existingUser = users?.find(u => u.email === virtualEmail)
+    const existingUser = users?.find(u => u.email?.toLowerCase() === virtualEmail)
+
+    let authUserId: string | undefined
 
     if (existingUser) {
+        authUserId = existingUser.id
         const { error: updateError } = await admin.auth.admin.updateUserById(
             existingUser.id,
-            { password: cleanPassword }
+            { password: cleanPassword, email_confirm: true }
         )
         if (updateError) return { error: `Auth Update Error: ${updateError.message}` }
     } else {
-        const { data: newUser, error: createError } = await admin.auth.admin.createUser({
+        const { data: { user: newUser }, error: createError } = await admin.auth.admin.createUser({
             email: virtualEmail,
             password: cleanPassword,
             email_confirm: true,
@@ -51,16 +54,19 @@ export async function syncPortalAccess(customerId: string, username: string, pas
             app_metadata: { role: 'customer' }
         })
         if (createError) return { error: `Auth Creation Error: ${createError.message}` }
+        authUserId = newUser?.id
+    }
 
-        if (newUser.user) {
-            await admin.from('profiles').upsert({
-                id: newUser.user.id,
-                tenant_id: customer.tenant_id,
-                role: 'customer',
-                full_name: customer.full_name,
-                customer_id: customer.id
-            })
-        }
+    // 6. Ensure Profile exists and is linked
+    if (authUserId) {
+        const { error: profileError } = await admin.from('profiles').upsert({
+            id: authUserId,
+            tenant_id: customer.tenant_id,
+            role: 'customer',
+            full_name: customer.full_name,
+            customer_id: customer.id
+        })
+        if (profileError) return { error: `Profile Link Error: ${profileError.message}` }
     }
 
     revalidatePath(`/customers/${customerId}`)

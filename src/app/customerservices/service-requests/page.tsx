@@ -49,25 +49,35 @@ export default async function PortalServiceRequests() {
                         </Button>
                     </DialogTrigger>
                     <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>Yeni Destek Talebi</DialogTitle>
-                            <DialogDescription>
-                                Lütfen yaşadığınız sorunu detaylıca açıklayın. Teknik ekibimiz en kısa sürede dönüş yapacaktır.
-                            </DialogDescription>
-                        </DialogHeader>
-                        <div className="grid gap-4 py-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="title">Konu Başlığı</Label>
-                                <Input id="title" placeholder="Örn: Mutfak dolabı kapak ayarı" />
+                        <form action={async (formData) => {
+                            const { createServiceRequest } = await import('./actions')
+                            const res = await createServiceRequest(formData)
+                            if (res.error) alert(res.error)
+                            else {
+                                alert('Talebiniz başarıyla oluşturuldu.')
+                                window.location.reload() // Close dialog and refresh
+                            }
+                        }}>
+                            <DialogHeader>
+                                <DialogTitle>Yeni Destek Talebi</DialogTitle>
+                                <DialogDescription>
+                                    Lütfen yaşadığınız sorunu detaylıca açıklayın. Teknik ekibimiz en kısa sürede dönüş yapacaktır.
+                                </DialogDescription>
+                            </DialogHeader>
+                            <div className="grid gap-4 py-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="title">Konu Başlığı</Label>
+                                    <Input id="title" name="title" placeholder="Örn: Mutfak dolabı kapak ayarı" required />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="description">Detaylı Açıklama</Label>
+                                    <Textarea id="description" name="description" placeholder="Sorunu buraya yazınız..." rows={4} required />
+                                </div>
                             </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="description">Detaylı Açıklama</Label>
-                                <Textarea id="description" placeholder="Sorunu buraya yazınız..." rows={4} />
-                            </div>
-                        </div>
-                        <DialogFooter>
-                            <Button type="submit">Talebi Gönder</Button>
-                        </DialogFooter>
+                            <DialogFooter>
+                                <Button type="submit">Talebi Gönder</Button>
+                            </DialogFooter>
+                        </form>
                     </DialogContent>
                 </Dialog>
             </div>

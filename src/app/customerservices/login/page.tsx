@@ -4,12 +4,12 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Home, ShieldCheck, ArrowRight, Key } from 'lucide-react'
 
-export default function CustomerLoginPage({
+export default async function CustomerLoginPage({
     searchParams,
 }: {
-    searchParams: { message: string, error: string }
+    searchParams: Promise<{ message: string, error: string }>
 }) {
-    const params = searchParams;
+    const params = await searchParams;
 
     return (
         <div className="min-h-screen w-full flex items-center justify-center bg-slate-50 relative overflow-hidden">
@@ -37,13 +37,13 @@ export default function CustomerLoginPage({
                             {(params as any).message}
                         </div>
                     )}
-                    {(params as any)?.error && (
+                    {(params?.error) && (
                         <div className="mb-6 p-4 rounded-xl bg-red-50 text-red-700 text-sm border border-red-100 font-medium">
-                            Bilgileriniz hatalı veya hesabınız pasif durumda.
+                            {decodeURIComponent(params.error)}
                         </div>
                     )}
 
-                    <form className="space-y-5">
+                    <form action={login} className="space-y-5">
                         <div className="space-y-2">
                             <Label htmlFor="username" className="text-slate-700 font-semibold ml-1">Kullanıcı Adı</Label>
                             <div className="relative">
@@ -53,6 +53,7 @@ export default function CustomerLoginPage({
                                     type="text"
                                     placeholder="Size özel kullanıcı adı"
                                     required
+                                    autoComplete="off"
                                     className="h-12 bg-slate-50 border-slate-100 focus:bg-white focus:ring-blue-500 rounded-xl px-4"
                                 />
                             </div>
@@ -67,16 +68,17 @@ export default function CustomerLoginPage({
                                     type="password"
                                     placeholder="••••••••"
                                     required
+                                    autoComplete="new-password"
                                     className="h-12 bg-slate-50 border-slate-100 focus:bg-white focus:ring-blue-500 rounded-xl px-4"
                                 />
                             </div>
                         </div>
 
                         <Button
-                            formAction={login}
+                            type="submit"
                             className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-100 transition-all flex items-center justify-center gap-2 group"
                         >
-                            Bilgilerimi Onayla
+                            Giriş Yap
                             <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
                         </Button>
                     </form>

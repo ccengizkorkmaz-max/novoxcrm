@@ -13,7 +13,7 @@ export default async function PortalDashboard() {
     // Get customer profile
     const { data: profile } = await supabase
         .from('profiles')
-        .select('customer_id')
+        .select('customer_id, full_name')
         .eq('id', user?.id)
         .single()
 
@@ -46,7 +46,7 @@ export default async function PortalDashboard() {
     return (
         <div className="space-y-8">
             <div>
-                <h1 className="text-2xl font-bold tracking-tight text-slate-900">Hoş Geldiniz</h1>
+                <h1 className="text-3xl font-bold tracking-tight text-slate-900">Hoş Geldiniz, {profile?.full_name}</h1>
                 <p className="text-slate-500">Mülklerinize ve ödeme süreçlerinize dair genel özet.</p>
             </div>
 
