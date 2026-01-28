@@ -30,15 +30,19 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Users, Building2, AlertTriangle, CheckCircle, XCircle, Search } from "lucide-react"
-import { getAllTenants, updateTenantSubscription, updateTenantStatus, provisionTenant } from './actions'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Users, Building2, AlertTriangle, CheckCircle, XCircle, Search, Mail, Phone, Trash2 } from "lucide-react"
+import { getAllTenants, updateTenantSubscription, updateTenantStatus, provisionTenant, getSaasLeads, deleteSaasLead } from './actions'
 import { useEffect } from 'react'
 import { format } from 'date-fns'
 import { tr } from 'date-fns/locale'
+import { toast } from 'sonner'
 
 export default function SaasAdminPage() {
     const [tenants, setTenants] = useState<any[]>([])
+    const [leads, setLeads] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
+    const [leadsLoading, setLeadsLoading] = useState(false)
     const [search, setSearch] = useState('')
 
     // Edit State
@@ -60,6 +64,24 @@ export default function SaasAdminPage() {
             setTenants(res.tenants)
         }
         setLoading(false)
+
+        setLeadsLoading(true)
+        const leadsRes = await getSaasLeads()
+        if (leadsRes.leads) {
+            setLeads(leadsRes.leads)
+        }
+        setLeadsLoading(false)
+    }
+
+    async function handleDeleteLead(id: string) {
+        if (!confirm('Bu talebi silmek istediğinize emin misiniz?')) return
+        const res = await deleteSaasLead(id)
+        if (res.error) {
+            toast.error(res.error)
+        } else {
+            toast.success('Talep silindi')
+            loadData()
+        }
     }
 
     async function handleSaveLimits() {
@@ -226,189 +248,275 @@ export default function SaasAdminPage() {
                 </div>
             </div>
 
-            <div className="rounded-xl border bg-card shadow-sm">
-                <div className="p-6 border-b flex items-center justify-between">
-                    <h2 className="text-lg font-semibold">Firma Listesi</h2>
-                    <div className="relative w-72">
-                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input
-                            placeholder="Firma adı veya ID ara..."
-                            className="pl-8"
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                        />
-                    </div>
-                </div>
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Firma Adı</TableHead>
-                            <TableHead>Durum</TableHead>
-                            <TableHead>Kullanıcılar</TableHead>
-                            <TableHead className="text-center">Proje</TableHead>
-                            <TableHead className="text-center">Müşteri</TableHead>
-                            <TableHead>Paket</TableHead>
-                            <TableHead>Bitiş Tarihi</TableHead>
-                            <TableHead className="text-right">İşlemler</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {loading ? (
-                            <TableRow>
-                                <TableCell colSpan={6} className="h-24 text-center">Yükleniyor...</TableCell>
-                            </TableRow>
-                        ) : filteredTenants.length === 0 ? (
-                            <TableRow>
-                                <TableCell colSpan={6} className="h-24 text-center">Kayıt bulunamadı.</TableCell>
-                            </TableRow>
-                        ) : (
-                            filteredTenants.map((tenant) => (
-                                <TableRow key={tenant.id}>
-                                    <TableCell className="font-medium">
-                                        {tenant.name}
-                                        <div className="text-xs text-muted-foreground font-mono">{tenant.id}</div>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Badge variant={tenant.subscription_status === 'Active' ? 'default' : 'destructive'}>
-                                            {tenant.subscription_status}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="flex flex-col gap-1.5 min-w-[140px]">
-                                            <div className="flex items-center justify-between text-xs">
-                                                <span className="font-bold">{tenant.user_count} / {tenant.user_limit}</span>
-                                                <span className="text-muted-foreground">%{Math.round((tenant.user_count / tenant.user_limit) * 100)}</span>
-                                            </div>
-                                            <Progress
-                                                value={(tenant.user_count / tenant.user_limit) * 100}
-                                                className={`h-1.5 ${tenant.user_count >= tenant.user_limit ? 'bg-red-100' : ''}`}
-                                            />
-                                            {tenant.user_count >= tenant.user_limit && (
-                                                <div className="flex items-center gap-1 text-[10px] text-amber-600 font-medium">
-                                                    <AlertTriangle className="h-3 w-3" /> Dolu
+            <Tabs defaultValue="tenants" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 max-w-[400px]">
+                    <TabsTrigger value="tenants">Kayıtlı Firmalar</TabsTrigger>
+                    <TabsTrigger value="leads" className="relative">
+                        Gelen Talepler
+                        {leads.length > 0 && (
+                            <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">
+                                {leads.length}
+                            </span>
+                        )}
+                    </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="tenants" className="mt-6">
+                    <div className="rounded-xl border bg-card shadow-sm">
+                        <div className="p-6 border-b flex items-center justify-between">
+                            <h2 className="text-lg font-semibold">Firma Listesi</h2>
+                            <div className="relative w-72">
+                                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                    placeholder="Firma adı veya ID ara..."
+                                    className="pl-8"
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                />
+                            </div>
+                        </div>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Firma Adı</TableHead>
+                                    <TableHead>Durum</TableHead>
+                                    <TableHead>Kullanıcılar</TableHead>
+                                    <TableHead className="text-center">Proje</TableHead>
+                                    <TableHead className="text-center">Müşteri</TableHead>
+                                    <TableHead>Paket</TableHead>
+                                    <TableHead>Bitiş Tarihi</TableHead>
+                                    <TableHead className="text-right">İşlemler</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {loading ? (
+                                    <TableRow>
+                                        <TableCell colSpan={8} className="h-24 text-center">Yükleniyor...</TableCell>
+                                    </TableRow>
+                                ) : filteredTenants.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={8} className="h-24 text-center">Kayıt bulunamadı.</TableCell>
+                                    </TableRow>
+                                ) : (
+                                    filteredTenants.map((tenant) => (
+                                        <TableRow key={tenant.id}>
+                                            <TableCell className="font-medium">
+                                                {tenant.name}
+                                                <div className="text-xs text-muted-foreground font-mono">{tenant.id}</div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge variant={tenant.subscription_status === 'Active' ? 'default' : 'destructive'}>
+                                                    {tenant.subscription_status}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="flex flex-col gap-1.5 min-w-[140px]">
+                                                    <div className="flex items-center justify-between text-xs">
+                                                        <span className="font-bold">{tenant.user_count} / {tenant.user_limit}</span>
+                                                        <span className="text-muted-foreground">%{Math.round((tenant.user_count / tenant.user_limit) * 100)}</span>
+                                                    </div>
+                                                    <Progress
+                                                        value={(tenant.user_count / tenant.user_limit) * 100}
+                                                        className={`h-1.5 ${tenant.user_count >= tenant.user_limit ? 'bg-red-100' : ''}`}
+                                                    />
+                                                    {tenant.user_count >= tenant.user_limit && (
+                                                        <div className="flex items-center gap-1 text-[10px] text-amber-600 font-medium">
+                                                            <AlertTriangle className="h-3 w-3" /> Dolu
+                                                        </div>
+                                                    )}
                                                 </div>
-                                            )}
-                                        </div>
-                                    </TableCell>
-                                    <TableCell className="text-center font-semibold text-blue-600">{tenant.project_count}</TableCell>
-                                    <TableCell className="text-center font-semibold text-emerald-600">{tenant.customer_count}</TableCell>
-                                    <TableCell>
-                                        <Badge variant="outline" className="font-medium bg-slate-50">
-                                            {tenant.plan_type}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell className="text-sm">
-                                        {tenant.subscription_end_date ? (
-                                            format(new Date(tenant.subscription_end_date), 'dd MMM yyyy', { locale: tr })
-                                        ) : '-'}
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        <div className="flex justify-end gap-2">
-                                            {tenant.subscription_status === 'Active' ? (
+                                            </TableCell>
+                                            <TableCell className="text-center font-semibold text-blue-600">{tenant.project_count}</TableCell>
+                                            <TableCell className="text-center font-semibold text-emerald-600">{tenant.customer_count}</TableCell>
+                                            <TableCell>
+                                                <Badge variant="outline" className="font-medium bg-slate-50">
+                                                    {tenant.plan_type}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell className="text-sm">
+                                                {tenant.subscription_end_date ? (
+                                                    format(new Date(tenant.subscription_end_date), 'dd MMM yyyy', { locale: tr })
+                                                ) : '-'}
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                <div className="flex justify-end gap-2">
+                                                    {tenant.subscription_status === 'Active' ? (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                                            onClick={() => handleStatusChange(tenant.id, 'Suspended')}
+                                                        >
+                                                            Askıya Al
+                                                        </Button>
+                                                    ) : (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                                                            onClick={() => handleStatusChange(tenant.id, 'Active')}
+                                                        >
+                                                            Aktifleştir
+                                                        </Button>
+                                                    )}
+
+                                                    <Dialog open={dialogOpen && selectedTenant?.id === tenant.id} onOpenChange={(open) => {
+                                                        if (open) {
+                                                            setSelectedTenant(tenant)
+                                                            setLimit(tenant.user_limit)
+                                                            setEndDate(tenant.subscription_end_date ? new Date(tenant.subscription_end_date).toISOString().split('T')[0] : '')
+                                                            setPlan(tenant.plan_type)
+                                                            setStatus(tenant.subscription_status)
+                                                            setDialogOpen(true)
+                                                        } else {
+                                                            setDialogOpen(false)
+                                                        }
+                                                    }}>
+                                                        <DialogTrigger asChild>
+                                                            <Button variant="outline" size="sm">Düzenle</Button>
+                                                        </DialogTrigger>
+                                                        <DialogContent>
+                                                            <DialogHeader>
+                                                                <DialogTitle>Abonelik Düzenle: {tenant.name}</DialogTitle>
+                                                                <DialogDescription>
+                                                                    Kullanıcı limitini ve lisans süresini güncelleyin.
+                                                                </DialogDescription>
+                                                            </DialogHeader>
+                                                            <div className="grid gap-4 py-4">
+                                                                <div className="grid grid-cols-4 items-center gap-4">
+                                                                    <Label className="text-right">Paket</Label>
+                                                                    <div className="col-span-3">
+                                                                        <Select value={plan} onValueChange={setPlan}>
+                                                                            <SelectTrigger>
+                                                                                <SelectValue />
+                                                                            </SelectTrigger>
+                                                                            <SelectContent>
+                                                                                <SelectItem value="Free">Free</SelectItem>
+                                                                                <SelectItem value="Pro">Pro</SelectItem>
+                                                                                <SelectItem value="Enterprise">Enterprise</SelectItem>
+                                                                            </SelectContent>
+                                                                        </Select>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="grid grid-cols-4 items-center gap-4">
+                                                                    <Label className="text-right">Durum</Label>
+                                                                    <div className="col-span-3">
+                                                                        <Select value={status} onValueChange={setStatus}>
+                                                                            <SelectTrigger>
+                                                                                <SelectValue />
+                                                                            </SelectTrigger>
+                                                                            <SelectContent>
+                                                                                <SelectItem value="Active">Active (Aktif)</SelectItem>
+                                                                                <SelectItem value="Suspended">Suspended (Askıda)</SelectItem>
+                                                                                <SelectItem value="Trial">Trial (Deneme)</SelectItem>
+                                                                            </SelectContent>
+                                                                        </Select>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="grid grid-cols-4 items-center gap-4">
+                                                                    <Label className="text-right">Kullanıcı Limiti</Label>
+                                                                    <Input
+                                                                        type="number"
+                                                                        value={limit}
+                                                                        onChange={(e) => setLimit(Number(e.target.value))}
+                                                                        className="col-span-3"
+                                                                    />
+                                                                </div>
+                                                                <div className="grid grid-cols-4 items-center gap-4">
+                                                                    <Label className="text-right">Bitiş Tarihi</Label>
+                                                                    <Input
+                                                                        type="date"
+                                                                        value={endDate}
+                                                                        onChange={(e) => setEndDate(e.target.value)}
+                                                                        className="col-span-3"
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                            <DialogFooter>
+                                                                <Button onClick={handleSaveLimits}>Kaydet</Button>
+                                                            </DialogFooter>
+                                                        </DialogContent>
+                                                    </Dialog>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </TabsContent>
+
+                <TabsContent value="leads" className="mt-6">
+                    <div className="rounded-xl border bg-card shadow-sm">
+                        <div className="p-6 border-b">
+                            <h2 className="text-lg font-semibold">Gelen Talepler</h2>
+                            <p className="text-sm text-muted-foreground">Kayıt formu üzerinden gelen yeni hizmet/hesap talepleri.</p>
+                        </div>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Müşteri Bilgileri</TableHead>
+                                    <TableHead>İletişim</TableHead>
+                                    <TableHead>Firma Adı</TableHead>
+                                    <TableHead>Kaynak</TableHead>
+                                    <TableHead>Tarih</TableHead>
+                                    <TableHead className="text-right">İşlemler</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {leadsLoading ? (
+                                    <TableRow>
+                                        <TableCell colSpan={6} className="h-24 text-center">Yükleniyor...</TableCell>
+                                    </TableRow>
+                                ) : leads.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={6} className="h-24 text-center">Henüz talep bulunmamaktadır.</TableCell>
+                                    </TableRow>
+                                ) : (
+                                    leads.map((lead) => (
+                                        <TableRow key={lead.id}>
+                                            <TableCell className="font-medium">{lead.full_name}</TableCell>
+                                            <TableCell>
+                                                <div className="flex flex-col gap-1">
+                                                    <div className="flex items-center gap-2 text-xs">
+                                                        <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+                                                        {lead.email}
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-xs">
+                                                        <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+                                                        {lead.phone}
+                                                    </div>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>{lead.company_name || '-'}</TableCell>
+                                            <TableCell>
+                                                <Badge variant="secondary" className="text-[10px]">
+                                                    {lead.notes?.replace('Marketing Resource: ', '') || 'Genel Kayıt'}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell className="text-sm">
+                                                {format(new Date(lead.created_at), 'dd MMM yyyy HH:mm', { locale: tr })}
+                                            </TableCell>
+                                            <TableCell className="text-right">
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
                                                     className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                                    onClick={() => handleStatusChange(tenant.id, 'Suspended')}
+                                                    onClick={() => handleDeleteLead(lead.id)}
                                                 >
-                                                    Askıya Al
+                                                    <Trash2 className="h-4 w-4" />
                                                 </Button>
-                                            ) : (
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                                                    onClick={() => handleStatusChange(tenant.id, 'Active')}
-                                                >
-                                                    Aktifleştir
-                                                </Button>
-                                            )}
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </TabsContent>
+            </Tabs>
 
-                                            <Dialog open={dialogOpen && selectedTenant?.id === tenant.id} onOpenChange={(open) => {
-                                                if (open) {
-                                                    setSelectedTenant(tenant)
-                                                    setLimit(tenant.user_limit)
-                                                    setEndDate(tenant.subscription_end_date ? new Date(tenant.subscription_end_date).toISOString().split('T')[0] : '')
-                                                    setPlan(tenant.plan_type)
-                                                    setStatus(tenant.subscription_status)
-                                                    setDialogOpen(true)
-                                                } else {
-                                                    setDialogOpen(false)
-                                                }
-                                            }}>
-                                                <DialogTrigger asChild>
-                                                    <Button variant="outline" size="sm">Düzenle</Button>
-                                                </DialogTrigger>
-                                                <DialogContent>
-                                                    <DialogHeader>
-                                                        <DialogTitle>Abonelik Düzenle: {tenant.name}</DialogTitle>
-                                                        <DialogDescription>
-                                                            Kullanıcı limitini ve lisans süresini güncelleyin.
-                                                        </DialogDescription>
-                                                    </DialogHeader>
-                                                    <div className="grid gap-4 py-4">
-                                                        <div className="grid grid-cols-4 items-center gap-4">
-                                                            <Label className="text-right">Paket</Label>
-                                                            <div className="col-span-3">
-                                                                <Select value={plan} onValueChange={setPlan}>
-                                                                    <SelectTrigger>
-                                                                        <SelectValue />
-                                                                    </SelectTrigger>
-                                                                    <SelectContent>
-                                                                        <SelectItem value="Free">Free</SelectItem>
-                                                                        <SelectItem value="Pro">Pro</SelectItem>
-                                                                        <SelectItem value="Enterprise">Enterprise</SelectItem>
-                                                                    </SelectContent>
-                                                                </Select>
-                                                            </div>
-                                                        </div>
-                                                        <div className="grid grid-cols-4 items-center gap-4">
-                                                            <Label className="text-right">Durum</Label>
-                                                            <div className="col-span-3">
-                                                                <Select value={status} onValueChange={setStatus}>
-                                                                    <SelectTrigger>
-                                                                        <SelectValue />
-                                                                    </SelectTrigger>
-                                                                    <SelectContent>
-                                                                        <SelectItem value="Active">Active (Aktif)</SelectItem>
-                                                                        <SelectItem value="Suspended">Suspended (Askıda)</SelectItem>
-                                                                        <SelectItem value="Trial">Trial (Deneme)</SelectItem>
-                                                                    </SelectContent>
-                                                                </Select>
-                                                            </div>
-                                                        </div>
-                                                        <div className="grid grid-cols-4 items-center gap-4">
-                                                            <Label className="text-right">Kullanıcı Limiti</Label>
-                                                            <Input
-                                                                type="number"
-                                                                value={limit}
-                                                                onChange={(e) => setLimit(Number(e.target.value))}
-                                                                className="col-span-3"
-                                                            />
-                                                        </div>
-                                                        <div className="grid grid-cols-4 items-center gap-4">
-                                                            <Label className="text-right">Bitiş Tarihi</Label>
-                                                            <Input
-                                                                type="date"
-                                                                value={endDate}
-                                                                onChange={(e) => setEndDate(e.target.value)}
-                                                                className="col-span-3"
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                    <DialogFooter>
-                                                        <Button onClick={handleSaveLimits}>Kaydet</Button>
-                                                    </DialogFooter>
-                                                </DialogContent>
-                                            </Dialog>
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            ))
-                        )}
-                    </TableBody>
-                </Table>
-            </div>
         </div>
     )
 }

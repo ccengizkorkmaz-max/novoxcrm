@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Link from 'next/link'
 import { Building2, ArrowRight, ShieldCheck } from 'lucide-react'
+import { LeadCaptureModal } from '@/components/marketing/LeadCaptureModal'
 
 export default function LoginPage({
     searchParams,
@@ -108,9 +109,16 @@ export default function LoginPage({
                             <Button formAction={login} className="h-11 w-full bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-lg shadow-blue-600/20 transition-all">
                                 Giriş Yap <ArrowRight className="ml-2 h-4 w-4" />
                             </Button>
-                            <Button formAction={signup} variant="outline" className="h-11 w-full border-gray-200 hover:bg-gray-50 hover:text-gray-900 font-medium">
-                                Hesabınız yok mu? Kayıt Ol
-                            </Button>
+
+                            <LeadCaptureModal
+                                resourceName="SaaS Registration"
+                                title="Yeni Hesap Oluştur"
+                                description="NovoxCRM dünyasına katılmak için bilgilerinizi bırakın, ekibimiz size hemen ulaşsın."
+                            >
+                                <Button type="button" variant="outline" className="h-11 w-full border-gray-200 hover:bg-gray-50 hover:text-gray-900 font-medium">
+                                    Hesabınız yok mu? Kayıt Ol
+                                </Button>
+                            </LeadCaptureModal>
                         </div>
                     </form>
 

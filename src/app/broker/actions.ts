@@ -198,22 +198,22 @@ export async function captureMarketingLead(formData: FormData) {
         return { error: 'Lütfen adınız ve e-posta adresinizi giriniz.' }
     }
 
-    // Since this is the main marketing site, we might not have a tenant_id easily.
-    // For now, checks if we can find a default tenant or leave it null if allowed.
-    // Assuming we insert into a `marketing_leads` table OR `broker_leads` with a system user.
+    // Insert into broker_applications with tenant_id = null to signify it's a SaaS/Marketing lead
+    const { error: dbError } = await supabase.from('broker_applications').insert({
+        full_name,
+        email,
+        phone,
+        company_name: company,
+        notes: `Marketing Resource: ${resource}`,
+        status: 'Pending'
+    })
 
-    // OPTION 1: Simple Marketing Lead Table (if exists)
-    // OPTION 2: Use broker_leads but we need a "System Broker" or just record it as unassigned.
-    // Let's assume we maintain a generic 'customers' record or 'marketing_leads'
+    if (dbError) {
+        console.error('Marketing Lead Store Error:', dbError)
+        return { error: 'Bilgileriniz kaydedilemedi.' }
+    }
 
-    // For this MVP, let's try to insert into 'broker_applications' as a temporary holding place 
-    // OR just creating a new table is better but I can't do SQL DDL easily here.
-
-    // Let's use `broker_leads` but we need a tenant.
-    // I will try to fetch the first available tenant (Production usually has one main tenant)
-    // OR create a `marketing_leads` table logic via a new migration? No, can't run migrations.
-
-    // Fallback: Send email to admin via Resend (Safe bet for MVP)
+    // Fallback: Send email to admin via Resend
     const resend = new Resend(process.env.RESEND_API_KEY)
 
     try {
@@ -230,11 +230,11 @@ export async function captureMarketingLead(formData: FormData) {
                 <p><strong>İndirilen Kaynak:</strong> ${resource}</p>
             `
         })
-        return { success: true }
     } catch (e) {
-        console.error(e)
-        return { error: 'Bir hata oluştu.' }
+        console.error('Email sending failed but data was stored:', e)
     }
+
+    return { success: true }
 }
 
 /**

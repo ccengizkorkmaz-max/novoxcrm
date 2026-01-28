@@ -151,3 +151,37 @@ export async function provisionTenant(formData: FormData) {
     revalidatePath('/saas-admin')
     return { success: true }
 }
+
+export async function getSaasLeads() {
+    const isAdmin = await checkSuperAdmin()
+    if (!isAdmin) return { error: 'Unauthorized' }
+
+    const adminClient = createAdminClient()
+
+    const { data, error } = await adminClient
+        .from('broker_applications')
+        .select('*')
+        .is('tenant_id', null)
+        .order('created_at', { ascending: false })
+
+    if (error) return { error: error.message }
+    return { leads: data }
+}
+
+export async function deleteSaasLead(id: string) {
+    const isAdmin = await checkSuperAdmin()
+    if (!isAdmin) return { error: 'Unauthorized' }
+
+    const adminClient = createAdminClient()
+
+    const { error } = await adminClient
+        .from('broker_applications')
+        .delete()
+        .eq('id', id)
+
+    if (error) return { error: error.message }
+
+    revalidatePath('/saas-admin')
+    return { success: true }
+}
+
