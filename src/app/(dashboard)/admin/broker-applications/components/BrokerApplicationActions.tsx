@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { Check, X, Loader2 } from 'lucide-react'
 import { processBrokerApplication } from '@/app/broker/actions'
@@ -18,11 +18,21 @@ import {
 } from "@/components/ui/alert-dialog"
 
 export default function BrokerApplicationActions({ applicationId }: { applicationId: string }) {
-    const [loading, setLoading] = useState<status | null>(null)
+    const [loading, setLoading] = useState<'Approved' | 'Rejected' | null>(null)
+    const [mounted, setMounted] = useState(false)
 
-    type status = 'Approved' | 'Rejected'
+    useEffect(() => {
+        setMounted(true)
+    }, [])
 
-    async function handleAction(status: status) {
+    if (!mounted) return (
+        <div className="flex gap-2">
+            <div className="h-8 w-20 bg-slate-100 animate-pulse rounded" />
+            <div className="h-8 w-20 bg-slate-100 animate-pulse rounded" />
+        </div>
+    )
+
+    async function handleAction(status: 'Approved' | 'Rejected') {
         setLoading(status)
         const res = await processBrokerApplication(applicationId, status)
 

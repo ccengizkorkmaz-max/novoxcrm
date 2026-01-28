@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { LayoutDashboard, Building2, Home, Users, FileText, LogOut, Menu, Settings, Package, Activity, CalendarCheck, Banknote, MessageSquare, Gift, BarChart3, Settings2, Clock } from 'lucide-react'
+import { LayoutDashboard, Building2, Home, Users, FileText, LogOut, Menu, Settings, Package, Activity, CalendarCheck, Banknote, MessageSquare, Gift, BarChart3, Settings2, Clock, Trophy } from 'lucide-react'
 
 
 
@@ -143,15 +143,15 @@ export default async function DashboardLayout({
                             href="/admin/broker-applications"
                             className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
                         >
-                            <Clock className="h-4 w-4" />
-                            Gelen Başvurular
+                            <Users className="h-4 w-4" />
+                            Broker Yönetimi
                         </Link>
                         <Link
                             href="/admin/broker-leads"
                             className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
                         >
                             <Users className="h-4 w-4" />
-                            Adaylar / Başvurular
+                            Broker Lead Yönetimi
                         </Link>
                         <Link
                             href="/admin/broker-leads/campaigns"
@@ -161,11 +161,11 @@ export default async function DashboardLayout({
                             Teşvik Kampanyaları
                         </Link>
                         <Link
-                            href="/admin/broker-leads/analytics"
+                            href="/admin/broker-leads/reports"
                             className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
                         >
                             <BarChart3 className="h-4 w-4" />
-                            Analitik & Raporlar
+                            Broker Kazanç Raporları
                         </Link>
                         <Link
                             href="/admin/broker-leads/commission-settings"
@@ -173,6 +173,13 @@ export default async function DashboardLayout({
                         >
                             <Settings2 className="h-4 w-4" />
                             Komisyon Ayarları
+                        </Link>
+                        <Link
+                            href="/admin/broker-leads/levels"
+                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
+                        >
+                            <Trophy className="h-4 w-4" />
+                            Broker Seviye Yönetimi
                         </Link>
 
                         <div className="mt-4 mb-2 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
@@ -353,7 +360,7 @@ export default async function DashboardLayout({
                                     className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
                                 >
                                     <Users className="h-5 w-5" />
-                                    Adaylar / Başvurular
+                                    Broker Lead Yönetimi
                                 </Link>
                                 <Link
                                     href="/admin/broker-leads/campaigns"
@@ -363,11 +370,11 @@ export default async function DashboardLayout({
                                     Teşvik Kampanyaları
                                 </Link>
                                 <Link
-                                    href="/admin/broker-leads/analytics"
+                                    href="/admin/broker-leads/reports"
                                     className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
                                 >
                                     <BarChart3 className="h-5 w-5" />
-                                    Analitik & Raporlar
+                                    Broker Kazanç Raporları
                                 </Link>
                                 <Link
                                     href="/admin/broker-leads/commission-settings"

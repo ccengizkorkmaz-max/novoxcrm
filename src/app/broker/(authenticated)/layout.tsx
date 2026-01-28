@@ -12,7 +12,8 @@ import {
     TrendingUp,
     Library,
     Bell,
-    Building2
+    Building2,
+    BadgeTurkishLira
 } from 'lucide-react'
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 
@@ -33,9 +34,20 @@ export default async function BrokerLayout({
 
     const { data: profile } = await supabase
         .from('profiles')
-        .select('full_name, tenant_id, role')
+        .select(`
+            full_name, 
+            tenant_id, 
+            role,
+            broker_levels (
+                name,
+                color,
+                icon
+            )
+        `)
         .eq('id', user.id)
         .single()
+
+    const activeLevel = Array.isArray(profile?.broker_levels) ? profile.broker_levels[0] : profile?.broker_levels
 
     // Redirection check for role-based access if necessary
     // if (profile?.role !== 'broker') redirect('/')
@@ -49,8 +61,22 @@ export default async function BrokerLayout({
                         <Building2 className="h-6 w-6" />
                         <span className="text-xl tracking-tight">Novox Broker</span>
                     </Link>
-                    <div className="mt-2 text-xs text-muted-foreground">
-                        {profile?.full_name || user.email}
+                    <div className="mt-2 flex items-center justify-between">
+                        <div className="text-xs text-muted-foreground truncate max-w-[120px]">
+                            {profile?.full_name || user.email}
+                        </div>
+                        {activeLevel && (
+                            <span
+                                className="text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider border"
+                                style={{
+                                    backgroundColor: (activeLevel.color || '#000') + '20',
+                                    color: activeLevel.color || '#000',
+                                    borderColor: (activeLevel.color || '#000') + '40'
+                                }}
+                            >
+                                {activeLevel.name}
+                            </span>
+                        )}
                     </div>
                 </div>
                 <div className="flex-1 overflow-auto py-4">
@@ -82,6 +108,13 @@ export default async function BrokerLayout({
                         >
                             <TrendingUp className="h-4 w-4" />
                             Komisyonlarım
+                        </Link>
+                        <Link
+                            href="/broker/commission-plans"
+                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-slate-600 transition-all hover:bg-slate-100 hover:text-blue-600"
+                        >
+                            <BadgeTurkishLira className="h-4 w-4" />
+                            Komisyon Planları
                         </Link>
                         <Link
                             href="/broker/documents"
@@ -140,6 +173,10 @@ export default async function BrokerLayout({
                                         <TrendingUp className="h-5 w-5 text-blue-600" />
                                         Komisyonlarım
                                     </Link>
+                                    <Link href="/broker/commission-plans" className="flex items-center gap-4 p-3 rounded-xl hover:bg-slate-100">
+                                        <BadgeTurkishLira className="h-5 w-5 text-blue-600" />
+                                        Komisyon Planları
+                                    </Link>
                                     <Link href="/broker/documents" className="flex items-center gap-4 p-3 rounded-xl hover:bg-slate-100">
                                         <Library className="h-5 w-5 text-blue-600" />
                                         Materyaller
@@ -165,13 +202,28 @@ export default async function BrokerLayout({
 
                 {/* Desktop Top Bar (Hidden on Mobile) */}
                 <header className="hidden sm:flex h-16 items-center justify-between border-b bg-white px-8">
-                    <h2 className="text-lg font-semibold text-slate-800">Hoş Geldiniz, {profile?.full_name?.split(' ')[0]}</h2>
+                    <div className="flex items-center gap-3">
+                        <h2 className="text-lg font-semibold text-slate-800">Hoş Geldiniz, {profile?.full_name?.split(' ')[0]}</h2>
+                        {activeLevel && (
+                            <div
+                                className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border shadow-sm"
+                                style={{
+                                    backgroundColor: (activeLevel.color || '#000') + '10',
+                                    color: activeLevel.color || '#000',
+                                    borderColor: (activeLevel.color || '#000') + '30'
+                                }}
+                            >
+                                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: activeLevel.color || '#000' }}></span>
+                                {activeLevel.name}
+                            </div>
+                        )}
+                    </div>
                     <div className="flex items-center gap-4">
                         <Button size="icon" variant="ghost" className="relative text-slate-600">
                             <Bell className="h-5 w-5" />
                             <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-red-500 border-2 border-white"></span>
                         </Button>
-                        <div className="h-8 w-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs">
+                        <div className="h-8 w-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs" style={activeLevel ? { backgroundColor: (activeLevel.color || '#000') + '20', color: activeLevel.color || '#000' } : {}}>
                             {profile?.full_name?.charAt(0)}
                         </div>
                     </div>

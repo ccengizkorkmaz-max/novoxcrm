@@ -189,56 +189,58 @@ export default function CustomerList({ customers }: { customers: Customer[] }) {
                     </DialogContent>
                 </Dialog>
             </div>
-            <div className="rounded-md border bg-card">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Ad Soyad</TableHead>
-                            <TableHead>Telefon</TableHead>
-                            <TableHead>Email</TableHead>
-                            <TableHead>Kaynak</TableHead>
-                            <TableHead>Durum</TableHead>
-                            <TableHead className="w-[70px]"></TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {customers && customers.length > 0 ? (
-                            customers.map((c) => (
-                                <TableRow key={c.id}>
-                                    <TableCell className="font-medium">
-                                        <Link href={`/customers/${c.id}`} className="hover:underline text-primary">
-                                            {c.full_name}
-                                        </Link>
-                                    </TableCell>
-                                    <TableCell>{c.phone}</TableCell>
-                                    <TableCell>{c.email}</TableCell>
-                                    <TableCell>{c.source}</TableCell>
-                                    <TableCell>
-                                        {c.contract_customers && c.contract_customers.length > 0 ? (
-                                            <Badge className="bg-blue-600">Müşteri</Badge>
-                                        ) : c.customer_demands && c.customer_demands.length > 0 ? (
-                                            <Badge className="bg-green-600">Lead</Badge>
-                                        ) : (
-                                            <Badge variant="secondary">Kontak</Badge>
-                                        )}
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="flex justify-end gap-2">
-                                            <Button variant="ghost" size="icon" onClick={() => handleEditClick(c)} title="Düzenle">
-                                                <Pencil className="h-4 w-4" />
-                                            </Button>
-                                            <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(c.id)} className="text-red-600 hover:text-red-700 hover:bg-red-50" title="Sil">
-                                                <Trash className="h-4 w-4" />
-                                            </Button>
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            ))
-                        ) : (
-                            <TableRow><TableCell colSpan={5} className="text-center h-24 text-muted-foreground">Müşteri kaydı yok.</TableCell></TableRow>
-                        )}
-                    </TableBody>
-                </Table>
+            <div className="rounded-md border bg-card overflow-hidden">
+                <div className="relative w-full overflow-auto max-h-[600px]">
+                    <Table className="min-w-[800px]">
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="sticky top-0 bg-card z-10 w-[250px]">Ad Soyad</TableHead>
+                                <TableHead className="sticky top-0 bg-card z-10 w-[150px]">Telefon</TableHead>
+                                <TableHead className="sticky top-0 bg-card z-10 w-[200px]">Email</TableHead>
+                                <TableHead className="sticky top-0 bg-card z-10 w-[150px]">Kaynak</TableHead>
+                                <TableHead className="sticky top-0 bg-card z-10 w-[100px]">Durum</TableHead>
+                                <TableHead className="sticky top-0 bg-card z-10 w-[100px]"></TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {customers && customers.length > 0 ? (
+                                customers.map((c) => (
+                                    <TableRow key={c.id}>
+                                        <TableCell className="font-medium">
+                                            <Link href={`/customers/${c.id}`} className="hover:underline text-primary">
+                                                {c.full_name}
+                                            </Link>
+                                        </TableCell>
+                                        <TableCell>{c.phone}</TableCell>
+                                        <TableCell>{c.email}</TableCell>
+                                        <TableCell>{c.source}</TableCell>
+                                        <TableCell>
+                                            {c.contract_customers && c.contract_customers.length > 0 ? (
+                                                <Badge className="bg-blue-600">Müşteri</Badge>
+                                            ) : c.customer_demands && c.customer_demands.length > 0 ? (
+                                                <Badge className="bg-green-600">Lead</Badge>
+                                            ) : (
+                                                <Badge variant="secondary">Kontak</Badge>
+                                            )}
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex justify-end gap-2">
+                                                <Button variant="ghost" size="icon" onClick={() => handleEditClick(c)} title="Düzenle">
+                                                    <Pencil className="h-4 w-4" />
+                                                </Button>
+                                                <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(c.id)} className="text-red-600 hover:text-red-700 hover:bg-red-50" title="Sil">
+                                                    <Trash className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            ) : (
+                                <TableRow><TableCell colSpan={6} className="text-center h-24 text-muted-foreground">Müşteri kaydı yok.</TableCell></TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </div>
             </div>
 
             <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>

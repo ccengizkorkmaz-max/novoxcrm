@@ -2,30 +2,26 @@ import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
     Gift,
     PlusCircle,
-    Calendar,
     Target,
     TrendingUp,
     Building2,
     CheckCircle2,
     XCircle,
-    MoreHorizontal
+    Clock
 } from "lucide-react"
 import Link from "next/link"
 import { getIncentiveCampaigns } from '@/app/broker/actions'
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-    DropdownMenuLabel,
-    DropdownMenuSeparator
-} from "@/components/ui/dropdown-menu"
+import CampaignActions from "./components/CampaignActions"
 
 export default async function BrokerCampaignsPage() {
     const campaigns = await getIncentiveCampaigns()
+
+    const activeCampaigns = campaigns?.filter(c => c.is_active) || []
+    const passiveCampaigns = campaigns?.filter(c => !c.is_active) || []
 
     return (
         <div className="space-y-6">
@@ -42,6 +38,7 @@ export default async function BrokerCampaignsPage() {
                 </Link>
             </div>
 
+            {/* Stats Cards */}
             <div className="grid gap-4 md:grid-cols-3">
                 <Card className="bg-blue-50 border-blue-100">
                     <CardContent className="p-6">
@@ -51,7 +48,7 @@ export default async function BrokerCampaignsPage() {
                             </div>
                             <div>
                                 <p className="text-xs font-bold text-blue-600 uppercase">Aktif Kampanyalar</p>
-                                <p className="text-2xl font-bold">{campaigns?.filter(c => c.is_active).length || 0}</p>
+                                <p className="text-2xl font-bold">{activeCampaigns.length}</p>
                             </div>
                         </div>
                     </CardContent>
@@ -63,114 +60,130 @@ export default async function BrokerCampaignsPage() {
                                 <Target className="h-5 w-5" />
                             </div>
                             <div>
-                                <p className="text-xs font-bold text-green-600 uppercase">Toplam Katılım</p>
-                                <p className="text-2xl font-bold">14 Broker</p>
+                                <p className="text-xs font-bold text-green-600 uppercase">Toplam Dağıtılan</p>
+                                <p className="text-2xl font-bold">-- ₺</p>
                             </div>
                         </div>
                     </CardContent>
                 </Card>
-                <Card className="bg-orange-50 border-orange-100">
+                <Card className="bg-slate-50 border-slate-100">
                     <CardContent className="p-6">
                         <div className="flex items-center gap-4">
-                            <div className="h-10 w-10 rounded-lg bg-orange-600 flex items-center justify-center text-white">
-                                <Gift className="h-5 w-5" />
+                            <div className="h-10 w-10 rounded-lg bg-slate-600 flex items-center justify-center text-white">
+                                <Clock className="h-5 w-5" />
                             </div>
                             <div>
-                                <p className="text-xs font-bold text-orange-600 uppercase">Dağıtılan Bonuslar</p>
-                                <p className="text-2xl font-bold">125.000 ₺</p>
+                                <p className="text-xs font-bold text-slate-600 uppercase">Geçmiş / Pasif</p>
+                                <p className="text-2xl font-bold">{passiveCampaigns.length}</p>
                             </div>
                         </div>
                     </CardContent>
                 </Card>
             </div>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Tüm Kampanyalar</CardTitle>
-                    <CardDescription>Oluşturulan tüm kampanya ve teşvik programlarının listesi.</CardDescription>
-                </CardHeader>
-                <CardContent className="p-0">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Kampanya Adı</TableHead>
-                                <TableHead>Proje</TableHead>
-                                <TableHead>Tür / Hedef</TableHead>
-                                <TableHead>Bonus Değeri</TableHead>
-                                <TableHead>Tarih Aralığı</TableHead>
-                                <TableHead>Durum</TableHead>
-                                <TableHead className="text-right">İşlem</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {campaigns && campaigns.length > 0 ? (
-                                campaigns.map((campaign) => (
-                                    <TableRow key={campaign.id}>
-                                        <TableCell className="font-bold">
-                                            {campaign.name}
-                                            <p className="text-xs font-normal text-muted-foreground line-clamp-1">{campaign.description}</p>
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex items-center gap-2">
-                                                <Building2 className="h-3 w-3 text-muted-foreground" />
-                                                <span>{campaign.projects?.name || 'Tüm Projeler'}</span>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex flex-col gap-1">
-                                                <span className="text-xs font-medium bg-slate-100 px-2 py-0.5 rounded w-fit">{campaign.type}</span>
-                                                {campaign.target_count && (
-                                                    <span className="text-[10px] text-muted-foreground italic">Hedef: {campaign.target_count} Adet</span>
-                                                )}
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="font-bold text-blue-600">
-                                            {campaign.bonus_value.toLocaleString('tr-TR')} ₺
-                                        </TableCell>
-                                        <TableCell className="text-xs">
-                                            {campaign.start_date ? new Date(campaign.start_date).toLocaleDateString('tr-TR') : 'Süresiz'}
-                                            -
-                                            {campaign.end_date ? new Date(campaign.end_date).toLocaleDateString('tr-TR') : 'Süresiz'}
-                                        </TableCell>
-                                        <TableCell>
-                                            {campaign.is_active ? (
-                                                <span className="inline-flex items-center gap-1 text-green-600 bg-green-50 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase">
-                                                    <CheckCircle2 className="h-3 w-3" /> Aktif
-                                                </span>
-                                            ) : (
-                                                <span className="inline-flex items-center gap-1 text-slate-400 bg-slate-50 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase">
-                                                    <XCircle className="h-3 w-3" /> Pasif
-                                                </span>
-                                            )}
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" className="h-8 w-8 p-0">
-                                                        <MoreHorizontal className="h-4 w-4" />
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end">
-                                                    <DropdownMenuLabel>İşlemler</DropdownMenuLabel>
-                                                    <DropdownMenuItem>Düzenle</DropdownMenuItem>
-                                                    <DropdownMenuItem className="text-red-600">Kampanyayı Bitir</DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        </TableCell>
-                                    </TableRow>
-                                ))
-                            ) : (
-                                <TableRow>
-                                    <TableCell colSpan={7} className="py-20 text-center text-muted-foreground">
-                                        <Gift className="h-12 w-12 mx-auto mb-4 opacity-10" />
-                                        Henüz atanmış bir kampanya bulunmamaktadır.
-                                    </TableCell>
-                                </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
+            <Tabs defaultValue="active" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 max-w-[400px]">
+                    <TabsTrigger value="active">Aktif Kampanyalar</TabsTrigger>
+                    <TabsTrigger value="passive">Geçmiş / Pasifler</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="active" className="mt-4">
+                    <CampaignsTable campaigns={activeCampaigns} showActions={true} />
+                </TabsContent>
+
+                <TabsContent value="passive" className="mt-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Geçmiş Kampanyalar</CardTitle>
+                            <CardDescription>Süresi dolmuş veya sonlandırılmış kampanyalar.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            <CampaignsTable campaigns={passiveCampaigns} showActions={false} />
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+            </Tabs>
         </div>
+    )
+}
+
+function CampaignsTable({ campaigns, showActions }: { campaigns: any[], showActions: boolean }) {
+    if (campaigns.length === 0) {
+        return (
+            <div className="py-12 text-center border rounded-lg bg-slate-50 border-dashed">
+                <Gift className="h-10 w-10 mx-auto mb-3 text-muted-foreground/50" />
+                <p className="text-muted-foreground font-medium">Bu listede kampanya bulunmuyor.</p>
+            </div>
+        )
+    }
+
+    return (
+        <Card>
+            <CardContent className="p-0">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Kampanya Adı</TableHead>
+                            <TableHead>Proje</TableHead>
+                            <TableHead>Tür / Hedef</TableHead>
+                            <TableHead>Bonus Değeri</TableHead>
+                            <TableHead>Tarih Aralığı</TableHead>
+                            <TableHead>Durum</TableHead>
+                            {showActions && <TableHead className="text-right">İşlem</TableHead>}
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {campaigns.map((campaign) => (
+                            <TableRow key={campaign.id} className={!showActions ? "opacity-75 bg-slate-50/50" : ""}>
+                                <TableCell className="font-bold">
+                                    {campaign.name}
+                                    <p className="text-xs font-normal text-muted-foreground line-clamp-1">{campaign.description}</p>
+                                </TableCell>
+                                <TableCell>
+                                    <div className="flex items-center gap-2">
+                                        <Building2 className="h-3 w-3 text-muted-foreground" />
+                                        <span>{campaign.projects?.name || 'Tüm Projeler'}</span>
+                                    </div>
+                                </TableCell>
+                                <TableCell>
+                                    <div className="flex flex-col gap-1">
+                                        <span className="text-xs font-medium bg-slate-100 px-2 py-0.5 rounded w-fit">{campaign.type}</span>
+                                        {campaign.target_count && (
+                                            <span className="text-[10px] text-muted-foreground italic">
+                                                Hedef: {campaign.target_count} {campaign.type === 'Visits' ? 'Ziyaret' : campaign.type === 'Volume' ? '₺ Hacim' : 'Adet'}
+                                            </span>
+                                        )}
+                                    </div>
+                                </TableCell>
+                                <TableCell className="font-bold text-blue-600">
+                                    {campaign.bonus_value.toLocaleString('tr-TR')} ₺
+                                </TableCell>
+                                <TableCell className="text-xs">
+                                    {campaign.start_date ? new Date(campaign.start_date).toLocaleDateString('tr-TR') : 'Süresiz'}
+                                    -
+                                    {campaign.end_date ? new Date(campaign.end_date).toLocaleDateString('tr-TR') : 'Süresiz'}
+                                </TableCell>
+                                <TableCell>
+                                    {campaign.is_active ? (
+                                        <span className="inline-flex items-center gap-1 text-green-600 bg-green-50 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase">
+                                            <CheckCircle2 className="h-3 w-3" /> Aktif
+                                        </span>
+                                    ) : (
+                                        <span className="inline-flex items-center gap-1 text-slate-400 bg-slate-50 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase">
+                                            <XCircle className="h-3 w-3" /> Pasif
+                                        </span>
+                                    )}
+                                </TableCell>
+                                {showActions && (
+                                    <TableCell className="text-right">
+                                        <CampaignActions campaignId={campaign.id} isActive={!!campaign.is_active} />
+                                    </TableCell>
+                                )}
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </CardContent>
+        </Card>
     )
 }

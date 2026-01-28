@@ -54,6 +54,11 @@ export default function BrokerLeadStatusAction({ leadId, currentStatus }: { lead
                     <span>Randevu Oluşturuldu</span>
                 </DropdownMenuItem>
 
+                <DropdownMenuItem onClick={() => handleStatusUpdate('Visited')}>
+                    <Users className="mr-2 h-4 w-4 text-purple-500" />
+                    <span className="font-medium text-purple-700">Ziyaret Gerçekleşti</span>
+                </DropdownMenuItem>
+
                 <DropdownMenuItem onClick={() => handleStatusUpdate('Reserved')}>
                     <BadgeTurkishLira className="mr-2 h-4 w-4 text-amber-500" />
                     <span>Opsiyonlu Olarak İşaretle</span>

@@ -99,7 +99,13 @@ export function ContractForm({
                     data.append(key, String(value))
                 }
             })
+
+            // Calculate actual total from payment plan items to detect interest-inclusive amounts
+            const planTotal = paymentPlan.reduce((sum, item) => sum + (Number(item.amount) || 0), 0)
+            const finalAmount = planTotal > 0 ? planTotal : formData.amount
+
             data.append('payment_plan', JSON.stringify(paymentPlan))
+            data.append('amount', String(finalAmount)) // Use the interest-inclusive amount for the contract record
 
             const result = await createContract(data)
             if (result.error) throw new Error(result.error)

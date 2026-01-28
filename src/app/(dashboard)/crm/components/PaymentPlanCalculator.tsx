@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { createPaymentPlan, getPaymentPlan } from '../actions'
 import { Plus, Trash2, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { calculatePaymentSchedule } from '@/lib/utils/payment-calc'
 
 interface Props {
     saleId: string
@@ -32,7 +33,10 @@ export default function PaymentPlanCalculator({ saleId, totalAmount = 0, initial
     const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0])
 
     const [interims, setInterims] = useState<InterimPayment[]>([])
+    const [applyInterest, setApplyInterest] = useState(false)
+    const [interestRate, setInterestRate] = useState(1.5)
     const [plan, setPlan] = useState<any[]>([])
+    const [totals, setTotals] = useState({ interest: 0, grandTotal: 0 })
     const [loading, setLoading] = useState(true);
     const [calculating, setCalculating] = useState(false)
 
@@ -84,37 +88,32 @@ export default function PaymentPlanCalculator({ saleId, totalAmount = 0, initial
 
     const calculatePlan = async () => {
         setCalculating(true);
-        const down = price * (downPaymentRate / 100);
-        let remaining = price - down;
-        let totalInterim = 0;
-        interims.forEach(p => { if (p.amount > 0) totalInterim += p.amount });
-        remaining -= totalInterim;
-        if (remaining < 0) {
+
+        const result = calculatePaymentSchedule({
+            principal: price,
+            downPaymentAmount: price * (downPaymentRate / 100),
+            monthlyInterestRate: applyInterest ? interestRate : 0,
+            installmentCount: months,
+            startDate,
+            currency,
+            interimPayments: interims
+        });
+
+        if (result.principalAfterDown - interims.reduce((s, i) => s + i.amount, 0) < -0.01) {
             toast.error('Hata: Peşinat ve ara ödemeler toplam tutarı aşıyor!');
             setCalculating(false);
             return;
         }
-        const monthly = remaining / months;
-        const newPlan: any[] = [];
-        newPlan.push({ description: 'Peşinat', payment_type: 'Down Payment', amount: down, due_date: startDate });
-        let cur = new Date(startDate);
-        for (let i = 1; i <= months; i++) {
-            cur.setMonth(cur.getMonth() + 1);
-            const d = cur.toISOString().split('T')[0];
-            newPlan.push({ description: `${i}. Taksit`, payment_type: 'Installment', amount: monthly, due_date: d });
-            const mids = interims.filter(p => p.month === i && p.amount > 0);
-            mids.forEach(mi => {
-                newPlan.push({ description: `Ara Ödeme (${i}. Ay)`, payment_type: 'Interim Payment', amount: mi.amount, due_date: d });
-            });
-        }
-        setPlan(newPlan);
+
+        setPlan(result.items);
+        setTotals({ interest: result.totalInterest, grandTotal: result.grandTotal });
         setCalculating(false);
     }
 
     const handleSave = async () => {
         if (!plan.length) return
-        await createPaymentPlan(saleId, plan, price, currency)
-        toast.success('Ödeme planı ve satış tutarı kaydedildi!')
+        await createPaymentPlan(saleId, plan, totals.grandTotal || price, currency)
+        toast.success('Ödeme planı ve satış tutarı (vade farkı dahil) kaydedildi!')
         if (onSaveSuccess) onSaveSuccess()
     }
 
@@ -157,6 +156,32 @@ export default function PaymentPlanCalculator({ saleId, totalAmount = 0, initial
                     <Label>Başlangıç Tarihi</Label>
                     <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
                 </div>
+                <div className="space-y-4 border-t pt-4 mt-2">
+                    <div className="flex items-center justify-between">
+                        <div className="flex flex-col gap-1">
+                            <Label className="text-sm font-semibold">Vade Farkı Uygula</Label>
+                            <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">İşlem tutarına aylık faiz ekler</span>
+                        </div>
+                        <input
+                            type="checkbox"
+                            className="w-5 h-5 rounded border-slate-300 accent-blue-600"
+                            checked={applyInterest}
+                            onChange={e => setApplyInterest(e.target.checked)}
+                        />
+                    </div>
+                    {applyInterest && (
+                        <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                            <Label>Aylık Faiz Oranı (%)</Label>
+                            <Input
+                                type="number"
+                                step="0.01"
+                                value={interestRate}
+                                onChange={e => setInterestRate(Number(e.target.value))}
+                                className="border-blue-200 focus:border-blue-500 bg-blue-50/30"
+                            />
+                        </div>
+                    )}
+                </div>
                 <div className="col-span-2 space-y-2 border-t pt-2 mt-2">
                     <div className="flex justify-between items-center">
                         <Label>Ara Ödemeler (Opsiyonel)</Label>
@@ -177,9 +202,22 @@ export default function PaymentPlanCalculator({ saleId, totalAmount = 0, initial
                     ))}
                 </div>
                 <div className="col-span-2">
-                    <Button onClick={calculatePlan} className="w-full transition-transform hover:scale-95 active:scale-95" variant="secondary" disabled={calculating} type="button">{calculating ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Hesaplanıyor...</>) : 'Yeniden Hesapla / Oluştur'}</Button>
+                    <Button onClick={calculatePlan} className="w-full transition-transform hover:scale-95 active:scale-95 shadow-md shadow-blue-900/10" variant="secondary" disabled={calculating} type="button">{calculating ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Hesaplanıyor...</>) : 'Yeniden Hesapla / Plan Oluştur'}</Button>
                 </div>
             </div>
+
+            {applyInterest && plan.length > 0 && (
+                <div className="grid grid-cols-2 gap-4 p-4 rounded-xl bg-blue-50/50 border border-blue-100/50 backdrop-blur-sm animate-in zoom-in-95 duration-500">
+                    <div className="space-y-1">
+                        <Label className="text-[10px] uppercase font-bold text-blue-600">Vade Farkı Toplamı</Label>
+                        <p className="text-lg font-black text-blue-700">{totals.interest.toLocaleString('tr-TR', { style: 'currency', currency, maximumFractionDigits: 0 })}</p>
+                    </div>
+                    <div className="space-y-1 text-right">
+                        <Label className="text-[10px] uppercase font-bold text-slate-500">Genel Toplam (Faiz Dahil)</Label>
+                        <p className="text-lg font-black text-slate-900">{totals.grandTotal.toLocaleString('tr-TR', { style: 'currency', currency, maximumFractionDigits: 0 })}</p>
+                    </div>
+                </div>
+            )}
             {loading ? (
                 <div className="text-center py-4">Yükleniyor...</div>
             ) : plan.length ? (

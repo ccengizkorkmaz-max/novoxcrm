@@ -1,0 +1,19 @@
+--- ALL COMMISSION MODELS ---
+Found 10 models.
+Model: kademeli Satış | TenantID: 89b2829e-fc21-477e-8fd8-9f9f0c587e81 | Status: Active
+Model: kademelşi model | TenantID: 89b2829e-fc21-477e-8fd8-9f9f0c587e81 | Status: Active
+Model: ünite bazlı | TenantID: 89b2829e-fc21-477e-8fd8-9f9f0c587e81 | Status: Active
+Model: ünite bazlı deneme 2 | TenantID: 89b2829e-fc21-477e-8fd8-9f9f0c587e81 | Status: Active
+Model: sabitoran deneme | TenantID: 89b2829e-fc21-477e-8fd8-9f9f0c587e81 | Status: Active
+Model: Ünite Bazlı Deneme | TenantID: 89b2829e-fc21-477e-8fd8-9f9f0c587e81 | Status: Active
+Model: SAbit Oran Deneme | TenantID: 89b2829e-fc21-477e-8fd8-9f9f0c587e81 | Status: Active
+Model: SAbit Oran Deneme | TenantID: 89b2829e-fc21-477e-8fd8-9f9f0c587e81 | Status: Active
+Model: Kademe 2 | TenantID: 89b2829e-fc21-477e-8fd8-9f9f0c587e81 | Status: Active
+Model: sabit Tutar komisyon | TenantID: 89b2829e-fc21-477e-8fd8-9f9f0c587e81 | Status: Archived
+
+--- ALL PROFILES ---
+Profile: 1 | TenantID: cb91dca9-0587-466b-a84a-6bc647314005 | Role: user
+Profile: Burak Kotaman | TenantID: 89b2829e-fc21-477e-8fd8-9f9f0c587e81 | Role: manager
+Profile: Sevilay Korkmaz | TenantID: 89b2829e-fc21-477e-8fd8-9f9f0c587e81 | Role: customer
+Profile: Cengiz Korkmaz | TenantID: 89b2829e-fc21-477e-8fd8-9f9f0c587e81 | Role: admin
+Profile: Dino Taş | TenantID: 89b2829e-fc21-477e-8fd8-9f9f0c587e81 | Role: broker

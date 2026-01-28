@@ -22,6 +22,8 @@ import {
 import Link from "next/link"
 import { Progress } from "@/components/ui/progress"
 import BrokerSlugManager from '../components/BrokerSlugManager'
+import CommissionModelsList from '../components/CommissionModelsList'
+import IncentiveCampaignsList from '../components/IncentiveCampaignsList'
 
 export default async function BrokerDashboard() {
     const supabase = await createClient()
@@ -37,7 +39,17 @@ export default async function BrokerDashboard() {
 
     const { data: profile } = await supabase
         .from('profiles')
-        .select('broker_slug, full_name')
+        .select(`
+            broker_slug, 
+            full_name,
+            tenant_id,
+            broker_levels (
+                id,
+                name,
+                color,
+                icon
+            )
+        `)
         .eq('id', user?.id)
         .single()
 
@@ -50,230 +62,240 @@ export default async function BrokerDashboard() {
     const activeLeads = stats?.filter(s => !['Contract Signed', 'Rejected', 'Payment / Closing'].includes(s.status)).length || 0
     const wonLeads = stats?.filter(s => s.status === 'Contract Signed').length || 0
 
-    // --- Broker Level Logic ---
-    const levels = [
-        { name: 'Bronz', min: 0, next: 1, icon: Zap, color: 'text-orange-500', bg: 'bg-orange-50' },
-        { name: 'Gümüş', min: 1, next: 6, icon: Medal, color: 'text-slate-500', bg: 'bg-slate-50' },
-        { name: 'Altın', min: 6, next: 16, icon: Award, color: 'text-yellow-500', bg: 'bg-yellow-50' },
-        { name: 'Platin', min: 16, next: Infinity, icon: Crown, color: 'text-indigo-600', bg: 'bg-indigo-50' }
-    ]
+    // NEW: Calculate Total Sales Volume (for OR logic)
+    const { data: wonLeadsData } = await supabase
+        .from('broker_leads')
+        .select('customer_id')
+        .eq('broker_id', user?.id)
+        .in('status', ['Won', 'Contract Signed'])
+        .not('customer_id', 'is', null)
 
-    const currentLevel = [...levels].reverse().find(l => wonLeads >= l.min) || levels[0]
-    const nextLevel = levels[levels.indexOf(currentLevel) + 1]
-    const progressToNext = nextLevel ? Math.min(100, (wonLeads / nextLevel.min) * 100) : 100
+    let totalVolume = 0
+    if (wonLeadsData && wonLeadsData.length > 0) {
+        const customerIds = wonLeadsData.map(l => l.customer_id)
+        if (customerIds.length > 0) {
+            const { data: volumeData } = await supabase
+                .from('sales')
+                .select('final_price')
+                .in('customer_id', customerIds)
+                .eq('status', 'Completed')
+
+            if (volumeData) {
+                totalVolume = volumeData.reduce((sum, sale) => sum + (Number(sale.final_price) || 0), 0)
+            }
+        }
+    }
+
+    // --- Broker Level Logic - Real Data ---
+    const { data: levels } = await supabase
+        .from('broker_levels')
+        .select('*')
+        .eq('tenant_id', profile?.tenant_id || '')
+        .order('min_sales_count', { ascending: true })
+
+    const activeLevel = Array.isArray(profile?.broker_levels) ? profile.broker_levels[0] : profile?.broker_levels
+    const currentLevel = levels?.find(l => l.name === activeLevel?.name) || levels?.[0]
+
+    // Find next level
+    let nextLevel = null
+    let progressToNext = 100
+
+    if (levels && currentLevel) {
+        const currentIndex = levels.findIndex(l => l.id === currentLevel.id)
+        if (currentIndex !== -1 && currentIndex < levels.length - 1) {
+            nextLevel = levels[currentIndex + 1]
+            // Calculate progress based on sales count OR volume (whichever is higher/closer)
+            const targetCount = nextLevel.min_sales_count || 1;
+            const targetVolume = nextLevel.min_sales_volume || 1;
+
+            const progressCount = Math.min(100, (wonLeads / targetCount) * 100);
+            const progressVolume = Math.min(100, (totalVolume / targetVolume) * 100);
+
+            progressToNext = Math.max(progressCount, progressVolume);
+        }
+    }
 
     const { data: activeCampaigns } = await supabase
         .from('incentive_campaigns')
         .select('*, projects(name)')
         .eq('is_active', true)
-        .limit(2)
+        .order('created_at', { ascending: false })
+        .limit(3)
+
+    const { data: commissionModels } = await supabase
+        .from('commission_models')
+        .select('*, projects(name)')
+        .eq('tenant_id', profile?.tenant_id || '')
+        .order('created_at', { ascending: false })
+        .limit(3)
 
     return (
-        <div className="space-y-8 pb-12">
-            {/* Header / Primary CTA */}
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-4">
-                    <div className={`h-16 w-16 rounded-2xl ${currentLevel.bg} flex items-center justify-center ${currentLevel.color} shadow-sm border border-white/50`}>
-                        <currentLevel.icon className="h-10 w-10" />
+        <div className="max-w-5xl mx-auto space-y-4 pb-8">
+            {/* Header: Compact & Elegant */}
+            <div className="flex items-center justify-between bg-white p-4 rounded-xl shadow-sm border border-slate-100">
+                <div className="flex items-center gap-3">
+                    <div
+                        className="h-10 w-10 rounded-lg flex items-center justify-center shadow-inner border border-white/50"
+                        style={currentLevel ? { backgroundColor: currentLevel.color + '20', color: currentLevel.color } : {}}
+                    >
+                        <Crown className="h-6 w-6" />
                     </div>
                     <div>
                         <div className="flex items-center gap-2">
-                            <h1 className="text-2xl font-bold text-slate-900">Broker Portalı</h1>
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${currentLevel.bg} ${currentLevel.color} border border-current/10`}>
-                                {currentLevel.name} Partner
-                            </span>
+                            <h1 className="text-lg font-bold text-slate-900 leading-none">Broker Paneli</h1>
+                            <div className="flex items-center gap-1.5">
+                                <span className="text-xs text-slate-300">|</span>
+                                {currentLevel && (
+                                    <span
+                                        className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border border-current/10 shadow-sm"
+                                        style={{ backgroundColor: currentLevel.color + '20', color: currentLevel.color }}
+                                    >
+                                        {currentLevel.name} PARTNER
+                                    </span>
+                                )}
+                            </div>
                         </div>
-                        <p className="text-slate-500">Müşteri yönlendirmelerinizi ve komisyonlarınızı takip edin.</p>
+                        <p className="text-[11px] text-slate-500 mt-1.5 font-medium">Hoş geldiniz, {profile?.full_name}</p>
                     </div>
                 </div>
-                <Link href="/broker/leads/new">
-                    <Button className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200 gap-2 h-11 px-6 rounded-xl">
-                        <PlusCircle className="h-5 w-5" />
-                        Yeni Müşteri Kaydı
-                    </Button>
-                </Link>
+                <div className="flex items-center gap-2">
+                    <Link href="/broker/leads/new">
+                        <Button className="bg-blue-600 hover:bg-blue-700 shadow-sm gap-1.5 h-9 px-4 rounded-lg text-xs font-semibold">
+                            <PlusCircle className="h-3.5 w-3.5" />
+                            Yeni Müşteri
+                        </Button>
+                    </Link>
+                </div>
             </div>
 
-            {/* Stats Grid */}
-            <div className="grid gap-4 md:grid-cols-3">
-                <Card className="border-none shadow-sm bg-white rounded-2xl overflow-hidden">
-                    <CardContent className="p-6">
-                        <div className="flex items-center justify-between">
-                            <div className="h-12 w-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
-                                <Users className="h-6 w-6" />
+            {/* Stats: Compact Row */}
+            <div className="grid grid-cols-3 gap-3">
+                {[
+                    { label: 'Toplam', value: totalLeads, icon: Users, color: 'blue' },
+                    { label: 'Aktif', value: activeLeads, icon: Clock, color: 'orange' },
+                    { label: 'Başarı', value: wonLeads, icon: TrendingUp, color: 'green' }
+                ].map((stat, i) => (
+                    <Card key={i} className="border-none shadow-sm bg-white rounded-xl overflow-hidden">
+                        <CardContent className="p-3 flex items-center gap-3">
+                            <div className={`h-8 w-8 rounded-lg bg-${stat.color}-50 flex items-center justify-center text-${stat.color}-600`}>
+                                <stat.icon className="h-4 w-4" />
                             </div>
-                            <div className="text-right">
-                                <p className="text-sm font-medium text-slate-500">Toplam Lead</p>
-                                <p className="text-2xl font-bold text-slate-900">{totalLeads}</p>
+                            <div>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">{stat.label}</p>
+                                <p className="text-lg font-bold text-slate-900 leading-none mt-0.5">{stat.value}</p>
                             </div>
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card className="border-none shadow-sm bg-white rounded-2xl overflow-hidden">
-                    <CardContent className="p-6">
-                        <div className="flex items-center justify-between">
-                            <div className="h-12 w-12 rounded-xl bg-orange-50 flex items-center justify-center text-orange-600">
-                                <Clock className="h-6 w-6" />
-                            </div>
-                            <div className="text-right">
-                                <p className="text-sm font-medium text-slate-500">Aktif Süreç</p>
-                                <p className="text-2xl font-bold text-slate-900">{activeLeads}</p>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card className="border-none shadow-sm bg-white rounded-2xl overflow-hidden">
-                    <CardContent className="p-6">
-                        <div className="flex items-center justify-between">
-                            <div className="h-12 w-12 rounded-xl bg-green-50 flex items-center justify-center text-green-600">
-                                <TrendingUp className="h-6 w-6" />
-                            </div>
-                            <div className="text-right">
-                                <p className="text-sm font-medium text-slate-500">Kazanılan (Won)</p>
-                                <p className="text-2xl font-bold text-slate-900">{wonLeads}</p>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
+                        </CardContent>
+                    </Card>
+                ))}
             </div>
 
-            {/* Main Content Grid */}
-            <div className="grid gap-8 lg:grid-cols-2">
-                {/* Recent Leads */}
-                <Card className="border-none shadow-sm bg-white rounded-2xl overflow-hidden">
-                    <CardHeader className="flex flex-row items-center justify-between px-6 py-5 border-b border-slate-50">
-                        <CardTitle className="text-lg font-bold">Son Başvurular</CardTitle>
-                        <Link href="/broker/leads" className="text-sm text-blue-600 font-medium hover:underline flex items-center">
-                            Tümünü Gör <ChevronRight className="h-4 w-4" />
+            {/* Main Content: 2-Column Responsive */}
+            <div className="grid gap-4 lg:grid-cols-3">
+                {/* Son Başvurular: Takes 2 columns on large screens */}
+                <Card className="lg:col-span-2 border-none shadow-sm bg-white rounded-xl overflow-hidden border border-slate-100">
+                    <CardHeader className="flex flex-row items-center justify-between px-4 py-3 border-b border-slate-50">
+                        <div className="flex items-center gap-2">
+                            <div className="h-2 w-2 rounded-full bg-blue-500" />
+                            <CardTitle className="text-sm font-bold text-slate-800">Son Başvurular</CardTitle>
+                        </div>
+                        <Link href="/broker/leads" className="text-[11px] text-blue-600 font-bold hover:text-blue-700 flex items-center gap-0.5">
+                            Tümünü Gör <ChevronRight className="h-3 w-3" />
                         </Link>
                     </CardHeader>
                     <CardContent className="p-0">
-                        <div className="divide-y divide-slate-50">
+                        <div className="divide-y divide-slate-50/60">
                             {leads && leads.length > 0 ? (
                                 leads.map((lead) => (
-                                    <div key={lead.id} className="p-4 hover:bg-slate-50 transition-colors flex items-center justify-between">
-                                        <div className="flex items-center gap-4">
-                                            <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-600">
+                                    <div key={lead.id} className="p-3 px-4 hover:bg-slate-50/50 transition-colors flex items-center justify-between">
+                                        <div className="flex items-center gap-3 min-w-0">
+                                            <div className="h-8 w-8 rounded-lg bg-slate-100 flex items-center justify-center font-bold text-slate-500 text-xs shrink-0">
                                                 {lead.full_name.charAt(0)}
                                             </div>
-                                            <div>
-                                                <p className="font-bold text-slate-900 leading-tight">{lead.full_name}</p>
-                                                <p className="text-xs text-slate-500">{lead.phone}</p>
+                                            <div className="min-w-0">
+                                                <p className="font-bold text-slate-900 text-[13px] truncate">{lead.full_name}</p>
+                                                <p className="text-[10px] text-slate-400 truncate mt-0.5">{lead.phone}</p>
                                             </div>
                                         </div>
-                                        <div className="text-right">
-                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${lead.status === 'Contract Signed' ? 'bg-green-100 text-green-700' :
-                                                lead.status === 'Rejected' ? 'bg-red-100 text-red-700' :
-                                                    lead.status === 'Reserved' ? 'bg-amber-100 text-amber-700' :
-                                                        lead.status === 'Visited' ? 'bg-cyan-100 text-cyan-700' :
-                                                            lead.status === 'Visit Scheduled' ? 'bg-orange-100 text-orange-700' :
-                                                                'bg-blue-100 text-blue-700'
+                                        <div className="text-right shrink-0 ml-4">
+                                            <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-tight ${lead.status === 'Contract Signed' ? 'bg-green-100 text-green-700' :
+                                                ['Rejected', 'Cancelled'].includes(lead.status) ? 'bg-red-100 text-red-700' :
+                                                    ['Reserved', 'Qualified'].includes(lead.status) ? 'bg-amber-100 text-amber-700' :
+                                                        'bg-blue-100 text-blue-700'
                                                 }`}>
-                                                {lead.status === 'Submitted' ? 'Gönderildi' :
-                                                    lead.status === 'Contacted' ? 'Ulaşıldı' :
-                                                        lead.status === 'Qualified' ? 'Nitelikli' :
-                                                            lead.status === 'Visit Scheduled' ? 'Randevu Alındı' :
-                                                                lead.status === 'Visited' ? 'Ziyaret Edildi' :
-                                                                    lead.status === 'Reserved' ? 'Opsiyonlu' :
-                                                                        lead.status === 'Offer Sent' ? 'Teklif Verildi' :
-                                                                            lead.status === 'Contract Signed' ? 'Sözleşme İmzalandı' :
-                                                                                lead.status === 'Payment / Closing' ? 'Ödeme / Kapanış' :
-                                                                                    lead.status === 'Rejected' ? 'Reddedildi' : lead.status}
+                                                {lead.status === 'Submitted' ? 'Yeni' :
+                                                    lead.status === 'Visited' ? 'Ziyaret' :
+                                                        lead.status === 'Contract Signed' ? 'Satış' :
+                                                            lead.status === 'Reserved' ? 'Rezerve' : 'Süreçte'}
                                             </span>
-                                            <p className="text-[10px] text-slate-400 mt-1">
+                                            <p className="text-[9px] text-slate-300 mt-1">
                                                 {new Date(lead.created_at).toLocaleDateString('tr-TR')}
                                             </p>
                                         </div>
                                     </div>
                                 ))
                             ) : (
-                                <div className="p-12 text-center text-slate-400">
-                                    <Users className="h-12 w-12 mx-auto mb-3 opacity-20" />
-                                    Henüz lead kaydınız bulunmamaktadır.
+                                <div className="p-8 text-center bg-slate-50/30">
+                                    <Users className="h-8 w-8 mx-auto mb-2 opacity-10 text-slate-900" />
+                                    <p className="text-[11px] text-slate-400 font-medium">Henüz kayıt bulunmuyor.</p>
                                 </div>
                             )}
                         </div>
                     </CardContent>
                 </Card>
 
-                {/* Campaigns & Materials */}
-                <div className="space-y-6">
-                    <Card className="border-none shadow-sm bg-gradient-to-br from-blue-600 to-indigo-700 text-white rounded-2xl overflow-hidden">
-                        <CardHeader className="px-6 py-5 pb-2">
-                            <CardTitle className="text-lg font-bold flex items-center gap-2">
-                                <TrendingUp className="h-5 w-5" />
-                                Aktif Kampanyalar
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="px-6 pb-6 pt-2">
-                            {activeCampaigns && activeCampaigns.length > 0 ? (
-                                activeCampaigns.map((camp) => (
-                                    <div key={camp.id} className="p-4 bg-white/10 rounded-xl backdrop-blur-sm border border-white/10 mb-4 last:mb-0">
-                                        <p className="font-bold text-sm">{camp.name}</p>
-                                        <p className="text-xs text-blue-100 mt-1">{camp.description}</p>
-                                        {camp.target_count && (
-                                            <>
-                                                <div className="w-full bg-white/20 h-1.5 rounded-full mt-3 overflow-hidden">
-                                                    <div className="bg-white h-full w-[0%]"></div>
-                                                </div>
-                                                <p className="text-[10px] mt-1 text-right text-blue-100">0 / {camp.target_count} Satış</p>
-                                            </>
-                                        )}
-                                    </div>
-                                ))
-                            ) : (
-                                <p className="text-sm text-blue-100 italic py-4">Şu an aktif bir kampanya bulunmamaktadır.</p>
-                            )}
-                            <Button variant="ghost" className="w-full text-white hover:bg-white/10 border border-white/20 rounded-xl h-10 group mt-4">
-                                Tüm Kampanyaları Gör <ArrowUpRight className="ml-2 h-4 w-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-                            </Button>
-                        </CardContent>
-                    </Card>
+                {/* Sidebar Column */}
+                <div className="space-y-4">
+                    {/* Active Campaigns - Mini (Moved Up) */}
+                    <IncentiveCampaignsList campaigns={activeCampaigns || []} />
 
-                    <Card className="border-none shadow-sm bg-white rounded-2xl overflow-hidden">
-                        <CardHeader className="px-6 py-4 border-b border-slate-50">
-                            <CardTitle className="text-md font-bold">Hızlı Erişim</CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-4 grid grid-cols-2 gap-3">
-                            <Link href="/broker/documents" className="p-4 rounded-xl border border-slate-100 hover:border-blue-200 hover:bg-blue-50/30 transition-all text-center group">
-                                <div className="h-10 w-10 mx-auto bg-slate-50 rounded-lg flex items-center justify-center text-slate-400 group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors mb-2">
-                                    <Building2 className="h-5 w-5" />
-                                </div>
-                                <span className="text-xs font-bold text-slate-700">Fiyat Listeleri</span>
-                            </Link>
-                            <Link href="/broker/documents" className="p-4 rounded-xl border border-slate-100 hover:border-blue-200 hover:bg-blue-50/30 transition-all text-center group">
-                                <div className="h-10 w-10 mx-auto bg-slate-50 rounded-lg flex items-center justify-center text-slate-400 group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors mb-2">
-                                    <FileText className="h-5 w-5" />
-                                </div>
-                                <span className="text-xs font-bold text-slate-700">Broşürler</span>
-                            </Link>
-                        </CardContent>
-                    </Card>
-
-                    {/* Form Link Manager */}
+                    {/* Slug Manager - Compacted */}
                     <BrokerSlugManager initialSlug={profile?.broker_slug || ''} />
 
                     {/* Level Progress */}
                     {nextLevel && (
-                        <Card className="border-none shadow-sm bg-white rounded-2xl overflow-hidden">
-                            <CardHeader className="px-6 py-4 border-b border-slate-50">
-                                <CardTitle className="text-sm font-bold flex items-center gap-2">
-                                    <TrendingUp className="h-4 w-4 text-blue-600" />
-                                    {nextLevel.name} Seviyesine İlerleme
-                                </CardTitle>
+                        <Card className="border-none shadow-sm bg-white rounded-xl overflow-hidden border border-slate-100">
+                            <CardHeader className="px-4 py-3 border-b border-slate-50 flex flex-row items-center justify-between">
+                                <CardTitle className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Hedef: {nextLevel.name}</CardTitle>
+                                <TrendingUp className="h-3 w-3 text-blue-500" />
                             </CardHeader>
-                            <CardContent className="p-6">
-                                <div className="flex justify-between text-xs font-bold text-slate-500 mb-2 uppercase tracking-wide">
-                                    <span>{wonLeads} Satış</span>
-                                    <span>{nextLevel.min} Satış Hedefi</span>
+                            <CardContent className="p-4">
+                                <div className="flex justify-between items-end mb-2">
+                                    <div>
+                                        <p className="text-[10px] text-slate-400 font-medium font-bold uppercase tracking-tighter">İlerleme</p>
+                                        <p className="text-sm font-black text-slate-900 leading-none mt-0.5">%{Math.round(progressToNext)}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-[10px] font-bold text-slate-700">
+                                            {wonLeads} / {nextLevel.min_sales_count} Satış
+                                        </p>
+                                    </div>
                                 </div>
-                                <Progress value={progressToNext} className="h-2 bg-slate-100" />
-                                <p className="text-[11px] text-slate-400 mt-3 italic">
-                                    {nextLevel.min - wonLeads} satış daha yaparak <strong>{nextLevel.name}</strong> seviyesine yükselebilir ve özel avantajlardan yararlanabilirsiniz.
+                                <Progress value={progressToNext} className="h-1.5 bg-slate-100 ring-1 ring-slate-200/50" />
+                                <p className="text-[9px] text-slate-400 mt-3 italic leading-tight bg-slate-50 p-2 rounded-lg border border-slate-100">
+                                    {nextLevel.name} seviyesi için <strong>{nextLevel.min_sales_count}</strong> satış veya
+                                    <strong> {(nextLevel.min_sales_volume / 1000).toFixed(0)}K</strong> hacim hedeflenmelidir.
                                 </p>
                             </CardContent>
                         </Card>
                     )}
+
+                    {/* Commission Models - Compact List */}
+                    <CommissionModelsList models={commissionModels || []} />
+
+                    {/* Quick Access Grid (Moved Down) */}
+                    <div className="grid grid-cols-2 gap-2">
+                        {[
+                            { label: 'Fiyatlar', icon: Building2, href: '/broker/documents' },
+                            { label: 'Katalog', icon: FileText, href: '/broker/documents' }
+                        ].map((item, i) => (
+                            <Link key={i} href={item.href} className="group p-3 rounded-xl bg-white border border-slate-100 hover:border-blue-200 hover:bg-blue-50/30 transition-all flex flex-col items-center shadow-sm">
+                                <div className="h-8 w-8 bg-slate-50 rounded-lg flex items-center justify-center text-slate-400 group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors mb-2">
+                                    <item.icon className="h-4 w-4" />
+                                </div>
+                                <span className="text-[11px] font-bold text-slate-700">{item.label}</span>
+                            </Link>
+                        ))}
+                    </div>
                 </div>
             </div>
         </div>

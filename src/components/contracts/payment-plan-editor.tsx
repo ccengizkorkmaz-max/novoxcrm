@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Plus, Trash2, RefreshCw } from 'lucide-react'
 import { format, addMonths } from 'date-fns'
+import { calculatePaymentSchedule } from '@/lib/utils/payment-calc'
 
 interface PaymentPlanItem {
     payment_type: 'DownPayment' | 'Installment' | 'Balloon' | 'DeliveryPayment' | 'Other'
@@ -31,6 +32,8 @@ export function PaymentPlanEditor({ totalAmount, currency, templates = [], onCha
     const [installments, setInstallments] = useState(12)
     const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0])
     const [downPayment, setDownPayment] = useState(0)
+    const [applyInterest, setApplyInterest] = useState(false)
+    const [interestRate, setInterestRate] = useState(1.5)
 
     // Multi-Balloon State
     const [balloons, setBalloons] = useState<{ id: string, amount: number, month: number }[]>([])
@@ -38,8 +41,19 @@ export function PaymentPlanEditor({ totalAmount, currency, templates = [], onCha
     const lastSentPlan = useRef<string>('')
 
     // Calculate remaining
+    // Calculate remaining (relative to the original totalAmount)
     const currentTotal = plan.reduce((sum, item) => sum + (Number(item.amount) || 0), 0)
-    const remaining = totalAmount - currentTotal
+    const currentInterest = applyInterest ? plan.reduce((sum, item) => {
+        // Find the difference if price was adjusted, or just track interest specifically.
+        // For simplicity, we just use the calculated interest from the utility result if available.
+        // But since the plan state might be modified manually, we'll calculate based on the delta from totalAmount.
+        return sum; // Placeholder for now, improved below in totals
+    }, 0) : 0;
+
+    // We'll track the actual calculated totals from the generator
+    const [totals, setTotals] = useState({ interest: 0, grandTotal: totalAmount });
+
+    const remaining = totals.grandTotal - currentTotal
 
     useEffect(() => {
         const sortedPlan = [...plan].sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())
@@ -63,143 +77,38 @@ export function PaymentPlanEditor({ totalAmount, currency, templates = [], onCha
         const template = templates.find(t => t.id === tid)
         if (!template) return
 
-        let allocated = 0
-        const newPlan: PaymentPlanItem[] = []
-        const start = new Date(startDate)
+        const result = calculatePaymentSchedule({
+            principal: totalAmount,
+            downPaymentAmount: (totalAmount * (template.down_payment_rate || 0)) / 100,
+            monthlyInterestRate: applyInterest ? interestRate : 0,
+            installmentCount: template.installment_count || 12,
+            startDate,
+            currency,
+            interimPayments: template.interim_payment_structure?.map((b: any) => ({
+                month: b.month,
+                amount: (totalAmount * b.rate) / 100
+            })) || []
+        });
 
-        // 1. Down Payment
-        const downValue = (totalAmount * (template.down_payment_rate || 0)) / 100
-        const safeDown = Math.min(downValue, totalAmount)
-        if (safeDown > 0) {
-            newPlan.push({
-                payment_type: 'DownPayment',
-                due_date: startDate,
-                amount: Number(safeDown.toFixed(2)),
-                currency: currency,
-                notes: 'Peşinat'
-            })
-            allocated += Number(safeDown.toFixed(2))
-            setDownPayment(safeDown)
-        }
-
-        // 2. Balloons from interim_payment_structure
-        if (template.interim_payment_structure) {
-            template.interim_payment_structure.forEach((b: any) => {
-                const remainingDebt = totalAmount - allocated
-                if (remainingDebt > 0.01) {
-                    const bAmount = (totalAmount * b.rate) / 100
-                    const safeBAmount = Math.min(bAmount, remainingDebt)
-                    const bDate = addMonths(start, b.month)
-                    newPlan.push({
-                        payment_type: 'Balloon',
-                        due_date: format(bDate, 'yyyy-MM-dd'),
-                        amount: Number(safeBAmount.toFixed(2)),
-                        currency: currency,
-                        notes: `${b.month}. Ay Ara Ödeme`
-                    })
-                    allocated += Number(safeBAmount.toFixed(2))
-                }
-            })
-        }
-
-        // 3. Installments
-        const remainingForInst = totalAmount - allocated
-        const instCount = template.installment_count || 12
-        setInstallments(instCount)
-
-        if (remainingForInst > 0.01 && instCount > 0) {
-            const perMonth = remainingForInst / instCount
-            for (let i = 1; i <= instCount; i++) {
-                const date = addMonths(start, i)
-                newPlan.push({
-                    payment_type: 'Installment',
-                    due_date: format(date, 'yyyy-MM-dd'),
-                    amount: Number(perMonth.toFixed(2)),
-                    currency: currency,
-                    notes: `${i}. Taksit`
-                })
-            }
-        }
-
-        // Rounding fix
-        const currentSum = newPlan.reduce((a, b) => a + b.amount, 0)
-        const diff = totalAmount - currentSum
-        if (Math.abs(diff) > 0.01 && newPlan.length > 0) {
-            newPlan[newPlan.length - 1].amount += diff
-        }
-
-        setPlan(newPlan)
+        setPlan(result.items as any)
+        setTotals({ interest: result.totalInterest, grandTotal: result.grandTotal })
+        setInstallments(template.installment_count || 12)
+        setDownPayment((totalAmount * (template.down_payment_rate || 0)) / 100)
     }
 
     const generatePlan = () => {
-        const newPlan: PaymentPlanItem[] = []
-        let allocated = 0
+        const result = calculatePaymentSchedule({
+            principal: totalAmount,
+            downPaymentAmount: downPayment,
+            monthlyInterestRate: applyInterest ? interestRate : 0,
+            installmentCount: installments,
+            startDate,
+            currency,
+            interimPayments: balloons.map(b => ({ month: b.month, amount: b.amount }))
+        });
 
-        const start = new Date(startDate)
-
-        // 1. Down Payment (Capped by totalAmount)
-        const safeDownPayment = Math.min(downPayment, totalAmount)
-        if (safeDownPayment > 0) {
-            newPlan.push({
-                payment_type: 'DownPayment',
-                due_date: startDate,
-                amount: safeDownPayment,
-                currency: currency,
-                notes: 'Peşinat'
-            })
-            allocated += safeDownPayment
-        }
-
-        // 2. Multi Balloons (Capped by remaining amount)
-        balloons.forEach(b => {
-            const remainingBeforeB = totalAmount - allocated
-            if (remainingBeforeB > 0 && b.amount > 0) {
-                const safeBAmount = Math.min(b.amount, remainingBeforeB)
-                const bDate = addMonths(start, b.month)
-                newPlan.push({
-                    payment_type: 'Balloon',
-                    due_date: format(bDate, 'yyyy-MM-dd'),
-                    amount: safeBAmount,
-                    currency: currency,
-                    notes: 'Ara Ödeme'
-                })
-                allocated += safeBAmount
-            }
-        })
-
-        // 3. Installments (Only if there's remaining debt)
-        const amountToInstallment = totalAmount - allocated
-        if (amountToInstallment > 0.01 && installments > 0) {
-            const perMonth = amountToInstallment / installments
-            for (let i = 1; i <= installments; i++) {
-                const date = addMonths(start, i)
-                newPlan.push({
-                    payment_type: 'Installment',
-                    due_date: format(date, 'yyyy-MM-dd'),
-                    amount: Number(perMonth.toFixed(2)),
-                    currency: currency,
-                    notes: `${i}. Taksit`
-                })
-            }
-        } else if (amountToInstallment > 0.01) {
-            // If No installments but remaining debt
-            newPlan.push({
-                payment_type: 'Other',
-                due_date: startDate,
-                amount: Number(amountToInstallment.toFixed(2)),
-                currency: currency,
-                notes: 'Bakiye'
-            })
-        }
-
-        // Final rounding fix
-        const generatedSum = newPlan.reduce((a, b) => a + b.amount, 0)
-        const diff = totalAmount - generatedSum
-        if (Math.abs(diff) > 0.01 && newPlan.length > 0) {
-            newPlan[newPlan.length - 1].amount += diff
-        }
-
-        setPlan(newPlan)
+        setPlan(result.items as any)
+        setTotals({ interest: result.totalInterest, grandTotal: result.grandTotal })
     }
 
     const addBalloonRow = () => {
@@ -278,6 +187,33 @@ export function PaymentPlanEditor({ totalAmount, currency, templates = [], onCha
                     </div>
                 </div>
 
+                <div className="p-4 border rounded-md bg-white space-y-4">
+                    <div className="flex items-center justify-between">
+                        <div className="flex flex-col gap-1">
+                            <Label className="text-sm font-semibold">Vade Farkı Uygula</Label>
+                            <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">Sözleşme tutarına aylık faiz ekler</span>
+                        </div>
+                        <input
+                            type="checkbox"
+                            className="w-5 h-5 rounded border-slate-300 accent-blue-600"
+                            checked={applyInterest}
+                            onChange={e => setApplyInterest(e.target.checked)}
+                        />
+                    </div>
+                    {applyInterest && (
+                        <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                            <Label className="text-xs font-bold uppercase text-slate-500">Aylık Faiz Oranı (%)</Label>
+                            <Input
+                                type="number"
+                                step="0.01"
+                                value={interestRate}
+                                onChange={e => setInterestRate(Number(e.target.value))}
+                                className="border-blue-200 focus:border-blue-500 bg-blue-50/30"
+                            />
+                        </div>
+                    )}
+                </div>
+
                 {templateId === 'manual' && (
                     <div className="space-y-4 p-4 border rounded-md bg-slate-100/50">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -349,6 +285,19 @@ export function PaymentPlanEditor({ totalAmount, currency, templates = [], onCha
                     </Button>
                 </div>
             </div>
+
+            {applyInterest && plan.length > 0 && (
+                <div className="grid grid-cols-2 gap-4 p-4 rounded-xl bg-blue-50 border border-blue-100 animate-in zoom-in-95 duration-500">
+                    <div className="space-y-1">
+                        <Label className="text-[10px] uppercase font-bold text-blue-600">Vade Farkı Tutarı</Label>
+                        <p className="text-lg font-black text-blue-700">{totals.interest.toLocaleString('tr-TR', { style: 'currency', currency, maximumFractionDigits: 0 })}</p>
+                    </div>
+                    <div className="space-y-1 text-right">
+                        <Label className="text-[10px] uppercase font-bold text-slate-500">Ödenecek Toplam (Faiz Dahil)</Label>
+                        <p className="text-lg font-black text-slate-900">{totals.grandTotal.toLocaleString('tr-TR', { style: 'currency', currency, maximumFractionDigits: 0 })}</p>
+                    </div>
+                </div>
+            )}
 
             <div className="rounded-md border bg-white">
                 <Table>
