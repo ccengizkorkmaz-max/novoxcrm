@@ -109,26 +109,26 @@ export default function LoginPage({
                             <Button formAction={login} className="h-11 w-full bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-lg shadow-blue-600/20 transition-all">
                                 Giriş Yap <ArrowRight className="ml-2 h-4 w-4" />
                             </Button>
-
-                            <LeadCaptureModal
-                                resourceName="SaaS Registration"
-                                title="Yeni Hesap Oluştur"
-                                description="NovoxCRM dünyasına katılmak için bilgilerinizi bırakın, ekibimiz size hemen ulaşsın."
-                            >
-                                <Button type="button" variant="outline" className="h-11 w-full border-gray-200 hover:bg-gray-50 hover:text-gray-900 font-medium">
-                                    Hesabınız yok mu? Kayıt Ol
-                                </Button>
-                            </LeadCaptureModal>
                         </div>
                     </form>
 
-                    <div className="flex flex-col items-center">
+                    <div className="flex flex-col items-center gap-1">
                         <Link
                             href="/broker/apply"
-                            className="text-center text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline py-2"
+                            className="text-center text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline py-1"
                         >
                             Satış Ortağımız (Broker) Olun →
                         </Link>
+
+                        <LeadCaptureModal
+                            resourceName="SaaS Registration"
+                            title="Yeni Hesap Oluştur"
+                            description="NovoxCRM dünyasına katılmak için bilgilerinizi bırakın, ekibimiz size hemen ulaşsın."
+                        >
+                            <button type="button" className="text-center text-xs font-medium text-slate-500 hover:text-slate-700 hover:underline py-1">
+                                Şirketinizi NovoxCRM ile güçlendirin
+                            </button>
+                        </LeadCaptureModal>
                     </div>
 
                     <p className="px-8 text-center text-sm text-muted-foreground">
