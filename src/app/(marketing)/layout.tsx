@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { Footer } from '@/components/marketing/Footer'
 import { Navbar } from '@/components/marketing/Navbar'
 
