@@ -47,6 +47,8 @@ export async function updateSession(request: NextRequest) {
     // 1. Handle Public Routes first
     const isPublicRoute =
         request.nextUrl.pathname === '/' ||
+        request.nextUrl.pathname === '/sitemap.xml' ||
+        request.nextUrl.pathname === '/robots.txt' ||
         request.nextUrl.pathname.startsWith('/payment-plan-calculator') ||
         request.nextUrl.pathname.startsWith('/solutions') ||
         request.nextUrl.pathname.startsWith('/system-details') ||
