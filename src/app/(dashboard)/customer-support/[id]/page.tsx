@@ -7,6 +7,7 @@ import { MessageSquare, Clock, ArrowLeft, User, Phone, Mail } from "lucide-react
 import Link from 'next/link'
 import { MessageForm } from '@/app/customerservices/service-requests/components/MessageForm'
 import { StatusManager } from '../components/StatusManager'
+import { BackButton } from '@/components/back-button'
 
 export default async function TenantSupportDetail({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params
@@ -32,12 +33,7 @@ export default async function TenantSupportDetail({ params }: { params: Promise<
     return (
         <div className="max-w-5xl mx-auto space-y-6">
             <div className="flex items-center justify-between">
-                <Link href="/customer-support">
-                    <Button variant="ghost" className="gap-2">
-                        <ArrowLeft className="h-4 w-4" />
-                        Taleplere Dön
-                    </Button>
-                </Link>
+                <BackButton variant="ghost" className="gap-2" label="Taleplere Dön" />
                 <StatusManager requestId={id} currentStatus={request.status} />
             </div>
 
@@ -74,8 +70,8 @@ export default async function TenantSupportDetail({ params }: { params: Promise<
                                     className={`flex flex-col ${msg.sender_id === user?.id ? 'items-end' : 'items-start'}`}
                                 >
                                     <div className={`max-w-[80%] rounded-2xl px-4 py-2 ${msg.sender_id === user?.id
-                                            ? 'bg-blue-600 text-white rounded-tr-none'
-                                            : 'bg-slate-100 text-slate-900 rounded-tl-none'
+                                        ? 'bg-blue-600 text-white rounded-tr-none'
+                                        : 'bg-slate-100 text-slate-900 rounded-tl-none'
                                         }`}>
                                         <p className="text-sm">{msg.message}</p>
                                     </div>

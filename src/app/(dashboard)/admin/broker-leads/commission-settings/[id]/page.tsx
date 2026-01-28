@@ -7,6 +7,7 @@ import { notFound } from 'next/navigation'
 import ModelActionsButton from './components/ModelActionsButton'
 import TierManager from './components/TierManager'
 import UnitRuleManager from './components/UnitRuleManager'
+import { BackButton } from '@/components/back-button'
 
 export default async function CommissionModelDetailsPage(props: { params: Promise<{ id: string }> }) {
     const params = await props.params
@@ -37,11 +38,7 @@ export default async function CommissionModelDetailsPage(props: { params: Promis
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                    <Link href="/admin/broker-leads/commission-settings">
-                        <Button variant="ghost" size="icon">
-                            <ChevronLeft className="h-5 w-5" />
-                        </Button>
-                    </Link>
+                    <BackButton variant="ghost" className="h-10 w-10 p-0 rounded-full" label="" />
                     <div>
                         <h1 className="text-2xl font-bold">{model.name}</h1>
                         <p className="text-muted-foreground">Model detayları ve yapılandırma.</p>

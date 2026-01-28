@@ -9,6 +9,7 @@ import { MessageForm } from '../components/MessageForm'
 import { updateServiceRequestStatus } from '../actions'
 import { redirect } from 'next/navigation'
 import { CloseRequestButton } from '../components/CloseRequestButton'
+import { BackButton } from '@/components/back-button'
 
 export default async function ServiceRequestDetail({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params
@@ -34,12 +35,7 @@ export default async function ServiceRequestDetail({ params }: { params: Promise
     return (
         <div className="max-w-4xl mx-auto space-y-6">
             <div className="flex items-center justify-between">
-                <Link href="/customerservices/service-requests">
-                    <Button variant="ghost" className="gap-2">
-                        <ArrowLeft className="h-4 w-4" />
-                        Geri Dön
-                    </Button>
-                </Link>
+                <BackButton variant="ghost" className="gap-2" />
 
                 {request.status !== 'Resolved' && (
                     <CloseRequestButton requestId={id} />

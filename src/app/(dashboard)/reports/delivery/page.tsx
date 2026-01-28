@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Calendar, Building2, ChevronRight } from "lucide-react"
-import Link from "next/link"
+import { Truck, Package, Clock, CheckCheck, Calendar, Building2, ChevronRight } from "lucide-react"
+import { BackButton } from "@/components/back-button"
 import { getDeliverySchedule } from "../actions"
 
 export default async function DeliveryReportsPage() {
@@ -13,11 +13,7 @@ export default async function DeliveryReportsPage() {
     return (
         <div className="flex flex-col gap-6 p-1">
             <div className="flex items-center gap-4">
-                <Link href="/reports">
-                    <Button variant="ghost" size="icon">
-                        <ArrowLeft className="h-5 w-5" />
-                    </Button>
-                </Link>
+                <BackButton variant="ghost" size="icon" />
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight">Teslim Takvimi</h1>
                     <p className="text-sm text-muted-foreground">Ünitelerin aylık bazda planlanan teslim projeksiyonu.</p>

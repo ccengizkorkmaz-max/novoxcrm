@@ -113,8 +113,8 @@ export default async function BrokerLayout({
                             href="/broker/commissions"
                             className="flex items-center gap-3 rounded-lg px-3 py-2 text-slate-600 transition-all hover:bg-slate-100 hover:text-blue-600"
                         >
-                            <TrendingUp className="h-4 w-4" />
-                            Komisyonlarım
+                            <BadgeTurkishLira className="h-4 w-4" />
+                            Kazançlarım & Finans
                         </Link>
                         <Link
                             href="/broker/commission-plans"
@@ -181,8 +181,8 @@ export default async function BrokerLayout({
                                         Yeni Lead Ekle
                                     </Link>
                                     <Link href="/broker/commissions" className="flex items-center gap-4 p-3 rounded-xl hover:bg-slate-100">
-                                        <TrendingUp className="h-5 w-5 text-blue-600" />
-                                        Komisyonlarım
+                                        <BadgeTurkishLira className="h-5 w-5 text-blue-600" />
+                                        Kazançlarım & Finans
                                     </Link>
                                     <Link href="/broker/commission-plans" className="flex items-center gap-4 p-3 rounded-xl hover:bg-slate-100">
                                         <BadgeTurkishLira className="h-5 w-5 text-blue-600" />

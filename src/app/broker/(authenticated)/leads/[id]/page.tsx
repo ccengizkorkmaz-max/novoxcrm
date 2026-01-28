@@ -16,8 +16,9 @@ import {
     Clock,
     AlertCircle
 } from "lucide-react"
-import Link from "next/link"
 import { getWhatsAppLink } from '@/lib/whatsapp'
+import { BackButton } from '@/components/back-button'
+import Link from 'next/link'
 
 export default async function BrokerLeadDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params
@@ -74,11 +75,7 @@ export default async function BrokerLeadDetailPage({ params }: { params: Promise
         <div className="space-y-6 pb-20">
             {/* Header / Navigation */}
             <div className="flex items-center gap-4">
-                <Link href="/broker/leads">
-                    <Button variant="ghost" size="icon" className="rounded-full">
-                        <ChevronLeft className="h-5 w-5" />
-                    </Button>
-                </Link>
+                <BackButton variant="ghost" size="icon" className="rounded-full" iconType="chevron" />
                 <div>
                     <h1 className="text-xl font-bold text-slate-900">{lead.full_name}</h1>
                     <p className="text-xs text-slate-500">Kayıt No: #{lead.id.slice(0, 8).toUpperCase()}</p>

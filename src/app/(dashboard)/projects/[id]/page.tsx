@@ -18,6 +18,7 @@ import { LocationPicker } from '@/components/location-picker'
 import { DocumentUpload } from '@/components/document-upload'
 import { BatchUnitCreator } from '@/components/batch-unit-creator'
 import { ExcelImport } from '@/components/excel-import'
+import { BackButton } from '@/components/back-button'
 
 const AMENITIES_LIST = [
     "Yetişkin Havuzu", "Güvenlik", "Çocuk Yüzme Havuzu", "Yürüyüş Parkuru",
@@ -151,10 +152,10 @@ export default async function ProjectDetailPage({
     return (
         <div className="flex flex-col gap-6">
             <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-bold tracking-tight">Proje Detayları</h1>
-                <Link href="/projects">
-                    <Button variant="outline">Listeye Dön</Button>
-                </Link>
+                <div className="flex items-center gap-4">
+                    <BackButton variant="outline" label="Listeye Dön" />
+                    <h1 className="text-2xl font-bold tracking-tight">Proje Detayları</h1>
+                </div>
             </div>
 
             <Tabs defaultValue={activeTab} className="w-full">

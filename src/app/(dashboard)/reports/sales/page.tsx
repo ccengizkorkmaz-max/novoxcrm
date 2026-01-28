@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, TrendingUp, Users, DollarSign, Target } from "lucide-react"
 import Link from "next/link"
+import { BackButton } from "@/components/back-button"
 import { getSalesAnalytics } from "../actions"
 import AnalyticsMetricCard from "../components/AnalyticsMetricCard"
 import SalesTrendChart from "../components/SalesTrendChart"
@@ -24,11 +25,7 @@ export default async function SalesReportsPage() {
         <div className="flex flex-col gap-6 p-1 pb-10">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                    <Link href="/reports">
-                        <Button variant="ghost" size="icon">
-                            <ArrowLeft className="h-5 w-5" />
-                        </Button>
-                    </Link>
+                    <BackButton variant="ghost" size="icon" />
                     <div>
                         <h1 className="text-2xl font-bold tracking-tight">Satış Performansı</h1>
                         <p className="text-sm text-muted-foreground">Şirket genelindeki satış verilerinin detaylı analizi.</p>

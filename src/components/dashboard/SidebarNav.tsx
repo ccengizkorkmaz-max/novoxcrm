@@ -117,6 +117,9 @@ export function SidebarNav({ onElementClick }: { onElementClick?: () => void }) 
                         <NavItem href="/admin/broker-leads/commission-settings" icon={Settings2} onClick={onElementClick}>
                             Komisyon Ayarları
                         </NavItem>
+                        <NavItem href="/admin/broker-finances" icon={Banknote} onClick={onElementClick}>
+                            Finansal Yönetim
+                        </NavItem>
                         <NavItem href="/admin/broker-leads/levels" icon={Trophy} onClick={onElementClick}>
                             Seviye Yönetimi
                         </NavItem>

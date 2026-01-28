@@ -6,6 +6,7 @@ import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { notFound } from "next/navigation"
 import { BrokerUnitList } from '@/components/broker/BrokerUnitList'
+import { BackButton } from '@/components/back-button'
 
 export default async function BrokerProjectDetailPage({ params }: { params: { id: string } }) {
     const { id } = await params
@@ -53,10 +54,10 @@ export default async function BrokerProjectDetailPage({ params }: { params: { id
         <div className="space-y-6">
             {/* Header */}
             <div className="flex flex-col gap-4">
-                <Link href="/broker/projects" className="flex items-center gap-1 text-xs text-slate-500 hover:text-blue-600 transition-colors">
-                    <ChevronLeft className="h-3 w-3" />
-                    Tüm Projelere Dön
-                </Link>
+                <BackButton
+                    className="w-fit p-0 h-auto text-xs text-slate-500 hover:text-blue-600 transition-colors bg-transparent hover:bg-transparent"
+                    label="Tüm Projelere Dön"
+                />
 
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="flex items-center gap-4">

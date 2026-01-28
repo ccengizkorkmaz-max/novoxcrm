@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, TrendingDown, RefreshCcw, XCircle } from "lucide-react"
-import Link from "next/link"
+import { UserMinus, Frown, TrendingDown, XCircle, RefreshCcw, AlertTriangle } from "lucide-react"
+import { BackButton } from "@/components/back-button"
 import { getLossAnalytics } from "../actions"
 import AnalyticsMetricCard from "../components/AnalyticsMetricCard"
 import LossDistributionChart from "../components/LossDistributionChart"
@@ -17,11 +17,7 @@ export default async function LossReportsPage() {
     return (
         <div className="flex flex-col gap-6 p-1">
             <div className="flex items-center gap-4">
-                <Link href="/reports">
-                    <Button variant="ghost" size="icon">
-                        <ArrowLeft className="h-5 w-5" />
-                    </Button>
-                </Link>
+                <BackButton variant="ghost" size="icon" />
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight">İptal & Devir Analizi</h1>
                     <p className="text-sm text-muted-foreground">Kaybedilen fırsatların ve iptal edilen satışların oranları.</p>

@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Building2, LayoutGrid, CheckCircle, Package } from "lucide-react"
-import Link from "next/link"
+import { BackButton } from "@/components/back-button"
 import { getInventoryAnalytics } from "../actions"
 import AnalyticsMetricCard from "../components/AnalyticsMetricCard"
 import ProjectOccupancyChart from "../components/ProjectOccupancyChart"
@@ -21,11 +21,7 @@ export default async function InventoryReportsPage() {
         <div className="flex flex-col gap-6 p-1">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                    <Link href="/reports">
-                        <Button variant="ghost" size="icon">
-                            <ArrowLeft className="h-5 w-5" />
-                        </Button>
-                    </Link>
+                    <BackButton variant="ghost" size="icon" />
                     <div>
                         <h1 className="text-2xl font-bold tracking-tight">Stok & Proje Analizi</h1>
                         <p className="text-sm text-muted-foreground">Projeler bazında doluluk ve ünite bazlı stok durumu.</p>
@@ -57,7 +53,7 @@ export default async function InventoryReportsPage() {
                 />
                 <AnalyticsMetricCard
                     title="Portföy Değeri"
-                    value={`${(totalCurrentValue).toFixed(1)}M ₺`}
+                    value={`${(totalCurrentValue).toFixed(1)} M ₺`}
                     description="Toplam piyasa değeri"
                     icon={Building2}
                     color="text-purple-600"

@@ -3,16 +3,15 @@
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Printer, ArrowLeft } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import { Printer } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
+import { BackButton } from '@/components/back-button'
 
 interface OfferDetailProps {
     offer: any
 }
 
 export default function OfferDetail({ offer }: OfferDetailProps) {
-    const router = useRouter()
     const plan = offer.payment_plan
 
     const handlePrint = () => {
@@ -22,9 +21,7 @@ export default function OfferDetail({ offer }: OfferDetailProps) {
     return (
         <div className="space-y-6 max-w-4xl mx-auto p-6 bg-white shadow-lg rounded-lg print:shadow-none print:w-[210mm] print:h-[297mm] print:overflow-hidden print:m-0 print:p-[10mm]">
             <div className="flex justify-between items-center print:hidden">
-                <Button variant="outline" onClick={() => router.back()}>
-                    <ArrowLeft className="mr-2 h-4 w-4" /> Geri Dön
-                </Button>
+                <BackButton variant="outline" />
                 <Button onClick={handlePrint}>
                     <Printer className="mr-2 h-4 w-4" /> Yazdır
                 </Button>
