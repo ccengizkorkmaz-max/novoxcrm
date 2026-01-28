@@ -25,6 +25,21 @@ export const metadata: Metadata = {
   formatDetection: {
     telephone: false,
   },
+  verification: {
+    google: 'YOUR_GOOGLE_VERIFICATION_CODE', // Replace with actual code
+    yandex: 'YOUR_YANDEX_VERIFICATION_CODE', // Optional
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
 };
 
 export const viewport = {

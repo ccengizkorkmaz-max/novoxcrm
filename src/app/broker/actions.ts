@@ -1557,3 +1557,60 @@ export async function adminSetBrokerPassword(brokerId: string, newPassword: stri
 
     return { success: true }
 }
+
+/**
+ * Admin: Send Reminder Email to Pending (Unregistered) Approved Brokers
+ */
+export async function sendBrokerReminderEmail(applicationId: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    // 1. Get Application Details
+    const { data: app } = await supabase
+        .from('broker_applications')
+        .select('*')
+        .eq('id', applicationId)
+        .single()
+
+    if (!app) return { error: 'Başvuru bulunamadı.' }
+    if (app.status !== 'Approved') return { error: 'Sadece onaylı başvurulara hatırlatma gönderilebilir.' }
+
+    // 2. Check if user already exists (just in case)
+    const supabaseAdmin = createAdminClient()
+    const { data: { users } } = await supabaseAdmin.auth.admin.listUsers()
+    const existingAuthUser = users?.find(u => u.email === app.email)
+
+    if (existingAuthUser) {
+        return { error: 'Kullanıcı zaten kayıtlı görünüyor. (Sistemde mevcut)' }
+    }
+
+    // 3. Send Reminder Email
+    const resend = new Resend(process.env.RESEND_API_KEY)
+
+    try {
+        await resend.emails.send({
+            from: 'NovaCRM <noreply@novoxcrm.com>',
+            to: app.email,
+            subject: 'Hatırlatma: Hesabınızı Oluşturun - Novox Broker Programı',
+            html: `
+                <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h2 style="color: #4F46E5;">Hesabınızı Oluşturmayı Unutmayın!</h2>
+                    <p>Merhaba <strong>${app.full_name}</strong>,</p>
+                    <p>Broker başvurunuz onaylanmıştı ancak henüz hesabınızı oluşturmadığınızı fark ettik.</p>
+                    <p>Sistemi kullanmaya başlamak ve portföylerinize erişmek için lütfen aşağıdaki butona tıklayarak kaydınızı tamamlayın.</p>
+                    
+                    <div style="margin: 30px 0;">
+                        <a href="${process.env.NEXT_PUBLIC_APP_URL}/signup?email=${encodeURIComponent(app.email)}" style="display: inline-block; background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Hesabımı Oluştur</a>
+                    </div>
+
+                    <p style="color: #6b7280; font-size: 14px;">Eğer bir sorun yaşıyorsanız lütfen bizimle iletişime geçin.</p>
+                </div>
+            `
+        })
+        return { success: true }
+    } catch (e: any) {
+        console.error('Reminder Email Error:', e)
+        return { error: `E-posta gönderilemedi: ${e.message}` }
+    }
+}

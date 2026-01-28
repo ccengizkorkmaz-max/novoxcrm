@@ -5,13 +5,17 @@ export default function robots(): MetadataRoute.Robots {
     return {
         rules: {
             userAgent: '*',
-            allow: '/',
+            allow: [
+                '/',
+                '/broker/apply',
+                '/p/'
+            ],
             disallow: [
                 '/dashboard/',
                 '/admin/',
                 '/saas-admin/',
                 '/customerservices/',
-                '/broker/',
+                '/broker/', // Blocks other broker pages, allowing apply above
                 '/api/',
                 '/_next/',
             ],

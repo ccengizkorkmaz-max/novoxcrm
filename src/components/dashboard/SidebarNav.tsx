@@ -101,12 +101,12 @@ export function SidebarNav({ onElementClick }: { onElementClick?: () => void }) 
                     <AccordionTrigger className="px-3 py-2 text-muted-foreground hover:text-primary hover:bg-slate-50 rounded-lg hover:no-underline [&[data-state=open]]:text-primary font-medium">
                         <div className="flex items-center gap-3">
                             <Users className="h-4 w-4" />
-                            <span>Broker Yönetimi</span>
+                            <span>B2B Broker Yönetimi</span>
                         </div>
                     </AccordionTrigger>
                     <AccordionContent className="pt-1 pb-2 pl-4 grid gap-1">
                         <NavItem href="/admin/broker-applications" icon={Clock} onClick={onElementClick}>
-                            Gelen Başvurular
+                            Broker Yönetimi
                         </NavItem>
                         <NavItem href="/admin/broker-leads" icon={Users} onClick={onElementClick}>
                             Lead Yönetimi

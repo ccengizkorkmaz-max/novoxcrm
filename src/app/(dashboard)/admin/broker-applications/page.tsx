@@ -16,6 +16,7 @@ import {
 } from "lucide-react"
 import BrokerApplicationActions from './components/BrokerApplicationActions'
 import BrokerManagementActions from './components/BrokerManagementActions'
+import BrokerReminderButton from './components/BrokerReminderButton'
 
 export default async function AdminBrokerApplicationsPage() {
     const supabase = await createClient()
@@ -252,9 +253,12 @@ export default async function AdminBrokerApplicationsPage() {
                                                 </span>
                                             </TableCell>
                                             <TableCell className="text-right">
-                                                <span className="text-xs text-muted-foreground italic">
-                                                    Kullanıcı kaydı bekleniyor
-                                                </span>
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <span className="text-xs text-muted-foreground italic">
+                                                        Kullanıcı kaydı bekleniyor
+                                                    </span>
+                                                    <BrokerReminderButton applicationId={app.id} />
+                                                </div>
                                             </TableCell>
                                         </TableRow>
                                     ))}
