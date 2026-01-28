@@ -18,6 +18,43 @@ async function checkSuperAdmin() {
     return false
 }
 
+export async function getGlobalStats() {
+    const isAdmin = await checkSuperAdmin()
+    if (!isAdmin) return { error: 'Unauthorized' }
+
+    const adminClient = createAdminClient()
+
+    // 1. Total Tenants
+    const { count: tenantCount } = await adminClient
+        .from('tenants')
+        .select('*', { count: 'exact', head: true })
+
+    // 2. Total Users
+    const { count: userCount } = await adminClient
+        .from('profiles')
+        .select('*', { count: 'exact', head: true })
+
+    // 3. Total Sales Volume
+    const { data: contracts } = await adminClient
+        .from('contracts')
+        .select('signed_amount')
+
+    const totalSalesVolume = contracts?.reduce((sum, c) => sum + Number(c.signed_amount), 0) || 0
+
+    // 4. Total Active Leads (broker applications with tenant_id is null)
+    const { count: leadCount } = await adminClient
+        .from('broker_applications')
+        .select('*', { count: 'exact', head: true })
+        .is('tenant_id', null)
+
+    return {
+        tenantCount: tenantCount || 0,
+        userCount: userCount || 0,
+        totalSalesVolume,
+        leadCount: leadCount || 0
+    }
+}
+
 export async function getAllTenants() {
     const isAdmin = await checkSuperAdmin()
     if (!isAdmin) return { error: 'Unauthorized' }
@@ -53,11 +90,36 @@ export async function getAllTenants() {
             .select('*', { count: 'exact', head: true })
             .eq('tenant_id', t.id)
 
+        // Owner Info
+        const { data: ownerProfile, error: ownerError } = await adminClient
+            .from('profiles')
+            .select('full_name, email, role, tenant_id')
+            .eq('tenant_id', t.id)
+            .eq('role', 'owner')
+            .maybeSingle()
+
+        if (ownerError) console.error(`Owner Fetch Error for ${t.id}:`, ownerError)
+
+        // If owner not found, try to find ANY user for this tenant to see what's going on
+        let fallbackInfo = null
+        if (!ownerProfile) {
+            const { data: anyUser } = await adminClient
+                .from('profiles')
+                .select('full_name, email, role')
+                .eq('tenant_id', t.id)
+                .limit(1)
+                .maybeSingle()
+            fallbackInfo = anyUser
+        }
+
         return {
             ...t,
             user_count: userCount || 0,
             project_count: projectCount || 0,
-            customer_count: customerCount || 0
+            customer_count: customerCount || 0,
+            owner_name: ownerProfile?.full_name || fallbackInfo?.full_name || 'Bilinmiyor',
+            owner_email: ownerProfile?.email || fallbackInfo?.email || 'Bilinmiyor',
+            debug_role: ownerProfile?.role || fallbackInfo?.role || 'None'
         }
     }))
 
@@ -180,6 +242,120 @@ export async function deleteSaasLead(id: string) {
         .eq('id', id)
 
     if (error) return { error: error.message }
+
+    revalidatePath('/saas-admin')
+    return { success: true }
+}
+
+import { Resend } from 'resend'
+
+export async function resetTenantPassword(tenantId: string, newPassword: string) {
+    const isAdmin = await checkSuperAdmin()
+    if (!isAdmin) return { error: 'Unauthorized' }
+
+    if (!newPassword || newPassword.length < 6) {
+        return { error: 'Şifre en az 6 karakter olmalıdır.' }
+    }
+
+    const adminClient = createAdminClient()
+
+    // 1. Find the owner/admin profile for this tenant
+    const { data: profile, error: profileError } = await adminClient
+        .from('profiles')
+        .select('id, email, full_name')
+        .eq('tenant_id', tenantId)
+        .eq('role', 'owner')
+        .maybeSingle()
+
+    if (profileError || !profile) {
+        return { error: 'Firma yönetici profili bulunamadı.' }
+    }
+
+    // 2. Update Auth password
+    const { error: authError } = await adminClient.auth.admin.updateUserById(
+        profile.id,
+        { password: newPassword }
+    )
+
+    if (authError) return { error: 'Şifre güncellenemedi: ' + authError.message }
+
+    // 3. Send Email Notification
+    const resend = new Resend(process.env.RESEND_API_KEY)
+    try {
+        await resend.emails.send({
+            from: 'Novox Destek <destek@novoxcrm.com>',
+            to: profile.email,
+            subject: 'NovoxCRM Hesabınız - Şifre Güncellemesi',
+            html: `
+                <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; padding: 32px;">
+                    <h2 style="color: #1e40af; margin-top: 0;">Şifreniz Güncellendi</h2>
+                    <p style="color: #334155; font-size: 16px; line-height: 1.6;">
+                        Merhaba <strong>${profile.full_name}</strong>,
+                    </p>
+                    <p style="color: #334155; font-size: 16px; line-height: 1.6;">
+                        Sistem yöneticisi tarafından hesabınızın şifresi güncellenmiştir. Yeni bilgileriniz aşağıdadır:
+                    </p>
+                    <div style="background-color: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 24px; margin: 24px 0;">
+                        <p style="margin: 0; color: #64748b; font-size: 14px; margin-bottom: 8px;">Yeni Giriş Bilgileri:</p>
+                        <p style="margin: 0; font-family: monospace; font-size: 16px;"><strong>Email:</strong> ${profile.email}</p>
+                        <p style="margin: 0; font-family: monospace; font-size: 16px; margin-top: 8px;"><strong>Yeni Şifre:</strong> ${newPassword}</p>
+                    </div>
+                    <p style="color: #64748b; font-size: 14px; border-top: 1px solid #e2e8f0; padding-top: 24px;">
+                        Güvenliğiniz için sisteme giriş yaptıktan sonra şifrenizi değiştirmenizi öneririz.
+                    </p>
+                </div>
+            `
+        })
+    } catch (e) {
+        console.error('Password reset email failed:', e)
+    }
+
+    return { success: true }
+}
+
+export async function updateTenantAdminInfo(tenantId: string, adminName: string, adminEmail: string) {
+    const isAdmin = await checkSuperAdmin()
+    if (!isAdmin) return { error: 'Unauthorized' }
+
+    if (!adminName || !adminEmail) {
+        return { error: 'Ad ve Email alanları boş bırakılamaz.' }
+    }
+
+    const adminClient = createAdminClient()
+
+    // 1. Find the owner/admin profile for this tenant
+    const { data: profile, error: profileError } = await adminClient
+        .from('profiles')
+        .select('id, email, full_name')
+        .eq('tenant_id', tenantId)
+        .eq('role', 'owner')
+        .maybeSingle()
+
+    if (profileError || !profile) {
+        return { error: 'Firma yönetici profili bulunamadı.' }
+    }
+
+    // 2. Update Auth record (Email and Full Name)
+    const { error: authError } = await adminClient.auth.admin.updateUserById(
+        profile.id,
+        {
+            email: adminEmail,
+            user_metadata: { full_name: adminName }
+        }
+    )
+
+    if (authError) return { error: 'Giriş bilgileri güncellenemedi: ' + authError.message }
+
+    // 3. Update Profiles table
+    const { error: dbError } = await adminClient
+        .from('profiles')
+        .update({
+            full_name: adminName,
+            email: adminEmail
+        })
+        .eq('id', profile.id)
+
+    if (dbError) return { error: 'Profil bilgileri güncellenemedi: ' + dbError.message }
 
     revalidatePath('/saas-admin')
     return { success: true }

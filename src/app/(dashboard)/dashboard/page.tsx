@@ -7,35 +7,91 @@ import { DashboardGeneralStats } from '@/components/dashboard-general-stats'
 
 async function getDashboardStats() {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return {
+    activeProjects: 0,
+    availableUnits: 0,
+    totalCustomers: 0,
+    activeLeads: 0,
+    totalSalesVolume: 0,
+    chartData: [],
+    leadStatusData: [],
+    recentActivities: [],
+    generalStats: { total: 0, sold: 0, reserved: 0, offers: 0 }
+  }
+
+  // Get user's profile and metadata to ensure strict isolation
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('tenant_id')
+    .eq('id', user.id)
+    .single()
+
+  const metaTenantId = user.user_metadata?.tenant_id
+  let tenant_id = profile?.tenant_id
+
+  // SELF-CORRECTION: If profile tenant doesn't match metadata tenant, trust metadata (official)
+  if (metaTenantId && metaTenantId !== tenant_id) {
+    console.log(`Self-correcting tenant_id for user ${user.id}: ${tenant_id} -> ${metaTenantId}`)
+    await supabase.from('profiles').update({ tenant_id: metaTenantId }).eq('id', user.id)
+    tenant_id = metaTenantId
+  }
+
+  if (!tenant_id) return {
+    activeProjects: 0,
+    availableUnits: 0,
+    totalCustomers: 0,
+    activeLeads: 0,
+    totalSalesVolume: 0,
+    chartData: [],
+    leadStatusData: [],
+    recentActivities: [],
+    generalStats: { total: 0, sold: 0, reserved: 0, offers: 0 }
+  }
 
   // 1. Projects Count (Active)
   const { count: activeProjects } = await supabase
     .from('projects')
     .select('*', { count: 'exact', head: true })
+    .eq('tenant_id', tenant_id)
     .eq('status', 'Active')
+
+  // Fetch project IDs first for reliable unit filtering
+  const { data: tenantProjects } = await supabase
+    .from('projects')
+    .select('id')
+    .eq('tenant_id', tenant_id)
+
+  const projectIds = tenantProjects?.map(p => p.id) || []
 
   // 2. Units Count (For Sale)
   const { count: availableUnits } = await supabase
     .from('units')
     .select('*', { count: 'exact', head: true })
     .eq('status', 'For Sale')
+    .in('project_id', projectIds)
 
   // General Stock Stats
   const { count: totalUnits } = await supabase.from('units').select('*', { count: 'exact', head: true })
+    .in('project_id', projectIds)
   const { count: soldUnits } = await supabase.from('units').select('*', { count: 'exact', head: true }).eq('status', 'Sold')
+    .in('project_id', projectIds)
   const { count: reservedUnits } = await supabase.from('units').select('*', { count: 'exact', head: true }).in('status', ['Reserved', 'Reservation'])
+    .in('project_id', projectIds)
   const { count: activeOffers } = await supabase.from('sales').select('*', { count: 'exact', head: true }).in('status', ['Proposal', 'Teklif - Kapora Bekleniyor', 'Negotiation'])
+    .eq('tenant_id', tenant_id)
 
 
   // 3. Customers Count
   const { count: totalCustomers } = await supabase
     .from('customers')
     .select('*', { count: 'exact', head: true })
-
+    .eq('tenant_id', tenant_id)
   // 4. Total Sales Volume (Contracts)
   const { data: contracts } = await supabase
     .from('contracts')
     .select('signed_amount, created_at')
+    .eq('tenant_id', tenant_id)
     .order('created_at', { ascending: true })
 
   const totalSalesVolume = contracts?.reduce((sum, c) => sum + Number(c.signed_amount), 0) || 0
@@ -56,6 +112,7 @@ async function getDashboardStats() {
   const { data: leads } = await supabase
     .from('sales')
     .select('status')
+    .eq('tenant_id', tenant_id)
 
   // Calculate specific active leads (excluding Won/Lost)
   const activeLeads = leads?.filter(l => l.status !== 'Sold' && l.status !== 'Lost').length || 0
@@ -85,6 +142,7 @@ async function getDashboardStats() {
   const { data: recentActivities } = await supabase
     .from('activities')
     .select('*, customers(full_name)')
+    .eq('tenant_id', tenant_id)
     .order('created_at', { ascending: false })
     .limit(5)
 
@@ -127,7 +185,7 @@ export default async function DashboardPage() {
             <div className="text-2xl font-bold">
               {formatCurrency(stats.totalSalesVolume)}
             </div>
-            <p className="text-xs text-muted-foreground">+20.1% geçen aydan</p>
+            <p className="text-xs text-muted-foreground">Toplam Onaylanmış Sözleşmeler</p>
           </CardContent>
         </Card>
         <Card>

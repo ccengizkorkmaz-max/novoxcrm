@@ -89,6 +89,13 @@ export default async function BrokerLayout({
                             Dashboard
                         </Link>
                         <Link
+                            href="/broker/projects"
+                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-slate-600 transition-all hover:bg-slate-100 hover:text-blue-600"
+                        >
+                            <Building2 className="h-4 w-4" />
+                            Projeler & Envanter
+                        </Link>
+                        <Link
                             href="/broker/leads"
                             className="flex items-center gap-3 rounded-lg px-3 py-2 text-slate-600 transition-all hover:bg-slate-100 hover:text-blue-600"
                         >
@@ -160,6 +167,10 @@ export default async function BrokerLayout({
                                     <Link href="/broker" className="flex items-center gap-4 p-3 rounded-xl hover:bg-slate-100">
                                         <LayoutDashboard className="h-5 w-5 text-blue-600" />
                                         Dashboard
+                                    </Link>
+                                    <Link href="/broker/projects" className="flex items-center gap-4 p-3 rounded-xl hover:bg-slate-100">
+                                        <Building2 className="h-5 w-5 text-blue-600" />
+                                        Projeler & Envanter
                                     </Link>
                                     <Link href="/broker/leads" className="flex items-center gap-4 p-3 rounded-xl hover:bg-slate-100">
                                         <Users className="h-5 w-5 text-blue-600" />

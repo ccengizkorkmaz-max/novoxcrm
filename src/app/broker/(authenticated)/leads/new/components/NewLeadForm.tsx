@@ -17,10 +17,32 @@ interface Project {
     name: string
 }
 
-export default function NewLeadForm({ projects }: { projects: Project[] }) {
+interface Unit {
+    id: string
+    unit_number: string
+    block?: string | null
+    floor?: number | null
+    type?: string | null
+    area_gross?: number | null
+    price?: number | null
+    currency?: string | null
+}
+
+interface NewLeadFormProps {
+    projects: Project[]
+    initialProjectId?: string
+    initialUnit?: Unit | null
+}
+
+export default function NewLeadForm({
+    projects,
+    initialProjectId,
+    initialUnit
+}: NewLeadFormProps) {
     const router = useRouter()
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>(initialProjectId)
 
     async function handleSubmit(formData: FormData) {
         setLoading(true)
@@ -36,6 +58,15 @@ export default function NewLeadForm({ projects }: { projects: Project[] }) {
         }
     }
 
+    const formatPrice = (price: number | null | undefined, currency: string | null | undefined) => {
+        if (!price) return 'Fiyat Sorunuz'
+        return new Intl.NumberFormat('tr-TR', {
+            style: 'currency',
+            currency: currency || 'TRY',
+            maximumFractionDigits: 0
+        }).format(price)
+    }
+
     return (
         <div className="max-w-3xl mx-auto pb-12">
             <div className="mb-6">
@@ -44,6 +75,9 @@ export default function NewLeadForm({ projects }: { projects: Project[] }) {
             </div>
 
             <form action={handleSubmit}>
+                {/* Carry unit_id as hidden if it comes from the initial state */}
+                {initialUnit && <input type="hidden" name="unit_id" value={initialUnit.id} />}
+
                 <div className="grid gap-6">
                     {/* Kişisel Bilgiler */}
                     <Card className="border-none shadow-sm rounded-2xl overflow-hidden">
@@ -85,15 +119,63 @@ export default function NewLeadForm({ projects }: { projects: Project[] }) {
                         </CardContent>
                     </Card>
 
-                    {/* Tercihler & Bütçe */}
+                    {/* Proje & Ünite Seçimi */}
                     <Card className="border-none shadow-sm rounded-2xl overflow-hidden">
                         <CardHeader className="bg-slate-50 border-b border-slate-100 py-4">
                             <CardTitle className="text-md font-bold flex items-center gap-2">
-                                <Wallet className="h-4 w-4 text-blue-600" />
-                                Talep Detayları & Bütçe
+                                <Building2 className="h-4 w-4 text-blue-600" />
+                                Proje & Ünite Bilgisi
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="p-6 grid gap-6 sm:grid-cols-2">
+                            <div className="space-y-2">
+                                <Label htmlFor="project_id">İlgilenilen Proje</Label>
+                                <div className="relative">
+                                    <Building2 className="absolute left-3 top-2.5 h-4 w-4 text-slate-400 z-10" />
+                                    <Select
+                                        name="project_id"
+                                        defaultValue={selectedProjectId}
+                                        onValueChange={setSelectedProjectId}
+                                    >
+                                        <SelectTrigger className="pl-9 rounded-xl">
+                                            <SelectValue placeholder="Proje Seçiniz" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {projects.map(p => (
+                                                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+
+                            {initialUnit && (
+                                <div className="space-y-2 sm:col-span-2">
+                                    <Label>Seçili Ünite</Label>
+                                    <div className="p-4 bg-blue-50/50 border border-blue-100 rounded-2xl flex items-center justify-between">
+                                        <div className="flex items-center gap-4">
+                                            <div className="min-w-[40px] px-2 h-10 rounded-xl bg-white border border-blue-100 flex items-center justify-center text-blue-600 font-bold shadow-sm whitespace-nowrap">
+                                                {initialUnit.unit_number}
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-bold text-slate-900">
+                                                    {initialUnit.block && `${initialUnit.block} Blok, `} {initialUnit.floor && `${initialUnit.floor}. Kat, `} {initialUnit.type}
+                                                </p>
+                                                <p className="text-xs text-slate-500">
+                                                    {initialUnit.area_gross ? `${initialUnit.area_gross} m² Brüt` : '-'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-sm font-black text-blue-700">
+                                                {formatPrice(initialUnit.price, initialUnit.currency)}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <p className="text-[10px] text-slate-400 italic mt-1">* Bu talep doğrudan yukarıdaki ünite ile ilişkilendirilecektir.</p>
+                                </div>
+                            )}
+
                             <div className="space-y-2">
                                 <Label>Bütçe Aralığı</Label>
                                 <div className="flex items-center gap-2">
@@ -117,7 +199,7 @@ export default function NewLeadForm({ projects }: { projects: Project[] }) {
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="property_type">Mülk Tipi</Label>
-                                <Select name="property_type">
+                                <Select name="property_type" defaultValue={initialUnit?.type || undefined}>
                                     <SelectTrigger className="rounded-xl">
                                         <SelectValue placeholder="Seçiniz" />
                                     </SelectTrigger>
@@ -131,22 +213,6 @@ export default function NewLeadForm({ projects }: { projects: Project[] }) {
                                         <SelectItem value="Land">Arsa</SelectItem>
                                     </SelectContent>
                                 </Select>
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="project_id">İlgilenilen Proje</Label>
-                                <div className="relative">
-                                    <Building2 className="absolute left-3 top-2.5 h-4 w-4 text-slate-400 z-10" />
-                                    <Select name="project_id">
-                                        <SelectTrigger className="pl-9 rounded-xl">
-                                            <SelectValue placeholder="Proje Seçiniz" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {projects.map(p => (
-                                                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
                             </div>
                         </CardContent>
                     </Card>

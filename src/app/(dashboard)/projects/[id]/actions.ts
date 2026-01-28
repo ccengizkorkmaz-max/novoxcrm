@@ -27,7 +27,9 @@ export async function updateProject(formData: FormData) {
         delivery_date_actual: formData.get('delivery_date_actual') ? new Date(formData.get('delivery_date_actual') as string).toISOString() : null,
         ada_no: formData.get('ada_no') as string,
         parsel_no: formData.get('parsel_no') as string,
-        amenities: amenities // Stored as JSONB array of strings
+        amenities: amenities, // Stored as JSONB array of strings
+        visibility_type: formData.get('visibility_type') as string || 'public',
+        min_broker_level_id: formData.get('min_broker_level_id') as string || null
     }
 
     const { error } = await supabase
@@ -116,6 +118,50 @@ export async function batchCreateUnits(formData: FormData) {
         console.error('Batch Create Error:', error)
         return { error: 'Failed to create units: ' + error.message }
     }
+
+    revalidatePath(`/projects/${projectId}`)
+    return { success: true }
+}
+
+export async function addBrokerAccess(projectId: string, brokerId: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    // Get tenant_id
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', user.id)
+        .single()
+
+    if (!profile?.tenant_id) return { error: 'No tenant found' }
+
+    const { error } = await supabase
+        .from('project_broker_access')
+        .insert({
+            project_id: projectId,
+            broker_id: brokerId,
+            tenant_id: profile.tenant_id
+        })
+
+    if (error) {
+        if (error.code === '23505') return { error: 'Bu broker zaten yetkili.' }
+        return { error: 'Yetki verilemedi: ' + error.message }
+    }
+
+    revalidatePath(`/projects/${projectId}`)
+    return { success: true }
+}
+
+export async function removeBrokerAccess(accessId: string, projectId: string) {
+    const supabase = await createClient()
+    const { error } = await supabase
+        .from('project_broker_access')
+        .delete()
+        .eq('id', accessId)
+
+    if (error) return { error: 'Yetki kaldırılamadı: ' + error.message }
 
     revalidatePath(`/projects/${projectId}`)
     return { success: true }

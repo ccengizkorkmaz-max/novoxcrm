@@ -40,6 +40,7 @@ export async function submitBrokerLead(formData: FormData) {
     const property_type = formData.get('property_type') as string
     const location_interest = formData.get('location_interest') as string
     const project_id = formData.get('project_id') as string
+    const unit_id = formData.get('unit_id') as string
     const preferred_visit_date = formData.get('preferred_visit_date') as string
     const credit_interest = formData.get('credit_interest') === 'true'
     const notes = formData.get('notes') as string
@@ -94,6 +95,7 @@ export async function submitBrokerLead(formData: FormData) {
             property_type,
             location_interest,
             project_id: project_id || null,
+            unit_id: unit_id || null,
             preferred_visit_date: preferred_visit_date || null,
             credit_interest,
             notes,
@@ -1006,8 +1008,21 @@ export async function createIncentiveCampaign(data: {
 export async function getIncentiveCampaigns(projectId?: string) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return []
 
-    let query = supabase.from('incentive_campaigns').select('*, projects(name)')
+    // Get user tenant
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', user.id)
+        .single()
+
+    if (!profile) return []
+
+    let query = supabase.from('incentive_campaigns')
+        .select('*, projects(name)')
+        .eq('tenant_id', profile.tenant_id)
+
     if (projectId) {
         query = query.eq('project_id', projectId)
     }

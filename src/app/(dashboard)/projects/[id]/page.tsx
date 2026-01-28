@@ -7,11 +7,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { updateProject, batchCreateUnits } from './actions'
+import { updateProject, batchCreateUnits, addBrokerAccess, removeBrokerAccess } from './actions'
 import { uploadDocument, deleteDocument } from './documents-actions'
 import { importUnitsFromExcel } from './import-actions'
 import { deleteUnit } from '../../inventory/[id]/actions'
-import { Globe, ExternalLink, MapPin, FileText, Download, Trash2, Home, Users } from 'lucide-react'
+import { Plus, Globe, ExternalLink, MapPin, FileText, Download, Trash2, Home, Users } from 'lucide-react'
 import Link from 'next/link'
 import { FormImageUpload } from '@/components/ui/form-image-upload'
 import { LocationPicker } from '@/components/location-picker'
@@ -37,6 +37,12 @@ export default async function ProjectDetailPage({
     const { id } = await params
     const { tab } = await searchParams
     const activeTab = tab || 'info'
+
+    // Fetch broker levels
+    const { data: brokerLevels } = await supabase
+        .from('broker_levels')
+        .select('*')
+        .order('min_sales_count', { ascending: true })
 
     // Fetch project
     const { data: project, error: projectError } = await supabase
@@ -106,6 +112,27 @@ export default async function ProjectDetailPage({
         .eq('project_id', id)
         .order('unit_number', { ascending: true })
 
+    // Fetch manual broker access list
+    const { data: manualAccess } = await supabase
+        .from('project_broker_access')
+        .select(`
+            id,
+            profiles (
+                id,
+                full_name,
+                email
+            )
+        `)
+        .eq('project_id', id)
+
+    // Fetch all brokers in the tenant for addition
+    const { data: allBrokers } = await supabase
+        .from('profiles')
+        .select('id, full_name, email')
+        .eq('tenant_id', project.tenant_id)
+        .eq('role', 'broker')
+        .eq('is_active', true)
+
     async function handleUpdateProject(formData: FormData) {
         'use server'
         await updateProject(formData)
@@ -151,7 +178,92 @@ export default async function ProjectDetailPage({
                         <Users className="w-4 h-4 mr-2" />
                         Satış Ekipleri
                     </TabsTrigger>
+                    <TabsTrigger value="broker-access">
+                        <Users className="w-4 h-4 mr-2" />
+                        Broker Erişimi
+                    </TabsTrigger>
                 </TabsList>
+
+                {/* Broker Access Tab */}
+                <TabsContent value="broker-access" className="space-y-4">
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <div>
+                                <CardTitle>Özel Broker Erişimi</CardTitle>
+                                <CardDescription>
+                                    Bu projenin görünürlüğü 'Gizli' veya 'Seviye Kısıtlı' olsa bile, burada listelenen brokerlar projeyi görebilir.
+                                </CardDescription>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            {/* Add Broker Search/Select */}
+                            <form action={async (formData) => {
+                                'use server'
+                                const brokerId = formData.get('broker_id') as string
+                                if (brokerId) {
+                                    await addBrokerAccess(id, brokerId)
+                                }
+                            }} className="flex gap-4 items-end p-4 border rounded-lg bg-muted/30">
+                                <div className="grid gap-2 flex-1">
+                                    <Label htmlFor="broker_id">Broker Seçin</Label>
+                                    <select
+                                        id="broker_id"
+                                        name="broker_id"
+                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                        required
+                                    >
+                                        <option value="">Eklemek için bir broker seçin...</option>
+                                        {allBrokers?.filter(b => !manualAccess?.some(ma => (ma.profiles as any)?.id === b.id)).map(broker => (
+                                            <option key={broker.id} value={broker.id}>
+                                                {broker.full_name} ({broker.email})
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <Button type="submit">
+                                    <Plus className="w-4 h-4 mr-2" /> Ekle
+                                </Button>
+                            </form>
+
+                            {/* List of Authorized Brokers */}
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Broker Adı</TableHead>
+                                        <TableHead>Email</TableHead>
+                                        <TableHead className="text-right">İşlemler</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {manualAccess && manualAccess.length > 0 ? (
+                                        manualAccess.map((access: any) => (
+                                            <TableRow key={access.id}>
+                                                <TableCell className="font-medium">{access.profiles?.full_name}</TableCell>
+                                                <TableCell>{access.profiles?.email}</TableCell>
+                                                <TableCell className="text-right">
+                                                    <form action={async () => {
+                                                        'use server'
+                                                        await removeBrokerAccess(access.id, id)
+                                                    }}>
+                                                        <Button size="sm" variant="ghost">
+                                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                                        </Button>
+                                                    </form>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    ) : (
+                                        <TableRow>
+                                            <TableCell colSpan={3} className="text-center h-24 text-muted-foreground">
+                                                Bu proje için manuel yetkilendirilmiş broker bulunmuyor.
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
 
                 {/* Project Info Tab */}
                 <TabsContent value="info" className="space-y-6">
@@ -203,6 +315,41 @@ export default async function ProjectDetailPage({
                                             <option value="Planned">Planlanıyor</option>
                                             <option value="Completed">KAPALI</option>
                                         </select>
+                                    </div>
+                                </div>
+
+                                {/* Visibility & Broker Access */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t pt-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="visibility_type">Broker Portali Görünürlüğü</Label>
+                                        <select
+                                            id="visibility_type"
+                                            name="visibility_type"
+                                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                            defaultValue={project.visibility_type || 'public'}
+                                        >
+                                            <option value="public">Tüm Brokerlara Açık (Public)</option>
+                                            <option value="level_restricted">Seviye Kısıtlı (Level Based)</option>
+                                            <option value="private">Gizli / Sadece Davetle (Private)</option>
+                                        </select>
+                                        <p className="text-xs text-muted-foreground">Projenin dış brokerlar tarafından nasıl görüleceğini belirler.</p>
+                                    </div>
+                                    <div className="space-y-2 text-muted-foreground opacity-100">
+                                        <Label htmlFor="min_broker_level_id">Minimum Broker Seviyesi</Label>
+                                        <select
+                                            id="min_broker_level_id"
+                                            name="min_broker_level_id"
+                                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                            defaultValue={project.min_broker_level_id || ''}
+                                        >
+                                            <option value="">Seviye Kısıtlaması Yok</option>
+                                            {brokerLevels?.map((level) => (
+                                                <option key={level.id} value={level.id}>
+                                                    {level.name} ({level.min_sales_count}+ Satış)
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <p className="text-xs text-muted-foreground">Sadece 'Seviye Kısıtlı' modunda geçerlidir.</p>
                                     </div>
                                 </div>
 

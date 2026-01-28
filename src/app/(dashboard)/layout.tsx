@@ -3,9 +3,8 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { LayoutDashboard, Building2, Home, Users, FileText, LogOut, Menu, Settings, Package, Activity, CalendarCheck, Banknote, MessageSquare, Gift, BarChart3, Settings2, Clock, Trophy } from 'lucide-react'
-
-
+import { Building2, LogOut, Menu, Settings } from 'lucide-react'
+import { SidebarNav } from '@/components/dashboard/SidebarNav'
 
 export default async function DashboardLayout({
     children,
@@ -25,7 +24,7 @@ export default async function DashboardLayout({
     // Fetch profile and tenant info
     const { data: profile } = await supabase
         .from('profiles')
-        .select('full_name, tenant_id')
+        .select('full_name, tenant_id, role')
         .eq('id', user.id)
         .single()
 
@@ -35,8 +34,10 @@ export default async function DashboardLayout({
         .eq('id', profile.tenant_id)
         .single() : { data: null }
 
+    const isAuthorizedForSettings = profile?.role === 'admin' || profile?.role === 'owner'
+
     return (
-        <div className="flex h-screen w-full bg-muted/40">
+        <div className="flex h-screen w-full bg-muted/40 font-sans">
             {/* Sidebar */}
             <aside className="fixed inset-y-0 left-0 z-10 hidden w-64 flex-col border-r bg-background sm:flex print:hidden">
                 <div className="flex flex-col border-b px-4 py-3 lg:px-6">
@@ -50,194 +51,31 @@ export default async function DashboardLayout({
                     </div>
                 </div>
                 <div className="flex-1 overflow-auto py-2">
-                    <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
-                        <Link
-                            href="/"
-                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-                        >
-                            <LayoutDashboard className="h-4 w-4" />
-                            Genel Bakış
-                        </Link>
-                        <Link
-                            href="/projects"
-                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-                        >
-                            <Building2 className="h-4 w-4" />
-                            Projeler
-                        </Link>
-                        <Link
-                            href="/inventory"
-                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-                        >
-                            <Home className="h-4 w-4" />
-                            Stok Yönetimi
-                        </Link>
-                        <Link
-                            href="/customers"
-                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-                        >
-                            <Users className="h-4 w-4" />
-                            Müşteriler
-                        </Link>
-                        <Link
-                            href="/teams"
-                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-                        >
-                            <Users className="h-4 w-4" />
-                            Satış Ekipleri
-                        </Link>
-                        <Link
-                            href="/crm"
-                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-                        >
-                            <Activity className="h-4 w-4" />
-                            Satış Yönetimi
-                        </Link>
-                        <Link
-                            href="/options"
-                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-                        >
-                            <Package className="h-4 w-4" />
-                            Opsiyonlar
-                        </Link>
-                        <Link
-                            href="/offers"
-                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-                        >
-                            <FileText className="h-4 w-4" />
-                            Teklifler
-                        </Link>
-                        <Link
-                            href="/contracts"
-                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-                        >
-                            <FileText className="h-4 w-4" />
-                            Sözleşmeler
-                        </Link>
-                        <Link
-                            href="/finance/deposits"
-                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-                        >
-                            <Banknote className="h-4 w-4" />
-                            Kapora Yönetimi
-                        </Link>
-                        <Link
-                            href="/activities"
-                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-                        >
-                            <CalendarCheck className="h-4 w-4" />
-                            Aktiviteler
-                        </Link>
-                        <Link
-                            href="/customer-support"
-                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-                        >
-                            <MessageSquare className="h-4 w-4" />
-                            Servis Talepleri
-                        </Link>
-
-                        <div className="mt-4 mb-2 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
-                            Broker Yönetimi Bölümü
-                        </div>
-                        <Link
-                            href="/admin/broker-applications"
-                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-                        >
-                            <Users className="h-4 w-4" />
-                            Broker Yönetimi
-                        </Link>
-                        <Link
-                            href="/admin/broker-leads"
-                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-                        >
-                            <Users className="h-4 w-4" />
-                            Broker Lead Yönetimi
-                        </Link>
-                        <Link
-                            href="/admin/broker-leads/campaigns"
-                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-                        >
-                            <Gift className="h-4 w-4" />
-                            Teşvik Kampanyaları
-                        </Link>
-                        <Link
-                            href="/admin/broker-leads/reports"
-                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-                        >
-                            <BarChart3 className="h-4 w-4" />
-                            Broker Kazanç Raporları
-                        </Link>
-                        <Link
-                            href="/admin/broker-leads/commission-settings"
-                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-                        >
-                            <Settings2 className="h-4 w-4" />
-                            Komisyon Ayarları
-                        </Link>
-                        <Link
-                            href="/admin/broker-leads/levels"
-                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-                        >
-                            <Trophy className="h-4 w-4" />
-                            Broker Seviye Yönetimi
-                        </Link>
-
-                        <div className="mt-4 mb-2 px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
-                            Raporlar
-                        </div>
-                        <Link
-                            href="/reports/sales"
-                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-                        >
-                            <Activity className="h-4 w-4" />
-                            Satış Performansı
-                        </Link>
-                        <Link
-                            href="/reports/inventory"
-                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-                        >
-                            <Building2 className="h-4 w-4" />
-                            Stok & Proje Analizi
-                        </Link>
-                        <Link
-                            href="/reports/finance"
-                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-                        >
-                            <Banknote className="h-4 w-4" />
-                            Finansal Analiz
-                        </Link>
-                        <Link
-                            href="/reports/activities"
-                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-                        >
-                            <CalendarCheck className="h-4 w-4" />
-                            Saha & Ekip Verimliliği
-                        </Link>
-
-                        <Link
-                            href="/settings"
-                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-                        >
-                            <Settings className="h-4 w-4" />
-                            Ayarlar
-                        </Link>
-                    </nav>
+                    <SidebarNav />
                 </div>
-                <div className="mt-auto p-4 border-t">
-                    <div className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground truncate max-w-[120px]">{user.email}</span>
-                        <form action={async () => {
-                            'use server'
-                            const supabase = await createClient()
-                            await supabase.auth.signOut()
-                            redirect('/login')
-                        }}>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <LogOut className="h-4 w-4" />
-                                <span className="sr-only">Çıkış</span>
-                            </Button>
-                        </form>
+                <div className="mt-auto p-4 border-t flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1 overflow-hidden">
+                        {isAuthorizedForSettings && (
+                            <Link href="/settings">
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-blue-600 hover:bg-blue-50">
+                                    <Settings className="h-4 w-4" />
+                                    <span className="sr-only">Ayarlar</span>
+                                </Button>
+                            </Link>
+                        )}
+                        <span className="text-[10px] text-muted-foreground truncate max-w-[120px]">{user.email}</span>
                     </div>
+                    <form action={async () => {
+                        'use server'
+                        const supabase = await createClient()
+                        await supabase.auth.signOut()
+                        redirect('/login')
+                    }}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-red-500 hover:bg-red-50">
+                            <LogOut className="h-4 w-4" />
+                            <span className="sr-only">Çıkış</span>
+                        </Button>
+                    </form>
                 </div>
             </aside>
 
@@ -251,179 +89,39 @@ export default async function DashboardLayout({
                                 <span className="sr-only">Toggle Menu</span>
                             </Button>
                         </SheetTrigger>
-                        <SheetContent side="left" className="sm:max-w-xs">
-                            <nav className="grid gap-6 text-lg font-medium">
-                                <Link
-                                    href="/"
-                                    className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
-                                >
-                                    <Home className="h-5 w-5" />
-                                    NovoxCrm
+                        <SheetContent side="left" className="sm:max-w-xs flex flex-col p-0">
+                            <div className="flex flex-col border-b px-4 py-3">
+                                <Link href="/" className="flex items-center gap-2 font-bold text-blue-600">
+                                    <Building2 className="h-6 w-6" />
+                                    <span className="text-lg tracking-tight">NovoxCrm</span>
                                 </Link>
-                                <Link
-                                    href="/"
-                                    className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
-                                >
-                                    <LayoutDashboard className="h-5 w-5" />
-                                    Genel Bakış
-                                </Link>
-                                <Link
-                                    href="/projects"
-                                    className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
-                                >
-                                    <Building2 className="h-5 w-5" />
-                                    Projeler
-                                </Link>
-                                <Link
-                                    href="/inventory"
-                                    className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
-                                >
-                                    <Home className="h-5 w-5" />
-                                    Stok Yönetimi
-                                </Link>
-                                <Link
-                                    href="/customers"
-                                    className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
-                                >
-                                    <Users className="h-5 w-5" />
-                                    Müşteriler
-                                </Link>
-                                <Link
-                                    href="/teams"
-                                    className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
-                                >
-                                    <Users className="h-5 w-5" />
-                                    Satış Ekipleri
-                                </Link>
-                                <Link
-                                    href="/crm"
-                                    className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
-                                >
-                                    <Activity className="h-5 w-5" />
-                                    Satış Yönetimi
-                                </Link>
-                                <Link
-                                    href="/options"
-                                    className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
-                                >
-                                    <Package className="h-5 w-5" />
-                                    Opsiyonlar
-                                </Link>
-                                <Link
-                                    href="/offers"
-                                    className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
-                                >
-                                    <FileText className="h-5 w-5" />
-                                    Teklifler
-                                </Link>
-                                <Link
-                                    href="/contracts"
-                                    className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
-                                >
-                                    <FileText className="h-5 w-5" />
-                                    Sözleşmeler
-                                </Link>
-                                <Link
-                                    href="/finance/deposits"
-                                    className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
-                                >
-                                    <Banknote className="h-5 w-5" />
-                                    Kapora Yönetimi
-                                </Link>
-                                <Link
-                                    href="/activities"
-                                    className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
-                                >
-                                    <CalendarCheck className="h-5 w-5" />
-                                    Aktiviteler
-                                </Link>
-                                <Link
-                                    href="/customer-support"
-                                    className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
-                                >
-                                    <MessageSquare className="h-5 w-5" />
-                                    Servis Talepleri
-                                </Link>
-
-                                <div className="px-2.5 py-4 text-xs font-bold uppercase tracking-wider text-muted-foreground/70">
-                                    Broker Yönetimi Bölümü
+                                <div className="mt-1 flex flex-col">
+                                    <span className="text-xs font-bold text-foreground">{tenant?.name}</span>
+                                    <span className="text-[10px] text-muted-foreground">{profile?.full_name}</span>
                                 </div>
-                                <Link
-                                    href="/admin/broker-applications"
-                                    className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground pl-6"
-                                >
-                                    <Clock className="h-5 w-5" />
-                                    Gelen Başvurular
-                                </Link>
-                                <Link
-                                    href="/admin/broker-leads"
-                                    className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
-                                >
-                                    <Users className="h-5 w-5" />
-                                    Broker Lead Yönetimi
-                                </Link>
-                                <Link
-                                    href="/admin/broker-leads/campaigns"
-                                    className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
-                                >
-                                    <Gift className="h-5 w-5" />
-                                    Teşvik Kampanyaları
-                                </Link>
-                                <Link
-                                    href="/admin/broker-leads/reports"
-                                    className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
-                                >
-                                    <BarChart3 className="h-5 w-5" />
-                                    Broker Kazanç Raporları
-                                </Link>
-                                <Link
-                                    href="/admin/broker-leads/commission-settings"
-                                    className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
-                                >
-                                    <Settings2 className="h-5 w-5" />
-                                    Komisyon Ayarları
-                                </Link>
-
-                                <div className="px-2.5 py-4 text-xs font-bold uppercase tracking-wider text-muted-foreground/70">
-                                    Raporlar
-                                </div>
-                                <Link
-                                    href="/reports/sales"
-                                    className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground pl-6"
-                                >
-                                    <Activity className="h-5 w-5" />
-                                    Satış Performansı
-                                </Link>
-                                <Link
-                                    href="/reports/inventory"
-                                    className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground pl-6"
-                                >
-                                    <Building2 className="h-5 w-5" />
-                                    Stok & Proje Analizi
-                                </Link>
-                                <Link
-                                    href="/reports/finance"
-                                    className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground pl-6"
-                                >
-                                    <Banknote className="h-5 w-5" />
-                                    Finansal Analiz
-                                </Link>
-                                <Link
-                                    href="/reports/activities"
-                                    className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground pl-6"
-                                >
-                                    <CalendarCheck className="h-5 w-5" />
-                                    Saha & Ekip Verimliliği
-                                </Link>
-
-                                <Link
-                                    href="/settings"
-                                    className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
-                                >
-                                    <Settings className="h-5 w-5" />
-                                    Ayarlar
-                                </Link>
-                            </nav>
+                            </div>
+                            <div className="flex-1 overflow-auto py-2">
+                                <SidebarNav />
+                            </div>
+                            <div className="p-4 border-t mt-auto flex items-center justify-between">
+                                {isAuthorizedForSettings && (
+                                    <Link href="/settings" className="flex items-center gap-2 text-sm text-muted-foreground">
+                                        <Settings className="h-4 w-4" />
+                                        Ayarlar
+                                    </Link>
+                                )}
+                                <form action={async () => {
+                                    'use server'
+                                    const supabase = await createClient()
+                                    await supabase.auth.signOut()
+                                    redirect('/login')
+                                }}>
+                                    <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground">
+                                        <LogOut className="h-4 w-4" />
+                                        Çıkış
+                                    </Button>
+                                </form>
+                            </div>
                         </SheetContent>
                     </Sheet>
                     <div className="flex flex-col ml-2">
@@ -435,7 +133,7 @@ export default async function DashboardLayout({
                         </div>
                     </div>
                 </header>
-                <main className="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
+                <main className="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8 overflow-auto">
                     {children}
                 </main>
             </div>
