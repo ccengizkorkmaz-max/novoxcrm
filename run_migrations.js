@@ -8,7 +8,8 @@ async function runMigrations() {
     const files = [
         '20260128_broker_finances.sql',
         '20260128_project_visibility.sql',
-        '20260128_fix_data_isolation.sql'
+        '20260128_fix_data_isolation.sql',
+        '20260129_construction_management.sql'
     ];
 
     const connectionString = "postgresql://postgres:Passkall22!@db.ncjamvghbzutohmtclwf.supabase.co:5432/postgres";

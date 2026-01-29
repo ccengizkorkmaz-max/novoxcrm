@@ -166,3 +166,72 @@ export async function removeBrokerAccess(accessId: string, projectId: string) {
     revalidatePath(`/projects/${projectId}`)
     return { success: true }
 }
+
+export async function addConstructionStage(projectId: string, name: string, weight: number) {
+    const supabase = await createClient()
+    const { error } = await supabase
+        .from('construction_stages')
+        .insert({ project_id: projectId, name, weight })
+
+    if (error) return { error: 'Aşama eklenemedi: ' + error.message }
+    revalidatePath(`/projects/${projectId}`)
+    return { success: true }
+}
+
+export async function updateConstructionStage(stageId: string, projectId: string, updates: any) {
+    const supabase = await createClient()
+    const { error } = await supabase
+        .from('construction_stages')
+        .update(updates)
+        .eq('id', stageId)
+
+    if (error) return { error: 'Aşama güncellenemedi: ' + error.message }
+    revalidatePath(`/projects/${projectId}`)
+    return { success: true }
+}
+
+export async function deleteConstructionStage(stageId: string, projectId: string) {
+    const supabase = await createClient()
+    const { error } = await supabase
+        .from('construction_stages')
+        .delete()
+        .eq('id', stageId)
+
+    if (error) return { error: 'Aşama silinemedi: ' + error.message }
+    revalidatePath(`/projects/${projectId}`)
+    return { success: true }
+}
+
+export async function updateUnitProgress(unitId: string, stageId: string, percentage: number, projectId: string) {
+    const supabase = await createClient()
+
+    // Check if progress record exists
+    const { data: existing } = await supabase
+        .from('unit_construction_progress')
+        .select('id')
+        .eq('unit_id', unitId)
+        .eq('stage_id', stageId)
+        .single()
+
+    let error
+    if (existing) {
+        const { error: updateError } = await supabase
+            .from('unit_construction_progress')
+            .update({ completion_percentage: percentage, last_updated: new Date().toISOString() })
+            .eq('id', existing.id)
+        error = updateError
+    } else {
+        const { error: insertError } = await supabase
+            .from('unit_construction_progress')
+            .insert({
+                unit_id: unitId,
+                stage_id: stageId,
+                completion_percentage: percentage
+            })
+        error = insertError
+    }
+
+    if (error) return { error: 'İlerleme güncellenemedi: ' + error.message }
+    revalidatePath(`/projects/${projectId}`)
+    return { success: true }
+}

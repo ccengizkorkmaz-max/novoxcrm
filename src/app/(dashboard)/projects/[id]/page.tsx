@@ -19,6 +19,9 @@ import { DocumentUpload } from '@/components/document-upload'
 import { BatchUnitCreator } from '@/components/batch-unit-creator'
 import { ExcelImport } from '@/components/excel-import'
 import { BackButton } from '@/components/back-button'
+import { ConstructionProgress } from '@/components/construction-progress'
+import { addConstructionStage, updateConstructionStage, deleteConstructionStage, updateUnitProgress } from './actions'
+import { Building2 } from 'lucide-react'
 
 const AMENITIES_LIST = [
     "Yetişkin Havuzu", "Güvenlik", "Çocuk Yüzme Havuzu", "Yürüyüş Parkuru",
@@ -113,6 +116,19 @@ export default async function ProjectDetailPage({
         .eq('project_id', id)
         .order('unit_number', { ascending: true })
 
+    // Fetch construction stages
+    const { data: constructionStages } = await supabase
+        .from('construction_stages')
+        .select('*')
+        .eq('project_id', id)
+        .order('order_index', { ascending: true })
+
+    // Fetch unit construction progress
+    const { data: unitProgress } = await supabase
+        .from('unit_construction_progress')
+        .select('*')
+        .in('unit_id', units?.map(u => u.id) || [])
+
     // Fetch manual broker access list
     const { data: manualAccess } = await supabase
         .from('project_broker_access')
@@ -182,6 +198,10 @@ export default async function ProjectDetailPage({
                     <TabsTrigger value="broker-access">
                         <Users className="w-4 h-4 mr-2" />
                         Broker Erişimi
+                    </TabsTrigger>
+                    <TabsTrigger value="construction">
+                        <Building2 className="w-4 h-4 mr-2" />
+                        Şantiye & İlerleme
                     </TabsTrigger>
                 </TabsList>
 
@@ -486,6 +506,7 @@ export default async function ProjectDetailPage({
                                         <TableHead className="w-[100px]">Brüt m²</TableHead>
                                         <TableHead className="w-[80px]">Kat</TableHead>
                                         <TableHead className="w-[80px]">Blok</TableHead>
+                                        <TableHead className="w-[100px]">İnşaat</TableHead>
                                         <TableHead className="text-right">İşlemler</TableHead>
                                     </TableRow>
                                 </TableHeader>
@@ -509,6 +530,33 @@ export default async function ProjectDetailPage({
                                                 <TableCell>{unit.area_gross ? `${unit.area_gross} m²` : '-'}</TableCell>
                                                 <TableCell>{unit.floor || '-'}</TableCell>
                                                 <TableCell>{unit.block || '-'}</TableCell>
+                                                <TableCell>
+                                                    {(() => {
+                                                        const progresses = unitProgress?.filter(p => p.unit_id === unit.id) || []
+                                                        if (constructionStages && constructionStages.length > 0) {
+                                                            let totalWeight = constructionStages.reduce((acc: number, s: any) => acc + (s.weight || 0), 0)
+                                                            if (totalWeight === 0) return '-'
+                                                            let weightedProgress = 0
+                                                            constructionStages.forEach(stage => {
+                                                                const p = progresses.find(prog => prog.stage_id === stage.id)
+                                                                weightedProgress += ((p?.completion_percentage || 0) * (stage.weight || 0)) / totalWeight
+                                                            })
+                                                            const result = Math.round(weightedProgress)
+                                                            return (
+                                                                <div className="flex items-center gap-2">
+                                                                    <div className="w-12 h-1.5 bg-muted rounded-full overflow-hidden">
+                                                                        <div
+                                                                            className="h-full bg-primary"
+                                                                            style={{ width: `${result}%` }}
+                                                                        />
+                                                                    </div>
+                                                                    <span className="text-[10px] font-medium">%{result}</span>
+                                                                </div>
+                                                            )
+                                                        }
+                                                        return '-'
+                                                    })()}
+                                                </TableCell>
                                                 <TableCell className="text-right">
                                                     <div className="flex justify-end gap-2">
                                                         <Link href={`/inventory/${unit.id}`}>
@@ -640,6 +688,20 @@ export default async function ProjectDetailPage({
                             </Card>
                         )}
                     </div>
+                </TabsContent>
+
+                {/* Construction Site Tab */}
+                <TabsContent value="construction" className="space-y-4">
+                    <ConstructionProgress
+                        projectId={id}
+                        stages={constructionStages || []}
+                        units={units || []}
+                        unitProgress={unitProgress || []}
+                        onAddStage={addConstructionStage}
+                        onUpdateStage={updateConstructionStage}
+                        onDeleteStage={deleteConstructionStage}
+                        onUpdateUnitProgress={updateUnitProgress}
+                    />
                 </TabsContent>
             </Tabs>
         </div>
