@@ -20,10 +20,10 @@ export function Navbar() {
     }, [])
 
     const navLinks = [
-        { name: 'Süreç', href: '/#process-flow' },
+        { name: 'Gayrimenkul CRM', href: '/solutions/gayrimenkul-crm' },
+        { name: 'İnşaat CRM', href: '/solutions/insaat-crm' },
         { name: 'Çözümler', href: '/solutions' },
         { name: 'Fiyatlandırma', href: '/#pricing' },
-        { name: 'Ödeme Planı Sihirbazı', href: '/payment-plan-calculator' },
     ]
 
     return (

@@ -28,12 +28,11 @@ export function Footer() {
 
                     {/* Product Links */}
                     <div>
-                        <h4 className="text-white font-bold mb-6">Ürün</h4>
+                        <h4 className="text-white font-bold mb-6">Çözümler</h4>
                         <ul className="space-y-4 text-sm">
-                            <li><Link href="/#process-flow" className="hover:text-white transition-colors">Süreç Döngüsü</Link></li>
-                            <li><Link href="/solutions" className="hover:text-white transition-colors">Çözümler</Link></li>
-                            <li><Link href="/system-details" className="hover:text-white transition-colors">Sistem Mimarisi</Link></li>
-                            <li><Link href="/#pricing" className="hover:text-white transition-colors">Fiyatlandırma</Link></li>
+                            <li><Link href="/solutions/gayrimenkul-crm" className="hover:text-white transition-colors">Gayrimenkul CRM</Link></li>
+                            <li><Link href="/solutions/insaat-crm" className="hover:text-white transition-colors">İnşaat CRM</Link></li>
+                            <li><Link href="/solutions" className="hover:text-white transition-colors">Tüm Çözümler</Link></li>
                             <li><Link href="/payment-plan-calculator" className="hover:text-white transition-colors">Ödeme Planı Sihirbazı</Link></li>
                         </ul>
                     </div>

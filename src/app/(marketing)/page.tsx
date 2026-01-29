@@ -1,5 +1,13 @@
 
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+    title: "NovoxCRM | İnşaat & Gayrimenkul CRM – Konut Projeleri için Satış Yönetimi",
+    description: "NovoxCRM, inşaat ve gayrimenkul firmaları için özel geliştirilmiş CRM yazılımıdır. Konut projeleri, stok takibi, broker yönetimi ve satış süreçlerini tek platformda yönetin.",
+};
+
 import { Hero } from '@/components/marketing/Hero'
+
 import { TrustSection } from '@/components/marketing/TrustSection'
 import { ComparisonSection } from '@/components/marketing/ComparisonSection'
 import { PainSection } from '@/components/marketing/PainSection'
