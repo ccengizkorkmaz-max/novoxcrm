@@ -1,5 +1,7 @@
 'use client'
 
+import React from 'react'
+
 import { Link, usePathname } from '@/i18n/routing'
 import { useTranslations } from 'next-intl'
 import { cn } from '@/lib/utils'
@@ -60,12 +62,32 @@ function NavItem({ href, icon: Icon, children, onClick }: NavItemProps) {
 
 export function SidebarNav({ onElementClick }: { onElementClick?: () => void }) {
     const t = useTranslations('Sidebar')
+    const [role, setRole] = React.useState<string | null>(null)
+
+    React.useEffect(() => {
+        // Fetch role client-side since this is a client component
+        const fetchRole = async () => {
+            const supabase = (await import('@/lib/supabase/client')).createClient()
+            const { data: { user } } = await supabase.auth.getUser()
+            if (user) {
+                const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+                setRole(profile?.role || 'sales')
+            }
+        }
+        fetchRole()
+    }, [])
+
+    if (!role) return null // or skeleton
+
+    const isManager = role === 'manager' || role === 'owner' || role === 'admin'
+    const isOwner = role === 'owner' || role === 'admin'
 
     return (
         <nav className="grid items-start px-2 text-sm font-medium lg:px-4 gap-1">
             <NavItem href="/" icon={LayoutDashboard} onClick={onElementClick}>
                 {t('overview')}
             </NavItem>
+            {/* ... Quick CRM, Projects, Inventory etc are common ... */}
             <NavItem href="/quick-crm" icon={Zap} onClick={onElementClick}>
                 <span className="flex items-center gap-2">
                     {t('quickCRM')}
@@ -81,9 +103,14 @@ export function SidebarNav({ onElementClick }: { onElementClick?: () => void }) 
             <NavItem href="/customers" icon={Users} onClick={onElementClick}>
                 {t('customers')}
             </NavItem>
-            <NavItem href="/teams" icon={Users} onClick={onElementClick}>
-                {t('salesTeams')}
-            </NavItem>
+
+            {/* Manager Only: Teams */}
+            {isManager && (
+                <NavItem href="/teams" icon={Users} onClick={onElementClick}>
+                    {t('salesTeams')}
+                </NavItem>
+            )}
+
             <NavItem href="/crm" icon={Activity} onClick={onElementClick}>
                 {t('salesManagement')}
             </NavItem>
@@ -106,62 +133,74 @@ export function SidebarNav({ onElementClick }: { onElementClick?: () => void }) 
                 {t('serviceRequests')}
             </NavItem>
 
-            <Accordion type="multiple" className="w-full border-none">
-                <AccordionItem value="broker" className="border-none">
-                    <AccordionTrigger className="px-3 py-2 text-muted-foreground hover:text-primary hover:bg-slate-50 rounded-lg hover:no-underline [&[data-state=open]]:text-primary font-medium justify-start">
-                        <div className="flex items-center gap-3 whitespace-nowrap">
-                            <Users className="h-4 w-4" />
-                            <span>{t('broker.title')}</span>
-                        </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="pt-1 pb-2 pl-4 grid gap-1">
-                        <NavItem href="/admin/broker-applications" icon={Clock} onClick={onElementClick}>
-                            {t('broker.management')}
-                        </NavItem>
-                        <NavItem href="/admin/broker-leads" icon={Users} onClick={onElementClick}>
-                            {t('broker.leads')}
-                        </NavItem>
-                        <NavItem href="/admin/broker-leads/campaigns" icon={Gift} onClick={onElementClick}>
-                            {t('broker.campaigns')}
-                        </NavItem>
-                        <NavItem href="/admin/broker-leads/commission-settings" icon={Settings2} onClick={onElementClick}>
-                            {t('broker.commission')}
-                        </NavItem>
-                        <NavItem href="/admin/broker-finances" icon={Banknote} onClick={onElementClick}>
-                            {t('broker.finance')}
-                        </NavItem>
-                        <NavItem href="/admin/broker-leads/levels" icon={Trophy} onClick={onElementClick}>
-                            {t('broker.levels')}
-                        </NavItem>
-                    </AccordionContent>
-                </AccordionItem>
+            {/* Broker & Reports: Manager Only */}
+            {isManager && (
+                <>
+                    <Accordion type="multiple" className="w-full border-none">
+                        <AccordionItem value="broker" className="border-none">
+                            <AccordionTrigger className="px-3 py-2 text-muted-foreground hover:text-primary hover:bg-slate-50 rounded-lg hover:no-underline [&[data-state=open]]:text-primary font-medium justify-start">
+                                <div className="flex items-center gap-3 whitespace-nowrap">
+                                    <Users className="h-4 w-4" />
+                                    <span>{t('broker.title')}</span>
+                                </div>
+                            </AccordionTrigger>
+                            <AccordionContent className="pt-1 pb-2 pl-4 grid gap-1">
+                                <NavItem href="/admin/broker-applications" icon={Clock} onClick={onElementClick}>
+                                    {t('broker.management')}
+                                </NavItem>
+                                <NavItem href="/admin/broker-leads" icon={Users} onClick={onElementClick}>
+                                    {t('broker.leads')}
+                                </NavItem>
+                                <NavItem href="/admin/broker-leads/campaigns" icon={Gift} onClick={onElementClick}>
+                                    {t('broker.campaigns')}
+                                </NavItem>
+                                {isOwner && (
+                                    <NavItem href="/admin/broker-leads/commission-settings" icon={Settings2} onClick={onElementClick}>
+                                        {t('broker.commission')}
+                                    </NavItem>
+                                )}
+                                <NavItem href="/admin/broker-finances" icon={Banknote} onClick={onElementClick}>
+                                    {t('broker.finance')}
+                                </NavItem>
+                                <NavItem href="/admin/broker-leads/levels" icon={Trophy} onClick={onElementClick}>
+                                    {t('broker.levels')}
+                                </NavItem>
+                            </AccordionContent>
+                        </AccordionItem>
 
-                <AccordionItem value="reports" className="border-none">
-                    <AccordionTrigger className="px-3 py-2 text-muted-foreground hover:text-primary hover:bg-slate-50 rounded-lg hover:no-underline [&[data-state=open]]:text-primary font-medium justify-start">
-                        <div className="flex items-center gap-3 whitespace-nowrap">
-                            <BarChart3 className="h-4 w-4" />
-                            <span>{t('reports.title')}</span>
-                        </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="pt-1 pb-2 pl-4 grid gap-1">
-                        <NavItem href="/reports/sales" icon={Activity} onClick={onElementClick}>
-                            {t('reports.sales')}
-                        </NavItem>
-                        <NavItem href="/reports/inventory" icon={Building2} onClick={onElementClick}>
-                            {t('reports.inventory')}
-                        </NavItem>
-                        <NavItem href="/reports/finance" icon={Banknote} onClick={onElementClick}>
-                            {t('reports.finance')}
-                        </NavItem>
-                        <NavItem href="/reports/activities" icon={CalendarCheck} onClick={onElementClick}>
-                            {t('reports.efficiency')}
-                        </NavItem>
-                        <NavItem href="/admin/broker-leads/reports" icon={BarChart3} onClick={onElementClick}>
-                            {t('broker.earnings')}
-                        </NavItem>
-                    </AccordionContent>
-                </AccordionItem>
-            </Accordion>
+                        <AccordionItem value="reports" className="border-none">
+                            <AccordionTrigger className="px-3 py-2 text-muted-foreground hover:text-primary hover:bg-slate-50 rounded-lg hover:no-underline [&[data-state=open]]:text-primary font-medium justify-start">
+                                <div className="flex items-center gap-3 whitespace-nowrap">
+                                    <BarChart3 className="h-4 w-4" />
+                                    <span>{t('reports.title')}</span>
+                                </div>
+                            </AccordionTrigger>
+                            <AccordionContent className="pt-1 pb-2 pl-4 grid gap-1">
+                                <NavItem href="/reports/sales" icon={Activity} onClick={onElementClick}>
+                                    {t('reports.sales')}
+                                </NavItem>
+                                <NavItem href="/reports/inventory" icon={Building2} onClick={onElementClick}>
+                                    {t('reports.inventory')}
+                                </NavItem>
+                                <NavItem href="/reports/finance" icon={Banknote} onClick={onElementClick}>
+                                    {t('reports.finance')}
+                                </NavItem>
+                                <NavItem href="/reports/activities" icon={CalendarCheck} onClick={onElementClick}>
+                                    {t('reports.efficiency')}
+                                </NavItem>
+                                <NavItem href="/admin/broker-leads/reports" icon={BarChart3} onClick={onElementClick}>
+                                    {t('broker.earnings')}
+                                </NavItem>
+                            </AccordionContent>
+                        </AccordionItem>
+                    </Accordion>
+                </>
+            )}
+
+            {/* Settings: Owner Only (Or Manager but limited, here we hide top level settings link if exists, 
+                usually settings is in user menu but if it's here: )*/}
+            {/* Sidebar typically doesn't have settings, it's in the footer or user menu. 
+                 But if we added one, we'd guard it here. */}
         </nav>
     )
 }
