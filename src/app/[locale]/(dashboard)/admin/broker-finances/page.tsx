@@ -124,7 +124,7 @@ export default async function BrokerFinanceDashboardPage() {
                                         </TableCell>
                                         <TableCell>
                                             <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
-                                                {broker.level || t('table.status.Standart' as any || 'Standart')}
+                                                {broker.level || t('table.status.Standart' as any)}
                                             </span>
                                         </TableCell>
                                         <TableCell className="text-right font-medium">
