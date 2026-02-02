@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Wallet, CreditCard, Home, AlertCircle } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 interface ContractStatsProps {
     stats: {
@@ -11,34 +12,35 @@ interface ContractStatsProps {
 }
 
 export function ContractStats({ stats }: ContractStatsProps) {
+    const t = useTranslations('Contracts.stats')
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(amount)
     }
 
     const items = [
         {
-            title: 'Toplam Satış Bedeli',
+            title: t('totalSales'),
             value: formatCurrency(stats.totalSales),
             icon: Wallet,
             color: 'text-blue-600',
             bg: 'bg-blue-50'
         },
         {
-            title: 'Tahsil Edilen',
+            title: t('totalPaid'),
             value: formatCurrency(stats.totalPaid),
             icon: CreditCard,
             color: 'text-green-600',
             bg: 'bg-green-50'
         },
         {
-            title: 'Bekleyen Ödemeler',
+            title: t('pendingAmount'),
             value: formatCurrency(stats.pendingAmount),
             icon: AlertCircle,
             color: 'text-orange-600',
             bg: 'bg-orange-50'
         },
         {
-            title: 'Sözleşme Sayısı',
+            title: t('contractCount'),
             value: stats.contractCount.toString(),
             icon: Home,
             color: 'text-purple-600',

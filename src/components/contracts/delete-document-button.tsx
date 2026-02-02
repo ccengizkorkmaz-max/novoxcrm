@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Trash2 } from 'lucide-react'
-import { deleteContractDocument } from '@/app/(dashboard)/contracts/[id]/documents-actions'
+import { deleteContractDocument } from '@/app/[locale]/(dashboard)/contracts/[id]/documents-actions'
 import { toast } from 'sonner'
 import {
     AlertDialog,

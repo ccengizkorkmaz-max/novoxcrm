@@ -1,7 +1,7 @@
 'use client'
 
 import { format } from 'date-fns'
-import { tr } from 'date-fns/locale'
+import { enUS, tr } from 'date-fns/locale'
 import { CalendarIcon, CheckCircle2, Phone, Mail, MessageSquare, Briefcase, FileText, User, MoreHorizontal, Clock, AlertTriangle } from 'lucide-react'
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { ActivityForm } from './activity-form'
 import { useState } from 'react'
+import { useTranslations, useLocale } from 'next-intl'
 
 export interface Activity {
     id: string
@@ -37,6 +38,8 @@ interface ActivityCardProps {
 }
 
 export function ActivityCard({ activity, onComplete }: ActivityCardProps) {
+    const t = useTranslations('Activities')
+    const locale = useLocale()
     const [showEdit, setShowEdit] = useState(false)
     const [showComplete, setShowComplete] = useState(false)
 
@@ -54,19 +57,19 @@ export function ActivityCard({ activity, onComplete }: ActivityCardProps) {
                         <div>
                             {activity.topic && (
                                 <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold leading-none mb-0.5">
-                                    {translateTopic(activity.topic)}
+                                    {t(`topic.${activity.topic}`)}
                                 </div>
                             )}
                             <h4 className="font-semibold text-sm leading-none">{activity.summary}</h4>
 
                             <div className="flex items-center gap-2 mt-1.5">
                                 <Badge variant="secondary" className={`text-[10px] px-1 py-0 h-4 font-normal ${getStatusColor(activity.status)} bg-transparent border-0 p-0`}>
-                                    {isOverdue && activity.status !== 'Completed' ? 'Gecikmiş' : translateStatus(activity.status)}
+                                    {isOverdue && activity.status !== 'Completed' ? t('kanban.overdue') : t(`status.${activity.status}`)}
                                 </Badge>
                                 <span className="text-[10px] text-muted-foreground">•</span>
                                 <span className={`text-[10px] flex items-center gap-1 ${isOverdue ? 'text-red-600 font-medium' : 'text-muted-foreground'}`}>
                                     <Clock className="h-3 w-3" />
-                                    {format(new Date(activity.due_date), 'd MMM HH:mm', { locale: tr })}
+                                    {format(new Date(activity.due_date), 'd MMM HH:mm', { locale: locale === 'tr' ? tr : enUS })}
                                 </span>
                             </div>
                         </div>
@@ -79,8 +82,8 @@ export function ActivityCard({ activity, onComplete }: ActivityCardProps) {
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                            <DropdownMenuItem onSelect={() => setShowComplete(true)}>Tamamla</DropdownMenuItem>
-                            <DropdownMenuItem onSelect={() => setShowEdit(true)}>Düzenle</DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => setShowComplete(true)}>{t('actions.complete')}</DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => setShowEdit(true)}>{t('actions.edit')}</DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
                 </div>
@@ -118,30 +121,6 @@ function getActivityIcon(type: string) {
 
 function HomeIcon(props: any) {
     return <Briefcase {...props} /> // Fallback
-}
-
-function translateStatus(status: string) {
-    switch (status) {
-        case 'Planned': return 'Planlandı'
-        case 'In Progress': return 'Sürüyor'
-        case 'Completed': return 'Tamamlandı'
-        case 'Cancelled': return 'İptal'
-        case 'Overdue': return 'Gecikmiş'
-        default: return status
-    }
-}
-
-function translateTopic(topic: string) {
-    const map: Record<string, string> = {
-        'General': 'Genel',
-        'Sales': 'Satış',
-        'Negotiation': 'Pazarlık',
-        'Contract': 'Sözleşme',
-        'Support': 'Destek',
-        'After Sales': 'Satış Sonrası',
-        'Collection': 'Tahsilat'
-    }
-    return map[topic] || topic
 }
 
 function getStatusColor(status: string) {

@@ -1,7 +1,7 @@
 'use client'
 
 import { format } from "date-fns"
-import { tr } from "date-fns/locale"
+import { tr, enUS } from "date-fns/locale"
 import { Activity } from "./activity-card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
@@ -10,6 +10,7 @@ import { useState } from "react"
 import { ActivityForm } from "./activity-form"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import { useTranslations, useLocale } from "next-intl"
 
 interface ActivityListProps {
     activities: Activity[]
@@ -23,36 +24,12 @@ const statusColors: Record<string, string> = {
     'Cancelled': 'bg-gray-100 text-gray-800 border-gray-200',
 }
 
-const statusLabels: Record<string, string> = {
-    'Pending': 'Bekliyor',
-    'In Progress': 'Devam Ediyor',
-    'Completed': 'Tamamlandı',
-    'Cancelled': 'İptal',
-}
-
-const typeLabels: Record<string, string> = {
-    'Call': 'Telefon',
-    'Meeting': 'Toplantı',
-    'Site Visit': 'Ziyaret',
-    'Email': 'Email',
-    'Whatsapp': 'Whatsapp',
-}
-
-const topicLabels: Record<string, string> = {
-    'General': 'Genel',
-    'Sales': 'Satış',
-    'Negotiation': 'Pazarlık',
-    'Contract': 'Sözleşme',
-    'Support': 'Destek',
-    'After Sales': 'Satış Sonrası',
-    'Collection': 'Tahsilat',
-}
-
 export function ActivityList({ activities, customers }: ActivityListProps) {
+    const t = useTranslations('Activities')
     if (activities.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center h-64 border rounded-lg bg-slate-50 text-muted-foreground">
-                <p>Görüntülenecek aktivite bulunamadı.</p>
+                <p>{t('table.empty')}</p>
             </div>
         )
     }
@@ -62,12 +39,12 @@ export function ActivityList({ activities, customers }: ActivityListProps) {
             <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead className="w-[120px]">Tip / Konu</TableHead>
-                        <TableHead>Müşteri</TableHead>
-                        <TableHead>Temsilci</TableHead>
-                        <TableHead>Özet</TableHead>
-                        <TableHead className="w-[150px]">Tarih</TableHead>
-                        <TableHead className="w-[120px]">Durum</TableHead>
+                        <TableHead className="w-[120px]">{t('table.typeTopic')}</TableHead>
+                        <TableHead>{t('table.customer')}</TableHead>
+                        <TableHead>{t('table.agent')}</TableHead>
+                        <TableHead>{t('table.summary')}</TableHead>
+                        <TableHead className="w-[150px]">{t('table.date')}</TableHead>
+                        <TableHead className="w-[120px]">{t('table.status')}</TableHead>
                         <TableHead className="w-[100px]"></TableHead>
                     </TableRow>
                 </TableHeader>
@@ -82,6 +59,8 @@ export function ActivityList({ activities, customers }: ActivityListProps) {
 }
 
 function ActivityRow({ activity, customers }: { activity: Activity, customers: any[] }) {
+    const t = useTranslations('Activities')
+    const locale = useLocale()
     const [showEdit, setShowEdit] = useState(false)
     const [showComplete, setShowComplete] = useState(false)
 
@@ -89,9 +68,9 @@ function ActivityRow({ activity, customers }: { activity: Activity, customers: a
         <TableRow className="hover:bg-slate-50/50 group">
             <TableCell>
                 <div className="flex flex-col gap-1">
-                    <span className="font-medium">{typeLabels[activity.type] || activity.type}</span>
+                    <span className="font-medium">{t(`type.${activity.type}`)}</span>
                     {activity.topic && (
-                        <span className="text-xs text-muted-foreground">{topicLabels[activity.topic] || activity.topic}</span>
+                        <span className="text-xs text-muted-foreground">{t(`topic.${activity.topic}`)}</span>
                     )}
                 </div>
             </TableCell>
@@ -116,16 +95,16 @@ function ActivityRow({ activity, customers }: { activity: Activity, customers: a
             <TableCell>
                 <div className="flex flex-col">
                     <span className="text-sm font-medium">
-                        {format(new Date(activity.due_date), 'd MMM yyyy', { locale: tr })}
+                        {format(new Date(activity.due_date), 'd MMM yyyy', { locale: locale === 'en' ? enUS : tr })}
                     </span>
                     <span className="text-xs text-muted-foreground">
-                        {format(new Date(activity.due_date), 'HH:mm', { locale: tr })}
+                        {format(new Date(activity.due_date), 'HH:mm', { locale: locale === 'en' ? enUS : tr })}
                     </span>
                 </div>
             </TableCell>
             <TableCell>
                 <Badge variant="outline" className={cn('whitespace-nowrap', statusColors[activity.status])}>
-                    {statusLabels[activity.status] || activity.status}
+                    {t(`status.${activity.status}`)}
                 </Badge>
             </TableCell>
             <TableCell>
@@ -135,7 +114,7 @@ function ActivityRow({ activity, customers }: { activity: Activity, customers: a
                         size="icon"
                         className="h-8 w-8 text-muted-foreground hover:text-green-600 hover:bg-green-50"
                         onClick={() => setShowComplete(true)}
-                        title="Tamamla"
+                        title={t('actions.complete')}
                     >
                         <CheckClassName className="h-4 w-4" />
                     </Button>
@@ -144,7 +123,7 @@ function ActivityRow({ activity, customers }: { activity: Activity, customers: a
                         size="icon"
                         className="h-8 w-8 text-muted-foreground hover:text-blue-600 hover:bg-blue-50"
                         onClick={() => setShowEdit(true)}
-                        title="Düzenle"
+                        title={t('actions.edit')}
                     >
                         <Pencil className="h-4 w-4" />
                     </Button>

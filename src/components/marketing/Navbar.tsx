@@ -1,15 +1,17 @@
 "use client";
-
 import { useState, useEffect } from 'react'
-import Link from 'next/link'
 import { Building2, Menu, X, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { LeadCaptureModal } from '@/components/marketing/LeadCaptureModal'
+import { useTranslations } from 'next-intl'
+import { Link } from '@/i18n/routing'
+import LanguageSwitcher from '@/components/LanguageSwitcher'
 
 export function Navbar() {
     const [isScrolled, setIsScrolled] = useState(false)
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+    const t = useTranslations('Navbar')
 
     useEffect(() => {
         const handleScroll = () => {
@@ -20,10 +22,10 @@ export function Navbar() {
     }, [])
 
     const navLinks = [
-        { name: 'Gayrimenkul CRM', href: '/solutions/gayrimenkul-crm' },
-        { name: 'İnşaat CRM', href: '/solutions/insaat-crm' },
-        { name: 'Çözümler', href: '/solutions' },
-        { name: 'Fiyatlandırma', href: '/#pricing' },
+        { name: t('solutions_realestate'), href: '/solutions/gayrimenkul-crm' },
+        { name: t('solutions_construction'), href: '/solutions/insaat-crm' },
+        { name: t('solutions'), href: '/solutions' },
+        { name: t('pricing'), href: '/#pricing' },
     ]
 
     return (
@@ -57,17 +59,18 @@ export function Navbar() {
 
                 {/* Desktop Actions */}
                 <div className="hidden md:flex items-center gap-4">
+                    <LanguageSwitcher />
                     <Button variant="ghost" className="text-slate-300 hover:text-white hover:bg-white/5" asChild>
-                        <Link href="/login">Giriş Yap</Link>
+                        <Link href="/login">{t('login')}</Link>
                     </Button>
                     <LeadCaptureModal
-                        title="Ücretsiz Tanıtım ve Demo"
-                        description="Satışlarınızı nasıl artırabileceğimizi göstermek için bir uzmanımız sizinle iletişime geçecek."
+                        title={t('demoTitle')}
+                        description={t('demoDescription')}
                         resourceName="Navbar_Demo_Request"
                     >
                         <Button className="bg-blue-600 hover:bg-blue-700 text-white rounded-full px-6 shadow-lg shadow-blue-900/20">
                             <span className="flex items-center">
-                                Hemen Başlayın
+                                {t('start')}
                                 <ChevronRight size={16} className="ml-1" />
                             </span>
                         </Button>
@@ -75,12 +78,15 @@ export function Navbar() {
                 </div>
 
                 {/* Mobile Menu Toggle */}
-                <button
-                    className="md:hidden text-white p-2"
-                    onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                >
-                    {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
-                </button>
+                <div className="flex items-center gap-4 md:hidden">
+                    <LanguageSwitcher />
+                    <button
+                        className="text-white p-2"
+                        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                    >
+                        {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
+                    </button>
+                </div>
             </div>
 
             {/* Mobile Menu */}
@@ -103,15 +109,15 @@ export function Navbar() {
 
                 <div className="mt-auto flex flex-col gap-4">
                     <Button variant="outline" size="lg" className="w-full border-slate-800 text-white" asChild>
-                        <Link href="/login">Giriş Yap</Link>
+                        <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>{t('login')}</Link>
                     </Button>
                     <LeadCaptureModal
-                        title="Ücretsiz Tanıtım ve Demo"
-                        description="Satışlarınızı nasıl artırabileceğimizi göstermek için bir uzmanımız sizinle iletişime geçecek."
+                        title={t('demoTitle')}
+                        description={t('demoDescription')}
                         resourceName="MobileNavbar_Demo_Request"
                     >
                         <Button size="lg" className="w-full bg-blue-600 text-white">
-                            Ücretsiz Kaydol / Tanıtım İste
+                            {t('register')}
                         </Button>
                     </LeadCaptureModal>
                 </div>

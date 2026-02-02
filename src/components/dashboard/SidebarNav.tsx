@@ -1,7 +1,7 @@
 'use client'
 
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { Link, usePathname } from '@/i18n/routing'
+import { useTranslations } from 'next-intl'
 import { cn } from '@/lib/utils'
 import {
     LayoutDashboard,
@@ -57,97 +57,99 @@ function NavItem({ href, icon: Icon, children, onClick }: NavItemProps) {
 }
 
 export function SidebarNav({ onElementClick }: { onElementClick?: () => void }) {
+    const t = useTranslations('Sidebar')
+
     return (
         <nav className="grid items-start px-2 text-sm font-medium lg:px-4 gap-1">
             <NavItem href="/" icon={LayoutDashboard} onClick={onElementClick}>
-                Genel Bakış
+                {t('overview')}
             </NavItem>
             <NavItem href="/projects" icon={Building2} onClick={onElementClick}>
-                Projeler
+                {t('projects')}
             </NavItem>
             <NavItem href="/inventory" icon={Home} onClick={onElementClick}>
-                Stok Yönetimi
+                {t('inventory')}
             </NavItem>
             <NavItem href="/customers" icon={Users} onClick={onElementClick}>
-                Müşteriler
+                {t('customers')}
             </NavItem>
             <NavItem href="/teams" icon={Users} onClick={onElementClick}>
-                Satış Ekipleri
+                {t('salesTeams')}
             </NavItem>
             <NavItem href="/crm" icon={Activity} onClick={onElementClick}>
-                Satış Yönetimi
+                {t('salesManagement')}
             </NavItem>
             <NavItem href="/options" icon={Package} onClick={onElementClick}>
-                Opsiyonlar
+                {t('options')}
             </NavItem>
             <NavItem href="/offers" icon={FileText} onClick={onElementClick}>
-                Teklifler
+                {t('offers')}
             </NavItem>
             <NavItem href="/contracts" icon={FileText} onClick={onElementClick}>
-                Sözleşmeler
+                {t('contracts')}
             </NavItem>
             <NavItem href="/finance/deposits" icon={Banknote} onClick={onElementClick}>
-                Kapora Yönetimi
+                {t('deposits')}
             </NavItem>
             <NavItem href="/activities" icon={CalendarCheck} onClick={onElementClick}>
-                Aktiviteler
+                {t('activities')}
             </NavItem>
             <NavItem href="/customer-support" icon={MessageSquare} onClick={onElementClick}>
-                Servis Talepleri
+                {t('serviceRequests')}
             </NavItem>
 
             <Accordion type="multiple" className="w-full border-none">
                 <AccordionItem value="broker" className="border-none">
-                    <AccordionTrigger className="px-3 py-2 text-muted-foreground hover:text-primary hover:bg-slate-50 rounded-lg hover:no-underline [&[data-state=open]]:text-primary font-medium">
-                        <div className="flex items-center gap-3">
+                    <AccordionTrigger className="px-3 py-2 text-muted-foreground hover:text-primary hover:bg-slate-50 rounded-lg hover:no-underline [&[data-state=open]]:text-primary font-medium justify-start">
+                        <div className="flex items-center gap-3 whitespace-nowrap">
                             <Users className="h-4 w-4" />
-                            <span>B2B Broker Yönetimi</span>
+                            <span>{t('broker.title')}</span>
                         </div>
                     </AccordionTrigger>
                     <AccordionContent className="pt-1 pb-2 pl-4 grid gap-1">
                         <NavItem href="/admin/broker-applications" icon={Clock} onClick={onElementClick}>
-                            Broker Yönetimi
+                            {t('broker.management')}
                         </NavItem>
                         <NavItem href="/admin/broker-leads" icon={Users} onClick={onElementClick}>
-                            Lead Yönetimi
+                            {t('broker.leads')}
                         </NavItem>
                         <NavItem href="/admin/broker-leads/campaigns" icon={Gift} onClick={onElementClick}>
-                            Teşvik Kampanyaları
+                            {t('broker.campaigns')}
                         </NavItem>
                         <NavItem href="/admin/broker-leads/commission-settings" icon={Settings2} onClick={onElementClick}>
-                            Komisyon Ayarları
+                            {t('broker.commission')}
                         </NavItem>
                         <NavItem href="/admin/broker-finances" icon={Banknote} onClick={onElementClick}>
-                            Finansal Yönetim
+                            {t('broker.finance')}
                         </NavItem>
                         <NavItem href="/admin/broker-leads/levels" icon={Trophy} onClick={onElementClick}>
-                            Seviye Yönetimi
+                            {t('broker.levels')}
                         </NavItem>
                     </AccordionContent>
                 </AccordionItem>
 
                 <AccordionItem value="reports" className="border-none">
-                    <AccordionTrigger className="px-3 py-2 text-muted-foreground hover:text-primary hover:bg-slate-50 rounded-lg hover:no-underline [&[data-state=open]]:text-primary font-medium">
-                        <div className="flex items-center gap-3">
+                    <AccordionTrigger className="px-3 py-2 text-muted-foreground hover:text-primary hover:bg-slate-50 rounded-lg hover:no-underline [&[data-state=open]]:text-primary font-medium justify-start">
+                        <div className="flex items-center gap-3 whitespace-nowrap">
                             <BarChart3 className="h-4 w-4" />
-                            <span>Raporlar</span>
+                            <span>{t('reports.title')}</span>
                         </div>
                     </AccordionTrigger>
                     <AccordionContent className="pt-1 pb-2 pl-4 grid gap-1">
                         <NavItem href="/reports/sales" icon={Activity} onClick={onElementClick}>
-                            Satış Performansı
+                            {t('reports.sales')}
                         </NavItem>
                         <NavItem href="/reports/inventory" icon={Building2} onClick={onElementClick}>
-                            Stok & Proje Analizi
+                            {t('reports.inventory')}
                         </NavItem>
                         <NavItem href="/reports/finance" icon={Banknote} onClick={onElementClick}>
-                            Finansal Analiz
+                            {t('reports.finance')}
                         </NavItem>
                         <NavItem href="/reports/activities" icon={CalendarCheck} onClick={onElementClick}>
-                            Saha & Ekip Verimliliği
+                            {t('reports.efficiency')}
                         </NavItem>
                         <NavItem href="/admin/broker-leads/reports" icon={BarChart3} onClick={onElementClick}>
-                            Broker Kazançları
+                            {t('broker.earnings')}
                         </NavItem>
                     </AccordionContent>
                 </AccordionItem>

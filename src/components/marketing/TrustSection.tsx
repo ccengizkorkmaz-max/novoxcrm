@@ -1,39 +1,42 @@
 
 import { Building2, Users, Wallet, Trophy } from 'lucide-react'
-
-const stats = [
-    {
-        icon: Wallet,
-        value: "10 Milyar ₺+",
-        label: "Yönetilen Portföy",
-        color: "text-blue-400"
-    },
-    {
-        icon: Building2,
-        value: "50+",
-        label: "Aktif Proje",
-        color: "text-indigo-400"
-    },
-    {
-        icon: Users,
-        value: "1.000+",
-        label: "Emlak Profesyoneli",
-        color: "text-purple-400"
-    },
-    {
-        icon: Trophy,
-        value: "%98",
-        label: "Müşteri Memnuniyeti",
-        color: "text-green-400"
-    }
-]
+import { useTranslations } from 'next-intl'
 
 export function TrustSection() {
+    const t = useTranslations('TrustSection')
+
+    const stats = [
+        {
+            icon: Wallet,
+            value: "10 Milyar ₺+",
+            label: t('portfolio'),
+            color: "text-blue-400"
+        },
+        {
+            icon: Building2,
+            value: "50+",
+            label: t('projects'),
+            color: "text-indigo-400"
+        },
+        {
+            icon: Users,
+            value: "1.000+",
+            label: t('professionals'),
+            color: "text-purple-400"
+        },
+        {
+            icon: Trophy,
+            value: "%98",
+            label: t('satisfaction'),
+            color: "text-green-400"
+        }
+    ]
+
     return (
         <section className="py-12 bg-slate-950 border-y border-slate-900 relative z-20">
             <div className="container mx-auto px-4">
                 <p className="text-center text-slate-500 text-sm font-medium mb-8 uppercase tracking-widest">
-                    Sektörün Öncüleri Tarafından Güvenle Kullanılıyor
+                    {t('title')}
                 </p>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12">

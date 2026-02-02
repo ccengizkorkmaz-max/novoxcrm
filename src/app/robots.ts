@@ -8,7 +8,7 @@ export default function robots(): MetadataRoute.Robots {
             allow: [
                 '/',
                 '/broker/apply',
-                '/p/'
+                '/p'
             ],
             disallow: [
                 '/dashboard/',

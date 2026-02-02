@@ -12,7 +12,7 @@ import { Home, Ruler } from 'lucide-react'
 import { FormImageUpload } from '@/components/ui/form-image-upload'
 import { RoomAreasInput } from '@/components/room-areas-input'
 import { toast } from 'sonner'
-import { updateUnit } from '@/app/(dashboard)/inventory/[id]/actions'
+import { updateUnit } from '@/app/[locale]/(dashboard)/inventory/[id]/actions'
 
 const UNIT_CATEGORIES = [
     "Daire", "Depo", "Dükkan", "Ofis", "Villa",

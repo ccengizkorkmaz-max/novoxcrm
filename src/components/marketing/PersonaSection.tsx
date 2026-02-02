@@ -5,50 +5,28 @@ import { Briefcase, TrendingUp, Users } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 
 const personas = [
     {
         id: 'patron',
-        label: 'Patron',
         icon: Briefcase,
-        color: 'from-blue-500 to-cyan-500',
-        title: "Büyük Resmi Görün",
-        description: "Operasyonel detaylarda boğulmayın. Şirketinizin finansal sağlığını, satış hızını ve nakit akışını tek ekrandan izleyin.",
-        benefits: [
-            "Anlık ciro ve karlılık raporları",
-            "Nakit akışı projeksiyonu",
-            "Satış ofisi performans karnesi"
-        ]
+        color: 'from-blue-500 to-cyan-500'
     },
     {
         id: 'sales',
-        label: 'Satış Müdürü',
         icon: TrendingUp,
-        color: 'from-purple-500 to-pink-500',
-        title: "Ekibinizi Kanatlandırın",
-        description: "Satış ekibinizin kiminle görüştüğünü, hangi aşamada olduğunu ve performansını verilerle yönetin.",
-        benefits: [
-            "Otomatik lead dağıtımı",
-            "Aktivite ve görüşme takibi",
-            "Hedef/Gerçekleşen analizi"
-        ]
+        color: 'from-purple-500 to-pink-500'
     },
     {
         id: 'broker',
-        label: 'Broker Yöneticisi',
         icon: Users,
-        color: 'from-orange-500 to-red-500',
-        title: "Kaosu Bitirin",
-        description: "Yüzlerce emlak ofisi ve brokerı tek platformda yönetin. Çatışmaları önleyin, sadakati artırın.",
-        benefits: [
-            "Şeffaf portföy paylaşımı",
-            "Otomatik hakediş hesaplama",
-            "Dublicate (çift) kayıt engelleme"
-        ]
+        color: 'from-orange-500 to-red-500'
     }
 ]
 
 export function PersonaSection() {
+    const t = useTranslations('PersonaSection')
     const [activeTab, setActiveTab] = useState(personas[0])
 
     return (
@@ -56,10 +34,10 @@ export function PersonaSection() {
             <div className="container mx-auto px-4">
                 <div className="text-center max-w-3xl mx-auto mb-16">
                     <h2 className="text-3xl md:text-5xl font-bold mb-6 text-white">
-                        Herkese Kazandıran Çözüm
+                        {t('title')}
                     </h2>
                     <p className="text-lg text-slate-400">
-                        NovoxCRM organizasyonunuzdaki her rol için özelleştirilmiş araçlar sunar.
+                        {t('description')}
                     </p>
                 </div>
 
@@ -77,7 +55,7 @@ export function PersonaSection() {
                                     }`}
                             >
                                 <persona.icon size={18} className={activeTab.id === persona.id ? 'text-blue-400' : ''} />
-                                {persona.label}
+                                {t(`personas.${persona.id}.label`)}
                             </button>
                         ))}
                     </div>
@@ -93,13 +71,13 @@ export function PersonaSection() {
                                     <activeTab.icon size={24} />
                                 </div>
 
-                                <h3 className="text-3xl font-bold text-white">{activeTab.title}</h3>
+                                <h3 className="text-3xl font-bold text-white">{t(`personas.${activeTab.id}.title`)}</h3>
                                 <p className="text-slate-400 text-lg leading-relaxed">
-                                    {activeTab.description}
+                                    {t(`personas.${activeTab.id}.description`)}
                                 </p>
 
                                 <ul className="space-y-4 pt-4">
-                                    {activeTab.benefits.map((benefit, i) => (
+                                    {(t.raw(`personas.${activeTab.id}.benefits`) as string[]).map((benefit, i) => (
                                         <li key={i} className="flex items-center gap-3 text-slate-300">
                                             <div className={`w-2 h-2 rounded-full bg-gradient-to-r ${activeTab.color}`} />
                                             {benefit}
@@ -109,7 +87,7 @@ export function PersonaSection() {
 
                                 <div className="pt-6">
                                     <Button variant="outline" className="border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800" asChild>
-                                        <Link href="/solutions">Daha Fazla Bilgi</Link>
+                                        <Link href="/solutions">{t('cta')}</Link>
                                     </Button>
                                 </div>
                             </div>

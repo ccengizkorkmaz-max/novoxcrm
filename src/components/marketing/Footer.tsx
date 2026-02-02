@@ -1,8 +1,11 @@
 
 import Link from 'next/link'
 import { Building2, Facebook, Instagram, Linkedin, Twitter } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 export function Footer() {
+    const t = useTranslations('Footer')
+
     return (
         <footer className="bg-slate-950 text-slate-400 border-t border-slate-900 py-12 md:py-20">
             <div className="container mx-auto px-4">
@@ -16,7 +19,7 @@ export function Footer() {
                             NovoxCRM
                         </Link>
                         <p className="text-sm leading-relaxed mb-6">
-                            İnşaat ve gayrimenkul projeleri için uçtan uca satış yönetimi ve CRM çözümü. Satış ofisinizi dijitalleştirin, veriminizi artırın.
+                            {t('brandDescription')}
                         </p>
                         <div className="flex gap-4">
                             <a href="#" className="hover:text-blue-500 transition-colors"><Facebook size={20} /></a>
@@ -28,42 +31,42 @@ export function Footer() {
 
                     {/* Product Links */}
                     <div>
-                        <h4 className="text-white font-bold mb-6">Çözümler</h4>
+                        <h4 className="text-white font-bold mb-6">{t('solutionsTitle')}</h4>
                         <ul className="space-y-4 text-sm">
-                            <li><Link href="/solutions/gayrimenkul-crm" className="hover:text-white transition-colors">Gayrimenkul CRM</Link></li>
-                            <li><Link href="/solutions/insaat-crm" className="hover:text-white transition-colors">İnşaat CRM</Link></li>
-                            <li><Link href="/solutions" className="hover:text-white transition-colors">Tüm Çözümler</Link></li>
-                            <li><Link href="/payment-plan-calculator" className="hover:text-white transition-colors">Ödeme Planı Sihirbazı</Link></li>
+                            <li><Link href="/solutions/gayrimenkul-crm" className="hover:text-white transition-colors">{t('solutions.realestate')}</Link></li>
+                            <li><Link href="/solutions/insaat-crm" className="hover:text-white transition-colors">{t('solutions.construction')}</Link></li>
+                            <li><Link href="/solutions" className="hover:text-white transition-colors">{t('solutions.all')}</Link></li>
+                            <li><Link href="/payment-plan-calculator" className="hover:text-white transition-colors">{t('solutions.paymentCalculator')}</Link></li>
                         </ul>
                     </div>
 
                     {/* SEO / Legal Links */}
                     <div>
-                        <h4 className="text-white font-bold mb-6">Kurumsal</h4>
+                        <h4 className="text-white font-bold mb-6">{t('corporateTitle')}</h4>
                         <ul className="space-y-4 text-sm">
-                            <li><Link href="#" className="hover:text-white transition-colors">Hakkımızda</Link></li>
-                            <li><Link href="/wiki" className="hover:text-white transition-colors">Bilgi Bankası (Wiki)</Link></li>
-                            <li><Link href="#" className="hover:text-white transition-colors">KVKK Aydınlatma Metni</Link></li>
-                            <li><Link href="#" className="hover:text-white transition-colors">Kullanım Koşulları</Link></li>
+                            <li><Link href="#" className="hover:text-white transition-colors">{t('corporate.about')}</Link></li>
+                            <li><Link href="/wiki" className="hover:text-white transition-colors">{t('corporate.wiki')}</Link></li>
+                            <li><Link href="#" className="hover:text-white transition-colors">{t('corporate.kvkk')}</Link></li>
+                            <li><Link href="#" className="hover:text-white transition-colors">{t('corporate.terms')}</Link></li>
                         </ul>
                     </div>
 
                     {/* Contact Info */}
                     <div>
-                        <h4 className="text-white font-bold mb-6">İletişim</h4>
+                        <h4 className="text-white font-bold mb-6">{t('contactTitle')}</h4>
                         <ul className="space-y-4 text-sm">
                             <li>E-posta: info@novoxcrm.com</li>
                             <li>Adres: İstanbul, Türkiye</li>
                             <li className="pt-2">
                                 <div className="p-4 rounded-xl bg-slate-900 border border-slate-800">
-                                    <p className="text-xs text-slate-500 mb-2 font-medium">HABERDAR OLUN</p>
+                                    <p className="text-xs text-slate-500 mb-2 font-medium">{t('newsletter.title')}</p>
                                     <div className="flex gap-2">
                                         <input
                                             type="email"
-                                            placeholder="E-posta"
+                                            placeholder={t('newsletter.placeholder')}
                                             className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-1 text-xs w-full focus:outline-none focus:border-blue-500"
                                         />
-                                        <button className="bg-blue-600 text-white rounded-lg px-3 py-1 text-xs font-bold hover:bg-blue-700">OK</button>
+                                        <button className="bg-blue-600 text-white rounded-lg px-3 py-1 text-xs font-bold hover:bg-blue-700">{t('newsletter.button')}</button>
                                     </div>
                                 </div>
                             </li>
@@ -72,10 +75,10 @@ export function Footer() {
                 </div>
 
                 <div className="pt-8 border-t border-slate-900 flex flex-col md:flex-row justify-between items-center gap-4 text-xs">
-                    <p>© 2026 NovoxCRM. Tüm hakları saklıdır.</p>
+                    <p>{t('copyright')}</p>
                     <div className="flex gap-6">
-                        <span>Gayrimenkul CRM Yazılımı</span>
-                        <span>İnşaat Proje Satış Sistemi</span>
+                        <span>{t('tagline1')}</span>
+                        <span>{t('tagline2')}</span>
                     </div>
                 </div>
             </div>

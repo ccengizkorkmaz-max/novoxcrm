@@ -1,7 +1,10 @@
 
 import { XCircle, CheckCircle } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
 export function ComparisonSection() {
+    const t = useTranslations('ComparisonSection')
+
     return (
         <section className="py-24 bg-slate-950 relative overflow-hidden">
             {/* Background Split */}
@@ -13,10 +16,10 @@ export function ComparisonSection() {
             <div className="container relative z-10 mx-auto px-4">
                 <div className="text-center max-w-3xl mx-auto mb-16">
                     <h2 className="text-3xl md:text-5xl font-bold mb-6 text-white">
-                        Hangi Taraftasınız?
+                        {t('title')}
                     </h2>
                     <p className="text-lg text-slate-400">
-                        Kaos veya Düzen. Seçim sizin.
+                        {t('subtitle')}
                     </p>
                 </div>
 
@@ -29,20 +32,14 @@ export function ComparisonSection() {
                             <div className="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center text-red-500">
                                 <XCircle size={24} />
                             </div>
-                            <h3 className="text-2xl font-bold text-red-400">Geleneksel Yöntem</h3>
+                            <h3 className="text-2xl font-bold text-red-400">{t('oldWay.title')}</h3>
                         </div>
 
                         <ul className="space-y-6">
-                            {[
-                                "Excel'de kaybolan müşteri verileri",
-                                "Birbirinden habersiz satış ekibi",
-                                "Manuel hesaplanan hatalı komisyonlar",
-                                "Takip edilmeyen ödeme planları",
-                                "Kasa ve stok uyumsuzlukları"
-                            ].map((item, i) => (
+                            {[0, 1, 2, 3, 4].map((i) => (
                                 <li key={i} className="flex items-start gap-4 text-red-200/60">
                                     <XCircle size={20} className="shrink-0 mt-1 text-red-500/50" />
-                                    <span>{item}</span>
+                                    <span>{t(`oldWay.items.${i}`)}</span>
                                 </li>
                             ))}
                         </ul>
@@ -56,20 +53,14 @@ export function ComparisonSection() {
                             <div className="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center text-green-500">
                                 <CheckCircle size={24} />
                             </div>
-                            <h3 className="text-2xl font-bold text-green-400">NovoxCRM Yöntemi</h3>
+                            <h3 className="text-2xl font-bold text-green-400">{t('newWay.title')}</h3>
                         </div>
 
                         <ul className="space-y-6">
-                            {[
-                                "Müşteri geçmişi ve notları tek ekranda",
-                                "Tam entegre ekip ve yetkilendirme",
-                                "Otomatik hakediş ve prim sistemi",
-                                "Gecikme faizi ve vade farkı motoru",
-                                "%100 Gerçek zamanlı stok kontrolü"
-                            ].map((item, i) => (
+                            {[0, 1, 2, 3, 4].map((i) => (
                                 <li key={i} className="flex items-start gap-4 text-green-100">
                                     <CheckCircle size={20} className="shrink-0 mt-1 text-green-500" />
-                                    <span className="font-medium">{item}</span>
+                                    <span className="font-medium">{t(`newWay.items.${i}`)}</span>
                                 </li>
                             ))}
                         </ul>

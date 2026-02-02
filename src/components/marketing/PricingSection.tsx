@@ -3,58 +3,32 @@ import { Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { LeadCaptureModal } from '@/components/marketing/LeadCaptureModal'
-
-const plans = [
-    {
-        name: "Basic",
-        price: "₺2.900",
-        period: "/ay",
-        description: "Küçük ölçekli projeler ve butik satış ofisleri için.",
-        features: [
-            "Stok Yönetimi",
-            "Müşteri Kartları",
-            "Satış İşlemleri",
-            "Basit Raporlama",
-            "5 Kullanıcıya Kadar"
-        ],
-        cta: "Başlayın",
-        popular: false
-    },
-    {
-        name: "Pro",
-        price: "₺5.900",
-        period: "/ay",
-        description: "Büyüyen ekipler ve aktif satış ofisleri için.",
-        features: [
-            "Her şey (Basic)",
-            "Broker Portalı",
-            "Ödeme Planı Sihirbazı",
-            "Dijital Sözleşme Yönetimi",
-            "Gelişmiş Raporlama",
-            "20 Kullanıcıya Kadar"
-        ],
-        cta: "Ücretsiz Deneyin",
-        popular: true
-    },
-    {
-        name: "Enterprise",
-        price: "Özel Teklif",
-        period: "",
-        description: "Çoklu proje ve büyük organizasyonlar için.",
-        features: [
-            "Her şey (Pro)",
-            "Mobil Uygulama (iOS/Android)",
-            "API Erişimi",
-            "ERP Entegrasyonları",
-            "Özel Sunucu (On-Premise)",
-            "Sınırsız Kullanıcı"
-        ],
-        cta: "İletişime Geçin",
-        popular: false
-    }
-]
+import { useTranslations } from 'next-intl'
 
 export function PricingSection() {
+    const t = useTranslations('PricingSection')
+
+    const plans = [
+        {
+            key: "basic",
+            price: t('plans.basic.price'),
+            period: t('plans.basic.period'),
+            popular: false
+        },
+        {
+            key: "pro",
+            price: t('plans.pro.price'),
+            period: t('plans.pro.period'),
+            popular: true
+        },
+        {
+            key: "enterprise",
+            price: t('plans.enterprise.price'),
+            period: t('plans.enterprise.period'),
+            popular: false
+        }
+    ]
+
     return (
         <section className="py-32 bg-slate-950 relative" id="pricing">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,_var(--tw-gradient-stops))] from-blue-900/10 via-slate-950 to-slate-950" />
@@ -62,10 +36,10 @@ export function PricingSection() {
             <div className="container relative z-10 mx-auto px-4">
                 <div className="text-center max-w-3xl mx-auto mb-16">
                     <h2 className="text-3xl md:text-5xl font-bold mb-4 text-white">
-                        Şeffaf Fiyatlandırma
+                        {t('title')}
                     </h2>
                     <p className="text-lg text-slate-400">
-                        Gizli maliyet yok. İhtiyacınıza uygun paketi seçin, hemen başlayın.
+                        {t('description')}
                     </p>
                 </div>
 
@@ -81,13 +55,13 @@ export function PricingSection() {
                         >
                             {plan.popular && (
                                 <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-1.5 rounded-full text-sm font-bold shadow-lg">
-                                    En Popüler
+                                    {t('popularTag')}
                                 </div>
                             )}
 
                             <div className="mb-8">
-                                <h3 className="text-xl font-bold mb-2 text-white">{plan.name}</h3>
-                                <p className="text-sm text-slate-400 mb-6">{plan.description}</p>
+                                <h3 className="text-xl font-bold mb-2 text-white">{t(`plans.${plan.key}.name`)}</h3>
+                                <p className="text-sm text-slate-400 mb-6">{t(`plans.${plan.key}.description`)}</p>
                                 <div className="flex items-baseline">
                                     <span className={`text-4xl font-bold ${plan.popular ? 'text-blue-400' : 'text-white'}`}>{plan.price}</span>
                                     <span className="text-slate-500 ml-1">{plan.period}</span>
@@ -97,7 +71,7 @@ export function PricingSection() {
                             <div className="h-px bg-slate-800 w-full mb-8" />
 
                             <ul className="space-y-4 mb-8 flex-1">
-                                {plan.features.map((feature, j) => (
+                                {(t.raw(`plans.${plan.key}.features`) as string[]).map((feature, j) => (
                                     <li key={j} className="flex items-center gap-3 text-slate-300">
                                         <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${plan.popular ? 'bg-blue-500/20 text-blue-400' : 'bg-slate-800 text-slate-400'}`}>
                                             <Check size={12} />
@@ -108,9 +82,9 @@ export function PricingSection() {
                             </ul>
 
                             <LeadCaptureModal
-                                title={`${plan.name} Paketi Bilgi Formu`}
-                                description={`${plan.name} paketi hakkında detaylı bilgi ve demo için lütfen bilgilerinizi bırakın.`}
-                                resourceName={`Pricing_${plan.name}_Request`}
+                                title={`${t(`plans.${plan.key}.name`)} ${t('title')}`} // Using title generically or adjusting translation if needed
+                                description={`${t(`plans.${plan.key}.name`)} - ${t(`plans.${plan.key}.description`)}`}
+                                resourceName={`Pricing_${plan.key}_Request`}
                             >
                                 <Button
                                     size="lg"
@@ -121,7 +95,7 @@ export function PricingSection() {
                                             : 'bg-transparent border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800 hover:border-slate-600'
                                         }`}
                                 >
-                                    {plan.cta}
+                                    {t(`plans.${plan.key}.cta`)}
                                 </Button>
                             </LeadCaptureModal>
                         </div>

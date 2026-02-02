@@ -1,8 +1,10 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-export async function updateSession(request: NextRequest) {
-    let response = NextResponse.next({
+export async function updateSession(request: NextRequest, response?: NextResponse) {
+    // If a response is passed (from next-intl), use it. Otherwise create a new one.
+    // Crucially, we must preserve the headers/status from the next-intl response if it exists.
+    let internalResponse = response || NextResponse.next({
         request: {
             headers: request.headers,
         },
@@ -12,7 +14,7 @@ export async function updateSession(request: NextRequest) {
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
     if (!supabaseUrl || !supabaseAnonKey) {
-        return response
+        return internalResponse
     }
 
     const supabase = createServerClient(
@@ -27,13 +29,13 @@ export async function updateSession(request: NextRequest) {
                     cookiesToSet.forEach(({ name, value, options }) =>
                         request.cookies.set(name, value)
                     )
-                    response = NextResponse.next({
+                    internalResponse = response || NextResponse.next({
                         request: {
                             headers: request.headers,
                         },
                     })
                     cookiesToSet.forEach(({ name, value, options }) =>
-                        response.cookies.set(name, value, options)
+                        internalResponse.cookies.set(name, value, options)
                     )
                 },
             },
@@ -44,25 +46,38 @@ export async function updateSession(request: NextRequest) {
         data: { user },
     } = await supabase.auth.getUser()
 
+    // Helper to strip locale from pathname for checks
+    const pathname = request.nextUrl.pathname
+    const pathWithoutLocale = pathname.replace(/^\/(tr|en)(\/|$)/, '/')
+
     // 1. Handle Public Routes first
     const isPublicRoute =
-        request.nextUrl.pathname === '/' ||
-        request.nextUrl.pathname === '/sitemap.xml' ||
-        request.nextUrl.pathname === '/robots.txt' ||
-        request.nextUrl.pathname.startsWith('/payment-plan-calculator') ||
-        request.nextUrl.pathname.startsWith('/solutions') ||
-        request.nextUrl.pathname.startsWith('/system-details') ||
-        request.nextUrl.pathname.startsWith('/wiki') ||
-        request.nextUrl.pathname.startsWith('/login') ||
-        request.nextUrl.pathname.startsWith('/customerservices/login') ||
-        request.nextUrl.pathname.startsWith('/auth') ||
-        request.nextUrl.pathname.startsWith('/p/') ||
-        request.nextUrl.pathname.startsWith('/broker/apply')
+        pathWithoutLocale === '/' ||
+        pathWithoutLocale === '/sitemap.xml' ||
+        pathWithoutLocale === '/robots.txt' ||
+        pathWithoutLocale.startsWith('/payment-plan-calculator') ||
+        pathWithoutLocale.startsWith('/solutions') ||
+        pathWithoutLocale.startsWith('/system-details') ||
+        pathWithoutLocale.startsWith('/wiki') ||
+        pathWithoutLocale.startsWith('/login') ||
+        pathWithoutLocale.startsWith('/payment-plan-calculator') ||
+        pathWithoutLocale.startsWith('/solutions') ||
+        pathWithoutLocale.startsWith('/system-details') ||
+        pathWithoutLocale.startsWith('/wiki') ||
+        pathWithoutLocale.startsWith('/login') ||
+        pathWithoutLocale.startsWith('/customerservices/login') ||
+        pathWithoutLocale.startsWith('/auth') ||
+        pathWithoutLocale.startsWith('/p/') ||
+        pathWithoutLocale.startsWith('/broker/apply')
 
     if (!user && !isPublicRoute) {
-        const isPortalRoute = request.nextUrl.pathname.startsWith('/customerservices')
+        const isPortalRoute = pathWithoutLocale.startsWith('/customerservices')
         const url = request.nextUrl.clone()
-        url.pathname = isPortalRoute ? '/customerservices/login' : '/login'
+        const targetPath = isPortalRoute ? '/customerservices/login' : '/login'
+        // Prepend locale if present
+        const localeMatch = pathname.match(/^\/(tr|en)(\/|$)/)
+        const localePrefix = localeMatch ? `/${localeMatch[1]}` : ''
+        url.pathname = `${localePrefix}${targetPath}`
         return NextResponse.redirect(url)
     }
 
@@ -74,20 +89,23 @@ export async function updateSession(request: NextRequest) {
             .eq('id', user.id)
             .single()
 
-        const isPortalPath = request.nextUrl.pathname.startsWith('/customerservices')
-        const isBrokerPath = request.nextUrl.pathname.startsWith('/broker')
-        const isPublicPath = request.nextUrl.pathname.startsWith('/p/')
+        const isPortalPath = pathWithoutLocale.startsWith('/customerservices')
+        const isBrokerPath = pathWithoutLocale.startsWith('/broker')
+        const isPublicPath = pathWithoutLocale.startsWith('/p/')
         const isMarketingPath =
-            request.nextUrl.pathname === '/' ||
-            request.nextUrl.pathname.startsWith('/payment-plan-calculator') ||
-            request.nextUrl.pathname.startsWith('/solutions') ||
-            request.nextUrl.pathname.startsWith('/system-details') ||
-            request.nextUrl.pathname.startsWith('/wiki')
+            pathWithoutLocale === '/' ||
+            pathWithoutLocale.startsWith('/payment-plan-calculator') ||
+            pathWithoutLocale.startsWith('/solutions') ||
+            pathWithoutLocale.startsWith('/system-details') ||
+            pathWithoutLocale.startsWith('/wiki')
 
         // If customer tries to access dashboard or broker portal, redirect to portal
-        if (profile?.role === 'customer' && !isPortalPath && !isPublicPath && !isBrokerPath && !request.nextUrl.pathname.startsWith('/auth') && !isMarketingPath) {
+        if (profile?.role === 'customer' && !isPortalPath && !isPublicPath && !isBrokerPath && !pathWithoutLocale.startsWith('/auth') && !isMarketingPath) {
             const url = request.nextUrl.clone()
-            url.pathname = '/customerservices'
+            const targetPath = '/customerservices'
+            const localeMatch = pathname.match(/^\/(tr|en)(\/|$)/)
+            const localePrefix = localeMatch ? `/${localeMatch[1]}` : ''
+            url.pathname = `${localePrefix}${targetPath}`
             return NextResponse.redirect(url)
         }
 
@@ -99,7 +117,19 @@ export async function updateSession(request: NextRequest) {
         // If not internal staff, not broker, not customer, and on portal -> go home
         if (!isInternalStaff && !isBroker && profile?.role !== 'customer' && isPortalPath) {
             const url = request.nextUrl.clone()
-            url.pathname = '/'
+            const targetPath = '/'
+            const localeMatch = pathname.match(/^\/(tr|en)(\/|$)/)
+            const localePrefix = localeMatch ? `/${localeMatch[1]}` : ''
+            // For root path, we don't need double slash if localePrefix is handled by i18n routing mostly,
+            // but explicit redirect needs explicit path.
+            // If tr (default), we might redirect to / (targetPath)
+            // If en, we redirect to /en
+
+            if (localeMatch && localeMatch[1] !== 'tr') {
+                url.pathname = `/${localeMatch[1]}`
+            } else {
+                url.pathname = targetPath
+            }
             return NextResponse.redirect(url)
         }
 
@@ -107,28 +137,34 @@ export async function updateSession(request: NextRequest) {
         if (isBroker) {
             // If trying to access root, or CRM dashboard, or Portal -> Go to broker dashboard
             const isRestrictedForBroker =
-                request.nextUrl.pathname === '/' ||
-                request.nextUrl.pathname.startsWith('/dashboard') ||
-                request.nextUrl.pathname.startsWith('/admin') ||
-                request.nextUrl.pathname.startsWith('/sales') ||
-                request.nextUrl.pathname.startsWith('/crm') ||
-                request.nextUrl.pathname.startsWith('/customerservices')
+                pathWithoutLocale === '/' ||
+                pathWithoutLocale.startsWith('/dashboard') ||
+                pathWithoutLocale.startsWith('/admin') ||
+                pathWithoutLocale.startsWith('/sales') ||
+                pathWithoutLocale.startsWith('/crm') ||
+                pathWithoutLocale.startsWith('/customerservices')
 
             if (isRestrictedForBroker) {
                 const url = request.nextUrl.clone()
-                url.pathname = '/broker'
+                const targetPath = '/broker'
+                const localeMatch = pathname.match(/^\/(tr|en)(\/|$)/)
+                const localePrefix = localeMatch ? `/${localeMatch[1]}` : ''
+                url.pathname = `${localePrefix}${targetPath}`
                 return NextResponse.redirect(url)
             }
         }
 
         // 3. INTERNAL STAFF RESTRICTIONS
         // If internal staff on root -> Dashboard
-        if (isInternalStaff && request.nextUrl.pathname === '/') {
+        if (isInternalStaff && pathWithoutLocale === '/') {
             const url = request.nextUrl.clone()
-            url.pathname = '/dashboard'
+            const targetPath = '/dashboard'
+            const localeMatch = pathname.match(/^\/(tr|en)(\/|$)/)
+            const localePrefix = localeMatch ? `/${localeMatch[1]}` : ''
+            url.pathname = `${localePrefix}${targetPath}`
             return NextResponse.redirect(url)
         }
     }
 
-    return response
+    return internalResponse
 }

@@ -12,9 +12,10 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog"
-import { createActivity, updateActivity, outcomeActivity } from '@/app/(dashboard)/crm/activities/actions'
+import { createActivity, updateActivity, outcomeActivity } from '@/app/[locale]/(dashboard)/crm/activities/actions'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 
 interface ActivityFormProps {
     open: boolean
@@ -25,6 +26,7 @@ interface ActivityFormProps {
 }
 
 export function ActivityForm({ open, onOpenChange, mode, activity, customers }: ActivityFormProps) {
+    const t = useTranslations('Activities')
     const router = useRouter()
     const isCompleteMode = mode === 'complete'
 
@@ -44,8 +46,8 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers }: 
             toast.error(result.error)
         } else {
             toast.success(
-                mode === 'create' ? 'Aktivite oluşturuldu' :
-                    mode === 'edit' ? 'Aktivite güncellendi' : 'Aktivite tamamlandı'
+                mode === 'create' ? t('form.success.created') :
+                    mode === 'edit' ? t('form.success.updated') : t('form.success.completed')
             )
             onOpenChange(false)
             router.refresh()
@@ -57,9 +59,9 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers }: 
             <DialogContent className="sm:max-w-[500px]">
                 <DialogHeader>
                     <DialogTitle>
-                        {mode === 'create' ? 'Yeni Aktivite Planla' :
-                            mode === 'edit' ? 'Aktivite Düzenle' :
-                                'Aktiviteyi Tamamla'}
+                        {mode === 'create' ? t('form.createTitle') :
+                            mode === 'edit' ? t('form.editTitle') :
+                                t('form.completeTitle')}
                     </DialogTitle>
                 </DialogHeader>
                 <form action={handleSubmit}>
@@ -69,26 +71,15 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers }: 
                             <>
                                 <input type="hidden" name="customer_id" value={activity?.customer_id || ''} />
                                 <div className="grid gap-2">
-                                    <Label>Müşteri</Label>
+                                    <Label>{t('form.customer')}</Label>
                                     <select
-                                        name="customer_id_select" // Renamed to avoid conflict with hidden input if enabled? No, if disabled it's ignored. 
-                                        // Actually, if I have hidden input with same name, and select is disabled, hidden wins. 
-                                        // If select is enabled, both might be sent or select wins. 
-                                        // Best practice: Use the hidden input for the POST value always if we want consistency, 
-                                        // OR just rely on the fact that if disabled, select value isn't sent.
-                                        // Let's keep name="customer_id" but rely on "disabled".
-                                        // If I disable it, the hidden input sends the value.
-                                        // If I enable it, the select sends the value (and hidden sends too? Server gets array?).
-                                        // createActivity: const customer_id = formData.get('customer_id') -> gets first value.
-                                        // If I have both, usually payload is key=val&key=val. formData.get returns first.
-                                        // Safe bet: Only render hidden input if we are forcing it (disabling select).
-                                        // But simple logic:
+                                        name="customer_id_select"
                                         className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                                         defaultValue={activity?.customer_id || ''}
                                         required={mode === 'create' && !activity?.customer_id}
                                         disabled={mode === 'edit' || (mode === 'create' && !!activity?.customer_id)}
                                     >
-                                        <option value="">Seçiniz</option>
+                                        <option value="">{t('form.select')}</option>
                                         {customers?.map((c: any) => (
                                             <option key={c.id} value={c.id}>{c.full_name}</option>
                                         ))}
@@ -96,41 +87,41 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers }: 
                                 </div>
 
                                 <div className="grid gap-2">
-                                    <Label>Konu Başlığı (Topic)</Label>
+                                    <Label>{t('form.topic')}</Label>
                                     <select
                                         name="topic"
                                         className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                                         defaultValue={activity?.topic || 'General'}
                                         required
                                     >
-                                        <option value="General">Genel</option>
-                                        <option value="Sales">Satış Görüşmesi</option>
-                                        <option value="Negotiation">Pazarlık / Teklif</option>
-                                        <option value="Contract">Sözleşme Süreci</option>
-                                        <option value="Support">Destek / Talep</option>
-                                        <option value="After Sales">Satış Sonrası</option>
-                                        <option value="Collection">Tahsilat</option>
+                                        <option value="General">{t('topic.General')}</option>
+                                        <option value="Sales">{t('topic.Sales')}</option>
+                                        <option value="Negotiation">{t('topic.Negotiation')}</option>
+                                        <option value="Contract">{t('topic.Contract')}</option>
+                                        <option value="Support">{t('topic.Support')}</option>
+                                        <option value="After Sales">{t('topic.After Sales')}</option>
+                                        <option value="Collection">{t('topic.Collection')}</option>
                                     </select>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="grid gap-2">
-                                        <Label>Tip</Label>
+                                        <Label>{t('form.type')}</Label>
                                         <select
                                             name="type"
                                             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                                             defaultValue={activity?.type || 'Call'}
                                             required
                                         >
-                                            <option value="Call">Telefon</option>
-                                            <option value="Meeting">Toplantı</option>
-                                            <option value="Site Visit">Ziyaret</option>
-                                            <option value="Email">Email</option>
-                                            <option value="Whatsapp">Whatsapp</option>
+                                            <option value="Call">{t('type.Call')}</option>
+                                            <option value="Meeting">{t('type.Meeting')}</option>
+                                            <option value="Site Visit">{t('type.Site Visit')}</option>
+                                            <option value="Email">{t('type.Email')}</option>
+                                            <option value="Whatsapp">{t('type.Whatsapp')}</option>
                                         </select>
                                     </div>
                                     <div className="grid gap-2">
-                                        <Label>Tarih</Label>
+                                        <Label>{t('form.date')}</Label>
                                         <Input
                                             name="due_date"
                                             type="datetime-local"
@@ -141,12 +132,12 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers }: 
                                 </div>
 
                                 <div className="grid gap-2">
-                                    <Label>Konu / Özet</Label>
-                                    <Input name="summary" defaultValue={activity?.summary || ''} placeholder="Kısa özet..." required />
+                                    <Label>{t('form.summary')}</Label>
+                                    <Input name="summary" defaultValue={activity?.summary || ''} placeholder={t('form.summaryPlaceholder')} required />
                                 </div>
                                 <div className="grid gap-2">
-                                    <Label>Açıklama</Label>
-                                    <Input name="description" defaultValue={activity?.description || ''} placeholder="Detaylar..." />
+                                    <Label>{t('form.description')}</Label>
+                                    <Input name="description" defaultValue={activity?.description || ''} placeholder={t('form.descriptionPlaceholder')} />
                                 </div>
                             </>
                         )}
@@ -154,45 +145,45 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers }: 
                         {isCompleteMode && (
                             <>
                                 <div className="p-3 bg-muted rounded-md mb-2 text-sm">
-                                    <span className="font-semibold">{activity?.summary}</span> aktivitesini tamamlıyorsunuz.
+                                    <span className="font-semibold">{activity?.summary}</span> {t('form.completingMsg')}
                                 </div>
                                 <div className="grid gap-2">
-                                    <Label>Sonuç (Outcome)</Label>
+                                    <Label>{t('form.outcome')}</Label>
                                     <select name="outcome" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" required>
-                                        <option value="">Seçiniz</option>
-                                        <option value="Success">Başarılı / Olumlu</option>
-                                        <option value="Reached Interested">Ulaşıldı - İlgili</option>
-                                        <option value="Reached Not Interested">Ulaşıldı - İlgisiz</option>
-                                        <option value="No Answer">Cevap Yok</option>
-                                        <option value="Busy">Meşgul</option>
-                                        <option value="Follow Up Required">Takip Gerekli</option>
+                                        <option value="">{t('form.select')}</option>
+                                        <option value="Success">{t('form.outcomes.Success')}</option>
+                                        <option value="Reached Interested">{t('form.outcomes.Reached Interested')}</option>
+                                        <option value="Reached Not Interested">{t('form.outcomes.Reached Not Interested')}</option>
+                                        <option value="No Answer">{t('form.outcomes.No Answer')}</option>
+                                        <option value="Busy">{t('form.outcomes.Busy')}</option>
+                                        <option value="Follow Up Required">{t('form.outcomes.Follow Up Required')}</option>
                                     </select>
                                 </div>
                                 <div className="grid gap-2">
-                                    <Label>Görüşme Notları</Label>
-                                    <Input name="notes" placeholder="Görüşme nasıl geçti..." required />
+                                    <Label>{t('form.notes')}</Label>
+                                    <Input name="notes" placeholder={t('form.notesPlaceholder')} required />
                                 </div>
                                 <div className="border-t pt-4 mt-2">
-                                    <h4 className="mb-3 text-sm font-medium">Sonraki Adım (Next Action)</h4>
+                                    <h4 className="mb-3 text-sm font-medium">{t('form.nextAction')}</h4>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="grid gap-2">
-                                            <Label>Tip</Label>
+                                            <Label>{t('form.type')}</Label>
                                             <select name="next_action_type" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-                                                <option value="">Yok</option>
-                                                <option value="Call">Telefon</option>
-                                                <option value="Meeting">Toplantı</option>
-                                                <option value="Site Visit">Ziyaret</option>
-                                                <option value="Whatsapp">Whatsapp</option>
+                                                <option value="">{t('form.none')}</option>
+                                                <option value="Call">{t('type.Call')}</option>
+                                                <option value="Meeting">{t('type.Meeting')}</option>
+                                                <option value="Site Visit">{t('type.Site Visit')}</option>
+                                                <option value="Whatsapp">{t('type.Whatsapp')}</option>
                                             </select>
                                         </div>
                                         <div className="grid gap-2">
-                                            <Label>Tarih</Label>
+                                            <Label>{t('form.date')}</Label>
                                             <Input name="next_action_date" type="datetime-local" />
                                         </div>
                                     </div>
                                     <div className="grid gap-2 mt-3">
-                                        <Label>Konu</Label>
-                                        <Input name="next_action_summary" placeholder="Otomatik (örn: Takip araması)" />
+                                        <Label>{t('topic.General')}</Label>
+                                        <Input name="next_action_summary" placeholder={t('form.summaryPlaceholder')} />
                                     </div>
                                 </div>
                             </>
@@ -200,7 +191,7 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers }: 
 
                     </div>
                     <DialogFooter>
-                        <Button type="submit">{isCompleteMode ? 'Tamamla ve Kaydet' : 'Kaydet'}</Button>
+                        <Button type="submit">{isCompleteMode ? t('form.completeAndSave') : t('form.save')}</Button>
                     </DialogFooter>
                 </form>
             </DialogContent>

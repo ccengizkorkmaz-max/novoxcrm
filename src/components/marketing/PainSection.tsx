@@ -1,34 +1,33 @@
 
 import { AlertCircle, Users, Database, FileText } from 'lucide-react'
-
-const problems = [
-    {
-        icon: AlertCircle,
-        title: "Satış Olay ama Takip Yok",
-        desc: "Proje satışlarında her müşteri kaybı maliyetlidir. Excel ile yönetilen satış süreçleri pipeline’ı körleştirir.",
-        color: "text-red-400 not-bg"
-    },
-    {
-        icon: Users,
-        title: "Brokerlar Yönetilemiyor",
-        desc: "Broker müşteri sahipliği, komisyon hakediş ve ödeme süreçleri manuel yürütülüyor. Çatışma ve kayıp kaçınılmaz.",
-        color: "text-orange-400 not-bg"
-    },
-    {
-        icon: Database,
-        title: "Aynı Data 3 Kez Giriliyor",
-        desc: "Satış ofisi, muhasebe, pazarlama ve yönetim birbirinden kopuk. Veri tutarsızlığı karar almayı engelliyor.",
-        color: "text-purple-400 not-bg"
-    },
-    {
-        icon: FileText,
-        title: "Müşteri Teslim Karmaşası",
-        desc: "Ödeme planı, evrak, tapu, teslim, snag list süreçleri dijital değil. Müşteri memnuniyeti düşüyor.",
-        color: "text-blue-400 not-bg"
-    }
-]
+import { useTranslations } from 'next-intl'
 
 export function PainSection() {
+    const t = useTranslations('PainSection')
+
+    const problems = [
+        {
+            key: 'sales',
+            icon: AlertCircle,
+            color: "text-red-400 not-bg"
+        },
+        {
+            key: 'broker',
+            icon: Users,
+            color: "text-orange-400 not-bg"
+        },
+        {
+            key: 'data',
+            icon: Database,
+            color: "text-purple-400 not-bg"
+        },
+        {
+            key: 'delivery',
+            icon: FileText,
+            color: "text-blue-400 not-bg"
+        }
+    ]
+
     return (
         <section className="py-24 bg-slate-950 relative overflow-hidden" id="why-novox">
             {/* Background Gradient */}
@@ -37,10 +36,10 @@ export function PainSection() {
             <div className="container relative z-10 mx-auto px-4">
                 <div className="text-center max-w-3xl mx-auto mb-16">
                     <h2 className="text-3xl md:text-5xl font-bold mb-6 text-white tracking-tight">
-                        Neden <span className="text-blue-500">NovoxCRM?</span>
+                        {t('title')} <span className="text-blue-500">{t('titleHighlight')}</span>
                     </h2>
                     <p className="text-lg text-slate-400 leading-relaxed">
-                        Geleneksel yöntemlerin yarattığı kronik sorunları çözüyor, büyümenin önündeki engelleri kaldırıyoruz.
+                        {t('description')}
                     </p>
                 </div>
 
@@ -54,8 +53,8 @@ export function PainSection() {
                                 <div className={`w-14 h-14 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 transition-transform duration-300 ${item.color}`}>
                                     <item.icon size={28} />
                                 </div>
-                                <h3 className="font-bold text-xl mb-4 text-white group-hover:text-blue-400 transition-colors">{item.title}</h3>
-                                <p className="text-slate-400 leading-relaxed text-sm">{item.desc}</p>
+                                <h3 className="font-bold text-xl mb-4 text-white group-hover:text-blue-400 transition-colors">{t(`cards.${item.key}.title`)}</h3>
+                                <p className="text-slate-400 leading-relaxed text-sm">{t(`cards.${item.key}.desc`)}</p>
                             </div>
                         </div>
                     ))}

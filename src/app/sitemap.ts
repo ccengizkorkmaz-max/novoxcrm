@@ -45,5 +45,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         priority: 0.7,
     })) || []
 
-    return [...routes, ...wikiRoutes, ...profileRoutes]
+    // 4. Combine and add i18n alternates
+    const allRoutes = [...routes, ...wikiRoutes, ...profileRoutes]
+
+    return allRoutes.map((route) => {
+        const path = route.url.replace(baseUrl, '')
+        return {
+            ...route,
+            languages: {
+                tr: `${baseUrl}/tr${path}`,
+                en: `${baseUrl}/en${path}`,
+            },
+        }
+    })
 }

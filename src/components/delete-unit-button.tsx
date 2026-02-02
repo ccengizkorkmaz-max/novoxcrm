@@ -17,7 +17,7 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
-import { deleteUnit } from '@/app/(dashboard)/inventory/[id]/actions'
+import { deleteUnit } from '@/app/[locale]/(dashboard)/inventory/[id]/actions'
 
 interface DeleteUnitButtonProps {
     unitId: string

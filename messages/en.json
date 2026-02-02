@@ -1,0 +1,1926 @@
+{
+    "Index": {
+        "title": "NovoxCRM | Construction & Real Estate CRM – Sales Management for Residential Projects",
+        "description": "NovoxCRM is a CRM software specifically developed for construction and real estate companies."
+    },
+    "Hero": {
+        "badge": "Custom CRM for Construction and Real Estate Industry",
+        "title1": "From Digital Marketing",
+        "title2": "to the Sales Office",
+        "titleHighlight": "Full Field Mastery",
+        "description": "Use your marketing budget efficiently, strengthen customer acquisition tools. NovoxCRM is designed to manage all dynamics of construction projects from a single center, from housing sales to stock tracking, broker network management to financial reporting, and to increase your sales volume.",
+        "ctaPrimary": "Digitize Now",
+        "ctaSecondary": "Examine System Details",
+        "demoTitle": "Free Introduction and Demo",
+        "demoDescription": "Our expert will contact you to show how we can digitize your project's sales."
+    },
+    "Marketing_CTA": {
+        "title": "Ready to Accelerate Your Sales?",
+        "description": "You are already selling, we ensure you sell faster.",
+        "button": "Get Started Now"
+    },
+    "LanguageSwitcher": {
+        "label": "Select Language"
+    },
+    "Navbar": {
+        "solutions_realestate": "Real Estate CRM",
+        "solutions_construction": "Construction CRM",
+        "solutions": "Solutions",
+        "pricing": "Pricing",
+        "login": "Login",
+        "start": "Get Started",
+        "demoTitle": "Free Introduction and Demo",
+        "demoDescription": "Our expert will contact you to show how we can increase your sales.",
+        "register": "Register for Free / Request Demo"
+    },
+    "TrustSection": {
+        "title": "Trusted by Industry Leaders",
+        "portfolio": "Managed Portfolio",
+        "projects": "Active Projects",
+        "professionals": "Real Estate Professionals",
+        "satisfaction": "Customer Satisfaction"
+    },
+    "ComparisonSection": {
+        "title": "Which Side Are You On?",
+        "subtitle": "Chaos or Order. The choice is yours.",
+        "oldWay": {
+            "title": "Traditional Method",
+            "items": [
+                "Customer data lost in Excel",
+                "Sales team unaware of each other",
+                "Manually calculated incorrect commissions",
+                "Untracked payment plans",
+                "Cash and stock discrepancies"
+            ]
+        },
+        "newWay": {
+            "title": "NovoxCRM Method",
+            "items": [
+                "Customer history and notes on one screen",
+                "Fully integrated team and authorization",
+                "Automatic progress and bonus system",
+                "Late interest and maturity difference engine",
+                "100% Real-time stock control"
+            ]
+        }
+    },
+    "SolutionSection": {
+        "badge": "Integrated Architecture",
+        "title": "Not Piece by Piece,",
+        "titleHighlight": "Fully Integrated Solution",
+        "description": "Construction and real estate sales have their own unique dynamics. NovoxCRM solves the entire process from lead stage to title deed delivery on a single platform.",
+        "button": "CLICK FOR DETAILED INFORMATION",
+        "cards": {
+            "crm": {
+                "title": "CRM & Sales Management",
+                "features": [
+                    "All customer interactions on a single screen",
+                    "Automatic reminders and follow-up",
+                    "Sales office performance measurement",
+                    "Call-center integration"
+                ]
+            },
+            "broker": {
+                "title": "Broker Portal",
+                "features": [
+                    "Special mobile-compatible panel for brokers",
+                    "Instant stock and price list sharing",
+                    "Automatic commission progress calculation",
+                    "Duplicate customer protection"
+                ]
+            },
+            "finance": {
+                "title": "Finance & Payment Plan",
+                "features": [
+                    "Flexible payment plan creator",
+                    "Promissory note, interim payment tracking",
+                    "Overdue collection warnings",
+                    "Foreign currency sales support"
+                ]
+            },
+            "reporting": {
+                "title": "Advanced Reporting",
+                "features": [
+                    "Periodic sales speed analysis",
+                    "Stock aging reports",
+                    "Revenue projection",
+                    "Marketing ROI analysis"
+                ]
+            }
+        }
+    },
+    "FAQSection": {
+        "title": "No Questions Left",
+        "titleHighlight": "In Your Mind",
+        "description": "We have compiled frequently asked questions for you. If you have another question, do not hesitate to contact us.",
+        "items": [
+            {
+                "question": "Can I import my existing Excel data?",
+                "answer": "Yes! With our Excel template, you can bulk upload your existing customer data, stock list, and active sales to the system. Our team supports you in this process."
+            },
+            {
+                "question": "How long does the installation process take?",
+                "answer": "NovoxCRM is a cloud-based system, it does not require installation. You can start using it as soon as your account is opened. Training your staff and full adaptation usually takes 1-2 business days."
+            },
+            {
+                "question": "How secure is our data?",
+                "answer": "Your data is protected by 256-bit SSL encryption and automatically backed up daily. We offer a KVKK-compliant infrastructure with banking-standard security measures."
+            },
+            {
+                "question": "Does it require technical knowledge to use the system?",
+                "answer": "No. Our interface is designed so that sales consultants and managers can easily use it without needing any technical knowledge."
+            },
+            {
+                "question": "Do you have a mobile application?",
+                "answer": "Yes, thanks to our responsive interface compatible with all devices, you can access the system from your phone or tablet and manage your business from the field or outside the office."
+            },
+            {
+                "question": "Can we request a special report or feature?",
+                "answer": "In our Enterprise package, we can make institution-specific developments and reporting. We can analyze your needs and offer you special solutions."
+            }
+        ]
+    },
+    "PricingSection": {
+        "title": "Transparent Pricing",
+        "description": "No hidden costs. Choose the package that suits your needs, start immediately.",
+        "popularTag": "Most Popular",
+        "plans": {
+            "basic": {
+                "name": "Basic",
+                "price": "₺2.900",
+                "period": "/mo",
+                "description": "For small-scale projects and boutique sales offices.",
+                "features": [
+                    "Stock Management",
+                    "Customer Cards",
+                    "Sales Operations",
+                    "Simple Reporting",
+                    "Up to 5 Users"
+                ],
+                "cta": "Get Started"
+            },
+            "pro": {
+                "name": "Pro",
+                "price": "₺5.900",
+                "period": "/mo",
+                "description": "For growing teams and active sales offices.",
+                "features": [
+                    "Everything (Basic)",
+                    "Broker Portal",
+                    "Payment Plan Wizard",
+                    "Digital Contract Management",
+                    "Advanced Reporting",
+                    "Up to 20 Users"
+                ],
+                "cta": "Try for Free"
+            },
+            "enterprise": {
+                "name": "Enterprise",
+                "price": "Custom Offer",
+                "period": "",
+                "description": "For multi-project and large organizations.",
+                "features": [
+                    "Everything in Pro",
+                    "Mobile App (iOS/Android)",
+                    "API Access",
+                    "ERP Integrations",
+                    "Private Server (On-Premise)",
+                    "Unlimited Users"
+                ],
+                "cta": "Contact Us"
+            }
+        }
+    },
+    "Footer": {
+        "brandDescription": "End-to-end sales management and CRM solution for construction and real estate projects. Digitize your sales office, increase your efficiency.",
+        "solutionsTitle": "Solutions",
+        "solutions": {
+            "realestate": "Real Estate CRM",
+            "construction": "Construction CRM",
+            "all": "All Solutions",
+            "paymentCalculator": "Payment Plan Wizard"
+        },
+        "corporateTitle": "Corporate",
+        "corporate": {
+            "about": "About Us",
+            "wiki": "Knowledge Base (Wiki)",
+            "kvkk": "KVKK Clarification Text",
+            "terms": "Terms of Use"
+        },
+        "contactTitle": "Contact",
+        "newsletter": {
+            "title": "STAY INFORMED",
+            "placeholder": "Email",
+            "button": "OK"
+        },
+        "copyright": "© 2026 NovoxCRM. All rights reserved.",
+        "tagline1": "Real Estate CRM Software",
+        "tagline2": "Construction Project Sales System"
+    },
+    "PainSection": {
+        "title": "Why",
+        "titleHighlight": "NovoxCRM?",
+        "description": "We solve chronic problems caused by traditional methods and remove obstacles to growth.",
+        "cards": {
+            "sales": {
+                "title": "High Sales but No Tracking",
+                "desc": "Every customer loss in project sales is costly. Sales processes managed with Excel blind the pipeline."
+            },
+            "broker": {
+                "title": "Brokers Cannot Be Managed",
+                "desc": "Broker customer ownership, commission entitlement, and payment processes are manual. Conflict and loss are inevitable."
+            },
+            "data": {
+                "title": "Same Data Entered 3 Times",
+                "desc": "Sales office, accounting, marketing, and management are disconnected. Data inconsistency prevents decision making."
+            },
+            "delivery": {
+                "title": "Customer Delivery Chaos",
+                "desc": "Payment plan, documents, deed, delivery, snag list processes are not digital. Customer satisfaction drops."
+            }
+        }
+    },
+    "CRMLifecycle": {
+        "badge": "END-TO-END MANAGEMENT",
+        "title": "CRM Core Process Cycle",
+        "description": "Manage the entire real estate sales cycle from raw contact to signed contract on a single platform without disconnection.",
+        "steps": [
+            {
+                "title": "Contact",
+                "desc": "Initial entry of raw data (phone, mail) into the system and GDPR approval."
+            },
+            {
+                "title": "Lead",
+                "desc": "Potential customer who has become qualified and is interested in your project."
+            },
+            {
+                "title": "Opportunity",
+                "desc": "Candidates in hot pursuit, office visit, and presentation stage."
+            },
+            {
+                "title": "Offer",
+                "desc": "Presentation of official payment plan and apartment-based price offer."
+            },
+            {
+                "title": "Option",
+                "desc": "Temporary reservation of the apartment and down payment process."
+            },
+            {
+                "title": "Sale",
+                "desc": "Confirmation of collection plan and finalization of sales record."
+            },
+            {
+                "title": "Contract",
+                "desc": "Completion of ownership process with digital or physical signature."
+            }
+        ]
+    },
+    "PersonaSection": {
+        "title": "A Solution Where Everyone Wins",
+        "description": "NovoxCRM offers customized tools for every role in your organization.",
+        "cta": "More Information",
+        "personas": {
+            "patron": {
+                "label": "Boss",
+                "title": "See the Big Picture",
+                "description": "Don't drown in operational details. Monitor your company's financial health, sales speed, and cash flow from a single screen.",
+                "benefits": [
+                    "Instant turnover and profitability reports",
+                    "Cash flow projection",
+                    "Sales office performance scorecard"
+                ]
+            },
+            "sales": {
+                "label": "Sales Manager",
+                "title": "Empower Your Team",
+                "description": "Manage who your sales team is meeting with, at what stage they are, and their performance with data.",
+                "benefits": [
+                    "Automatic lead distribution",
+                    "Activity and meeting tracking",
+                    "Target/Actual analysis"
+                ]
+            },
+            "broker": {
+                "label": "Broker Manager",
+                "title": "End the Chaos",
+                "description": "Manage hundreds of real estate offices and brokers on a single platform. Prevent conflicts, increase loyalty.",
+                "benefits": [
+                    "Transparent portfolio sharing",
+                    "Automatic commission calculation",
+                    "Duplicate record blocking"
+                ]
+            }
+        }
+    },
+    "ResourcesSection": {
+        "title": "Free Tools",
+        "titleHighlight": "For You",
+        "description": "Resources we prepared for you to start improving your sales processes.",
+        "cards": {
+            "calculator": {
+                "title": "Payment Plan Wizard",
+                "description": "Create sample payment plans for your housing projects, download PDF, and share with your customers.",
+                "cta": "Calculate Now"
+            },
+            "report": {
+                "title": "2026 Housing Sales Report",
+                "description": "Latest trends in the sector, benchmark data, and sales increase strategies.",
+                "cta": "Download Report",
+                "modal": {
+                    "title": "2026 Housing Sales Report",
+                    "description": "Leave your information to access the latest trends and benchmark data in the sector.",
+                    "resourceName": "HousingReport_2026"
+                }
+            }
+        }
+    },
+    "Auth": {
+        "welcome": "Welcome",
+        "description": "Enter your credentials to access your account.",
+        "emailLabel": "Email or Username",
+        "emailPlaceholder": "Email or username",
+        "passwordLabel": "Password",
+        "passwordPlaceholder": "••••••••",
+        "loginButton": "Login",
+        "brokerLink": "Become a Partner (Broker) →",
+        "registerModalTitle": "Create New Account",
+        "registerModalDesc": "Leave your details to join the NovoxCRM world, our team will contact you immediately.",
+        "registerLink": "Empower your company with NovoxCRM",
+        "termsAgreement": "By logging in, you agree to our",
+        "termsLink": "Terms of Use",
+        "privacyLink": "Privacy Policy",
+        "agreementSuffix": ".",
+        "sidebarTitle": "Manage your sales processes with a modern experience.",
+        "sidebarDesc": "Customer tracking, stock management, contracts and financial reports on a single platform.",
+        "secureInfrastructure": "Secure Infrastructure",
+        "version": "Version 2.0",
+        "and": "and"
+    },
+    "Dashboard": {
+        "tenantLoading": "Loading...",
+        "settings": "Settings",
+        "logout": "Log Out",
+        "toggleMenu": "Toggle Menu",
+        "overview": "Overview",
+        "kpi": {
+            "totalSalesVolume": "Total Sales Volume",
+            "totalContracts": "Total Confirmed Contracts",
+            "activeOpportunities": "Active Opportunities",
+            "ongoingNegotiations": "Ongoing negotiations",
+            "unitsForSale": "Units For Sale",
+            "totalStock": "Total independent units in stock",
+            "customers": "Customers",
+            "registeredCustomers": "Registered customers in system"
+        },
+        "stats": {
+            "totalStock": "Total Stock",
+            "totalUnits": "All Units",
+            "sold": "Sold",
+            "completedSales": "Sales Completed",
+            "optioned": "Optioned",
+            "reservedUnits": "Reserved Units",
+            "offersSent": "Offer Sent",
+            "activeOffers": "Active Offers"
+        },
+        "charts": {
+            "monthlySales": "Monthly Sales Chart",
+            "opportunityDistribution": "Opportunity Distribution",
+            "sale": "Sale"
+        },
+        "activity": {
+            "title": "Recent Activities",
+            "description": "Recent operations of your team.",
+            "empty": "No activities found yet.",
+            "types": {
+                "call": "Phone Call",
+                "meeting": "Meeting",
+                "visit": "Site Visit",
+                "whatsapp": "Whatsapp",
+                "email": "Email"
+            }
+        },
+        "status": {
+            "lead": "Lead",
+            "contacted": "Contacted",
+            "proposal": "Proposal",
+            "negotiation": "Negotiation",
+            "reservation": "Reservation",
+            "contract": "Contract",
+            "won": "Won",
+            "lost": "Lost"
+        }
+    },
+    "Sidebar": {
+        "overview": "Overview",
+        "projects": "Projects",
+        "inventory": "Inventory",
+        "customers": "Customers",
+        "salesTeams": "Sales Teams",
+        "salesManagement": "Sales Management",
+        "options": "Options",
+        "offers": "Offers",
+        "contracts": "Contracts",
+        "deposits": "Deposits",
+        "activities": "Activities",
+        "serviceRequests": "Service Requests",
+        "broker": {
+            "title": "B2B Broker Management",
+            "management": "Broker Management",
+            "leads": "Lead Management",
+            "campaigns": "Incentive Campaigns",
+            "commission": "Commission Settings",
+            "finance": "Financial Management",
+            "levels": "Level Management",
+            "earnings": "Broker Earnings"
+        },
+        "reports": {
+            "title": "Reports",
+            "sales": "Sales Performance",
+            "inventory": "Stock & Project Analysis",
+            "finance": "Financial Analysis",
+            "efficiency": "Field & Team Efficiency"
+        }
+    },
+    "Projects": {
+        "title": "Projects",
+        "addProject": "Add New Project",
+        "createModal": {
+            "title": "Create New Project",
+            "description": "Give your project a name and specify its location.",
+            "nameLabel": "Project Name",
+            "cityLabel": "City",
+            "submit": "Save"
+        },
+        "status": {
+            "Active": "OPEN for Sales",
+            "Planned": "Planned",
+            "Completed": "CLOSED"
+        },
+        "card": {
+            "details": "Details",
+            "location": "Not specified",
+            "statusLabel": "Status"
+        },
+        "empty": {
+            "title": "No projects found yet.",
+            "action": "Add from above"
+        },
+        "error": {
+            "title": "Error occurred",
+            "tenant": "Tenant Not Found",
+            "tenantDesc": "No company (tenant) assigned to your account. Please contact administrator."
+        }
+    },
+    "Customers": {
+        "title": "Customer Management",
+        "addCustomer": "New Customer",
+        "editCustomer": "Edit Customer",
+        "createModal": {
+            "title": "Create Customer Card",
+            "submit": "Save",
+            "update": "Update"
+        },
+        "tabs": {
+            "details": "General Info",
+            "demands": "Demands & Preferences"
+        },
+        "form": {
+            "fullName": "Full Name",
+            "phone": "Phone",
+            "email": "Email",
+            "source": "Source",
+            "sourcePlaceholder": "Ex: Reference, Website",
+            "portalAccess": "Portal Access (Optional)",
+            "portalAccessTitle": "Portal Access",
+            "username": "Username",
+            "password": "Password",
+            "minBudget": "Minimum Budget",
+            "maxBudget": "Maximum Budget",
+            "roomCount": "Room Count Preference",
+            "location": "Location Preference",
+            "locationPlaceholder": "Ex: City Center, Beachfront",
+            "propertyType": "Property Type",
+            "investmentPurpose": "Investment Purpose",
+            "notes": "Special Notes",
+            "notesPlaceholder": "Specific customer requests...",
+            "select": "Select"
+        },
+        "table": {
+            "fullName": "Full Name",
+            "phone": "Phone",
+            "email": "Email",
+            "source": "Source",
+            "status": "Status",
+            "actions": "Actions",
+            "edit": "Edit",
+            "delete": "Delete",
+            "empty": "No customers found.",
+            "confirmDelete": "Are you sure you want to delete this customer?"
+        },
+        "badges": {
+            "customer": "Customer",
+            "lead": "Lead",
+            "contact": "Contact"
+        },
+        "types": {
+            "Apartment": "Apartment",
+            "Villa": "Villa",
+            "Office": "Office",
+            "Shop": "Shop",
+            "Commercial": "Commercial",
+            "Land": "Land"
+        },
+        "purposes": {
+            "Living": "Living",
+            "Investment": "Investment",
+            "Holiday": "Holiday"
+        }
+    },
+    "Inventory": {
+        "title": "Inventory Management",
+        "clean": "Clear",
+        "activeFilters": "Active Filters",
+        "filters": {
+            "title": "Detailed Filtering",
+            "description": "Set criteria to narrow down the inventory list.",
+            "button": "Filter",
+            "clear": "Clear Filters",
+            "apply": "Apply Filters",
+            "project": "Project",
+            "allProjects": "All Projects",
+            "block": "Block",
+            "status": "Status",
+            "all": "All",
+            "unitCategory": "Unit Category",
+            "roomType": "Room Type",
+            "priceRange": "Price Range",
+            "areaRange": "Gross Area Range",
+            "floor": "Floor",
+            "direction": "Facade",
+            "parking": "Parking",
+            "heating": "Heating",
+            "kitchen": "Kitchen Type",
+            "view": "View",
+            "min": "Min",
+            "max": "Max",
+            "features": {
+                "masterBath": "Has Master Bath",
+                "builtinKitchen": "Has Built-in Kitchen"
+            }
+        },
+        "stats": {
+            "total": "Total Stock",
+            "forSale": "For Sale",
+            "reserved": "Reserved",
+            "sold": "Sold",
+            "portfolioValue": "Portfolio Value",
+            "portfolioDesc": "Units for sale"
+        },
+        "table": {
+            "actions": "Actions",
+            "project": "Project",
+            "block": "Block",
+            "unitNo": "Unit No",
+            "status": "Status",
+            "roomType": "Room Type",
+            "category": "Category",
+            "floor": "Floor",
+            "direction": "Facade",
+            "view": "View",
+            "grossArea": "Gross m²",
+            "netArea": "Net mÂ²",
+            "price": "Price",
+            "vat": "VAT (%)",
+            "discount": "Discount (%)",
+            "parking": "Parking",
+            "heating": "Heating",
+            "kitchen": "Kitchen",
+            "builtin": "Built-in",
+            "masterBath": "Master Bath",
+            "ada": "Island No",
+            "parsel": "Parcel No",
+            "empty": "No records found."
+        },
+        "actions": {
+            "menu": "Actions",
+            "edit": "Edit",
+            "reserve": "Reserve",
+            "offer": "Create Offer",
+            "negotiate": "Start Negotiation",
+            "sell": "Complete Sale",
+            "cancel": "Cancel",
+            "soldMessage": "Unit marked as sold",
+            "cancelMessage": "Reservation cancelled"
+        },
+        "newUnit": {
+            "button": "New Unit",
+            "title": "Add New Unit",
+            "save": "Save",
+            "success": "Unit created successfully",
+            "form": {
+                "project": "Project",
+                "selectProject": "Select Project",
+                "unitNo": "Unit No",
+                "type": "Type",
+                "price": "Price",
+                "floor": "Floor",
+                "direction": "Direction",
+                "select": "Select",
+                "grossArea": "Gross Area"
+            }
+        },
+        "status": {
+            "ForSale": "For Sale",
+            "Reserved": "Reserved",
+            "Sold": "Sold"
+        },
+        "directions": {
+            "North": "North",
+            "South": "South",
+            "East": "East",
+            "West": "West",
+            "NorthEast": "North East",
+            "NorthWest": "North West",
+            "SouthEast": "South East",
+            "SouthWest": "South West"
+        },
+        "parking": {
+            "Indoor": "Indoor Parking",
+            "Outdoor": "Outdoor Parking",
+            "None": "None"
+        },
+        "heating": {
+            "Combi": "Combi Boiler",
+            "Central": "Central System",
+            "Floor": "Underfloor Heating",
+            "CombiFloor": "Combi + Underfloor",
+            "AC": "Air Conditioning"
+        },
+        "kitchen": {
+            "Closed": "Closed Kitchen",
+            "Open": "Open Kitchen"
+        },
+        "views": {
+            "Sea": "Sea",
+            "Nature": "Nature",
+            "City": "City",
+            "Pool": "Pool",
+            "Park": "Park"
+        },
+        "CRM": {
+            "title": "CRM & Sales Management",
+            "filter": {
+                "button": "Filter",
+                "title": "CRM Filters",
+                "description": "Narrow down sales and lead lists with detailed criteria.",
+                "search": "Search Customer / Unit",
+                "searchPlaceholder": "Name or unit no...",
+                "project": "Project",
+                "allProjects": "All Projects",
+                "rep": "Sales Representative",
+                "allTeam": "All Team",
+                "status": "Status",
+                "allStatuses": "All Statuses",
+                "apply": "Apply Filters",
+                "reset": "Reset Filters"
+            },
+            "newSale": {
+                "button": "New Sale",
+                "title": "New Sale / Opportunity",
+                "customer": "Customer",
+                "project": "Project",
+                "unit": "Interested Unit",
+                "selectCustomer": "Select Customer...",
+                "searchCustomer": "Search Customer...",
+                "selectProject": "Select Project...",
+                "searchProject": "Search Project...",
+                "selectUnit": "Select Unit...",
+                "searchUnit": "Search Unit...",
+                "selectProjectFirst": "Select Project First",
+                "note": "* Record will be created as Opportunity since a unit is selected.",
+                "create": "Create",
+                "customerNotFound": "Customer not found.",
+                "projectNotFound": "Project not found.",
+                "unitNotFound": "Unit not found.",
+                "poweredBy": "Powered by NovoxCRM"
+            },
+            "stats": {
+                "Lead": "Lead",
+                "Prospect": "Prospect",
+                "Reservation": "Option",
+                "Proposal": "Proposal",
+                "Negotiation": "Negotiation",
+                "Sold": "Sold",
+                "Completed": "Won",
+                "Lost": "Lost"
+            },
+            "table": {
+                "customer": "Customer",
+                "projectUnit": "Project / Unit",
+                "status": "Status",
+                "date": "Date",
+                "amount": "Amount",
+                "rep": "Representative",
+                "actions": "Actions",
+                "empty": "No active sales found.",
+                "unitNotSelected": "Unit Not Selected"
+            },
+            "actions": {
+                "autoAssign": "Auto Assign",
+                "assigning": "Assigning...",
+                "assignTooltip": "Auto assign to team",
+                "assignError": "Must select unit/project first",
+                "paymentPlan": "Calculate Payment Plan",
+                "paymentPlanTitle": "Calculate Payment Plan",
+                "won": "Won"
+            },
+            "status": {
+                "Lead": "Lead",
+                "Prospect": "Prospect",
+                "Reservation": "Option",
+                "OptionPending": "Option - Deposit Pending",
+                "Proposal": "Proposal Sent",
+                "ProposalPending": "Proposal - Deposit Pending",
+                "Negotiation": "Negotiation",
+                "Sold": "Offer Accepted",
+                "Lost": "Lost"
+            },
+            "matchUnit": {
+                "title": "Match Unit for {customerName}",
+                "projectLabel": "Select Project",
+                "unitLabel": "Select Unit",
+                "projectPlaceholder": "Select Project...",
+                "unitPlaceholder": "Select Unit...",
+                "projectSearch": "Search Project...",
+                "unitSearch": "Search Unit...",
+                "projectEmpty": "Project not found.",
+                "unitEmpty": "Unit not found.",
+                "selectProjectFirst": "Select Project First",
+                "successMatch": "Matching completed successfully. Status updated to 'Prospect'.",
+                "successUnmatch": "Matching removed. Status updated to 'Lead'.",
+                "errorMatch": "An error occurred during matching.",
+                "errorUnmatch": "Action failed.",
+                "buttonMatch": "Match",
+                "buttonUnmatch": "Remove Matching",
+                "tooltipChange": "Change/Remove Matching"
+            },
+            "reservation": {
+                "title": "Option for {customerName} {type}",
+                "typeNew": "Define",
+                "typeEdit": "Cancel / Update",
+                "warningReserved": "There is already an option for this record. You can use the \"Remove Option\" button below to cancel the option.",
+                "expiryDateLabel": "Option Expiry Date",
+                "depositLabel": "Deposit Amount (Optional)",
+                "depositHint": "If 0 is entered, the option will be finalized without waiting for a deposit.",
+                "successReserve": "Option defined successfully.",
+                "successCancel": "Option removed successfully.",
+                "errorReserve": "An error occurred during the process.",
+                "errorCancel": "An error occurred while removing the option.",
+                "errorFill": "Please select unit and date.",
+                "buttonReserve": "Option",
+                "buttonReserved": "Reserved",
+                "buttonCancel": "Remove Option",
+                "buttonUpdate": "Update Option",
+                "buttonConfirm": "Confirm Option",
+                "statusPending": "Deposit Pending"
+            }
+        }
+    },
+    "Offers": {
+        "title": "Offer Management",
+        "table": {
+            "offerNo": "Offer No",
+            "customer": "Customer",
+            "projectUnit": "Project / Unit",
+            "price": "Price",
+            "status": "Status",
+            "validity": "Valid Until",
+            "actions": "Actions",
+            "empty": "No offers created yet."
+        },
+        "status": {
+            "received": "Offer Received",
+            "sent": "Offer Sent",
+            "accepted": "Offer Accepted",
+            "draft": "Draft",
+            "depositPending": "Deposit Pending",
+            "rejected": "Rejected",
+            "pending": "Pending"
+        },
+        "actions": {
+            "viewPlan": "View Payment Plan",
+            "print": "Print",
+            "startContract": "Start Contract Process",
+            "negotiate": "Negotiation",
+            "approve": "Approve Offer",
+            "cancel": "Cancel",
+            "yesApprove": "Yes, Approve",
+            "approving": "Approving..."
+        },
+        "dialog": {
+            "planTitle": "Payment Plan Detail",
+            "noPlan": "No payment plan found for this offer.",
+            "type": "Type",
+            "date": "Date",
+            "amount": "Amount",
+            "total": "Total",
+            "downPayment": "Down Payment",
+            "installment": "Installment",
+            "interim": "Interim Payment",
+            "final": "Final Payment",
+            "negotiationTitle": "Negotiation Process",
+            "enterProposal": "Enter New Proposal",
+            "proposedPrice": "Proposed Price",
+            "validUntil": "Valid Until Date",
+            "source": "Source",
+            "salesTeam": "Sales Team",
+            "customer": "Customer",
+            "notes": "Notes / Payment Plan Summary",
+            "notesPlaceholder": "Ex: 30% down payment, rest in 18 months...",
+            "saveProposal": "Save Proposal",
+            "history": "Negotiation History",
+            "loading": "Loading...",
+            "noHistory": "No negotiation history found.",
+            "customerProposal": "Customer Proposal",
+            "depositOptional": "Deposit to Collect (Optional):",
+            "approveWithDeposit": "Approve with Deposit",
+            "approveContract": "Approve & Contract",
+            "approveTitle": "Are You Sure You Want to Approve This Offer?",
+            "approveDesc": "Customer: {customer}\nUnit: {unit}",
+            "approveWarning": "This action will update the offer status to 'Accepted' immediately."
+        },
+        "messages": {
+            "proposalSaved": "Proposal saved.",
+            "offerApproved": "Offer approved!",
+            "error": "An error occurred.",
+            "serverError": "Server error occurred.",
+            "historyError": "Could not fetch history data.",
+            "approveConfirm": "Are you sure you want to approve this offer?",
+            "approveError": "Error occurred during approval.",
+            "refundProcess": "Refund process initiated as deposit payment is approved. Offer status will be updated once refund is complete."
+        }
+    },
+    "Reports": {
+        "title": "Reports & Analysis",
+        "description": "Analyze your business performance with detailed reports.",
+        "note": "Note: Reports are currently in draft stage. Soon they will be graphically updated with live data from your database.",
+        "cards": {
+            "sales": {
+                "title": "Sales Performance",
+                "description": "Track your sales targets with turnover, volume, and pipeline analysis."
+            },
+            "inventory": {
+                "title": "Inventory & Project Analysis",
+                "description": "Project-based occupancy, remaining units, and stock distribution by type."
+            },
+            "finance": {
+                "title": "Financial Analysis & VAT",
+                "description": "Cash flow and tax liability breakdown."
+            },
+            "loss": {
+                "title": "Cancellation & Transfer Analysis",
+                "description": "Review of sales losses and cancellation rates."
+            },
+            "delivery": {
+                "title": "Delivery Schedule",
+                "description": "Monthly delivery projection of units."
+            },
+            "activities": {
+                "title": "Field & Team Efficiency",
+                "description": "Team-based activity counts, appointment efficiency, and performance tracking."
+            }
+        }
+    },
+    "Options": {
+        "title": "Option Management",
+        "table": {
+            "projectUnit": "Project / Unit",
+            "customer": "Customer",
+            "type": "Type",
+            "price": "Price",
+            "expiry": "Option Expiry",
+            "actions": "Actions",
+            "empty": "No active option records found."
+        },
+        "actions": {
+            "createOffer": "Create Offer",
+            "viewUnit": "View Unit Details",
+            "viewOffer": "View Offer Details",
+            "editOption": "Edit Option"
+        },
+        "dialog": {
+            "title": "Create Payment Plan & Offer",
+            "editTitle": "Edit Option",
+            "editDesc": "Update option details for unit",
+            "newExpiry": "New Option Expiry Date",
+            "cancel": "Cancel",
+            "update": "Update"
+        },
+        "messages": {
+            "offerCreated": "Offer successfully created.",
+            "offerError": "Error occurred while creating offer.",
+            "optionUpdated": "Option expiry successfully updated.",
+            "updateError": "An error occurred."
+        }
+    },
+    "Deposits": {
+        "title": "Deposit Management",
+        "subtitle": "Payment tracking for reservations and approved offers",
+        "searchPlaceholder": "Search Customer or Unit...",
+        "cardTitle": "Pending and Received Payments",
+        "table": {
+            "customer": "Customer",
+            "source": "Source",
+            "unit": "Unit",
+            "amount": "Amount",
+            "status": "Status",
+            "date": "Date",
+            "actions": "Actions",
+            "loading": "Loading...",
+            "empty": "No records found"
+        },
+        "status": {
+            "reservation": "Reservation",
+            "offer": "Offer",
+            "paid": "Paid",
+            "pending": "Pending",
+            "refundPending": "Refund Pending",
+            "refunded": "Refunded",
+            "cancelled": "Cancelled"
+        },
+        "actions": {
+            "cancel": "Cancel",
+            "approve": "Approve Payment",
+            "approveRefund": "Approve Refund"
+        },
+        "confirm": {
+            "approvePayment": "Do you confirm the payment receipt? This will automatically update the related sale/offer status.",
+            "approveRefund": "Do you confirm the refund? This will completely cancel the option/offer.",
+            "cancel": "Are you sure you want to cancel the deposit?"
+        },
+        "messages": {
+            "approved": "Payment approved",
+            "refunded": "Refund approved and process cancelled",
+            "cancelled": "Process cancelled"
+        },
+        "info": {
+            "approvedAt": "approved at",
+            "refundedAt": "Refunded"
+        }
+    },
+    "ServiceRequests": {
+        "title": "Customer Support Requests",
+        "subtitle": "Technical support and service notifications from your customers.",
+        "status": {
+            "open": "Open",
+            "inProgress": "In Progress",
+            "resolved": "Resolved",
+            "closed": "Closed",
+            "label": "Status",
+            "select": "Select Status"
+        },
+        "empty": {
+            "title": "No support requests found.",
+            "messages": "No correspondence with the customer yet."
+        },
+        "detail": {
+            "back": "Back to Requests",
+            "history": "Communication History",
+            "customerInfo": "Customer Information",
+            "customer": "Customer",
+            "requestInfo": "Request Info",
+            "requestNo": "Request No",
+            "created": "Created",
+            "priority": "Priority",
+            "unknownCustomer": "Unknown Customer",
+            "messages": {
+                "statusUpdated": "Status updated"
+            }
+        }
+    },
+    "Settings": {
+        "title": "Settings",
+        "subtitle": "Manage your company information and users.",
+        "tabs": {
+            "profile": "Company Profile",
+            "users": "Users",
+            "templates": "Payment Templates"
+        },
+        "profile": {
+            "title": "Company Information",
+            "description": "Update your company name and logo.",
+            "name": "Company Name",
+            "namePlaceholder": "Ex: ABC Real Estate",
+            "logo": "Company Logo",
+            "logoNote": "Logo will appear in reports and offer documents.",
+            "license": "License and Usage",
+            "plan": "Current Plan",
+            "expiry": "Expiry Date",
+            "unlimited": "Unlimited",
+            "capacity": "User Capacity",
+            "save": "Save Changes",
+            "saving": "Saving...",
+            "success": "Company info updated.",
+            "error": "An unexpected error occurred: "
+        },
+        "users": {
+            "title": "User Management",
+            "description": "View all users in the company and add new users.",
+            "add": "Add New User",
+            "createTitle": "Add New User",
+            "createDesc": "User account will be created immediately and they can log in.",
+            "table": {
+                "name": "Full Name",
+                "email": "Email",
+                "role": "Role",
+                "date": "Registration Date",
+                "empty": "No users found."
+            },
+            "roles": {
+                "admin": "Admin",
+                "owner": "Owner",
+                "manager": "Manager",
+                "user": "User",
+                "userSales": "User (Sales)"
+            },
+            "actions": {
+                "edit": "Edit",
+                "delete": "Delete"
+            },
+            "deleteDialog": {
+                "title": "Are you sure?",
+                "descriptionPart1": "User",
+                "descriptionPart2": "will be permanently deleted. This action cannot be undone.",
+                "cancel": "Cancel",
+                "confirm": "Yes, Delete",
+                "deleting": "Deleting..."
+            },
+            "forms": {
+                "name": "Full Name",
+                "email": "Email",
+                "password": "Password",
+                "role": "Role",
+                "create": "Create User",
+                "creating": "Creating...",
+                "editTitle": "Edit User",
+                "newPassword": "New Password (Optional)",
+                "passwordPlaceholder": "Fill to change",
+                "update": "Save Changes",
+                "updating": "Updating...",
+                "successCreate": "User created successfully.",
+                "successUpdate": "User updated successfully.",
+                "successDelete": "User deleted."
+            }
+        },
+        "templates": {
+            "title": "Payment Plan Templates",
+            "description": "Save frequently used payment plans as templates.",
+            "new": "New Template",
+            "dialog": {
+                "titleNew": "New Payment Template",
+                "titleEdit": "Edit Template",
+                "descNew": "Determine down payment and installment structure.",
+                "descEdit": "Update down payment and installment structure.",
+                "name": "Template Name",
+                "namePlaceholder": "Ex: 50% Down Standard",
+                "down": "Down Payment (%)",
+                "installments": "Installments",
+                "interim": "Interim Payments (Optional)",
+                "add": "Add",
+                "noInterim": "No interim payments.",
+                "month": "Month",
+                "rate": "Rate %",
+                "create": "Create",
+                "update": "Update"
+            },
+            "table": {
+                "name": "Template Name",
+                "down": "Down Payment",
+                "installments": "Installments",
+                "interim": "Interim Payments",
+                "actions": "Actions",
+                "empty": "No templates found.",
+                "confirmDelete": "Are you sure you want to delete this template?",
+                "month": "Month"
+            }
+        }
+    },
+    "Broker": {
+        "dashboard": {
+            "title": "Broker Panel",
+            "welcome": "Welcome",
+            "partner": "PARTNER",
+            "newLead": "New Lead",
+            "stats": {
+                "total": "Total",
+                "active": "Active",
+                "success": "Success"
+            },
+            "recent": {
+                "title": "Recent Applications",
+                "viewAll": "View All",
+                "empty": "No records found."
+            },
+            "status": {
+                "submitted": "New",
+                "visited": "Visit",
+                "contractSigned": "Sale",
+                "reserved": "Reserved",
+                "process": "In Process"
+            },
+            "level": {
+                "target": "Target",
+                "progress": "Progress",
+                "sales": "Sales",
+                "goalDescPart1": "For",
+                "goalDescPart2": "level, target",
+                "goalDescPart3": "sales or",
+                "goalDescPart4": "volume."
+            },
+            "quickAccess": {
+                "prices": "Prices",
+                "catalog": "Catalog"
+            }
+        },
+        "apply": {
+            "title": "Start Selling Novox Projects",
+            "subtitle": "Partner with our global projects and enjoy high commissions.",
+            "program": "Novox Partner Program",
+            "formTitle": "Broker Application Form",
+            "step1": "Start by verifying your email.",
+            "step2": "Enter verification code and your details.",
+            "emailLabel": "Corporate Email Address",
+            "emailPlaceholder": "example@mail.com",
+            "emailNote": "A verification code will be sent to this address.",
+            "sendCode": "Send Verification Code",
+            "sending": "Sending...",
+            "verify": {
+                "title": "Email Verification",
+                "desc": "Enter the 6-digit code sent to",
+                "change": "Change",
+                "codeLabel": "Verification Code",
+                "nameLabel": "Full Name",
+                "phoneLabel": "Phone",
+                "companyLabel": "Company/Agency Name (Optional)",
+                "notesLabel": "Short Bio",
+                "notesPlaceholder": "Tell us about your portfolio...",
+                "submit": "Complete Application",
+                "submitting": "Verifying..."
+            },
+            "success": {
+                "title": "Application Received!",
+                "codeSent": "Verification code sent to your email.",
+                "success": "Your application has been successfully submitted."
+            }
+        }
+    },
+    "CustomerPortal": {
+        "sidebar": {
+            "title": "Customer Portal",
+            "overview": "Overview",
+            "financials": "My Payments",
+            "tracking": "Title Deed & Delivery",
+            "serviceRequests": "Service Requests",
+            "documents": "My Documents",
+            "logout": "Secure Logout"
+        },
+        "dashboard": {
+            "title": "Welcome",
+            "overview": "Overview",
+            "quickAccess": "Quick Access",
+            "cards": {
+                "remainingDebt": "Remaining Debt",
+                "nextPayment": "Next Payment",
+                "progress": "Construction Progress",
+                "delivery": "Est. Delivery",
+                "requests": "Active Requests"
+            },
+            "buttons": {
+                "makePayment": "Make Payment",
+                "viewPlan": "View Plan",
+                "newRequest": "New Request",
+                "viewAll": "View All"
+            },
+            "recentPayments": {
+                "title": "Recent Payments",
+                "empty": "No payments found.",
+                "status": {
+                    "paid": "Paid",
+                    "pending": "Pending",
+                    "overdue": "Overdue"
+                }
+            },
+            "projectStatus": {
+                "title": "Project Status",
+                "completed": "Completed"
+            }
+        }
+    },
+    "PublicLeadForm": {
+        "title": "Investment Inquiry",
+        "description": "Fill out the form to get information about investment opportunities.",
+        "brokerInfo": {
+            "authorizedBroker": "Authorized Broker",
+            "phone": "Phone",
+            "email": "Email"
+        },
+        "form": {
+            "title": "Information Request Form",
+            "nameLabel": "Full Name",
+            "namePlaceholder": "John Doe",
+            "phoneLabel": "Phone Number",
+            "phonePlaceholder": "+90 ...",
+            "budgetLabel": "Estimated Budget",
+            "budgetPlaceholder": "100.000 â‚¬ - 250.000 â‚¬",
+            "projectLabel": "Interested Project",
+            "projectPlaceholder": "Novox Vadi...",
+            "noteLabel": "Note (Optional)",
+            "notePlaceholder": "Your questions or special requests...",
+            "submit": "Send Inquiry",
+            "submitting": "Sending...",
+            "success": "Inquiry Received!",
+            "successDescription": "Your information has been successfully submitted. Our expert consultants will contact you shortly.",
+            "newApplication": "New Inquiry",
+            "privacyPolicy": "Your personal data is protected under KVKK Law No. 6698. By sending, you accept the terms."
+        }
+    },
+    "Contracts": {
+        "title": "Contracts",
+        "description": "Manage sales contracts and payment plans.",
+        "newContract": "New Contract",
+        "table": {
+            "contractNo": "Contract No",
+            "date": "Date",
+            "customer": "Customer",
+            "projectUnit": "Project / Unit",
+            "amount": "Amount",
+            "status": "Status",
+            "actions": "Actions",
+            "search": "Search Contract No or Customer...",
+            "details": "Details"
+        },
+        "stats": {
+            "totalSales": "Total Sales Amount",
+            "totalPaid": "Total Collected",
+            "pendingAmount": "Pending Payments",
+            "contractCount": "Contract Count"
+        },
+        "status": {
+            "Draft": "Draft",
+            "Signed": "Signed",
+            "Active": "Active",
+            "Completed": "Completed",
+            "Cancelled": "Cancelled"
+        }
+    },
+    "Activities": {
+        "title": "Activities",
+        "newActivity": "New Activity",
+        "filters": {
+            "title": "Filters",
+            "clear": "Clear Filters",
+            "view": "View",
+            "onlyMyActivities": "Only My Activities",
+            "types": "Types",
+            "topics": "Topics"
+        },
+        "tabs": {
+            "kanban": "Boards",
+            "list": "List"
+        },
+        "type": {
+            "Call": "Call",
+            "Meeting": "Meeting",
+            "Site Visit": "Site Visit",
+            "Email": "Email",
+            "Whatsapp": "Whatsapp"
+        },
+        "topic": {
+            "General": "General",
+            "Sales": "Sales Call",
+            "Negotiation": "Negotiation / Offer",
+            "Contract": "Contract Process",
+            "Support": "Support / Request",
+            "After Sales": "After Sales",
+            "Collection": "Collection"
+        },
+        "status": {
+            "Pending": "Pending",
+            "In Progress": "In Progress",
+            "Completed": "Completed",
+            "Cancelled": "Cancelled"
+        },
+        "kanban": {
+            "overdue": "Overdue",
+            "today": "Today",
+            "tomorrow": "Tomorrow",
+            "thisWeek": "This Week",
+            "completed": "Completed",
+            "noActivity": "No activity"
+        },
+        "table": {
+            "typeTopic": "Type / Topic",
+            "customer": "Customer",
+            "agent": "Agent",
+            "summary": "Summary",
+            "date": "Date",
+            "status": "Status",
+            "empty": "No activities found to display."
+        },
+        "form": {
+            "createTitle": "Schedule New Activity",
+            "editTitle": "Edit Activity",
+            "completeTitle": "Complete Activity",
+            "customer": "Customer",
+            "select": "Select",
+            "topic": "Topic",
+            "type": "Type",
+            "date": "Date",
+            "summary": "Summary / Topic",
+            "summaryPlaceholder": "Brief summary...",
+            "description": "Description",
+            "descriptionPlaceholder": "Details...",
+            "outcome": "Outcome",
+            "notes": "Meeting Notes",
+            "notesPlaceholder": "How did the meeting go...",
+            "nextAction": "Next Action",
+            "none": "None",
+            "save": "Save",
+            "completeAndSave": "Complete and Save",
+            "completingMsg": "You are completing activity",
+            "success": {
+                "created": "Activity created",
+                "updated": "Activity updated",
+                "completed": "Activity completed"
+            },
+            "outcomes": {
+                "Success": "Success / Positive",
+                "Reached Interested": "Reached - Interested",
+                "Reached Not Interested": "Reached - Not Interested",
+                "No Answer": "No Answer",
+                "Busy": "Busy",
+                "Follow Up Required": "Follow Up Required"
+            }
+        },
+        "actions": {
+            "complete": "Complete",
+            "edit": "Edit"
+        }
+    },
+    "Teams": {
+        "title": "Sales Teams",
+        "description": "Manage your teams, regions, and project assignments.",
+        "newTeam": "Create New Team",
+        "createTitle": "New Sales Team",
+        "createDescription": "Define the team name and scope.",
+        "editTitle": "Edit Team",
+        "name": "Team Name",
+        "namePlaceholder": "Ex: West Region Sales Team",
+        "region": "Region",
+        "regionPlaceholder": "Ex: Marmara",
+        "office": "Office",
+        "officePlaceholder": "Ex: Head Office",
+        "descriptionLabel": "Description",
+        "descriptionPlaceholder": "Short info about the team...",
+        "create": "Create",
+        "creating": "Creating...",
+        "update": "Update",
+        "sales": "Sales",
+        "members": "Members",
+        "projects": "Projects",
+        "deleteConfirm": "Are you sure you want to delete this team?",
+        "manage": "Manage",
+        "assign": "Assign",
+        "roles": {
+            "leader": "Leader",
+            "member": "Member"
+        },
+        "memberProps": {
+            "title": "Member Management",
+            "addTitle": "Add New Member",
+            "selectUser": "Select User",
+            "role": "Role",
+            "add": "Add",
+            "adding": "Adding...",
+            "current": "Current Members",
+            "noMembers": "No members added yet.",
+            "leaderBadge": "Team Leader",
+            "memberBadge": "Member"
+        },
+        "assignmentProps": {
+            "title": "Project Assignments",
+            "addTitle": "Assign New Project",
+            "selectProject": "Select Project",
+            "assign": "Assign",
+            "current": "Assigned Projects",
+            "noProjects": "No projects assigned yet."
+        }
+    },
+    "BrokerLeads": {
+        "title": "My Customers",
+        "description": "You can track the current status of all your applications here.",
+        "newLead": "New Customer",
+        "searchPlaceholder": "Search by name or phone...",
+        "filter": "Filter",
+        "statusTitle": "Status",
+        "budgetTitle": "Budget",
+        "budgetUndefined": "Undefined",
+        "emptyLeads": "You don't have any customer records yet",
+        "emptyLeadsDesc": "You can start the process by creating a new customer record.",
+        "firstLeadButton": "Register Your First Customer",
+        "recordNo": "Record No",
+        "currentProcess": "Current Process",
+        "createdAt": "Creation",
+        "customerInfo": "Customer Information",
+        "phone": "Phone",
+        "email": "Email",
+        "nationality": "Nationality",
+        "interestedProject": "Interested Project",
+        "budgetRange": "Budget Range",
+        "whatsappButton": "Write on WhatsApp",
+        "processHistory": "Process History",
+        "historyEmpty": "Process history not found.",
+        "processedBy": "Processed By",
+        "protectionTitle": "Property Protection",
+        "protectionDesc": "This customer is reserved for you for 60 days. Cannot be registered by another broker.",
+        "protectionRemaining": "Remaining Protection Time",
+        "protectionDays": "{days} Days",
+        "customerNotes": "Customer Notes",
+        "noNotes": "No special notes mentioned.",
+        "status": {
+            "Submitted": "Submitted",
+            "Contacted": "Contacted",
+            "Qualified": "Qualified",
+            "Visit Scheduled": "Visit Scheduled",
+            "Visited": "Visited",
+            "Reserved": "Reserved",
+            "Offer Sent": "Offer Sent",
+            "Contract Signed": "Contract Signed",
+            "Payment / Closing": "Payment / Closing",
+            "Rejected": "Rejected"
+        }
+    },
+    "BrokerCampaigns": {
+        "title": "Incentive & Bonus Campaigns",
+        "description": "Manage active and future campaigns to boost broker performance.",
+        "newCampaign": "Create New Campaign",
+        "activeCampaigns": "Active Campaigns",
+        "totalDistributed": "Total Distributed",
+        "pastPassive": "Past / Passive",
+        "tabs": {
+            "active": "Active Campaigns",
+            "passive": "Past / Passive"
+        },
+        "pastCampaigns": {
+            "title": "Past Campaigns",
+            "description": "Expired or terminated campaigns."
+        },
+        "table": {
+            "name": "Campaign Name",
+            "project": "Project",
+            "typeTarget": "Type / Target",
+            "bonusValue": "Bonus Value",
+            "dateRange": "Date Range",
+            "status": "Status",
+            "actions": "Actions",
+            "allProjects": "All Projects",
+            "empty": "No campaigns found in this list."
+        },
+        "types": {
+            "Visits": "Visit",
+            "Volume": "Volume",
+            "Unit Sales": "Unit Sales",
+            "Special": "Special Bonus"
+        },
+        "labels": {
+            "target": "Target"
+        },
+        "form": {
+            "title": "New Incentive Campaign",
+            "description": "Start a new reward or bonus program to motivate brokers.",
+            "basicInfo": "Basic Information",
+            "name": "Campaign Name *",
+            "namePlaceholder": "Ex: Spring Launch Special Bonus",
+            "terms": "Description / Terms",
+            "termsPlaceholder": "Enter campaign details and participation terms...",
+            "project": "Valid Project",
+            "type": "Campaign Type",
+            "select": "Select",
+            "targetReward": "Target and Reward",
+            "bonusAmount": "Bonus Amount *",
+            "targetCount": "Target Count (Optional)",
+            "targetCountPlaceholder": "Ex: 3 sales",
+            "startDate": "Start Date",
+            "endDate": "End Date",
+            "cancel": "Cancel",
+            "submit": "Publish Campaign",
+            "errors": {
+                "required": "Please fill in the required fields."
+            },
+            "success": "Campaign created successfully.",
+            "editTitle": "Edit Campaign",
+            "editDesc": "Update the details of the {name} campaign.",
+            "update": "Update",
+            "updateSuccess": "Campaign updated."
+        },
+        "status": {
+            "active": "Active",
+            "passive": "Passive"
+        },
+        "actions": {
+            "confirmEnd": "Are you sure you want to end this campaign?",
+            "successEnd": "Campaign ended.",
+            "menuTitle": "Actions",
+            "edit": "Edit",
+            "end": "End Campaign"
+        }
+    },
+    "CommissionSettings": {
+        "title": "Commission Settings",
+        "description": "Manage project-based commission models and tiered structures.",
+        "newModel": "Add New Model",
+        "tabs": {
+            "active": "Active Models",
+            "archived": "Expired / Passive"
+        },
+        "activeTitle": "Active Commission Models",
+        "activeDescription": "Models currently effective and applied to sales.",
+        "archivedTitle": "Archived Models",
+        "archivedDescription": "Expired or manually closed models.",
+        "table": {
+            "name": "Model Name",
+            "project": "Project",
+            "validity": "Validity",
+            "type": "Type",
+            "standardValue": "Standard Value",
+            "actions": "Actions",
+            "allProjects": "All Projects",
+            "start": "Start",
+            "end": "End",
+            "indefinite": "Indefinite",
+            "details": "Details",
+            "empty": "No models found in this category."
+        },
+        "types": {
+            "Tiered": "Tiered",
+            "Flat": "Flat",
+            "Flat %": "Flat Rate (%)",
+            "Flat Amount": "Flat Amount (Currency)",
+            "Unit Based %": "Unit Based Rate (%)",
+            "Unit Based Amount": "Unit Based Amount (Currency)",
+            "Project Based %": "Project Based Rate (%)"
+        },
+        "typeDescriptions": {
+            "Flat %": "A fixed percentage commission is calculated for each sale.",
+            "Flat Amount": "A fixed monetary amount (e.g. 10.000 TL) commission is calculated for each sale.",
+            "Tiered": "Commission rate changes as you reach set sales targets. You can add tiers from the 'Details' page after saving.",
+            "Unit Based %": "Custom percentage commission rates are applied based on unit type (1+1, 2+1 etc.).",
+            "Unit Based Amount": "Custom fixed commission amounts are applied based on unit type (1+1, 2+1 etc.).",
+            "Project Based %": "A special commission rate covering the entire project."
+        },
+        "info": {
+            "tierTitle": "What is Tier Logic?",
+            "tierDesc": "You can define varying commission rates based on the total number of sales made by brokers.",
+            "dateTitle": "Validity Dates",
+            "dateDesc": "You can set start and end dates for your commission models. Models past their end date automatically become \"Passive\" and are not included in new sales calculations."
+        },
+        "form": {
+            "title": "New Commission Model",
+            "description": "Define project or unit based commission rules.",
+            "basicInfo": "Model Definition",
+            "name": "Model Name *",
+            "namePlaceholder": "Ex: Tiered Sales Model v1",
+            "project": "Valid Project",
+            "type": "Model Type",
+            "select": "Select",
+            "valueConditions": "Value and Conditions",
+            "baseRate": "Base Rate *",
+            "standardRate": "Standard Rate / Value *",
+            "currency": "Currency",
+            "paymentStage": "Payment Stage",
+            "paymentTerms": "Tax / Legal Status",
+            "startDate": "Start Date",
+            "endDate": "End Date",
+            "endDateHint": "After this date, the model will be automatically moved to the \"Expired\" list.",
+            "baseRateHint": "Default rate to use when not falling into any tier.",
+            "standardRateHint": "Value to be applied per sale.",
+            "cancel": "Cancel",
+            "submit": "Save Model",
+            "errors": {
+                "required": "Please fill in the required fields.",
+                "negative": "Value cannot be negative.",
+                "percentage": "Percentage cannot be greater than 100. If you want to enter a fixed amount, use \"Flat Amount\" or \"Unit Based Amount\" options."
+            },
+            "success": "Commission model created successfully."
+        },
+        "detail": {
+            "title": "Model Details",
+            "description": "Model details and configuration.",
+            "errorTitle": "Error: Model Not Found or Access Denied",
+            "serverMessage": "Server Message",
+            "errorCode": "Error Code",
+            "rlsHint": "Please ensure RLS rules are applied correctly.",
+            "backToList": "Back to List",
+            "relatedProject": "Related Project",
+            "modelType": "Model Type",
+            "baseRate": "Base Rate",
+            "standardRate": "Standard Rate",
+            "processConditions": "Process Conditions",
+            "paymentStage": "Payment Stage",
+            "taxStatus": "Tax/Legal Status",
+            "createdDate": "Created Date"
+        },
+        "actions": {
+            "archiveSuccess": "Model archived successfully.",
+            "archiveError": "Could not be archived.",
+            "deleteSuccess": "Model permanently deleted.",
+            "archiveButton": "Archive / Set Passive",
+            "archiveTitle": "Archive Model?",
+            "archiveDesc": "The model named \"{name}\" will be set to passive and moved to the \"Expired\" list. It will not be used in new sales but past data will be preserved.",
+            "cancel": "Cancel",
+            "archive": "Archive",
+            "deleteButton": "Delete",
+            "deleteTitle": "Permanently Delete?",
+            "deleteDesc": "WARNING: This action cannot be undone!",
+            "deleteWarning": "If this model was used in any past sales, the delete operation will be rejected. In that case, you should use the \"Archive\" option.",
+            "delete": "Delete",
+            "loading": "Deleting..."
+        },
+        "tiers": {
+            "title": "Commission Tiers",
+            "description": "Define rates to be automatically applied based on sales counts.",
+            "notTiered": "This model does not use a tiered structure.",
+            "minSales": "Min. Sales",
+            "maxSales": "Max. Sales (Optional)",
+            "rateValue": "Rate/Value",
+            "add": "Add",
+            "table": {
+                "min": "Min Sales",
+                "max": "Max Sales",
+                "commissionRate": "Commission Rate",
+                "commissionAmount": "Commission Amount",
+                "actions": "Actions",
+                "empty": "No tiers defined yet."
+            },
+            "info": "The system automatically selects the appropriate tier by checking the broker's total successful sales count in the relevant project when a sale occurs.",
+            "confirmDelete": "Are you sure you want to delete this tier?",
+            "successAdd": "Tier added.",
+            "successDelete": "Tier deleted.",
+            "errorDelete": "Could not be deleted."
+        },
+        "unitRules": {
+            "title": "Unit Based Commission Rules",
+            "description": "Define custom commission rates based on unit types.",
+            "unitType": "Unit Type",
+            "rateValue": "Rate/Value",
+            "add": "Add",
+            "table": {
+                "type": "Unit Type",
+                "commissionRate": "Commission Rate",
+                "commissionAmount": "Commission Amount",
+                "actions": "Actions",
+                "empty": "No rules defined yet."
+            },
+            "info": "Rules defined here override the \"Standard Rate\". If the sold unit type is not in the list, the standard rate applies.",
+            "confirmDelete": "Are you sure you want to delete this rule?",
+            "successAdd": "Rule added.",
+            "successDelete": "Rule deleted.",
+            "errorDelete": "Could not be deleted.",
+            "errors": {
+                "required": "Please enter unit type and rate."
+            }
+        },
+        "paymentStages": {
+            "Contract Signed": "Contract Signed",
+            "Payment Received": "Payment Received",
+            "Delivery": "Delivery"
+        },
+        "terms": {
+            "Net": "Net",
+            "Brut": "Gross"
+        }
+    },
+    "BrokerLevels": {
+        "title": "Broker Level Settings",
+        "description": "Manage the titles that brokers will automatically earn based on their performance.",
+        "addLevel": "Add New Level",
+        "labels": {
+            "minSalesCount": "Min. Sales Count",
+            "minSalesVolume": "or Volume",
+            "minSalesVolumeOnly": "Min. Sales Volume",
+            "levelName": "Level Name (Title)",
+            "color": "Color",
+            "icon": "Icon"
+        },
+        "form": {
+            "editTitle": "Edit Level",
+            "createTitle": "Create New Level",
+            "namePlaceholder": "e.g., Diamond Broker",
+            "save": "Save",
+            "saving": "Saving..."
+        },
+        "icons": {
+            "User": "User",
+            "Award": "Award",
+            "Star": "Star",
+            "Crown": "Crown",
+            "Trophy": "Trophy",
+            "Target": "Target"
+        },
+        "messages": {
+            "updateSuccess": "Level updated",
+            "createSuccess": "Level created",
+            "deleteSuccess": "Level deleted",
+            "confirmDelete": "Are you sure you want to delete this level?"
+        }
+    },
+    "BrokerFinances": {
+        "title": "Financial Management",
+        "description": "Manage broker commissions, incentive earnings, and payment processes.",
+        "stats": {
+            "totalBalance": "Total Balance (To Pay)",
+            "totalPaid": "Total Paid",
+            "totalEarned": "Total Earned",
+            "activeBrokers": "Active Broker Count",
+            "toPay": "Pending Payment",
+            "activeProcesses": "Active Processes",
+            "salesAndIncentives": "Sales and Incentives"
+        },
+        "table": {
+            "title": "Broker-Based Balances",
+            "desc": "Summary of all financial records, pending and completed.",
+            "brokerInfo": "Broker Information",
+            "level": "Partner Level",
+            "totalEarned": "Total Accrued",
+            "totalPaid": "Total Paid",
+            "balance": "Current Balance",
+            "actions": "Actions",
+            "details": "Details",
+            "empty": "No financial records found yet.",
+            "headers": {
+                "detail": "Detail",
+                "date": "Date",
+                "amount": "Amount",
+                "status": "Status"
+            },
+            "status": {
+                "Paid": "Paid",
+                "Eligible": "Eligible",
+                "Approved": "Approved"
+            },
+            "noRecords": "No records found."
+        },
+        "excel": {
+            "export": "Export (Excel)",
+            "bulkImport": "Bulk Payment Upload",
+            "dialogTitle": "Upload Payments via Excel",
+            "dialogDesc": "You can bulk upload payment records for multiple brokers using an Excel file.",
+            "note": "Important Note",
+            "noteDesc": "The payment amounts you upload are automatically matched starting from the broker's oldest accrual (Eligible), and their status is updated to \"Paid\".",
+            "downloadTemplate": "Download Payment Template",
+            "selectFile": "Select Excel File",
+            "processing": "Processing...",
+            "importSuccess": "{processedCount} payments processed successfully. ({errorCount} errors)",
+            "sheetNames": {
+                "financeSummary": "Finance Summary",
+                "paymentTemplate": "Payment Template"
+            },
+            "headers": {
+                "brokerName": "Broker Name",
+                "email": "Email",
+                "level": "Level",
+                "totalEarned": "Total Earned (â‚º)",
+                "totalPaid": "Total Paid (â‚º)",
+                "balance": "Balance (â‚º)",
+                "paymentAmount": "Payment Amount",
+                "paymentMethod": "Payment Method",
+                "referenceNo": "Reference No",
+                "note": "Note"
+            }
+        },
+        "recordPayment": {
+            "button": "Enter Payment",
+            "title": "New Payment Record",
+            "desc": "Enter payment information to close broker accruals.",
+            "labels": {
+                "selection": "Accrual Selection",
+                "totalAmount": "Total Payment",
+                "method": "Payment Method",
+                "reference": "Reference / Receipt No",
+                "notes": "Notes"
+            },
+            "placeholders": {
+                "method": "e.g., Bank Transfer, Cash",
+                "reference": "Reference number from bank",
+                "notes": "Notes about payment..."
+            },
+            "emptyList": "No accruals pending payment.",
+            "confirm": "Confirm Payment",
+            "cancel": "Cancel",
+            "errorNoSelection": "Please select at least one item.",
+            "success": "Payment record created successfully."
+        },
+        "details": {
+            "commissions": "Sales Commissions",
+            "incentives": "Incentive Earnings",
+            "paymentHistory": "Payment History",
+            "noPayments": "No payments recorded yet.",
+            "earnedIncentive": "Earned Incentive",
+            "incentive": "Incentive"
+        }
+    },
+    "BrokerApplications": {
+        "title": "Broker Management",
+        "description": "Manage broker applications and approved partner list.",
+        "stats": {
+            "pendingApps": "Pending Applications",
+            "activeBrokers": "Active Brokers",
+            "totalApps": "Total Applications"
+        },
+        "tabs": {
+            "applications": "Incoming Applications",
+            "brokers": "Approved Brokers"
+        },
+        "list": {
+            "applicationsTitle": "Incoming Applications",
+            "applicationsDesc": "Review and approve new partnership requests.",
+            "brokersTitle": "Approved Broker List",
+            "brokersDesc": "Authorized broker users in the system.",
+            "unregistered": "Account Not Created",
+            "pendingSignup": "Waiting for Registration",
+            "waitingUser": "Waiting for user signup",
+            "noSlug": "Slug not set"
+        },
+        "table": {
+            "headers": {
+                "brokerInfo": "Broker Information",
+                "contact": "Contact",
+                "company": "Company",
+                "date": "Date",
+                "status": "Status",
+                "actions": "Actions",
+                "fullName": "Full Name",
+                "level": "Level (Partner)",
+                "signupDate": "Signup Date"
+            },
+            "status": {
+                "Pending": "Pending",
+                "Approved": "Approved",
+                "Rejected": "Rejected",
+                "Active": "Active",
+                "Passive": "Passive"
+            },
+            "empty": {
+                "applications": "No applications found yet.",
+                "brokers": "No approved brokers found yet."
+            },
+            "processedOn": "Processed on {date}"
+        },
+        "actions": {
+            "approve": "Approve",
+            "reject": "Reject",
+            "confirmRejectTitle": "Reject Application",
+            "confirmRejectDesc": "Are you sure you want to reject this application? This action cannot be undone.",
+            "cancel": "Cancel",
+            "yesReject": "Yes, Reject",
+            "successApprove": "Application approved",
+            "successReject": "Application rejected",
+            "menuTitle": "Actions",
+            "changeLevel": "Change Level",
+            "setPassword": "Set Password",
+            "deactivate": "Deactivate",
+            "activate": "Activate",
+            "statusFeedback": {
+                "activated": "Broker activated.",
+                "deactivated": "Broker deactivated."
+            },
+            "levelFeedback": "Broker level updated.",
+            "passwordFeedback": "Broker password updated.",
+            "errorGeneral": "An error occurred.",
+            "passwordMinLength": "Password must be at least 6 characters.",
+            "openMenu": "Open menu"
+        },
+        "dialogs": {
+            "level": {
+                "title": "Change Broker Level",
+                "desc": "Set a new partner level for this broker. This action may override automatic level calculation.",
+                "placeholder": "Select Level",
+                "save": "Save",
+                "updating": "Updating..."
+            },
+            "password": {
+                "title": "Set Password",
+                "desc": "Set a new login password for this broker.",
+                "placeholder": "New Password",
+                "hint": "Must be at least 6 characters.",
+                "save": "Save Password",
+                "setting": "Setting..."
+            }
+        },
+        "reminder": {
+            "button": "Remind",
+            "sent": "Sent",
+            "success": "Reminder email sent"
+        }
+    }
+}

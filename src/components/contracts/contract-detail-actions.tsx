@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { signContract, payInstallment, cancelContract, transferContract } from '@/app/(dashboard)/contracts/actions'
+import { signContract, payInstallment, cancelContract, transferContract } from '@/app/[locale]/(dashboard)/contracts/actions'
 import { toast } from 'sonner'
 import { FileCheck, Loader2, XCircle, ArrowRightLeft } from 'lucide-react'
 import {

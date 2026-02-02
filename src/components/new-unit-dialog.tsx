@@ -14,8 +14,10 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { createUnit } from '@/app/(dashboard)/inventory/actions'
+import { createUnit } from '@/app/[locale]/(dashboard)/inventory/actions'
 import { toast } from 'sonner'
+
+import { useTranslations } from 'next-intl'
 
 interface Project {
     id: string
@@ -27,6 +29,8 @@ interface NewUnitDialogProps {
 }
 
 export function NewUnitDialog({ projects }: NewUnitDialogProps) {
+    const t = useTranslations('Inventory.newUnit')
+    const tGlobal = useTranslations('Inventory')
     const [open, setOpen] = useState(false)
 
     async function handleSubmit(formData: FormData) {
@@ -34,7 +38,7 @@ export function NewUnitDialog({ projects }: NewUnitDialogProps) {
         if (result?.error) {
             toast.error(result.error)
         } else {
-            toast.success('Ünite başarıyla oluşturuldu')
+            toast.success(t('success'))
             setOpen(false)
         }
     }
@@ -43,20 +47,20 @@ export function NewUnitDialog({ projects }: NewUnitDialogProps) {
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
                 <Button>
-                    <Plus className="mr-2 h-4 w-4" /> Yeni Ünite
+                    <Plus className="mr-2 h-4 w-4" /> {t('button')}
                 </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[500px]">
                 <DialogHeader>
-                    <DialogTitle>Yeni Ünite Ekle</DialogTitle>
+                    <DialogTitle>{t('title')}</DialogTitle>
                 </DialogHeader>
                 <form action={handleSubmit}>
                     <div className="grid gap-4 py-4">
                         <div className="grid grid-cols-4 items-center gap-4">
-                            <Label className="text-right">Proje</Label>
+                            <Label className="text-right">{t('form.project')}</Label>
                             <div className="col-span-3">
                                 <select name="project_id" className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm" required>
-                                    <option value="">Proje Seçiniz</option>
+                                    <option value="">{t('form.selectProject')}</option>
                                     {projects.map((p) => (
                                         <option key={p.id} value={p.id}>{p.name}</option>
                                     ))}
@@ -64,46 +68,46 @@ export function NewUnitDialog({ projects }: NewUnitDialogProps) {
                             </div>
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
-                            <Label className="text-right">Kapı No</Label>
+                            <Label className="text-right">{t('form.unitNo')}</Label>
                             <Input name="unit_number" className="col-span-3" required />
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
-                            <Label className="text-right">Tip</Label>
+                            <Label className="text-right">{t('form.type')}</Label>
                             <Input name="type" placeholder="2+1" className="col-span-3" required />
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
-                            <Label className="text-right">Fiyat</Label>
+                            <Label className="text-right">{t('form.price')}</Label>
                             <Input name="price" type="number" className="col-span-3" required />
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
-                            <Label className="text-right">Kat</Label>
+                            <Label className="text-right">{t('form.floor')}</Label>
                             <Input name="floor" type="number" className="col-span-3" required />
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
-                            <Label className="text-right">Yön</Label>
+                            <Label className="text-right">{t('form.direction')}</Label>
                             <Select name="direction" required>
                                 <SelectTrigger className="col-span-3">
-                                    <SelectValue placeholder="Seçiniz" />
+                                    <SelectValue placeholder={t('form.select')} />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="Kuzey">Kuzey</SelectItem>
-                                    <SelectItem value="Güney">Güney</SelectItem>
-                                    <SelectItem value="Doğu">Doğu</SelectItem>
-                                    <SelectItem value="Batı">Batı</SelectItem>
-                                    <SelectItem value="Kuzey Doğu">Kuzey Doğu</SelectItem>
-                                    <SelectItem value="Kuzey Batı">Kuzey Batı</SelectItem>
-                                    <SelectItem value="Güney Doğu">Güney Doğu</SelectItem>
-                                    <SelectItem value="Güney Batı">Güney Batı</SelectItem>
+                                    <SelectItem value="Kuzey">{tGlobal('directions.North')}</SelectItem>
+                                    <SelectItem value="Güney">{tGlobal('directions.South')}</SelectItem>
+                                    <SelectItem value="Doğu">{tGlobal('directions.East')}</SelectItem>
+                                    <SelectItem value="Batı">{tGlobal('directions.West')}</SelectItem>
+                                    <SelectItem value="Kuzey Doğu">{tGlobal('directions.NorthEast')}</SelectItem>
+                                    <SelectItem value="Kuzey Batı">{tGlobal('directions.NorthWest')}</SelectItem>
+                                    <SelectItem value="Güney Doğu">{tGlobal('directions.SouthEast')}</SelectItem>
+                                    <SelectItem value="Güney Batı">{tGlobal('directions.SouthWest')}</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
-                            <Label className="text-right">Brüt m²</Label>
+                            <Label className="text-right">{t('form.grossArea')}</Label>
                             <Input name="area_gross" type="number" step="0.01" className="col-span-3" required />
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button type="submit">Kaydet</Button>
+                        <Button type="submit">{t('save')}</Button>
                     </DialogFooter>
                 </form>
             </DialogContent>

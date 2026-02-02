@@ -1,0 +1,1930 @@
+{
+    "Index": {
+        "title": "NovoxCRM | İnşaat & Gayrimenkul CRM – Konut Projeleri için Satış Yönetimi",
+        "description": "NovoxCRM, inşaat ve gayrimenkul firmaları için özel geliştirilmiş CRM yazılımıdır."
+    },
+    "Hero": {
+        "badge": "İnşaat ve Gayrimenkul Sektörü İçin Özel CRM",
+        "title1": "Dijital Pazarlamadan",
+        "title2": "Satış Ofisine",
+        "titleHighlight": "Tam Saha Hakimiyet",
+        "description": "Pazarlama bütçenizi verimli kullanın, müşteri kazanma araçlarını güçlendirin. NovoxCRM; konut satışından stok takibine, broker ağ yönetiminden finansal raporlamaya kadar inşaat projelerinin tüm dinamiklerini tek merkezden yönetmek ve satış hacminizi artırmak için tasarlandı.",
+        "ctaPrimary": "Hemen Dijitalleşin",
+        "ctaSecondary": "Sistem Detaylarını İncele",
+        "demoTitle": "Ücretsiz Tanıtım ve Demo",
+        "demoDescription": "Projenizin satışlarını nasıl dijitalleştirebileceğimizi göstermek için bir uzmanımız sizinle iletişime geçecek."
+    },
+    "Marketing_CTA": {
+        "title": "Satışlarınızı Hızlandırmaya Hazır Mısınız?",
+        "description": "Siz zaten satış yapıyorsunuz, biz daha hızlı satmanızı sağlıyoruz.",
+        "button": "Hemen Başlayın"
+    },
+    "LanguageSwitcher": {
+        "label": "Dil Seçin"
+    },
+    "Navbar": {
+        "solutions_realestate": "Gayrimenkul CRM",
+        "solutions_construction": "İnşaat CRM",
+        "solutions": "Çözümler",
+        "pricing": "Fiyatlandırma",
+        "login": "Giriş Yap",
+        "start": "Hemen Başlayın",
+        "demoTitle": "Ücretsiz Tanıtım ve Demo",
+        "demoDescription": "Satışlarınızı nasıl artırabileceğimizi göstermek için bir uzmanımız sizinle iletişime geçecek.",
+        "register": "Ücretsiz Kaydol / Tanıtım İste"
+    },
+    "TrustSection": {
+        "title": "Sektörün Öncüleri Tarafından Güvenle Kullanılıyor",
+        "portfolio": "Yönetilen Portföy",
+        "projects": "Aktif Proje",
+        "professionals": "Emlak Profesyoneli",
+        "satisfaction": "Müşteri Memnuniyeti"
+    },
+    "ComparisonSection": {
+        "title": "Hangi Taraftasınız?",
+        "subtitle": "Kaos veya Düzen. Seçim sizin.",
+        "oldWay": {
+            "title": "Geleneksel Yöntem",
+            "items": [
+                "Excel'de kaybolan müşteri verileri",
+                "Birbirinden habersiz satış ekibi",
+                "Manuel hesaplanan hatalı komisyonlar",
+                "Takip edilmeyen ödeme planları",
+                "Kasa ve stok uyumsuzlukları"
+            ]
+        },
+        "newWay": {
+            "title": "NovoxCRM Yöntemi",
+            "items": [
+                "Müşteri geçmişi ve notları tek ekranda",
+                "Tam entegre ekip ve yetkilendirme",
+                "Otomatik hakediş ve prim sistemi",
+                "Gecikme faizi ve vade farkı motoru",
+                "%100 Gerçek zamanlı stok kontrolü"
+            ]
+        }
+    },
+    "SolutionSection": {
+        "badge": "Bütünleşik Mimari",
+        "title": "Parça Parça Değil,",
+        "titleHighlight": "Tam Entegre Çözüm",
+        "description": "İnşaat ve gayrimenkul satışlarının kendine has dinamikleri vardır. NovoxCRM, lead aşamasından tapu teslimine kadar tüm süreci tek platformda çözer.",
+        "button": "DETAYLI BİLGİ İÇİN TIKLAYIN",
+        "cards": {
+            "crm": {
+                "title": "CRM & Satış Yönetimi",
+                "features": [
+                    "Tüm müşteri görüşmeleri tek ekranda",
+                    "Otomatik hatırlatmalar ve takip",
+                    "Satış ofisi performans ölçümü",
+                    "Call-center entegrasyonu"
+                ]
+            },
+            "broker": {
+                "title": "Broker Portalı",
+                "features": [
+                    "Brokerlar için özel mobil uyumlu panel",
+                    "Anlık stok ve fiyat listesi paylaşımı",
+                    "Otomatik komisyon hakediş hesaplama",
+                    "Dublicate müşteri koruması"
+                ]
+            },
+            "finance": {
+                "title": "Finans & Ödeme Planı",
+                "features": [
+                    "Esnek ödeme planı oluşturucu",
+                    "Senet, ara ödeme takibi",
+                    "Gecikmiş tahsilat uyarıları",
+                    "Dövizli satış desteği"
+                ]
+            },
+            "reporting": {
+                "title": "Gelişmiş Raporlama",
+                "features": [
+                    "Dönemsel satış hızı analizleri",
+                    "Stok yaşlandırma raporları",
+                    "Gelir projeksiyonu",
+                    "Pazarlama ROI analizi"
+                ]
+            }
+        }
+    },
+    "FAQSection": {
+        "title": "Aklınızda Soru",
+        "titleHighlight": "Kalmasın",
+        "description": "Sıkça sorulan soruları sizin için derledik. Başka bir sorunuz varsa bizimle iletişime geçmekten çekinmeyin.",
+        "items": [
+            {
+                "question": "Mevcut Excel verilerimi aktarabilir miyim?",
+                "answer": "Evet! Excel şablonumuzla mevcut müşteri datanızı, stok listenizi ve aktif satışlarınızı toplu olarak sisteme yükleyebilirsiniz. Ekibimiz bu süreçte size destek olmaktadır."
+            },
+            {
+                "question": "Kurulum süreci ne kadar sürer?",
+                "answer": "NovoxCRM bulut tabanlı bir sistemdir, kurulum gerektirmez. Hesabınız açıldığı an kullanmaya başlayabilirsiniz. Personelinizin eğitimi ve tam adaptasyon genellikle 1-2 iş günü sürer."
+            },
+            {
+                "question": "Verilerimiz ne kadar güvende?",
+                "answer": "Verileriniz 256-bit SSL şifreleme ile korunur ve günlük olarak otomatik yedeklenir. Bankacılık standartlarında güvenlik önlemleri ile KVKK uyumlu bir altyapı sunuyoruz."
+            },
+            {
+                "question": "Sistemi kullanmak için teknik bilgi gerekiyor mu?",
+                "answer": "Hayır. Arayüzümüz, herhangi bir teknik bilgiye ihtiyaç duymadan, satış danışmanlarının ve yöneticilerin kolayca kullanabileceği şekilde tasarlanmıştır."
+            },
+            {
+                "question": "Mobil uygulamanız var mı?",
+                "answer": "Evet, tüm cihazlarla uyumlu responsive (mobil uyumlu) arayüzümüz sayesinde telefon veya tabletinizden sisteme erişebilir, sahada veya ofis dışında işlerinizi yönetebilirsiniz."
+            },
+            {
+                "question": "Özel bir rapor veya özellik isteyebilir miyiz?",
+                "answer": "Enterprise paketimizde kurumunuza özel geliştirmeler ve raporlamalar yapabiliyoruz. İhtiyaçlarınızı analiz edip size özel çözümler sunabiliriz."
+            }
+        ]
+    },
+    "PricingSection": {
+        "title": "Şeffaf Fiyatlandırma",
+        "description": "Gizli maliyet yok. İhtiyacınıza uygun paketi seçin, hemen başlayın.",
+        "popularTag": "En Popüler",
+        "plans": {
+            "basic": {
+                "name": "Basic",
+                "price": "₺2.900",
+                "period": "/ay",
+                "description": "Küçük ölçekli projeler ve butik satış ofisleri için.",
+                "features": [
+                    "Stok Yönetimi",
+                    "Müşteri Kartları",
+                    "Satış İşlemleri",
+                    "Basit Raporlama",
+                    "5 Kullanıcıya Kadar"
+                ],
+                "cta": "Başlayın"
+            },
+            "pro": {
+                "name": "Pro",
+                "price": "₺5.900",
+                "period": "/ay",
+                "description": "Büyüyen ekipler ve aktif satış ofisleri için.",
+                "features": [
+                    "Her şey (Basic)",
+                    "Broker Portalı",
+                    "Ödeme Planı Sihirbazı",
+                    "Dijital Sözleşme Yönetimi",
+                    "Gelişmiş Raporlama",
+                    "20 Kullanıcıya Kadar"
+                ],
+                "cta": "Ücretsiz Deneyin"
+            },
+            "enterprise": {
+                "name": "Enterprise",
+                "price": "Özel Teklif",
+                "period": "",
+                "description": "Çoklu proje ve büyük organizasyonlar için.",
+                "features": [
+                    "Her şey (Pro)",
+                    "Mobil Uygulama (iOS/Android)",
+                    "API Erişimi",
+                    "ERP Entegrasyonları",
+                    "Özel Sunucu (On-Premise)",
+                    "Sınırsız Kullanıcı"
+                ],
+                "cta": "İletişime Geçin"
+            }
+        }
+    },
+    "Footer": {
+        "brandDescription": "İnşaat ve gayrimenkul projeleri için uçtan uca satış yönetimi ve CRM çözümü. Satış ofisinizi dijitalleştirin, veriminizi artırın.",
+        "solutionsTitle": "Çözümler",
+        "solutions": {
+            "realestate": "Gayrimenkul CRM",
+            "construction": "İnşaat CRM",
+            "all": "Tüm Çözümler",
+            "paymentCalculator": "Ödeme Planı Sihirbazı"
+        },
+        "corporateTitle": "Kurumsal",
+        "corporate": {
+            "about": "Hakkımızda",
+            "wiki": "Bilgi Bankası (Wiki)",
+            "kvkk": "KVKK Aydınlatma Metni",
+            "terms": "Kullanım Koşulları"
+        },
+        "contactTitle": "İletişim",
+        "newsletter": {
+            "title": "HABERDAR OLUN",
+            "placeholder": "E-posta",
+            "button": "OK"
+        },
+        "copyright": "© 2026 NovoxCRM. Tüm hakları saklıdır.",
+        "tagline1": "Gayrimenkul CRM Yazılımı",
+        "tagline2": "İnşaat Proje Satış Sistemi"
+    },
+    "PainSection": {
+        "title": "Neden",
+        "titleHighlight": "NovoxCRM?",
+        "description": "Geleneksel yöntemlerin yarattığı kronik sorunları çözüyor, büyümenin önündeki engelleri kaldırıyoruz.",
+        "cards": {
+            "sales": {
+                "title": "Satış Olay ama Takip Yok",
+                "desc": "Proje satışlarında her müşteri kaybı maliyetlidir. Excel ile yönetilen satış süreçleri pipeline'ı körleştirir."
+            },
+            "broker": {
+                "title": "Brokerlar Yönetilemiyor",
+                "desc": "Broker müşteri sahipliği, komisyon hakediş ve ödeme süreçleri manuel yürütülüyor. Çatışma ve kayıp kaçınılmaz."
+            },
+            "data": {
+                "title": "Aynı Data 3 Kez Giriliyor",
+                "desc": "Satış ofisi, muhasebe, pazarlama ve yönetim birbirinden kopuk. Veri tutarsızlığı karar almayı engelliyor."
+            },
+            "delivery": {
+                "title": "Müşteri Teslim Karmaşası",
+                "desc": "Ödeme planı, evrak, tapu, teslim, snag list süreçleri dijital değil. Müşteri memnuniyeti düşüyor."
+            }
+        }
+    },
+    "CRMLifecycle": {
+        "badge": "UÇTAN UCA YÖNETİM",
+        "title": "CRM Core Süreç Döngüsü",
+        "description": "Ham kontaktan imzalı sözleşmeye kadar tüm gayrimenkul satış döngüsünü tek bir platform üzerinden, kopukluk yaşamadan yönetin.",
+        "steps": [
+            {
+                "title": "Kontak",
+                "desc": "Ham datanın (telefon, mail) sisteme ilk girişi ve KVKK onayı."
+            },
+            {
+                "title": "Lead",
+                "desc": "Nitelikli hale gelen, projenizle ilgilenen potansiyel müşteri."
+            },
+            {
+                "title": "Fırsat",
+                "desc": "Sıcak takip, ofis ziyareti ve sunum aşamasındaki adaylar."
+            },
+            {
+                "title": "Teklif",
+                "desc": "Resmi ödeme planı ve daire bazlı fiyat teklifinin sunulması."
+            },
+            {
+                "title": "Opsiyon",
+                "desc": "Dairenin geçici olarak rezerve edilmesi ve kapora süreci."
+            },
+            {
+                "title": "Satış",
+                "desc": "Tahsilat planının onaylanması ve satış kaydının kesinleşmesi."
+            },
+            {
+                "title": "Sözleşme",
+                "desc": "Dijital veya fiziki imza ile mülkiyet sürecinin tamamlanması."
+            }
+        ]
+    },
+    "PersonaSection": {
+        "title": "Herkese Kazandıran Çözüm",
+        "description": "NovoxCRM organizasyonunuzdaki her rol için özelleştirilmiş araçlar sunar.",
+        "cta": "Daha Fazla Bilgi",
+        "personas": {
+            "patron": {
+                "label": "Patron",
+                "title": "Büyük Resmi Görün",
+                "description": "Operasyonel detaylarda boğulmayın. Şirketinizin finansal sağlığını, satış hızını ve nakit akışını tek ekrandan izleyin.",
+                "benefits": [
+                    "Anlık ciro ve karlılık raporları",
+                    "Nakit akışı projeksiyonu",
+                    "Satış ofisi performans karnesi"
+                ]
+            },
+            "sales": {
+                "label": "Satış Müdürü",
+                "title": "Ekibinizi Kanatlandırın",
+                "description": "Satış ekibinizin kiminle görüştüğünü, hangi aşamada olduğunu ve performansını verilerle yönetin.",
+                "benefits": [
+                    "Otomatik lead dağıtımı",
+                    "Aktivite ve görüşme takibi",
+                    "Hedef/Gerçekleşen analizi"
+                ]
+            },
+            "broker": {
+                "label": "Broker Yöneticisi",
+                "title": "Kaosu Bitirin",
+                "description": "Yüzlerce emlak ofisi ve brokerı tek platformda yönetin. Çatışmaları önleyin, sadakati artırın.",
+                "benefits": [
+                    "Şeffaf portföy paylaşımı",
+                    "Otomatik hakediş hesaplama",
+                    "Dublicate (çift) kayıt engelleme"
+                ]
+            }
+        }
+    },
+    "ResourcesSection": {
+        "title": "Sizin İçin",
+        "titleHighlight": "Ücretsiz Araçlar",
+        "description": "Satış süreçlerinizi iyileştirmeye başlamak için hazırladığımız kaynaklar.",
+        "cards": {
+            "calculator": {
+                "title": "Ödeme Planı Sihirbazı",
+                "description": "Konut projeleriniz için örnek ödeme planı oluşturun, PDF indirin ve müşterilerinizle paylaşın.",
+                "cta": "Hemen Hesapla"
+            },
+            "report": {
+                "title": "2026 Konut Satış Raporu",
+                "description": "Sektördeki son trendler, benchmark verileri ve satış artırma stratejileri.",
+                "cta": "Raporu İndir",
+                "modal": {
+                    "title": "2026 Konut Satış Raporu",
+                    "description": "Sektördeki son trendler ve benchmark verilerine ulaşmak için bilgilerinizi bırakın.",
+                    "resourceName": "HousingReport_2026"
+                }
+            }
+        }
+    },
+    "Auth": {
+        "welcome": "Hoş Geldiniz",
+        "description": "Hesabınıza giriş yapmak için bilgilerinizi giriniz.",
+        "emailLabel": "Email veya Kullanıcı Adı",
+        "emailPlaceholder": "Email veya kullanıcı adı",
+        "passwordLabel": "Şifre",
+        "passwordPlaceholder": "••••••••",
+        "loginButton": "Giriş Yap",
+        "brokerLink": "Satış Ortağımız (Broker) Olun →",
+        "registerModalTitle": "Yeni Hesap Oluştur",
+        "registerModalDesc": "NovoxCRM dünyasına katılmak için bilgilerinizi bırakın, ekibimiz size hemen ulaşsın.",
+        "registerLink": "Şirketinizi NovoxCRM ile güçlendirin",
+        "termsAgreement": "Giriş yaparak",
+        "termsLink": "Kullanım Şartları",
+        "privacyLink": "Gizlilik Politikası",
+        "agreementSuffix": "'nı kabul etmiş sayılırsınız.",
+        "sidebarTitle": "Satış süreçlerinizi modern bir deneyimle yönetin.",
+        "sidebarDesc": "Müşteri takibi, stok yönetimi, sözleşmeler ve finansal raporlar tek bir platformda.",
+        "secureInfrastructure": "Güvenli Altyapı",
+        "version": "Sürüm 2.0",
+        "and": "ve"
+    },
+    "Dashboard": {
+        "tenantLoading": "Yükleniyor...",
+        "settings": "Ayarlar",
+        "logout": "Çıkış",
+        "toggleMenu": "Menüyü Aç/Kapa",
+        "overview": "Genel Bakış",
+        "kpi": {
+            "totalSalesVolume": "Toplam Satış Hacmi",
+            "totalContracts": "Onaylanmış Toplam Sözleşmeler",
+            "activeOpportunities": "Aktif Fırsatlar",
+            "ongoingNegotiations": "Devam eden görüşmeler",
+            "unitsForSale": "Satılık Üniteler",
+            "totalStock": "Stoktaki toplam bağımsız ünite",
+            "customers": "Müşteriler",
+            "registeredCustomers": "Sistemde kayıtlı müşteriler"
+        },
+        "stats": {
+            "totalStock": "Toplam Stok",
+            "totalUnits": "Tüm Üniteler",
+            "sold": "Satılan",
+            "completedSales": "Satışı Tamamlanan",
+            "optioned": "Opsiyonlu",
+            "reservedUnits": "Rezerve Edilen",
+            "offersSent": "Teklif Verilen",
+            "activeOffers": "Aktif Teklifler"
+        },
+        "charts": {
+            "monthlySales": "Aylık Satış Grafiği",
+            "opportunityDistribution": "Fırsat Dağılımı",
+            "sale": "Satış"
+        },
+        "activity": {
+            "title": "Son Aktiviteler",
+            "description": "Ekibinizin son işlemleri.",
+            "empty": "Henüz bir aktivite bulunmuyor.",
+            "types": {
+                "call": "Telefon Görüşmesi",
+                "meeting": "Toplantı",
+                "visit": "Saha Ziyareti",
+                "whatsapp": "Whatsapp",
+                "email": "E-posta"
+            }
+        },
+        "status": {
+            "lead": "Aday",
+            "contacted": "İletişim",
+            "proposal": "Teklif",
+            "negotiation": "Pazarlık",
+            "reservation": "Rezervasyon",
+            "contract": "Sözleşme",
+            "won": "Kazanıldı",
+            "lost": "Kaybedildi"
+        }
+    },
+    "Sidebar": {
+        "overview": "Genel Bakış",
+        "projects": "Projeler",
+        "inventory": "Stok Yönetimi",
+        "customers": "Müşteriler",
+        "salesTeams": "Satış Ekipleri",
+        "salesManagement": "Satış Yönetimi",
+        "options": "Opsiyonlar",
+        "offers": "Teklifler",
+        "contracts": "Sözleşmeler",
+        "deposits": "Kapora Yönetimi",
+        "activities": "Aktiviteler",
+        "serviceRequests": "Servis Talepleri",
+        "broker": {
+            "title": "B2B Broker Yönetimi",
+            "management": "Broker Yönetimi",
+            "leads": "Lead Yönetimi",
+            "campaigns": "Teşvik Kampanyaları",
+            "commission": "Komisyon Ayarları",
+            "finance": "Finansal Yönetim",
+            "levels": "Seviye Yönetimi",
+            "earnings": "Broker Kazançları"
+        },
+        "reports": {
+            "title": "Raporlar",
+            "sales": "Satış Performansı",
+            "inventory": "Stok & Proje Analizi",
+            "finance": "Finansal Analiz",
+            "efficiency": "Saha & Ekip Verimliliği"
+        }
+    },
+    "Projects": {
+        "title": "Projeler",
+        "addProject": "Yeni Proje Ekle",
+        "createModal": {
+            "title": "Yeni Proje Oluştur",
+            "description": "Projenize bir isim verin ve konumunu belirtin.",
+            "nameLabel": "Proje Adı",
+            "cityLabel": "Şehir",
+            "submit": "Kaydet"
+        },
+        "status": {
+            "Active": "Satışa AÇIK",
+            "Planned": "Planlanıyor",
+            "Completed": "KAPALI"
+        },
+        "card": {
+            "details": "Detaylar",
+            "location": "Belirtilmemiş",
+            "statusLabel": "Durum"
+        },
+        "empty": {
+            "title": "Henüz hiç proje bulunmuyor.",
+            "action": "Yukarıdan Ekle"
+        },
+        "error": {
+            "title": "Hata oluştu",
+            "tenant": "Tenant Bulunamadı",
+            "tenantDesc": "Hesabınıza atanmış bir firma (tenant) bulunamadı. Lütfen yönetici ile iletişime geçin."
+        }
+    },
+    "Customers": {
+        "title": "Müşteri Yönetimi",
+        "addCustomer": "Yeni Müşteri",
+        "editCustomer": "Müşteri Düzenle",
+        "createModal": {
+            "title": "Müşteri Kartı Oluştur",
+            "submit": "Kaydet",
+            "update": "Güncelle"
+        },
+        "tabs": {
+            "details": "Genel Bilgiler",
+            "demands": "Talep ve Tercihler"
+        },
+        "form": {
+            "fullName": "Ad Soyad",
+            "phone": "Telefon",
+            "email": "E-posta",
+            "source": "Kaynak",
+            "sourcePlaceholder": "Örn: Sahibinden, Referans",
+            "portalAccess": "Portal Erişimi (Opsiyonel)",
+            "portalAccessTitle": "Portal Erişimi",
+            "username": "Kullanıcı Adı",
+            "password": "Şifre",
+            "minBudget": "Minimum Bütçe",
+            "maxBudget": "Maksimum Bütçe",
+            "roomCount": "Oda Sayısı Tercihi",
+            "location": "Konum Tercihi",
+            "locationPlaceholder": "Örn: Merkez, Sahil, Site içi",
+            "propertyType": "Emlak Tipi",
+            "investmentPurpose": "Yatırım Amacı",
+            "notes": "Özel Notlar",
+            "notesPlaceholder": "Müşterinin özel istekleri...",
+            "select": "Seçiniz"
+        },
+        "table": {
+            "fullName": "Ad Soyad",
+            "phone": "Telefon",
+            "email": "Email",
+            "source": "Kaynak",
+            "status": "Durum",
+            "actions": "İşlemler",
+            "edit": "Düzenle",
+            "delete": "Sil",
+            "empty": "Müşteri kaydı yok.",
+            "confirmDelete": "Bu müşteriyi silmek istediğinize emin misiniz?"
+        },
+        "badges": {
+            "customer": "Müşteri",
+            "lead": "Lead",
+            "contact": "Kontak"
+        },
+        "types": {
+            "Apartment": "Daire",
+            "Villa": "Villa",
+            "Office": "Ofis",
+            "Shop": "Dükkan",
+            "Commercial": "Ticari Alan",
+            "Land": "Arsa"
+        },
+        "purposes": {
+            "Living": "Oturum",
+            "Investment": "Yatırım",
+            "Holiday": "Tatil / Yazlık"
+        }
+    },
+    "Inventory": {
+        "title": "Stok Yönetimi",
+        "clean": "Temizle",
+        "activeFilters": "Aktif Filtreler",
+        "filters": {
+            "title": "Detaylı Filtreleme",
+            "description": "Stok listesini daraltmak için kriterleri belirleyin.",
+            "button": "Filtrele",
+            "clear": "Filtreleri Temizle",
+            "apply": "Filtreleri Uygula",
+            "project": "Proje",
+            "allProjects": "Tüm Projeler",
+            "block": "Blok",
+            "status": "Durum",
+            "all": "Tümü",
+            "unitCategory": "Ünite Türü",
+            "roomType": "Oda Tipi",
+            "priceRange": "Fiyat Aralığı",
+            "areaRange": "Brüt m² Aralığı",
+            "floor": "Kat",
+            "direction": "Cephe",
+            "parking": "Otopark",
+            "heating": "Isıtma",
+            "kitchen": "Mutfak Tipi",
+            "view": "Manzara",
+            "min": "Min",
+            "max": "Max",
+            "features": {
+                "masterBath": "Ebeveyn Banyosu Var",
+                "builtinKitchen": "Ankastre Mutfak Var"
+            }
+        },
+        "stats": {
+            "total": "Toplam Stok",
+            "forSale": "Satılık",
+            "reserved": "Rezerve",
+            "sold": "Satılan",
+            "portfolioValue": "Portföy Değeri",
+            "portfolioDesc": "Satılık üniteler"
+        },
+        "table": {
+            "actions": "İşlemler",
+            "project": "Proje",
+            "block": "Blok",
+            "unitNo": "Kapı No",
+            "status": "Durum",
+            "roomType": "Oda Tipi",
+            "category": "Ünite Türü",
+            "floor": "Kat",
+            "direction": "Cephe",
+            "view": "Manzara",
+            "grossArea": "Brüt m²",
+            "netArea": "Net m²",
+            "price": "Fiyat",
+            "vat": "KDV (%)",
+            "discount": "İskonto (%)",
+            "parking": "Otopark",
+            "heating": "Isıtma",
+            "kitchen": "Mutfak",
+            "builtin": "Ankastre",
+            "masterBath": "Ebv. Banyo",
+            "ada": "Ada No",
+            "parsel": "Parsel No",
+            "empty": "Kayıt bulunamadı."
+        },
+        "actions": {
+            "menu": "İşlemler",
+            "edit": "Düzenle",
+            "reserve": "Rezerve Et",
+            "offer": "Teklif Ver",
+            "negotiate": "Görüşme Başlat",
+            "sell": "Satışı Tamamla",
+            "cancel": "İptal Et",
+            "soldMessage": "Ünite satıldı olarak işaretlendi",
+            "cancelMessage": "Rezervasyon iptal edildi"
+        },
+        "newUnit": {
+            "button": "Yeni Ünite",
+            "title": "Yeni Ünite Ekle",
+            "save": "Kaydet",
+            "success": "Ünite başarıyla oluşturuldu",
+            "form": {
+                "project": "Proje",
+                "selectProject": "Proje Seçiniz",
+                "unitNo": "Kapı No",
+                "type": "Tip",
+                "price": "Fiyat",
+                "floor": "Kat",
+                "direction": "Yön",
+                "select": "Seçiniz",
+                "grossArea": "Brüt m²"
+            }
+        },
+        "status": {
+            "ForSale": "Satılık",
+            "Reserved": "Rezerve",
+            "Sold": "Satıldı"
+        },
+        "directions": {
+            "North": "Kuzey",
+            "South": "Güney",
+            "East": "Doğu",
+            "West": "Batı",
+            "NorthEast": "Kuzey Doğu",
+            "NorthWest": "Kuzey Batı",
+            "SouthEast": "Güney Doğu",
+            "SouthWest": "Güney Batı"
+        },
+        "parking": {
+            "Indoor": "Kapalı Otopark",
+            "Outdoor": "Açık Otopark",
+            "None": "Yok"
+        },
+        "heating": {
+            "Combi": "Kombi",
+            "Central": "Merkezi Sistem",
+            "Floor": "Yerden Isıtma",
+            "CombiFloor": "Kombi + Yerden Isıtma",
+            "AC": "Klima"
+        },
+        "kitchen": {
+            "Closed": "Kapalı Mutfak",
+            "Open": "Açık Mutfak"
+        },
+        "views": {
+            "Sea": "Deniz",
+            "Nature": "Doğa",
+            "City": "Şehir",
+            "Pool": "Havuz",
+            "Park": "Park"
+        },
+        "CRM": {
+            "title": "CRM & Satış Yönetimi",
+            "filter": {
+                "button": "Filtrele",
+                "title": "CRM Filtreleri",
+                "description": "Satış ve aday listesini detaylı kriterlere göre daraltın.",
+                "search": "Müşteri / Ünite Ara",
+                "searchPlaceholder": "İsim veya ünite no...",
+                "project": "Proje",
+                "allProjects": "Tüm Projeler",
+                "rep": "Satış Temsilcisi",
+                "allTeam": "Tüm Ekip",
+                "status": "Statü",
+                "allStatuses": "Tüm Statüler",
+                "apply": "Filtreleri Uygula",
+                "reset": "Filtreleri Sıfırla"
+            },
+            "newSale": {
+                "button": "Yeni Satış Başlat",
+                "title": "Yeni Satış / Fırsat",
+                "customer": "Müşteri",
+                "project": "Proje",
+                "unit": "İlgilenilen Ünite",
+                "selectCustomer": "Müşteri Seçiniz...",
+                "searchCustomer": "Müşteri Ara...",
+                "selectProject": "Proje Seçiniz...",
+                "searchProject": "Proje Ara...",
+                "selectUnit": "Ünite Seçiniz...",
+                "searchUnit": "Ünite Ara...",
+                "selectProjectFirst": "Önce Proje Seçiniz",
+                "note": "* Ünite seçildiği için kayıt otomatik olarak Fırsat statüsünde oluşturulacaktır.",
+                "create": "Oluştur",
+                "customerNotFound": "Müşteri bulunamadı.",
+                "projectNotFound": "Proje bulunamadı.",
+                "unitNotFound": "Ünite bulunamadı.",
+                "poweredBy": "NovoxCRM tarafından desteklenmektedir"
+            },
+            "stats": {
+                "Lead": "Lead",
+                "Prospect": "Fırsat",
+                "Reservation": "Opsiyon",
+                "Proposal": "Teklif",
+                "Negotiation": "Pazarlık",
+                "Sold": "Satıldı",
+                "Completed": "Kazanıldı",
+                "Lost": "Kayıp"
+            },
+            "table": {
+                "customer": "Müşteri",
+                "projectUnit": "Proje / Ünite",
+                "status": "Durum",
+                "date": "Tarih",
+                "amount": "Tutar",
+                "rep": "Temsilci",
+                "actions": "İşlemler",
+                "empty": "Aktif satış bulunamadı.",
+                "unitNotSelected": "Ünite Seçilmedi"
+            },
+            "actions": {
+                "autoAssign": "Otomatik Ata",
+                "assigning": "Atanıyor...",
+                "assignTooltip": "Ekibe otomatik ata",
+                "assignError": "Önce bir ünite/proje seçilmelidir",
+                "paymentPlan": "Ödeme Planı Hesapla",
+                "paymentPlanTitle": "Ödeme Planı Hesapla",
+                "won": "Kazanıldı"
+            },
+            "status": {
+                "Lead": "Lead",
+                "Prospect": "Fırsat",
+                "Reservation": "Opsiyonlu",
+                "OptionPending": "Opsiyon - Kapora Bekleniyor",
+                "Proposal": "Teklif Verildi",
+                "ProposalPending": "Teklif - Kapora Bekleniyor",
+                "Negotiation": "Pazarlık",
+                "Sold": "Teklif Onaylandı",
+                "Lost": "Kaybedildi"
+            },
+            "matchUnit": {
+                "title": "{customerName} için Ünite Eşleştir",
+                "projectLabel": "Proje Seçin",
+                "unitLabel": "Ünite Seçin",
+                "projectPlaceholder": "Proje Seçiniz...",
+                "unitPlaceholder": "Ünite Seçiniz...",
+                "projectSearch": "Proje Ara...",
+                "unitSearch": "Ünite Ara...",
+                "projectEmpty": "Proje bulunamadı.",
+                "unitEmpty": "Aradığınız ünite bulunamadı.",
+                "selectProjectFirst": "Önce Proje Seçiniz",
+                "successMatch": "Eşleştirme başarıyla tamamlandı. Durum 'Fırsat' olarak güncellendi.",
+                "successUnmatch": "Eşleştirme kaldırıldı. Durum 'Lead' olarak güncellendi.",
+                "errorMatch": "Eşleştirme sırasında bir hata oluştu.",
+                "errorUnmatch": "İşlem başarısız.",
+                "buttonMatch": "Eşleştir",
+                "buttonUnmatch": "Eşleşmeyi Kaldır",
+                "tooltipChange": "Eşleştirmeyi Değiştir/Kaldır"
+            },
+            "reservation": {
+                "title": "{customerName} için Opsiyon {type}",
+                "typeNew": "Tanımla",
+                "typeEdit": "İptal Et / Güncelle",
+                "warningReserved": "Bu kayıt için halihazırda bir opsiyon bulunmaktadır. Opsiyonu iptal etmek için aşağıdaki \"Opsiyonu Kaldır\" butonunu kullanabilirsiniz.",
+                "expiryDateLabel": "Opsiyon Bitiş Tarihi",
+                "depositLabel": "Kapora Tutarı (Opsiyonel)",
+                "depositHint": "0 girilirse kapora beklenmeden opsiyon kesinleşir.",
+                "successReserve": "Opsiyon başarıyla tanımlandı.",
+                "successCancel": "Opsiyon başarıyla kaldırıldı.",
+                "errorReserve": "İşlem sırasında bir hata oluştu.",
+                "errorCancel": "Opsiyon kaldırılırken bir hata oluştu.",
+                "errorFill": "Lütfen ünite ve tarih seçiniz.",
+                "buttonReserve": "Opsiyonla",
+                "buttonReserved": "Opsiyonlu",
+                "buttonCancel": "Opsiyonu Kaldır",
+                "buttonUpdate": "Opsiyonu Güncelle",
+                "buttonConfirm": "Opsiyonu Onayla",
+                "statusPending": "Kapora Bekleniyor"
+            }
+        }
+    },
+    "Offers": {
+        "title": "Teklif Yönetimi",
+        "table": {
+            "offerNo": "Teklif No",
+            "customer": "Müşteri",
+            "projectUnit": "Proje / Ünite",
+            "price": "Fiyat",
+            "status": "Durum",
+            "validity": "Geçerlilik",
+            "actions": "İşlemler",
+            "empty": "Henüz bir teklif oluşturulmamış."
+        },
+        "status": {
+            "received": "Teklif Geldi",
+            "sent": "Teklif Verildi",
+            "accepted": "Teklif Onaylandı",
+            "draft": "Taslak",
+            "depositPending": "Kapora Bekleniyor",
+            "rejected": "Reddedildi",
+            "pending": "Beklemede"
+        },
+        "actions": {
+            "viewPlan": "Ödeme Planını Gör",
+            "print": "Yazdır",
+            "startContract": "Sözleşme Sürecini Başlat",
+            "negotiate": "Pazarlık",
+            "approve": "Teklifi Onayla",
+            "cancel": "İptal",
+            "yesApprove": "Evet, Onayla",
+            "approving": "Onaylanıyor..."
+        },
+        "dialog": {
+            "planTitle": "Ödeme Planı Detayı",
+            "noPlan": "Bu teklif için ödeme planı bulunamadı.",
+            "type": "Tip",
+            "date": "Tarih",
+            "amount": "Tutar",
+            "total": "Toplam",
+            "downPayment": "Peşinat",
+            "installment": "Taksit",
+            "interim": "Ara Ödeme",
+            "final": "Final Ödeme",
+            "negotiationTitle": "Pazarlık Süreci",
+            "enterProposal": "Yeni Öneri Gir",
+            "proposedPrice": "Önerilen Fiyat",
+            "validUntil": "Geçerlilik Tarihi",
+            "source": "Kaynak",
+            "salesTeam": "Satış Ekibi",
+            "customer": "Müşteri",
+            "notes": "Notlar / Ödeme Planı Özeti",
+            "notesPlaceholder": "Örn: %30 peşinat, kalanı 18 ay vade...",
+            "saveProposal": "Öneriyi Kaydet",
+            "history": "Pazarlık Geçmişi",
+            "loading": "Yükleniyor...",
+            "noHistory": "Henüz bir pazarlık kaydı bulunmuyor.",
+            "customerProposal": "Müşteri Önerisi",
+            "depositOptional": "Alınacak Kapora (Opsiyonel):",
+            "approveWithDeposit": "Kapora ile Onayla",
+            "approveContract": "Onayla & Sözleşme Yap",
+            "approveTitle": "Teklifi Onaylamak İstediğinize Emin Misiniz?",
+            "approveDesc": "Müşteri: {customer}\nÜnite: {unit}",
+            "approveWarning": "Bu işlem teklifi doğrudan 'Kabul Edildi' durumuna getirecektir."
+        },
+        "messages": {
+            "proposalSaved": "Teklif önerisi kaydedildi.",
+            "offerApproved": "Teklif onaylandı!",
+            "error": "Hata oluştu.",
+            "serverError": "Sunucu hatası oluştu.",
+            "historyError": "Geçmiş verileri alınamadı.",
+            "approveConfirm": "Bu teklifi onaylamak istediğinize emin misiniz?",
+            "approveError": "Onaylama sırasında hata oluştu.",
+            "refundProcess": "Kapora ödemesi onaylı olduğu için iade süreci başlatıldı. İade tamamlandığında teklif durumu güncellenecektir."
+        }
+    },
+    "Reports": {
+        "title": "Raporlar & Analiz",
+        "description": "İşletmenizin performansını detaylı raporlar ile analiz edin.",
+        "note": "Not: Raporlar şu an taslak aşamasındadır. Yakında veri tabanınızdaki canlı verilerle grafiksel olarak güncellenecektir.",
+        "cards": {
+            "sales": {
+                "title": "Satış Performansı",
+                "description": "Ciro, adet ve pipeline analizi ile satış hedeflerinizi takip edin."
+            },
+            "inventory": {
+                "title": "Stok & Proje Analizi",
+                "description": "Proje bazlı doluluk, kalan üniteler ve tip bazlı stok dağılımı."
+            },
+            "finance": {
+                "title": "Finansal Analiz & KDV",
+                "description": "Nakit akışı ve vergi yükümlülükleri dökümü."
+            },
+            "loss": {
+                "title": "İptal & Devir Analizi",
+                "description": "Satış kaybı ve cayma oranları incelemesi."
+            },
+            "delivery": {
+                "title": "Teslim Takvimi",
+                "description": "Ünitelerin aylık teslim projeksiyonu."
+            },
+            "activities": {
+                "title": "Saha & Ekip Verimliliği",
+                "description": "Ekip bazlı aktivite sayıları, randevu verimliliği ve performans takibi."
+            }
+        }
+    },
+    "Options": {
+        "title": "Opsiyon Yönetimi",
+        "table": {
+            "projectUnit": "Proje / Ünite",
+            "customer": "Müşteri",
+            "type": "Tip",
+            "price": "Fiyat",
+            "expiry": "Opsiyon Bitiş",
+            "actions": "İşlemler",
+            "empty": "Aktif bir opsiyon kaydı bulunamadı."
+        },
+        "actions": {
+            "createOffer": "Teklif Ver",
+            "viewUnit": "Ünite Detayını Gör",
+            "viewOffer": "Teklif Detayını Gör",
+            "editOption": "Opsiyonu Düzenle"
+        },
+        "dialog": {
+            "title": "Ödeme Planı ve Teklif Oluştur",
+            "editTitle": "Opsiyonu Düzenle",
+            "editDesc": "nolu ünite opsiyon detaylarını güncelleyin",
+            "newExpiry": "Yeni Opsiyon Bitiş Tarihi",
+            "cancel": "İptal",
+            "update": "Güncelle"
+        },
+        "messages": {
+            "offerCreated": "Teklif başarıyla oluşturuldu.",
+            "offerError": "Teklif oluşturulurken bir hata oluştu.",
+            "optionUpdated": "Opsiyon tarihi başarıyla güncellendi.",
+            "updateError": "Bir hata oluştu."
+        }
+    },
+    "Deposits": {
+        "title": "Kapora Yönetimi",
+        "subtitle": "Rezervasyon ve onaylanan tekliflere ait ödeme takibi",
+        "searchPlaceholder": "Müşteri veya Ünite Ara...",
+        "cardTitle": "Bekleyen ve Alınan Ödemeler",
+        "table": {
+            "customer": "Müşteri",
+            "source": "Kaynak",
+            "unit": "Ünite",
+            "amount": "Tutar",
+            "status": "Durum",
+            "date": "Tarih",
+            "actions": "Aksiyon",
+            "loading": "Yükleniyor...",
+            "empty": "Kayıt bulunamadı"
+        },
+        "status": {
+            "reservation": "Rezervasyon",
+            "offer": "Teklif",
+            "paid": "Alındı",
+            "pending": "Bekleniyor",
+            "refundPending": "İade Bekleniyor",
+            "refunded": "İade Edildi",
+            "cancelled": "İptal"
+        },
+        "actions": {
+            "cancel": "İptal",
+            "approve": "Ödeme Onayı",
+            "approveRefund": "İadeyi Onayla"
+        },
+        "confirm": {
+            "approvePayment": "Ödemenin alındığını onaylıyor musunuz? Bu işlem ilgili satış/teklif durumunu otomatik güncelleyecektir.",
+            "approveRefund": "İadenin yapıldığını onaylıyor musunuz? Bu işlem opsiyonu/teklifi tamamen iptal edecektir.",
+            "cancel": "Kaporayı iptal etmek istediğinize emin misiniz?"
+        },
+        "messages": {
+            "approved": "Ödeme onaylandı",
+            "refunded": "İade onaylandı ve işlem iptal edildi",
+            "cancelled": "İşlem iptal edildi"
+        },
+        "info": {
+            "approvedAt": "onaylandı",
+            "refundedAt": "İade Edildi"
+        }
+    },
+    "ServiceRequests": {
+        "title": "Müşteri Destek Talepleri",
+        "subtitle": "Müşterilerinizden gelen teknik destek ve servis bildirimleri.",
+        "status": {
+            "open": "Açık",
+            "inProgress": "İşlemde",
+            "resolved": "Çözüldü",
+            "closed": "Kapalı",
+            "label": "Durum",
+            "select": "Durum Seç"
+        },
+        "empty": {
+            "title": "Henüz bir destek talebi bulunmuyor.",
+            "messages": "Müşteri ile henüz bir yazışma bulunmuyor."
+        },
+        "detail": {
+            "back": "Taleplere Dön",
+            "history": "İletişim Geçmişi",
+            "customerInfo": "Müşteri Bilgileri",
+            "customer": "Müşteri",
+            "requestInfo": "Talep Bilgisi",
+            "requestNo": "Talep No",
+            "created": "Oluşturulma",
+            "priority": "Öncelik",
+            "unknownCustomer": "Bilinmeyen Müşteri",
+            "messages": {
+                "statusUpdated": "Durum güncellendi"
+            }
+        }
+    },
+    "Settings": {
+        "title": "Ayarlar",
+        "subtitle": "Firma bilgilerinizi ve kullanıcılarınızı yönetin.",
+        "tabs": {
+            "profile": "Firma Profili",
+            "users": "Kullanıcılar",
+            "templates": "Ödeme Åablonları"
+        },
+        "profile": {
+            "title": "Firma Bilgileri",
+            "description": "Firma adınızı ve logonuzu güncelleyin.",
+            "name": "Firma Adı",
+            "namePlaceholder": "Örn: ABC Gayrimenkul",
+            "logo": "Firma Logosu",
+            "logoNote": "Logo, raporlarda ve teklif belgelerinde görünecektir.",
+            "license": "Lisans ve Kullanım",
+            "plan": "Mevcut Paket",
+            "expiry": "Bitiş Tarihi",
+            "unlimited": "Süresiz",
+            "capacity": "Kullanıcı Kapasitesi",
+            "save": "Değişiklikleri Kaydet",
+            "saving": "Kaydediliyor...",
+            "success": "Firma bilgileri güncellendi.",
+            "error": "Beklenmedik bir hata oluştu: "
+        },
+        "users": {
+            "title": "Kullanıcı Yönetimi",
+            "description": "Firmadaki tüm kullanıcıları görüntüleyin ve yeni kullanıcılar ekleyin.",
+            "add": "Yeni Kullanıcı Ekle",
+            "createTitle": "Yeni Kullanıcı Ekle",
+            "createDesc": "Kullanıcı hesabı hemen oluşturulacak ve giriş yapabilecektir.",
+            "table": {
+                "name": "Ad Soyad",
+                "email": "E-posta",
+                "role": "Rol",
+                "date": "Kayıt Tarihi",
+                "empty": "Kullanıcı bulunamadı."
+            },
+            "roles": {
+                "admin": "Admin",
+                "owner": "Sahip",
+                "manager": "Yönetici",
+                "user": "Kullanıcı",
+                "userSales": "Kullanıcı (Satış)"
+            },
+            "actions": {
+                "edit": "Düzenle",
+                "delete": "Sil"
+            },
+            "deleteDialog": {
+                "title": "Emin misiniz?",
+                "descriptionPart1": "isimli kullanıcı",
+                "descriptionPart2": "kalıcı olarak silinecektir. Bu işlem geri alınamaz.",
+                "cancel": "Vazgeç",
+                "confirm": "Evet, Sil",
+                "deleting": "Siliniyor..."
+            },
+            "forms": {
+                "name": "Ad Soyad",
+                "email": "E-posta",
+                "password": "Åifre",
+                "role": "Rol",
+                "create": "Kullanıcıyı Oluştur",
+                "creating": "Oluşturuluyor...",
+                "editTitle": "Kullanıcıyı Düzenle",
+                "newPassword": "Yeni Åifre (Opsiyonel)",
+                "passwordPlaceholder": "Değiştirmek için doldurun",
+                "update": "Değişiklikleri Kaydet",
+                "updating": "Güncelleniyor...",
+                "successCreate": "Kullanıcı başarıyla oluşturuldu.",
+                "successUpdate": "Kullanıcı başarıyla güncellendi.",
+                "successDelete": "Kullanıcı silindi."
+            }
+        },
+        "templates": {
+            "title": "Ödeme Planı Åablonları",
+            "description": "Sık kullanılan ödeme planlarını şablon olarak kaydedin.",
+            "new": "Yeni Åablon",
+            "dialog": {
+                "titleNew": "Yeni Ödeme Åablonu",
+                "titleEdit": "Åablonu Düzenle",
+                "descNew": "Peşinat ve taksit oranlarını belirleyin.",
+                "descEdit": "Peşinat ve taksit oranlarını güncelleyin.",
+                "name": "Åablon Adı",
+                "namePlaceholder": "Örn: %50 Peşin Standart",
+                "down": "Peşinat Oranı (%)",
+                "installments": "Taksit Sayısı",
+                "interim": "Ara Ödemeler (Opsiyonel)",
+                "add": "Ekle",
+                "noInterim": "Ara ödeme yok.",
+                "month": "Ay",
+                "rate": "Oran %",
+                "create": "Oluştur",
+                "update": "Güncelle"
+            },
+            "table": {
+                "name": "Åablon Adı",
+                "down": "Peşinat",
+                "installments": "Taksit",
+                "interim": "Ara Ödemeler",
+                "actions": "İşlemler",
+                "empty": "Åablon bulunamadı.",
+                "confirmDelete": "Bu şablonu silmek istediğinize emin misiniz?",
+                "month": "Ay"
+            }
+        }
+    },
+    "Broker": {
+        "dashboard": {
+            "title": "Broker Paneli",
+            "welcome": "Hoş geldiniz",
+            "partner": "PARTNER",
+            "newLead": "Yeni Müşteri",
+            "stats": {
+                "total": "Toplam",
+                "active": "Aktif",
+                "success": "Başarı"
+            },
+            "recent": {
+                "title": "Son Başvurular",
+                "viewAll": "Tümünü Gör",
+                "empty": "Henüz kayıt bulunmuyor."
+            },
+            "status": {
+                "submitted": "Yeni",
+                "visited": "Ziyaret",
+                "contractSigned": "Satış",
+                "reserved": "Rezerve",
+                "process": "Süreçte"
+            },
+            "level": {
+                "target": "Hedef",
+                "progress": "İlerleme",
+                "sales": "Satış",
+                "goalDescPart1": "",
+                "goalDescPart2": "seviyesi için",
+                "goalDescPart3": "satış veya",
+                "goalDescPart4": "hacim hedeflenmelidir."
+            },
+            "quickAccess": {
+                "prices": "Fiyatlar",
+                "catalog": "Katalog"
+            }
+        },
+        "apply": {
+            "title": "Novox Projelerini Satmaya Başlayın",
+            "subtitle": "Dünya çapındaki projelerimize ortak olun, yüksek komisyonlardan yararlanın.",
+            "program": "Novox Partner Programı",
+            "formTitle": "Broker Başvuru Formu",
+            "step1": "E-postanızı doğrulayarak başlayın.",
+            "step2": "Doğrulama kodunu ve bilgilerinizi girin.",
+            "emailLabel": "Kurumsal E-posta Adresiniz",
+            "emailPlaceholder": "ornek@mail.com",
+            "emailNote": "Bu adrese bir doğrulama kodu gönderilecektir.",
+            "sendCode": "Doğrulama Kodu Gönder",
+            "sending": "Kod Gönderiliyor...",
+            "verify": {
+                "title": "E-posta Doğrulama",
+                "desc": "adresine gönderilen 6 haneli kodu girin.",
+                "change": "Değiştir",
+                "codeLabel": "Doğrulama Kodu",
+                "nameLabel": "Ad Soyad",
+                "phoneLabel": "Telefon",
+                "companyLabel": "Åirket/Ajans Adı (Zorunlu Değil)",
+                "notesLabel": "Kısa Tanıtım",
+                "notesPlaceholder": "Portföyünüzden bahsedin...",
+                "submit": "Başvuruyu Tamamla",
+                "submitting": "Doğrulanıyor..."
+            },
+            "success": {
+                "title": "Başvurunuz Alındı!",
+                "message": "E-postanız doğrulandı ve başvurunuz başarıyla kaydedildi. Ekiplerimiz en kısa sürede sizinle iletişime geçecektir.",
+                "back": "Giriş Sayfasına Dön"
+            },
+            "messages": {
+                "codeSent": "Doğrulama kodu e-postanıza gönderildi.",
+                "success": "Başvurunuz başarıyla iletildi."
+            }
+        }
+    },
+    "CustomerPortal": {
+        "sidebar": {
+            "title": "Müşteri Portalı",
+            "overview": "Genel Bakış",
+            "financials": "Ödemelerim",
+            "tracking": "Tapu & Teslimat",
+            "serviceRequests": "Servis Talepleri",
+            "documents": "Belgelerim",
+            "logout": "Güvenli Çıkış"
+        },
+        "dashboard": {
+            "title": "Hoş Geldiniz",
+            "overview": "Genel Bakış",
+            "quickAccess": "Hızlı Erişim",
+            "cards": {
+                "remainingDebt": "Kalan Borç",
+                "nextPayment": "Sonraki Ödeme",
+                "progress": "İnşaat İlerlemesi",
+                "delivery": "Tahmini Teslim",
+                "requests": "Aktif Talepler"
+            },
+            "buttons": {
+                "makePayment": "Ödeme Yap",
+                "viewPlan": "Planı Görüntüle",
+                "newRequest": "Yeni Talep",
+                "viewAll": "Tümünü Gör"
+            },
+            "recentPayments": {
+                "title": "Son Ödemeler",
+                "empty": "Ödeme bulunamadı.",
+                "status": {
+                    "paid": "Ödendi",
+                    "pending": "Bekliyor",
+                    "overdue": "Gecikmiş"
+                }
+            },
+            "projectStatus": {
+                "title": "Proje Durumu",
+                "completed": "Tamamlandı"
+            }
+        }
+    },
+    "PublicLeadForm": {
+        "title": "Yatırım Fırsatları",
+        "description": "Yatırım fırsatları hakkında bilgi almak için formu doldurun.",
+        "brokerInfo": {
+            "authorizedBroker": "Yetkili Broker",
+            "phone": "Telefon",
+            "email": "E-posta"
+        },
+        "form": {
+            "title": "Bilgi Talep Formu",
+            "nameLabel": "Ad Soyad",
+            "namePlaceholder": "Adınız Soyadınız",
+            "phoneLabel": "Telefon Numarası",
+            "phonePlaceholder": "05xx ...",
+            "budgetLabel": "Tahmini Bütçe",
+            "budgetPlaceholder": "100.000 â‚¬ - 250.000 â‚¬",
+            "projectLabel": "İlgilendiğiniz Proje",
+            "projectPlaceholder": "Novox Vadi...",
+            "noteLabel": "Notunuz (Opsiyonel)",
+            "notePlaceholder": "Sorularınız veya özel talepleriniz...",
+            "submit": "Bilgi Al",
+            "submitting": "Gönderiliyor...",
+            "success": "Talebiniz Alındı!",
+            "successDescription": "Bilgileriniz başarıyla iletildi. Uzman danışmanlarımız en kısa sürede sizinle iletişime geçecektir.",
+            "newApplication": "Yeni Başvuru",
+            "privacyPolicy": "Kişisel verileriniz 6698 sayılı KVKK kapsamında korunmaktadır. Göndererek şartları kabul etmiş sayılırsınız."
+        }
+    },
+    "Contracts": {
+        "title": "Sözleşmeler",
+        "description": "Satış sözleşmelerini ve ödeme planlarını yönetin.",
+        "newContract": "Yeni Sözleşme",
+        "table": {
+            "contractNo": "Sözleşme No",
+            "date": "Tarih",
+            "customer": "Müşteri",
+            "projectUnit": "Proje / Ünite",
+            "amount": "Tutar",
+            "status": "Durum",
+            "actions": "İşlemler",
+            "search": "Sözleşme No veya Müşteri ara...",
+            "details": "Detay"
+        },
+        "stats": {
+            "totalSales": "Toplam Satış Bedeli",
+            "totalPaid": "Tahsil Edilen",
+            "pendingAmount": "Bekleyen Ödemeler",
+            "contractCount": "Sözleşme Sayısı"
+        },
+        "status": {
+            "Draft": "Taslak",
+            "Signed": "İmzalandı",
+            "Active": "Aktif",
+            "Completed": "Tamamlandı",
+            "Cancelled": "İptal"
+        }
+    },
+    "Activities": {
+        "title": "Aktiviteler",
+        "newActivity": "Yeni Aktivite",
+        "filters": {
+            "title": "Filtreler",
+            "clear": "Filtreleri Temizle",
+            "view": "Görünüm",
+            "onlyMyActivities": "Sadece Benim Aktivitelerim",
+            "types": "Tipler",
+            "topics": "Konular"
+        },
+        "tabs": {
+            "kanban": "Panolar",
+            "list": "Liste"
+        },
+        "type": {
+            "Call": "Telefon",
+            "Meeting": "Toplantı",
+            "Site Visit": "Ziyaret",
+            "Email": "Email",
+            "Whatsapp": "Whatsapp"
+        },
+        "topic": {
+            "General": "Genel",
+            "Sales": "Satış Görüşmesi",
+            "Negotiation": "Pazarlık / Teklif",
+            "Contract": "Sözleşme Süreci",
+            "Support": "Destek / Talep",
+            "After Sales": "Satış Sonrası",
+            "Collection": "Tahsilat"
+        },
+        "status": {
+            "Pending": "Bekliyor",
+            "In Progress": "Devam Ediyor",
+            "Completed": "Tamamlandı",
+            "Cancelled": "İptal"
+        },
+        "kanban": {
+            "overdue": "Geciken",
+            "today": "Bugün",
+            "tomorrow": "Yarın",
+            "thisWeek": "Bu Hafta",
+            "completed": "Tamamlanan",
+            "noActivity": "Aktivite yok"
+        },
+        "table": {
+            "typeTopic": "Tip / Konu",
+            "customer": "Müşteri",
+            "agent": "Temsilci",
+            "summary": "Özet",
+            "date": "Tarih",
+            "status": "Durum",
+            "empty": "Görüntülenecek aktivite bulunamadı."
+        },
+        "form": {
+            "createTitle": "Yeni Aktivite Planla",
+            "editTitle": "Aktivite Düzenle",
+            "completeTitle": "Aktiviteyi Tamamla",
+            "customer": "Müşteri",
+            "select": "Seçiniz",
+            "topic": "Konu Başlığı (Topic)",
+            "type": "Tip",
+            "date": "Tarih",
+            "summary": "Konu / Özet",
+            "summaryPlaceholder": "Kısa özet...",
+            "description": "Açıklama",
+            "descriptionPlaceholder": "Detaylar...",
+            "outcome": "Sonuç (Outcome)",
+            "notes": "Görüşme Notları",
+            "notesPlaceholder": "Görüşme nasıl geçti...",
+            "nextAction": "Sonraki Adım (Next Action)",
+            "none": "Yok",
+            "save": "Kaydet",
+            "completeAndSave": "Tamamla ve Kaydet",
+            "completingMsg": "aktivitesini tamamlıyorsunuz",
+            "success": {
+                "created": "Aktivite oluşturuldu",
+                "updated": "Aktivite güncellendi",
+                "completed": "Aktivite tamamlandı"
+            },
+            "outcomes": {
+                "Success": "Başarılı / Olumlu",
+                "Reached Interested": "Ulaşıldı - İlgili",
+                "Reached Not Interested": "Ulaşıldı - İlgisiz",
+                "No Answer": "Cevap Yok",
+                "Busy": "Meşgul",
+                "Follow Up Required": "Takip Gerekli"
+            }
+        },
+        "actions": {
+            "complete": "Tamamla",
+            "edit": "Düzenle"
+        }
+    },
+    "Teams": {
+        "title": "Satış Ekipleri",
+        "description": "Ekiplerinizi, bölgelerinizi ve proje atamalarını yönetin.",
+        "newTeam": "Yeni Ekip Oluştur",
+        "createTitle": "Yeni Satış Ekibi",
+        "createDescription": "Ekibin adını ve kapsamını belirleyin.",
+        "editTitle": "Ekibi Düzenle",
+        "name": "Ekip Adı",
+        "namePlaceholder": "Örn: Batı Bölgesi Satış Ekibi",
+        "region": "Bölge",
+        "regionPlaceholder": "Örn: Marmara",
+        "office": "Ofis",
+        "officePlaceholder": "Örn: Merkez Ofis",
+        "descriptionLabel": "Açıklama",
+        "descriptionPlaceholder": "Ekip hakkında kısa bilgi...",
+        "create": "Oluştur",
+        "creating": "Oluşturuluyor...",
+        "update": "Güncelle",
+        "sales": "Satış",
+        "members": "Üyeler",
+        "projects": "Projeler",
+        "deleteConfirm": "Bu ekibi silmek istediğinize emin misiniz?",
+        "manage": "Yönet",
+        "assign": "Ata",
+        "roles": {
+            "leader": "Lider",
+            "member": "Üye"
+        },
+        "memberProps": {
+            "title": "Üye Yönetimi",
+            "addTitle": "Yeni Üye Ekle",
+            "selectUser": "Kullanıcı seçin",
+            "role": "Rol",
+            "add": "Ekle",
+            "adding": "Ekleniyor...",
+            "current": "Mevcut Üyeler",
+            "noMembers": "Henüz üye eklenmemiş.",
+            "leaderBadge": "Ekip Lideri",
+            "memberBadge": "Üye"
+        },
+        "assignmentProps": {
+            "title": "Proje Atamaları",
+            "addTitle": "Yeni Proje Ata",
+            "selectProject": "Proje seçin",
+            "assign": "Ata",
+            "current": "Atanmış Projeler",
+            "noProjects": "Atanmış proje yok."
+        }
+    },
+    "BrokerLeads": {
+        "title": "Müşterilerim",
+        "description": "Tüm başvurularınızın güncel durumunu buradan takip edebilirsiniz.",
+        "newLead": "Yeni Müşteri",
+        "searchPlaceholder": "İsim veya telefon ile ara...",
+        "filter": "Filtrele",
+        "statusTitle": "Durum",
+        "budgetTitle": "Bütçe",
+        "budgetUndefined": "Belirsiz",
+        "emptyLeads": "Henüz müşteri kaydınız yok",
+        "emptyLeadsDesc": "Yeni bir müşteri kaydı oluşturarak süreci başlatabilirsiniz.",
+        "firstLeadButton": "İlk Müşterini Kaydet",
+        "recordNo": "Kayıt No",
+        "currentProcess": "Güncel Süreç",
+        "createdAt": "Oluşturma",
+        "customerInfo": "Müşteri Bilgileri",
+        "phone": "Telefon",
+        "email": "E-posta",
+        "nationality": "Uyruk",
+        "interestedProject": "İlgilendiği Proje",
+        "budgetRange": "Bütçe Aralığı",
+        "whatsappButton": "WhatsApp'tan Yaz",
+        "processHistory": "Süreç Geçmişi",
+        "historyEmpty": "Süreç geçmişi bulunamadı.",
+        "processedBy": "İşlem Yapan",
+        "protectionTitle": "Mülkiyet Koruması",
+        "protectionDesc": "Bu müşteri 60 gün boyunca sizin adınıza rezerve edilmiştir. Başka bir broker tarafından sisteme kaydedilemez.",
+        "protectionRemaining": "Kalan Koruma Süresi",
+        "protectionDays": "{days} Gün",
+        "customerNotes": "Müşteri Notları",
+        "noNotes": "Herhangi bir özel not belirtilmedi.",
+        "status": {
+            "Submitted": "Gönderildi",
+            "Contacted": "Ulaşıldı",
+            "Qualified": "Nitelikli",
+            "Visit Scheduled": "Randevu Alındı",
+            "Visited": "Ziyaret Edildi",
+            "Reserved": "Opsiyonlu",
+            "Offer Sent": "Teklif Verildi",
+            "Contract Signed": "Sözleşme İmzalandı",
+            "Payment / Closing": "Ödeme / Kapanış",
+            "Rejected": "Reddedildi"
+        }
+    },
+    "Campaigns": {
+        "title": "Teşvik & Bonus Kampanyaları",
+        "description": "Broker performansını artıracak aktif ve gelecek kampanyaları yönetin.",
+        "newCampaign": "Yeni Kampanya Oluştur",
+        "activeCampaigns": "Aktif Kampanyalar",
+        "totalDistributed": "Toplam Dağıtılan",
+        "pastPassive": "Geçmiş / Pasif",
+        "tabs": {
+            "active": "Aktif Kampanyalar",
+            "passive": "Geçmiş / Pasifler"
+        },
+        "pastCampaigns": {
+            "title": "Geçmiş Kampanyalar",
+            "description": "Süresi dolmuş veya sonlandırılmış kampanyalar."
+        },
+        "table": {
+            "name": "Kampanya Adı",
+            "project": "Proje",
+            "typeTarget": "Tür / Hedef",
+            "bonusValue": "Bonus Değeri",
+            "dateRange": "Tarih Aralığı",
+            "status": "Durum",
+            "actions": "İşlem",
+            "allProjects": "Tüm Projeler",
+            "empty": "Bu listede kampanya bulunmuyor."
+        },
+        "types": {
+            "Visits": "Ziyaret",
+            "Volume": "â‚º Hacim",
+            "Unit Sales": "Adet",
+            "Special": "Özel Bonus"
+        },
+        "labels": {
+            "target": "Hedef"
+        },
+        "form": {
+            "title": "Yeni Teşvik Kampanyası",
+            "description": "Brokerları motive edecek yeni bir ödül veya bonus programı başlatın.",
+            "basicInfo": "Temel Bilgiler",
+            "name": "Kampanya Adı *",
+            "namePlaceholder": "Örn: Bahar Lansmanı Özel Bonusu",
+            "terms": "Açıklama / Åartlar",
+            "termsPlaceholder": "Kampanya detaylarını ve katılım şartlarını yazın...",
+            "project": "Geçerli Proje",
+            "type": "Kampanya Türü",
+            "select": "Seçiniz",
+            "targetReward": "Hedef ve Ödül",
+            "bonusAmount": "Bonus Tutarı (â‚º) *",
+            "targetCount": "Hedef Sayı (Opsiyonel)",
+            "targetCountPlaceholder": "Örn: 3 satış",
+            "startDate": "Başlangıç Tarihi",
+            "endDate": "Bitiş Tarihi",
+            "cancel": "Vazgeç",
+            "submit": "Kampanyayı Yayınla",
+            "errors": {
+                "required": "Lütfen zorunlu alanları doldurun."
+            },
+            "success": "Kampanya başarıyla oluşturuldu.",
+            "editTitle": "Kampanyayı Düzenle",
+            "editDesc": "{name} kampanyasının detaylarını güncelleyin.",
+            "update": "Güncelle",
+            "updateSuccess": "Kampanya güncellendi."
+        },
+        "status": {
+            "active": "Aktif",
+            "passive": "Pasif"
+        },
+        "actions": {
+            "confirmEnd": "Bu kampanyayı sonlandırmak istediğinize emin misiniz?",
+            "successEnd": "Kampanya sonlandırıldı.",
+            "menuTitle": "İşlemler",
+            "edit": "Düzenle",
+            "end": "Kampanyayı Bitir"
+        }
+    },
+    "CommissionSettings": {
+        "title": "Komisyon Ayarları",
+        "description": "Proje bazlı komisyon modellerini ve kademeli (tier) yapıları yönetin.",
+        "newModel": "Yeni Model Ekle",
+        "tabs": {
+            "active": "Aktif Modeller",
+            "archived": "Süresi Bitenler / Pasif"
+        },
+        "activeTitle": "Aktif Komisyon Modelleri",
+        "activeDescription": "Åu anda geçerli olan ve satışlarda uygulanan modeller.",
+        "archivedTitle": "Arşivlenmiş Modeller",
+        "archivedDescription": "Süresi dolmuş veya manuel olarak kapatılmış modeller.",
+        "table": {
+            "name": "Model Adı",
+            "project": "Proje",
+            "validity": "Geçerlilik",
+            "type": "Tür",
+            "standardValue": "Standart Değer",
+            "actions": "İşlem",
+            "allProjects": "Tüm Projeler",
+            "start": "Başlangıç",
+            "end": "Bitiş",
+            "indefinite": "Süresiz",
+            "details": "Detaylar",
+            "empty": "Bu kategoride model bulunamadı."
+        },
+        "types": {
+            "Tiered": "Kademeli (Tier)",
+            "Flat": "Sabit",
+            "Flat %": "Sabit Oran (%)",
+            "Flat Amount": "Sabit Tutar (TL/Döviz)",
+            "Unit Based %": "Ünite Bazlı Oran (%)",
+            "Unit Based Amount": "Ünite Bazlı Tutar (TL/Döviz)",
+            "Project Based %": "Proje Bazlı Oran (%)"
+        },
+        "typeDescriptions": {
+            "Flat %": "Her satıştan sabit bir yüzde oranında komisyon hesaplanır.",
+            "Flat Amount": "Her satıştan sabit bir parasal tutar (Örn: 10.000 TL) komisyon hesaplanır.",
+            "Tiered": "Belirlediğiniz satış hedeflerine ulaşıldıkça komisyon oranı değişir. Kademeleri (tiers) kayıttan sonra 'Detaylar' sayfasından ekleyebilirsiniz.",
+            "Unit Based %": "Ünite tipine (1+1, 2+1 vb.) göre özelleştirilmiş yüzdelik komisyon oranları uygulanır.",
+            "Unit Based Amount": "Ünite tipine (1+1, 2+1 vb.) göre özelleştirilmiş sabit komisyon tutarları uygulanır.",
+            "Project Based %": "Tüm projeyi kapsayan özel bir komisyon oranıdır."
+        },
+        "info": {
+            "tierTitle": "Kademeli (Tier) Mantığı Nedir?",
+            "tierDesc": "Brokerların yaptığı toplam satış adedine göre değişen komisyon oranları belirleyebilirsiniz.",
+            "dateTitle": "Geçerlilik Tarihleri",
+            "dateDesc": "Komisyon modelleriniz için başlangıç ve bitiş tarihleri belirleyebilirsiniz. Bitiş tarihi geçen modeller otomatik olarak \"Pasif\" duruma geçer ve yeni satışlarda hesaplamaya katılmaz."
+        },
+        "form": {
+            "title": "Yeni Komisyon Modeli",
+            "description": "Proje veya birim bazlı komisyon kuralları tanımlayın.",
+            "basicInfo": "Model Tanımı",
+            "name": "Model Adı *",
+            "namePlaceholder": "Örn: Kademeli Satış Modeli v1",
+            "project": "Geçerli Proje",
+            "type": "Model Türü",
+            "select": "Seçiniz",
+            "valueConditions": "Değer ve Koşullar",
+            "baseRate": "Başlangıç (Base) Oranı *",
+            "standardRate": "Standart Oran / Değer *",
+            "currency": "Para Birimi",
+            "paymentStage": "Ödeme Sahnesi",
+            "paymentTerms": "Vergi / Yasal Durum",
+            "startDate": "Başlangıç Tarihi",
+            "endDate": "Bitiş Tarihi",
+            "endDateHint": "Bu tarihten sonra model otomatik olarak \"Süresi Bitenler\" listesine alınır.",
+            "baseRateHint": "Herhangi bir kademeye girilmediğinde kullanılacak varsayılan oran.",
+            "standardRateHint": "Satış başı uygulanacak değer.",
+            "cancel": "Vazgeç",
+            "submit": "Modeli Kaydet",
+            "errors": {
+                "required": "Lütfen zorunlu alanları doldurun.",
+                "negative": "Değer negatif olamaz.",
+                "percentage": "Yüzdelik oran 100'den büyük olamaz. Sabit tutar girmek istiyorsanız \"Sabit Tutar\" veya \"Ünite Bazlı Tutar\" seçeneğini kullanın."
+            },
+            "success": "Komisyon modeli başarıyla oluşturuldu."
+        },
+        "detail": {
+            "title": "Model Detayları",
+            "description": "Model detayları ve yapılandırma.",
+            "errorTitle": "Hata: Model Bulunamadı veya Erişim Engellendi",
+            "serverMessage": "Sunucu Mesajı",
+            "errorCode": "Hata Kodu",
+            "rlsHint": "Lütfen RLS kurallarının doğru uygulandığından emin olun.",
+            "backToList": "Listeye Dön",
+            "relatedProject": "İlişkili Proje",
+            "modelType": "Model Tipi",
+            "baseRate": "Baz Oranı",
+            "standardRate": "Standart Oran",
+            "processConditions": "Süreç Koşulları",
+            "paymentStage": "Ödeme Aşaması",
+            "taxStatus": "Vergi/Yasal Durum",
+            "createdDate": "Oluşturulma Tarihi"
+        },
+        "actions": {
+            "archiveSuccess": "Model başarıyla arşivlendi.",
+            "archiveError": "Arşivlenemedi.",
+            "deleteSuccess": "Model kalıcı olarak silindi.",
+            "archiveButton": "Arşivle / Pasife Al",
+            "archiveTitle": "Modeli Arşivle?",
+            "archiveDesc": "\"{name}\" isimli model pasife alınacak ve \"Süresi Bitenler\" listesine taşınacaktır. Yeni satışlarda kullanılmayacak ancak geçmiş veriler korunacaktır.",
+            "cancel": "Vazgeç",
+            "archive": "Arşivle",
+            "deleteButton": "Sil",
+            "deleteTitle": "Kalıcı Olarak Sil?",
+            "deleteDesc": "DİKKAT: Bu işlem geri alınamaz!",
+            "deleteWarning": "Eğer bu model geçmişte herhangi bir satışta kullanıldıysa silme işlemi reddedilecektir. Bu durumda \"Arşivle\" seçeneğini kullanmalısınız.",
+            "delete": "Sil",
+            "loading": "Siliniyor..."
+        },
+        "tiers": {
+            "title": "Komisyon Kademeleri (Tiers)",
+            "description": "Satış adetlerine göre otomatik uygulanacak oranları belirleyin.",
+            "notTiered": "Bu model kademeli (tiered) bir yapı kullanmıyor.",
+            "minSales": "Min. Satış",
+            "maxSales": "Max. Satış (Opsiyonel)",
+            "rateValue": "Oran/Değer",
+            "add": "Ekle",
+            "table": {
+                "min": "Min Satış",
+                "max": "Max Satış",
+                "commissionRate": "Komisyon Oranı",
+                "commissionAmount": "Komisyon Tutarı",
+                "actions": "İşlem",
+                "empty": "Henüz bir kademe tanımlanmadı."
+            },
+            "info": "Sistem, satış yapıldığında broker'ın ilgili projedeki toplam başarılı satış adedini kontrol ederek en uygun kademeyi otomatik seçer.",
+            "confirmDelete": "Bu kademeyi silmek istediğinize emin misiniz?",
+            "successAdd": "Kademe eklendi.",
+            "successDelete": "Kademe silindi.",
+            "errorDelete": "Silinemedi."
+        },
+        "unitRules": {
+            "title": "Ünite Bazlı Komisyon Kuralları",
+            "description": "Ünite tiplerine göre özel komisyon oranları belirleyin.",
+            "unitType": "Ünite Tipi",
+            "rateValue": "Oran/Değer",
+            "add": "Ekle",
+            "table": {
+                "type": "Ünite Tipi",
+                "commissionRate": "Komisyon Oranı",
+                "commissionAmount": "Komisyon Tutarı",
+                "actions": "İşlem",
+                "empty": "Henüz bir kural tanımlanmadı."
+            },
+            "info": "Burada tanımlanan kurallar, \"Standart Oran\" yerine geçer. Eğer satılan ünite tipi listede yoksa standart oran uygulanır.",
+            "confirmDelete": "Bu kuralı silmek istediğinize emin misiniz?",
+            "successAdd": "Kural eklendi.",
+            "successDelete": "Kural silindi.",
+            "errorDelete": "Silinemedi.",
+            "errors": {
+                "required": "Lütfen ünite tipi ve oran giriniz."
+            }
+        },
+        "paymentStages": {
+            "Contract Signed": "Sözleşme İmzalandığında",
+            "Payment Received": "Ödeme Alındığında",
+            "Delivery": "Teslimatta"
+        },
+        "terms": {
+            "Net": "Net",
+            "Brut": "Brüt"
+        }
+    },
+    "BrokerLevels": {
+        "title": "Broker Seviye Ayarları",
+        "description": "Brokerların performansına göre otomatik kazanacağı ünvanları yönetin.",
+        "addLevel": "Yeni Seviye Ekle",
+        "labels": {
+            "minSalesCount": "Min. Satış Adedi",
+            "minSalesVolume": "veya Hacim",
+            "minSalesVolumeOnly": "Min. Satış Hacmi",
+            "levelName": "Seviye Adı (Ünvan)",
+            "color": "Renk",
+            "icon": "İkon"
+        },
+        "form": {
+            "editTitle": "Seviyeyi Düzenle",
+            "createTitle": "Yeni Seviye Oluştur",
+            "namePlaceholder": "Örn: Diamond Broker",
+            "save": "Kaydet",
+            "saving": "Kaydediliyor..."
+        },
+        "icons": {
+            "User": "Kullanıcı",
+            "Award": "Ödül",
+            "Star": "Yıldız",
+            "Crown": "Taç",
+            "Trophy": "Kupa",
+            "Target": "Hedef"
+        },
+        "messages": {
+            "updateSuccess": "Seviye güncellendi",
+            "createSuccess": "Seviye oluşturuldu",
+            "deleteSuccess": "Seviye silindi",
+            "confirmDelete": "Bu seviyeyi silmek istediğinize emin misiniz?"
+        }
+    },
+    "BrokerFinances": {
+        "title": "Finansal Yönetim",
+        "description": "Broker komisyonları, teşvik kazançları ve ödeme süreçlerini yönetin.",
+        "stats": {
+            "totalBalance": "Toplam Bakiye (Ödenecek)",
+            "totalPaid": "Ödenen Toplam",
+            "totalEarned": "Hak Edilen Toplam",
+            "activeBrokers": "Aktif Broker Sayısı",
+            "toPay": "Ödenmesi Beklenen",
+            "activeProcesses": "Aktif Süreçler",
+            "salesAndIncentives": "Satış ve Teşvik"
+        },
+        "table": {
+            "title": "Broker Bazlı Bakiyeler",
+            "desc": "Ödeme bekleyen ve tamamlanan tüm finansal kayıtların özeti.",
+            "brokerInfo": "Broker Bilgileri",
+            "level": "Partner Seviyesi",
+            "totalEarned": "Toplam Hak Ediş",
+            "totalPaid": "Toplam Ödenen",
+            "balance": "Güncel Bakiye",
+            "actions": "İşlemler",
+            "details": "Detaylar",
+            "empty": "Henüz finansal kayıt bulunmamaktadır.",
+            "headers": {
+                "detail": "Detay",
+                "date": "Tarih",
+                "amount": "Tutar",
+                "status": "Durum"
+            },
+            "status": {
+                "Paid": "Ödendi",
+                "Eligible": "Hakedildi",
+                "Approved": "Onaylandı"
+            },
+            "noRecords": "Kayıt bulunamadı."
+        },
+        "excel": {
+            "export": "Dışarı Aktar (Excel)",
+            "bulkImport": "Toplu Ödeme Yükle",
+            "dialogTitle": "Excel ile Ödeme Yükle",
+            "dialogDesc": "Birden fazla brokera ait ödeme kayıtlarını Excel dosyası ile toplu olarak yükleyebilirsiniz.",
+            "note": "Önemli Not",
+            "noteDesc": "Yüklediğiniz ödeme tutarları, ilgili brokerın en eski hakedişinden (Eligible) başlanarak otomatik olarak eşleştirilir ve durumları \"Ödendi\" olarak güncellenir.",
+            "downloadTemplate": "Ödeme Åablonunu İndir",
+            "selectFile": "Excel Dosyası Seçin",
+            "processing": "İşleniyor...",
+            "importSuccess": "{processedCount} ödeme başarıyla işlendi. ({errorCount} hata)",
+            "sheetNames": {
+                "financeSummary": "Finans Özeti",
+                "paymentTemplate": "Ödeme Åablonu"
+            },
+            "headers": {
+                "brokerName": "Broker Adı",
+                "email": "Email",
+                "level": "Seviye",
+                "totalEarned": "Hakedilen Toplam (â‚º)",
+                "totalPaid": "Ödenen Toplam (â‚º)",
+                "balance": "Bakiye (â‚º)",
+                "paymentAmount": "Ödeme Tutarı",
+                "paymentMethod": "Ödeme Yöntemi",
+                "referenceNo": "Referans No",
+                "note": "Not"
+            }
+        },
+        "recordPayment": {
+            "button": "Ödeme Girişi Yap",
+            "title": "Yeni Ödeme Kaydı",
+            "desc": "Brokerın hakedişlerini kapatmak için ödeme bilgilerini girin.",
+            "labels": {
+                "selection": "Hakediş Seçimi",
+                "totalAmount": "Toplam Ödeme",
+                "method": "Ödeme Yöntemi",
+                "reference": "Referans / Dekont No",
+                "notes": "Notlar"
+            },
+            "placeholders": {
+                "method": "örn: Banka Transferi, Nakit",
+                "reference": "Bankanın verdiği referans numarası",
+                "notes": "Ödeme ile ilgili notlar..."
+            },
+            "emptyList": "Ödeme bekleyen hakediş bulunmuyor.",
+            "confirm": "Ödemeyi Onayla",
+            "cancel": "İptal",
+            "errorNoSelection": "Lütfen en az bir kalem seçin.",
+            "success": "Ödeme kaydı başarıyla oluşturuldu."
+        },
+        "details": {
+            "commissions": "Satış Komisyonları",
+            "incentives": "Teşvik Kazançları",
+            "paymentHistory": "Ödeme Geçmişi",
+            "noPayments": "Henüz ödeme yapılmamış.",
+            "earnedIncentive": "Kazanılan Teşvik",
+            "incentive": "Teşvik"
+        }
+    },
+    "BrokerApplications": {
+        "title": "Broker Yönetimi",
+        "description": "Broker başvurularını ve onaylı partner listesini yönetin.",
+        "stats": {
+            "pendingApps": "Bekleyen Başvurular",
+            "activeBrokers": "Aktif Brokerlar",
+            "totalApps": "Toplam Başvuru"
+        },
+        "tabs": {
+            "applications": "Gelen Başvurular",
+            "brokers": "Onaylı Brokerlar"
+        },
+        "list": {
+            "applicationsTitle": "Gelen Başvurular",
+            "applicationsDesc": "Yeni iş ortaklığı taleplerini inceleyin ve onaylayın.",
+            "brokersTitle": "Onaylı Broker Listesi",
+            "brokersDesc": "Sistemdeki yetkili broker kullanıcıları.",
+            "unregistered": "Hesap Oluşturulmadı",
+            "pendingSignup": "Kayıt Bekleniyor",
+            "waitingUser": "Kullanıcı kaydı bekleniyor",
+            "noSlug": "Slug belirlenmemiş"
+        },
+        "table": {
+            "headers": {
+                "brokerInfo": "Broker Bilgileri",
+                "contact": "İletişim",
+                "company": "Firma",
+                "date": "Tarih",
+                "status": "Durum",
+                "actions": "İşlemler",
+                "fullName": "Ad Soyad",
+                "level": "Seviye (Partner)",
+                "signupDate": "Kayıt Tarihi"
+            },
+            "status": {
+                "Pending": "Bekliyor",
+                "Approved": "Onaylandı",
+                "Rejected": "Reddedildi",
+                "Active": "Aktif",
+                "Passive": "Pasif"
+            },
+            "empty": {
+                "applications": "Henüz başvuru bulunmamaktadır.",
+                "brokers": "Henüz onaylı broker bulunmamaktadır."
+            },
+            "processedOn": "{date} tarihinde işlendi"
+        },
+        "actions": {
+            "approve": "Onayla",
+            "reject": "Reddet",
+            "confirmRejectTitle": "Başvuruyu Reddet",
+            "confirmRejectDesc": "Bu başvuruyu reddetmek istediğinize emin misiniz? Bu işlem geri alınamaz.",
+            "cancel": "Vazgeç",
+            "yesReject": "Evet, Reddet",
+            "successApprove": "Başvuru onaylandı",
+            "successReject": "Başvuru reddedildi",
+            "menuTitle": "İşlemler",
+            "changeLevel": "Seviye Değiştir",
+            "setPassword": "Åifre Belirle",
+            "deactivate": "Pasife Al",
+            "activate": "Aktif Et",
+            "statusFeedback": {
+                "activated": "Broker aktif edildi.",
+                "deactivated": "Broker pasife alındı."
+            },
+            "levelFeedback": "Broker seviyesi güncellendi.",
+            "passwordFeedback": "Broker şifresi güncellendi.",
+            "errorGeneral": "Bir hata oluştu.",
+            "passwordMinLength": "Åifre en az 6 karakter olmalıdır.",
+            "openMenu": "Menüyü aç"
+        },
+        "dialogs": {
+            "level": {
+                "title": "Broker Seviyesini Değiştir",
+                "desc": "Bu broker için yeni bir partner seviyesi belirleyin. Bu işlem otomatik seviye hesaplamasını geçersiz kılabilir.",
+                "placeholder": "Seviye Seçin",
+                "save": "Kaydet",
+                "updating": "Güncelleniyor..."
+            },
+            "password": {
+                "title": "Åifre Belirle",
+                "desc": "Bu broker için yeni bir giriş şifresi belirleyin.",
+                "placeholder": "Yeni Åifre",
+                "hint": "En az 6 karakter olmalıdır.",
+                "save": "Åifreyi Kaydet",
+                "setting": "Ayarlanıyor..."
+            }
+        },
+        "reminder": {
+            "button": "Hatırlat",
+            "sent": "Gönderildi",
+            "success": "Hatırlatma e-postası gönderildi"
+        }
+    }
+}

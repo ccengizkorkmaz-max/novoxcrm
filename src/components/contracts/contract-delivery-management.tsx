@@ -10,7 +10,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
-import { updateContractDeliveryDetails } from '@/app/(dashboard)/contracts/actions'
+import { updateContractDeliveryDetails } from '@/app/[locale]/(dashboard)/contracts/actions'
 import { toast } from 'sonner'
 import { Truck, FileCheck, Save, Loader2 } from 'lucide-react'
 

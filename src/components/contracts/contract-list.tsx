@@ -15,13 +15,16 @@ import { Badge } from '@/components/ui/badge'
 import { Search, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import { format } from 'date-fns'
-import { tr } from 'date-fns/locale'
+import { tr, enUS } from 'date-fns/locale'
+import { useTranslations, useLocale } from 'next-intl'
 
 interface ContractListProps {
     initialContracts: any[]
 }
 
 export function ContractList({ initialContracts }: ContractListProps) {
+    const t = useTranslations('Contracts.table')
+    const locale = useLocale()
     const [searchTerm, setSearchTerm] = useState('')
     const [contracts, setContracts] = useState(initialContracts)
 
@@ -36,7 +39,7 @@ export function ContractList({ initialContracts }: ContractListProps) {
                 <div className="relative flex-1">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
-                        placeholder="Sözleşme No veya Müşteri ara..."
+                        placeholder={t('search')}
                         className="pl-8"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
@@ -48,20 +51,20 @@ export function ContractList({ initialContracts }: ContractListProps) {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Sözleşme No</TableHead>
-                            <TableHead>Tarih</TableHead>
-                            <TableHead>Müşteri</TableHead>
-                            <TableHead>Proje / Ünite</TableHead>
-                            <TableHead>Tutar</TableHead>
-                            <TableHead>Durum</TableHead>
-                            <TableHead className="text-right">İşlemler</TableHead>
+                            <TableHead>{t('contractNo')}</TableHead>
+                            <TableHead>{t('date')}</TableHead>
+                            <TableHead>{t('customer')}</TableHead>
+                            <TableHead>{t('projectUnit')}</TableHead>
+                            <TableHead>{t('amount')}</TableHead>
+                            <TableHead>{t('status')}</TableHead>
+                            <TableHead className="text-right">{t('actions')}</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {filteredContracts.map((contract) => (
                             <TableRow key={contract.id}>
                                 <TableCell className="font-medium">{contract.contract_number}</TableCell>
-                                <TableCell>{format(new Date(contract.contract_date), 'd MMM yyyy', { locale: tr })}</TableCell>
+                                <TableCell>{format(new Date(contract.contract_date), 'd MMM yyyy', { locale: locale === 'en' ? enUS : tr })}</TableCell>
                                 <TableCell>
                                     <div className="flex flex-col">
                                         {contract.customers?.map((c: any, i: number) => (
@@ -74,14 +77,14 @@ export function ContractList({ initialContracts }: ContractListProps) {
                                     <div className="font-medium">{contract.unit?.block} / {contract.unit?.unit_number}</div>
                                 </TableCell>
                                 <TableCell>
-                                    {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: contract.currency || 'TRY' }).format(contract.total_amount)}
+                                    {new Intl.NumberFormat(locale === 'en' ? 'en-US' : 'tr-TR', { style: 'currency', currency: contract.currency || 'TRY' }).format(contract.total_amount)}
                                 </TableCell>
                                 <TableCell>
                                     <StatusBadge status={contract.status} />
                                 </TableCell>
                                 <TableCell className="text-right">
                                     <Button variant="ghost" size="sm" asChild>
-                                        <Link href={`/contracts/${contract.id}`}>Detay</Link>
+                                        <Link href={`/contracts/${contract.id}`}>{t('details')}</Link>
                                     </Button>
                                 </TableCell>
                             </TableRow>
@@ -94,6 +97,7 @@ export function ContractList({ initialContracts }: ContractListProps) {
 }
 
 function StatusBadge({ status }: { status: string }) {
+    const t = useTranslations('Contracts.status')
     const styles: Record<string, string> = {
         'Draft': 'bg-gray-100 text-gray-800',
         'Signed': 'bg-blue-100 text-blue-800',
@@ -102,18 +106,9 @@ function StatusBadge({ status }: { status: string }) {
         'Cancelled': 'bg-red-100 text-red-800',
     }
 
-    // Turkish translations
-    const labels: Record<string, string> = {
-        'Draft': 'Taslak',
-        'Signed': 'İmzalandı',
-        'Active': 'Aktif',
-        'Completed': 'Tamamlandı',
-        'Cancelled': 'İptal',
-    }
-
     return (
         <Badge variant="secondary" className={`font-normal ${styles[status] || 'bg-gray-100'}`}>
-            {labels[status] || status}
+            {t(status as any)}
         </Badge>
     )
 }
