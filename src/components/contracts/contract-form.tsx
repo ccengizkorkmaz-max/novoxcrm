@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { PaymentPlanEditor } from './payment-plan-editor'
-import { createContract } from '@/app/(dashboard)/contracts/actions' // We need to update this actions file to handle the complex payload
+import { createContract } from '@/app/[locale]/(dashboard)/contracts/actions' // We need to update this actions file to handle the complex payload
 import { toast } from 'sonner'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Loader2 } from 'lucide-react'

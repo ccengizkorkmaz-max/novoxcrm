@@ -13,7 +13,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { createOffer } from '@/app/(dashboard)/offers/actions'
+import { createOffer } from '@/app/[locale]/(dashboard)/offers/actions'
 
 interface CreateOfferDialogProps {
     customers: any[]
