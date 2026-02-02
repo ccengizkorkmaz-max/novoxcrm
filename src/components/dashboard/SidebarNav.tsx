@@ -19,7 +19,8 @@ import {
     Settings2,
     Trophy,
     ChevronDown,
-    Clock
+    Clock,
+    Zap
 } from 'lucide-react'
 import {
     Accordion,
@@ -27,6 +28,7 @@ import {
     AccordionItem,
     AccordionTrigger,
 } from "@/components/ui/accordion"
+import { Badge } from "@/components/ui/badge"
 
 interface NavItemProps {
     href: string
@@ -63,6 +65,12 @@ export function SidebarNav({ onElementClick }: { onElementClick?: () => void }) 
         <nav className="grid items-start px-2 text-sm font-medium lg:px-4 gap-1">
             <NavItem href="/" icon={LayoutDashboard} onClick={onElementClick}>
                 {t('overview')}
+            </NavItem>
+            <NavItem href="/quick-crm" icon={Zap} onClick={onElementClick}>
+                <span className="flex items-center gap-2">
+                    {t('quickCRM')}
+                    <Badge className="h-4 px-1 text-[8px] bg-yellow-500 hover:bg-yellow-600">NEW</Badge>
+                </span>
             </NavItem>
             <NavItem href="/projects" icon={Building2} onClick={onElementClick}>
                 {t('projects')}

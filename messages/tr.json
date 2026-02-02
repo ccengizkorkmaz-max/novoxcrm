@@ -412,6 +412,7 @@
     },
     "Sidebar": {
         "overview": "Genel Bakış",
+        "quickCRM": "Hızlı CRM (Komuta Merkezi)",
         "projects": "Projeler",
         "inventory": "Stok Yönetimi",
         "customers": "Müşteriler",
@@ -566,7 +567,8 @@
             "features": {
                 "masterBath": "Ebeveyn Banyosu Var",
                 "builtinKitchen": "Ankastre Mutfak Var"
-            }
+            },
+            "search": "Ünite Ara..."
         },
         "stats": {
             "total": "Toplam Stok",
@@ -666,124 +668,6 @@
             "City": "Şehir",
             "Pool": "Havuz",
             "Park": "Park"
-        },
-        "CRM": {
-            "title": "CRM & Satış Yönetimi",
-            "filter": {
-                "button": "Filtrele",
-                "title": "CRM Filtreleri",
-                "description": "Satış ve aday listesini detaylı kriterlere göre daraltın.",
-                "search": "Müşteri / Ünite Ara",
-                "searchPlaceholder": "İsim veya ünite no...",
-                "project": "Proje",
-                "allProjects": "Tüm Projeler",
-                "rep": "Satış Temsilcisi",
-                "allTeam": "Tüm Ekip",
-                "status": "Statü",
-                "allStatuses": "Tüm Statüler",
-                "apply": "Filtreleri Uygula",
-                "reset": "Filtreleri Sıfırla"
-            },
-            "newSale": {
-                "button": "Yeni Satış Başlat",
-                "title": "Yeni Satış / Fırsat",
-                "customer": "Müşteri",
-                "project": "Proje",
-                "unit": "İlgilenilen Ünite",
-                "selectCustomer": "Müşteri Seçiniz...",
-                "searchCustomer": "Müşteri Ara...",
-                "selectProject": "Proje Seçiniz...",
-                "searchProject": "Proje Ara...",
-                "selectUnit": "Ünite Seçiniz...",
-                "searchUnit": "Ünite Ara...",
-                "selectProjectFirst": "Önce Proje Seçiniz",
-                "note": "* Ünite seçildiği için kayıt otomatik olarak Fırsat statüsünde oluşturulacaktır.",
-                "create": "Oluştur",
-                "customerNotFound": "Müşteri bulunamadı.",
-                "projectNotFound": "Proje bulunamadı.",
-                "unitNotFound": "Ünite bulunamadı.",
-                "poweredBy": "NovoxCRM tarafından desteklenmektedir"
-            },
-            "stats": {
-                "Lead": "Lead",
-                "Prospect": "Fırsat",
-                "Reservation": "Opsiyon",
-                "Proposal": "Teklif",
-                "Negotiation": "Pazarlık",
-                "Sold": "Satıldı",
-                "Completed": "Kazanıldı",
-                "Lost": "Kayıp"
-            },
-            "table": {
-                "customer": "Müşteri",
-                "projectUnit": "Proje / Ünite",
-                "status": "Durum",
-                "date": "Tarih",
-                "amount": "Tutar",
-                "rep": "Temsilci",
-                "actions": "İşlemler",
-                "empty": "Aktif satış bulunamadı.",
-                "unitNotSelected": "Ünite Seçilmedi"
-            },
-            "actions": {
-                "autoAssign": "Otomatik Ata",
-                "assigning": "Atanıyor...",
-                "assignTooltip": "Ekibe otomatik ata",
-                "assignError": "Önce bir ünite/proje seçilmelidir",
-                "paymentPlan": "Ödeme Planı Hesapla",
-                "paymentPlanTitle": "Ödeme Planı Hesapla",
-                "won": "Kazanıldı"
-            },
-            "status": {
-                "Lead": "Lead",
-                "Prospect": "Fırsat",
-                "Reservation": "Opsiyonlu",
-                "OptionPending": "Opsiyon - Kapora Bekleniyor",
-                "Proposal": "Teklif Verildi",
-                "ProposalPending": "Teklif - Kapora Bekleniyor",
-                "Negotiation": "Pazarlık",
-                "Sold": "Teklif Onaylandı",
-                "Lost": "Kaybedildi"
-            },
-            "matchUnit": {
-                "title": "{customerName} için Ünite Eşleştir",
-                "projectLabel": "Proje Seçin",
-                "unitLabel": "Ünite Seçin",
-                "projectPlaceholder": "Proje Seçiniz...",
-                "unitPlaceholder": "Ünite Seçiniz...",
-                "projectSearch": "Proje Ara...",
-                "unitSearch": "Ünite Ara...",
-                "projectEmpty": "Proje bulunamadı.",
-                "unitEmpty": "Aradığınız ünite bulunamadı.",
-                "selectProjectFirst": "Önce Proje Seçiniz",
-                "successMatch": "Eşleştirme başarıyla tamamlandı. Durum 'Fırsat' olarak güncellendi.",
-                "successUnmatch": "Eşleştirme kaldırıldı. Durum 'Lead' olarak güncellendi.",
-                "errorMatch": "Eşleştirme sırasında bir hata oluştu.",
-                "errorUnmatch": "İşlem başarısız.",
-                "buttonMatch": "Eşleştir",
-                "buttonUnmatch": "Eşleşmeyi Kaldır",
-                "tooltipChange": "Eşleştirmeyi Değiştir/Kaldır"
-            },
-            "reservation": {
-                "title": "{customerName} için Opsiyon {type}",
-                "typeNew": "Tanımla",
-                "typeEdit": "İptal Et / Güncelle",
-                "warningReserved": "Bu kayıt için halihazırda bir opsiyon bulunmaktadır. Opsiyonu iptal etmek için aşağıdaki \"Opsiyonu Kaldır\" butonunu kullanabilirsiniz.",
-                "expiryDateLabel": "Opsiyon Bitiş Tarihi",
-                "depositLabel": "Kapora Tutarı (Opsiyonel)",
-                "depositHint": "0 girilirse kapora beklenmeden opsiyon kesinleşir.",
-                "successReserve": "Opsiyon başarıyla tanımlandı.",
-                "successCancel": "Opsiyon başarıyla kaldırıldı.",
-                "errorReserve": "İşlem sırasında bir hata oluştu.",
-                "errorCancel": "Opsiyon kaldırılırken bir hata oluştu.",
-                "errorFill": "Lütfen ünite ve tarih seçiniz.",
-                "buttonReserve": "Opsiyonla",
-                "buttonReserved": "Opsiyonlu",
-                "buttonCancel": "Opsiyonu Kaldır",
-                "buttonUpdate": "Opsiyonu Güncelle",
-                "buttonConfirm": "Opsiyonu Onayla",
-                "statusPending": "Kapora Bekleniyor"
-            }
         }
     },
     "Offers": {
@@ -1004,7 +888,7 @@
         "tabs": {
             "profile": "Firma Profili",
             "users": "Kullanıcılar",
-            "templates": "Ödeme Åablonları"
+            "templates": "Ödeme Şablonları"
         },
         "profile": {
             "title": "Firma Bilgileri",
@@ -1058,12 +942,12 @@
             "forms": {
                 "name": "Ad Soyad",
                 "email": "E-posta",
-                "password": "Åifre",
+                "password": "Şifre",
                 "role": "Rol",
                 "create": "Kullanıcıyı Oluştur",
                 "creating": "Oluşturuluyor...",
                 "editTitle": "Kullanıcıyı Düzenle",
-                "newPassword": "Yeni Åifre (Opsiyonel)",
+                "newPassword": "Yeni Şifre (Opsiyonel)",
                 "passwordPlaceholder": "Değiştirmek için doldurun",
                 "update": "Değişiklikleri Kaydet",
                 "updating": "Güncelleniyor...",
@@ -1073,15 +957,15 @@
             }
         },
         "templates": {
-            "title": "Ödeme Planı Åablonları",
+            "title": "Ödeme Planı Şablonları",
             "description": "Sık kullanılan ödeme planlarını şablon olarak kaydedin.",
-            "new": "Yeni Åablon",
+            "new": "Yeni Şablon",
             "dialog": {
-                "titleNew": "Yeni Ödeme Åablonu",
-                "titleEdit": "Åablonu Düzenle",
+                "titleNew": "Yeni Ödeme Şablonu",
+                "titleEdit": "Şablonu Düzenle",
                 "descNew": "Peşinat ve taksit oranlarını belirleyin.",
                 "descEdit": "Peşinat ve taksit oranlarını güncelleyin.",
-                "name": "Åablon Adı",
+                "name": "Şablon Adı",
                 "namePlaceholder": "Örn: %50 Peşin Standart",
                 "down": "Peşinat Oranı (%)",
                 "installments": "Taksit Sayısı",
@@ -1094,12 +978,12 @@
                 "update": "Güncelle"
             },
             "table": {
-                "name": "Åablon Adı",
+                "name": "Şablon Adı",
                 "down": "Peşinat",
                 "installments": "Taksit",
                 "interim": "Ara Ödemeler",
                 "actions": "İşlemler",
-                "empty": "Åablon bulunamadı.",
+                "empty": "Şablon bulunamadı.",
                 "confirmDelete": "Bu şablonu silmek istediğinize emin misiniz?",
                 "month": "Ay"
             }
@@ -1161,7 +1045,7 @@
                 "codeLabel": "Doğrulama Kodu",
                 "nameLabel": "Ad Soyad",
                 "phoneLabel": "Telefon",
-                "companyLabel": "Åirket/Ajans Adı (Zorunlu Değil)",
+                "companyLabel": "Şirket/Ajans Adı (Zorunlu Değil)",
                 "notesLabel": "Kısa Tanıtım",
                 "notesPlaceholder": "Portföyünüzden bahsedin...",
                 "submit": "Başvuruyu Tamamla",
@@ -1505,7 +1389,7 @@
             "basicInfo": "Temel Bilgiler",
             "name": "Kampanya Adı *",
             "namePlaceholder": "Örn: Bahar Lansmanı Özel Bonusu",
-            "terms": "Açıklama / Åartlar",
+            "terms": "Açıklama / Şartlar",
             "termsPlaceholder": "Kampanya detaylarını ve katılım şartlarını yazın...",
             "project": "Geçerli Proje",
             "type": "Kampanya Türü",
@@ -1548,7 +1432,7 @@
             "archived": "Süresi Bitenler / Pasif"
         },
         "activeTitle": "Aktif Komisyon Modelleri",
-        "activeDescription": "Åu anda geçerli olan ve satışlarda uygulanan modeller.",
+        "activeDescription": "Şu anda geçerli olan ve satışlarda uygulanan modeller.",
         "archivedTitle": "Arşivlenmiş Modeller",
         "archivedDescription": "Süresi dolmuş veya manuel olarak kapatılmış modeller.",
         "table": {
@@ -1781,13 +1665,13 @@
             "dialogDesc": "Birden fazla brokera ait ödeme kayıtlarını Excel dosyası ile toplu olarak yükleyebilirsiniz.",
             "note": "Önemli Not",
             "noteDesc": "Yüklediğiniz ödeme tutarları, ilgili brokerın en eski hakedişinden (Eligible) başlanarak otomatik olarak eşleştirilir ve durumları \"Ödendi\" olarak güncellenir.",
-            "downloadTemplate": "Ödeme Åablonunu İndir",
+            "downloadTemplate": "Ödeme Şablonunu İndir",
             "selectFile": "Excel Dosyası Seçin",
             "processing": "İşleniyor...",
             "importSuccess": "{processedCount} ödeme başarıyla işlendi. ({errorCount} hata)",
             "sheetNames": {
                 "financeSummary": "Finans Özeti",
-                "paymentTemplate": "Ödeme Åablonu"
+                "paymentTemplate": "Ödeme Şablonu"
             },
             "headers": {
                 "brokerName": "Broker Adı",
@@ -1891,7 +1775,7 @@
             "successReject": "Başvuru reddedildi",
             "menuTitle": "İşlemler",
             "changeLevel": "Seviye Değiştir",
-            "setPassword": "Åifre Belirle",
+            "setPassword": "Şifre Belirle",
             "deactivate": "Pasife Al",
             "activate": "Aktif Et",
             "statusFeedback": {
@@ -1901,7 +1785,7 @@
             "levelFeedback": "Broker seviyesi güncellendi.",
             "passwordFeedback": "Broker şifresi güncellendi.",
             "errorGeneral": "Bir hata oluştu.",
-            "passwordMinLength": "Åifre en az 6 karakter olmalıdır.",
+            "passwordMinLength": "Şifre en az 6 karakter olmalıdır.",
             "openMenu": "Menüyü aç"
         },
         "dialogs": {
@@ -1913,11 +1797,11 @@
                 "updating": "Güncelleniyor..."
             },
             "password": {
-                "title": "Åifre Belirle",
+                "title": "Şifre Belirle",
                 "desc": "Bu broker için yeni bir giriş şifresi belirleyin.",
-                "placeholder": "Yeni Åifre",
+                "placeholder": "Yeni Şifre",
                 "hint": "En az 6 karakter olmalıdır.",
-                "save": "Åifreyi Kaydet",
+                "save": "Şifreyi Kaydet",
                 "setting": "Ayarlanıyor..."
             }
         },
@@ -1925,6 +1809,148 @@
             "button": "Hatırlat",
             "sent": "Gönderildi",
             "success": "Hatırlatma e-postası gönderildi"
+        }
+    },
+    "QuickCRM": {
+        "title": "Hızlı CRM (Satış Komuta Merkezi)",
+        "description": "Müşteriyle etkileşim halindeyken tek ekrandan tüm süreci yönetin.",
+        "searchCustomer": "Müşteri Ara veya Yeni Ekle",
+        "newCustomer": "Yeni Müşteri",
+        "existingCustomer": "Mevcut Müşteri",
+        "selectUnitTitle": "Ünite Ara ve Seç",
+        "selectedUnit": "Seçilen Ünite",
+        "selectedCustomer": "Seçilen Müşteri",
+        "paymentPlan": "Ödeme Planı",
+        "actions": "Aksiyonlar",
+        "logActivity": "Aktivite Kaydet",
+        "noUnitSelected": "Lütfen önce bir ünite seçiniz.",
+        "noCustomerSelected": "Lütfen önce bir müşteri seçiniz.",
+        "unitSelected": "Ünite Seçildi",
+        "customerSelected": "Müşteri Seçildi",
+        "clearSelection": "Seçimi Temizle",
+        "createSale": "Satış Kaydı Oluştur",
+        "option": "Opsiyonla",
+        "sendOffer": "Teklif Ver",
+        "activeSale": "Aktif Görüşme",
+        "queueWarning": "Bu ünite başka bir müşteride opsiyonludur. Kaydınız 'Sıra Takip' kaydı olarak oluşturulacaktır.",
+        "inQueue": "Sıra Kaydı"
+    },
+    "CRM": {
+        "title": "CRM & Satış Yönetimi",
+        "filter": {
+            "button": "Filtrele",
+            "title": "CRM Filtreleri",
+            "description": "Satış ve aday listesini detaylı kriterlere göre daraltın.",
+            "search": "Müşteri / Ünite Ara",
+            "searchPlaceholder": "İsim veya ünite no...",
+            "project": "Proje",
+            "allProjects": "Tüm Projeler",
+            "rep": "Satış Temsilcisi",
+            "allTeam": "Tüm Ekip",
+            "status": "Statü",
+            "allStatuses": "Tüm Statüler",
+            "apply": "Filtreleri Uygula",
+            "reset": "Filtreleri Sıfırla"
+        },
+        "newSale": {
+            "button": "Yeni Satış Başlat",
+            "title": "Yeni Satış / Fırsat",
+            "customer": "Müşteri",
+            "project": "Proje",
+            "unit": "İlgilenilen Ünite",
+            "selectCustomer": "Müşteri Seçiniz...",
+            "searchCustomer": "Müşteri Ara...",
+            "selectProject": "Proje Seçiniz...",
+            "searchProject": "Proje Ara...",
+            "selectUnit": "Ünite Seçiniz...",
+            "searchUnit": "Ünite Ara...",
+            "selectProjectFirst": "Önce Proje Seçiniz",
+            "note": "* Ünite seçildiği için kayıt otomatik olarak Fırsat statüsünde oluşturulacaktır.",
+            "create": "Oluştur",
+            "customerNotFound": "Müşteri bulunamadı.",
+            "projectNotFound": "Proje bulunamadı.",
+            "unitNotFound": "Ünite bulunamadı.",
+            "poweredBy": "NovoxCRM tarafından desteklenmektedir"
+        },
+        "stats": {
+            "Lead": "Lead",
+            "Prospect": "Fırsat",
+            "Reservation": "Opsiyon",
+            "Proposal": "Teklif",
+            "Negotiation": "Pazarlık",
+            "Sold": "Satıldı",
+            "Completed": "Kazanıldı",
+            "Lost": "Kayıp"
+        },
+        "table": {
+            "customer": "Müşteri",
+            "projectUnit": "Proje / Ünite",
+            "status": "Durum",
+            "date": "Tarih",
+            "amount": "Tutar",
+            "rep": "Temsilci",
+            "actions": "İşlemler",
+            "empty": "Aktif satış bulunamadı.",
+            "unitNotSelected": "Ünite Seçilmedi"
+        },
+        "actions": {
+            "autoAssign": "Otomatik Ata",
+            "assigning": "Atanıyor...",
+            "assignTooltip": "Ekibe otomatik ata",
+            "assignError": "Önce bir ünite/proje seçilmelidir",
+            "paymentPlan": "Ödeme Planı Hesapla",
+            "paymentPlanTitle": "Ödeme Planı Hesapla",
+            "won": "Kazanıldı"
+        },
+        "status": {
+            "Lead": "Lead",
+            "Prospect": "Fırsat",
+            "Reservation": "Opsiyonlu",
+            "OptionPending": "Opsiyon - Kapora Bekleniyor",
+            "Proposal": "Teklif Verildi",
+            "ProposalPending": "Teklif - Kapora Bekleniyor",
+            "Negotiation": "Pazarlık",
+            "Sold": "Teklif Onaylandı",
+            "Lost": "Kaybedildi"
+        },
+        "matchUnit": {
+            "title": "{customerName} için Ünite Eşleştir",
+            "projectLabel": "Proje Seçin",
+            "unitLabel": "Ünite Seçin",
+            "projectPlaceholder": "Proje Seçiniz...",
+            "unitPlaceholder": "Ünite Seçiniz...",
+            "projectSearch": "Proje Ara...",
+            "unitSearch": "Ünite Ara...",
+            "projectEmpty": "Proje bulunamadı.",
+            "unitEmpty": "Aradığınız ünite bulunamadı.",
+            "selectProjectFirst": "Önce Proje Seçiniz",
+            "successMatch": "Eşleştirme başarıyla tamamlandı. Durum 'Fırsat' olarak güncellendi.",
+            "successUnmatch": "Eşleştirme kaldırıldı. Durum 'Lead' olarak güncellendi.",
+            "errorMatch": "Eşleştirme sırasında bir hata oluştu.",
+            "errorUnmatch": "İşlem başarısız.",
+            "buttonMatch": "Eşleştir",
+            "buttonUnmatch": "Eşleşmeyi Kaldır",
+            "tooltipChange": "Eşleştirmeyi Değiştir/Kaldır"
+        },
+        "reservation": {
+            "title": "{customerName} için Opsiyon {type}",
+            "typeNew": "Tanımla",
+            "typeEdit": "İptal Et / Güncelle",
+            "warningReserved": "Bu kayıt için halihazırda bir opsiyon bulunmaktadır. Opsiyonu iptal etmek için aşağıdaki \"Opsiyonu Kaldır\" butonunu kullanabilirsiniz.",
+            "expiryDateLabel": "Opsiyon Bitiş Tarihi",
+            "depositLabel": "Kapora Tutarı (Opsiyonel)",
+            "depositHint": "0 girilirse kapora beklenmeden opsiyon kesinleşir.",
+            "successReserve": "Opsiyon başarıyla tanımlandı.",
+            "successCancel": "Opsiyon başarıyla kaldırıldı.",
+            "errorReserve": "İşlem sırasında bir hata oluştu.",
+            "errorCancel": "Opsiyon kaldırılırken bir hata oluştu.",
+            "errorFill": "Lütfen ünite ve tarih seçiniz.",
+            "buttonReserve": "Opsiyonla",
+            "buttonReserved": "Opsiyonlu",
+            "buttonCancel": "Opsiyonu Kaldır",
+            "buttonUpdate": "Opsiyonu Güncelle",
+            "buttonConfirm": "Opsiyonu Onayla",
+            "statusPending": "Kapora Bekleniyor"
         }
     }
 }

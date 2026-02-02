@@ -39,6 +39,8 @@ export default function PaymentPlanCalculator({ saleId, totalAmount = 0, initial
     const [totals, setTotals] = useState({ interest: 0, grandTotal: 0 })
     const [loading, setLoading] = useState(true);
     const [calculating, setCalculating] = useState(false)
+    const [displayPrice, setDisplayPrice] = useState('')
+    const [localeStr, setLocaleStr] = useState('tr-TR')
 
     useEffect(() => {
         loadPlan()
@@ -47,6 +49,16 @@ export default function PaymentPlanCalculator({ saleId, totalAmount = 0, initial
     const loadPlan = async () => {
         setLoading(true)
         try {
+            const { createClient: createBrowserClient } = await import('@/lib/supabase/client')
+            const supabase = createBrowserClient()
+            const { data: { user } } = await supabase.auth.getUser()
+            if (user) {
+                const { data: profile } = await supabase.from('profiles').select('tenants(country)').eq('id', user.id).single()
+                const country = (profile as any)?.tenants?.country || 'Türkiye'
+                const locale = country === 'USA' ? 'en-US' : country === 'UK' ? 'en-GB' : country === 'Germany' ? 'de-DE' : 'tr-TR'
+                setLocaleStr(locale)
+            }
+
             const existingPlan = await getPaymentPlan(saleId)
             if (existingPlan && existingPlan.payment_items) {
                 setPlan(existingPlan.payment_items)
@@ -56,6 +68,17 @@ export default function PaymentPlanCalculator({ saleId, totalAmount = 0, initial
         } finally {
             setLoading(false)
         }
+    }
+
+    useEffect(() => {
+        setDisplayPrice(new Intl.NumberFormat(localeStr, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(price))
+    }, [price, localeStr])
+
+    const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value.replace(/\D/g, '')
+        const num = Number(val)
+        setPrice(num)
+        setDisplayPrice(new Intl.NumberFormat(localeStr, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(num))
     }
 
     const addInterim = () => setInterims([...interims, { month: 6, amount: 0 }])
@@ -121,22 +144,37 @@ export default function PaymentPlanCalculator({ saleId, totalAmount = 0, initial
     return (
         <div className="space-y-4 max-h-[80vh] overflow-y-auto p-2">
             {templates?.length && (
-                <div className="p-3 bg-blue-50 border border-blue-100 rounded-md">
-                    <Label className="text-blue-900 mb-2 block">Şablon Kullan</Label>
-                    <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" onChange={e => applyTemplate(e.target.value)} defaultValue="">
-                        <option value="" disabled>Seçiniz...</option>
+                <div className="p-3 bg-blue-50/50 border border-blue-100/50 rounded-xl">
+                    <Label className="text-[10px] font-bold text-blue-400 mb-2 block uppercase tracking-widest text-center">Şablon Kullanarak Hızlan</Label>
+                    <select
+                        className="flex h-10 w-full rounded-lg border border-blue-100 bg-white px-3 py-2 text-sm font-semibold text-blue-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 cursor-pointer"
+                        onChange={e => applyTemplate(e.target.value)}
+                        defaultValue=""
+                    >
+                        <option value="" disabled>Bir şablon seçin...</option>
                         {templates.map((t: any) => (
                             <option key={t.id} value={t.id}>{t.name}</option>
                         ))}
                     </select>
                 </div>
             )}
-            <div className="grid grid-cols-1 gap-4 border p-4 rounded-md bg-muted/20">
-                <div className="space-y-2">
-                    <Label>Satış Bedeli</Label>
-                    <div className="flex gap-2">
-                        <Input type="number" value={price} onChange={e => setPrice(Number(e.target.value))} className="flex-1" />
-                        <select value={currency} onChange={e => setCurrency(e.target.value)} className="flex h-10 w-24 rounded-md border border-input bg-background px-3 py-2 text-sm">
+            <div className="grid grid-cols-2 gap-x-3 gap-y-4 border p-4 rounded-xl bg-white shadow-sm border-slate-200">
+                {/* Row 1: Price and Currency */}
+                <div className="col-span-2 space-y-1.5">
+                    <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Satış Bedeli ve Para Birimi</Label>
+                    <div className="flex gap-1.5">
+                        <Input
+                            type="text"
+                            value={displayPrice}
+                            onChange={handlePriceChange}
+                            placeholder="0,00"
+                            className="h-10 text-sm font-semibold border-slate-200 focus:border-blue-500 focus:ring-blue-500/10 flex-1"
+                        />
+                        <select
+                            value={currency}
+                            onChange={e => setCurrency(e.target.value)}
+                            className="flex h-10 w-24 rounded-md border border-slate-200 bg-slate-50 px-2 py-2 text-xs font-bold text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/10"
+                        >
                             <option value="TRY">TRY</option>
                             <option value="USD">USD</option>
                             <option value="EUR">EUR</option>
@@ -144,109 +182,190 @@ export default function PaymentPlanCalculator({ saleId, totalAmount = 0, initial
                         </select>
                     </div>
                 </div>
-                <div className="space-y-2">
-                    <Label>Peşinat Oranı (%)</Label>
-                    <Input type="number" value={downPaymentRate} onChange={e => setDownPaymentRate(Number(e.target.value))} />
+
+                {/* Row 2: Down Payment and Installments */}
+                <div className="col-span-1 space-y-1.5">
+                    <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Peşinat (%)</Label>
+                    <Input
+                        type="number"
+                        value={downPaymentRate}
+                        onChange={e => setDownPaymentRate(Number(e.target.value))}
+                        className="h-10 text-sm font-semibold border-slate-200 focus:border-blue-500"
+                    />
                 </div>
-                <div className="space-y-2">
-                    <Label>Taksit Sayısı (Ay)</Label>
-                    <Input type="number" value={months} onChange={e => setMonths(Number(e.target.value))} />
+                <div className="col-span-1 space-y-1.5">
+                    <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Taksit (Ay)</Label>
+                    <Input
+                        type="number"
+                        value={months}
+                        onChange={e => setMonths(Number(e.target.value))}
+                        className="h-10 text-sm font-semibold border-slate-200 focus:border-blue-500"
+                    />
                 </div>
-                <div className="space-y-2">
-                    <Label>Başlangıç Tarihi</Label>
-                    <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
+
+                {/* Date Row */}
+                <div className="col-span-2 space-y-1.5">
+                    <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Başlangıç Tarihi</Label>
+                    <Input
+                        type="date"
+                        value={startDate}
+                        onChange={e => setStartDate(e.target.value)}
+                        className="h-10 text-sm font-semibold border-slate-200 focus:border-blue-500"
+                    />
                 </div>
-                <div className="space-y-4 border-t pt-4 mt-2">
-                    <div className="flex items-center justify-between">
-                        <div className="flex flex-col gap-1">
-                            <Label className="text-sm font-semibold">Vade Farkı Uygula</Label>
-                            <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">İşlem tutarına aylık faiz ekler</span>
+                <div className="col-span-2 space-y-3 pt-4 border-t border-slate-100">
+                    <div className="flex items-center justify-between p-3 bg-slate-50/50 rounded-lg border border-slate-100">
+                        <div className="flex flex-col gap-0.5">
+                            <Label className="text-xs font-bold text-slate-700">Vade Farkı Uygula</Label>
+                            <span className="text-[9px] text-slate-400 font-medium leading-none uppercase tracking-tighter">İşlem tutarına aylık faiz ekler</span>
                         </div>
                         <input
                             type="checkbox"
-                            className="w-5 h-5 rounded border-slate-300 accent-blue-600"
+                            className="w-5 h-5 rounded-md border-slate-300 text-blue-600 focus:ring-blue-500 transition-all cursor-pointer"
                             checked={applyInterest}
                             onChange={e => setApplyInterest(e.target.checked)}
                         />
                     </div>
+
                     {applyInterest && (
-                        <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
-                            <Label>Aylık Faiz Oranı (%)</Label>
+                        <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-300">
+                            <Label className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Aylık Faiz Oranı (%)</Label>
                             <Input
                                 type="number"
                                 step="0.01"
                                 value={interestRate}
                                 onChange={e => setInterestRate(Number(e.target.value))}
-                                className="border-blue-200 focus:border-blue-500 bg-blue-50/30"
+                                className="h-10 border-blue-200 focus:border-blue-500 bg-blue-50/30 text-sm font-bold text-blue-700"
                             />
                         </div>
                     )}
                 </div>
-                <div className="col-span-2 space-y-2 border-t pt-2 mt-2">
+
+                <div className="col-span-2 space-y-3 pt-4 border-t border-slate-100">
                     <div className="flex justify-between items-center">
-                        <Label>Ara Ödemeler (Opsiyonel)</Label>
-                        <Button variant="outline" size="sm" onClick={addInterim} type="button"><Plus className="h-4 w-4 mr-1" /> Ekle</Button>
+                        <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ara Ödemeler (Opsiyonel)</Label>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={addInterim}
+                            type="button"
+                            className="h-7 text-[10px] font-bold text-blue-600 hover:text-blue-700 hover:bg-blue-50 uppercase tracking-widest"
+                        >
+                            <Plus className="h-3 w-3 mr-1" /> Ekle
+                        </Button>
                     </div>
-                    {interims.map((int, idx) => (
-                        <div key={idx} className="flex gap-2 items-end">
-                            <div className="grid gap-1 flex-1">
-                                <Label className="text-xs">Ay</Label>
-                                <Input type="number" placeholder="Örn: 6" value={int.month} onChange={e => updateInterim(idx, 'month', Number(e.target.value))} />
-                            </div>
-                            <div className="grid gap-1 flex-1">
-                                <Label className="text-xs">Tutar</Label>
-                                <Input type="number" value={int.amount} onChange={e => updateInterim(idx, 'amount', Number(e.target.value))} />
-                            </div>
-                            <Button variant="ghost" size="icon" onClick={() => removeInterim(idx)} className="mb-0.5"><Trash2 className="h-4 w-4 text-red-500" /></Button>
+                    {interims.length > 0 && (
+                        <div className="space-y-2 max-h-[150px] overflow-y-auto pr-1">
+                            {interims.map((int, idx) => (
+                                <div key={idx} className="flex gap-2 items-end bg-slate-50/50 p-2 rounded-lg border border-slate-100 animate-in slide-in-from-left-2 duration-200">
+                                    <div className="grid gap-1 flex-1">
+                                        <Label className="text-[9px] font-bold text-slate-400 uppercase">Ay</Label>
+                                        <Input
+                                            type="number"
+                                            placeholder="6"
+                                            value={int.month}
+                                            onChange={e => updateInterim(idx, 'month', Number(e.target.value))}
+                                            className="h-8 text-xs border-slate-200"
+                                        />
+                                    </div>
+                                    <div className="grid gap-1 flex-[2]">
+                                        <Label className="text-[9px] font-bold text-slate-400 uppercase">Tutar</Label>
+                                        <Input
+                                            type="number"
+                                            value={int.amount}
+                                            onChange={e => updateInterim(idx, 'amount', Number(e.target.value))}
+                                            className="h-8 text-xs border-slate-200 font-semibold"
+                                        />
+                                    </div>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => removeInterim(idx)}
+                                        className="h-8 w-8 text-red-400 hover:text-red-500 hover:bg-red-50"
+                                    >
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                    </Button>
+                                </div>
+                            ))}
                         </div>
-                    ))}
+                    )}
                 </div>
+
                 <div className="col-span-2">
-                    <Button onClick={calculatePlan} className="w-full transition-transform hover:scale-95 active:scale-95 shadow-md shadow-blue-900/10" variant="secondary" disabled={calculating} type="button">{calculating ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Hesaplanıyor...</>) : 'Yeniden Hesapla / Plan Oluştur'}</Button>
+                    <Button
+                        onClick={calculatePlan}
+                        className="w-full h-11 transition-all hover:scale-[0.98] active:scale-95 shadow-md shadow-slate-900/5 bg-slate-900 hover:bg-slate-800 text-white font-bold"
+                        disabled={calculating}
+                        type="button"
+                    >
+                        {calculating ? (
+                            <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Hesaplanıyor...</>
+                        ) : (
+                            'Yeniden Hesapla / Plan Oluştur'
+                        )}
+                    </Button>
                 </div>
             </div>
 
             {applyInterest && plan.length > 0 && (
-                <div className="grid grid-cols-2 gap-4 p-4 rounded-xl bg-blue-50/50 border border-blue-100/50 backdrop-blur-sm animate-in zoom-in-95 duration-500">
-                    <div className="space-y-1">
-                        <Label className="text-[10px] uppercase font-bold text-blue-600">Vade Farkı Toplamı</Label>
-                        <p className="text-lg font-black text-blue-700">{totals.interest.toLocaleString('tr-TR', { style: 'currency', currency, maximumFractionDigits: 0 })}</p>
+                <div className="grid grid-cols-2 gap-4 p-4 rounded-xl bg-blue-50 border border-blue-100/50 backdrop-blur-sm animate-in zoom-in-95 duration-500">
+                    <div className="space-y-0.5">
+                        <Label className="text-[9px] uppercase font-black text-blue-500 tracking-tighter">Vade Farkı Toplamı</Label>
+                        <p className="text-lg font-black text-blue-700 leading-none">{totals.interest.toLocaleString('tr-TR', { style: 'currency', currency, maximumFractionDigits: 0 })}</p>
                     </div>
-                    <div className="space-y-1 text-right">
-                        <Label className="text-[10px] uppercase font-bold text-slate-500">Genel Toplam (Faiz Dahil)</Label>
-                        <p className="text-lg font-black text-slate-900">{totals.grandTotal.toLocaleString('tr-TR', { style: 'currency', currency, maximumFractionDigits: 0 })}</p>
+                    <div className="space-y-0.5 text-right">
+                        <Label className="text-[9px] uppercase font-black text-slate-400 tracking-tighter">Genel Toplam (Faiz Dahil)</Label>
+                        <p className="text-lg font-black text-slate-900 leading-none">{totals.grandTotal.toLocaleString('tr-TR', { style: 'currency', currency, maximumFractionDigits: 0 })}</p>
                     </div>
                 </div>
             )}
             {loading ? (
-                <div className="text-center py-4">Yükleniyor...</div>
+                <div className="text-center py-12 bg-slate-50 border border-dashed rounded-xl">
+                    <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2 text-slate-300" />
+                    <span className="text-sm text-slate-400 font-medium">Yükleniyor...</span>
+                </div>
             ) : plan.length ? (
-                <div className="border rounded-md max-h-[300px] overflow-auto">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Açıklama</TableHead>
-                                <TableHead>Tarih</TableHead>
-                                <TableHead className="text-right">Tutar</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {plan.map((item, i) => (
-                                <TableRow key={i}>
-                                    <TableCell>{item.description}</TableCell>
-                                    <TableCell>{new Date(item.due_date).toLocaleDateString('tr-TR')}</TableCell>
-                                    <TableCell className="text-right">{Number(item.amount).toLocaleString('tr-TR', { style: 'currency', currency, maximumFractionDigits: 0 })}</TableCell>
+                <div className="border rounded-xl bg-white shadow-sm overflow-hidden">
+                    <div className="max-h-[250px] overflow-auto">
+                        <Table>
+                            <TableHeader className="bg-slate-50/50 sticky top-0 z-10">
+                                <TableRow className="hover:bg-transparent border-slate-100">
+                                    <TableHead className="text-[10px] h-9 font-bold text-slate-400 uppercase tracking-widest pl-4">Açıklama</TableHead>
+                                    <TableHead className="text-[10px] h-9 font-bold text-slate-400 uppercase tracking-widest text-center">Tarih</TableHead>
+                                    <TableHead className="text-[10px] h-9 font-bold text-slate-400 uppercase tracking-widest text-right pr-4">Tutar</TableHead>
                                 </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
+                            </TableHeader>
+                            <TableBody>
+                                {plan.map((item, i) => (
+                                    <TableRow key={i} className="group border-slate-100 hover:bg-slate-50/50 transition-colors">
+                                        <TableCell className="py-2.5 pl-4 text-xs font-medium text-slate-600 truncate max-w-[120px]">{item.description}</TableCell>
+                                        <TableCell className="py-2.5 text-xs font-mono text-slate-500 text-center">{new Date(item.due_date).toLocaleDateString('tr-TR')}</TableCell>
+                                        <TableCell className="py-2.5 pr-4 text-xs font-bold text-slate-900 text-right">{Number(item.amount).toLocaleString('tr-TR', { style: 'currency', currency, maximumFractionDigits: 0 })}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
                 </div>
             ) : (
-                <div className="text-center py-8 text-muted-foreground border border-dashed rounded-md">Henüz bir ödeme planı oluşturulmamış. Yukardaki formdan hesaplayabilirsiniz.</div>
+                <div className="text-center py-12 px-6 text-slate-400 border border-dashed rounded-xl bg-slate-50/50">
+                    <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-3">
+                        <Plus className="h-5 w-5 text-slate-300" />
+                    </div>
+                    <p className="text-xs font-medium leading-relaxed">Henüz bir ödeme planı oluşturulmamış.<br />Yukardaki formu kullanarak hesaplayabilirsiniz.</p>
+                </div>
             )}
-            <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={onClose}>Kapat</Button>
-                <Button onClick={handleSave} disabled={plan.length === 0 || loading}>Planı Kaydet</Button>
+            <div className="flex justify-end gap-2 pt-2">
+                {onClose && (
+                    <Button variant="ghost" onClick={onClose} className="text-slate-500 font-bold text-xs uppercase tracking-widest h-10 px-6">Kapat</Button>
+                )}
+                <Button
+                    onClick={handleSave}
+                    disabled={plan.length === 0 || loading}
+                    className="h-10 px-8 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs uppercase tracking-widest shadow-lg shadow-blue-600/20 transition-all active:scale-95 disabled:opacity-50"
+                >
+                    Planı Kesinleştir ve Kaydet
+                </Button>
             </div>
         </div>
     )

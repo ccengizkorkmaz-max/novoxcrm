@@ -439,7 +439,8 @@
             "inventory": "Stock & Project Analysis",
             "finance": "Financial Analysis",
             "efficiency": "Field & Team Efficiency"
-        }
+        },
+        "quickCRM": "Quick CRM (Command Center)"
     },
     "Projects": {
         "title": "Projects",
@@ -566,7 +567,8 @@
             "features": {
                 "masterBath": "Has Master Bath",
                 "builtinKitchen": "Has Built-in Kitchen"
-            }
+            },
+            "search": "Search Unit..."
         },
         "stats": {
             "total": "Total Stock",
@@ -666,124 +668,6 @@
             "City": "City",
             "Pool": "Pool",
             "Park": "Park"
-        },
-        "CRM": {
-            "title": "CRM & Sales Management",
-            "filter": {
-                "button": "Filter",
-                "title": "CRM Filters",
-                "description": "Narrow down sales and lead lists with detailed criteria.",
-                "search": "Search Customer / Unit",
-                "searchPlaceholder": "Name or unit no...",
-                "project": "Project",
-                "allProjects": "All Projects",
-                "rep": "Sales Representative",
-                "allTeam": "All Team",
-                "status": "Status",
-                "allStatuses": "All Statuses",
-                "apply": "Apply Filters",
-                "reset": "Reset Filters"
-            },
-            "newSale": {
-                "button": "New Sale",
-                "title": "New Sale / Opportunity",
-                "customer": "Customer",
-                "project": "Project",
-                "unit": "Interested Unit",
-                "selectCustomer": "Select Customer...",
-                "searchCustomer": "Search Customer...",
-                "selectProject": "Select Project...",
-                "searchProject": "Search Project...",
-                "selectUnit": "Select Unit...",
-                "searchUnit": "Search Unit...",
-                "selectProjectFirst": "Select Project First",
-                "note": "* Record will be created as Opportunity since a unit is selected.",
-                "create": "Create",
-                "customerNotFound": "Customer not found.",
-                "projectNotFound": "Project not found.",
-                "unitNotFound": "Unit not found.",
-                "poweredBy": "Powered by NovoxCRM"
-            },
-            "stats": {
-                "Lead": "Lead",
-                "Prospect": "Prospect",
-                "Reservation": "Option",
-                "Proposal": "Proposal",
-                "Negotiation": "Negotiation",
-                "Sold": "Sold",
-                "Completed": "Won",
-                "Lost": "Lost"
-            },
-            "table": {
-                "customer": "Customer",
-                "projectUnit": "Project / Unit",
-                "status": "Status",
-                "date": "Date",
-                "amount": "Amount",
-                "rep": "Representative",
-                "actions": "Actions",
-                "empty": "No active sales found.",
-                "unitNotSelected": "Unit Not Selected"
-            },
-            "actions": {
-                "autoAssign": "Auto Assign",
-                "assigning": "Assigning...",
-                "assignTooltip": "Auto assign to team",
-                "assignError": "Must select unit/project first",
-                "paymentPlan": "Calculate Payment Plan",
-                "paymentPlanTitle": "Calculate Payment Plan",
-                "won": "Won"
-            },
-            "status": {
-                "Lead": "Lead",
-                "Prospect": "Prospect",
-                "Reservation": "Option",
-                "OptionPending": "Option - Deposit Pending",
-                "Proposal": "Proposal Sent",
-                "ProposalPending": "Proposal - Deposit Pending",
-                "Negotiation": "Negotiation",
-                "Sold": "Offer Accepted",
-                "Lost": "Lost"
-            },
-            "matchUnit": {
-                "title": "Match Unit for {customerName}",
-                "projectLabel": "Select Project",
-                "unitLabel": "Select Unit",
-                "projectPlaceholder": "Select Project...",
-                "unitPlaceholder": "Select Unit...",
-                "projectSearch": "Search Project...",
-                "unitSearch": "Search Unit...",
-                "projectEmpty": "Project not found.",
-                "unitEmpty": "Unit not found.",
-                "selectProjectFirst": "Select Project First",
-                "successMatch": "Matching completed successfully. Status updated to 'Prospect'.",
-                "successUnmatch": "Matching removed. Status updated to 'Lead'.",
-                "errorMatch": "An error occurred during matching.",
-                "errorUnmatch": "Action failed.",
-                "buttonMatch": "Match",
-                "buttonUnmatch": "Remove Matching",
-                "tooltipChange": "Change/Remove Matching"
-            },
-            "reservation": {
-                "title": "Option for {customerName} {type}",
-                "typeNew": "Define",
-                "typeEdit": "Cancel / Update",
-                "warningReserved": "There is already an option for this record. You can use the \"Remove Option\" button below to cancel the option.",
-                "expiryDateLabel": "Option Expiry Date",
-                "depositLabel": "Deposit Amount (Optional)",
-                "depositHint": "If 0 is entered, the option will be finalized without waiting for a deposit.",
-                "successReserve": "Option defined successfully.",
-                "successCancel": "Option removed successfully.",
-                "errorReserve": "An error occurred during the process.",
-                "errorCancel": "An error occurred while removing the option.",
-                "errorFill": "Please select unit and date.",
-                "buttonReserve": "Option",
-                "buttonReserved": "Reserved",
-                "buttonCancel": "Remove Option",
-                "buttonUpdate": "Update Option",
-                "buttonConfirm": "Confirm Option",
-                "statusPending": "Deposit Pending"
-            }
         }
     },
     "Offers": {
@@ -1921,6 +1805,148 @@
             "button": "Remind",
             "sent": "Sent",
             "success": "Reminder email sent"
+        }
+    },
+    "QuickCRM": {
+        "title": "Quick CRM (Sales Command Center)",
+        "description": "Manage the entire process from a single screen while interacting with customers.",
+        "searchCustomer": "Search or Add New Customer",
+        "newCustomer": "New Customer",
+        "existingCustomer": "Existing Customer",
+        "selectUnitTitle": "Search and Select Unit",
+        "selectedUnit": "Selected Unit",
+        "selectedCustomer": "Selected Customer",
+        "paymentPlan": "Payment Plan",
+        "actions": "Actions",
+        "logActivity": "Log Activity",
+        "noUnitSelected": "Please select a unit first.",
+        "noCustomerSelected": "Please select a customer first.",
+        "unitSelected": "Unit Selected",
+        "customerSelected": "Customer Selected",
+        "clearSelection": "Clear Selection",
+        "createSale": "Create Sale Record",
+        "option": "Option / Reserve",
+        "sendOffer": "Give Offer",
+        "activeSale": "Active Interaction",
+        "queueWarning": "This unit is already reserved by another customer. Your record will be created as a 'Waitlist' record.",
+        "inQueue": "Waitlist"
+    },
+    "CRM": {
+        "title": "CRM & Sales Management",
+        "filter": {
+            "button": "Filter",
+            "title": "CRM Filters",
+            "description": "Narrow down sales and lead lists with detailed criteria.",
+            "search": "Search Customer / Unit",
+            "searchPlaceholder": "Name or unit no...",
+            "project": "Project",
+            "allProjects": "All Projects",
+            "rep": "Sales Representative",
+            "allTeam": "All Team",
+            "status": "Status",
+            "allStatuses": "All Statuses",
+            "apply": "Apply Filters",
+            "reset": "Reset Filters"
+        },
+        "newSale": {
+            "button": "New Sale",
+            "title": "New Sale / Opportunity",
+            "customer": "Customer",
+            "project": "Project",
+            "unit": "Interested Unit",
+            "selectCustomer": "Select Customer...",
+            "searchCustomer": "Search Customer...",
+            "selectProject": "Select Project...",
+            "searchProject": "Search Project...",
+            "selectUnit": "Select Unit...",
+            "searchUnit": "Search Unit...",
+            "selectProjectFirst": "Select Project First",
+            "note": "* Record will be created as Opportunity since a unit is selected.",
+            "create": "Create",
+            "customerNotFound": "Customer not found.",
+            "projectNotFound": "Project not found.",
+            "unitNotFound": "Unit not found.",
+            "poweredBy": "Powered by NovoxCRM"
+        },
+        "stats": {
+            "Lead": "Lead",
+            "Prospect": "Prospect",
+            "Reservation": "Option",
+            "Proposal": "Proposal",
+            "Negotiation": "Negotiation",
+            "Sold": "Sold",
+            "Completed": "Won",
+            "Lost": "Lost"
+        },
+        "table": {
+            "customer": "Customer",
+            "projectUnit": "Project / Unit",
+            "status": "Status",
+            "date": "Date",
+            "amount": "Amount",
+            "rep": "Representative",
+            "actions": "Actions",
+            "empty": "No active sales found.",
+            "unitNotSelected": "Unit Not Selected"
+        },
+        "actions": {
+            "autoAssign": "Auto Assign",
+            "assigning": "Assigning...",
+            "assignTooltip": "Auto assign to team",
+            "assignError": "Must select unit/project first",
+            "paymentPlan": "Calculate Payment Plan",
+            "paymentPlanTitle": "Calculate Payment Plan",
+            "won": "Won"
+        },
+        "status": {
+            "Lead": "Lead",
+            "Prospect": "Prospect",
+            "Reservation": "Option",
+            "OptionPending": "Option - Deposit Pending",
+            "Proposal": "Proposal Sent",
+            "ProposalPending": "Proposal - Deposit Pending",
+            "Negotiation": "Negotiation",
+            "Sold": "Offer Accepted",
+            "Lost": "Lost"
+        },
+        "matchUnit": {
+            "title": "Match Unit for {customerName}",
+            "projectLabel": "Select Project",
+            "unitLabel": "Select Unit",
+            "projectPlaceholder": "Select Project...",
+            "unitPlaceholder": "Select Unit...",
+            "projectSearch": "Search Project...",
+            "unitSearch": "Search Unit...",
+            "projectEmpty": "Project not found.",
+            "unitEmpty": "Unit not found.",
+            "selectProjectFirst": "Select Project First",
+            "successMatch": "Matching completed successfully. Status updated to 'Prospect'.",
+            "successUnmatch": "Matching removed. Status updated to 'Lead'.",
+            "errorMatch": "An error occurred during matching.",
+            "errorUnmatch": "Action failed.",
+            "buttonMatch": "Match",
+            "buttonUnmatch": "Remove Matching",
+            "tooltipChange": "Change/Remove Matching"
+        },
+        "reservation": {
+            "title": "Option for {customerName} {type}",
+            "typeNew": "Define",
+            "typeEdit": "Cancel / Update",
+            "warningReserved": "There is already an option for this record. You can use the \"Remove Option\" button below to cancel the option.",
+            "expiryDateLabel": "Option Expiry Date",
+            "depositLabel": "Deposit Amount (Optional)",
+            "depositHint": "If 0 is entered, the option will be finalized without waiting for a deposit.",
+            "successReserve": "Option defined successfully.",
+            "successCancel": "Option removed successfully.",
+            "errorReserve": "An error occurred during the process.",
+            "errorCancel": "An error occurred while removing the option.",
+            "errorFill": "Please select unit and date.",
+            "buttonReserve": "Option",
+            "buttonReserved": "Reserved",
+            "buttonCancel": "Remove Option",
+            "buttonUpdate": "Update Option",
+            "buttonConfirm": "Confirm Option",
+            "statusPending": "Deposit Pending"
         }
     }
 }

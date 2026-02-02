@@ -24,6 +24,7 @@ export async function updateTenantProfile(formData: FormData) {
     const updates = {
         name: formData.get('name') as string,
         logo_url: formData.get('logo_url') as string,
+        country: formData.get('country') as string,
     }
 
     const { error } = await supabase
