@@ -24,6 +24,12 @@ export const metadata: Metadata = {
         title: 'NovoxCRM - Konut Satışlarını Hızlandırın',
         description: 'Excel karmaşasına son verin. Satış, pazarlama ve broker yönetimini dijitalleştirin.',
         siteName: 'NovoxCRM',
+    },
+    twitter: {
+        card: 'summary_large_image',
+        title: 'NovoxCRM - Konut Satış CRM',
+        description: 'İnşaat firmaları için dijital satış ofisi ve broker yönetim sistemi.',
+        creator: '@novoxcrm',
     }
 }
 
