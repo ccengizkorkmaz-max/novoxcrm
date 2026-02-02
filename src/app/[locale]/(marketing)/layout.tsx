@@ -35,6 +35,29 @@ export default function MarketingLayout({
     return (
         <div className="flex min-h-screen flex-col bg-slate-950 font-sans antialiased text-foreground">
             <Navbar />
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{
+                    __html: JSON.stringify({
+                        "@context": "https://schema.org",
+                        "@type": "SoftwareApplication",
+                        "name": "NovoxCRM",
+                        "operatingSystem": "Web",
+                        "applicationCategory": "BusinessApplication",
+                        "offers": {
+                            "@type": "Offer",
+                            "price": "0",
+                            "priceCurrency": "TRY"
+                        },
+                        "description": "İnşaat ve Gayrimenkul Projeleri için Satış Yönetimi ve CRM Yazılımı.",
+                        "aggregateRating": {
+                            "@type": "AggregateRating",
+                            "ratingValue": "4.9",
+                            "ratingCount": "120"
+                        }
+                    })
+                }}
+            />
             <main className="flex-1">{children}</main>
             <Footer />
         </div>
