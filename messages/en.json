@@ -689,7 +689,8 @@
             "draft": "Draft",
             "depositPending": "Deposit Pending",
             "rejected": "Rejected",
-            "pending": "Pending"
+            "pending": "Pending",
+            "expired": "Expired"
         },
         "actions": {
             "viewPlan": "View Payment Plan",
@@ -741,7 +742,12 @@
             "historyError": "Could not fetch history data.",
             "approveConfirm": "Are you sure you want to approve this offer?",
             "approveError": "Error occurred during approval.",
-            "refundProcess": "Refund process initiated as deposit payment is approved. Offer status will be updated once refund is complete."
+            "refundProcess": "Refund process initiated as deposit payment is approved. Offer status will be updated once refund is complete.",
+            "statusPending": "Pending",
+            "statusApproved": "Approved",
+            "statusRejected": "Rejected",
+            "locale": "en-US",
+            "statusExpired": "Expired"
         }
     },
     "Reports": {
@@ -925,7 +931,11 @@
                 "owner": "Owner",
                 "manager": "Manager",
                 "user": "User",
-                "userSales": "User (Sales)"
+                "userSales": "User (Sales)",
+                "sales": "Sales Consultant",
+                "updating": "Updating role...",
+                "updateSuccess": "Role updated successfully.",
+                "updateError": "Failed to update role."
             },
             "actions": {
                 "edit": "Edit",
@@ -986,6 +996,24 @@
                 "empty": "No templates found.",
                 "confirmDelete": "Are you sure you want to delete this template?",
                 "month": "Month"
+            }
+        },
+        "roles": {
+            "matrix": {
+                "title": "Permissions Matrix",
+                "description": "Access rights and restrictions for each role.",
+                "permission": "Permission",
+                "allowed": "Full Access",
+                "denied": "No Access",
+                "partial": "Restricted / Own Data Only"
+            },
+            "permissions": {
+                "viewAllSales": "View All Sales",
+                "manageUsers": "Manage Users",
+                "manageSettings": "Company Settings",
+                "deleteData": "Delete Data (Customer/Sale)",
+                "createSales": "Create Sales",
+                "viewReports": "View Reports"
             }
         }
     },

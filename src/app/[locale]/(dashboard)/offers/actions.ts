@@ -29,7 +29,7 @@ export async function createOffer(formData: FormData) {
     const unit_id = formData.get('unit_id') as string
     const price = formData.get('price') as string
     const currency = formData.get('currency') as string || 'TRY'
-    const status = 'Draft' // Default status
+    const status = formData.get('status') as string || 'Draft' // Default to Draft if not specified
     const valid_until = formData.get('valid_until') as string
     const notes = formData.get('notes') as string
 
@@ -112,8 +112,36 @@ export async function updateOfferStatus(id: string, newStatus: string) {
         return { error: 'Failed to update status' }
     }
 
-    revalidatePath('/offers')
-    revalidatePath('/crm')
     revalidatePath('/finance/deposits')
     return { success: true }
+}
+
+export async function checkOfferExpirations(shouldRevalidate: boolean = true) {
+    const supabase = await createClient()
+
+    // Find offers that are 'Sent' and valid_until < now
+    const { data: expiredOffers, error } = await supabase
+        .from('offers')
+        .select('id')
+        .eq('status', 'Sent')
+        .lt('valid_until', new Date().toISOString())
+
+    if (error) {
+        console.error('Check Expiration Error:', error)
+        return
+    }
+
+    if (expiredOffers && expiredOffers.length > 0) {
+        const ids = expiredOffers.map(o => o.id)
+        await supabase
+            .from('offers')
+            .update({ status: 'Expired' })
+            .in('id', ids)
+
+        console.log(`Expired ${ids.length} offers`)
+
+        if (shouldRevalidate) {
+            revalidatePath('/offers')
+        }
+    }
 }

@@ -110,7 +110,8 @@ export default function OfferList({ offers }: { offers: Offer[] }) {
                                                 offer.status === 'Accepted' ? 'bg-green-100 text-green-800' :
                                                     offer.status === 'Rejected' ? 'bg-red-100 text-red-800' :
                                                         offer.status.includes('Kapora') ? 'bg-orange-100 text-orange-800' :
-                                                            'bg-gray-100 text-gray-800'
+                                                            offer.status === 'Expired' ? 'bg-slate-100 text-slate-500' :
+                                                                'bg-gray-100 text-gray-800'
                                                 }`}>
                                                 {offer.status === 'Sent' ? (
                                                     latestNeg?.source === 'Customer' ? t('status.received') : t('status.sent')
@@ -119,7 +120,8 @@ export default function OfferList({ offers }: { offers: Offer[] }) {
                                                         offer.status === 'Draft' ? t('status.draft') :
                                                             offer.status === 'Teklif - Kapora Bekleniyor' ? t('status.depositPending') :
                                                                 offer.status === 'Rejected' ? t('status.rejected') :
-                                                                    offer.status === 'Pending' ? t('status.pending') : offer.status}
+                                                                    offer.status === 'Expired' ? t('status.expired') :
+                                                                        offer.status === 'Pending' ? t('status.pending') : offer.status}
                                             </span>
                                         </TableCell>
                                         <TableCell>

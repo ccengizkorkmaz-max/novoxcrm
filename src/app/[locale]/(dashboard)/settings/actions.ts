@@ -293,3 +293,38 @@ export async function updateUser(userId: string, formData: FormData) {
     revalidatePath('/settings')
     return { success: true }
 }
+
+export async function updateUserRole(userId: string, newRole: string) {
+    const supabase = await createClient()
+
+    // Check permission (Owner only)
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    const { data: currentUserProfile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+
+    if (currentUserProfile?.role !== 'owner' && currentUserProfile?.role !== 'admin') {
+        return { error: 'Bu işlem için yetkiniz yok.' }
+    }
+
+    // Prevent changing own role (safety mechanism)
+    if (userId === user.id) {
+        return { error: 'Kendi rolünüzü değiştiremezsiniz.' }
+    }
+
+    const { error } = await supabase
+        .from('profiles')
+        .update({ role: newRole })
+        .eq('id', userId)
+
+    if (error) {
+        return { error: 'Rol güncellenemedi: ' + error.message }
+    }
+
+    revalidatePath('/settings')
+    return { success: true }
+}

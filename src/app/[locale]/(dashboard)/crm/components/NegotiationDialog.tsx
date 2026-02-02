@@ -148,6 +148,7 @@ export default function NegotiationDialog({ offerId, currentPrice, currentCurren
                                 <Input
                                     type="date"
                                     value={validityDate}
+                                    min={new Date().toISOString().split('T')[0]}
                                     onChange={(e) => setValidityDate(e.target.value)}
                                 />
                             </div>

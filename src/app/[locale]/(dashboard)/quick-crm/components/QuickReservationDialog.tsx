@@ -69,6 +69,7 @@ export function QuickReservationDialog({ customer, unit, saleId }: Props) {
                         <Input
                             type="date"
                             value={expiryDate}
+                            min={new Date().toISOString().split('T')[0]}
                             onChange={(e) => setExpiryDate(e.target.value)}
                             required
                         />

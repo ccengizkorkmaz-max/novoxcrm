@@ -90,8 +90,8 @@ export function QuickInventory({ projects, initialUnits, onSelect, selectedUnit 
                 </div>
             </CardHeader>
             <CardContent className="p-0 flex-1 overflow-hidden flex flex-col">
-                <ScrollArea className="flex-1 px-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 py-4">
+                <ScrollArea className="flex-1 px-2">
+                    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2 py-2">
                         {filteredUnits.map(unit => {
                             const isSelected = selectedUnit?.id === unit.id
                             return (
@@ -99,48 +99,48 @@ export function QuickInventory({ projects, initialUnits, onSelect, selectedUnit 
                                     key={unit.id}
                                     onClick={() => onSelect(unit)}
                                     className={`
-                                        text-left p-4 rounded-xl border transition-all duration-200 group relative
+                                        text-left p-2.5 rounded-lg border transition-all duration-200 group relative flex flex-col justify-between h-[110px]
                                         ${isSelected
                                             ? 'border-primary ring-2 ring-primary/20 bg-primary/5 shadow-md'
                                             : 'border-slate-200 hover:border-primary/50 hover:bg-slate-50'
                                         }
                                     `}
                                 >
-                                    <div className="flex justify-between items-start mb-2">
-                                        <div>
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <Badge variant="secondary" className="bg-slate-100 text-slate-700 font-bold">
+                                    <div className="flex justify-between items-start w-full">
+                                        <div className="min-w-0 flex-1">
+                                            <div className="flex items-center gap-1.5 mb-0.5">
+                                                <Badge variant="secondary" className="bg-slate-100 text-slate-700 font-bold px-1.5 py-0 text-[10px] h-5">
                                                     {unit.block || '-'}
                                                 </Badge>
-                                                <span className="text-xl font-black tracking-tight">{unit.unit_number}</span>
+                                                <span className="text-base font-black tracking-tight truncate">{unit.unit_number}</span>
                                             </div>
-                                            <div className="text-[10px] font-bold text-muted-foreground uppercase">{unit.projects?.name}</div>
+                                            <div className="text-[9px] font-bold text-muted-foreground uppercase truncate pr-2">{unit.projects?.name}</div>
                                         </div>
-                                        <Badge variant="outline" className="font-mono text-xs">
+                                        <Badge variant="outline" className="font-mono text-[9px] px-1 h-4 shrink-0">
                                             {unit.type}
                                         </Badge>
                                     </div>
 
-                                    <div className="flex justify-between items-end mt-4">
-                                        <div className="text-lg font-bold text-primary">
+                                    <div className="flex justify-between items-end mt-1 w-full">
+                                        <div className="text-sm font-bold text-primary truncate">
                                             {formatCurrency(unit.price, unit.currency)}
                                         </div>
-                                        <div className="text-[10px] text-muted-foreground flex flex-col items-end">
+                                        <div className="text-[9px] text-muted-foreground flex flex-col items-end shrink-0 leading-tight">
                                             <span>{unit.floor}. Kat</span>
-                                            <span>{unit.area_gross} m² Brüt</span>
+                                            <span>{unit.area_gross} m²</span>
                                         </div>
                                     </div>
 
                                     {isSelected && (
-                                        <div className="absolute -top-2 -right-2 bg-primary text-white rounded-full p-1 shadow-lg border-2 border-white">
-                                            <CheckCircle2 className="h-4 w-4" />
+                                        <div className="absolute -top-1.5 -right-1.5 bg-primary text-white rounded-full p-0.5 shadow-lg border-2 border-white">
+                                            <CheckCircle2 className="h-3 w-3" />
                                         </div>
                                     )}
                                 </button>
                             )
                         })}
                         {filteredUnits.length === 0 && (
-                            <div className="col-span-2 text-center py-12 text-muted-foreground italic bg-slate-50 rounded-lg border border-dashed border-slate-200">
+                            <div className="col-span-full text-center py-12 text-muted-foreground italic bg-slate-50 rounded-lg border border-dashed border-slate-200">
                                 {ti('table.empty')}
                             </div>
                         )}

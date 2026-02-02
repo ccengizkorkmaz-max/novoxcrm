@@ -12,6 +12,8 @@ import { Building2, Users, FileText } from 'lucide-react'
 import UserManagementHeader from './components/UserManagementHeader'
 import UserTableActions from './components/UserTableActions'
 import TenantProfileForm from './components/TenantProfileForm'
+import UsersTable from './components/UsersTable'
+import RoleMatrix from './components/RoleMatrix'
 import { PaymentTemplatesTab } from './templates/payment-templates-tab'
 import { getTranslations, getLocale } from 'next-intl/server'
 
@@ -121,46 +123,8 @@ export default async function SettingsPage() {
                     <Card>
                         <UserManagementHeader />
                         <CardContent>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>{t('users.table.name')}</TableHead>
-                                        <TableHead>{t('users.table.email')}</TableHead>
-                                        <TableHead>{t('users.table.role')}</TableHead>
-                                        <TableHead>{t('users.table.date')}</TableHead>
-                                        <TableHead className="w-[50px]"></TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {users?.map((u: any) => (
-                                        <TableRow key={u.id}>
-                                            <TableCell className="font-medium">{u.full_name}</TableCell>
-                                            <TableCell>{u.email}</TableCell>
-                                            <TableCell>
-                                                <Badge
-                                                    variant={u.role === 'admin' || u.role === 'owner' ? 'default' : 'secondary'}
-                                                    className="capitalize"
-                                                >
-                                                    {getRoleLabel(u.role)}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell>
-                                                {new Date(u.created_at).toLocaleDateString(locale)}
-                                            </TableCell>
-                                            <TableCell>
-                                                <UserTableActions user={u} />
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                    {!users || users.length === 0 && (
-                                        <TableRow>
-                                            <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">
-                                                {t('users.table.empty')}
-                                            </TableCell>
-                                        </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
+                            <UsersTable users={users || []} currentUserRole={profile?.role || 'user'} />
+                            <RoleMatrix />
                         </CardContent>
                     </Card>
                 </TabsContent>

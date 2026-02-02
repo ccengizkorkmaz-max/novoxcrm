@@ -19,13 +19,18 @@ export function QuickCRMContent({ initialProjects, initialCustomers, initialUnit
     const [selectedCustomer, setSelectedCustomer] = useState<any>(null)
     const [selectedUnit, setSelectedUnit] = useState<any>(null)
 
+    const handleCustomerSelect = (customer: any) => {
+        setSelectedCustomer(customer)
+        setSelectedUnit(null)
+    }
+
     return (
         <div className="grid grid-cols-12 gap-4 h-full overflow-hidden pb-4">
             {/* Left: Customer Selection (3 cols) */}
             <div className="col-span-12 lg:col-span-3 flex flex-col gap-4 overflow-hidden h-full">
                 <CustomerSelector
                     initialCustomers={initialCustomers}
-                    onSelect={setSelectedCustomer}
+                    onSelect={handleCustomerSelect}
                     selectedCustomer={selectedCustomer}
                 />
             </div>

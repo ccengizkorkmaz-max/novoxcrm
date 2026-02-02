@@ -689,7 +689,8 @@
             "draft": "Taslak",
             "depositPending": "Kapora Bekleniyor",
             "rejected": "Reddedildi",
-            "pending": "Beklemede"
+            "pending": "Beklemede",
+            "expired": "Teklif Süresi Doldu"
         },
         "actions": {
             "viewPlan": "Ödeme Planını Gör",
@@ -736,12 +737,17 @@
         "messages": {
             "proposalSaved": "Teklif önerisi kaydedildi.",
             "offerApproved": "Teklif onaylandı!",
-            "error": "Hata oluştu.",
+            "error": "Bir hata oluştu.",
             "serverError": "Sunucu hatası oluştu.",
             "historyError": "Geçmiş verileri alınamadı.",
             "approveConfirm": "Bu teklifi onaylamak istediğinize emin misiniz?",
             "approveError": "Onaylama sırasında hata oluştu.",
-            "refundProcess": "Kapora ödemesi onaylı olduğu için iade süreci başlatıldı. İade tamamlandığında teklif durumu güncellenecektir."
+            "refundProcess": "Kapora ödemesi onaylı olduğu için iade süreci başlatıldı. İade tamamlandığında teklif durumu güncellenecektir.",
+            "statusPending": "Beklemede",
+            "statusApproved": "Onaylandı",
+            "statusRejected": "Reddedildi",
+            "locale": "tr-TR",
+            "statusExpired": "Süresi Doldu"
         }
     },
     "Reports": {
@@ -922,10 +928,14 @@
             },
             "roles": {
                 "admin": "Admin",
-                "owner": "Sahip",
+                "owner": "Şirket Sahibi",
                 "manager": "Yönetici",
                 "user": "Kullanıcı",
-                "userSales": "Kullanıcı (Satış)"
+                "userSales": "Kullanıcı (Satış)",
+                "sales": "Satış Danışmanı",
+                "updating": "Rol güncelleniyor...",
+                "updateSuccess": "Rol başarıyla güncellendi.",
+                "updateError": "Rol güncellenirken hata oluştu."
             },
             "actions": {
                 "edit": "Düzenle",
@@ -986,6 +996,24 @@
                 "empty": "Şablon bulunamadı.",
                 "confirmDelete": "Bu şablonu silmek istediğinize emin misiniz?",
                 "month": "Ay"
+            }
+        },
+        "roles": {
+            "matrix": {
+                "title": "Yetki Tablosu",
+                "description": "Rollerin sistem üzerindeki erişim hakları ve kısıtlamaları.",
+                "permission": "İzin / Yetki",
+                "allowed": "Tam Yetki",
+                "denied": "Erişim Yok",
+                "partial": "Kısıtlı / Sadece Kendi Verisi"
+            },
+            "permissions": {
+                "viewAllSales": "Tüm Satışları Görüntüleme",
+                "manageUsers": "Kullanıcı Yönetimi",
+                "manageSettings": "Şirket Ayarları",
+                "deleteData": "Veri Silme (Müşteri/Satış)",
+                "createSales": "Satış Kaydı Oluşturma",
+                "viewReports": "Raporlara Erişim"
             }
         }
     },

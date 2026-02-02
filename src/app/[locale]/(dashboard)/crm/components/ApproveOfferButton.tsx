@@ -59,7 +59,7 @@ export default function ApproveOfferButton({ offerId, customerName, unitInfo }: 
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle>{t('approveTitle')}</AlertDialogTitle>
-                    <AlertDialogDescription>
+                    <AlertDialogDescription asChild>
                         <div className="space-y-2">
                             <p><strong>{t('customer')}:</strong> {customerName}</p>
                             <p><strong>{t('customer') === 'Müşteri' ? 'Ünite' : 'Unit'}:</strong> {unitInfo}</p>

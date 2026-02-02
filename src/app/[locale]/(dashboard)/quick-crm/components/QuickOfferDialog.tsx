@@ -58,6 +58,7 @@ export function QuickOfferDialog({ customer, unit }: Props) {
                     <input type="hidden" name="customer_id" value={customer.id} />
                     <input type="hidden" name="unit_id" value={unit.id} />
                     <input type="hidden" name="currency" value={unit.currency} />
+                    <input type="hidden" name="status" value="Sent" />
 
                     <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
                         <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Liste Fiyatı</div>
@@ -81,6 +82,7 @@ export function QuickOfferDialog({ customer, unit }: Props) {
                             name="valid_until"
                             type="date"
                             defaultValue={new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
+                            min={new Date().toISOString().split('T')[0]}
                             required
                         />
                     </div>

@@ -2,7 +2,10 @@ import { createClient } from '@/lib/supabase/server'
 import OfferList from '@/app/[locale]/(dashboard)/crm/components/OfferList'
 import { getTranslations } from 'next-intl/server'
 
+import { checkOfferExpirations } from './actions'
+
 export default async function OffersPage() {
+    await checkOfferExpirations(false) // Check expirations on load, skip reval
     const supabase = await createClient()
     const t = await getTranslations('Offers')
 

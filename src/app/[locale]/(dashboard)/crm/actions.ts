@@ -337,6 +337,16 @@ export async function createNegotiation(data: {
         return { error: `Failed to record negotiation proposal: ${error.message}` }
     }
 
+    // Check if Offer was Expired, and if this new proposal extends validity
+    if (data.proposed_valid_until) {
+        const { data: offer } = await supabase.from('offers').select('status').eq('id', data.offer_id).single()
+        if (offer?.status === 'Expired' && new Date(data.proposed_valid_until) > new Date()) {
+            await supabase.from('offers').update({
+                status: 'Sent',
+                valid_until: data.proposed_valid_until
+            }).eq('id', data.offer_id)
+        }
+    }
 
     revalidatePath('/offers')
     return { success: true }
