@@ -75,36 +75,37 @@ export function InboxList({ initialEmails }: InboxListProps) {
                     filteredEmails.map((email) => (
                         <Card
                             key={email.id}
-                            className="group cursor-pointer hover:border-blue-200 hover:shadow-md transition-all duration-200"
+                            className="group cursor-pointer hover:border-blue-200 hover:shadow-sm transition-all duration-150 border-slate-100"
                             onClick={() => setViewingEmail(email)}
                         >
                             <CardContent className="p-0">
-                                <div className="flex items-center gap-4 py-2 px-4">
-                                    <div className="h-8 w-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 shrink-0 group-hover:bg-blue-100 transition-colors">
-                                        <Mail className="h-4 w-4" />
+                                <div className="flex items-center gap-3 py-1.5 px-3">
+                                    <Mail className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+
+                                    <div className="w-40 shrink-0">
+                                        <h4 className="text-[13px] font-semibold text-slate-900 truncate">
+                                            {email.customers?.full_name}
+                                        </h4>
                                     </div>
+
+                                    <div className="w-48 shrink-0 hidden sm:block">
+                                        <span className="text-[11px] text-blue-600 bg-blue-50/50 px-1.5 py-0 rounded border border-blue-100/50">
+                                            {email.customers?.email || 'No email'}
+                                        </span>
+                                    </div>
+
                                     <div className="flex-1 min-w-0">
-                                        <div className="flex items-center justify-between">
-                                            <h4 className="text-sm font-semibold text-slate-900 truncate">
-                                                {email.customers?.full_name}
-                                            </h4>
-                                            <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-                                                {format(new Date(email.created_at), 'dd MMM, HH:mm', { locale: dateLocale })}
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-[10px] font-medium text-blue-600 bg-blue-50 px-1.5 py-0 rounded">
-                                                {email.customers?.email || 'No email'}
-                                            </span>
-                                            <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-tight px-1 py-0 border rounded bg-white">
-                                                ID: {email.id.slice(0, 8)}
-                                            </span>
-                                            <p className="text-xs text-muted-foreground line-clamp-1 ml-2 flex-1">
-                                                {email.description}
-                                            </p>
-                                        </div>
+                                        <p className="text-[12px] text-muted-foreground line-clamp-1">
+                                            {email.description}
+                                        </p>
                                     </div>
-                                    <ChevronRight className="h-5 w-5 text-slate-300 group-hover:text-blue-500 transition-colors" />
+
+                                    <div className="flex items-center gap-3 shrink-0 ml-2">
+                                        <span className="text-[10px] text-muted-foreground whitespace-nowrap tabular-nums">
+                                            {format(new Date(email.created_at), 'dd MMM, HH:mm', { locale: dateLocale })}
+                                        </span>
+                                        <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-blue-500 transition-colors" />
+                                    </div>
                                 </div>
                             </CardContent>
                         </Card>
