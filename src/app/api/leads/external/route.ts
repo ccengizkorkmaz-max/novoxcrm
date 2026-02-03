@@ -41,25 +41,18 @@ export async function POST(req: Request) {
         // --- NEW: Parse Customer Info from Body/Description if it's an Email ---
         // Some emails contain customer info in a specific format in the body
         if (bodyDescription && (source === 'E-Posta' || !name)) {
-            const lines = bodyDescription.split(/\r?\n/)
-            lines.forEach((line: string) => {
-                const lowerLine = line.toLowerCase()
-                const colonIndex = line.indexOf(':')
-                if (colonIndex === -1) return
+            // Robust parsing for common labels in the body
+            const nameMatch = bodyDescription.match(/Ad\s+Soyad:\s*([^:\n\r]+?)(?=\s*(?:E-posta|Telefon|Konu|$)|\r|\n)/i)
+            if (nameMatch) name = nameMatch[1].trim()
 
-                const value = line.substring(colonIndex + 1).trim()
-                if (!value) return
+            const emailMatch = bodyDescription.match(/(?:E-posta Adresi|E-posta):\s*([^:\n\r\s]+?)(?=\s*(?:Ad Soyad|Telefon|Konu|$)|\r|\n)/i)
+            if (emailMatch) email = emailMatch[1].trim()
 
-                if (lowerLine.includes('ad soyad:')) {
-                    name = value
-                } else if (lowerLine.includes('e-posta adresi:') || lowerLine.includes('e-posta:')) {
-                    email = value
-                } else if (lowerLine.includes('telefon:')) {
-                    phone = value
-                } else if (lowerLine.includes('konu:')) {
-                    subject = value
-                }
-            })
+            const phoneMatch = bodyDescription.match(/Telefon:\s*([^:\n\r\s]+?)(?=\s*(?:Ad Soyad|E-posta|Konu|$)|\r|\n)/i)
+            if (phoneMatch) phone = phoneMatch[1].trim()
+
+            const subjectMatch = bodyDescription.match(/Konu:\s*([^:\n\r]+?)(?=\s*(?:Ad Soyad|E-posta|Telefon|$)|\r|\n)/i)
+            if (subjectMatch) subject = subjectMatch[1].trim()
         }
 
         if (!name || (!email && !phone)) {
@@ -97,8 +90,9 @@ export async function POST(req: Request) {
         const { data: existingCustomer } = await supabase
             .from('customers')
             .select('id')
-            .or(`email.eq.${email},phone.eq.${phone}`)
             .eq('tenant_id', targetTenantId)
+            .eq('full_name', name) // Must match name to be the same customer
+            .or(`email.eq.${email},phone.eq.${phone}`)
             .limit(1)
             .maybeSingle()
 
