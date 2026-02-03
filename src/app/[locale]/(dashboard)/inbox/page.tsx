@@ -10,11 +10,11 @@ export default async function InboxPage() {
     const supabase = await createClient()
     const t = await getTranslations('Sidebar.Inbox')
 
-    // Fetch sales records that originated from Email (E-Posta)
+    // Fetch sales records that originated from Email (E-Posta) or Kommo
     const { data: emails } = await supabase
         .from('sales')
         .select('*, customers!inner(full_name, email, phone, source)')
-        .eq('customers.source', 'E-Posta')
+        .in('customers.source', ['E-Posta', 'Kommo'])
         .order('created_at', { ascending: false })
 
     return (
