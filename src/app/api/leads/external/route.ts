@@ -69,17 +69,32 @@ export async function POST(req: Request) {
             customerId = newCustomer.id
         }
 
-        // 3. Create Sale (Lead)
-        const { data: newSale, error: saleError } = await supabase
+        // 3. Create Sale (Lead) with fallback for missing description column
+        const saleInsertData: any = {
+            tenant_id: targetTenantId,
+            customer_id: customerId,
+            status: 'Lead',
+            description: `Lead from ${source}${campaign ? ` (${campaign})` : ''}`
+        }
+
+        let { data: newSale, error: saleError } = await supabase
             .from('sales')
-            .insert({
-                tenant_id: targetTenantId,
-                customer_id: customerId,
-                status: 'Lead',
-                description: `Lead from ${source}${campaign ? ` (${campaign})` : ''}`
-            })
+            .insert(saleInsertData)
             .select()
             .single()
+
+        // Fallback: If description column is missing (code 42703), retry without it
+        if (saleError && saleError.code === '42703' && saleError.message.includes('description')) {
+            console.warn('Fallback: description column missing in sales table, retrying without it')
+            const { description, ...minimalSaleData } = saleInsertData
+            const retry = await supabase
+                .from('sales')
+                .insert(minimalSaleData)
+                .select()
+                .single()
+            newSale = retry.data
+            saleError = retry.error
+        }
 
         if (saleError) throw saleError
 
