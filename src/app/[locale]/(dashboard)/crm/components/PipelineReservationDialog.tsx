@@ -16,7 +16,7 @@ import { CalendarClock, ShieldAlert } from 'lucide-react'
 import { updateSaleToReservation, cancelReservation } from '../actions'
 import { toast } from 'sonner'
 import { Combobox } from '@/components/ui/combobox'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 
 interface PipelineReservationDialogProps {
     saleId: string
@@ -29,6 +29,7 @@ interface PipelineReservationDialogProps {
 
 export default function PipelineReservationDialog({ saleId, currentUnitId, availableUnits, customerName, status, expiryDate: initialExpiryDate }: PipelineReservationDialogProps) {
     const t = useTranslations('CRM.reservation')
+    const locale = useLocale()
     const [isOpen, setIsOpen] = useState(false)
     const [selectedProjectId, setSelectedProjectId] = useState("")
     const [selectedUnitId, setSelectedUnitId] = useState(currentUnitId || "")
@@ -104,12 +105,12 @@ export default function PipelineReservationDialog({ saleId, currentUnitId, avail
                 {isReserved ? (
                     <Button variant="outline" size="sm" className="gap-2 border-emerald-500 text-emerald-600 hover:bg-emerald-50">
                         <CalendarClock className="h-4 w-4" />
-                        {t('buttonReserved')} {initialExpiryDate && `(${new Date(initialExpiryDate).toLocaleDateString(t('locale') === 'tr' ? 'tr-TR' : 'en-US')})`}
+                        {t('buttonReserved')} {initialExpiryDate && `(${new Date(initialExpiryDate).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US')})`}
                     </Button>
-                ) : status === (t('locale') === 'tr' ? 'Opsiyon - Kapora Bekleniyor' : 'Option - Deposit Pending') ? (
+                ) : status === (locale === 'tr' ? 'Opsiyon - Kapora Bekleniyor' : 'Option - Deposit Pending') ? (
                     <Button variant="outline" size="sm" className="gap-2 border-orange-400 text-orange-600 hover:bg-orange-50">
                         <CalendarClock className="h-4 w-4" />
-                        {t('statusPending')} {initialExpiryDate && `(${new Date(initialExpiryDate).toLocaleDateString(t('locale') === 'tr' ? 'tr-TR' : 'en-US')})`}
+                        {t('statusPending')} {initialExpiryDate && `(${new Date(initialExpiryDate).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US')})`}
                     </Button>
                 ) : (
                     <Button variant="outline" size="sm" className="gap-2">

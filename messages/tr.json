@@ -1209,10 +1209,13 @@
             "Meeting": "Toplantı",
             "Site Visit": "Ziyaret",
             "Email": "Email",
-            "Whatsapp": "Whatsapp"
+            "Whatsapp": "Whatsapp",
+            "Offer Sent": "Teklif Gönderildi",
+            "System": "Sistem"
         },
         "topic": {
             "General": "Genel",
+            "Project Interest": "Proje İlgisi",
             "Sales": "Satış Görüşmesi",
             "Negotiation": "Pazarlık / Teklif",
             "Contract": "Sözleşme Süreci",
@@ -1221,18 +1224,25 @@
             "Collection": "Tahsilat"
         },
         "status": {
+            "Planned": "Planlandı",
             "Pending": "Bekliyor",
             "In Progress": "Devam Ediyor",
             "Completed": "Tamamlandı",
+            "Overdue": "Gecikmiş",
             "Cancelled": "İptal"
         },
         "kanban": {
-            "overdue": "Geciken",
+            "overdue": "Gecikmiş",
             "today": "Bugün",
             "tomorrow": "Yarın",
             "thisWeek": "Bu Hafta",
-            "completed": "Tamamlanan",
+            "completed": "Tamamlananlar",
             "noActivity": "Aktivite yok"
+        },
+        "actions": {
+            "complete": "Tamamla",
+            "edit": "Düzenle",
+            "delete": "Sil"
         },
         "table": {
             "typeTopic": "Tip / Konu",
@@ -1244,43 +1254,39 @@
             "empty": "Görüntülenecek aktivite bulunamadı."
         },
         "form": {
-            "createTitle": "Yeni Aktivite Planla",
-            "editTitle": "Aktivite Düzenle",
+            "createTitle": "Yeni Aktivite Oluştur",
+            "editTitle": "Aktiviteyi Düzenle",
             "completeTitle": "Aktiviteyi Tamamla",
             "customer": "Müşteri",
-            "select": "Seçiniz",
-            "topic": "Konu Başlığı (Topic)",
+            "select": "Seçiniz...",
+            "topic": "Konu",
             "type": "Tip",
-            "date": "Tarih",
-            "summary": "Konu / Özet",
-            "summaryPlaceholder": "Kısa özet...",
+            "date": "Tarih / Saat",
+            "summary": "Özet",
+            "summaryPlaceholder": "Kısa bir özet giriniz...",
             "description": "Açıklama",
-            "descriptionPlaceholder": "Detaylar...",
-            "outcome": "Sonuç (Outcome)",
-            "notes": "Görüşme Notları",
-            "notesPlaceholder": "Görüşme nasıl geçti...",
-            "nextAction": "Sonraki Adım (Next Action)",
+            "descriptionPlaceholder": "Detaylı açıklama giriniz...",
+            "completingMsg": "aktivitesini tamamlamaktasınız.",
+            "outcome": "Sonuç",
+            "outcomes": {
+                "Success": "Başarılı / Ulaşıldı",
+                "Reached Interested": "Ulaşıldı / İlgileniyor",
+                "Reached Not Interested": "Ulaşıldı / İlgilenmiyor",
+                "No Answer": "Cevap Vermedi",
+                "Busy": "Meşgul / Sonra Ara",
+                "Follow Up Required": "Takip Gerekiyor"
+            },
+            "notes": "Sonuç Notları",
+            "notesPlaceholder": "Görüşme notlarını buraya yazınız...",
+            "nextAction": "Bir Sonraki Aksiyon",
             "none": "Yok",
-            "save": "Kaydet",
             "completeAndSave": "Tamamla ve Kaydet",
-            "completingMsg": "aktivitesini tamamlıyorsunuz",
+            "save": "Kaydet",
             "success": {
-                "created": "Aktivite oluşturuldu",
+                "created": "Aktivite başarıyla oluşturuldu",
                 "updated": "Aktivite güncellendi",
                 "completed": "Aktivite tamamlandı"
-            },
-            "outcomes": {
-                "Success": "Başarılı / Olumlu",
-                "Reached Interested": "Ulaşıldı - İlgili",
-                "Reached Not Interested": "Ulaşıldı - İlgisiz",
-                "No Answer": "Cevap Yok",
-                "Busy": "Meşgul",
-                "Follow Up Required": "Takip Gerekli"
             }
-        },
-        "actions": {
-            "complete": "Tamamla",
-            "edit": "Düzenle"
         }
     },
     "Teams": {
@@ -1861,10 +1867,34 @@
         "sendOffer": "Teklif Ver",
         "activeSale": "Aktif Görüşme",
         "queueWarning": "Bu ünite başka bir müşteride opsiyonludur. Kaydınız 'Sıra Takip' kaydı olarak oluşturulacaktır.",
-        "inQueue": "Sıra Kaydı"
+        "inQueue": "Sıra Kaydı",
+        "selectProjectTitle": "Proje Seçimi",
+        "projectSelected": "Proje Seçildi",
+        "noProjectSelected": "Lütfen önce bir proje seçiniz.",
+        "checking": "Kontrol ediliyor...",
+        "noSaleStarted": "Satış Süreci Başlatılmadı",
+        "noSaleStartedDesc": "Bu müşteri ve ünite için henüz bir görüşme kaydı yok.",
+        "noProjectSaleStartedDesc": "Bu müşteri ve proje için henüz bir görüşme kaydı yok.",
+        "activityType": "Aktivite Tipi",
+        "activityPhone": "Telefon",
+        "activityMeeting": "Toplantı / Ofis Ziyareti",
+        "activitySummary": "Konu",
+        "activitySummaryPlaceholder": "Örn: Proje detayları görüşüldü",
+        "activityNotes": "Notlar",
+        "activityNotesPlaceholder": "Görüşme detaylarını buraya yazabilirsiniz...",
+        "save": "Kaydet",
+        "listPrice": "Liste Fiyatı",
+        "offerPrice": "Teklif Fiyatı",
+        "validUntil": "Geçerlilik Tarihi",
+        "saveAndSend": "Teklifi Kaydet ve Gönder",
+        "customerUnit": "Müşteri / Ünite",
+        "confirmOption": "Opsiyonu Kesinleştir",
+        "defaultExpiryHint": "Varsayılan olarak 3 gün tanımlanmıştır.",
+        "projectOnlyActivity": "Proje Bazlı Aktivite"
     },
     "CRM": {
         "title": "CRM & Satış Yönetimi",
+        "locale": "tr",
         "filter": {
             "button": "Filtrele",
             "title": "CRM Filtreleri",
@@ -1875,8 +1905,15 @@
             "allProjects": "Tüm Projeler",
             "rep": "Satış Temsilcisi",
             "allTeam": "Tüm Ekip",
-            "status": "Statü",
-            "allStatuses": "Tüm Statüler",
+            "statusLabel": "Durum",
+            "allStatuses": "Tüm Durumlar",
+            "status": {
+                "Lead": "Potansiyel",
+                "Prospect": "Fırsat",
+                "Reservation": "Rezervasyon",
+                "Sold": "Satıldı",
+                "Lost": "Kaybedildi"
+            },
             "apply": "Filtreleri Uygula",
             "reset": "Filtreleri Sıfırla"
         },
@@ -1898,7 +1935,8 @@
             "customerNotFound": "Müşteri bulunamadı.",
             "projectNotFound": "Proje bulunamadı.",
             "unitNotFound": "Ünite bulunamadı.",
-            "poweredBy": "NovoxCRM tarafından desteklenmektedir"
+            "poweredBy": "NovoxCRM tarafından desteklenmektedir",
+            "createdSuccess": "Fırsat başarıyla oluşturuldu"
         },
         "stats": {
             "Lead": "Lead",
@@ -1912,14 +1950,16 @@
         },
         "table": {
             "customer": "Müşteri",
-            "projectUnit": "Proje / Ünite",
+            "project": "Proje",
+            "unit": "Ünite",
             "status": "Durum",
             "date": "Tarih",
             "amount": "Tutar",
             "rep": "Temsilci",
             "actions": "İşlemler",
             "empty": "Aktif satış bulunamadı.",
-            "unitNotSelected": "Ünite Seçilmedi"
+            "unitNotSelected": "Ünite Seçilmedi",
+            "projectOnly": "Sadece Proje"
         },
         "actions": {
             "autoAssign": "Otomatik Ata",
@@ -1958,13 +1998,24 @@
             "errorUnmatch": "İşlem başarısız.",
             "buttonMatch": "Eşleştir",
             "buttonUnmatch": "Eşleşmeyi Kaldır",
-            "tooltipChange": "Eşleştirmeyi Değiştir/Kaldır"
+            "tooltipChange": "Eşleştirmeyi Değiştir/Kaldır",
+            "save": "Kaydet",
+            "cancel": "İptal"
         },
         "reservation": {
             "title": "{customerName} için Opsiyon {type}",
             "typeNew": "Tanımla",
             "typeEdit": "İptal Et / Güncelle",
             "warningReserved": "Bu kayıt için halihazırda bir opsiyon bulunmaktadır. Opsiyonu iptal etmek için aşağıdaki \"Opsiyonu Kaldır\" butonunu kullanabilirsiniz.",
+            "projectLabel": "Proje Seçin",
+            "unitLabel": "Ünite Seçin",
+            "projectPlaceholder": "Proje Seçiniz...",
+            "unitPlaceholder": "Ünite Seçiniz...",
+            "projectSearch": "Proje Ara...",
+            "unitSearch": "Ünite Ara...",
+            "projectEmpty": "Proje bulunamadı.",
+            "unitEmpty": "Aradığınız ünite bulunamadı.",
+            "selectProjectFirst": "Önce Proje Seçiniz",
             "expiryDateLabel": "Opsiyon Bitiş Tarihi",
             "depositLabel": "Kapora Tutarı (Opsiyonel)",
             "depositHint": "0 girilirse kapora beklenmeden opsiyon kesinleşir.",
@@ -1978,7 +2029,8 @@
             "buttonCancel": "Opsiyonu Kaldır",
             "buttonUpdate": "Opsiyonu Güncelle",
             "buttonConfirm": "Opsiyonu Onayla",
-            "statusPending": "Kapora Bekleniyor"
+            "statusPending": "Kapora Bekleniyor",
+            "cancel": "Vazgeç"
         }
     }
 }

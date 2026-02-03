@@ -83,19 +83,27 @@ export default function OfferDetail({ offer }: OfferDetailProps) {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {plan.payment_items.map((item: any, index: number) => (
-                                <TableRow key={index}>
-                                    <TableCell>{new Date(item.due_date).toLocaleDateString('tr-TR')}</TableCell>
-                                    <TableCell>
-                                        {item.payment_type === 'Down Payment' ? 'Peşinat' :
-                                            item.payment_type === 'Installment' ? 'Taksit' :
-                                                item.payment_type === 'Interim Payment' ? 'Ara Ödeme' : 'Final Ödeme'}
-                                    </TableCell>
-                                    <TableCell className="text-right font-medium">
-                                        {formatCurrency(item.amount, offer.currency)}
+                            {plan.payment_items && plan.payment_items.length > 0 ? (
+                                plan.payment_items.map((item: any, index: number) => (
+                                    <TableRow key={index}>
+                                        <TableCell>{new Date(item.due_date).toLocaleDateString('tr-TR')}</TableCell>
+                                        <TableCell>
+                                            {item.payment_type === 'Down Payment' || item.payment_type === 'DownPayment' ? 'Peşinat' :
+                                                item.payment_type === 'Installment' ? 'Taksit' :
+                                                    item.payment_type === 'Interim Payment' || item.payment_type === 'InterimPayment' || item.payment_type === 'Balloon' ? 'Ara Ödeme' : 'Final Ödeme'}
+                                        </TableCell>
+                                        <TableCell className="text-right font-medium">
+                                            {formatCurrency(item.amount, offer.currency)}
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            ) : (
+                                <TableRow>
+                                    <TableCell colSpan={3} className="text-center py-8 text-muted-foreground italic">
+                                        Ödeme planı dökümana henüz yansıtılmamış. Lütfen CRM panelinden tekrar kaydedin.
                                     </TableCell>
                                 </TableRow>
-                            ))}
+                            )}
                             <TableRow className="bg-muted/50 font-bold">
                                 <TableCell colSpan={2}>Toplam</TableCell>
                                 <TableCell className="text-right">

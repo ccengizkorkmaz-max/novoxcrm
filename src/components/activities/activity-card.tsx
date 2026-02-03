@@ -34,17 +34,18 @@ export interface Activity {
 
 interface ActivityCardProps {
     activity: Activity
+    customers?: any[]
     onComplete?: (id: string) => void // Trigger form externally or handle internally
 }
 
-export function ActivityCard({ activity, onComplete }: ActivityCardProps) {
+export function ActivityCard({ activity, customers, onComplete }: ActivityCardProps) {
     const t = useTranslations('Activities')
     const locale = useLocale()
     const [showEdit, setShowEdit] = useState(false)
     const [showComplete, setShowComplete] = useState(false)
 
     const Icon = getActivityIcon(activity.type)
-    const isOverdue = new Date(activity.due_date) < new Date() && activity.status === 'Planned'
+    const isOverdue = activity.due_date ? new Date(activity.due_date) < new Date() && activity.status === 'Planned' : false
 
     return (
         <Card className={`mb-2 hover:shadow-sm transition-shadow border-l-2 ${isOverdue ? 'border-l-red-500' : 'border-l-transparent'}`}>
@@ -66,11 +67,15 @@ export function ActivityCard({ activity, onComplete }: ActivityCardProps) {
                                 <Badge variant="secondary" className={`text-[10px] px-1 py-0 h-4 font-normal ${getStatusColor(activity.status)} bg-transparent border-0 p-0`}>
                                     {isOverdue && activity.status !== 'Completed' ? t('kanban.overdue') : t(`status.${activity.status}`)}
                                 </Badge>
-                                <span className="text-[10px] text-muted-foreground">•</span>
-                                <span className={`text-[10px] flex items-center gap-1 ${isOverdue ? 'text-red-600 font-medium' : 'text-muted-foreground'}`}>
-                                    <Clock className="h-3 w-3" />
-                                    {format(new Date(activity.due_date), 'd MMM HH:mm', { locale: locale === 'tr' ? tr : enUS })}
-                                </span>
+                                {activity.due_date && (
+                                    <>
+                                        <span className="text-[10px] text-muted-foreground">•</span>
+                                        <span className={`text-[10px] flex items-center gap-1 ${isOverdue ? 'text-red-600 font-medium' : 'text-muted-foreground'}`}>
+                                            <Clock className="h-3 w-3" />
+                                            {format(new Date(activity.due_date), 'd MMM HH:mm', { locale: locale === 'tr' ? tr : enUS })}
+                                        </span>
+                                    </>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -95,13 +100,14 @@ export function ActivityCard({ activity, onComplete }: ActivityCardProps) {
                 onOpenChange={setShowEdit}
                 mode="edit"
                 activity={activity}
-                customers={[]}
+                customers={customers}
             />
             <ActivityForm
                 open={showComplete}
                 onOpenChange={setShowComplete}
                 mode="complete"
                 activity={activity}
+                customers={customers}
             />
         </Card>
     )

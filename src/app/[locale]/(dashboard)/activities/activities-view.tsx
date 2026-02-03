@@ -206,7 +206,7 @@ export function ActivitiesView({ initialActivities, customers, user }: Activitie
 
                 <TabsContent value="kanban" className="mt-0 flex-1 min-h-0 overflow-hidden">
                     <div className="h-full overflow-y-auto pr-2">
-                        <KanbanBoard activities={activities} />
+                        <KanbanBoard activities={activities} customers={customers} />
                     </div>
                 </TabsContent>
 

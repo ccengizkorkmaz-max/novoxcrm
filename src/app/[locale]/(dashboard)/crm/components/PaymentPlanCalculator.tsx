@@ -135,9 +135,18 @@ export default function PaymentPlanCalculator({ saleId, totalAmount = 0, initial
 
     const handleSave = async () => {
         if (!plan.length) return
-        await createPaymentPlan(saleId, plan, totals.grandTotal || price, currency)
-        toast.success('Ödeme planı ve satış tutarı (vade farkı dahil) kaydedildi!')
-        if (onSaveSuccess) onSaveSuccess()
+        try {
+            const result = await createPaymentPlan(saleId, plan, totals.grandTotal || price, currency)
+            if (result?.error) {
+                toast.error(`Kaydetme hatası: ${result.error}`)
+                return
+            }
+            toast.success('Ödeme planı ve satış tutarı (vade farkı dahil) kaydedildi!')
+            if (onSaveSuccess) onSaveSuccess()
+        } catch (e: any) {
+            console.error(e)
+            toast.error('Beklenmedik bir hata oluştu')
+        }
     }
 
 

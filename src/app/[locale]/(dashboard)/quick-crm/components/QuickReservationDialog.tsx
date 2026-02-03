@@ -49,41 +49,46 @@ export function QuickReservationDialog({ customer, unit, saleId }: Props) {
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline" className="flex flex-col h-16 gap-1 border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100 hover:text-orange-800">
+                <button
+                    disabled={!unit}
+                    className="flex flex-col items-center justify-center h-16 w-full gap-1 border border-orange-200 rounded-lg bg-orange-50 text-orange-700 hover:bg-orange-100 hover:text-orange-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
                     <Calendar className="h-4 w-4" />
-                    <span className="text-[10px]">{t('option')}</span>
-                </Button>
+                    <span className="text-[10px] font-bold">{t('option')}</span>
+                </button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                    <DialogTitle>{t('option')}</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4 pt-4">
-                    <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
-                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Müşteri / Ünite</div>
-                        <div className="text-sm font-semibold">{customer.full_name} - {unit.block}.{unit.unit_number}</div>
-                    </div>
+            {unit && (
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle>{t('option')}</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 pt-4">
+                        <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{t('customerUnit')}</div>
+                            <div className="text-sm font-semibold">{customer.full_name} - {unit.block}.{unit.unit_number}</div>
+                        </div>
 
-                    <div className="grid gap-2">
-                        <Label>Opsiyon Bitiş Tarihi</Label>
-                        <Input
-                            type="date"
-                            value={expiryDate}
-                            min={new Date().toISOString().split('T')[0]}
-                            onChange={(e) => setExpiryDate(e.target.value)}
-                            required
-                        />
-                        <p className="text-[10px] text-muted-foreground">Varsayılan olarak 3 gün tanımlanmıştır.</p>
-                    </div>
+                        <div className="grid gap-2">
+                            <Label>{t('validUntil')}</Label>
+                            <Input
+                                type="date"
+                                value={expiryDate}
+                                min={new Date().toISOString().split('T')[0]}
+                                onChange={(e) => setExpiryDate(e.target.value)}
+                                required
+                            />
+                            <p className="text-[10px] text-muted-foreground">{t('defaultExpiryHint')}</p>
+                        </div>
 
-                    <DialogFooter>
-                        <Button onClick={handleReserve} disabled={loading} className="w-full bg-orange-600 hover:bg-orange-700">
-                            {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                            Opsiyonu Kesinleştir
-                        </Button>
-                    </DialogFooter>
-                </div>
-            </DialogContent>
+                        <DialogFooter>
+                            <Button onClick={handleReserve} disabled={loading} className="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold">
+                                {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                                {t('confirmOption')}
+                            </Button>
+                        </DialogFooter>
+                    </div>
+                </DialogContent>
+            )}
         </Dialog>
     )
 }

@@ -50,9 +50,19 @@ export default async function CRMPage(props: { searchParams: Promise<{ [key: str
     // 3. Build Sales Query with Filters
     let query = supabase
         .from('sales')
-        .select('*, customers!inner(full_name), units(unit_number, price, currency, projects(id, name)), profiles(full_name)')
+        .select('*, customers!inner(full_name), units(unit_number, price, currency, projects(id, name)), projects(id, name), profiles(full_name)')
 
-    if (filterProject) query = query.eq('units.projects.id', filterProject)
+    // Filter by Project
+    if (filterProject) {
+        // Filter if EITHER unit's project OR direct sale project matches
+        // Supabase/PostgREST doesn't support OR across relations easily in top-level.
+        // But since we have project_id on sales now, we can filter sales.project_id OR units.project_id?
+        // Actually, if sales.project_id IS set for both unit-sales and project-sales, we just filter sales.project_id!
+        // CHECK: If unit is selected, did we migrate to set sales.project_id? YES, the SQL migration did `UPDATE sales SET project_id = units.project_id`
+        // SO: We can just filter on `project_id` directly!
+        query = query.eq('project_id', filterProject)
+    }
+
     if (filterRep) query = query.eq('assigned_to', filterRep)
     if (filterStatus) query = query.eq('status', filterStatus)
 
@@ -61,7 +71,7 @@ export default async function CRMPage(props: { searchParams: Promise<{ [key: str
         query = query.ilike('customers.full_name', `%${filterSearch}%`)
     }
 
-    const { data: sales } = await query.order('created_at', { ascending: false })
+    const { data: sales, error } = await query.order('created_at', { ascending: false })
 
     // 4. For the create sale dialog - exclude sold units
     const { data: availableUnits } = await supabase

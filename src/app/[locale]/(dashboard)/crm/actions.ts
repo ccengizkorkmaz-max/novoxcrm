@@ -175,28 +175,33 @@ export async function createSale(formData: FormData) {
 
     const customer_id = formData.get('customer_id') as string
     const unit_id = formData.get('unit_id') as string
+    const project_id = formData.get('project_id') as string
 
-    if (!customer_id || !unit_id) return { error: 'Missing customer or unit' }
+    if (!customer_id) return { error: 'Missing customer' }
 
     // Start a sales process - if unit is matched, it's a Prospect
-    const { error } = await supabase.from('sales').insert({
+    const { data: newSaleData, error } = await supabase.from('sales').insert({
         tenant_id: profile?.tenant_id,
         customer_id,
-        unit_id,
+        unit_id: unit_id || null,
+        project_id: project_id || null, // New schema support
         assigned_to: null,
         status: unit_id ? 'Prospect' : 'Lead'
-    })
+    }).select().single()
 
+    if (error) {
+        console.error('Create Sale Error:', error)
+        return { error: 'Failed to start sale: ' + error.message }
+    }
 
-    if (error) return { error: 'Failed to start sale' }
+    if (newSaleData) {
+        await syncBrokerLeadFromSale(newSaleData.id, unit_id ? 'Prospect' : 'Lead')
+    }
 
     revalidatePath('/crm')
+    revalidatePath('/quick-crm')
 
-    // Broker Sync
-    const { data: newSale } = await supabase.from('sales').select('id').eq('customer_id', customer_id).order('created_at', { ascending: false }).limit(1).single()
-    if (newSale) await syncBrokerLeadFromSale(newSale.id, unit_id ? 'Prospect' : 'Lead')
-
-    return { success: true }
+    return { success: true, sale: newSaleData }
 }
 
 export async function restartSale(saleId: string) {
@@ -265,6 +270,7 @@ export async function updateSaleStatus(id: string, status: string) {
             tenant_id: profile?.tenant_id,
             customer_id: sale.customer_id,
             unit_id: sale.unit_id,
+            sale_id: sale.id, // Linked to the sale
             user_id: user?.id,
             price: sale.final_price || sale.units?.price || 0,
             currency: sale.currency || sale.units?.currency || 'TRY',
@@ -279,11 +285,11 @@ export async function updateSaleStatus(id: string, status: string) {
         }
     } else {
         // If status changed FROM Proposal (or just IS NOT Proposal), remove existing offers for this sale
-        if (sale?.customer_id && sale?.unit_id) {
+        if (sale?.id) {
             await supabase
                 .from('offers')
                 .delete()
-                .match({ customer_id: sale.customer_id, unit_id: sale.unit_id })
+                .eq('sale_id', sale.id)
         }
     }
 
@@ -862,6 +868,9 @@ export async function createPaymentPlan(sale_id: string, items: any[], total_pri
     await supabase.from('payment_plans').delete().eq('sale_id', sale_id)
 
     // 2. Create a Payment Plan header
+    console.log('--- createPaymentPlan Debug ---')
+    console.log('Sale ID:', sale_id)
+
     const { data: plan, error: planError } = await supabase
         .from('payment_plans')
         .insert({
@@ -874,8 +883,12 @@ export async function createPaymentPlan(sale_id: string, items: any[], total_pri
         .single()
 
     if (planError) {
-        console.error('Create Plan Error:', planError)
-        return { error: 'Failed to create plan header' }
+        console.error('Create Plan Header Error:', planError)
+        // Check if tenant_id is the issue (RLS)
+        if (planError.message.includes('tenant_id')) {
+            return { error: 'Oturum/Şirket bilgisi hatası. Lütfen sayfayı yenileyip tekrar deneyin.' }
+        }
+        return { error: `Sistem Hatası (Header): ${planError.message}` }
     }
 
     // 2. Insert Items
@@ -885,19 +898,72 @@ export async function createPaymentPlan(sale_id: string, items: any[], total_pri
         due_date: item.due_date,
         amount: item.amount,
         description: item.description,
+        payment_type: item.payment_type === 'DownPayment' ? 'Down Payment' :
+            item.payment_type === 'Balloon' ? 'Interim Payment' :
+                item.payment_type === 'InterimPayment' ? 'Interim Payment' :
+                    item.payment_type === 'DeliveryPayment' ? 'Final Payment' :
+                        item.payment_type,
         status: 'Pending'
     }))
 
-    const { error: itemsError } = await supabase
+    let { error: itemsError } = await supabase
         .from('payment_items')
         .insert(paymentItems)
 
+    // Fallback: If payment_type column is missing, retry without it
+    if (itemsError && (itemsError.message.includes('payment_type') || itemsError.code === '42703')) {
+        console.warn('Fallback: payment_type column missing, saving items without it')
+        const itemsWithoutType = paymentItems.map(({ payment_type, ...rest }: any) => rest)
+        const retry = await supabase.from('payment_items').insert(itemsWithoutType)
+        itemsError = retry.error
+    }
+
     if (itemsError) {
         console.error('Create Items Error:', itemsError)
-        return { error: 'Failed to create payment items' }
+        return { error: `Sistem Hatası (Items): ${itemsError.message}` }
+    }
+
+    // 3. Sync with Active Offers
+    // Fetch sale details to enable fallback matching
+    const { data: sale } = await supabase.from('sales').select('customer_id, unit_id').eq('id', sale_id).single()
+
+    // When a plan is updated, also update the snapshot in the active offer
+    // Try sale_id first, fallback to (customer_id + unit_id) for legacy unlinked offers
+    let query = supabase.from('offers').select('id')
+
+    if (sale?.customer_id && sale?.unit_id) {
+        query = query.or(`sale_id.eq.${sale_id},and(customer_id.eq.${sale.customer_id},unit_id.eq.${sale.unit_id})`)
+    } else {
+        query = query.eq('sale_id', sale_id)
+    }
+
+    const { data: activeOffers } = await query
+        .neq('status', 'Expired')
+        .neq('status', 'Rejected')
+
+    if (activeOffers && activeOffers.length > 0) {
+        const snapshot = {
+            payment_items: paymentItems.map((item, idx) => ({
+                id: undefined,
+                due_date: item.due_date,
+                amount: item.amount,
+                description: item.description,
+                payment_type: item.payment_type // Already mapped above
+            }))
+        }
+
+        await supabase
+            .from('offers')
+            .update({
+                payment_plan: snapshot,
+                price: total_price || undefined
+            })
+            .in('id', activeOffers.map(o => o.id))
     }
 
     revalidatePath('/crm')
+    revalidatePath('/offers')
+    revalidatePath('/', 'layout') // Global clear just in case
     return { success: true }
 }
 

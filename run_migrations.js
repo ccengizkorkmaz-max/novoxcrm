@@ -6,13 +6,11 @@ const path = require('path');
 async function runMigrations() {
     const migrationsDir = path.join(process.cwd(), 'supabase', 'migrations');
     const files = [
-        '20260128_broker_finances.sql',
-        '20260128_project_visibility.sql',
-        '20260128_fix_data_isolation.sql',
-        '20260129_construction_management.sql'
+        '20260202_add_parameters_to_payment_plans.sql',
+        '20260202_add_payment_type_to_items.sql'
     ];
 
-    const connectionString = "postgresql://postgres:Passkall22!@db.ncjamvghbzutohmtclwf.supabase.co:5432/postgres";
+    const connectionString = "postgresql://postgres:Passkall22!@aws-0-eu-central-1.pooler.supabase.com:6543/postgres";
 
     // Try connection
     const client = new Client({

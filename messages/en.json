@@ -1857,10 +1857,34 @@
         "sendOffer": "Give Offer",
         "activeSale": "Active Interaction",
         "queueWarning": "This unit is already reserved by another customer. Your record will be created as a 'Waitlist' record.",
-        "inQueue": "Waitlist"
+        "inQueue": "Waitlist",
+        "selectProjectTitle": "Project Selection",
+        "projectSelected": "Project Selected",
+        "noProjectSelected": "Please select a project first.",
+        "checking": "Checking...",
+        "noSaleStarted": "Sales Process Not Started",
+        "noSaleStartedDesc": "No interaction record found for this customer and unit yet.",
+        "noProjectSaleStartedDesc": "No interaction record found for this customer and project yet.",
+        "activityType": "Activity Type",
+        "activityPhone": "Phone",
+        "activityMeeting": "Meeting / Site Visit",
+        "activitySummary": "Summary",
+        "activitySummaryPlaceholder": "Ex: Project details discussed",
+        "activityNotes": "Notes",
+        "activityNotesPlaceholder": "Write meeting details here...",
+        "save": "Save",
+        "listPrice": "List Price",
+        "offerPrice": "Offer Price",
+        "validUntil": "Valid Until",
+        "saveAndSend": "Save and Send Offer",
+        "customerUnit": "Customer / Unit",
+        "confirmOption": "Confirm Option",
+        "defaultExpiryHint": "Defaulted to 3 days.",
+        "projectOnlyActivity": "Project-based Activity"
     },
     "CRM": {
         "title": "CRM & Sales Management",
+        "locale": "en",
         "filter": {
             "button": "Filter",
             "title": "CRM Filters",
@@ -1908,14 +1932,16 @@
         },
         "table": {
             "customer": "Customer",
-            "projectUnit": "Project / Unit",
+            "project": "Project",
+            "unit": "Unit",
             "status": "Status",
             "date": "Date",
             "amount": "Amount",
             "rep": "Representative",
             "actions": "Actions",
             "empty": "No active sales found.",
-            "unitNotSelected": "Unit Not Selected"
+            "unitNotSelected": "Unit Not Selected",
+            "projectOnly": "Project Only"
         },
         "actions": {
             "autoAssign": "Auto Assign",
@@ -1954,13 +1980,24 @@
             "errorUnmatch": "Action failed.",
             "buttonMatch": "Match",
             "buttonUnmatch": "Remove Matching",
-            "tooltipChange": "Change/Remove Matching"
+            "tooltipChange": "Change/Remove Matching",
+            "save": "Save",
+            "cancel": "Cancel"
         },
         "reservation": {
             "title": "Option for {customerName} {type}",
             "typeNew": "Define",
             "typeEdit": "Cancel / Update",
             "warningReserved": "There is already an option for this record. You can use the \"Remove Option\" button below to cancel the option.",
+            "projectLabel": "Select Project",
+            "unitLabel": "Select Unit",
+            "projectPlaceholder": "Select Project...",
+            "unitPlaceholder": "Select Unit...",
+            "projectSearch": "Search Project...",
+            "unitSearch": "Search Unit...",
+            "projectEmpty": "No project found.",
+            "unitEmpty": "Unit not found.",
+            "selectProjectFirst": "Select Project First",
             "expiryDateLabel": "Option Expiry Date",
             "depositLabel": "Deposit Amount (Optional)",
             "depositHint": "If 0 is entered, the option will be finalized without waiting for a deposit.",
@@ -1974,7 +2011,8 @@
             "buttonCancel": "Remove Option",
             "buttonUpdate": "Update Option",
             "buttonConfirm": "Confirm Option",
-            "statusPending": "Deposit Pending"
+            "statusPending": "Deposit Pending",
+            "cancel": "Cancel"
         }
     }
 }

@@ -43,10 +43,12 @@ export function QuickActivityDialog({ customer, unit }: Props) {
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline" className="flex flex-col h-16 gap-1">
-                    <RefreshCw className="h-4 w-4" />
-                    <span className="text-[10px]">{t('logActivity')}</span>
-                </Button>
+                <button
+                    className="flex flex-col items-center justify-center h-16 w-full gap-1 border border-slate-200 rounded-lg bg-white hover:bg-slate-50 transition-colors"
+                >
+                    <RefreshCw className="h-4 w-4 text-slate-500" />
+                    <span className="text-[10px] font-bold text-slate-600">{t('logActivity')}</span>
+                </button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
@@ -54,33 +56,33 @@ export function QuickActivityDialog({ customer, unit }: Props) {
                 </DialogHeader>
                 <form action={handleSubmit} className="space-y-4 pt-4">
                     <input type="hidden" name="customer_id" value={customer.id} />
-                    <input type="hidden" name="unit_id" value={unit.id} />
-                    <input type="hidden" name="project_id" value={unit.projects?.id} />
+                    {unit && <input type="hidden" name="unit_id" value={unit.id} />}
+                    <input type="hidden" name="project_id" value={unit?.projects?.id || ''} />
 
                     <div className="grid gap-2">
-                        <Label>Aktivite Tipi</Label>
+                        <Label>{t('activityType')}</Label>
                         <select name="type" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" required>
-                            <option value="Phone">Telefon</option>
-                            <option value="Meeting">Toplantı / Ofis Ziyareti</option>
+                            <option value="Phone">{t('activityPhone')}</option>
+                            <option value="Meeting">{t('activityMeeting')}</option>
                             <option value="Whatsapp">Whatsapp</option>
-                            <option value="Email">E-posta</option>
+                            <option value="Email">Email</option>
                         </select>
                     </div>
 
                     <div className="grid gap-2">
-                        <Label>Konu</Label>
-                        <Input name="summary" placeholder="Örn: Proje detayları görüşüldü" required />
+                        <Label>{t('activitySummary')}</Label>
+                        <Input name="summary" placeholder={t('activitySummaryPlaceholder')} required />
                     </div>
 
                     <div className="grid gap-2">
-                        <Label>Notlar</Label>
-                        <Textarea name="notes" placeholder="Görüşme detaylarını buraya yazabilirsiniz..." className="min-h-[100px]" />
+                        <Label>{t('activityNotes')}</Label>
+                        <Textarea name="notes" placeholder={t('activityNotesPlaceholder')} className="min-h-[100px]" />
                     </div>
 
                     <DialogFooter>
                         <Button type="submit" disabled={loading} className="w-full">
                             {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                            Kaydet
+                            {t('save')}
                         </Button>
                     </DialogFooter>
                 </form>

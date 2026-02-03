@@ -78,8 +78,17 @@ export default function NewSaleButton({
                     <DialogTitle>{t('title')}</DialogTitle>
                 </DialogHeader>
                 <form action={async (formData) => {
-                    await createSale(formData)
-                    setIsCreateOpen(false)
+                    const result = await createSale(formData)
+                    if (result.error) {
+                        toast.error(result.error)
+                    } else {
+                        toast.success(t('createdSuccess'))
+                        setIsCreateOpen(false)
+                        // Reset form state
+                        setSelectedCustomerIdForSale("")
+                        setSelectedProjectIdForSale("")
+                        setSelectedUnitIdForSale("")
+                    }
                 }}>
                     <div className="grid gap-4 py-4">
                         <div className="grid gap-2">
@@ -108,6 +117,7 @@ export default function NewSaleButton({
                                 searchPlaceholder={t('searchProject')}
                                 emptyText={t('projectNotFound')}
                             />
+                            <input type="hidden" name="project_id" value={selectedProjectIdForSale} />
                         </div>
 
                         <div className="grid gap-2">
@@ -131,7 +141,7 @@ export default function NewSaleButton({
                         )}
                     </div>
                     <DialogFooter>
-                        <Button type="submit" disabled={!selectedCustomerIdForSale || !selectedUnitIdForSale}>{t('create')}</Button>
+                        <Button type="submit" disabled={!selectedCustomerIdForSale || (!selectedUnitIdForSale && !selectedProjectIdForSale)}>{t('create')}</Button>
                     </DialogFooter>
                 </form>
             </DialogContent>

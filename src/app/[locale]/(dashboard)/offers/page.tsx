@@ -12,7 +12,7 @@ export default async function OffersPage() {
     // Fetch Offers
     const { data: offers } = await supabase
         .from('offers')
-        .select('*, customers(full_name), units(unit_number, projects(name)), offer_negotiations(*)')
+        .select('*, customers(full_name), units(unit_number, projects(name)), offer_negotiations(*), payment_plan')
         .neq('status', 'Closed') // Hide signed/closed offers
         .order('created_at', { ascending: false })
 

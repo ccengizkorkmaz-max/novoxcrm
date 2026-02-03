@@ -137,7 +137,7 @@ export default function CRMFilterSheet({ projects, profiles }: CRMFilterSheetPro
                         </div>
 
                         <div className="space-y-3">
-                            <Label className="text-sm font-semibold">{t('status')}</Label>
+                            <Label className="text-sm font-semibold">{t('statusLabel')}</Label>
                             <Select value={status} onValueChange={setStatus}>
                                 <SelectTrigger className="h-11">
                                     <SelectValue placeholder={t('allStatuses')} />
