@@ -65,7 +65,7 @@ export function InboxList({ initialEmails }: InboxListProps) {
                 </div>
             </div>
 
-            <div className="grid gap-3">
+            <div className="grid gap-2">
                 {filteredEmails.length === 0 ? (
                     <Card className="border-dashed py-12 flex flex-col items-center justify-center text-muted-foreground bg-slate-50/50">
                         <Mail className="h-10 w-10 mb-3 opacity-20" />
@@ -79,30 +79,30 @@ export function InboxList({ initialEmails }: InboxListProps) {
                             onClick={() => setViewingEmail(email)}
                         >
                             <CardContent className="p-0">
-                                <div className="flex items-center gap-4 p-4">
-                                    <div className="h-10 w-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 shrink-0 group-hover:bg-blue-100 transition-colors">
-                                        <Mail className="h-5 w-5" />
+                                <div className="flex items-center gap-4 py-2 px-4">
+                                    <div className="h-8 w-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 shrink-0 group-hover:bg-blue-100 transition-colors">
+                                        <Mail className="h-4 w-4" />
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <div className="flex items-center justify-between mb-1">
-                                            <h4 className="font-semibold text-slate-900 truncate">
+                                        <div className="flex items-center justify-between">
+                                            <h4 className="text-sm font-semibold text-slate-900 truncate">
                                                 {email.customers?.full_name}
                                             </h4>
-                                            <span className="text-xs text-muted-foreground whitespace-nowrap">
+                                            <span className="text-[10px] text-muted-foreground whitespace-nowrap">
                                                 {format(new Date(email.created_at), 'dd MMM, HH:mm', { locale: dateLocale })}
                                             </span>
                                         </div>
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <span className="text-xs font-medium text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[10px] font-medium text-blue-600 bg-blue-50 px-1.5 py-0 rounded">
                                                 {email.customers?.email || 'No email'}
                                             </span>
-                                            <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tight px-1.5 py-0.5 border rounded">
+                                            <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-tight px-1 py-0 border rounded bg-white">
                                                 ID: {email.id.slice(0, 8)}
                                             </span>
+                                            <p className="text-xs text-muted-foreground line-clamp-1 ml-2 flex-1">
+                                                {email.description}
+                                            </p>
                                         </div>
-                                        <p className="text-sm text-muted-foreground line-clamp-1">
-                                            {email.description}
-                                        </p>
                                     </div>
                                     <ChevronRight className="h-5 w-5 text-slate-300 group-hover:text-blue-500 transition-colors" />
                                 </div>
