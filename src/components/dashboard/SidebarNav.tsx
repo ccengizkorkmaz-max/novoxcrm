@@ -22,7 +22,8 @@ import {
     Trophy,
     ChevronDown,
     Clock,
-    Zap
+    Zap,
+    Mail
 } from 'lucide-react'
 import {
     Accordion,
@@ -86,6 +87,9 @@ export function SidebarNav({ onElementClick }: { onElementClick?: () => void }) 
         <nav className="grid items-start px-2 text-sm font-medium lg:px-4 gap-1">
             <NavItem href="/" icon={LayoutDashboard} onClick={onElementClick}>
                 {t('overview')}
+            </NavItem>
+            <NavItem href="/inbox" icon={Mail} onClick={onElementClick}>
+                {t('inbox')}
             </NavItem>
             {/* ... Quick CRM, Projects, Inventory etc are common ... */}
             <NavItem href="/quick-crm" icon={Zap} onClick={onElementClick}>

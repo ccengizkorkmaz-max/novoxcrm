@@ -412,6 +412,7 @@
     },
     "Sidebar": {
         "overview": "Overview",
+        "inbox": "Inbox",
         "projects": "Projects",
         "inventory": "Inventory",
         "customers": "Customers",
@@ -439,6 +440,16 @@
             "inventory": "Stock & Project Analysis",
             "finance": "Financial Analysis",
             "efficiency": "Field & Team Efficiency"
+        },
+        "Inbox": {
+            "title": "Inbox",
+            "description": "Manage all inquiries coming via email from here.",
+            "from": "From",
+            "subject": "Subject",
+            "date": "Date",
+            "empty": "No emails found yet.",
+            "viewMessage": "View Message",
+            "messageDetails": "Message Details"
         },
         "quickCRM": "Quick CRM (Command Center)"
     },

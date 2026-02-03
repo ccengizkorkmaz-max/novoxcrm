@@ -13,7 +13,7 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Calculator, Sparkles, User } from 'lucide-react'
+import { Calculator, Sparkles, User, Info, Mail, MessageSquareText } from 'lucide-react'
 import { updateSaleStatus, autoAssignLead } from '../actions'
 import PaymentPlanCalculator from './PaymentPlanCalculator'
 import MatchUnitDialog from './MatchUnitDialog'
@@ -43,6 +43,7 @@ export default function PipelineList({
     const [isPlanOpen, setIsPlanOpen] = useState(false)
 
     const [isAssigning, setIsAssigning] = useState<string | null>(null)
+    const [viewingLead, setViewingLead] = useState<any | null>(null)
 
     // Resizable Columns State
     const [colWidths, setColWidths] = useState<Record<string, number>>({
@@ -178,8 +179,24 @@ export default function PipelineList({
                                             className={`transition-colors border-b hover:bg-muted/30 ${isCompleted ? 'bg-emerald-50/30' : ''} ${isLost ? 'bg-red-50/20' : ''}`}
                                         >
                                             <TableCell className="p-4 align-middle border-r border-border/50">
-                                                <div className="flex flex-col">
-                                                    <span className="font-semibold text-foreground text-sm">{sale.customers?.full_name}</span>
+                                                <div className="flex flex-col gap-1">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="font-semibold text-foreground text-sm">{sale.customers?.full_name}</span>
+                                                        {sale.source === 'E-Posta' && (
+                                                            <Mail className="h-3 w-3 text-blue-500" />
+                                                        )}
+                                                        {sale.description && (
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-5 w-5 text-muted-foreground hover:text-blue-600"
+                                                                onClick={() => setViewingLead(sale)}
+                                                                title="Lead Bilgileri"
+                                                            >
+                                                                <Info className="h-3 w-3" />
+                                                            </Button>
+                                                        )}
+                                                    </div>
                                                     <span className="text-xs text-muted-foreground hidden lg:inline-block">ID: {sale.id.slice(0, 8)}...</span>
                                                 </div>
                                             </TableCell>
@@ -356,6 +373,19 @@ export default function PipelineList({
                                     </div>
                                 </div>
 
+                                {sale.description && (
+                                    <div
+                                        className="bg-slate-50 border border-slate-100 p-2 rounded-lg text-xs text-slate-600 line-clamp-2 cursor-pointer hover:bg-slate-100 transition-colors"
+                                        onClick={() => setViewingLead(sale)}
+                                    >
+                                        <div className="flex items-center gap-1.5 mb-0.5">
+                                            {sale.source === 'E-Posta' ? <Mail className="h-3 w-3 text-blue-500" /> : <Info className="h-3 w-3 text-slate-400" />}
+                                            <span className="font-bold text-[10px] uppercase text-slate-400">Detay</span>
+                                        </div>
+                                        {sale.description}
+                                    </div>
+                                )}
+
                                 <div className="grid grid-cols-2 gap-y-3 text-xs">
                                     <div className="flex flex-col gap-1">
                                         <span className="text-muted-foreground text-[10px] uppercase font-bold tracking-tight">{t('table.project')}</span>
@@ -459,6 +489,25 @@ export default function PipelineList({
                             templates={templates}
                         />
                     )}
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={!!viewingLead} onOpenChange={(open) => !open && setViewingLead(null)}>
+                <DialogContent className="max-w-lg w-[95vw] rounded-2xl overflow-hidden p-0">
+                    <DialogHeader className="p-6 bg-slate-50 border-b">
+                        <div className="flex items-center gap-3 mb-1">
+                            <div className="h-10 w-10 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600">
+                                {viewingLead?.source === 'E-Posta' ? <Mail className="h-5 w-5" /> : <MessageSquareText className="h-5 w-5" />}
+                            </div>
+                            <div>
+                                <DialogTitle className="text-xl">{t('actions.leadDetails') || 'Talep Detayları'}</DialogTitle>
+                                <p className="text-sm text-muted-foreground">{viewingLead?.customers?.full_name}</p>
+                            </div>
+                        </div>
+                    </DialogHeader>
+                    <div className="p-6 space-y-4 max-h-[60vh] overflow-auto whitespace-pre-wrap font-sans text-sm text-slate-700 leading-relaxed">
+                        {viewingLead?.description || 'Açıklama bulunamadı.'}
+                    </div>
                 </DialogContent>
             </Dialog>
         </div>

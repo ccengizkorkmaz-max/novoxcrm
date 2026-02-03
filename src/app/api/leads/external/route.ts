@@ -26,7 +26,17 @@ export async function POST(req: Request) {
         const body = await req.json()
         console.log('External Lead Incoming Body:', JSON.stringify(body, null, 2))
 
-        const { name, email, phone, source = 'External', campaign, form_name, tenant_id } = body
+        const {
+            name,
+            email,
+            phone,
+            source = 'External',
+            campaign,
+            form_name,
+            tenant_id,
+            subject,
+            description: bodyDescription
+        } = body
 
         if (!name || (!email && !phone)) {
             return NextResponse.json({ error: 'Missing required fields (name and email/phone)' }, { status: 400 })
@@ -88,12 +98,15 @@ export async function POST(req: Request) {
         }
 
         // 3. Create Sale (Lead) with fallback for missing description column
+        const finalDescription = bodyDescription ||
+            `${subject ? `Subject: ${subject}\n\n` : ''}Lead from ${source}${form_name ? ` (Form: ${form_name})` : ''}${campaign ? ` (Campaign: ${campaign})` : ''}`
+
         const saleInsertData: any = {
             tenant_id: targetTenantId,
             customer_id: customerId,
             project_id: projectId,
             status: 'Lead',
-            description: `Lead from ${source}${form_name ? ` (Form: ${form_name})` : ''}${campaign ? ` (Campaign: ${campaign})` : ''}`
+            description: finalDescription
         }
 
         let { data: newSale, error: saleError } = await supabase
@@ -123,6 +136,7 @@ export async function POST(req: Request) {
         revalidatePath('/crm')
         revalidatePath('/quick-crm')
         revalidatePath('/customers')
+        revalidatePath('/inbox')
 
         return NextResponse.json({
             success: true,

@@ -412,6 +412,7 @@
     },
     "Sidebar": {
         "overview": "Genel Bakış",
+        "inbox": "Gelen Kutusu (Inbox)",
         "quickCRM": "Hızlı CRM (Komuta Merkezi)",
         "projects": "Projeler",
         "inventory": "Stok Yönetimi",
@@ -440,6 +441,16 @@
             "inventory": "Stok & Proje Analizi",
             "finance": "Finansal Analiz",
             "efficiency": "Saha & Ekip Verimliliği"
+        },
+        "Inbox": {
+            "title": "Gelen Kutusu",
+            "description": "E-posta yoluyla gelen tüm talepleri buradan yönetebilirsiniz.",
+            "from": "Gönderen",
+            "subject": "Konu",
+            "date": "Tarih",
+            "empty": "Henüz bir e-posta bulunmuyor.",
+            "viewMessage": "Mesajı Gör",
+            "messageDetails": "Mesaj Detayları"
         }
     },
     "Projects": {
