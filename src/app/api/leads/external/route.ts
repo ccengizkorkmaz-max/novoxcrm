@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { NextResponse } from 'next/server'
+import { revalidatePath } from 'next/cache'
 
 export async function GET() {
     return NextResponse.json({
@@ -97,6 +98,13 @@ export async function POST(req: Request) {
         }
 
         if (saleError) throw saleError
+
+        console.log(`Successfully created lead for customer ${customerId}, Sale ID: ${newSale.id}`)
+
+        // Ensure the CRM UI updates
+        revalidatePath('/crm')
+        revalidatePath('/quick-crm')
+        revalidatePath('/customers')
 
         return NextResponse.json({
             success: true,
