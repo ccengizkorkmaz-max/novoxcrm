@@ -26,7 +26,7 @@ export async function POST(req: Request) {
         const body = await req.json()
         console.log('External Lead Incoming Body:', JSON.stringify(body, null, 2))
 
-        const { name, email, phone, source = 'External', campaign, tenant_id } = body
+        const { name, email, phone, source = 'External', campaign, form_name, tenant_id } = body
 
         if (!name || (!email && !phone)) {
             return NextResponse.json({ error: 'Missing required fields (name and email/phone)' }, { status: 400 })
@@ -42,6 +42,22 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Tenant configuration missing' }, { status: 500 })
         }
 
+        // 1.5 Try to link to a Project if form_name is provided
+        let projectId = null
+        if (form_name) {
+            const { data: project } = await supabase
+                .from('projects')
+                .select('id')
+                .eq('tenant_id', targetTenantId)
+                .ilike('name', `%${form_name}%`)
+                .limit(1)
+                .maybeSingle()
+
+            if (project) {
+                projectId = project.id
+            }
+        }
+
         // 2. Find or Create Customer
         let customerId: string
         const { data: existingCustomer } = await supabase
@@ -50,7 +66,7 @@ export async function POST(req: Request) {
             .or(`email.eq.${email},phone.eq.${phone}`)
             .eq('tenant_id', targetTenantId)
             .limit(1)
-            .single()
+            .maybeSingle()
 
         if (existingCustomer) {
             customerId = existingCustomer.id
@@ -75,8 +91,9 @@ export async function POST(req: Request) {
         const saleInsertData: any = {
             tenant_id: targetTenantId,
             customer_id: customerId,
+            project_id: projectId,
             status: 'Lead',
-            description: `Lead from ${source}${campaign ? ` (${campaign})` : ''}`
+            description: `Lead from ${source}${form_name ? ` (Form: ${form_name})` : ''}${campaign ? ` (Campaign: ${campaign})` : ''}`
         }
 
         let { data: newSale, error: saleError } = await supabase
