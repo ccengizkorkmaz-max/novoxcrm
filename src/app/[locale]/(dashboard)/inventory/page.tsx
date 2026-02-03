@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { NewUnitDialog } from '@/components/new-unit-dialog'
 import { InventoryStats } from './components/inventory-stats'
 import { InventoryFilters } from '@/components/inventory-filters'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, cn } from '@/lib/utils'
 import { InventoryActions } from './components/inventory-actions'
 
 
@@ -137,11 +137,10 @@ export default async function InventoryPage({
     return (
         <div className="flex flex-col gap-6 w-full overflow-hidden">
             <InventoryStats units={units || []} />
-            <div className="flex items-center gap-4">
-                <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
-                <div className="flex gap-2">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <h1 className="text-xl md:text-2xl font-bold tracking-tight">{t('title')}</h1>
+                <div className="flex items-center gap-2">
                     <InventoryFilters projects={projects || []} />
-
                     <NewUnitDialog projects={projects || []} />
                 </div>
             </div>
@@ -171,23 +170,24 @@ export default async function InventoryPage({
                         if (key === 'has_builtin_kitchen') label = t('filters.features.builtinKitchen')
 
                         return (
-                            <Badge key={key} variant="secondary" className="px-2 py-1">
+                            <Badge key={key} variant="secondary" className="px-2 py-1 text-[10px] md:text-xs">
                                 {label}: {value === 'true' ? 'Var' : value}
                             </Badge>
                         )
                     })}
-                    <Button variant="ghost" size="sm" asChild className="h-6 px-2 text-xs">
+                    <Button variant="ghost" size="sm" asChild className="h-6 px-2 text-[10px]">
                         <Link href="/inventory">{t('clean')}</Link>
                     </Button>
                 </div>
             )}
 
-            <div className="relative group">
-                <div className="rounded-md border bg-card overflow-x-auto max-w-[calc(100vw-1rem)] lg:max-w-full">
+            {/* Desktop View */}
+            <div className="hidden md:block relative group">
+                <div className="rounded-xl border bg-card overflow-x-auto max-w-full">
                     <Table>
-                        <TableHeader>
+                        <TableHeader className="bg-slate-50/50">
                             <TableRow>
-                                <TableHead className="text-left sticky left-0 bg-background z-20 shadow-[10px_0_10px_-10px_rgba(0,0,0,0.1)]">{t('table.actions')}</TableHead>
+                                <TableHead className="text-left sticky left-0 bg-background/95 backdrop-blur z-20 shadow-[5px_0_5px_-5px_rgba(0,0,0,0.1)]">{t('table.actions')}</TableHead>
                                 <TableHead className="min-w-[150px]">{t('table.project')}</TableHead>
                                 <TableHead>{t('table.block')}</TableHead>
                                 <TableHead className="min-w-[100px]">{t('table.unitNo')}</TableHead>
@@ -199,7 +199,7 @@ export default async function InventoryPage({
                                 <TableHead className="min-w-[100px]">{t('table.view')}</TableHead>
                                 <TableHead>{t('table.grossArea')}</TableHead>
                                 <TableHead>{t('table.netArea')}</TableHead>
-                                <TableHead className="min-w-[1200px]:min-w-[120px]">{t('table.price')}</TableHead>
+                                <TableHead className="min-w-[120px] font-bold">{t('table.price')}</TableHead>
                                 <TableHead>{t('table.vat')}</TableHead>
                                 <TableHead>{t('table.discount')}</TableHead>
                                 <TableHead className="min-w-[120px]">{t('table.parking')}</TableHead>
@@ -214,16 +214,16 @@ export default async function InventoryPage({
                         <TableBody>
                             {units && units.length > 0 ? (
                                 units.map((unit: any) => (
-                                    <TableRow key={unit.id}>
-                                        <TableCell className="text-left sticky left-0 bg-background z-20 shadow-[10px_0_10px_-10px_rgba(0,0,0,0.1)]">
+                                    <TableRow key={unit.id} className="hover:bg-muted/30 transition-colors">
+                                        <TableCell className="text-left sticky left-0 bg-background/95 backdrop-blur z-20 shadow-[5px_0_5px_-5px_rgba(0,0,0,0.1)]">
                                             <InventoryActions unit={unit} customers={customers || []} />
                                         </TableCell>
                                         <TableCell className="font-medium">{unit.projects?.name}</TableCell>
                                         <TableCell>{unit.block || '-'}</TableCell>
-                                        <TableCell>{unit.unit_number}</TableCell>
+                                        <TableCell className="font-mono font-bold">{unit.unit_number}</TableCell>
                                         <TableCell>
-                                            <Badge variant={unit.status === 'Sold' ? 'destructive' : unit.status === 'Reserved' ? 'secondary' : 'default'} className={unit.status === 'For Sale' ? 'bg-green-600' : ''}>
-                                                {t(`status.${statusMap[unit.status] || unit.status}`)}
+                                            <Badge variant={unit.status === 'Sold' ? 'destructive' : unit.status === 'Reserved' ? 'secondary' : 'default'} className={cn("text-[10px] px-2 py-0", unit.status === 'For Sale' ? 'bg-green-600' : '')}>
+                                                {t(`status.${statusMap[unit.status] || unit.status.replace(/\s/g, '')}`)}
                                             </Badge>
                                         </TableCell>
                                         <TableCell>{unit.type}</TableCell>
@@ -231,9 +231,9 @@ export default async function InventoryPage({
                                         <TableCell>{unit.floor}</TableCell>
                                         <TableCell>{unit.direction ? t(`directions.${directionMap[unit.direction] || unit.direction.replace(/\s/g, '')}`) : '-'}</TableCell>
                                         <TableCell>{unit.view ? t(`views.${viewMap[unit.view] || unit.view}`) : '-'}</TableCell>
-                                        <TableCell>{unit.area_gross || '-'}</TableCell>
-                                        <TableCell>{unit.area_net || '-'}</TableCell>
-                                        <TableCell>{formatCurrency(unit.price, unit.currency)}</TableCell>
+                                        <TableCell className="font-mono">{unit.area_gross || '-'}</TableCell>
+                                        <TableCell className="font-mono">{unit.area_net || '-'}</TableCell>
+                                        <TableCell className="font-bold text-slate-900">{formatCurrency(unit.price, unit.currency)}</TableCell>
                                         <TableCell>{unit.kdv_rate ? `%${unit.kdv_rate}` : '-'}</TableCell>
                                         <TableCell>{unit.max_discount_rate ? `%${unit.max_discount_rate}` : '-'}</TableCell>
                                         <TableCell>{unit.parking_type ? t(`parking.${parkingMap[unit.parking_type] || unit.parking_type}`) : '-'}</TableCell>
@@ -241,13 +241,13 @@ export default async function InventoryPage({
                                         <TableCell>{unit.kitchen_type ? t(`kitchen.${kitchenMap[unit.kitchen_type] || unit.kitchen_type}`) : '-'}</TableCell>
                                         <TableCell className="text-center">{unit.has_builtin_kitchen ? '✅' : '-'}</TableCell>
                                         <TableCell className="text-center">{unit.has_master_bathroom ? '✅' : '-'}</TableCell>
-                                        <TableCell>{unit.ada_no || '-'}</TableCell>
-                                        <TableCell>{unit.parsel_no || '-'}</TableCell>
+                                        <TableCell className="text-xs text-muted-foreground">{unit.ada_no || '-'}</TableCell>
+                                        <TableCell className="text-xs text-muted-foreground">{unit.parsel_no || '-'}</TableCell>
                                     </TableRow>
                                 ))
                             ) : (
                                 <TableRow>
-                                    <TableCell colSpan={22} className="h-24 text-center">
+                                    <TableCell colSpan={22} className="h-32 text-center text-muted-foreground">
                                         {t('table.empty')}
                                     </TableCell>
                                 </TableRow>
@@ -255,10 +255,78 @@ export default async function InventoryPage({
                         </TableBody>
                     </Table>
                 </div>
-                {/* Mobile Scroll Hint */}
-                <div className="absolute right-0 top-0 bottom-0 w-12 pointer-events-none bg-gradient-to-l from-background/40 to-transparent lg:hidden flex items-center justify-end pr-2">
-                    <div className="w-1 h-12 bg-blue-500/20 rounded-full animate-pulse" />
-                </div>
+            </div>
+
+            {/* Mobile View */}
+            <div className="flex flex-col gap-4 md:hidden">
+                {units && units.length > 0 ? (
+                    units.map((unit: any) => (
+                        <div key={unit.id} className="rounded-xl border bg-card p-4 shadow-sm space-y-4 relative overflow-hidden">
+                            <div className="flex justify-between items-start">
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tight mb-1">{unit.projects?.name}</span>
+                                    <div className="flex items-center gap-2">
+                                        <span className="font-bold text-lg text-slate-900">{unit.block} / {unit.unit_number}</span>
+                                        <Badge variant={unit.status === 'Sold' ? 'destructive' : unit.status === 'Reserved' ? 'secondary' : 'default'} className={cn("text-[9px] px-1.5 py-0", unit.status === 'For Sale' ? 'bg-green-600' : '')}>
+                                            {t(`status.${statusMap[unit.status] || unit.status.replace(/\s/g, '')}`)}
+                                        </Badge>
+                                    </div>
+                                </div>
+                                <div className="text-right">
+                                    <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tight block mb-1">{t('table.price')}</span>
+                                    <span className="font-bold text-blue-600 font-mono">{formatCurrency(unit.price, unit.currency)}</span>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-3 gap-y-3 text-[11px] pb-3 border-b border-slate-50">
+                                <div className="flex flex-col gap-0.5">
+                                    <span className="text-muted-foreground text-[9px] uppercase font-bold">{t('table.roomType')}</span>
+                                    <span className="font-medium">{unit.type}</span>
+                                </div>
+                                <div className="flex flex-col gap-0.5">
+                                    <span className="text-muted-foreground text-[9px] uppercase font-bold">{t('table.floor')}</span>
+                                    <span className="font-medium text-center">{unit.floor}</span>
+                                </div>
+                                <div className="flex flex-col gap-0.5 text-right">
+                                    <span className="text-muted-foreground text-[9px] uppercase font-bold">{t('table.grossArea')}</span>
+                                    <span className="font-medium font-mono">{unit.area_gross} m²</span>
+                                </div>
+                                <div className="flex flex-col gap-0.5">
+                                    <span className="text-muted-foreground text-[9px] uppercase font-bold">{t('table.direction')}</span>
+                                    <span className="font-medium truncate">{unit.direction ? t(`directions.${directionMap[unit.direction] || unit.direction.replace(/\s/g, '')}`) : '-'}</span>
+                                </div>
+                                <div className="flex flex-col gap-0.5">
+                                    <span className="text-muted-foreground text-[9px] uppercase font-bold">{t('table.view')}</span>
+                                    <span className="font-medium truncate">{unit.view ? t(`views.${viewMap[unit.view] || unit.view}`) : '-'}</span>
+                                </div>
+                                <div className="flex flex-col gap-0.5 text-right">
+                                    <span className="text-muted-foreground text-[9px] uppercase font-bold">{t('table.category')}</span>
+                                    <span className="font-medium truncate">{unit.unit_category}</span>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center justify-between gap-4">
+                                <div className="flex gap-4">
+                                    {unit.has_builtin_kitchen && (
+                                        <div className="flex items-center gap-1 text-[10px] text-slate-500 font-medium bg-slate-50 px-2 py-0.5 rounded-full">
+                                            <span>🍳</span> {t('table.builtin')}
+                                        </div>
+                                    )}
+                                    {unit.has_master_bathroom && (
+                                        <div className="flex items-center gap-1 text-[10px] text-slate-500 font-medium bg-slate-50 px-2 py-0.5 rounded-full">
+                                            <span>🚿</span> {t('table.masterBath')}
+                                        </div>
+                                    )}
+                                </div>
+                                <InventoryActions unit={unit} customers={customers || []} />
+                            </div>
+                        </div>
+                    ))
+                ) : (
+                    <div className="bg-card border rounded-xl p-12 text-center text-muted-foreground">
+                        {t('table.empty')}
+                    </div>
+                )}
             </div>
         </div>
     )

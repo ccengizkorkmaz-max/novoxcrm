@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, cn } from '@/lib/utils'
 import {
     Select,
     SelectContent,
@@ -12,6 +12,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
+import { Badge } from "@/components/ui/badge"
 import { Calculator, Sparkles, User } from 'lucide-react'
 import { updateSaleStatus, autoAssignLead } from '../actions'
 import PaymentPlanCalculator from './PaymentPlanCalculator'
@@ -113,7 +114,8 @@ export default function PipelineList({
 
     return (
         <div className="space-y-4">
-            <div className="relative group">
+            {/* Desktop Table View */}
+            <div className="hidden md:block relative group">
                 <div className="rounded-xl border bg-card shadow-sm relative w-full overflow-auto lg:max-h-[calc(100vh-250px)] max-w-[calc(100vw-1rem)] lg:max-w-full print:max-h-none print:overflow-visible">
                     <table className="min-w-[1000px] w-full caption-bottom text-sm border-collapse">
                         <TableHeader className="sticky top-0 z-10 bg-slate-100/95 dark:bg-slate-800/95 backdrop-blur shadow-sm supports-[backdrop-filter]:bg-slate-100/60 font-sans">
@@ -160,13 +162,13 @@ export default function PipelineList({
                                     // Dynamic Status Colors
                                     const getStatusColor = (status: string) => {
                                         switch (status) {
-                                            case 'Sold': return 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-emerald-200'
-                                            case 'Completed': return 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-emerald-200'
-                                            case 'Lost': return 'bg-red-50 text-red-700 hover:bg-red-100 border-red-200'
-                                            case 'Negotiation': return 'bg-amber-100 text-amber-700 hover:bg-amber-200 border-amber-200'
-                                            case 'Proposal': return 'bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200'
-                                            case 'Reservation': return 'bg-purple-100 text-purple-700 hover:bg-purple-200 border-purple-200'
-                                            default: return 'bg-slate-100 text-slate-700 hover:bg-slate-200 border-slate-200'
+                                            case 'Sold': return 'bg-emerald-100 text-emerald-700 border-emerald-200'
+                                            case 'Completed': return 'bg-emerald-100 text-emerald-700 border-emerald-200'
+                                            case 'Lost': return 'bg-red-50 text-red-700 border-red-200'
+                                            case 'Negotiation': return 'bg-amber-100 text-amber-700 border-amber-200'
+                                            case 'Proposal': return 'bg-blue-50 text-blue-700 border-blue-200'
+                                            case 'Reservation': return 'bg-purple-100 text-purple-700 border-purple-200'
+                                            default: return 'bg-slate-100 text-slate-700 border-slate-200'
                                         }
                                     }
 
@@ -197,7 +199,7 @@ export default function PipelineList({
                                             </TableCell>
                                             <TableCell className="p-4 align-middle border-r border-border/50">
                                                 {isCompleted ? (
-                                                    <div className="inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 bg-emerald-100 text-emerald-700 border-emerald-200 gap-1">
+                                                    <div className="inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold bg-emerald-100 text-emerald-700 border-emerald-200 gap-1">
                                                         <Sparkles className="w-3 h-3" /> {t('actions.won')}
                                                     </div>
                                                 ) : (
@@ -206,7 +208,7 @@ export default function PipelineList({
                                                         onValueChange={(val) => handleStatusChange(sale.id, val)}
                                                         disabled={sale.status === 'Lost'}
                                                     >
-                                                        <SelectTrigger className={`w-full h-8 border text-xs font-medium focus:ring-1 focus:ring-offset-0 ${getStatusColor(sale.status)}`}>
+                                                        <SelectTrigger className={`w-full h-8 border text-xs font-medium ${getStatusColor(sale.status)}`}>
                                                             <SelectValue />
                                                         </SelectTrigger>
                                                         <SelectContent>
@@ -314,14 +316,137 @@ export default function PipelineList({
                         </TableBody>
                     </table>
                 </div>
-                {/* Mobile Scroll Hint Overlay */}
-                <div className="absolute right-0 top-0 bottom-0 w-12 pointer-events-none bg-gradient-to-l from-background/40 to-transparent sm:hidden flex items-center justify-end pr-2">
-                    <div className="w-1.5 h-12 bg-blue-500/20 rounded-full animate-pulse backdrop-blur-sm border border-blue-500/10" />
-                </div>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="flex flex-col gap-4 md:hidden">
+                {sales && sales.length > 0 ? (
+                    sales.map((sale: any) => {
+                        const isCompleted = sale.status === 'Completed' || sale.status === 'Sold'
+                        const isLost = sale.status === 'Lost'
+
+                        const getStatusColor = (status: string) => {
+                            switch (status) {
+                                case 'Sold': return 'bg-emerald-100 text-emerald-700'
+                                case 'Completed': return 'bg-emerald-100 text-emerald-700'
+                                case 'Lost': return 'bg-red-50 text-red-700'
+                                case 'Negotiation': return 'bg-amber-100 text-amber-700'
+                                case 'Proposal': return 'bg-blue-50 text-blue-700'
+                                case 'Reservation': return 'bg-purple-100 text-purple-700'
+                                default: return 'bg-slate-100 text-slate-700'
+                            }
+                        }
+
+                        return (
+                            <div key={sale.id} className={cn(
+                                "rounded-xl border bg-card p-4 shadow-sm space-y-3 relative overflow-hidden",
+                                isCompleted && "border-emerald-200 bg-emerald-50/20",
+                                isLost && "border-red-100 bg-red-50/10"
+                            )}>
+                                <div className="flex justify-between items-start">
+                                    <div className="flex flex-col">
+                                        <span className="font-bold text-slate-900">{sale.customers?.full_name}</span>
+                                        <span className="text-[10px] text-muted-foreground font-mono">ID: {sale.id.slice(0, 8)}</span>
+                                    </div>
+                                    <div className={cn(
+                                        "px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider",
+                                        getStatusColor(sale.status)
+                                    )}>
+                                        {isCompleted ? t('actions.won') : (t(`status.${sale.status}`) || sale.status)}
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-y-3 text-xs">
+                                    <div className="flex flex-col gap-1">
+                                        <span className="text-muted-foreground text-[10px] uppercase font-bold tracking-tight">{t('table.project')}</span>
+                                        <span className="font-medium truncate">{sale.units?.projects?.name || sale.projects?.name || '-'}</span>
+                                    </div>
+                                    <div className="flex flex-col gap-1 text-right">
+                                        <span className="text-muted-foreground text-[10px] uppercase font-bold tracking-tight">{t('table.unit')}</span>
+                                        <span className="font-medium">
+                                            {sale.units ? (
+                                                <Badge variant="outline" className="h-5 text-[10px] font-mono py-0">{sale.units.unit_number}</Badge>
+                                            ) : '-'}
+                                        </span>
+                                    </div>
+                                    <div className="flex flex-col gap-1">
+                                        <span className="text-muted-foreground text-[10px] uppercase font-bold tracking-tight">{t('table.rep')}</span>
+                                        <div className="flex items-center gap-1.5">
+                                            {sale.profiles?.full_name ? (
+                                                <>
+                                                    <div className="h-5 w-5 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-[9px] font-bold">
+                                                        {sale.profiles.full_name.substring(0, 2).toUpperCase()}
+                                                    </div>
+                                                    <span className="font-medium truncate">{sale.profiles.full_name}</span>
+                                                </>
+                                            ) : (
+                                                <button onClick={() => handleAutoAssign(sale.id)} className="text-blue-600 font-bold hover:underline">
+                                                    {t('actions.autoAssign')}
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-col gap-1 text-right">
+                                        <span className="text-muted-foreground text-[10px] uppercase font-bold tracking-tight">{t('table.amount')}</span>
+                                        <span className="font-bold text-slate-900 font-mono">
+                                            {sale.final_price || sale.units?.price ? (
+                                                sale.final_price ?
+                                                    formatCurrency(sale.final_price, sale.currency || sale.units?.currency)
+                                                    : formatCurrency(sale.units.price, sale.units.currency)
+                                            ) : '-'}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div className="pt-3 border-t flex items-center justify-between">
+                                    <span className="text-[10px] text-muted-foreground">
+                                        {new Date(sale.created_at).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US')}
+                                    </span>
+                                    <div className="flex gap-2">
+                                        {!isCompleted && (
+                                            <>
+                                                <Button variant="outline" size="sm" className="h-8 px-3 text-xs" onClick={() => handlePlanClick(sale.id)}>
+                                                    <Calculator className="h-3.5 w-3.5 mr-1.5" /> {t('actions.paymentPlanTitle').split(' ')[0]}
+                                                </Button>
+                                                <div className="flex gap-1">
+                                                    {(['Lead', 'Prospect', 'Reservation', 'Reserved', 'Opsiyon - Kapora Bekleniyor'].includes(sale.status)) && (
+                                                        <PipelineReservationDialog
+                                                            saleId={sale.id}
+                                                            currentUnitId={sale.unit_id}
+                                                            availableUnits={availableUnits}
+                                                            customerName={sale.customers?.full_name}
+                                                            status={sale.status}
+                                                            expiryDate={sale.reservation_expiry}
+                                                        />
+                                                    )}
+                                                    {['Lead', 'Prospect'].includes(sale.status) && (
+                                                        <MatchUnitDialog
+                                                            saleId={sale.id}
+                                                            currentUnitId={sale.unit_id}
+                                                            availableUnits={availableUnits}
+                                                            customerName={sale.customers?.full_name}
+                                                        />
+                                                    )}
+                                                </div>
+                                            </>
+                                        )}
+                                        {sale.status === 'Lost' && !sale.restarted_at && (
+                                            <RestartSaleButton saleId={sale.id} />
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )
+                    })
+                ) : (
+                    <div className="bg-card border rounded-xl p-8 text-center text-muted-foreground">
+                        {t('table.empty')}
+                    </div>
+                )}
             </div>
 
             <Dialog open={isPlanOpen} onOpenChange={setIsPlanOpen}>
-                <DialogContent className="max-w-2xl">
+                <DialogContent className="max-w-2xl w-[95vw] rounded-2xl">
                     <DialogHeader>
                         <DialogTitle>{t('actions.paymentPlanTitle')}</DialogTitle>
                     </DialogHeader>
