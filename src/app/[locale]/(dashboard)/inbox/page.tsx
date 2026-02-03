@@ -13,8 +13,8 @@ export default async function InboxPage() {
     // Fetch sales records that originated from Email (E-Posta)
     const { data: emails } = await supabase
         .from('sales')
-        .select('*, customers(full_name, email, phone)')
-        .eq('source', 'E-Posta')
+        .select('*, customers!inner(full_name, email, phone, source)')
+        .eq('customers.source', 'E-Posta')
         .order('created_at', { ascending: false })
 
     return (

@@ -1979,7 +1979,8 @@
             "assignError": "Önce bir ünite/proje seçilmelidir",
             "paymentPlan": "Ödeme Planı Hesapla",
             "paymentPlanTitle": "Ödeme Planı Hesapla",
-            "won": "Kazanıldı"
+            "won": "Kazanıldı",
+            "leadDetails": "Talep Detayları"
         },
         "status": {
             "Lead": "Lead",
