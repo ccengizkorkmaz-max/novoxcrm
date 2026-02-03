@@ -52,7 +52,7 @@ export default async function PortalLayout({
                         <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
                             {profile.tenants?.name}
                         </span>
-                        <LanguageSwitcher />
+                        <LanguageSwitcher variant="light" />
                     </div>
                 </div>
 
@@ -87,7 +87,7 @@ export default async function PortalLayout({
                 </div>
                 {/* Mobile Menu Button - simplified */}
                 <div className="flex items-center gap-2">
-                    <LanguageSwitcher />
+                    <LanguageSwitcher variant="light" />
                     <Button size="sm" variant="outline">Menu</Button>
                 </div>
             </div>

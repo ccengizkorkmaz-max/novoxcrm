@@ -49,7 +49,7 @@ export default async function DashboardLayout({
                             <Building2 className="h-6 w-6" />
                             <span className="text-lg tracking-tight">NovoxCrm</span>
                         </Link>
-                        <LanguageSwitcher />
+                        <LanguageSwitcher variant="light" />
                     </div>
                     <div className="mt-1 flex flex-col">
                         <span className="text-xs font-bold text-foreground truncate">{tenant?.name || t('tenantLoading')}</span>
@@ -102,7 +102,7 @@ export default async function DashboardLayout({
                                         <Building2 className="h-6 w-6" />
                                         <span className="text-lg tracking-tight">NovoxCrm</span>
                                     </Link>
-                                    <LanguageSwitcher />
+                                    <LanguageSwitcher variant="light" />
                                 </div>
                                 <div className="mt-1 flex flex-col">
                                     <span className="text-xs font-bold text-foreground">{tenant?.name}</span>

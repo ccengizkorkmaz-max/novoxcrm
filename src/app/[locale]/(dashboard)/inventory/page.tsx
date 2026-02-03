@@ -182,77 +182,83 @@ export default async function InventoryPage({
                 </div>
             )}
 
-            <div className="rounded-md border bg-card overflow-x-auto">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead className="text-left sticky left-0 bg-background z-20 shadow-[10px_0_10px_-10px_rgba(0,0,0,0.1)]">{t('table.actions')}</TableHead>
-                            <TableHead className="min-w-[150px]">{t('table.project')}</TableHead>
-                            <TableHead>{t('table.block')}</TableHead>
-                            <TableHead className="min-w-[100px]">{t('table.unitNo')}</TableHead>
-                            <TableHead className="min-w-[100px]">{t('table.status')}</TableHead>
-                            <TableHead>{t('table.roomType')}</TableHead>
-                            <TableHead className="min-w-[120px]">{t('table.category')}</TableHead>
-                            <TableHead>{t('table.floor')}</TableHead>
-                            <TableHead className="min-w-[100px]">{t('table.direction')}</TableHead>
-                            <TableHead className="min-w-[100px]">{t('table.view')}</TableHead>
-                            <TableHead>{t('table.grossArea')}</TableHead>
-                            <TableHead>{t('table.netArea')}</TableHead>
-                            <TableHead className="min-w-[120px]">{t('table.price')}</TableHead>
-                            <TableHead>{t('table.vat')}</TableHead>
-                            <TableHead>{t('table.discount')}</TableHead>
-                            <TableHead className="min-w-[120px]">{t('table.parking')}</TableHead>
-                            <TableHead className="min-w-[120px]">{t('table.heating')}</TableHead>
-                            <TableHead className="min-w-[120px]">{t('table.kitchen')}</TableHead>
-                            <TableHead className="text-center">{t('table.builtin')}</TableHead>
-                            <TableHead className="text-center">{t('table.masterBath')}</TableHead>
-                            <TableHead>{t('table.ada')}</TableHead>
-                            <TableHead>{t('table.parsel')}</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {units && units.length > 0 ? (
-                            units.map((unit: any) => (
-                                <TableRow key={unit.id}>
-                                    <TableCell className="text-left sticky left-0 bg-background z-20 shadow-[10px_0_10px_-10px_rgba(0,0,0,0.1)]">
-                                        <InventoryActions unit={unit} customers={customers || []} />
-                                    </TableCell>
-                                    <TableCell className="font-medium">{unit.projects?.name}</TableCell>
-                                    <TableCell>{unit.block || '-'}</TableCell>
-                                    <TableCell>{unit.unit_number}</TableCell>
-                                    <TableCell>
-                                        <Badge variant={unit.status === 'Sold' ? 'destructive' : unit.status === 'Reserved' ? 'secondary' : 'default'} className={unit.status === 'For Sale' ? 'bg-green-600' : ''}>
-                                            {t(`status.${statusMap[unit.status] || unit.status}`)}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell>{unit.type}</TableCell>
-                                    <TableCell>{unit.unit_category || '-'}</TableCell>
-                                    <TableCell>{unit.floor}</TableCell>
-                                    <TableCell>{unit.direction ? t(`directions.${directionMap[unit.direction] || unit.direction.replace(/\s/g, '')}`) : '-'}</TableCell>
-                                    <TableCell>{unit.view ? t(`views.${viewMap[unit.view] || unit.view}`) : '-'}</TableCell>
-                                    <TableCell>{unit.area_gross || '-'}</TableCell>
-                                    <TableCell>{unit.area_net || '-'}</TableCell>
-                                    <TableCell>{formatCurrency(unit.price, unit.currency)}</TableCell>
-                                    <TableCell>{unit.kdv_rate ? `%${unit.kdv_rate}` : '-'}</TableCell>
-                                    <TableCell>{unit.max_discount_rate ? `%${unit.max_discount_rate}` : '-'}</TableCell>
-                                    <TableCell>{unit.parking_type ? t(`parking.${parkingMap[unit.parking_type] || unit.parking_type}`) : '-'}</TableCell>
-                                    <TableCell>{unit.heating_type ? t(`heating.${heatingMap[unit.heating_type] || unit.heating_type}`) : '-'}</TableCell>
-                                    <TableCell>{unit.kitchen_type ? t(`kitchen.${kitchenMap[unit.kitchen_type] || unit.kitchen_type}`) : '-'}</TableCell>
-                                    <TableCell className="text-center">{unit.has_builtin_kitchen ? '✅' : '-'}</TableCell>
-                                    <TableCell className="text-center">{unit.has_master_bathroom ? '✅' : '-'}</TableCell>
-                                    <TableCell>{unit.ada_no || '-'}</TableCell>
-                                    <TableCell>{unit.parsel_no || '-'}</TableCell>
-                                </TableRow>
-                            ))
-                        ) : (
+            <div className="relative group">
+                <div className="rounded-md border bg-card overflow-x-auto max-w-[calc(100vw-1rem)] lg:max-w-full">
+                    <Table>
+                        <TableHeader>
                             <TableRow>
-                                <TableCell colSpan={22} className="h-24 text-center">
-                                    {t('table.empty')}
-                                </TableCell>
+                                <TableHead className="text-left sticky left-0 bg-background z-20 shadow-[10px_0_10px_-10px_rgba(0,0,0,0.1)]">{t('table.actions')}</TableHead>
+                                <TableHead className="min-w-[150px]">{t('table.project')}</TableHead>
+                                <TableHead>{t('table.block')}</TableHead>
+                                <TableHead className="min-w-[100px]">{t('table.unitNo')}</TableHead>
+                                <TableHead className="min-w-[100px]">{t('table.status')}</TableHead>
+                                <TableHead>{t('table.roomType')}</TableHead>
+                                <TableHead className="min-w-[120px]">{t('table.category')}</TableHead>
+                                <TableHead>{t('table.floor')}</TableHead>
+                                <TableHead className="min-w-[100px]">{t('table.direction')}</TableHead>
+                                <TableHead className="min-w-[100px]">{t('table.view')}</TableHead>
+                                <TableHead>{t('table.grossArea')}</TableHead>
+                                <TableHead>{t('table.netArea')}</TableHead>
+                                <TableHead className="min-w-[1200px]:min-w-[120px]">{t('table.price')}</TableHead>
+                                <TableHead>{t('table.vat')}</TableHead>
+                                <TableHead>{t('table.discount')}</TableHead>
+                                <TableHead className="min-w-[120px]">{t('table.parking')}</TableHead>
+                                <TableHead className="min-w-[120px]">{t('table.heating')}</TableHead>
+                                <TableHead className="min-w-[120px]">{t('table.kitchen')}</TableHead>
+                                <TableHead className="text-center">{t('table.builtin')}</TableHead>
+                                <TableHead className="text-center">{t('table.masterBath')}</TableHead>
+                                <TableHead>{t('table.ada')}</TableHead>
+                                <TableHead>{t('table.parsel')}</TableHead>
                             </TableRow>
-                        )}
-                    </TableBody>
-                </Table>
+                        </TableHeader>
+                        <TableBody>
+                            {units && units.length > 0 ? (
+                                units.map((unit: any) => (
+                                    <TableRow key={unit.id}>
+                                        <TableCell className="text-left sticky left-0 bg-background z-20 shadow-[10px_0_10px_-10px_rgba(0,0,0,0.1)]">
+                                            <InventoryActions unit={unit} customers={customers || []} />
+                                        </TableCell>
+                                        <TableCell className="font-medium">{unit.projects?.name}</TableCell>
+                                        <TableCell>{unit.block || '-'}</TableCell>
+                                        <TableCell>{unit.unit_number}</TableCell>
+                                        <TableCell>
+                                            <Badge variant={unit.status === 'Sold' ? 'destructive' : unit.status === 'Reserved' ? 'secondary' : 'default'} className={unit.status === 'For Sale' ? 'bg-green-600' : ''}>
+                                                {t(`status.${statusMap[unit.status] || unit.status}`)}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell>{unit.type}</TableCell>
+                                        <TableCell>{unit.unit_category || '-'}</TableCell>
+                                        <TableCell>{unit.floor}</TableCell>
+                                        <TableCell>{unit.direction ? t(`directions.${directionMap[unit.direction] || unit.direction.replace(/\s/g, '')}`) : '-'}</TableCell>
+                                        <TableCell>{unit.view ? t(`views.${viewMap[unit.view] || unit.view}`) : '-'}</TableCell>
+                                        <TableCell>{unit.area_gross || '-'}</TableCell>
+                                        <TableCell>{unit.area_net || '-'}</TableCell>
+                                        <TableCell>{formatCurrency(unit.price, unit.currency)}</TableCell>
+                                        <TableCell>{unit.kdv_rate ? `%${unit.kdv_rate}` : '-'}</TableCell>
+                                        <TableCell>{unit.max_discount_rate ? `%${unit.max_discount_rate}` : '-'}</TableCell>
+                                        <TableCell>{unit.parking_type ? t(`parking.${parkingMap[unit.parking_type] || unit.parking_type}`) : '-'}</TableCell>
+                                        <TableCell>{unit.heating_type ? t(`heating.${heatingMap[unit.heating_type] || unit.heating_type}`) : '-'}</TableCell>
+                                        <TableCell>{unit.kitchen_type ? t(`kitchen.${kitchenMap[unit.kitchen_type] || unit.kitchen_type}`) : '-'}</TableCell>
+                                        <TableCell className="text-center">{unit.has_builtin_kitchen ? '✅' : '-'}</TableCell>
+                                        <TableCell className="text-center">{unit.has_master_bathroom ? '✅' : '-'}</TableCell>
+                                        <TableCell>{unit.ada_no || '-'}</TableCell>
+                                        <TableCell>{unit.parsel_no || '-'}</TableCell>
+                                    </TableRow>
+                                ))
+                            ) : (
+                                <TableRow>
+                                    <TableCell colSpan={22} className="h-24 text-center">
+                                        {t('table.empty')}
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </div>
+                {/* Mobile Scroll Hint */}
+                <div className="absolute right-0 top-0 bottom-0 w-12 pointer-events-none bg-gradient-to-l from-background/40 to-transparent lg:hidden flex items-center justify-end pr-2">
+                    <div className="w-1 h-12 bg-blue-500/20 rounded-full animate-pulse" />
+                </div>
             </div>
         </div>
     )

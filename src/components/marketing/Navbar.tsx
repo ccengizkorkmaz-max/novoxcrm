@@ -59,7 +59,7 @@ export function Navbar() {
 
                 {/* Desktop Actions */}
                 <div className="hidden md:flex items-center gap-4">
-                    <LanguageSwitcher />
+                    <LanguageSwitcher variant="dark" />
                     <Button variant="ghost" className="text-slate-300 hover:text-white hover:bg-white/5" asChild>
                         <Link href="/login">{t('login')}</Link>
                     </Button>
@@ -79,7 +79,7 @@ export function Navbar() {
 
                 {/* Mobile Menu Toggle */}
                 <div className="flex items-center gap-4 md:hidden">
-                    <LanguageSwitcher />
+                    <LanguageSwitcher variant="dark" />
                     <button
                         className="text-white p-2"
                         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}

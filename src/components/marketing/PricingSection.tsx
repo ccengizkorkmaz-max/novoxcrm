@@ -43,13 +43,13 @@ export function PricingSection() {
                     </p>
                 </div>
 
-                <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+                <div className="grid lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
                     {plans.map((plan, i) => (
                         <div
                             key={i}
                             className={`relative flex flex-col p-8 rounded-3xl border transition-all duration-300
                                 ${plan.popular
-                                    ? 'bg-slate-900/80 border-blue-500 shadow-2xl shadow-blue-500/10 scale-105 z-10'
+                                    ? 'bg-slate-900/80 border-blue-500 shadow-2xl shadow-blue-500/10 lg:scale-105 z-10'
                                     : 'bg-slate-900/40 border-slate-800 hover:border-slate-700 hover:bg-slate-900/60'
                                 }`}
                         >

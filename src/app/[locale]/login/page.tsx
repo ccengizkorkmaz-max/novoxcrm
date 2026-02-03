@@ -58,10 +58,9 @@ export default function LoginPage({
             </div>
 
             {/* Right Side: Form */}
-            <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gray-50/50 relative">
-                {/* Language Switcher - Top Right */}
+            <div className="flex items-center justify-center py-8 px-4 sm:px-6 lg:px-8 bg-gray-50/30 relative">
                 <div className="absolute top-4 right-4">
-                    <LanguageSwitcher />
+                    <LanguageSwitcher variant="light" />
                 </div>
 
                 <div className="mx-auto grid w-full max-w-[400px] gap-8">

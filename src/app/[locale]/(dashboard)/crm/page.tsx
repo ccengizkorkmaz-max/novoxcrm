@@ -84,7 +84,7 @@ export default async function CRMPage(props: { searchParams: Promise<{ [key: str
 
     return (
         <div className="flex flex-col gap-6">
-            <div className="sticky top-0 z-20 bg-background/95 backdrop-blur pb-2 pt-1 border-b mb-2">
+            <div className="sticky top-0 z-30 bg-background/95 backdrop-blur pb-2 pt-1 border-b mb-2">
                 <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-4">
                         <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
