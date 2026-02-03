@@ -23,15 +23,21 @@ export async function POST(req: Request) {
         }
 
         const body = await req.json()
+        console.log('External Lead Incoming Body:', JSON.stringify(body, null, 2))
+
         const { name, email, phone, source = 'External', campaign, tenant_id } = body
 
         if (!name || (!email && !phone)) {
             return NextResponse.json({ error: 'Missing required fields (name and email/phone)' }, { status: 400 })
         }
 
-        // 1. Get Tenant ID (defaulting to a system one if not provided, or better: requiring it)
-        // For this implementation, we will try to find a tenant or use a default one for the integration
-        let targetTenantId = tenant_id
+        // 1. Get Tenant ID 
+        // Logic: 
+        // - Use tenant_id from body if provided
+        // - AS FALLBACK: Use a hardcoded ID for Cengiz Korkmaz's workspace (89b2829e-fc21-477e-8fd8-9f9f0c587e81)
+        // - LAST RESORT: Try to find first tenant from DB
+        let targetTenantId = tenant_id || '89b2829e-fc21-477e-8fd8-9f9f0c587e81'
+
         if (!targetTenantId) {
             const { data: firstTenant } = await supabase.from('tenants').select('id').limit(1).single()
             targetTenantId = firstTenant?.id
