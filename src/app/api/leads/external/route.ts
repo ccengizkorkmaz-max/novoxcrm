@@ -19,6 +19,7 @@ export async function POST(req: Request) {
         const API_KEY = process.env.EXTERNAL_LEAD_API_KEY || 'novox_secret_default_key'
 
         if (!authHeader || authHeader !== `Bearer ${API_KEY}`) {
+            console.error('Unauthorized access attempt with header:', authHeader)
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
@@ -31,17 +32,11 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Missing required fields (name and email/phone)' }, { status: 400 })
         }
 
-        // 1. Get Tenant ID 
-        // Logic: 
-        // - Use tenant_id from body if provided
-        // - AS FALLBACK: Use a hardcoded ID for Cengiz Korkmaz's workspace (89b2829e-fc21-477e-8fd8-9f9f0c587e81)
-        // - LAST RESORT: Try to find first tenant from DB
-        let targetTenantId = tenant_id || '89b2829e-fc21-477e-8fd8-9f9f0c587e81'
-
-        if (!targetTenantId) {
-            const { data: firstTenant } = await supabase.from('tenants').select('id').limit(1).single()
-            targetTenantId = firstTenant?.id
+        if (!tenant_id) {
+            return NextResponse.json({ error: 'Missing tenant_id in request body. Each tenant must provide their unique workspace ID.' }, { status: 400 })
         }
+
+        const targetTenantId = tenant_id
 
         if (!targetTenantId) {
             return NextResponse.json({ error: 'Tenant configuration missing' }, { status: 500 })
