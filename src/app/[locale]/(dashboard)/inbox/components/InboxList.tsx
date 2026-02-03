@@ -176,11 +176,30 @@ export function InboxList({ initialEmails }: InboxListProps) {
 
 function extractName(description: string, fallback: string) {
     if (!description) return fallback
+
+    // Improved regex to find "Ad Soyad:" and stop at the next label or line break
+    // Supports: Ad Soyad: Name E-posta: ...
+    const nameMatch = description.match(/Ad\s+Soyad:\s*([^:\n\r]+?)(?=\s*(?:E-posta|Telefon|Konu|$)|\r|\n)/i)
+    if (nameMatch && nameMatch[1]) {
+        return nameMatch[1].trim()
+    }
+
+    // Fallback line-based check
     const lines = description.split(/\r?\n/)
     for (const line of lines) {
         if (line.toLowerCase().includes('ad soyad:')) {
-            const name = line.split(':')[1]?.trim()
-            if (name) return name
+            const parts = line.split(':')
+            if (parts.length > 1) {
+                let namePart = parts[1].trim()
+                // If the name part contains other labels, strip them
+                const labels = ['E-posta', 'Telefon', 'Konu']
+                for (const l of labels) {
+                    if (namePart.includes(l)) {
+                        namePart = namePart.split(l)[0].trim()
+                    }
+                }
+                if (namePart) return namePart
+            }
         }
     }
     return fallback
