@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { NextResponse } from 'next/server'
 
 export async function GET() {
@@ -10,7 +10,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
     try {
-        const supabase = await createClient()
+        const supabase = createAdminClient()
         const authHeader = req.headers.get('Authorization')
 
         // Simple API Key check
