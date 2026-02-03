@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog"
 import { Plus } from 'lucide-react'
 import { createSale } from '../actions'
+import { toast } from "sonner"
 import { Combobox } from '@/components/ui/combobox'
 
 interface NewSaleButtonProps {
