@@ -26,7 +26,7 @@ export async function POST(req: Request) {
         const body = await req.json()
         console.log('External Lead Incoming Body:', JSON.stringify(body, null, 2))
 
-        const {
+        let {
             name,
             email,
             phone,
@@ -37,6 +37,28 @@ export async function POST(req: Request) {
             subject,
             description: bodyDescription
         } = body
+
+        // --- NEW: Parse Customer Info from Body/Description if it's an Email ---
+        // Some emails contain customer info in a specific format in the body
+        if (bodyDescription && (source === 'E-Posta' || !name)) {
+            const lines = bodyDescription.split('\n')
+            lines.forEach((line: string) => {
+                const lowerLine = line.toLowerCase()
+                if (lowerLine.includes('ad soyad:')) {
+                    const extractedName = line.split(':')[1]?.trim()
+                    if (extractedName) name = extractedName
+                } else if (lowerLine.includes('e-posta adresi:') || lowerLine.includes('e-posta:')) {
+                    const extractedEmail = line.split(':')[1]?.trim()
+                    if (extractedEmail) email = extractedEmail
+                } else if (lowerLine.includes('telefon:')) {
+                    const extractedPhone = line.split(':')[1]?.trim()
+                    if (extractedPhone) phone = extractedPhone
+                } else if (lowerLine.includes('konu:')) {
+                    const extractedSubject = line.split(':')[1]?.trim()
+                    if (extractedSubject) subject = extractedSubject
+                }
+            })
+        }
 
         if (!name || (!email && !phone)) {
             return NextResponse.json({ error: 'Missing required fields (name and email/phone)' }, { status: 400 })
