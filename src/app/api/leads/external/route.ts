@@ -126,8 +126,13 @@ export async function POST(req: Request) {
         }
 
         // 3. Create Sale (Lead) with fallback for missing description column
-        const finalDescription = bodyDescription ||
+        let finalDescription = bodyDescription ||
             `${subject ? `Subject: ${subject}\n\n` : ''}Lead from ${source}${form_name ? ` (Form: ${form_name})` : ''}${campaign ? ` (Campaign: ${campaign})` : ''}`
+
+        // If source is Kommo, add a marker
+        if (source === 'Kommo') {
+            finalDescription = `[Kommo CRM] ${finalDescription}`
+        }
 
         const saleInsertData: any = {
             tenant_id: targetTenantId,

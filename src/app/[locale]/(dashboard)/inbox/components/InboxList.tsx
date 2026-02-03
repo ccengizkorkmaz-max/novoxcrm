@@ -80,7 +80,11 @@ export function InboxList({ initialEmails }: InboxListProps) {
                                     className="group cursor-pointer hover:bg-slate-50 transition-all duration-150 flex items-center gap-3 py-1 px-4"
                                     onClick={() => setViewingEmail(email)}
                                 >
-                                    <Mail className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+                                    {email.customers?.source === 'Kommo' ? (
+                                        <MessageSquareText className="h-3.5 w-3.5 text-orange-500 shrink-0" />
+                                    ) : (
+                                        <Mail className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+                                    )}
 
                                     <div className="w-40 shrink-0">
                                         <h4 className="text-[13px] font-semibold text-slate-900 truncate">
@@ -207,5 +211,6 @@ function extractName(description: string, fallback: string) {
 
 function email_label_safe(email: any) {
     if (!email) return ''
-    return 'Incoming Lead'
+    if (email.customers?.source === 'Kommo') return 'Kommo CRM Lead'
+    return 'E-Posta Talebi'
 }
