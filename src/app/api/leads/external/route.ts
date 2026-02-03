@@ -104,6 +104,13 @@ export async function POST(req: Request) {
 
         if (existingCustomer) {
             customerId = existingCustomer.id
+            // If the incoming source is E-Posta, ensure the customer source is updated so it shows in Inbox
+            if (source === 'E-Posta') {
+                await supabase
+                    .from('customers')
+                    .update({ source: 'E-Posta' })
+                    .eq('id', customerId)
+            }
         } else {
             const { data: newCustomer, error: customerError } = await supabase
                 .from('customers')
