@@ -58,13 +58,13 @@ export default async function ContractsPage() {
     const t = await getTranslations('Contracts')
 
     return (
-        <div className="flex flex-col gap-6 p-8">
-            <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-6 p-4 md:p-8">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
-                    <p className="text-muted-foreground">{t('description')}</p>
+                    <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{t('title')}</h1>
+                    <p className="text-sm md:text-base text-muted-foreground">{t('description')}</p>
                 </div>
-                <Button asChild>
+                <Button asChild className="w-full md:w-auto">
                     <Link href="/contracts/new">
                         <Plus className="mr-2 h-4 w-4" /> {t('newContract')}
                     </Link>
