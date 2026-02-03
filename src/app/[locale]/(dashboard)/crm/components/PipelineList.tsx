@@ -114,7 +114,7 @@ export default function PipelineList({
     return (
         <div className="space-y-4">
             <div className="relative group">
-                <div className="rounded-xl border bg-card shadow-sm relative w-full overflow-auto max-h-[calc(100vh-250px)] max-w-[calc(100vw-1rem)] lg:max-w-full print:max-h-none print:overflow-visible">
+                <div className="rounded-xl border bg-card shadow-sm relative w-full overflow-auto lg:max-h-[calc(100vh-250px)] max-w-[calc(100vw-1rem)] lg:max-w-full print:max-h-none print:overflow-visible">
                     <table className="min-w-[1000px] w-full caption-bottom text-sm border-collapse">
                         <TableHeader className="sticky top-0 z-10 bg-slate-100/95 dark:bg-slate-800/95 backdrop-blur shadow-sm supports-[backdrop-filter]:bg-slate-100/60 font-sans">
                             <TableRow className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
