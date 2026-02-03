@@ -126,7 +126,7 @@ export function InboxList({ initialEmails }: InboxListProps) {
                                     <Badge variant="outline" className="bg-white">{email_label_safe(viewingEmail)}</Badge>
                                 </div>
                                 <p className="text-sm text-muted-foreground mt-1">
-                                    {viewingEmail?.customers?.full_name} &bull; {viewingEmail?.customers?.email}
+                                    {extractName(viewingEmail?.description || '', viewingEmail?.customers?.full_name)} &bull; {viewingEmail?.customers?.email}
                                 </p>
                             </div>
                         </div>
