@@ -108,7 +108,10 @@ export async function POST(req: Request) {
             if (source === 'E-Posta') {
                 await supabase
                     .from('customers')
-                    .update({ source: 'E-Posta' })
+                    .update({
+                        source: 'E-Posta',
+                        full_name: name // Update name if we parsed a better one from body
+                    })
                     .eq('id', customerId)
             }
         } else {
