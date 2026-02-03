@@ -7,7 +7,8 @@ async function runMigrations() {
     const migrationsDir = path.join(process.cwd(), 'supabase', 'migrations');
     const files = [
         '20260202_add_parameters_to_payment_plans.sql',
-        '20260202_add_payment_type_to_items.sql'
+        '20260202_add_payment_type_to_items.sql',
+        '20260203_add_description_to_sales.sql'
     ];
 
     const connectionString = "postgresql://postgres:Passkall22!@aws-0-eu-central-1.pooler.supabase.com:6543/postgres";
