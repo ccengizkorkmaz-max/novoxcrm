@@ -65,21 +65,21 @@ export function InboxList({ initialEmails }: InboxListProps) {
                 </div>
             </div>
 
-            <div className="grid gap-2">
-                {filteredEmails.length === 0 ? (
-                    <Card className="border-dashed py-12 flex flex-col items-center justify-center text-muted-foreground bg-slate-50/50">
-                        <Mail className="h-10 w-10 mb-3 opacity-20" />
-                        <p>{t('empty')}</p>
-                    </Card>
-                ) : (
-                    filteredEmails.map((email) => (
-                        <Card
-                            key={email.id}
-                            className="group cursor-pointer hover:border-blue-200 hover:shadow-sm transition-all duration-150 border-slate-100"
-                            onClick={() => setViewingEmail(email)}
-                        >
-                            <CardContent className="p-0">
-                                <div className="flex items-center gap-3 py-1.5 px-3">
+            <Card className="overflow-hidden border-slate-200 shadow-sm">
+                <CardContent className="p-0">
+                    {filteredEmails.length === 0 ? (
+                        <div className="py-12 flex flex-col items-center justify-center text-muted-foreground bg-slate-50/50">
+                            <Mail className="h-10 w-10 mb-3 opacity-20" />
+                            <p>{t('empty')}</p>
+                        </div>
+                    ) : (
+                        <div className="divide-y divide-slate-100">
+                            {filteredEmails.map((email) => (
+                                <div
+                                    key={email.id}
+                                    className="group cursor-pointer hover:bg-slate-50 transition-all duration-150 flex items-center gap-3 py-1 px-4"
+                                    onClick={() => setViewingEmail(email)}
+                                >
                                     <Mail className="h-3.5 w-3.5 text-blue-500 shrink-0" />
 
                                     <div className="w-40 shrink-0">
@@ -107,11 +107,11 @@ export function InboxList({ initialEmails }: InboxListProps) {
                                         <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-blue-500 transition-colors" />
                                     </div>
                                 </div>
-                            </CardContent>
-                        </Card>
-                    ))
-                )}
-            </div>
+                            ))}
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
 
             <Dialog open={!!viewingEmail} onOpenChange={(open) => !open && setViewingEmail(null)}>
                 <DialogContent className="max-w-2xl w-[95vw] rounded-2xl overflow-hidden p-0">
