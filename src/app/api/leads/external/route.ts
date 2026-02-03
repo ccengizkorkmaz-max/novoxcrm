@@ -41,21 +41,23 @@ export async function POST(req: Request) {
         // --- NEW: Parse Customer Info from Body/Description if it's an Email ---
         // Some emails contain customer info in a specific format in the body
         if (bodyDescription && (source === 'E-Posta' || !name)) {
-            const lines = bodyDescription.split('\n')
+            const lines = bodyDescription.split(/\r?\n/)
             lines.forEach((line: string) => {
                 const lowerLine = line.toLowerCase()
+                const colonIndex = line.indexOf(':')
+                if (colonIndex === -1) return
+
+                const value = line.substring(colonIndex + 1).trim()
+                if (!value) return
+
                 if (lowerLine.includes('ad soyad:')) {
-                    const extractedName = line.split(':')[1]?.trim()
-                    if (extractedName) name = extractedName
+                    name = value
                 } else if (lowerLine.includes('e-posta adresi:') || lowerLine.includes('e-posta:')) {
-                    const extractedEmail = line.split(':')[1]?.trim()
-                    if (extractedEmail) email = extractedEmail
+                    email = value
                 } else if (lowerLine.includes('telefon:')) {
-                    const extractedPhone = line.split(':')[1]?.trim()
-                    if (extractedPhone) phone = extractedPhone
+                    phone = value
                 } else if (lowerLine.includes('konu:')) {
-                    const extractedSubject = line.split(':')[1]?.trim()
-                    if (extractedSubject) subject = extractedSubject
+                    subject = value
                 }
             })
         }
