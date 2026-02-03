@@ -84,7 +84,7 @@ export function InboxList({ initialEmails }: InboxListProps) {
 
                                     <div className="w-40 shrink-0">
                                         <h4 className="text-[13px] font-semibold text-slate-900 truncate">
-                                            {email.customers?.full_name}
+                                            {extractName(email.description, email.customers?.full_name)}
                                         </h4>
                                     </div>
 
@@ -172,6 +172,18 @@ export function InboxList({ initialEmails }: InboxListProps) {
             </Dialog>
         </div>
     )
+}
+
+function extractName(description: string, fallback: string) {
+    if (!description) return fallback
+    const lines = description.split(/\r?\n/)
+    for (const line of lines) {
+        if (line.toLowerCase().includes('ad soyad:')) {
+            const name = line.split(':')[1]?.trim()
+            if (name) return name
+        }
+    }
+    return fallback
 }
 
 function email_label_safe(email: any) {
