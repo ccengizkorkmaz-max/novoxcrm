@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import {
@@ -23,30 +24,14 @@ interface ContractListProps {
     initialContracts: any[]
 }
 
-export function ContractList({ initialContracts }: ContractListProps) {
+export function ContractList({ initialContracts: contracts }: ContractListProps) {
     const t = useTranslations('Contracts.table')
     const locale = useLocale()
-    const [searchTerm, setSearchTerm] = useState('')
-    const [contracts, setContracts] = useState(initialContracts)
-
-    const filteredContracts = contracts.filter(c =>
-        c.contract_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.customers?.some((cust: any) => cust.customer?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()))
-    )
+    const searchParams = useSearchParams()
+    const searchTerm = searchParams.get('q') || ''
 
     return (
         <div className="space-y-4">
-            <div className="flex items-center gap-2 w-full md:max-w-sm">
-                <div className="relative flex-1">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                        placeholder={t('search')}
-                        className="pl-8 h-10 border-slate-200"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                </div>
-            </div>
 
             {/* Desktop Table View */}
             <div className="hidden md:block rounded-xl border bg-card shadow-sm overflow-hidden">
@@ -64,8 +49,8 @@ export function ContractList({ initialContracts }: ContractListProps) {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {filteredContracts.length > 0 ? (
-                                filteredContracts.map((contract) => (
+                            {contracts.length > 0 ? (
+                                contracts.map((contract: any) => (
                                     <TableRow key={contract.id} className="hover:bg-muted/30 transition-colors">
                                         <TableCell className="font-bold text-slate-900">{contract.contract_number}</TableCell>
                                         <TableCell className="text-slate-600">
@@ -109,8 +94,8 @@ export function ContractList({ initialContracts }: ContractListProps) {
 
             {/* Mobile Card View */}
             <div className="flex flex-col gap-4 md:hidden">
-                {filteredContracts.length > 0 ? (
-                    filteredContracts.map((contract) => (
+                {contracts.length > 0 ? (
+                    contracts.map((contract: any) => (
                         <div key={contract.id} className="rounded-xl border bg-card p-4 shadow-sm space-y-4 relative overflow-hidden active:bg-slate-50 transition-colors">
                             <div className="flex justify-between items-start">
                                 <div className="flex flex-col gap-1">

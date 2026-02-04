@@ -28,6 +28,7 @@ import { PipelineStats } from './components/PipelineStats'
 import PipelineList from './components/PipelineList' // Retained from original
 import NewSaleButton from './components/NewSaleButton' // Retained from original
 import CRMFilterSheet from './components/CRMFilterSheet' // Retained from original
+import CRMSearch from './components/CRMSearch'
 
 export default async function CRMPage(props: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
     const searchParams = await props.searchParams
@@ -146,6 +147,7 @@ export default async function CRMPage(props: { searchParams: Promise<{ [key: str
                             projects={projectsData || []}
                             profiles={profilesData || []}
                         />
+                        <CRMSearch />
                         <NewSaleButton
                             customers={customers || []}
                             availableUnits={availableUnits || []}

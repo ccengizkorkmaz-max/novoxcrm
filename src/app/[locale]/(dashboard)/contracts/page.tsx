@@ -6,8 +6,12 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { ContractStats } from '@/components/contracts/contract-stats'
 import { getTranslations } from 'next-intl/server'
+import GeneralSearch from '@/components/dashboard/GeneralSearch'
 
-export default async function ContractsPage() {
+export default async function ContractsPage(props: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
+    const searchParams = await props.searchParams
+    const query = searchParams.q as string
+
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -26,7 +30,7 @@ export default async function ContractsPage() {
     }
 
     // Fetch Contracts
-    const { data: contracts } = await supabase
+    let baseQuery = supabase
         .from('contracts')
         .select(`
             *,
@@ -37,7 +41,15 @@ export default async function ContractsPage() {
             project: projects(name)
         `)
         .eq('tenant_id', profile.tenant_id)
-        .order('created_at', { ascending: false })
+
+    if (query) {
+        // Search by contract number (ilike on contracts table)
+        // Note: searching on joined customer name is complex with .or() and foreign tables
+        // For now searching contract_number and allowing users to search by ID
+        baseQuery = baseQuery.ilike('contract_number', `%${query}%`)
+    }
+
+    const { data: contracts } = await baseQuery.order('created_at', { ascending: false })
 
     // Fetch Payments for stats
     // Simplified stats calculation
@@ -64,11 +76,14 @@ export default async function ContractsPage() {
                     <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{t('title')}</h1>
                     <p className="text-sm md:text-base text-muted-foreground">{t('description')}</p>
                 </div>
-                <Button asChild className="w-full md:w-auto">
-                    <Link href="/contracts/new">
-                        <Plus className="mr-2 h-4 w-4" /> {t('newContract')}
-                    </Link>
-                </Button>
+                <div className="flex flex-col md:flex-row items-center gap-3">
+                    <GeneralSearch namespace="Contracts" placeholderKey="table.search" />
+                    <Button asChild className="w-full md:w-auto">
+                        <Link href="/contracts/new">
+                            <Plus className="mr-2 h-4 w-4" /> {t('newContract')}
+                        </Link>
+                    </Button>
+                </div>
             </div>
 
             <ContractStats stats={stats} />

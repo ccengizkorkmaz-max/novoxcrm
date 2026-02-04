@@ -314,8 +314,7 @@ export async function bulkCreateCustomers(customers: any[]) {
                         tenant_id: profile.tenant_id,
                         customer_id: c.id,
                         status: 'Lead',
-                        description: c.notes,
-                        assigned_to: user.id
+                        description: c.notes
                     })
                     activitiesData.push({
                         tenant_id: profile.tenant_id,
@@ -359,6 +358,61 @@ export async function bulkCreateCustomers(customers: any[]) {
             success: false,
             error: `Sistem hatası: ${fatalError.message || 'Bilinmeyen hata'}`
         }
+    }
+}
+
+export async function cleanupImportedAssignments() {
+    try {
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return { error: 'Unauthorized' }
+
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('tenant_id')
+            .eq('id', user.id)
+            .single()
+
+        if (!profile?.tenant_id) return { error: 'No tenant found' }
+
+        // Fetch IDs of customers imported from Excel
+        const { data: importedCustomers, error: custError } = await supabase
+            .from('customers')
+            .select('id')
+            .eq('tenant_id', profile.tenant_id)
+            .eq('source', 'Excel Import')
+
+        if (custError) throw custError
+        if (!importedCustomers || importedCustomers.length === 0) return { success: true, count: 0 }
+
+        const customerIds = importedCustomers.map(c => c.id)
+
+        // Clear assigned_to for sales linked to these customers
+        // Note: Suapbase range limit applies, but update with .in() on a large list might be tricky.
+        // We'll do it in chunks of 1000 to be safe.
+        let totalUpdated = 0
+        for (let i = 0; i < customerIds.length; i += 1000) {
+            const chunk = customerIds.slice(i, i + 1000)
+            const { error: updateError, count } = await supabase
+                .from('sales')
+                .update({ assigned_to: null })
+                .eq('tenant_id', profile.tenant_id)
+                .in('customer_id', chunk)
+                .select('*')
+
+            if (updateError) {
+                console.error('Chunk update error:', updateError)
+            } else {
+                totalUpdated += count || 0
+            }
+        }
+
+        revalidatePath('/[locale]/(dashboard)/crm')
+        return { success: true, count: totalUpdated }
+
+    } catch (error: any) {
+        console.error('Cleanup Error:', error)
+        return { error: `Cleanup failed: ${error.message}` }
     }
 }
 
