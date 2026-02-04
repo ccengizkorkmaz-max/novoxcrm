@@ -453,6 +453,10 @@
             "messageDetails": "Mesaj Detayları"
         }
     },
+    "CRM": {
+        "title": "Satış Yönetimi",
+        "searchPlaceholder": "İsim, telefon veya e-posta..."
+    },
     "Projects": {
         "title": "Projeler",
         "addProject": "Yeni Proje Ekle",
@@ -1340,6 +1344,7 @@
         "projects": "Projeler",
         "deleteConfirm": "Bu ekibi silmek istediğinize emin misiniz?",
         "deleteConfirmTitle": "Ekibi Sil",
+        "cancel": "Vazgeç",
         "manage": "Yönet",
         "assign": "Ata",
         "roles": {
