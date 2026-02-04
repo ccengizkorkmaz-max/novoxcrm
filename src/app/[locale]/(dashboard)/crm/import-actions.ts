@@ -388,22 +388,22 @@ export async function cleanupImportedAssignments() {
         const customerIds = importedCustomers.map(c => c.id)
 
         // Clear assigned_to for sales linked to these customers
-        // Note: Suapbase range limit applies, but update with .in() on a large list might be tricky.
+        // Note: Supabase range limit applies, but update with .in() on a large list might be tricky.
         // We'll do it in chunks of 1000 to be safe.
         let totalUpdated = 0
         for (let i = 0; i < customerIds.length; i += 1000) {
             const chunk = customerIds.slice(i, i + 1000)
-            const { error: updateError, count } = await supabase
+            const { data, error: updateError } = await supabase
                 .from('sales')
                 .update({ assigned_to: null })
                 .eq('tenant_id', profile.tenant_id)
                 .in('customer_id', chunk)
-                .select('*')
+                .select('id')
 
             if (updateError) {
                 console.error('Chunk update error:', updateError)
             } else {
-                totalUpdated += count || 0
+                totalUpdated += data?.length || 0
             }
         }
 
