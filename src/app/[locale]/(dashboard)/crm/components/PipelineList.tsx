@@ -52,6 +52,8 @@ export default function PipelineList({
     const [isEditOpen, setIsEditOpen] = useState(false)
     const [isActivityOpen, setIsActivityOpen] = useState(false)
     const [selectedCustomerForActivity, setSelectedCustomerForActivity] = useState<any | null>(null)
+    const [currentPage, setCurrentPage] = useState(1)
+    const itemsPerPage = 50
 
     // Resizable Columns State
     const [colWidths, setColWidths] = useState<Record<string, number>>({
@@ -131,6 +133,12 @@ export default function PipelineList({
         setIsActivityOpen(true)
     }
 
+    const totalPages = Math.ceil(sales.length / itemsPerPage)
+    const currentSales = sales.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+    )
+
     return (
         <div className="space-y-4">
             {/* Desktop Table View */}
@@ -173,8 +181,8 @@ export default function PipelineList({
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {sales && sales.length > 0 ? (
-                                sales.map((sale: any) => {
+                            {currentSales && currentSales.length > 0 ? (
+                                currentSales.map((sale: any) => {
                                     const isCompleted = sale.status === 'Completed' || sale.status === 'Sold'
                                     const isLost = sale.status === 'Lost'
 
@@ -365,8 +373,8 @@ export default function PipelineList({
 
             {/* Mobile Card View */}
             <div className="flex flex-col gap-4 md:hidden">
-                {sales && sales.length > 0 ? (
-                    sales.map((sale: any) => {
+                {currentSales && currentSales.length > 0 ? (
+                    currentSales.map((sale: any) => {
                         const isCompleted = sale.status === 'Completed' || sale.status === 'Sold'
                         const isLost = sale.status === 'Lost'
 
@@ -511,6 +519,43 @@ export default function PipelineList({
                     </div>
                 )}
             </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 mt-4 shadow-sm">
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">
+                        Sayfa <span className="text-blue-600 font-black">{currentPage}</span> / {totalPages}
+                        <span className="mx-2 text-slate-200">|</span>
+                        Görüntülenen: {currentSales.length} / {sales.length}
+                    </p>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-9 px-4 rounded-xl border-slate-200 font-bold text-xs uppercase transition-all hover:bg-slate-50 active:scale-95"
+                            onClick={() => {
+                                setCurrentPage(prev => Math.max(1, prev - 1))
+                                window.scrollTo({ top: 0, behavior: 'smooth' })
+                            }}
+                            disabled={currentPage === 1}
+                        >
+                            Geri
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-9 px-4 rounded-xl border-slate-200 font-bold text-xs uppercase transition-all hover:bg-slate-50 active:scale-95"
+                            onClick={() => {
+                                setCurrentPage(prev => Math.min(totalPages, prev + 1))
+                                window.scrollTo({ top: 0, behavior: 'smooth' })
+                            }}
+                            disabled={currentPage === totalPages}
+                        >
+                            İleri
+                        </Button>
+                    </div>
+                </div>
+            )}
 
             <Dialog open={isPlanOpen} onOpenChange={setIsPlanOpen}>
                 <DialogContent className="max-w-2xl w-[95vw] rounded-2xl">

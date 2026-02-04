@@ -70,31 +70,39 @@ export default async function CRMPage(props: { searchParams: Promise<{ [key: str
     }
     const customers = allCustomers
 
-    // 3. Build Sales Query with Filters
-    let query = supabase
+    // 3. Build base sales query for filtered data
+    let baseQuery = supabase
         .from('sales')
         .select('*, customers!inner(id, full_name, email, phone), units(unit_number, price, currency, projects(id, name)), projects(id, name), profiles(full_name)')
 
-    // Filter by Project
-    if (filterProject) {
-        // Filter if EITHER unit's project OR direct sale project matches
-        // Supabase/PostgREST doesn't support OR across relations easily in top-level.
-        // But since we have project_id on sales now, we can filter sales.project_id OR units.project_id?
-        // Actually, if sales.project_id IS set for both unit-sales and project-sales, we just filter sales.project_id!
-        // CHECK: If unit is selected, did we migrate to set sales.project_id? YES, the SQL migration did `UPDATE sales SET project_id = units.project_id`
-        // SO: We can just filter on `project_id` directly!
-        query = query.eq('project_id', filterProject)
+    if (filterProject) baseQuery = baseQuery.eq('project_id', filterProject)
+    if (filterRep) baseQuery = baseQuery.eq('assigned_to', filterRep)
+    if (filterStatus) baseQuery = baseQuery.eq('status', filterStatus)
+    if (filterSearch) baseQuery = baseQuery.ilike('customers.full_name', `%${filterSearch}%`)
+
+    // Fetch sales in batches
+    let allSales: any[] = []
+    let salesFrom = 0
+    const salesBatchSize = 1000
+    let hasMoreSales = true
+
+    while (hasMoreSales) {
+        const { data, error: salesError } = await baseQuery
+            .order('created_at', { ascending: false })
+            .range(salesFrom, salesFrom + salesBatchSize - 1)
+
+        if (salesError) {
+            console.error('Error fetching sales batch:', salesError)
+            hasMoreSales = false
+        } else if (data && data.length > 0) {
+            allSales = [...allSales, ...data]
+            salesFrom += salesBatchSize
+            if (data.length < salesBatchSize) hasMoreSales = false
+        } else {
+            hasMoreSales = false
+        }
     }
-
-    if (filterRep) query = query.eq('assigned_to', filterRep)
-    if (filterStatus) query = query.eq('status', filterStatus)
-
-    // Search query (simplified for now, filtering on customer name)
-    if (filterSearch) {
-        query = query.ilike('customers.full_name', `%${filterSearch}%`)
-    }
-
-    const { data: sales, error } = await query.order('created_at', { ascending: false })
+    const sales = allSales
 
     // 4. For the create sale dialog - exclude sold units
     const { data: availableUnits } = await supabase
