@@ -383,6 +383,18 @@ export async function cleanupImportedAssignments() {
 
         console.log('Cleanup: Looking for imported customers in tenant:', profile.tenant_id)
 
+        // First, let's see what source values actually exist
+        const { data: allCustomers } = await supabase
+            .from('customers')
+            .select('source')
+            .eq('tenant_id', profile.tenant_id)
+
+        if (allCustomers) {
+            const uniqueSources = [...new Set(allCustomers.map(c => c.source).filter(Boolean))]
+            console.log('Cleanup: Unique source values in database:', uniqueSources)
+            console.log('Cleanup: Total customers in tenant:', allCustomers.length)
+        }
+
         // Fetch IDs of customers imported from Excel
         const { data: importedCustomers, error: custError } = await supabase
             .from('customers')
