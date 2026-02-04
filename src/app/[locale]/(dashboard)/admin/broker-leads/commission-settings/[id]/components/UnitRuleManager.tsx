@@ -21,6 +21,7 @@ import { addCommissionUnitRule, deleteCommissionUnitRule } from '@/app/broker/ac
 import { toast } from 'sonner'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
+import { Badge } from "@/components/ui/badge"
 
 interface UnitRule {
     id: string
