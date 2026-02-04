@@ -28,6 +28,7 @@ import { toast } from 'sonner'
 import { formatCurrency } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
+import { Badge } from "@/components/ui/badge"
 
 interface NegotiationDialogProps {
     offerId: string
