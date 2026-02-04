@@ -365,7 +365,10 @@ export async function cleanupImportedAssignments() {
     try {
         const supabase = await createClient()
         const { data: { user } } = await supabase.auth.getUser()
-        if (!user) return { error: 'Unauthorized' }
+        if (!user) {
+            console.log('Cleanup: No user found')
+            return { success: false, error: 'Unauthorized' }
+        }
 
         const { data: profile } = await supabase
             .from('profiles')
@@ -373,26 +376,41 @@ export async function cleanupImportedAssignments() {
             .eq('id', user.id)
             .single()
 
-        if (!profile?.tenant_id) return { error: 'No tenant found' }
+        if (!profile?.tenant_id) {
+            console.log('Cleanup: No tenant found')
+            return { success: false, error: 'No tenant found' }
+        }
+
+        console.log('Cleanup: Looking for imported customers in tenant:', profile.tenant_id)
 
         // Fetch IDs of customers imported from Excel
         const { data: importedCustomers, error: custError } = await supabase
             .from('customers')
-            .select('id')
+            .select('id, full_name, source')
             .eq('tenant_id', profile.tenant_id)
             .eq('source', 'Excel Import')
 
-        if (custError) throw custError
-        if (!importedCustomers || importedCustomers.length === 0) return { success: true, count: 0 }
+        if (custError) {
+            console.error('Cleanup: Error fetching customers:', custError)
+            throw custError
+        }
+
+        console.log(`Cleanup: Found ${importedCustomers?.length || 0} imported customers`)
+
+        if (!importedCustomers || importedCustomers.length === 0) {
+            console.log('Cleanup: No imported customers found')
+            return { success: true, count: 0, message: 'Excel Import kaynaklı müşteri bulunamadı.' }
+        }
 
         const customerIds = importedCustomers.map(c => c.id)
+        console.log('Cleanup: Customer IDs:', customerIds.slice(0, 5), '... (total:', customerIds.length, ')')
 
         // Clear assigned_to for sales linked to these customers
-        // Note: Supabase range limit applies, but update with .in() on a large list might be tricky.
-        // We'll do it in chunks of 1000 to be safe.
         let totalUpdated = 0
         for (let i = 0; i < customerIds.length; i += 1000) {
             const chunk = customerIds.slice(i, i + 1000)
+            console.log(`Cleanup: Processing chunk ${i / 1000 + 1}, size: ${chunk.length}`)
+
             const { data, error: updateError } = await supabase
                 .from('sales')
                 .update({ assigned_to: null })
@@ -401,18 +419,21 @@ export async function cleanupImportedAssignments() {
                 .select('id')
 
             if (updateError) {
-                console.error('Chunk update error:', updateError)
+                console.error('Cleanup: Chunk update error:', updateError)
+                // Continue with other chunks even if one fails
             } else {
+                console.log(`Cleanup: Updated ${data?.length || 0} sales records in this chunk`)
                 totalUpdated += data?.length || 0
             }
         }
 
+        console.log(`Cleanup: Total updated: ${totalUpdated}`)
         revalidatePath('/[locale]/(dashboard)/crm')
         return { success: true, count: totalUpdated }
 
     } catch (error: any) {
-        console.error('Cleanup Error:', error)
-        return { error: `Cleanup failed: ${error.message}` }
+        console.error('Cleanup: Fatal error:', error)
+        return { success: false, error: `Cleanup failed: ${error.message}` }
     }
 }
 

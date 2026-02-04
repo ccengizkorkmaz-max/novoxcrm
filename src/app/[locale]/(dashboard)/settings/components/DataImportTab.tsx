@@ -40,12 +40,24 @@ export default function DataImportTab() {
                         variant="outline"
                         className="bg-white border-amber-200 text-amber-700 hover:bg-amber-50 rounded-xl font-bold h-11 px-6 shadow-sm"
                         onClick={async () => {
-                            const { cleanupImportedAssignments } = await import('@/app/[locale]/(dashboard)/crm/import-actions')
-                            const result = await cleanupImportedAssignments()
-                            if (result.success) {
-                                toast.success(`${result.count} adet temsilci ataması temizlendi.`)
-                            } else {
-                                toast.error('Temizleme hatası: ' + (result.error || 'Bilinmeyen hata'))
+                            try {
+                                const { cleanupImportedAssignments } = await import('@/app/[locale]/(dashboard)/crm/import-actions')
+                                const result = await cleanupImportedAssignments()
+
+                                console.log('Cleanup result:', result)
+
+                                if (result.success) {
+                                    if (result.count === 0) {
+                                        toast.info(result.message || 'Excel Import kaynaklı müşteri bulunamadı.')
+                                    } else {
+                                        toast.success(`${result.count} adet temsilci ataması temizlendi.`)
+                                    }
+                                } else {
+                                    toast.error('Temizleme hatası: ' + (result.error || 'Bilinmeyen hata'))
+                                }
+                            } catch (err: any) {
+                                console.error('Button onClick error:', err)
+                                toast.error('İşlem sırasında hata oluştu: ' + err.message)
                             }
                         }}
                     >
