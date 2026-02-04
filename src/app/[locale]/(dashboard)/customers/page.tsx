@@ -2,20 +2,29 @@ import { createClient } from '@/lib/supabase/server'
 import CustomerList from '@/app/[locale]/(dashboard)/crm/components/CustomerList'
 import { getTranslations } from 'next-intl/server'
 
-export default async function CustomersPage() {
+export default async function CustomersPage(props: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
+    const searchParams = await props.searchParams
     const t = await getTranslations('Customers')
     const supabase = await createClient()
+    const filterSearch = searchParams.q as string
 
-    // Fetch all customers in batches (bypassing the 1000 limit)
+    // 1. Build Base Query for Customers
+    let query = supabase
+        .from('customers')
+        .select('*, customer_demands(*), contract_customers(id)')
+
+    if (filterSearch) {
+        query = query.or(`full_name.ilike.%${filterSearch}%,phone.ilike.%${filterSearch}%,email.ilike.%${filterSearch}%`)
+    }
+
+    // Fetch customers in batches (bypassing the 1000 limit)
     let allCustomers: any[] = []
     let from = 0
     const batchSize = 1000
     let hasMore = true
 
     while (hasMore) {
-        const { data, error } = await supabase
-            .from('customers')
-            .select('*, customer_demands(*), contract_customers(id)')
+        const { data, error } = await query
             .order('created_at', { ascending: false })
             .range(from, from + batchSize - 1)
 

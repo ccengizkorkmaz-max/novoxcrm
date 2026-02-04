@@ -199,14 +199,24 @@ export default function CustomerList({ customers }: { customers: Customer[] }) {
             </div>
 
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div className="relative w-full md:w-[300px]">
+                <div className="relative w-full md:w-[350px]">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                     <Input
-                        placeholder="Müşteri ara (İsim, Tel, E-posta)..."
+                        placeholder="İsim, Tel, E-posta ile ara..."
                         value={searchQuery}
                         onChange={(e) => {
                             setSearchQuery(e.target.value)
-                            setCurrentPage(1) // Reset to first page on search
+                            setCurrentPage(1)
+                        }}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                // Sync with URL for server-side persistence
+                                const url = new URL(window.location.href)
+                                if (searchQuery) url.searchParams.set('q', searchQuery)
+                                else url.searchParams.delete('q')
+                                window.history.pushState({}, '', url)
+                                router.refresh()
+                            }
                         }}
                         className="pl-10 h-11 bg-white border-slate-200 focus:ring-blue-500 rounded-xl transition-all shadow-sm"
                     />

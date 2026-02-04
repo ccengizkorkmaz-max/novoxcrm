@@ -78,7 +78,10 @@ export default async function CRMPage(props: { searchParams: Promise<{ [key: str
     if (filterProject) baseQuery = baseQuery.eq('project_id', filterProject)
     if (filterRep) baseQuery = baseQuery.eq('assigned_to', filterRep)
     if (filterStatus) baseQuery = baseQuery.eq('status', filterStatus)
-    if (filterSearch) baseQuery = baseQuery.ilike('customers.full_name', `%${filterSearch}%`)
+    if (filterSearch) {
+        // Expand search to include name, phone, email and unit number
+        baseQuery = baseQuery.or(`full_name.ilike.%${filterSearch}%,phone.ilike.%${filterSearch}%,email.ilike.%${filterSearch}%`, { foreignTable: 'customers' })
+    }
 
     // Fetch sales in batches
     let allSales: any[] = []
@@ -104,11 +107,31 @@ export default async function CRMPage(props: { searchParams: Promise<{ [key: str
     }
     const sales = allSales
 
-    // 4. For the create sale dialog - exclude sold units
-    const { data: availableUnits } = await supabase
-        .from('units')
-        .select('id, unit_number, projects(id, name)')
-        .in('status', ['For Sale', 'Stock'])
+    // 4. For the create sale dialog - fetch all available units in batches
+    let allAvailableUnits: any[] = []
+    let unitsFrom = 0
+    const unitsBatchSize = 1000
+    let hasMoreUnits = true
+
+    while (hasMoreUnits) {
+        const { data, error: unitsError } = await supabase
+            .from('units')
+            .select('id, unit_number, projects(id, name)')
+            .in('status', ['For Sale', 'Stock'])
+            .range(unitsFrom, unitsFrom + unitsBatchSize - 1)
+
+        if (unitsError) {
+            console.error('Error fetching units batch:', unitsError)
+            hasMoreUnits = false
+        } else if (data && data.length > 0) {
+            allAvailableUnits = [...allAvailableUnits, ...data]
+            unitsFrom += unitsBatchSize
+            if (data.length < unitsBatchSize) hasMoreUnits = false
+        } else {
+            hasMoreUnits = false
+        }
+    }
+    const availableUnits = allAvailableUnits
 
     // 5. Fetch Payment Plan Templates
     const { data: templates } = await supabase.from('payment_plan_templates').select('*').order('name', { ascending: true })
