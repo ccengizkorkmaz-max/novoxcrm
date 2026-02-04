@@ -42,10 +42,18 @@ export function ActivitiesView({ initialActivities, customers, user }: Activitie
         { id: 'Collection', label: t('topic.Collection') },
     ]
 
+    const ACTIVITY_STATUSES = [
+        { id: 'Planned', label: t('status.Planned') },
+        { id: 'In Progress', label: t('status.In Progress') },
+        { id: 'Completed', label: t('status.Completed') },
+        { id: 'Cancelled', label: t('status.Cancelled') },
+    ]
+
     // Filter States
     const [onlyMyActivities, setOnlyMyActivities] = useState(false)
     const [selectedTypes, setSelectedTypes] = useState<string[]>([])
     const [selectedTopics, setSelectedTopics] = useState<string[]>([])
+    const [selectedStatuses, setSelectedStatuses] = useState<string[]>([])
     const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'week' | 'month'>('all')
     const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest')
 
@@ -63,6 +71,11 @@ export function ActivitiesView({ initialActivities, customers, user }: Activitie
         if (selectedTopics.length > 0) {
             const topic = a.topic || 'General'
             if (!selectedTopics.includes(topic)) return false
+        }
+
+        // Status Filter
+        if (selectedStatuses.length > 0) {
+            if (!selectedStatuses.includes(a.status)) return false
         }
 
         // Date Filter
@@ -124,6 +137,12 @@ export function ActivitiesView({ initialActivities, customers, user }: Activitie
         )
     }
 
+    const toggleStatus = (id: string) => {
+        setSelectedStatuses(prev =>
+            prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+        )
+    }
+
     return (
         <div className="flex flex-col gap-4 h-full">
             {/* Header & Controls */}
@@ -139,7 +158,7 @@ export function ActivitiesView({ initialActivities, customers, user }: Activitie
                         >
                             <Filter className="h-4 w-4" />
                             {t('filters.title')}
-                            {(selectedTypes.length > 0 || selectedTopics.length > 0 || onlyMyActivities || dateFilter !== 'all' || sortOrder !== 'newest') && (
+                            {(selectedTypes.length > 0 || selectedTopics.length > 0 || selectedStatuses.length > 0 || onlyMyActivities || dateFilter !== 'all' || sortOrder !== 'newest') && (
                                 <span className="absolute -top-1 -right-1 flex h-3 w-3">
                                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
                                     <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
@@ -147,7 +166,7 @@ export function ActivitiesView({ initialActivities, customers, user }: Activitie
                             )}
                             {showFilters ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                         </Button>
-                        {(selectedTypes.length > 0 || selectedTopics.length > 0 || onlyMyActivities || dateFilter !== 'all' || sortOrder !== 'newest') && (
+                        {(selectedTypes.length > 0 || selectedTopics.length > 0 || selectedStatuses.length > 0 || onlyMyActivities || dateFilter !== 'all' || sortOrder !== 'newest') && (
                             <Button
                                 variant="ghost"
                                 size="icon"
@@ -156,6 +175,7 @@ export function ActivitiesView({ initialActivities, customers, user }: Activitie
                                     setOnlyMyActivities(false)
                                     setSelectedTypes([])
                                     setSelectedTopics([])
+                                    setSelectedStatuses([])
                                     setDateFilter('all')
                                     setSortOrder('newest')
                                 }}
@@ -208,7 +228,22 @@ export function ActivitiesView({ initialActivities, customers, user }: Activitie
 
 
 
-                        {/* Row 3: Topics */}
+                        {/* Row 3: Statuses */}
+                        <div className="flex flex-wrap items-center gap-y-1 gap-x-6">
+                            <span className="text-sm font-semibold w-24 shrink-0 text-muted-foreground">{t('filters.statuses')}:</span>
+                            {ACTIVITY_STATUSES.map(status => (
+                                <div key={status.id} className="flex items-center space-x-2">
+                                    <Checkbox
+                                        id={`status-${status.id}`}
+                                        checked={selectedStatuses.includes(status.id)}
+                                        onCheckedChange={() => toggleStatus(status.id)}
+                                    />
+                                    <Label htmlFor={`status-${status.id}`} className="cursor-pointer font-normal">{status.label}</Label>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Row 4: Topics */}
                         <div className="flex flex-wrap items-center gap-y-1 gap-x-6">
                             <span className="text-sm font-semibold w-24 shrink-0 text-muted-foreground">{t('filters.topics')}:</span>
                             {ACTIVITY_TOPICS.map(topic => (
@@ -223,7 +258,7 @@ export function ActivitiesView({ initialActivities, customers, user }: Activitie
                             ))}
                         </div>
 
-                        {/* Row 4: Date Range */}
+                        {/* Row 5: Date Range */}
                         <div className="flex items-center gap-6">
                             <span className="text-sm font-semibold w-24 shrink-0 text-muted-foreground flex items-center gap-2">
                                 <Calendar className="h-4 w-4" />
@@ -265,7 +300,7 @@ export function ActivitiesView({ initialActivities, customers, user }: Activitie
                             </div>
                         </div>
 
-                        {/* Row 5: Sort Order */}
+                        {/* Row 6: Sort Order */}
                         <div className="flex items-center gap-6">
                             <span className="text-sm font-semibold w-24 shrink-0 text-muted-foreground flex items-center gap-2">
                                 <ArrowUpDown className="h-4 w-4" />
