@@ -1997,6 +1997,7 @@
             "ProposalPending": "Teklif - Kapora Bekleniyor",
             "Negotiation": "Pazarlık",
             "Sold": "Teklif Onaylandı",
+            "Contract": "Sözleşme",
             "Lost": "Kaybedildi"
         },
         "matchUnit": {

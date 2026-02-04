@@ -16,36 +16,34 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog"
 import { cn } from '@/lib/utils'
-import { UserPlus, Pencil, Trash, Mail, Phone, Tag } from 'lucide-react'
+import { UserPlus, Pencil, Trash, Mail, Phone, Tag, CalendarPlus } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { createCustomer, updateCustomer, deleteCustomer } from '../actions'
 import CustomerDemands from './CustomerDemands'
+import { CustomerEditDialog, type Customer } from './CustomerEditDialog'
+import { ActivityForm } from '@/components/activities/activity-form'
 
-interface Customer {
-    id: string
-    full_name: string
-    phone: string
-    email: string
-    source: string
-    portal_username?: string
-    portal_password?: string
-    created_at: string
-    customer_demands?: any[]
-    contract_customers?: any[]
-}
+// Removed redundant interface definition
 
 export default function CustomerList({ customers }: { customers: Customer[] }) {
     const t = useTranslations('Customers')
     const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null)
     const [isEditOpen, setIsEditOpen] = useState(false)
     const [isCreateOpen, setIsCreateOpen] = useState(false)
+    const [isActivityOpen, setIsActivityOpen] = useState(false)
+    const [selectedCustomerForActivity, setSelectedCustomerForActivity] = useState<Customer | null>(null)
 
     const handleEditClick = (customer: Customer) => {
         setEditingCustomer(customer)
         setIsEditOpen(true)
+    }
+
+    const handleCreateActivity = (customer: Customer) => {
+        setSelectedCustomerForActivity(customer)
+        setIsActivityOpen(true)
     }
 
     const handleDeleteClick = async (id: string) => {
@@ -96,6 +94,30 @@ export default function CustomerList({ customers }: { customers: Customer[] }) {
                                             <div className="grid gap-2">
                                                 <Label>{t('form.source')}</Label>
                                                 <Input name="source" placeholder={t('form.sourcePlaceholder')} className="h-11 border-slate-200" />
+                                            </div>
+                                            <div className="grid gap-2">
+                                                <Label>{t('form.address')}</Label>
+                                                <Textarea name="address" className="border-slate-200" />
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="grid gap-2">
+                                                    <Label>{t('form.city')}</Label>
+                                                    <Input name="city" className="h-11 border-slate-200" />
+                                                </div>
+                                                <div className="grid gap-2">
+                                                    <Label>{t('form.district')}</Label>
+                                                    <Input name="district" className="h-11 border-slate-200" />
+                                                </div>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="grid gap-2">
+                                                    <Label>{t('form.postalCode')}</Label>
+                                                    <Input name="postal_code" className="h-11 border-slate-200" />
+                                                </div>
+                                                <div className="grid gap-2">
+                                                    <Label>{t('form.country')}</Label>
+                                                    <Input name="country" defaultValue="Türkiye" className="h-11 border-slate-200" />
+                                                </div>
                                             </div>
                                             <div className="pt-2 border-t mt-2">
                                                 <Label className="text-blue-600 font-bold text-xs uppercase">{t('form.portalAccess')}</Label>
@@ -239,6 +261,9 @@ export default function CustomerList({ customers }: { customers: Customer[] }) {
                                         </TableCell>
                                         <TableCell className="text-right">
                                             <div className="flex justify-end gap-1">
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50" onClick={() => handleCreateActivity(c)} title="Aktivite Ekle">
+                                                    <CalendarPlus className="h-3.5 w-3.5" />
+                                                </Button>
                                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50" onClick={() => handleEditClick(c)} title={t('table.edit')}>
                                                     <Pencil className="h-3.5 w-3.5" />
                                                 </Button>
@@ -309,7 +334,10 @@ export default function CustomerList({ customers }: { customers: Customer[] }) {
                             </div>
 
                             <div className="flex justify-end gap-2 pt-1">
-                                <Button variant="outline" size="sm" className="h-9 px-4 rounded-lg flex-1 md:flex-none border-blue-100 text-blue-700 font-bold" onClick={() => handleEditClick(c)}>
+                                <Button variant="outline" size="sm" className="h-9 px-4 rounded-lg flex-1 md:flex-none border-blue-100 text-blue-700 font-bold" onClick={() => handleCreateActivity(c)}>
+                                    <CalendarPlus className="h-3.5 w-3.5 mr-2" /> Aktivite
+                                </Button>
+                                <Button variant="outline" size="sm" className="h-9 px-4 rounded-lg flex-1 md:flex-none border-slate-100 text-slate-700 font-bold" onClick={() => handleEditClick(c)}>
                                     <Pencil className="h-3.5 w-3.5 mr-2" /> {t('table.edit')}
                                 </Button>
                                 <Button variant="ghost" size="icon" className="h-9 w-9 text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => handleDeleteClick(c.id)}>
@@ -325,71 +353,19 @@ export default function CustomerList({ customers }: { customers: Customer[] }) {
                 )}
             </div>
 
-            <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>{t('editCustomer')}</DialogTitle>
-                    </DialogHeader>
-                    {editingCustomer && (
-                        <Tabs defaultValue="details" className="w-full">
-                            <TabsList className="grid w-full grid-cols-2">
-                                <TabsTrigger value="details">{t('tabs.details')}</TabsTrigger>
-                                <TabsTrigger value="demands">{t('tabs.demands')}</TabsTrigger>
-                            </TabsList>
-                            <TabsContent value="details">
-                                <form action={async (formData) => {
-                                    const res = await updateCustomer(formData)
-                                    if (res?.error) alert(res.error)
-                                    else setIsEditOpen(false)
-                                }}>
-                                    <input type="hidden" name="id" value={editingCustomer.id} />
-                                    <div className="grid gap-4 py-4">
-                                        <div className="grid gap-2">
-                                            <Label>{t('form.fullName')}</Label>
-                                            <Input name="full_name" defaultValue={editingCustomer.full_name} required />
-                                        </div>
-                                        <div className="grid gap-2">
-                                            <Label>{t('form.phone')}</Label>
-                                            <Input name="phone" defaultValue={editingCustomer.phone} required />
-                                        </div>
-                                        <div className="grid gap-2">
-                                            <Label>{t('form.email')}</Label>
-                                            <Input name="email" type="email" defaultValue={editingCustomer.email} />
-                                        </div>
-                                        <div className="grid gap-2">
-                                            <Label>{t('form.source')}</Label>
-                                            <Input name="source" defaultValue={editingCustomer.source} />
-                                        </div>
-                                        <div className="pt-2 border-t mt-2">
-                                            <Label className="text-blue-600 font-bold text-xs uppercase">{t('form.portalAccessTitle')}</Label>
-                                            <div className="grid grid-cols-2 gap-4 mt-2">
-                                                <div className="grid gap-2">
-                                                    <Label className="text-xs">{t('form.username')}</Label>
-                                                    <Input name="portal_username" defaultValue={editingCustomer.portal_username} placeholder={t('form.username')} />
-                                                </div>
-                                                <div className="grid gap-2">
-                                                    <Label className="text-xs">{t('form.password')}</Label>
-                                                    <Input name="portal_password" type="password" defaultValue={editingCustomer.portal_password} placeholder={t('form.password')} />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <DialogFooter>
-                                        <Button type="submit">{t('createModal.update')}</Button>
-                                    </DialogFooter>
-                                </form>
-                            </TabsContent>
-                            <TabsContent value="demands">
-                                <CustomerDemands
-                                    customerId={editingCustomer.id}
-                                    demand={Array.isArray(editingCustomer.customer_demands) ? editingCustomer.customer_demands[0] : editingCustomer.customer_demands}
-                                    onClose={() => setIsEditOpen(false)}
-                                />
-                            </TabsContent>
-                        </Tabs>
-                    )}
-                </DialogContent>
-            </Dialog>
+            <CustomerEditDialog
+                customer={editingCustomer}
+                isOpen={isEditOpen}
+                onOpenChange={setIsEditOpen}
+            />
+
+            <ActivityForm
+                open={isActivityOpen}
+                onOpenChange={setIsActivityOpen}
+                mode="create"
+                activity={{ customer_id: selectedCustomerForActivity?.id }}
+                customers={customers}
+            />
         </div>
     )
 }

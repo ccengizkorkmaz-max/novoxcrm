@@ -1978,6 +1978,7 @@
             "ProposalPending": "Proposal - Deposit Pending",
             "Negotiation": "Negotiation",
             "Sold": "Offer Accepted",
+            "Contract": "Contract",
             "Lost": "Lost"
         },
         "matchUnit": {

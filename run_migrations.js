@@ -8,7 +8,8 @@ async function runMigrations() {
     const files = [
         '20260202_add_parameters_to_payment_plans.sql',
         '20260202_add_payment_type_to_items.sql',
-        '20260203_add_description_to_sales.sql'
+        '20260203_add_description_to_sales.sql',
+        '20260204_add_address_fields_to_customers.sql'
     ];
 
     const connectionString = "postgresql://postgres:Passkall22!@aws-0-eu-central-1.pooler.supabase.com:6543/postgres";

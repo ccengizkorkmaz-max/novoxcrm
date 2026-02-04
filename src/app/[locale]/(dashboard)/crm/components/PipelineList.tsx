@@ -13,13 +13,17 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Calculator, Sparkles, User, Info, Mail, MessageSquareText } from 'lucide-react'
+import { Calculator, Sparkles, User, Info, Mail, MessageSquareText, CalendarPlus } from 'lucide-react'
 import { updateSaleStatus, autoAssignLead } from '../actions'
 import PaymentPlanCalculator from './PaymentPlanCalculator'
 import MatchUnitDialog from './MatchUnitDialog'
 import PipelineReservationDialog from './PipelineReservationDialog'
 import { RestartSaleButton } from './RestartSaleButton'
 import { toast } from 'sonner'
+import { CustomerEditDialog } from './CustomerEditDialog'
+import { ActivityForm } from '@/components/activities/activity-form'
+
+// Removed redundant imports
 
 
 
@@ -44,6 +48,10 @@ export default function PipelineList({
 
     const [isAssigning, setIsAssigning] = useState<string | null>(null)
     const [viewingLead, setViewingLead] = useState<any | null>(null)
+    const [editingCustomer, setEditingCustomer] = useState<any | null>(null)
+    const [isEditOpen, setIsEditOpen] = useState(false)
+    const [isActivityOpen, setIsActivityOpen] = useState(false)
+    const [selectedCustomerForActivity, setSelectedCustomerForActivity] = useState<any | null>(null)
 
     // Resizable Columns State
     const [colWidths, setColWidths] = useState<Record<string, number>>({
@@ -111,6 +119,16 @@ export default function PipelineList({
 
     const handleStatusChange = async (id: string, newStatus: string) => {
         await updateSaleStatus(id, newStatus)
+    }
+
+    const handleCustomerEdit = (customer: any) => {
+        setEditingCustomer(customer)
+        setIsEditOpen(true)
+    }
+
+    const handleCreateActivity = (customer: any) => {
+        setSelectedCustomerForActivity(customer)
+        setIsActivityOpen(true)
     }
 
     return (
@@ -181,7 +199,13 @@ export default function PipelineList({
                                             <TableCell className="p-4 align-middle border-r border-border/50">
                                                 <div className="flex flex-col gap-1">
                                                     <div className="flex items-center gap-2">
-                                                        <span className="font-semibold text-foreground text-sm">{sale.customers?.full_name}</span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleCustomerEdit(sale.customers)}
+                                                            className="font-semibold text-foreground text-sm hover:text-blue-600 hover:underline transition-colors text-left"
+                                                        >
+                                                            {sale.customers?.full_name}
+                                                        </button>
                                                         {sale.source === 'E-Posta' && (
                                                             <Mail className="h-3 w-3 text-blue-500" />
                                                         )}
@@ -314,6 +338,10 @@ export default function PipelineList({
                                                             <Calculator className="h-4 w-4 text-muted-foreground" />
                                                         </Button>
 
+                                                        <Button variant="outline" size="icon" className="h-8 w-8 text-blue-600 border-blue-100 hover:bg-blue-50" onClick={() => handleCreateActivity(sale.customers)} title="Aktivite Ekle">
+                                                            <CalendarPlus className="h-4 w-4" />
+                                                        </Button>
+
                                                         {sale.status === 'Lost' && !sale.restarted_at && (
                                                             <RestartSaleButton saleId={sale.id} />
                                                         )}
@@ -362,7 +390,13 @@ export default function PipelineList({
                             )}>
                                 <div className="flex justify-between items-start">
                                     <div className="flex flex-col">
-                                        <span className="font-bold text-slate-900">{sale.customers?.full_name}</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleCustomerEdit(sale.customers)}
+                                            className="font-bold text-slate-900 text-left hover:text-blue-600 hover:underline transition-colors"
+                                        >
+                                            {sale.customers?.full_name}
+                                        </button>
                                         <span className="text-[10px] text-muted-foreground font-mono">ID: {sale.id.slice(0, 8)}</span>
                                     </div>
                                     <div className={cn(
@@ -438,6 +472,9 @@ export default function PipelineList({
                                                 <Button variant="outline" size="sm" className="h-8 px-3 text-xs" onClick={() => handlePlanClick(sale.id)}>
                                                     <Calculator className="h-3.5 w-3.5 mr-1.5" /> {t('actions.paymentPlanTitle').split(' ')[0]}
                                                 </Button>
+                                                <Button variant="outline" size="icon" className="h-8 w-8 text-blue-600 border-blue-100" onClick={() => handleCreateActivity(sale.customers)}>
+                                                    <CalendarPlus className="h-3.5 w-3.5" />
+                                                </Button>
                                                 <div className="flex gap-1">
                                                     {(['Lead', 'Prospect', 'Reservation', 'Reserved', 'Opsiyon - Kapora Bekleniyor'].includes(sale.status)) && (
                                                         <PipelineReservationDialog
@@ -510,6 +547,20 @@ export default function PipelineList({
                     </div>
                 </DialogContent>
             </Dialog>
+            {/* Customer Details Dialog */}
+            <CustomerEditDialog
+                customer={editingCustomer}
+                isOpen={isEditOpen}
+                onOpenChange={setIsEditOpen}
+            />
+
+            <ActivityForm
+                open={isActivityOpen}
+                onOpenChange={setIsActivityOpen}
+                mode="create"
+                activity={{ customer_id: selectedCustomerForActivity?.id }}
+                customers={customers}
+            />
         </div>
     )
 }

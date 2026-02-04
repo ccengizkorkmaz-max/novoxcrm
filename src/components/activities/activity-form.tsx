@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from "@/components/ui/checkbox"
 import {
@@ -56,7 +57,7 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers }: 
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[500px]">
+            <DialogContent className="sm:max-w-[500px]" key={open ? `activity-${activity?.customer_id || 'new'}` : 'closed'}>
                 <DialogHeader>
                     <DialogTitle>
                         {mode === 'create' ? t('form.createTitle') :
@@ -125,7 +126,7 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers }: 
                                         <Input
                                             name="due_date"
                                             type="datetime-local"
-                                            defaultValue={activity?.due_date ? new Date(activity.due_date).toISOString().slice(0, 16) : ''}
+                                            defaultValue={activity?.due_date ? new Date(activity.due_date).toISOString().slice(0, 16) : new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
                                             required
                                         />
                                     </div>
@@ -137,7 +138,7 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers }: 
                                 </div>
                                 <div className="grid gap-2">
                                     <Label>{t('form.description')}</Label>
-                                    <Input name="description" defaultValue={activity?.description || ''} placeholder={t('form.descriptionPlaceholder')} />
+                                    <Textarea name="description" defaultValue={activity?.description || ''} placeholder={t('form.descriptionPlaceholder')} rows={3} />
                                 </div>
                             </>
                         )}
@@ -161,7 +162,7 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers }: 
                                 </div>
                                 <div className="grid gap-2">
                                     <Label>{t('form.notes')}</Label>
-                                    <Input name="notes" placeholder={t('form.notesPlaceholder')} required />
+                                    <Textarea name="notes" placeholder={t('form.notesPlaceholder')} required rows={3} />
                                 </div>
                                 <div className="border-t pt-4 mt-2">
                                     <h4 className="mb-3 text-sm font-medium">{t('form.nextAction')}</h4>
