@@ -529,11 +529,20 @@
             "email": "Email",
             "source": "Kaynak",
             "status": "Durum",
+            "date": "Kayıt Tarihi",
             "actions": "İşlemler",
             "edit": "Düzenle",
             "delete": "Sil",
             "empty": "Müşteri kaydı yok.",
             "confirmDelete": "Bu müşteriyi silmek istediğinize emin misiniz?"
+        },
+        "deleteConfirmTitle": "Müşteriyi Sil",
+        "deleteConfirmAction": "Evet, Sil",
+        "cancel": "Vazgeç",
+        "deleting": "Siliniyor...",
+        "messages": {
+            "deleted": "Müşteri başarıyla silindi.",
+            "created": "Müşteri başarıyla oluşturuldu."
         },
         "badges": {
             "customer": "Müşteri",
@@ -911,7 +920,8 @@
         "tabs": {
             "profile": "Firma Profili",
             "users": "Kullanıcılar",
-            "templates": "Ödeme Şablonları"
+            "templates": "Ödeme Şablonları",
+            "data": "Veri Yönetimi"
         },
         "profile": {
             "title": "Firma Bilgileri",
@@ -1223,6 +1233,7 @@
         },
         "type": {
             "Call": "Telefon",
+            "Phone": "Telefon",
             "Meeting": "Toplantı",
             "Site Visit": "Ziyaret",
             "Email": "Email",
@@ -1328,6 +1339,7 @@
         "members": "Üyeler",
         "projects": "Projeler",
         "deleteConfirm": "Bu ekibi silmek istediğinize emin misiniz?",
+        "deleteConfirmTitle": "Ekibi Sil",
         "manage": "Yönet",
         "assign": "Ata",
         "roles": {

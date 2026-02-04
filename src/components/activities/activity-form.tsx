@@ -34,8 +34,19 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers }: 
     async function handleSubmit(formData: FormData) {
         let result;
         if (mode === 'create') {
+            // Convert local datetime-local value to ISO UTC string
+            const dueDateStr = formData.get('due_date') as string
+            if (dueDateStr) {
+                const localDate = new Date(dueDateStr)
+                formData.set('due_date', localDate.toISOString())
+            }
             result = await createActivity(formData)
         } else if (mode === 'edit') {
+            const dueDateStr = formData.get('due_date') as string
+            if (dueDateStr) {
+                const localDate = new Date(dueDateStr)
+                formData.set('due_date', localDate.toISOString())
+            }
             formData.append('id', activity.id)
             result = await updateActivity(formData)
         } else if (mode === 'complete') {
@@ -126,7 +137,10 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers }: 
                                         <Input
                                             name="due_date"
                                             type="datetime-local"
-                                            defaultValue={activity?.due_date ? new Date(activity.due_date).toISOString().slice(0, 16) : new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
+                                            defaultValue={activity?.due_date
+                                                ? new Date(new Date(activity.due_date).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)
+                                                : new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)
+                                            }
                                             required
                                         />
                                     </div>

@@ -78,7 +78,8 @@ export function ActivitiesView({ initialActivities, customers, user }: Activitie
         due_date: a.due_date,
         status: a.status,
         outcome: a.outcome,
-        notes: a.notes
+        notes: a.notes,
+        description: a.description
     }))
 
     const toggleType = (id: string) => {

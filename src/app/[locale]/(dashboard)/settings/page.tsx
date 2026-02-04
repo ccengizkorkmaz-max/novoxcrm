@@ -14,7 +14,9 @@ import UserTableActions from './components/UserTableActions'
 import TenantProfileForm from './components/TenantProfileForm'
 import UsersTable from './components/UsersTable'
 import RoleMatrix from './components/RoleMatrix'
+import DataImportTab from './components/DataImportTab'
 import { PaymentTemplatesTab } from './templates/payment-templates-tab'
+import { Database } from 'lucide-react'
 import { getTranslations, getLocale } from 'next-intl/server'
 
 export default async function SettingsPage() {
@@ -79,18 +81,22 @@ export default async function SettingsPage() {
             </div>
 
             <Tabs defaultValue="profile" className="w-full">
-                <TabsList className="grid w-full max-w-2xl grid-cols-3">
-                    <TabsTrigger value="profile">
+                <TabsList className="flex w-full h-auto p-1 bg-slate-100/50 rounded-xl justify-start gap-1 overflow-x-auto mb-2">
+                    <TabsTrigger value="profile" className="flex-1 md:flex-none py-2.5 px-4 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all">
                         <Building2 className="w-4 h-4 mr-2" />
                         {t('tabs.profile')}
                     </TabsTrigger>
-                    <TabsTrigger value="users">
+                    <TabsTrigger value="users" className="flex-1 md:flex-none py-2.5 px-4 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all">
                         <Users className="w-4 h-4 mr-2" />
                         {t('tabs.users')}
                     </TabsTrigger>
-                    <TabsTrigger value="templates">
+                    <TabsTrigger value="templates" className="flex-1 md:flex-none py-2.5 px-4 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all">
                         <FileText className="w-4 h-4 mr-2" />
                         {t('tabs.templates')}
+                    </TabsTrigger>
+                    <TabsTrigger value="data" className="flex-1 md:flex-none py-2.5 px-4 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all">
+                        <Database className="w-4 h-4 mr-2" />
+                        {t('tabs.data')}
                     </TabsTrigger>
                 </TabsList>
 
@@ -132,6 +138,11 @@ export default async function SettingsPage() {
                 {/* Templates Tab */}
                 <TabsContent value="templates" className="space-y-4">
                     <PaymentTemplatesTab templates={templates || []} />
+                </TabsContent>
+
+                {/* Data Management Tab */}
+                <TabsContent value="data" className="space-y-4">
+                    <DataImportTab />
                 </TabsContent>
             </Tabs>
         </div>

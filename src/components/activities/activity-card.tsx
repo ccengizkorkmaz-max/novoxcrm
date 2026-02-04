@@ -29,6 +29,7 @@ export interface Activity {
     status: 'Planned' | 'In Progress' | 'Completed' | 'Overdue' | 'Cancelled'
     outcome?: string
     notes?: string
+    description?: string
     previous_activity_id?: string
 }
 
@@ -48,7 +49,10 @@ export function ActivityCard({ activity, customers, onComplete }: ActivityCardPr
     const isOverdue = activity.due_date ? new Date(activity.due_date) < new Date() && activity.status === 'Planned' : false
 
     return (
-        <Card className={`mb-2 hover:shadow-sm transition-shadow border-l-2 ${isOverdue ? 'border-l-red-500' : 'border-l-transparent'}`}>
+        <Card
+            className={`mb-2 hover:shadow-sm transition-all border-l-2 cursor-pointer hover:bg-slate-50/80 ${isOverdue ? 'border-l-red-500' : 'border-l-transparent'}`}
+            onClick={() => setShowEdit(true)}
+        >
             <CardContent className="p-2.5">
                 <div className="flex justify-between items-start">
                     <div className="flex items-start gap-2.5">
@@ -77,18 +81,24 @@ export function ActivityCard({ activity, customers, onComplete }: ActivityCardPr
                                     </>
                                 )}
                             </div>
+
+                            {activity.description && (
+                                <p className="mt-2 text-xs text-muted-foreground whitespace-pre-wrap line-clamp-3 bg-muted/30 p-2 rounded-md border border-muted-foreground/5 italic">
+                                    "{activity.description}"
+                                </p>
+                            )}
                         </div>
                     </div>
 
                     <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-5 w-5 p-0 -mr-1">
-                                <MoreHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
+                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                            <Button variant="ghost" className="h-8 w-8 p-0 -mr-1 hover:bg-slate-200/50">
+                                <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                            <DropdownMenuItem onSelect={() => setShowComplete(true)}>{t('actions.complete')}</DropdownMenuItem>
-                            <DropdownMenuItem onSelect={() => setShowEdit(true)}>{t('actions.edit')}</DropdownMenuItem>
+                            <DropdownMenuItem onSelect={(e) => { e.stopPropagation(); setShowComplete(true); }}>{t('actions.complete')}</DropdownMenuItem>
+                            <DropdownMenuItem onSelect={(e) => { e.stopPropagation(); setShowEdit(true); }}>{t('actions.edit')}</DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
                 </div>

@@ -26,17 +26,22 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { cn } from '@/lib/utils'
-import { UserPlus, Pencil, Trash, Mail, Phone, Tag, CalendarPlus, AlertTriangle, Users } from 'lucide-react'
+import { UserPlus, Pencil, Trash, Mail, Phone, Tag, CalendarPlus, AlertTriangle, Users, Search, ArrowUpDown, ArrowUp, ArrowDown, PieChart, Target, TrendingUp } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Card, CardContent } from "@/components/ui/card"
 import { createCustomer, updateCustomer, deleteCustomer } from '../actions'
 import CustomerDemands from './CustomerDemands'
+import { CustomerImportDialog } from '@/components/customers/customer-import-dialog'
 import { CustomerEditDialog, type Customer } from './CustomerEditDialog'
 import { ActivityForm } from '@/components/activities/activity-form'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
+
+type SortKey = 'full_name' | 'created_at'
+type SortOrder = 'asc' | 'desc'
 
 export default function CustomerList({ customers }: { customers: Customer[] }) {
     const t = useTranslations('Customers')
@@ -48,6 +53,27 @@ export default function CustomerList({ customers }: { customers: Customer[] }) {
     const [selectedCustomerForActivity, setSelectedCustomerForActivity] = useState<Customer | null>(null)
     const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null)
     const [isPending, setIsPending] = useState(false)
+
+    const [searchQuery, setSearchQuery] = useState('')
+    const [sortConfig, setSortConfig] = useState<{ key: SortKey; order: SortOrder }>({
+        key: 'created_at',
+        order: 'desc'
+    })
+
+    const [currentPage, setCurrentPage] = useState(1)
+    const itemsPerPage = 50
+
+    // Stats Calculation
+    const totalCount = customers.length
+    const sourceCounts = customers.reduce((acc: Record<string, number>, c) => {
+        const src = c.source || 'Belirtilmemiş'
+        acc[src] = (acc[src] || 0) + 1
+        return acc
+    }, {})
+
+    const sortedSources = Object.entries(sourceCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3) // Top 3 sources
 
     const handleEditClick = (customer: Customer) => {
         setEditingCustomer(customer)
@@ -78,13 +104,118 @@ export default function CustomerList({ customers }: { customers: Customer[] }) {
         }
     }
 
+    const toggleSort = (key: SortKey) => {
+        setSortConfig(current => ({
+            key,
+            order: current.key === key && current.order === 'desc' ? 'asc' : 'desc'
+        }))
+    }
+
+    const filteredAndSortedCustomers = customers
+        .filter(c => {
+            const query = searchQuery.toLowerCase()
+            return (
+                c.full_name?.toLowerCase().includes(query) ||
+                c.phone?.includes(query) ||
+                c.email?.toLowerCase().includes(query)
+            )
+        })
+        .sort((a, b) => {
+            const order = sortConfig.order === 'asc' ? 1 : -1
+            if (sortConfig.key === 'full_name') {
+                return (a.full_name || '').localeCompare(b.full_name || '') * order
+            }
+            return (new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) * order
+        })
+
+    const totalPages = Math.ceil(filteredAndSortedCustomers.length / itemsPerPage)
+    const currentItems = filteredAndSortedCustomers.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
+    )
+
+    const SortIcon = ({ columnKey }: { columnKey: SortKey }) => {
+        if (sortConfig.key !== columnKey) return <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
+        return sortConfig.order === 'asc' ? <ArrowUp className="ml-2 h-4 w-4 text-blue-600" /> : <ArrowDown className="ml-2 h-4 w-4 text-blue-600" />
+    }
+
     return (
         <div className="space-y-6">
+            {/* Mini Dashboard */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Card className="rounded-2xl border-none shadow-sm bg-gradient-to-br from-blue-600 to-blue-700 text-white overflow-hidden group">
+                    <CardContent className="p-6 relative">
+                        <div className="flex justify-between items-start">
+                            <div className="space-y-1">
+                                <p className="text-blue-100 text-xs font-black uppercase tracking-widest">Toplam Kayıt</p>
+                                <h3 className="text-3xl font-black">{totalCount}</h3>
+                            </div>
+                            <div className="h-10 w-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm group-hover:scale-110 transition-transform">
+                                <Users className="h-5 w-5 text-white" />
+                            </div>
+                        </div>
+                        <div className="mt-4 flex items-center gap-1.5 text-[10px] font-bold text-blue-100/80 bg-white/10 w-fit px-2 py-1 rounded-lg">
+                            <TrendingUp className="h-3 w-3" />
+                            <span>SİSTEMDEKİ TÜM MÜŞTERİLER</span>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {sortedSources.map(([source, count], idx) => (
+                    <Card key={source} className="rounded-2xl border-none shadow-sm bg-white overflow-hidden group hover:shadow-md transition-shadow">
+                        <CardContent className="p-6">
+                            <div className="flex justify-between items-start">
+                                <div className="space-y-1">
+                                    <p className="text-slate-400 text-xs font-bold uppercase tracking-widest truncate max-w-[120px]">{source}</p>
+                                    <h3 className="text-3xl font-black text-slate-900">{count}</h3>
+                                </div>
+                                <div className={cn(
+                                    "h-10 w-10 rounded-xl flex items-center justify-center transition-transform group-hover:rotate-12",
+                                    idx === 0 ? "bg-emerald-50 text-emerald-600" :
+                                        idx === 1 ? "bg-amber-50 text-amber-600" : "bg-purple-50 text-purple-600"
+                                )}>
+                                    <Target className="h-5 w-5" />
+                                </div>
+                            </div>
+                            <div className="mt-4 h-1.5 w-full bg-slate-50 rounded-full overflow-hidden">
+                                <div
+                                    className={cn(
+                                        "h-full rounded-full",
+                                        idx === 0 ? "bg-emerald-500" :
+                                            idx === 1 ? "bg-amber-500" : "bg-purple-500"
+                                    )}
+                                    style={{ width: `${(count / totalCount) * 100}%` }}
+                                />
+                            </div>
+                        </CardContent>
+                    </Card>
+                ))}
+
+                {sortedSources.length < 3 && Array.from({ length: 3 - sortedSources.length }).map((_, i) => (
+                    <Card key={`empty-${i}`} className="rounded-2xl border-dashed border-2 border-slate-100 bg-slate-50/50 flex items-center justify-center p-6 text-slate-300">
+                        <p className="text-[10px] font-bold uppercase">Veri Bekleniyor</p>
+                    </Card>
+                ))}
+            </div>
+
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div className="flex items-center gap-2">
+                <div className="relative w-full md:w-[300px]">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <Input
+                        placeholder="Müşteri ara (İsim, Tel, E-posta)..."
+                        value={searchQuery}
+                        onChange={(e) => {
+                            setSearchQuery(e.target.value)
+                            setCurrentPage(1) // Reset to first page on search
+                        }}
+                        className="pl-10 h-11 bg-white border-slate-200 focus:ring-blue-500 rounded-xl transition-all shadow-sm"
+                    />
+                </div>
+                <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
+
                     <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
                         <DialogTrigger asChild>
-                            <Button variant="default" className="shadow-lg shadow-blue-100 bg-blue-600 hover:bg-blue-700 h-11 px-6 rounded-xl font-bold transition-all active:scale-95 w-full md:w-auto">
+                            <Button variant="default" className="shadow-lg shadow-blue-100 bg-blue-600 hover:bg-blue-700 h-11 px-6 rounded-xl font-bold transition-all active:scale-95 whitespace-nowrap">
                                 <UserPlus className="mr-2 h-5 w-5" /> {t('addCustomer')}
                             </Button>
                         </DialogTrigger>
@@ -254,17 +385,33 @@ export default function CustomerList({ customers }: { customers: Customer[] }) {
                     <Table>
                         <TableHeader className="bg-slate-50/80 sticky top-0 z-20">
                             <TableRow>
-                                <TableHead className="w-[250px] font-bold text-[11px] uppercase tracking-wider text-slate-400">{t('table.fullName')}</TableHead>
+                                <TableHead
+                                    className="w-[250px] font-bold text-[11px] uppercase tracking-wider text-slate-400 cursor-pointer hover:text-blue-600 transition-colors"
+                                    onClick={() => toggleSort('full_name')}
+                                >
+                                    <div className="flex items-center">
+                                        {t('table.fullName')}
+                                        <SortIcon columnKey="full_name" />
+                                    </div>
+                                </TableHead>
                                 <TableHead className="w-[150px] font-bold text-[11px] uppercase tracking-wider text-slate-400">{t('table.phone')}</TableHead>
                                 <TableHead className="w-[200px] font-bold text-[11px] uppercase tracking-wider text-slate-400">{t('table.email')}</TableHead>
                                 <TableHead className="w-[150px] font-bold text-[11px] uppercase tracking-wider text-slate-400">{t('table.source')}</TableHead>
-                                <TableHead className="w-[120px] font-bold text-[11px] uppercase tracking-wider text-slate-400">{t('table.status')}</TableHead>
+                                <TableHead
+                                    className="w-[150px] font-bold text-[11px] uppercase tracking-wider text-slate-400 cursor-pointer hover:text-blue-600 transition-colors"
+                                    onClick={() => toggleSort('created_at')}
+                                >
+                                    <div className="flex items-center">
+                                        {t('table.status')} / {t('table.date') || 'Tarih'}
+                                        <SortIcon columnKey="created_at" />
+                                    </div>
+                                </TableHead>
                                 <TableHead className="w-[100px] text-right font-bold text-[11px] uppercase tracking-wider text-slate-400">{t('table.actions')}</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {customers && customers.length > 0 ? (
-                                customers.map((c) => (
+                            {currentItems && currentItems.length > 0 ? (
+                                currentItems.map((c) => (
                                     <TableRow key={c.id} className="hover:bg-slate-50/50 transition-colors group">
                                         <TableCell className="py-4">
                                             <Link href={`/customers/${c.id}`} className="flex items-center gap-3">
@@ -327,8 +474,8 @@ export default function CustomerList({ customers }: { customers: Customer[] }) {
 
             {/* Mobile Card View */}
             <div className="flex flex-col gap-4 md:hidden">
-                {customers && customers.length > 0 ? (
-                    customers.map((c) => (
+                {currentItems && currentItems.length > 0 ? (
+                    currentItems.map((c) => (
                         <div key={c.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4 relative overflow-hidden active:scale-[0.98] transition-all">
                             <div className="flex justify-between items-start">
                                 <Link href={`/customers/${c.id}`} className="flex items-center gap-3">
@@ -396,6 +543,37 @@ export default function CustomerList({ customers }: { customers: Customer[] }) {
                     </div>
                 )}
             </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200 mt-4 shadow-sm">
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">
+                        Sayfa <span className="text-blue-600">{currentPage}</span> / {totalPages}
+                        <span className="mx-2 text-slate-200">|</span>
+                        Görüntülenen: {currentItems.length} / {filteredAndSortedCustomers.length}
+                    </p>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-9 px-4 rounded-xl border-slate-200 font-bold text-xs uppercase transition-all"
+                            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                            disabled={currentPage === 1}
+                        >
+                            Geri
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-9 px-4 rounded-xl border-slate-200 font-bold text-xs uppercase transition-all"
+                            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                            disabled={currentPage === totalPages}
+                        >
+                            İleri
+                        </Button>
+                    </div>
+                </div>
+            )}
 
             <CustomerEditDialog
                 customer={editingCustomer}

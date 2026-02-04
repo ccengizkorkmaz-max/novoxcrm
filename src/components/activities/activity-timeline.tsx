@@ -30,6 +30,7 @@ export function ActivityTimeline({ activities, customer }: ActivityTimelineProps
         status: a.status,
         outcome: a.outcome,
         notes: a.notes,
+        description: a.description,
         previous_activity_id: a.previous_activity_id
     }))
 

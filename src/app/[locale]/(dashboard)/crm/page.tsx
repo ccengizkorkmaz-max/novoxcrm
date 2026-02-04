@@ -44,8 +44,31 @@ export default async function CRMPage(props: { searchParams: Promise<{ [key: str
     const { data: projectsData } = await supabase.from('projects').select('id, name').order('name')
     const { data: profilesData } = await supabase.from('profiles').select('id, full_name').order('full_name')
 
-    // 2. Fetch Customers with Demands
-    const { data: customers } = await supabase.from('customers').select('*, customer_demands(*), contract_customers(id)').order('created_at', { ascending: false })
+    // 2. Fetch all customers in batches (bypassing the 1000 limit)
+    let allCustomers: any[] = []
+    let from = 0
+    const batchSize = 1000
+    let hasMore = true
+
+    while (hasMore) {
+        const { data, error } = await supabase
+            .from('customers')
+            .select('*, customer_demands(*), contract_customers(id)')
+            .order('created_at', { ascending: false })
+            .range(from, from + batchSize - 1)
+
+        if (error) {
+            console.error('Error fetching customers batch:', error)
+            hasMore = false
+        } else if (data && data.length > 0) {
+            allCustomers = [...allCustomers, ...data]
+            from += batchSize
+            if (data.length < batchSize) hasMore = false
+        } else {
+            hasMore = false
+        }
+    }
+    const customers = allCustomers
 
     // 3. Build Sales Query with Filters
     let query = supabase

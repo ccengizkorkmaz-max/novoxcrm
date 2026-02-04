@@ -23,6 +23,18 @@ export async function createActivity(formData: FormData) {
     const project_id = formData.get('project_id') as string
     const unit_id = formData.get('unit_id') as string
 
+    // Check if due_date is "now" (within last 5 minutes or next 5 minutes)
+    let isAutoCompleted = false
+    if (due_date) {
+        const actDate = new Date(due_date)
+        const now = new Date()
+        const diffInMinutes = (actDate.getTime() - now.getTime()) / 1000 / 60
+        // If the date is in the past or very near future (e.g. within 5 mins)
+        if (Math.abs(diffInMinutes) <= 5 || diffInMinutes < 0) {
+            isAutoCompleted = true
+        }
+    }
+
     const { error } = await supabase
         .from('activities')
         .insert({
@@ -39,7 +51,10 @@ export async function createActivity(formData: FormData) {
             notes,
             project_id: project_id || null,
             unit_id: unit_id || null,
-            status: 'Planned'
+            status: isAutoCompleted ? 'Completed' : 'Planned',
+            completed_at: isAutoCompleted ? new Date().toISOString() : null,
+            done_at: isAutoCompleted ? new Date().toISOString() : null,
+            outcome: isAutoCompleted ? 'Success' : null
         })
 
     if (error) {
