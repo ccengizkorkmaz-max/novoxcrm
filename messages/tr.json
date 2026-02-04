@@ -1225,7 +1225,15 @@
             "view": "Görünüm",
             "onlyMyActivities": "Sadece Benim Aktivitelerim",
             "types": "Tipler",
-            "topics": "Konular"
+            "topics": "Konular",
+            "dateRange": "Tarih Aralığı",
+            "allDates": "Tümü",
+            "today": "Bugün",
+            "thisWeek": "Bu Hafta",
+            "thisMonth": "Bu Ay",
+            "sortBy": "Sıralama",
+            "newest": "En Yeni",
+            "oldest": "En Eski"
         },
         "tabs": {
             "kanban": "Panolar",

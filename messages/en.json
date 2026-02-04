@@ -1213,7 +1213,15 @@
             "view": "View",
             "onlyMyActivities": "Only My Activities",
             "types": "Types",
-            "topics": "Topics"
+            "topics": "Topics",
+            "dateRange": "Date Range",
+            "allDates": "All",
+            "today": "Today",
+            "thisWeek": "This Week",
+            "thisMonth": "This Month",
+            "sortBy": "Sort By",
+            "newest": "Newest",
+            "oldest": "Oldest"
         },
         "tabs": {
             "kanban": "Boards",

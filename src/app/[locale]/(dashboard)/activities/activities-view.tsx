@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { KanbanBoard } from '@/components/activities/kanban-board'
 import { Activity } from '@/components/activities/activity-card'
 import { Button } from '@/components/ui/button'
-import { Plus, Filter, ChevronUp, ChevronDown, Check, X } from 'lucide-react'
+import { Plus, Filter, ChevronUp, ChevronDown, Check, X, Calendar, ArrowUpDown } from 'lucide-react'
 import { ActivityForm } from '@/components/activities/activity-form'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
@@ -46,6 +46,8 @@ export function ActivitiesView({ initialActivities, customers, user }: Activitie
     const [onlyMyActivities, setOnlyMyActivities] = useState(false)
     const [selectedTypes, setSelectedTypes] = useState<string[]>([])
     const [selectedTopics, setSelectedTopics] = useState<string[]>([])
+    const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'week' | 'month'>('all')
+    const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest')
 
     // Clientside Filtering
     const filteredActivities = initialActivities.filter(a => {
@@ -63,11 +65,39 @@ export function ActivitiesView({ initialActivities, customers, user }: Activitie
             if (!selectedTopics.includes(topic)) return false
         }
 
+        // Date Filter
+        if (dateFilter !== 'all' && a.due_date) {
+            const activityDate = new Date(a.due_date)
+            const now = new Date()
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+
+            if (dateFilter === 'today') {
+                const tomorrow = new Date(today)
+                tomorrow.setDate(tomorrow.getDate() + 1)
+                if (activityDate < today || activityDate >= tomorrow) return false
+            } else if (dateFilter === 'week') {
+                const weekAgo = new Date(today)
+                weekAgo.setDate(weekAgo.getDate() - 7)
+                if (activityDate < weekAgo) return false
+            } else if (dateFilter === 'month') {
+                const monthAgo = new Date(today)
+                monthAgo.setMonth(monthAgo.getMonth() - 1)
+                if (activityDate < monthAgo) return false
+            }
+        }
+
         return true
     })
 
+    // Sort by date
+    const sortedActivities = [...filteredActivities].sort((a, b) => {
+        const dateA = new Date(a.due_date || 0).getTime()
+        const dateB = new Date(b.due_date || 0).getTime()
+        return sortOrder === 'newest' ? dateB - dateA : dateA - dateB
+    })
+
     // Map to Activity Interface
-    const activities: Activity[] = filteredActivities.map(a => ({
+    const activities: Activity[] = sortedActivities.map(a => ({
         id: a.id,
         type: a.type,
         topic: a.topic,
@@ -109,7 +139,7 @@ export function ActivitiesView({ initialActivities, customers, user }: Activitie
                         >
                             <Filter className="h-4 w-4" />
                             {t('filters.title')}
-                            {(selectedTypes.length > 0 || selectedTopics.length > 0 || onlyMyActivities) && (
+                            {(selectedTypes.length > 0 || selectedTopics.length > 0 || onlyMyActivities || dateFilter !== 'all' || sortOrder !== 'newest') && (
                                 <span className="absolute -top-1 -right-1 flex h-3 w-3">
                                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
                                     <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
@@ -117,7 +147,7 @@ export function ActivitiesView({ initialActivities, customers, user }: Activitie
                             )}
                             {showFilters ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                         </Button>
-                        {(selectedTypes.length > 0 || selectedTopics.length > 0 || onlyMyActivities) && (
+                        {(selectedTypes.length > 0 || selectedTopics.length > 0 || onlyMyActivities || dateFilter !== 'all' || sortOrder !== 'newest') && (
                             <Button
                                 variant="ghost"
                                 size="icon"
@@ -126,6 +156,8 @@ export function ActivitiesView({ initialActivities, customers, user }: Activitie
                                     setOnlyMyActivities(false)
                                     setSelectedTypes([])
                                     setSelectedTopics([])
+                                    setDateFilter('all')
+                                    setSortOrder('newest')
                                 }}
                                 title={t('filters.clear')}
                             >
@@ -191,6 +223,73 @@ export function ActivitiesView({ initialActivities, customers, user }: Activitie
                             ))}
                         </div>
 
+                        {/* Row 4: Date Range */}
+                        <div className="flex items-center gap-6">
+                            <span className="text-sm font-semibold w-24 shrink-0 text-muted-foreground flex items-center gap-2">
+                                <Calendar className="h-4 w-4" />
+                                {t('filters.dateRange')}:
+                            </span>
+                            <div className="flex gap-2">
+                                <Button
+                                    variant={dateFilter === 'all' ? 'default' : 'outline'}
+                                    size="sm"
+                                    onClick={() => setDateFilter('all')}
+                                    className="h-8"
+                                >
+                                    {t('filters.allDates')}
+                                </Button>
+                                <Button
+                                    variant={dateFilter === 'today' ? 'default' : 'outline'}
+                                    size="sm"
+                                    onClick={() => setDateFilter('today')}
+                                    className="h-8"
+                                >
+                                    {t('filters.today')}
+                                </Button>
+                                <Button
+                                    variant={dateFilter === 'week' ? 'default' : 'outline'}
+                                    size="sm"
+                                    onClick={() => setDateFilter('week')}
+                                    className="h-8"
+                                >
+                                    {t('filters.thisWeek')}
+                                </Button>
+                                <Button
+                                    variant={dateFilter === 'month' ? 'default' : 'outline'}
+                                    size="sm"
+                                    onClick={() => setDateFilter('month')}
+                                    className="h-8"
+                                >
+                                    {t('filters.thisMonth')}
+                                </Button>
+                            </div>
+                        </div>
+
+                        {/* Row 5: Sort Order */}
+                        <div className="flex items-center gap-6">
+                            <span className="text-sm font-semibold w-24 shrink-0 text-muted-foreground flex items-center gap-2">
+                                <ArrowUpDown className="h-4 w-4" />
+                                {t('filters.sortBy')}:
+                            </span>
+                            <div className="flex gap-2">
+                                <Button
+                                    variant={sortOrder === 'newest' ? 'default' : 'outline'}
+                                    size="sm"
+                                    onClick={() => setSortOrder('newest')}
+                                    className="h-8"
+                                >
+                                    {t('filters.newest')}
+                                </Button>
+                                <Button
+                                    variant={sortOrder === 'oldest' ? 'default' : 'outline'}
+                                    size="sm"
+                                    onClick={() => setSortOrder('oldest')}
+                                    className="h-8"
+                                >
+                                    {t('filters.oldest')}
+                                </Button>
+                            </div>
+                        </div>
 
                     </div>
                 )}
