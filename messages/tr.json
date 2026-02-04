@@ -1344,7 +1344,8 @@
             "current": "Mevcut Üyeler",
             "noMembers": "Henüz üye eklenmemiş.",
             "leaderBadge": "Ekip Lideri",
-            "memberBadge": "Üye"
+            "memberBadge": "Üye",
+            "removeConfirm": "Bu üyeyi ekipten çıkarmak istediğinize emin misiniz?"
         },
         "assignmentProps": {
             "title": "Proje Atamaları",
@@ -1986,7 +1987,8 @@
             "paymentPlan": "Ödeme Planı Hesapla",
             "paymentPlanTitle": "Ödeme Planı Hesapla",
             "won": "Kazanıldı",
-            "leadDetails": "Talep Detayları"
+            "leadDetails": "Talep Detayları",
+            "assigned": "Başarıyla atandı"
         },
         "status": {
             "Lead": "Lead",

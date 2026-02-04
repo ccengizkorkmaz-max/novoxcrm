@@ -1334,7 +1334,8 @@
             "current": "Current Members",
             "noMembers": "No members added yet.",
             "leaderBadge": "Team Leader",
-            "memberBadge": "Member"
+            "memberBadge": "Member",
+            "removeConfirm": "Are you sure you want to remove this member from the team?"
         },
         "assignmentProps": {
             "title": "Project Assignments",
@@ -1967,7 +1968,8 @@
             "assignError": "Must select unit/project first",
             "paymentPlan": "Calculate Payment Plan",
             "paymentPlanTitle": "Calculate Payment Plan",
-            "won": "Won"
+            "won": "Won",
+            "assigned": "Assigned successfully"
         },
         "status": {
             "Lead": "Lead",

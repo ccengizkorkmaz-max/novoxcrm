@@ -98,14 +98,25 @@ export async function POST(req: Request) {
 
         if (existingCustomer) {
             customerId = existingCustomer.id
-            // If the incoming source is E-Posta, ensure the customer source is updated so it shows in Inbox
+
+            // Prepare update object to ensure we capture latest contact info
+            const updates: any = {}
+
             if (source === 'E-Posta') {
+                updates.source = 'E-Posta'
+                // For email source, we trust the name parsing more than potential old data
+                if (name) updates.full_name = name
+            }
+
+            // Always try to fill in missing or update contact info
+            if (phone) updates.phone = phone
+            if (email) updates.email = email
+
+            // Only perform update if we have new data
+            if (Object.keys(updates).length > 0) {
                 await supabase
                     .from('customers')
-                    .update({
-                        source: 'E-Posta',
-                        full_name: name // Update name if we parsed a better one from body
-                    })
+                    .update(updates)
                     .eq('id', customerId)
             }
         } else {
@@ -132,6 +143,39 @@ export async function POST(req: Request) {
         // If source is Kommo, add a marker
         if (source === 'Kommo') {
             finalDescription = `[Kommo CRM] ${finalDescription}`
+        }
+
+        // 3. Deduplication Check: Check for existing ACTIVE sales
+        // We don't want to create a new Lead if the customer is already in an active negotiation for this project (or generally)
+        let activeSaleQuery = supabase
+            .from('sales')
+            .select('id, status')
+            .eq('customer_id', customerId)
+            .eq('tenant_id', targetTenantId)
+            .not('status', 'in', '("Lost","Sold","Completed","Contract")') // Check for active statuses only
+
+        if (projectId) {
+            activeSaleQuery = activeSaleQuery.eq('project_id', projectId)
+        } else {
+            // If no project is specified, we check if they have any general active lead/prospect record unrelated to a specific unit/project
+            // or maybe we rely on the fact that if they are active, we update that one.
+            // For safety, let's only deduplicate if we can match the project OR if it's a general lead.
+            activeSaleQuery = activeSaleQuery.is('project_id', null).is('unit_id', null)
+        }
+
+        const { data: existingActiveSale } = await activeSaleQuery.maybeSingle()
+
+        if (existingActiveSale) {
+            console.log(`[Deduplication] Skipping Lead creation. Customer ${customerId} already has active sale: ${existingActiveSale.id} (${existingActiveSale.status})`)
+
+            // If description changed significantly, maybe append? (Skipping for now to avoid noise)
+
+            return NextResponse.json({
+                success: true,
+                message: 'Lead updated successfully (Existing active sale found)',
+                lead_id: existingActiveSale.id,
+                is_duplicate: true
+            })
         }
 
         const saleInsertData: any = {
