@@ -21,7 +21,9 @@ import { ExcelImport } from '@/components/excel-import'
 import { BackButton } from '@/components/back-button'
 import { ConstructionProgress } from '@/components/construction-progress'
 import { addConstructionStage, updateConstructionStage, deleteConstructionStage, updateUnitProgress } from './actions'
-import { Building2 } from 'lucide-react'
+import { Building2, Save } from 'lucide-react'
+import { ProjectEditForm } from '@/components/projects/ProjectEditForm'
+import { ProjectSaveButton } from '@/components/projects/ProjectSaveButton'
 
 const AMENITIES_LIST = [
     "Yetişkin Havuzu", "Güvenlik", "Çocuk Yüzme Havuzu", "Yürüyüş Parkuru",
@@ -150,10 +152,6 @@ export default async function ProjectDetailPage({
         .eq('role', 'broker')
         .eq('is_active', true)
 
-    async function handleUpdateProject(formData: FormData) {
-        'use server'
-        await updateProject(formData)
-    }
 
     async function handleDeleteUnit(unitId: string) {
         'use server'
@@ -171,6 +169,7 @@ export default async function ProjectDetailPage({
                 <div className="flex items-center gap-4">
                     <BackButton variant="outline" label="Listeye Dön" />
                     <h1 className="text-2xl font-bold tracking-tight">Proje Detayları</h1>
+                    {activeTab === 'info' && <ProjectSaveButton />}
                 </div>
             </div>
 
@@ -286,9 +285,8 @@ export default async function ProjectDetailPage({
                     </Card>
                 </TabsContent>
 
-                {/* Project Info Tab */}
                 <TabsContent value="info" className="space-y-6">
-                    <form action={handleUpdateProject}>
+                    <ProjectEditForm>
                         <input type="hidden" name="id" value={project.id} />
 
                         <Card>
@@ -296,6 +294,7 @@ export default async function ProjectDetailPage({
                                 <CardTitle>Proje Bilgileri</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-6">
+                                {/* ... rest of content ... */}
                                 {/* Project Image */}
                                 <div className="space-y-2">
                                     <Label>Proje Görseli</Label>
@@ -467,16 +466,9 @@ export default async function ProjectDetailPage({
                                         })}
                                     </div>
                                 </div>
-
-                                {/* Save Button */}
-                                <div className="flex justify-end pt-4">
-                                    <Button type="submit" size="lg">
-                                        Değişiklikleri Kaydet
-                                    </Button>
-                                </div>
                             </CardContent>
                         </Card>
-                    </form>
+                    </ProjectEditForm>
                 </TabsContent>
 
                 {/* Units Tab */}
@@ -704,6 +696,6 @@ export default async function ProjectDetailPage({
                     />
                 </TabsContent>
             </Tabs>
-        </div>
+        </div >
     )
 }

@@ -490,7 +490,8 @@
         "createModal": {
             "title": "Create Customer Card",
             "submit": "Save",
-            "update": "Update"
+            "update": "Update",
+            "updateSuccess": "Customer information successfully updated."
         },
         "tabs": {
             "details": "General Info",
@@ -500,6 +501,11 @@
             "fullName": "Full Name",
             "phone": "Phone",
             "email": "Email",
+            "address": "Address",
+            "postalCode": "Postal Code",
+            "district": "District",
+            "city": "City",
+            "country": "Country",
             "source": "Source",
             "sourcePlaceholder": "Ex: Reference, Website",
             "portalAccess": "Portal Access (Optional)",

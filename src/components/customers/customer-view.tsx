@@ -3,13 +3,26 @@
 import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Phone, Mail, Filter } from 'lucide-react'
+import { Phone, Mail, Filter, MapPin } from 'lucide-react'
 import { ActivityTimeline } from '@/components/activities/activity-timeline'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { ShieldCheck } from 'lucide-react'
+import { ShieldCheck, Pencil, ChevronDown, ChevronUp } from 'lucide-react'
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog"
+import { useTranslations } from 'next-intl'
+import { updateCustomer } from '@/app/[locale]/(dashboard)/crm/actions'
+import { Textarea } from '@/components/ui/textarea'
+import { toast } from 'sonner'
 
 interface CustomerViewProps {
     customer: any
@@ -36,6 +49,9 @@ const ACTIVITY_TOPICS = [
 ]
 
 export function CustomerView({ customer, activities, contracts = [] }: CustomerViewProps) {
+    const t = useTranslations('Customers')
+    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+    const [isFiltersOpen, setIsFiltersOpen] = useState(false)
     const [selectedTypes, setSelectedTypes] = useState<string[]>([])
     const [selectedTopics, setSelectedTopics] = useState<string[]>([])
 
@@ -69,11 +85,87 @@ export function CustomerView({ customer, activities, contracts = [] }: CustomerV
 
     return (
         <div className="flex flex-col gap-6">
-            <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-bold tracking-tight">{customer.full_name}</h1>
-                <Badge className={contracts.length > 0 ? 'bg-blue-600' : customer.customer_demands?.length ? 'bg-green-600' : ''} variant={contracts.length > 0 || customer.customer_demands?.length ? 'default' : 'secondary'}>
-                    {contracts.length > 0 ? 'Müşteri' : customer.customer_demands?.length ? 'Lead' : 'Kontak'}
-                </Badge>
+            <div className="flex items-center gap-4">
+                <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+                    <DialogTrigger asChild>
+                        <Button variant="outline" size="sm" className="gap-2">
+                            <Pencil className="h-4 w-4" />
+                            {t('table.edit')}
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-lg w-[95vw] rounded-2xl">
+                        <DialogHeader>
+                            <DialogTitle>{t('editCustomer')}</DialogTitle>
+                        </DialogHeader>
+                        <form action={async (formData) => {
+                            const res = await updateCustomer(formData)
+                            if (res?.error) {
+                                toast.error(res.error)
+                            } else {
+                                toast.success(t('createModal.updateSuccess') || 'Müşteri bilgileri başarıyla güncellendi.')
+                                setIsEditDialogOpen(false)
+                            }
+                        }} className="space-y-4 py-4">
+                            <input type="hidden" name="id" value={customer.id} />
+
+                            <div className="grid gap-4">
+                                <div className="grid gap-2">
+                                    <Label>{t('form.fullName')}</Label>
+                                    <Input name="full_name" defaultValue={customer.full_name} required />
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="grid gap-2">
+                                        <Label>{t('form.phone')}</Label>
+                                        <Input name="phone" defaultValue={customer.phone} required />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label>{t('form.email')}</Label>
+                                        <Input name="email" type="email" defaultValue={customer.email} />
+                                    </div>
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label>{t('form.source')}</Label>
+                                    <Input name="source" defaultValue={customer.source} />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label>{t('form.address')}</Label>
+                                    <Textarea name="address" defaultValue={customer.address} />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid gap-2">
+                                        <Label>{t('form.city')}</Label>
+                                        <Input name="city" defaultValue={customer.city} />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label>{t('form.district')}</Label>
+                                        <Input name="district" defaultValue={customer.district} />
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid gap-2">
+                                        <Label>{t('form.postalCode')}</Label>
+                                        <Input name="postal_code" defaultValue={customer.postal_code} />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label>{t('form.country')}</Label>
+                                        <Input name="country" defaultValue={customer.country || 'Türkiye'} />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <DialogFooter>
+                                <Button type="submit">{t('createModal.update')}</Button>
+                            </DialogFooter>
+                        </form>
+                    </DialogContent>
+                </Dialog>
+
+                <div className="flex items-center gap-4">
+                    <h1 className="text-2xl font-bold tracking-tight">{customer.full_name}</h1>
+                    <Badge className={contracts.length > 0 ? 'bg-blue-600' : customer.customer_demands?.length ? 'bg-green-600' : ''} variant={contracts.length > 0 || customer.customer_demands?.length ? 'default' : 'secondary'}>
+                        {contracts.length > 0 ? t('badges.customer') : customer.customer_demands?.length ? t('badges.lead') : t('badges.contact')}
+                    </Badge>
+                </div>
             </div>
 
             <div className="grid gap-6 md:grid-cols-3">
@@ -93,6 +185,22 @@ export function CustomerView({ customer, activities, contracts = [] }: CustomerV
                                 <Mail className="h-4 w-4 text-muted-foreground" />
                                 <span>{customer.email || '-'}</span>
                             </div>
+                            <div className="flex items-start gap-2 text-sm">
+                                <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                                <div className="space-y-0.5">
+                                    <span className="block font-medium">{customer.address || '-'}</span>
+                                    {(customer.district || customer.city) && (
+                                        <span className="text-xs text-muted-foreground">
+                                            {[customer.district, customer.city].filter(Boolean).join(' / ')}
+                                        </span>
+                                    )}
+                                    {customer.postal_code && (
+                                        <span className="text-xs text-muted-foreground block uppercase">
+                                            {customer.postal_code}
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
                             <div className="text-sm">
                                 <span className="font-semibold block mb-1">Kaynak</span>
                                 <span className="text-muted-foreground">{customer.source || '-'}</span>
@@ -101,54 +209,63 @@ export function CustomerView({ customer, activities, contracts = [] }: CustomerV
                     </Card>
 
                     {/* Filters Card */}
-                    <Card>
-                        <CardHeader className="pb-3">
+                    <Card className="overflow-hidden">
+                        <button
+                            onClick={() => setIsFiltersOpen(!isFiltersOpen)}
+                            className="w-full flex items-center justify-between p-4 hover:bg-slate-50 transition-colors"
+                        >
                             <div className="flex items-center gap-2">
-                                <Filter className="h-4 w-4" />
+                                <Filter className="h-4 w-4 text-muted-foreground" />
                                 <CardTitle className="text-base">Aktivite Filtreleri</CardTitle>
                             </div>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
-                            {/* Types */}
-                            <div className="space-y-3">
-                                <label className="text-sm font-semibold text-foreground">Aktivite Tipi</label>
-                                <div className="space-y-2">
-                                    {ACTIVITY_TYPES.map(type => (
-                                        <div key={type.id} className="flex items-center space-x-2">
-                                            <Checkbox
-                                                id={`type-${type.id}`}
-                                                checked={selectedTypes.includes(type.id)}
-                                                onCheckedChange={() => toggleType(type.id)}
-                                            />
-                                            <Label htmlFor={`type-${type.id}`} className="text-sm font-normal cursor-pointer">
-                                                {type.label}
-                                            </Label>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
+                            {isFiltersOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                        </button>
 
-                            <div className="h-px bg-border" />
+                        {isFiltersOpen && (
+                            <CardContent className="space-y-4 pt-0">
+                                <div className="h-px bg-slate-100 -mx-4 mb-4" />
 
-                            {/* Topics */}
-                            <div className="space-y-3">
-                                <label className="text-sm font-semibold text-foreground">Konular</label>
+                                {/* Types */}
                                 <div className="space-y-2">
-                                    {ACTIVITY_TOPICS.map(topic => (
-                                        <div key={topic.id} className="flex items-center space-x-2">
-                                            <Checkbox
-                                                id={`topic-${topic.id}`}
-                                                checked={selectedTopics.includes(topic.id)}
-                                                onCheckedChange={() => toggleTopic(topic.id)}
-                                            />
-                                            <Label htmlFor={`topic-${topic.id}`} className="text-sm font-normal cursor-pointer">
-                                                {topic.label}
-                                            </Label>
-                                        </div>
-                                    ))}
+                                    <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Aktivite Tipi</label>
+                                    <div className="flex flex-wrap gap-x-4 gap-y-2">
+                                        {ACTIVITY_TYPES.map(type => (
+                                            <div key={type.id} className="flex items-center space-x-2">
+                                                <Checkbox
+                                                    id={`type-${type.id}`}
+                                                    checked={selectedTypes.includes(type.id)}
+                                                    onCheckedChange={() => toggleType(type.id)}
+                                                />
+                                                <Label htmlFor={`type-${type.id}`} className="text-sm font-normal cursor-pointer whitespace-nowrap">
+                                                    {type.label}
+                                                </Label>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
-                        </CardContent>
+
+                                <div className="h-px bg-slate-100" />
+
+                                {/* Topics */}
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Konular</label>
+                                    <div className="flex flex-wrap gap-x-4 gap-y-2">
+                                        {ACTIVITY_TOPICS.map(topic => (
+                                            <div key={topic.id} className="flex items-center space-x-2">
+                                                <Checkbox
+                                                    id={`topic-${topic.id}`}
+                                                    checked={selectedTopics.includes(topic.id)}
+                                                    onCheckedChange={() => toggleTopic(topic.id)}
+                                                />
+                                                <Label htmlFor={`topic-${topic.id}`} className="text-sm font-normal cursor-pointer whitespace-nowrap">
+                                                    {topic.label}
+                                                </Label>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </CardContent>
+                        )}
                     </Card>
 
                     {/* Portal Access Card */}

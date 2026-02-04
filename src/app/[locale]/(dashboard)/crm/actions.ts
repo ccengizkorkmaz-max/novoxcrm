@@ -19,6 +19,11 @@ export async function createCustomer(formData: FormData) {
     const phone = formData.get('phone') as string
     const email = formData.get('email') as string
     const source = formData.get('source') as string
+    const address = formData.get('address') as string
+    const postal_code = formData.get('postal_code') as string
+    const district = formData.get('district') as string
+    const city = formData.get('city') as string
+    const country = formData.get('country') as string
     const portal_username = (formData.get('portal_username') as string)?.trim() || null
     const portal_password = (formData.get('portal_password') as string)?.trim() || null
 
@@ -30,6 +35,11 @@ export async function createCustomer(formData: FormData) {
             phone,
             email,
             source,
+            address,
+            postal_code,
+            district,
+            city,
+            country,
             portal_username,
             portal_password
         })
@@ -115,6 +125,11 @@ export async function updateCustomer(formData: FormData) {
     const phone = formData.get('phone') as string
     const email = formData.get('email') as string
     const source = formData.get('source') as string
+    const address = formData.get('address') as string
+    const postal_code = formData.get('postal_code') as string
+    const district = formData.get('district') as string
+    const city = formData.get('city') as string
+    const country = formData.get('country') as string
     const portal_username = (formData.get('portal_username') as string)?.trim() || null
     const portal_password = (formData.get('portal_password') as string)?.trim() || null
 
@@ -127,6 +142,11 @@ export async function updateCustomer(formData: FormData) {
             phone,
             email,
             source,
+            address,
+            postal_code,
+            district,
+            city,
+            country,
             portal_username,
             portal_password
         })

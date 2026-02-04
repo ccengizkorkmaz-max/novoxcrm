@@ -490,7 +490,8 @@
         "createModal": {
             "title": "Müşteri Kartı Oluştur",
             "submit": "Kaydet",
-            "update": "Güncelle"
+            "update": "Güncelle",
+            "updateSuccess": "Müşteri bilgileri başarıyla güncellendi."
         },
         "tabs": {
             "details": "Genel Bilgiler",
@@ -500,6 +501,11 @@
             "fullName": "Ad Soyad",
             "phone": "Telefon",
             "email": "E-posta",
+            "address": "Adres",
+            "postalCode": "Posta Kodu",
+            "district": "İlçe",
+            "city": "İl",
+            "country": "Ülke",
             "source": "Kaynak",
             "sourcePlaceholder": "Örn: Sahibinden, Referans",
             "portalAccess": "Portal Erişimi (Opsiyonel)",
