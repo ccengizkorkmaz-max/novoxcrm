@@ -453,10 +453,6 @@
             "messageDetails": "Mesaj Detayları"
         }
     },
-    "CRM": {
-        "title": "Satış Yönetimi",
-        "searchPlaceholder": "İsim, telefon veya e-posta..."
-    },
     "Projects": {
         "title": "Projeler",
         "addProject": "Yeni Proje Ekle",
@@ -1930,6 +1926,7 @@
     "CRM": {
         "title": "CRM & Satış Yönetimi",
         "locale": "tr",
+        "searchPlaceholder": "İsim, telefon veya e-posta...",
         "filter": {
             "button": "Filtrele",
             "title": "CRM Filtreleri",

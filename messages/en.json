@@ -453,10 +453,6 @@
         },
         "quickCRM": "Quick CRM (Command Center)"
     },
-    "CRM": {
-        "title": "Sales Management",
-        "searchPlaceholder": "Name, phone or email..."
-    },
     "Projects": {
         "title": "Projects",
         "addProject": "Add New Project",
@@ -1913,6 +1909,7 @@
     "CRM": {
         "title": "CRM & Sales Management",
         "locale": "en",
+        "searchPlaceholder": "Name, phone or email...",
         "filter": {
             "button": "Filter",
             "title": "CRM Filters",
