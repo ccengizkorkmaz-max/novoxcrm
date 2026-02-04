@@ -50,7 +50,7 @@ export default async function CRMPage(props: { searchParams: Promise<{ [key: str
     // 3. Build Sales Query with Filters
     let query = supabase
         .from('sales')
-        .select('*, customers!inner(id, full_name), units(unit_number, price, currency, projects(id, name)), projects(id, name), profiles(full_name)')
+        .select('*, customers!inner(id, full_name, email, phone), units(unit_number, price, currency, projects(id, name)), projects(id, name), profiles(full_name)')
 
     // Filter by Project
     if (filterProject) {
