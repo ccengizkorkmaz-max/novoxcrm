@@ -2,9 +2,10 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { CustomerImportDialog } from '@/components/customers/customer-import-dialog'
-import { Database } from 'lucide-react'
+import { Database, UserCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
+import { updateRepresentativeAssignments } from '../actions/update-representative'
 
 export default function DataImportTab() {
     return (
@@ -31,9 +32,9 @@ export default function DataImportTab() {
 
                 <div className="p-6 border border-amber-100 bg-amber-50/30 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-6 transition-all">
                     <div className="space-y-1 text-center md:text-left">
-                        <h4 className="font-black text-amber-900 uppercase tracking-tight">Eski Temsilci Atamalarını Temizle</h4>
-                        <p className="text-sm text-amber-700/70 font-medium max-w-md">
-                            Excel ile içeri aktarılan ve otomatik olarak "Cengiz Korkmaz" üzerine atanan tüm leadlerin atamalarını kaldırır.
+                        <strong className="text-amber-700">Eski Temsilci Atamalarını Temizle</strong>
+                        <p className="text-sm text-gray-600 mt-1">
+                            Excel ile içeri aktarılan ve otomatik olarak "Burak Kotaman" üzerine atanan tüm leadlerin atamalarını kaldırır.
                         </p>
                     </div>
                     <Button
@@ -65,15 +66,36 @@ export default function DataImportTab() {
                     </Button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 opacity-50 cursor-not-allowed">
-                    <div className="p-4 border border-dashed border-slate-200 rounded-xl bg-slate-50 text-center">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Yakında</p>
-                        <p className="text-xs font-bold text-slate-500 mt-1">Stok Listesi Import</p>
+                <div className="p-6 border border-blue-100 bg-blue-50/30 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-6 transition-all">
+                    <div className="space-y-1 text-center md:text-left">
+                        <strong className="text-blue-700">Temsilci Atamalarını Güncelle</strong>
+                        <p className="text-sm text-gray-600 mt-1">
+                            Cengiz Korkmaz'a atanmış tüm satış kayıtlarını ve aktiviteleri Burak Kotaman'a atar.
+                        </p>
                     </div>
-                    <div className="p-4 border border-dashed border-slate-200 rounded-xl bg-slate-50 text-center">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Yakında</p>
-                        <p className="text-xs font-bold text-slate-500 mt-1">Sözleşme Arşivi Import</p>
-                    </div>
+                    <Button
+                        variant="outline"
+                        className="bg-white border-blue-200 text-blue-700 hover:bg-blue-50 rounded-xl font-bold h-11 px-6 shadow-sm"
+                        onClick={async () => {
+                            try {
+                                const result = await updateRepresentativeAssignments()
+
+                                console.log('Update Rep result:', result)
+
+                                if (result.success) {
+                                    toast.success(result.message || 'Atamalar güncellendi.')
+                                } else {
+                                    toast.error('Güncelleme hatası: ' + (result.error || 'Bilinmeyen hata'))
+                                }
+                            } catch (err: any) {
+                                console.error('Button onClick error:', err)
+                                toast.error('İşlem sırasında hata oluştu: ' + err.message)
+                            }
+                        }}
+                    >
+                        <UserCheck className="h-4 w-4 mr-2" />
+                        Atamaları Güncelle
+                    </Button>
                 </div>
             </CardContent>
         </Card>

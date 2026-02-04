@@ -5,12 +5,13 @@ import { tr, enUS } from "date-fns/locale"
 import { Activity } from "./activity-card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { Check as CheckClassName, Pencil } from "lucide-react"
+import { Check as CheckClassName, Pencil, ChevronLeft, ChevronRight } from "lucide-react"
 import { useState } from "react"
 import { ActivityForm } from "./activity-form"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { useTranslations, useLocale } from "next-intl"
+import { Card } from "@/components/ui/card"
 
 interface ActivityListProps {
     activities: Activity[]
@@ -24,37 +25,80 @@ const statusColors: Record<string, string> = {
     'Cancelled': 'bg-gray-100 text-gray-800 border-gray-200',
 }
 
+const ITEMS_PER_PAGE = 20
+
 export function ActivityList({ activities, customers }: ActivityListProps) {
     const t = useTranslations('Activities')
+    const [currentPage, setCurrentPage] = useState(1)
+
+    const totalPages = Math.ceil(activities.length / ITEMS_PER_PAGE)
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
+    const endIndex = startIndex + ITEMS_PER_PAGE
+    const currentActivities = activities.slice(startIndex, endIndex)
+
     if (activities.length === 0) {
         return (
-            <div className="flex flex-col items-center justify-center h-64 border rounded-lg bg-slate-50 text-muted-foreground">
-                <p>{t('table.empty')}</p>
-            </div>
+            <Card className="p-8">
+                <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
+                    <p>{t('table.empty')}</p>
+                </div>
+            </Card>
         )
     }
 
     return (
-        <div className="rounded-md border bg-white">
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead className="w-[120px]">{t('table.typeTopic')}</TableHead>
-                        <TableHead>{t('table.customer')}</TableHead>
-                        <TableHead>{t('table.agent')}</TableHead>
-                        <TableHead>{t('table.summary')}</TableHead>
-                        <TableHead className="w-[150px]">{t('table.date')}</TableHead>
-                        <TableHead className="w-[120px]">{t('table.status')}</TableHead>
-                        <TableHead className="w-[100px]"></TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {activities.map((activity) => (
-                        <ActivityRow key={activity.id} activity={activity} customers={customers} />
-                    ))}
-                </TableBody>
-            </Table>
-        </div>
+        <Card className="flex flex-col h-full">
+            {/* Scrollable Table Container */}
+            <div className="flex-1 overflow-auto">
+                <Table>
+                    <TableHeader className="sticky top-0 bg-white z-10">
+                        <TableRow>
+                            <TableHead className="w-[120px]">{t('table.typeTopic')}</TableHead>
+                            <TableHead>{t('table.customer')}</TableHead>
+                            <TableHead>{t('table.agent')}</TableHead>
+                            <TableHead>{t('table.summary')}</TableHead>
+                            <TableHead className="w-[150px]">{t('table.date')}</TableHead>
+                            <TableHead className="w-[120px]">{t('table.status')}</TableHead>
+                            <TableHead className="w-[100px]"></TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {currentActivities.map((activity) => (
+                            <ActivityRow key={activity.id} activity={activity} customers={customers} />
+                        ))}
+                    </TableBody>
+                </Table>
+            </div>
+
+            {/* Pagination Footer */}
+            {totalPages > 1 && (
+                <div className="border-t p-4 flex items-center justify-between bg-white">
+                    <div className="text-sm text-muted-foreground">
+                        Toplam {activities.length} aktivite, Sayfa {currentPage} / {totalPages}
+                    </div>
+                    <div className="flex gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            disabled={currentPage === 1}
+                        >
+                            <ChevronLeft className="h-4 w-4 mr-1" />
+                            Önceki
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                            disabled={currentPage === totalPages}
+                        >
+                            Sonraki
+                            <ChevronRight className="h-4 w-4 ml-1" />
+                        </Button>
+                    </div>
+                </div>
+            )}
+        </Card>
     )
 }
 
