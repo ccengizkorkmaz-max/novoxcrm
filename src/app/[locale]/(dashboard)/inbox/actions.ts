@@ -3,7 +3,11 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 
-export async function approveInboxItem(inboxItemId: string, projectId?: string) {
+export async function approveInboxItem(
+    inboxItemId: string,
+    projectId?: string,
+    overrides?: { name?: string, email?: string, phone?: string }
+) {
     try {
         const supabase = await createClient()
         const { data: { user } } = await supabase.auth.getUser()
@@ -27,14 +31,17 @@ export async function approveInboxItem(inboxItemId: string, projectId?: string) 
 
         // 1. Create or find customer
         let customerId: string
+        const finalName = overrides?.name || inboxItem.name
+        const finalEmail = overrides?.email || inboxItem.email
+        const finalPhone = overrides?.phone || inboxItem.phone
 
-        if (inboxItem.email) {
+        if (finalEmail) {
             // Try to find existing customer by email
             const { data: existingCustomer } = await supabase
                 .from('customers')
                 .select('id')
                 .eq('tenant_id', inboxItem.tenant_id)
-                .eq('email', inboxItem.email)
+                .eq('email', finalEmail)
                 .maybeSingle()
 
             if (existingCustomer) {
@@ -45,9 +52,9 @@ export async function approveInboxItem(inboxItemId: string, projectId?: string) 
                     .from('customers')
                     .insert({
                         tenant_id: inboxItem.tenant_id,
-                        full_name: inboxItem.name,
-                        email: inboxItem.email,
-                        phone: inboxItem.phone,
+                        full_name: finalName,
+                        email: finalEmail,
+                        phone: finalPhone,
                         source: inboxItem.source
                     })
                     .select('id')
@@ -70,9 +77,9 @@ export async function approveInboxItem(inboxItemId: string, projectId?: string) 
                 .from('customers')
                 .insert({
                     tenant_id: inboxItem.tenant_id,
-                    full_name: inboxItem.name,
-                    email: inboxItem.email,
-                    phone: inboxItem.phone,
+                    full_name: finalName,
+                    email: finalEmail || null,
+                    phone: finalPhone,
                     source: inboxItem.source
                 })
                 .select('id')

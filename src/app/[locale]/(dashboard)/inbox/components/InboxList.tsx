@@ -11,7 +11,8 @@ import {
     Check,
     X,
     Phone,
-    MessageSquare
+    MessageSquare,
+    Wand2
 } from 'lucide-react'
 import { approveInboxItem, rejectInboxItem } from '../actions'
 import { Card, CardContent } from "@/components/ui/card"
@@ -66,11 +67,35 @@ export function InboxList({ initialItems }: InboxListProps) {
         setEditPhone(item.phone || '')
     }
 
+    const handleParseMessage = () => {
+        if (!viewingItem) return
+
+        const message = viewingItem.message
+
+        // Parse name
+        const nameMatch = message.match(/Ad\s+Soyad:\s*([^:\n\r]+?)(?=\s*(?:E-posta|Telefon|Konu|Proje|$)|\r|\n)/i)
+        if (nameMatch) setEditName(nameMatch[1].trim())
+
+        // Parse email
+        const emailMatch = message.match(/(?:E-posta Adresi|E-posta):\s*([^:\n\r\s]+?)(?=\s*(?:Ad Soyad|Telefon|Konu|Proje|$)|\r|\n)/i)
+        if (emailMatch) setEditEmail(emailMatch[1].trim())
+
+        // Parse phone
+        const phoneMatch = message.match(/Telefon:\s*([^:\n\r\s]+?)(?=\s*(?:Ad Soyad|E-posta|Konu|Proje|$)|\r|\n)/i)
+        if (phoneMatch) setEditPhone(phoneMatch[1].trim())
+
+        toast.success('Bilgiler mesajdan ayıklandı')
+    }
+
     const handleApprove = async () => {
         if (!viewingItem) return
 
         setApproving(true)
-        const result = await approveInboxItem(viewingItem.id)
+        const result = await approveInboxItem(viewingItem.id, undefined, {
+            name: editName,
+            email: editEmail,
+            phone: editPhone
+        })
         setApproving(false)
 
         if (result.success) {
@@ -176,7 +201,18 @@ export function InboxList({ initialItems }: InboxListProps) {
                             {/* Editable Fields */}
                             <div className="grid gap-4">
                                 <div>
-                                    <Label htmlFor="name">Müşteri Adı</Label>
+                                    <div className="flex items-center justify-between gap-2">
+                                        <Label htmlFor="name">Müşteri Adı</Label>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-7 text-blue-600 hover:text-blue-700 hover:bg-blue-50 gap-1 px-2"
+                                            onClick={handleParseMessage}
+                                        >
+                                            <Wand2 className="h-3.5 w-3.5" />
+                                            <span className="text-xs font-medium">Sihirbaz (Mesajdan Ayıkla)</span>
+                                        </Button>
+                                    </div>
                                     <Input
                                         id="name"
                                         value={editName}
