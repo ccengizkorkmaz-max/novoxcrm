@@ -16,7 +16,7 @@ export default async function InboxPage() {
     const { data: emails } = await supabase
         .from('sales')
         .select('*, customers!inner(full_name, email, phone, source)')
-        .or(`source.in.(${sourceList.join(',')}),customers.source.in.(${sourceList.join(',')})`)
+        .or(`source.in.("${sourceList.join('","')}"),customers.source.in.("${sourceList.join('","')}")`)
         .order('created_at', { ascending: false })
 
     return (
