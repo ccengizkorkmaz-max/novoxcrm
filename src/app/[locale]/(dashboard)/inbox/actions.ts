@@ -56,7 +56,12 @@ export async function approveInboxItem(inboxItemId: string, projectId?: string) 
 
                 if (customerError || !newCustomer) {
                     console.error('Error creating customer:', customerError)
-                    return { success: false, error: 'Failed to create customer' }
+                    console.error('Full error details:', JSON.stringify(customerError, null, 2))
+                    return {
+                        success: false,
+                        error: `Failed to create customer: ${customerError?.message || 'Unknown error'}`,
+                        details: customerError
+                    }
                 }
                 customerId = newCustomer.id
             }
@@ -76,8 +81,13 @@ export async function approveInboxItem(inboxItemId: string, projectId?: string) 
                 .single()
 
             if (customerError || !newCustomer) {
-                console.error('Error creating customer:', customerError)
-                return { success: false, error: 'Failed to create customer' }
+                console.error('Error creating customer (phone-only):', customerError)
+                console.error('Full error details:', JSON.stringify(customerError, null, 2))
+                return {
+                    success: false,
+                    error: `Failed to create customer: ${customerError?.message || 'Unknown error'}`,
+                    details: customerError
+                }
             }
             customerId = newCustomer.id
         }

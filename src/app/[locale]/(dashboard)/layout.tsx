@@ -7,6 +7,7 @@ import { Building2, LogOut, Menu, Settings } from 'lucide-react'
 import { SidebarNav } from '@/components/dashboard/SidebarNav'
 import { getTranslations } from 'next-intl/server'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
+import { ToastProvider } from '@/components/providers/ToastProvider'
 
 export default async function DashboardLayout({
     children,
@@ -149,6 +150,7 @@ export default async function DashboardLayout({
                     {children}
                 </main>
             </div>
+            <ToastProvider />
         </div>
     )
 }

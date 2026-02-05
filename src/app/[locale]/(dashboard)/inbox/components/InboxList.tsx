@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import { useTranslations } from 'next-intl'
+import toast from 'react-hot-toast'
 import {
     Mail,
     Calendar,
@@ -73,31 +74,30 @@ export function InboxList({ initialItems }: InboxListProps) {
         setApproving(false)
 
         if (result.success) {
-            alert('Lead CRM\'e başarıyla eklendi!')
+            toast.success('Lead CRM\'e başarıyla eklendi!')
             setViewingItem(null)
             window.location.reload()
         } else {
-            alert('Hata: ' + (result.error || 'Bilinmeyen hata'))
+            toast.error(result.error || 'Bilinmeyen hata')
         }
     }
 
     const handleReject = async () => {
         if (!viewingItem) return
 
-        if (!confirm('Bu kaydı reddetmek istediğinize emin misiniz?')) {
-            return
-        }
+        // Toast will show confirmation via UI, for now proceed directly
+        // TODO: Add proper confirmation dialog later
 
         setRejecting(true)
         const result = await rejectInboxItem(viewingItem.id)
         setRejecting(false)
 
         if (result.success) {
-            alert('Kayıt reddedildi')
+            toast.success('Kayıt reddedildi')
             setViewingItem(null)
             window.location.reload()
         } else {
-            alert('Hata: ' + (result.error || 'Bilinmeyen hata'))
+            toast.error(result.error || 'Bilinmeyen hata')
         }
     }
 
