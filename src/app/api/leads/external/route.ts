@@ -29,33 +29,41 @@ export async function POST(req: Request) {
         } = body
 
         // Parse customer info from message content if available
-        // Email forms often contain structured data like:
-        // Ad Soyad: John Doe
-        // E-posta Adresi: john@example.com
-        // Telefon: 555...
-        if (bodyMessage && (!name || !email || !phone)) {
-            // Parse name
-            const nameMatch = bodyMessage.match(/Ad\s+Soyad:\s*([^:\n\r]+?)(?=\s*(?:E-posta|Telefon|Konu|$)|\r|\n)/i)
-            if (nameMatch && !name) {
-                name = nameMatch[1].trim()
+        if (bodyMessage) {
+            // Parse name - look for "Ad Soyad:" prefix
+            const nameMatch = bodyMessage.match(/Ad\s+Soyad:\s*([^:\n\r]+?)(?=\s*(?:E-posta|Telefon|Konu|Proje|$)|\r|\n)/i)
+            if (nameMatch) {
+                const extractedName = nameMatch[1].trim()
+                // Only override if body name is not empty
+                if (extractedName) name = extractedName
             }
 
-            // Parse email
-            const emailMatch = bodyMessage.match(/(?:E-posta Adresi|E-posta):\s*([^:\n\r\s]+?)(?=\s*(?:Ad Soyad|Telefon|Konu|$)|\r|\n)/i)
-            if (emailMatch && !email) {
-                email = emailMatch[1].trim()
+            // Parse email - look for "E-posta Adresi:" or "E-posta:"
+            const emailMatch = bodyMessage.match(/(?:E-posta Adresi|E-posta):\s*([^:\n\r\s]+?)(?=\s*(?:Ad Soyad|Telefon|Konu|Proje|$)|\r|\n)/i)
+            if (emailMatch) {
+                const extractedEmail = emailMatch[1].trim()
+                // Basic email validation check to avoid dummy values
+                if (extractedEmail && extractedEmail.includes('@')) email = extractedEmail
             }
 
-            // Parse phone
-            const phoneMatch = bodyMessage.match(/Telefon:\s*([^:\n\r\s]+?)(?=\s*(?:Ad Soyad|E-posta|Konu|$)|\r|\n)/i)
-            if (phoneMatch && !phone) {
-                phone = phoneMatch[1].trim()
+            // Parse phone - look for "Telefon:"
+            const phoneMatch = bodyMessage.match(/Telefon:\s*([^:\n\r\s]+?)(?=\s*(?:Ad Soyad|E-posta|Konu|Proje|$)|\r|\n)/i)
+            if (phoneMatch) {
+                const extractedPhone = phoneMatch[1].trim()
+                if (extractedPhone) phone = extractedPhone
             }
 
-            // Parse subject if not provided
-            const subjectMatch = bodyMessage.match(/Konu:\s*([^:\n\r]+?)(?=\s*(?:Ad Soyad|E-posta|Telefon|$)|\r|\n)/i)
-            if (subjectMatch && !subject) {
-                subject = subjectMatch[1].trim()
+            // Parse subject
+            const subjectMatch = bodyMessage.match(/Konu:\s*([^:\n\r]+?)(?=\s*(?:Ad Soyad|E-posta|Telefon|Proje|$)|\r|\n)/i)
+            if (subjectMatch) {
+                const extractedSubject = subjectMatch[1].trim()
+                if (extractedSubject) subject = extractedSubject
+            }
+
+            // Parse form_name if not provided but in body
+            if (!form_name) {
+                const projectMatch = bodyMessage.match(/(?:Proje|Form Adı):\s*([^:\n\r]+?)(?=\s*(?:Ad Soyad|E-posta|Telefon|Konu|Campaign|$)|\r|\n)/i)
+                if (projectMatch) form_name = projectMatch[1].trim()
             }
         }
 
@@ -66,6 +74,23 @@ export async function POST(req: Request) {
 
         if (!tenant_id) {
             return NextResponse.json({ error: 'Missing tenant_id in request body. Each tenant must provide their unique workspace ID.' }, { status: 400 })
+        }
+
+        // --- NEW: Try to link to a Project ---
+        let projectId = null
+        const projectSearchTerm = form_name || subject
+        if (projectSearchTerm && tenant_id) {
+            const { data: project } = await supabase
+                .from('projects')
+                .select('id')
+                .eq('tenant_id', tenant_id)
+                .ilike('name', `%${projectSearchTerm}%`)
+                .limit(1)
+                .maybeSingle()
+
+            if (project) {
+                projectId = project.id
+            }
         }
 
         // Build final message matching the format in your screenshot
@@ -137,6 +162,7 @@ export async function POST(req: Request) {
                 .insert({
                     tenant_id: tenant_id,
                     customer_id: customerId,
+                    project_id: projectId,
                     status: 'Lead',
                     description: finalMessage.trim() || 'Facebook Ads Lead'
                 })
@@ -168,7 +194,8 @@ export async function POST(req: Request) {
                 phone: phone || null,
                 message: finalMessage.trim() || 'No message provided',
                 source: source,
-                status: 'pending'
+                status: 'pending',
+                project_id: projectId
             })
             .select()
             .single()
