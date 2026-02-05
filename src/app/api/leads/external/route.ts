@@ -75,7 +75,77 @@ export async function POST(req: Request) {
             finalMessage += bodyMessage
         }
 
-        // Insert into inbox_items (no customer/sale creation!)
+        // --- NEW: Conditional Logic ---
+        // Facebook Ads leads are created automatically
+        // WEB Form leads go to inbox for manual approval
+        if (source === 'Facebook Ads') {
+            console.log('Automating Facebook Ads lead processing...')
+
+            // 1. Find or create customer
+            let customerId: string
+
+            // Check for existing customer
+            const { data: existingCustomer } = await supabase
+                .from('customers')
+                .select('id')
+                .eq('tenant_id', tenant_id)
+                .or(`email.eq.${email},phone.eq.${phone}`)
+                .maybeSingle()
+
+            if (existingCustomer) {
+                customerId = existingCustomer.id
+                console.log('Found existing customer:', customerId)
+            } else {
+                // Create new customer
+                const { data: newCustomer, error: customerError } = await supabase
+                    .from('customers')
+                    .insert({
+                        tenant_id: tenant_id,
+                        full_name: name,
+                        email: email || null,
+                        phone: phone || null,
+                        source: source
+                    })
+                    .select('id')
+                    .single()
+
+                if (customerError || !newCustomer) {
+                    console.error('Error creating customer for Facebook Ads:', customerError)
+                    return NextResponse.json({ error: 'Failed to create customer' }, { status: 500 })
+                }
+                customerId = newCustomer.id
+                console.log('Created new customer for Facebook Ads:', customerId)
+            }
+
+            // 2. Create sale record
+            // Link to project if form_name matches (optional logic can be added)
+            const { data: newSale, error: saleError } = await supabase
+                .from('sales')
+                .insert({
+                    tenant_id: tenant_id,
+                    customer_id: customerId,
+                    status: 'Lead',
+                    description: finalMessage.trim() || 'Facebook Ads Lead'
+                })
+                .select('id')
+                .single()
+
+            if (saleError || !newSale) {
+                console.error('Error creating sale for Facebook Ads:', saleError)
+                return NextResponse.json({ error: 'Failed to create sale' }, { status: 500 })
+            }
+
+            console.log('Facebook Ads lead processed successfully:', newSale.id)
+
+            revalidatePath('/[locale]/(dashboard)/crm')
+            return NextResponse.json({
+                success: true,
+                message: 'Facebook Ads lead created automatically.',
+                lead_id: newSale.id
+            })
+        }
+
+        // --- Default Flow: Inbox Items ---
         const { data: inboxItem, error: inboxError } = await supabase
             .from('inbox_items')
             .insert({
@@ -104,7 +174,7 @@ export async function POST(req: Request) {
 
         return NextResponse.json({
             success: true,
-            message: 'Inbox item created successfully. Awaiting manual approval.',
+            message: 'Lead received and added to Inbox for approval.',
             inbox_item_id: inboxItem.id
         })
     } catch (error: any) {
