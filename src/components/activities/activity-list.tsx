@@ -73,9 +73,6 @@ export function ActivityList({ activities, customers }: ActivityListProps) {
             {/* Pagination Footer */}
             {totalPages > 1 && (
                 <div className="border-t p-4 flex items-center justify-between bg-white">
-                    <div className="text-sm text-muted-foreground">
-                        Toplam {activities.length} aktivite, Sayfa {currentPage} / {totalPages}
-                    </div>
                     <div className="flex gap-2">
                         <Button
                             variant="outline"
@@ -95,6 +92,9 @@ export function ActivityList({ activities, customers }: ActivityListProps) {
                             Sonraki
                             <ChevronRight className="h-4 w-4 ml-1" />
                         </Button>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                        Toplam {activities.length} aktivite, Sayfa {currentPage} / {totalPages}
                     </div>
                 </div>
             )}

@@ -399,7 +399,7 @@ export async function cleanupImportedAssignments() {
             .eq('tenant_id', profile.tenant_id)
             .eq('source', 'Excel Import')
 
-        if (!importedCustomers || importedCustomers.length === 0) return { success: true, count: 0 }
+        if (!importedCustomers || importedCustomers.length === 0) return { success: true, count: 0, message: 'Excel Import kaynaklı müşteri bulunamadı.' }
 
         const customerIds = importedCustomers.map(c => c.id)
         let totalUpdated = 0
@@ -414,7 +414,7 @@ export async function cleanupImportedAssignments() {
         }
 
         revalidatePath('/[locale]/(dashboard)/crm')
-        return { success: true, count: totalUpdated }
+        return { success: true, count: totalUpdated, message: `${totalUpdated} adet temsilci ataması temizlendi.` }
     } catch (error: any) {
         return { success: false, error: error.message }
     }

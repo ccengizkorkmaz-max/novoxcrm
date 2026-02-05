@@ -60,13 +60,14 @@ export default function DataImportTab() {
                                 console.log('Cleanup result:', result)
 
                                 if (result.success) {
-                                    if (result.count === 0) {
-                                        toast.info(result.message || 'Excel Import kaynaklı müşteri bulunamadı.')
+                                    const res = result as { success: boolean, count: number, message?: string }
+                                    if (res.count === 0) {
+                                        toast.info(res.message || 'Excel Import kaynaklı müşteri bulunamadı.')
                                     } else {
-                                        toast.success(`${result.count} adet temsilci ataması temizlendi.`)
+                                        toast.success(`${res.count} adet temsilci ataması temizlendi.`)
                                     }
                                 } else {
-                                    toast.error('Temizleme hatası: ' + (result.error || 'Bilinmeyen hata'))
+                                    toast.error('Temizleme hatası: ' + ((result as any).error || 'Bilinmeyen hata'))
                                 }
                             } catch (err: any) {
                                 console.error('Button onClick error:', err)
