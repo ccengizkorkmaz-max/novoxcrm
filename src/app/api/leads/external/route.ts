@@ -23,7 +23,9 @@ export async function POST(req: Request) {
             source = 'External',
             message: bodyMessage,
             tenant_id,
-            subject
+            subject,
+            campaign,
+            form_name
         } = body
 
         // Parse customer info from message content if available
@@ -66,13 +68,24 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Missing tenant_id in request body. Each tenant must provide their unique workspace ID.' }, { status: 400 })
         }
 
-        // Build final message
+        // Build final message matching the format in your screenshot
         let finalMessage = ''
-        if (subject) {
-            finalMessage += `**${subject}**\n\n`
-        }
-        if (bodyMessage) {
-            finalMessage += bodyMessage
+
+        if (source === 'Facebook Ads') {
+            finalMessage = `Lead from Facebook Ads`
+            if (form_name) finalMessage += ` (Form: ${form_name})`
+            if (campaign) finalMessage += ` (Campaign: ${campaign})`
+            if (bodyMessage) finalMessage += `\n\n${bodyMessage}`
+        } else {
+            if (subject) {
+                finalMessage += `**${subject}**\n\n`
+            }
+            if (bodyMessage) {
+                finalMessage += bodyMessage
+            }
+            if (!finalMessage && (form_name || campaign)) {
+                finalMessage = `Form: ${form_name || '-'} | Campaign: ${campaign || '-'}`
+            }
         }
 
         // --- NEW: Conditional Logic ---
