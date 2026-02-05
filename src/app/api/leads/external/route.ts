@@ -194,8 +194,7 @@ export async function POST(req: Request) {
                 phone: phone || null,
                 message: finalMessage.trim() || 'No message provided',
                 source: source,
-                status: 'pending',
-                project_id: projectId
+                status: 'pending'
             })
             .select()
             .single()
