@@ -47,6 +47,15 @@ export default async function ProjectDetailPage({
     const { tab } = await searchParams
     const activeTab = tab || 'info'
 
+    const { data: { user } } = await supabase.auth.getUser()
+    const { data: currentUser } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user?.id)
+        .single()
+
+    const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'super_admin'
+
     // Fetch broker levels
     const { data: brokerLevels } = await supabase
         .from('broker_levels')
@@ -485,7 +494,7 @@ export default async function ProjectDetailPage({
                                 </p>
                             </div>
                             <div className="flex gap-2 items-center">
-                                <DeleteAllUnitsButton projectId={project.id} onDelete={deleteAllUnits} />
+                                <DeleteAllUnitsButton projectId={project.id} onDelete={deleteAllUnits} isAdmin={isAdmin} />
                                 <BatchUnitCreator projectId={project.id} action={batchCreateUnits} />
                                 <ExcelImport projectId={project.id} onImport={importUnitsFromExcel} />
                                 <UnitExportButton units={units || []} projectName={project.name} />
@@ -498,6 +507,7 @@ export default async function ProjectDetailPage({
                                 unitProgress={unitProgress || []}
                                 constructionStages={constructionStages || []}
                                 handleDeleteUnit={handleDeleteUnit}
+                                isAdmin={isAdmin}
                             />
                         </CardContent>
                     </Card>

@@ -19,10 +19,13 @@ import { toast } from 'sonner'
 interface DeleteAllUnitsButtonProps {
     projectId: string
     onDelete: (projectId: string) => Promise<any>
+    isAdmin?: boolean
 }
 
-export function DeleteAllUnitsButton({ projectId, onDelete }: DeleteAllUnitsButtonProps) {
+export function DeleteAllUnitsButton({ projectId, onDelete, isAdmin = false }: DeleteAllUnitsButtonProps) {
     const [loading, setLoading] = useState(false)
+
+    if (!isAdmin) return null
 
     async function handleConfirm() {
         setLoading(true)

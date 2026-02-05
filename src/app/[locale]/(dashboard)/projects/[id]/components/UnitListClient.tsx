@@ -10,15 +10,28 @@ import Link from 'next/link'
 import { bulkUpdateUnitStatus } from '../actions'
 import { toast } from 'sonner'
 
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+
 interface UnitListClientProps {
     units: any[]
     projectId: string
     unitProgress: any[]
     constructionStages: any[]
     handleDeleteUnit: (unitId: string) => Promise<void>
+    isAdmin?: boolean
 }
 
-export function UnitListClient({ units, projectId, unitProgress, constructionStages, handleDeleteUnit }: UnitListClientProps) {
+export function UnitListClient({ units, projectId, unitProgress, constructionStages, handleDeleteUnit, isAdmin = false }: UnitListClientProps) {
     const [selectedIds, setSelectedIds] = useState<string[]>([])
     const [isPending, startTransition] = useTransition()
 
@@ -175,13 +188,36 @@ export function UnitListClient({ units, projectId, unitProgress, constructionSta
                                         <Link href={`/inventory/${unit.id}`}>
                                             <Button size="sm" variant="outline">Detay</Button>
                                         </Link>
-                                        <Button
-                                            size="sm"
-                                            variant="ghost"
-                                            onClick={() => handleDeleteUnit(unit.id)}
-                                        >
-                                            <Trash2 className="h-4 w-4 text-destructive" />
-                                        </Button>
+                                        {isAdmin && (
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        disabled={isPending}
+                                                    >
+                                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                                    </Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>Üniteyi Silmek İstediğinize Emin Misiniz?</AlertDialogTitle>
+                                                        <AlertDialogDescription>
+                                                            Bu işlem geri alınamaz. <strong>{unit.unit_number}</strong> numaralı ünite kalıcı olarak silinecektir.
+                                                        </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel>İptal</AlertDialogCancel>
+                                                        <AlertDialogAction
+                                                            onClick={() => handleDeleteUnit(unit.id)}
+                                                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                                        >
+                                                            Evet, Sil
+                                                        </AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                        )}
                                     </div>
                                 </TableCell>
                             </TableRow>
