@@ -34,6 +34,17 @@ export default async function CustomersPage(props: { searchParams: Promise<{ [ke
     const allCustomers = customers || []
     const totalCount = count || 0
 
+    // 3. Fetch all sources for stats (lighter query)
+    const { data: allSources } = await supabase
+        .from('customers')
+        .select('source')
+
+    const sourceCounts = (allSources || []).reduce((acc: Record<string, number>, c) => {
+        const src = c.source || 'Belirtilmemiş'
+        acc[src] = (acc[src] || 0) + 1
+        return acc
+    }, {})
+
     return (
         <div className="flex flex-col gap-6">
             <div className="flex items-center justify-between">
@@ -45,6 +56,7 @@ export default async function CustomersPage(props: { searchParams: Promise<{ [ke
                     customers={allCustomers || []}
                     totalRecords={totalCount}
                     initialPage={page}
+                    sourceStats={sourceCounts}
                 />
             </div>
         </div>

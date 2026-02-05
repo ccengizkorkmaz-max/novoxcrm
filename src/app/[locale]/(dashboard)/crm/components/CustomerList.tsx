@@ -46,11 +46,13 @@ type SortOrder = 'asc' | 'desc'
 export default function CustomerList({
     customers,
     totalRecords = 0,
-    initialPage = 1
+    initialPage = 1,
+    sourceStats = {}
 }: {
     customers: Customer[],
     totalRecords?: number,
-    initialPage?: number
+    initialPage?: number,
+    sourceStats?: Record<string, number>
 }) {
     const t = useTranslations('Customers')
     const router = useRouter()
@@ -73,8 +75,8 @@ export default function CustomerList({
     const itemsPerPage = 50
 
     // Stats Calculation
-    const totalCount = customers.length
-    const sourceCounts = customers.reduce((acc: Record<string, number>, c) => {
+    const totalCount = totalRecords
+    const sourceCounts = Object.keys(sourceStats).length > 0 ? sourceStats : customers.reduce((acc: Record<string, number>, c) => {
         const src = c.source || 'Belirtilmemiş'
         acc[src] = (acc[src] || 0) + 1
         return acc
