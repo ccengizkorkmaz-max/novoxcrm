@@ -49,13 +49,13 @@ function NavItem({ href, icon: Icon, children, onClick }: NavItemProps) {
             href={href}
             onClick={onClick}
             className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary",
+                "flex items-center gap-3 rounded-lg px-3 py-2 transition-all",
                 isActive
-                    ? "bg-blue-50 text-blue-700 font-bold"
-                    : "text-muted-foreground hover:bg-slate-50"
+                    ? "bg-blue-600 text-white font-bold shadow-lg shadow-blue-900/20"
+                    : "text-slate-400 hover:text-white hover:bg-slate-800"
             )}
         >
-            <Icon className={cn("h-4 w-4", isActive ? "text-blue-600" : "text-muted-foreground")} />
+            <Icon className={cn("h-4 w-4", isActive ? "text-white" : "text-slate-400")} />
             {children}
         </Link>
     )
@@ -142,7 +142,7 @@ export function SidebarNav({ onElementClick }: { onElementClick?: () => void }) 
                 <>
                     <Accordion type="multiple" className="w-full border-none">
                         <AccordionItem value="broker" className="border-none">
-                            <AccordionTrigger className="px-3 py-2 text-muted-foreground hover:text-primary hover:bg-slate-50 rounded-lg hover:no-underline [&[data-state=open]]:text-primary font-medium justify-start">
+                            <AccordionTrigger className="px-3 py-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg hover:no-underline [&[data-state=open]]:text-white font-medium justify-start">
                                 <div className="flex items-center gap-3 whitespace-nowrap">
                                     <Users className="h-4 w-4" />
                                     <span>{t('broker.title')}</span>
@@ -173,7 +173,7 @@ export function SidebarNav({ onElementClick }: { onElementClick?: () => void }) 
                         </AccordionItem>
 
                         <AccordionItem value="reports" className="border-none">
-                            <AccordionTrigger className="px-3 py-2 text-muted-foreground hover:text-primary hover:bg-slate-50 rounded-lg hover:no-underline [&[data-state=open]]:text-primary font-medium justify-start">
+                            <AccordionTrigger className="px-3 py-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg hover:no-underline [&[data-state=open]]:text-white font-medium justify-start">
                                 <div className="flex items-center gap-3 whitespace-nowrap">
                                     <BarChart3 className="h-4 w-4" />
                                     <span>{t('reports.title')}</span>

@@ -1327,12 +1327,18 @@
         "descriptionPlaceholder": "Short info about the team...",
         "create": "Create",
         "creating": "Creating...",
+        "updating": "Updating...",
         "update": "Update",
+        "successCreate": "Team created successfully",
+        "successUpdate": "Team updated successfully",
+        "successDelete": "Team deleted successfully",
         "sales": "Sales",
         "members": "Members",
         "projects": "Projects",
         "deleteConfirm": "Are you sure you want to delete this team?",
         "deleteConfirmTitle": "Delete Team",
+        "deleteConfirmAction": "Yes, Delete",
+        "cancel": "Cancel",
         "manage": "Manage",
         "assign": "Assign",
         "roles": {
@@ -1350,7 +1356,11 @@
             "noMembers": "No members added yet.",
             "leaderBadge": "Team Leader",
             "memberBadge": "Member",
-            "removeConfirm": "Are you sure you want to remove this member from the team?"
+            "removeConfirm": "Are you sure you want to remove this member from the team?",
+            "removeConfirmTitle": "Remove Member",
+            "removeConfirmAction": "Yes, Remove",
+            "cancel": "Cancel",
+            "removing": "Removing..."
         },
         "assignmentProps": {
             "title": "Project Assignments",
