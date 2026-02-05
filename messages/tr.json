@@ -1971,6 +1971,9 @@
         "title": "CRM & Satış Yönetimi",
         "locale": "tr",
         "searchPlaceholder": "İsim, telefon veya e-posta...",
+        "messages": {
+            "deleted": "Satış kaydı başarıyla silindi."
+        },
         "filter": {
             "button": "Filtrele",
             "title": "CRM Filtreleri",

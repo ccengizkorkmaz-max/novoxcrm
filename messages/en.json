@@ -1929,6 +1929,9 @@
         "title": "CRM & Sales Management",
         "locale": "en",
         "searchPlaceholder": "Name, phone or email...",
+        "messages": {
+            "deleted": "Sale record deleted successfully."
+        },
         "filter": {
             "button": "Filter",
             "title": "CRM Filters",
