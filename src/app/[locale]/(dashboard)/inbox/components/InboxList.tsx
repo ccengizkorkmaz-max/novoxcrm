@@ -83,8 +83,9 @@ export function InboxList({ initialEmails }: InboxListProps) {
                                         const result = await migrateWebLeadsToInbox()
                                         setMigrating(false)
                                         if (result.success) {
-                                            if (result.count > 0) {
-                                                alert(`${result.count} adet web@ kaydı Inbox'a taşındı. Sayfa yenileniyor...`)
+                                            const count = result.count ?? 0
+                                            if (count > 0) {
+                                                alert(`${count} adet web@ kaydı Inbox'a taşındı. Sayfa yenileniyor...`)
                                                 window.location.reload()
                                             } else {
                                                 alert('Hiç web@ kaydı bulunamadı.')
