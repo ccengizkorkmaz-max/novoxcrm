@@ -261,6 +261,66 @@ export async function restartSale(saleId: string) {
     return { success: true }
 }
 
+export async function deleteSale(saleId: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) redirect('/login')
+
+    // 1. Check Admin Role
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+
+    const isAdmin = profile?.role === 'admin' || profile?.role === 'owner'
+
+    if (!isAdmin) {
+        return { error: 'Bu işlem için yetkiniz yok (Sadece Admin/Owner).' }
+    }
+
+    // 2. Get Sale Info (for unit_id)
+    const { data: sale } = await supabase
+        .from('sales')
+        .select('unit_id')
+        .eq('id', saleId)
+        .single()
+
+    if (!sale) return { error: 'Satış kaydı bulunamadı.' }
+
+    // 3. Delete Cascade: Negotiations -> Offers -> Sale
+    // Note: Database cascade usually handles this, but we do it manually to be safe and clear.
+
+    // 3.1 Get Offers linked to this sale
+    const { data: offers } = await supabase.from('offers').select('id').eq('sale_id', saleId)
+    const offerIds = offers?.map(o => o.id) || []
+
+    if (offerIds.length > 0) {
+        // Delete Negotiations for these offers
+        await supabase.from('offer_negotiations').delete().in('offer_id', offerIds)
+        // Delete Offers
+        await supabase.from('offers').delete().in('id', offerIds)
+    }
+
+    // 4. Delete Sale
+    const { error: deleteError } = await supabase.from('sales').delete().eq('id', saleId)
+
+    if (deleteError) {
+        console.error('Delete Sale Error:', deleteError)
+        return { error: 'Satış silinemedi: ' + deleteError.message }
+    }
+
+    // 5. Reset Unit Status (if matched)
+    if (sale.unit_id) {
+        await supabase.from('units').update({ status: 'For Sale' }).eq('id', sale.unit_id)
+    }
+
+    revalidatePath('/crm')
+    revalidatePath('/inventory')
+
+    return { success: true }
+}
+
 export async function updateSaleStatus(id: string, status: string) {
     const supabase = await createClient()
 

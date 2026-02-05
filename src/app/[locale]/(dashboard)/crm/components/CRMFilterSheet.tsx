@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -69,6 +69,22 @@ export default function CRMFilterSheet({ projects, profiles }: CRMFilterSheetPro
         setStatus('all')
         router.push('/crm')
         setOpen(false)
+    }
+
+    const [mounted, setMounted] = useState(false)
+    useEffect(() => {
+        setMounted(true)
+    }, [])
+
+    if (!mounted) {
+        return (
+            <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" className="relative h-9 px-4">
+                    <Filter className="mr-2 h-4 w-4" />
+                    {t('button')}
+                </Button>
+            </div>
+        )
     }
 
     return (

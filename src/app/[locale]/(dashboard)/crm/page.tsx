@@ -58,6 +58,14 @@ export default async function CRMPage(props: { searchParams: Promise<{ [key: str
         baseQuery = baseQuery.or(`full_name.ilike.%${filterSearch}%,phone.ilike.%${filterSearch}%,email.ilike.%${filterSearch}%`, { foreignTable: 'customers' })
     }
 
+    // 1.5 Get Current User Role
+    const { data: { user } } = await supabase.auth.getUser()
+    let isAdmin = false
+    if (user) {
+        const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+        isAdmin = profile?.role === 'admin' || profile?.role === 'owner'
+    }
+
     // 2. Fetch initial background data in parallel
     const [
         projectsRes,
@@ -125,6 +133,7 @@ export default async function CRMPage(props: { searchParams: Promise<{ [key: str
                 templates={templates || []}
                 totalSalesCount={totalSalesCount}
                 initialPage={page}
+                isAdmin={isAdmin}
             />
         </div>
     )

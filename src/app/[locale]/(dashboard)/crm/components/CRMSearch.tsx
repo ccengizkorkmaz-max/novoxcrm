@@ -17,6 +17,10 @@ export default function CRMSearch() {
 
     useEffect(() => {
         const params = new URLSearchParams(searchParams.toString())
+        const currentQ = params.get('q') || ''
+
+        if (debouncedValue === currentQ) return
+
         if (debouncedValue) {
             params.set('q', debouncedValue)
         } else {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import {
@@ -59,6 +59,17 @@ export default function NewSaleButton({
                 label: u.unit_number
             }))
     }, [selectedProjectIdForSale, availableUnits])
+
+    const [mounted, setMounted] = useState(false)
+    useEffect(() => {
+        setMounted(true)
+    }, [])
+
+    if (!mounted) {
+        return (
+            <Button variant="default"><Plus className="mr-2 h-4 w-4" /> {t('button')}</Button>
+        )
+    }
 
     return (
         <Dialog open={isCreateOpen} onOpenChange={(open) => {

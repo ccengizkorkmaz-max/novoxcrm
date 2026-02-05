@@ -13,7 +13,7 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Calculator, Sparkles, User, Info, Mail, MessageSquareText, CalendarPlus } from 'lucide-react'
+import { Calculator, Sparkles, User, Info, Mail, MessageSquareText, CalendarPlus, Trash, AlertTriangle } from 'lucide-react'
 import { updateSaleStatus, autoAssignLead } from '../actions'
 import PaymentPlanCalculator from './PaymentPlanCalculator'
 import MatchUnitDialog from './MatchUnitDialog'
@@ -37,14 +37,16 @@ export default function PipelineList({
     availableUnits,
     templates = [],
     totalSalesCount = 0,
-    initialPage = 1
+    initialPage = 1,
+    isAdmin = false
 }: {
     sales: any[],
     customers: any[],
     availableUnits: any[],
     templates?: any[],
     totalSalesCount?: number,
-    initialPage?: number
+    initialPage?: number,
+    isAdmin?: boolean
 }) {
     const t = useTranslations('CRM')
     const locale = useLocale()
@@ -148,6 +150,31 @@ export default function PipelineList({
         params.set('page', newPage.toString())
         router.push(`?${params.toString()}`)
         setCurrentPage(newPage)
+    }
+
+    const [saleToDelete, setSaleToDelete] = useState<any | null>(null)
+    const [isDeleting, setIsDeleting] = useState(false)
+
+    const handleDeleteClick = (sale: any) => {
+        setSaleToDelete(sale)
+    }
+
+    const handleDeleteConfirm = async () => {
+        if (!saleToDelete) return
+
+        setIsDeleting(true)
+        const { deleteSale } = await import('../actions')
+        const result = await deleteSale(saleToDelete.id)
+
+        setIsDeleting(false)
+        setSaleToDelete(null)
+
+        if (result.error) {
+            toast.error(result.error)
+        } else {
+            toast.success(t('messages.deleted') || 'Satış kaydı silindi')
+            router.refresh()
+        }
     }
 
     return (
@@ -332,40 +359,54 @@ export default function PipelineList({
                                                 </div>
                                             </TableCell>
                                             <TableCell className="p-4 align-middle text-right">
-                                                {!isCompleted && (
-                                                    <div className="flex justify-end gap-1.5 opacity-80 hover:opacity-100 transition-opacity">
-                                                        {(['Lead', 'Prospect', 'Reservation', 'Reserved', 'Opsiyon - Kapora Bekleniyor'].includes(sale.status)) && (
-                                                            <PipelineReservationDialog
-                                                                saleId={sale.id}
-                                                                currentUnitId={sale.unit_id}
-                                                                availableUnits={availableUnits}
-                                                                customerName={sale.customers?.full_name}
-                                                                status={sale.status}
-                                                                expiryDate={sale.reservation_expiry}
-                                                            />
-                                                        )}
+                                                <div className="flex justify-end gap-1.5 opacity-80 hover:opacity-100 transition-opacity">
+                                                    {!isCompleted && (
+                                                        <>
+                                                            {(['Lead', 'Prospect', 'Reservation', 'Reserved', 'Opsiyon - Kapora Bekleniyor'].includes(sale.status)) && (
+                                                                <PipelineReservationDialog
+                                                                    saleId={sale.id}
+                                                                    currentUnitId={sale.unit_id}
+                                                                    availableUnits={availableUnits}
+                                                                    customerName={sale.customers?.full_name}
+                                                                    status={sale.status}
+                                                                    expiryDate={sale.reservation_expiry}
+                                                                />
+                                                            )}
 
-                                                        {['Lead', 'Prospect'].includes(sale.status) && (
-                                                            <MatchUnitDialog
-                                                                saleId={sale.id}
-                                                                currentUnitId={sale.unit_id}
-                                                                availableUnits={availableUnits}
-                                                                customerName={sale.customers?.full_name}
-                                                            />
-                                                        )}
-                                                        <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handlePlanClick(sale.id)} title="Ödeme Planı">
-                                                            <Calculator className="h-4 w-4 text-muted-foreground" />
+                                                            {['Lead', 'Prospect'].includes(sale.status) && (
+                                                                <MatchUnitDialog
+                                                                    saleId={sale.id}
+                                                                    currentUnitId={sale.unit_id}
+                                                                    availableUnits={availableUnits}
+                                                                    customerName={sale.customers?.full_name}
+                                                                />
+                                                            )}
+                                                            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handlePlanClick(sale.id)} title="Ödeme Planı">
+                                                                <Calculator className="h-4 w-4 text-muted-foreground" />
+                                                            </Button>
+
+                                                            <Button variant="outline" size="icon" className="h-8 w-8 text-blue-600 border-blue-100 hover:bg-blue-50" onClick={() => handleCreateActivity(sale.customers)} title="Aktivite Ekle">
+                                                                <CalendarPlus className="h-4 w-4" />
+                                                            </Button>
+
+                                                            {sale.status === 'Lost' && !sale.restarted_at && (
+                                                                <RestartSaleButton saleId={sale.id} />
+                                                            )}
+                                                        </>
+                                                    )}
+
+                                                    {isAdmin && (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8 text-red-400 hover:text-red-600 hover:bg-red-50"
+                                                            onClick={() => handleDeleteClick(sale)}
+                                                            title="Sil (Admin)"
+                                                        >
+                                                            <Trash className="h-4 w-4" />
                                                         </Button>
-
-                                                        <Button variant="outline" size="icon" className="h-8 w-8 text-blue-600 border-blue-100 hover:bg-blue-50" onClick={() => handleCreateActivity(sale.customers)} title="Aktivite Ekle">
-                                                            <CalendarPlus className="h-4 w-4" />
-                                                        </Button>
-
-                                                        {sale.status === 'Lost' && !sale.restarted_at && (
-                                                            <RestartSaleButton saleId={sale.id} />
-                                                        )}
-                                                    </div>
-                                                )}
+                                                    )}
+                                                </div>
                                             </TableCell>
                                         </TableRow>
                                     )
@@ -486,15 +527,15 @@ export default function PipelineList({
                                         {new Date(sale.created_at).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US')}
                                     </span>
                                     <div className="flex gap-2">
-                                        {!isCompleted && (
-                                            <>
-                                                <Button variant="outline" size="sm" className="h-8 px-3 text-xs" onClick={() => handlePlanClick(sale.id)}>
-                                                    <Calculator className="h-3.5 w-3.5 mr-1.5" /> {t('actions.paymentPlanTitle').split(' ')[0]}
-                                                </Button>
-                                                <Button variant="outline" size="icon" className="h-8 w-8 text-blue-600 border-blue-100" onClick={() => handleCreateActivity(sale.customers)}>
-                                                    <CalendarPlus className="h-3.5 w-3.5" />
-                                                </Button>
-                                                <div className="flex gap-1">
+                                        <div className="flex gap-1">
+                                            {!isCompleted && (
+                                                <>
+                                                    <Button variant="outline" size="sm" className="h-8 px-3 text-xs" onClick={() => handlePlanClick(sale.id)}>
+                                                        <Calculator className="h-3.5 w-3.5 mr-1.5" /> {t('actions.paymentPlanTitle').split(' ')[0]}
+                                                    </Button>
+                                                    <Button variant="outline" size="icon" className="h-8 w-8 text-blue-600 border-blue-100" onClick={() => handleCreateActivity(sale.customers)}>
+                                                        <CalendarPlus className="h-3.5 w-3.5" />
+                                                    </Button>
                                                     {(['Lead', 'Prospect', 'Reservation', 'Reserved', 'Opsiyon - Kapora Bekleniyor'].includes(sale.status)) && (
                                                         <PipelineReservationDialog
                                                             saleId={sale.id}
@@ -513,11 +554,22 @@ export default function PipelineList({
                                                             customerName={sale.customers?.full_name}
                                                         />
                                                     )}
-                                                </div>
-                                            </>
-                                        )}
-                                        {sale.status === 'Lost' && !sale.restarted_at && (
-                                            <RestartSaleButton saleId={sale.id} />
+                                                </>
+                                            )}
+                                            {sale.status === 'Lost' && !sale.restarted_at && (
+                                                <RestartSaleButton saleId={sale.id} />
+                                            )}
+                                        </div>
+                                        {isAdmin && (
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8 text-red-400 hover:text-red-600 hover:bg-red-50"
+                                                onClick={() => handleDeleteClick(sale)}
+                                                title="Sil (Admin)"
+                                            >
+                                                <Trash className="h-4 w-4" />
+                                            </Button>
                                         )}
                                     </div>
                                 </div>
@@ -603,6 +655,55 @@ export default function PipelineList({
                     </div>
                 </DialogContent>
             </Dialog>
+
+            <Dialog open={!!saleToDelete} onOpenChange={(open) => !open && setSaleToDelete(null)}>
+                <DialogContent className="max-w-lg rounded-2xl p-0 overflow-hidden border-none shadow-2xl">
+                    <div className="p-8 space-y-4 text-center">
+                        <div className="h-16 w-16 bg-red-50 text-red-500 rounded-3xl flex items-center justify-center mx-auto mb-4 animate-bounce">
+                            <Trash className="w-8 h-8" />
+                        </div>
+                        <DialogHeader className="space-y-2">
+                            <DialogTitle className="text-xl font-black text-slate-900 leading-tight">
+                                Satış Kaydını Sil
+                            </DialogTitle>
+                            <div className="text-slate-500 font-medium leading-relaxed">
+                                <span className="text-slate-900 font-bold uppercase tracking-tight">"{saleToDelete?.customers?.full_name}"</span>
+                                <br />
+                                <span className="text-red-500 font-bold text-xs mt-2 block">DİKKAT: Bu işlem geri alınamaz!</span>
+                                <ul className="text-xs text-left mt-4 space-y-1 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                    <li>• Satış kaydı tamamen silinecek</li>
+                                    <li>• Varsa Teklifler ve Görüşme geçmişi silinecek</li>
+                                    <li>• Eğer ünite atanmışsa, ünite tekrar <strong>Satılık</strong> durumuna dönecek</li>
+                                </ul>
+                            </div>
+                        </DialogHeader>
+                    </div>
+                    <div className="p-6 bg-slate-50 flex flex-col sm:flex-row gap-2 border-t border-slate-100">
+                        <Button
+                            onClick={() => setSaleToDelete(null)}
+                            variant="outline"
+                            className="w-full sm:w-1/2 h-11 rounded-xl border-slate-200 text-slate-600 font-bold hover:bg-white active:scale-95 transition-all"
+                        >
+                            Vazgeç
+                        </Button>
+                        <Button
+                            onClick={handleDeleteConfirm}
+                            className="w-full sm:w-1/2 h-11 rounded-xl bg-red-500 hover:bg-red-600 shadow-lg shadow-red-100 text-white font-bold active:scale-95 transition-all"
+                            disabled={isDeleting}
+                        >
+                            {isDeleting ? (
+                                <div className="flex items-center gap-2">
+                                    <span className="animate-spin h-4 w-4 border-2 border-white/20 border-t-white rounded-full" />
+                                    <span>Siliniyor...</span>
+                                </div>
+                            ) : (
+                                "Evet, Sil"
+                            )}
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
             {/* Customer Details Dialog */}
             <CustomerEditDialog
                 customer={editingCustomer}
