@@ -70,14 +70,18 @@ async function getDashboardStats(t: any, locale: string) {
     .from('units')
     .select('*', { count: 'exact', head: true })
     .eq('status', 'For Sale')
+    .eq('is_legacy', false)
     .in('project_id', projectIds)
 
   // General Stock Stats
   const { count: totalUnits } = await supabase.from('units').select('*', { count: 'exact', head: true })
+    .eq('is_legacy', false)
     .in('project_id', projectIds)
   const { count: soldUnits } = await supabase.from('units').select('*', { count: 'exact', head: true }).eq('status', 'Sold')
+    .eq('is_legacy', false)
     .in('project_id', projectIds)
   const { count: reservedUnits } = await supabase.from('units').select('*', { count: 'exact', head: true }).in('status', ['Reserved', 'Reservation'])
+    .eq('is_legacy', false)
     .in('project_id', projectIds)
   const { count: activeOffers } = await supabase.from('sales').select('*', { count: 'exact', head: true }).in('status', ['Proposal', 'Teklif - Kapora Bekleniyor', 'Negotiation'])
     .eq('tenant_id', tenant_id)

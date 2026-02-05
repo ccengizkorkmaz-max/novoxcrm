@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { updateProject, batchCreateUnits, addBrokerAccess, removeBrokerAccess } from './actions'
+import { updateProject, batchCreateUnits, addBrokerAccess, removeBrokerAccess, deleteAllUnits } from './actions'
 import { uploadDocument, deleteDocument } from './documents-actions'
 import { importUnitsFromExcel } from './import-actions'
 import { deleteUnit } from '../../inventory/[id]/actions'
@@ -24,6 +24,9 @@ import { addConstructionStage, updateConstructionStage, deleteConstructionStage,
 import { Building2, Save } from 'lucide-react'
 import { ProjectEditForm } from '@/components/projects/ProjectEditForm'
 import { ProjectSaveButton } from '@/components/projects/ProjectSaveButton'
+import { UnitExportButton } from '@/components/projects/UnitExportButton'
+import { DeleteAllUnitsButton } from '@/components/projects/DeleteAllUnitsButton'
+import { UnitListClient } from './components/UnitListClient'
 
 const AMENITIES_LIST = [
     "Yetişkin Havuzu", "Güvenlik", "Çocuk Yüzme Havuzu", "Yürüyüş Parkuru",
@@ -481,97 +484,21 @@ export default async function ProjectDetailPage({
                                     Projeye ait tüm bağımsız bölümleri buradan yönetebilirsiniz.
                                 </p>
                             </div>
-                            <div className="flex gap-2">
+                            <div className="flex gap-2 items-center">
+                                <DeleteAllUnitsButton projectId={project.id} onDelete={deleteAllUnits} />
                                 <BatchUnitCreator projectId={project.id} action={batchCreateUnits} />
                                 <ExcelImport projectId={project.id} onImport={importUnitsFromExcel} />
+                                <UnitExportButton units={units || []} projectName={project.name} />
                             </div>
                         </CardHeader>
                         <CardContent>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead className="w-[100px]">Ünite No</TableHead>
-                                        <TableHead className="w-[120px]">Ünite Türü</TableHead>
-                                        <TableHead className="w-[120px]">Oda Tipi</TableHead>
-                                        <TableHead className="w-[100px]">Durum</TableHead>
-                                        <TableHead className="w-[150px]">Fiyat</TableHead>
-                                        <TableHead className="w-[100px]">Brüt m²</TableHead>
-                                        <TableHead className="w-[80px]">Kat</TableHead>
-                                        <TableHead className="w-[80px]">Blok</TableHead>
-                                        <TableHead className="w-[100px]">İnşaat</TableHead>
-                                        <TableHead className="text-right">İşlemler</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {units && units.length > 0 ? (
-                                        units.map((unit: any) => (
-                                            <TableRow key={unit.id}>
-                                                <TableCell className="font-medium">{unit.unit_number}</TableCell>
-                                                <TableCell>{unit.unit_category || '-'}</TableCell>
-                                                <TableCell>{unit.type}</TableCell>
-                                                <TableCell>
-                                                    <Badge variant={unit.status === 'For Sale' ? 'default' : unit.status === 'Sold' ? 'destructive' : 'secondary'}>
-                                                        {unit.status === 'For Sale' ? 'Satılık' :
-                                                            unit.status === 'Reserved' ? 'Rezerve' :
-                                                                unit.status === 'Sold' ? 'Satıldı' : unit.status}
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell>
-                                                    {unit.price ? `${unit.price.toLocaleString('tr-TR')} ${unit.currency || 'TRY'}` : '-'}
-                                                </TableCell>
-                                                <TableCell>{unit.area_gross ? `${unit.area_gross} m²` : '-'}</TableCell>
-                                                <TableCell>{unit.floor || '-'}</TableCell>
-                                                <TableCell>{unit.block || '-'}</TableCell>
-                                                <TableCell>
-                                                    {(() => {
-                                                        const progresses = unitProgress?.filter(p => p.unit_id === unit.id) || []
-                                                        if (constructionStages && constructionStages.length > 0) {
-                                                            let totalWeight = constructionStages.reduce((acc: number, s: any) => acc + (s.weight || 0), 0)
-                                                            if (totalWeight === 0) return '-'
-                                                            let weightedProgress = 0
-                                                            constructionStages.forEach(stage => {
-                                                                const p = progresses.find(prog => prog.stage_id === stage.id)
-                                                                weightedProgress += ((p?.completion_percentage || 0) * (stage.weight || 0)) / totalWeight
-                                                            })
-                                                            const result = Math.round(weightedProgress)
-                                                            return (
-                                                                <div className="flex items-center gap-2">
-                                                                    <div className="w-12 h-1.5 bg-muted rounded-full overflow-hidden">
-                                                                        <div
-                                                                            className="h-full bg-primary"
-                                                                            style={{ width: `${result}%` }}
-                                                                        />
-                                                                    </div>
-                                                                    <span className="text-[10px] font-medium">%{result}</span>
-                                                                </div>
-                                                            )
-                                                        }
-                                                        return '-'
-                                                    })()}
-                                                </TableCell>
-                                                <TableCell className="text-right">
-                                                    <div className="flex justify-end gap-2">
-                                                        <Link href={`/inventory/${unit.id}`}>
-                                                            <Button size="sm" variant="outline">Detay</Button>
-                                                        </Link>
-                                                        <form action={handleDeleteUnit.bind(null, unit.id)}>
-                                                            <Button size="sm" variant="ghost" type="submit">
-                                                                <Trash2 className="h-4 w-4 text-destructive" />
-                                                            </Button>
-                                                        </form>
-                                                    </div>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))
-                                    ) : (
-                                        <TableRow>
-                                            <TableCell colSpan={8} className="text-center h-24 text-muted-foreground">
-                                                Henüz ünite eklenmemiş. Yukarıdaki butonları kullanarak ünite ekleyebilirsiniz.
-                                            </TableCell>
-                                        </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
+                            <UnitListClient
+                                units={units || []}
+                                projectId={id}
+                                unitProgress={unitProgress || []}
+                                constructionStages={constructionStages || []}
+                                handleDeleteUnit={handleDeleteUnit}
+                            />
                         </CardContent>
                     </Card>
                 </TabsContent>

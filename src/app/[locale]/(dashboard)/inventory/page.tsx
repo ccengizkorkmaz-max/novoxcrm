@@ -59,7 +59,7 @@ export default async function InventoryPage({
         query = query.lte('area_gross', Number(params.max_area))
     }
     if (params.floor) {
-        query = query.eq('floor', Number(params.floor))
+        query = query.eq('floor', params.floor)
     }
     if (params.direction) {
         query = query.eq('direction', params.direction)
@@ -222,15 +222,22 @@ export default async function InventoryPage({
                                         <TableCell>{unit.block || '-'}</TableCell>
                                         <TableCell className="font-mono font-bold">{unit.unit_number}</TableCell>
                                         <TableCell>
-                                            <Badge variant={unit.status === 'Sold' ? 'destructive' : unit.status === 'Reserved' ? 'secondary' : 'default'} className={cn("text-[10px] px-2 py-0", unit.status === 'For Sale' ? 'bg-green-600' : '')}>
-                                                {t(`status.${statusMap[unit.status] || unit.status.replace(/\s/g, '')}`)}
-                                            </Badge>
+                                            <div className="flex flex-col gap-1">
+                                                <Badge variant={unit.status === 'Sold' ? 'destructive' : unit.status === 'Reserved' ? 'secondary' : 'default'} className={cn("text-[10px] px-2 py-0", unit.status === 'For Sale' ? 'bg-green-600' : '')}>
+                                                    {statusMap[unit.status] ? t(`status.${statusMap[unit.status]}`) : unit.status}
+                                                </Badge>
+                                                {unit.is_legacy && (
+                                                    <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-slate-300 text-slate-500 whitespace-nowrap">
+                                                        Eski Kayıt
+                                                    </Badge>
+                                                )}
+                                            </div>
                                         </TableCell>
                                         <TableCell>{unit.type}</TableCell>
                                         <TableCell>{unit.unit_category || '-'}</TableCell>
                                         <TableCell>{unit.floor}</TableCell>
-                                        <TableCell>{unit.direction ? t(`directions.${directionMap[unit.direction] || unit.direction.replace(/\s/g, '')}`) : '-'}</TableCell>
-                                        <TableCell>{unit.view ? t(`views.${viewMap[unit.view] || unit.view}`) : '-'}</TableCell>
+                                        <TableCell>{unit.direction ? (directionMap[unit.direction] ? t(`directions.${directionMap[unit.direction]}`) : unit.direction) : '-'}</TableCell>
+                                        <TableCell>{unit.view ? (viewMap[unit.view] ? t(`views.${viewMap[unit.view]}`) : unit.view) : '-'}</TableCell>
                                         <TableCell className="font-mono">{unit.area_gross || '-'}</TableCell>
                                         <TableCell className="font-mono">{unit.area_net || '-'}</TableCell>
                                         <TableCell className="font-bold text-slate-900">{formatCurrency(unit.price, unit.currency)}</TableCell>
@@ -268,7 +275,7 @@ export default async function InventoryPage({
                                     <div className="flex items-center gap-2">
                                         <span className="font-bold text-lg text-slate-900">{unit.block} / {unit.unit_number}</span>
                                         <Badge variant={unit.status === 'Sold' ? 'destructive' : unit.status === 'Reserved' ? 'secondary' : 'default'} className={cn("text-[9px] px-1.5 py-0", unit.status === 'For Sale' ? 'bg-green-600' : '')}>
-                                            {t(`status.${statusMap[unit.status] || unit.status.replace(/\s/g, '')}`)}
+                                            {statusMap[unit.status] ? t(`status.${statusMap[unit.status]}`) : unit.status}
                                         </Badge>
                                     </div>
                                 </div>
@@ -293,11 +300,11 @@ export default async function InventoryPage({
                                 </div>
                                 <div className="flex flex-col gap-0.5">
                                     <span className="text-muted-foreground text-[9px] uppercase font-bold">{t('table.direction')}</span>
-                                    <span className="font-medium truncate">{unit.direction ? t(`directions.${directionMap[unit.direction] || unit.direction.replace(/\s/g, '')}`) : '-'}</span>
+                                    <span className="font-medium truncate">{unit.direction ? (directionMap[unit.direction] ? t(`directions.${directionMap[unit.direction]}`) : unit.direction) : '-'}</span>
                                 </div>
                                 <div className="flex flex-col gap-0.5">
                                     <span className="text-muted-foreground text-[9px] uppercase font-bold">{t('table.view')}</span>
-                                    <span className="font-medium truncate">{unit.view ? t(`views.${viewMap[unit.view] || unit.view}`) : '-'}</span>
+                                    <span className="font-medium truncate">{unit.view ? (viewMap[unit.view] ? t(`views.${viewMap[unit.view]}`) : unit.view) : '-'}</span>
                                 </div>
                                 <div className="flex flex-col gap-0.5 text-right">
                                     <span className="text-muted-foreground text-[9px] uppercase font-bold">{t('table.category')}</span>

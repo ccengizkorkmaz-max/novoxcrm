@@ -25,9 +25,9 @@ import Link from 'next/link'
 import { formatCurrency } from '@/lib/utils'
 
 import { PipelineStats } from './components/PipelineStats'
-import PipelineList from './components/PipelineList' // Retained from original
-import NewSaleButton from './components/NewSaleButton' // Retained from original
-import CRMFilterSheet from './components/CRMFilterSheet' // Retained from original
+import PipelineList from './components/PipelineList'
+import NewSaleButton from './components/NewSaleButton'
+import CRMFilterSheet from './components/CRMFilterSheet'
 import CRMSearch from './components/CRMSearch'
 
 export default async function CRMPage(props: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
@@ -47,28 +47,35 @@ export default async function CRMPage(props: { searchParams: Promise<{ [key: str
 
     // 2. Fetch all customers in batches (bypassing the 1000 limit)
     let allCustomers: any[] = []
-    let from = 0
-    const batchSize = 1000
-    let hasMore = true
 
-    while (hasMore) {
-        const { data, error } = await supabase
-            .from('customers')
-            .select('*, customer_demands(*), contract_customers(id)')
-            .order('created_at', { ascending: false })
-            .range(from, from + batchSize - 1)
+    try {
+        let from = 0
+        const batchSize = 1000
+        let hasMore = true
 
-        if (error) {
-            console.error('Error fetching customers batch:', error)
-            hasMore = false
-        } else if (data && data.length > 0) {
-            allCustomers = [...allCustomers, ...data]
-            from += batchSize
-            if (data.length < batchSize) hasMore = false
-        } else {
-            hasMore = false
+        while (hasMore) {
+            const { data, error } = await supabase
+                .from('customers')
+                .select('*, customer_demands(*), contract_customers(id)')
+                .order('created_at', { ascending: false })
+                .range(from, from + batchSize - 1)
+
+            if (error) {
+                console.error('Error fetching customers batch:', error)
+                hasMore = false
+            } else if (data && data.length > 0) {
+                allCustomers = [...allCustomers, ...data]
+                from += batchSize
+                if (data.length < batchSize) hasMore = false
+            } else {
+                hasMore = false
+            }
         }
+    } catch (err) {
+        console.error('Unexpected error fetching customers:', err)
+        // Continue with empty customer list rather than crashing
     }
+
     const customers = allCustomers
 
     // 3. Build base sales query for filtered data

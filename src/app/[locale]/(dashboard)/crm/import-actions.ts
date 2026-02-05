@@ -38,54 +38,41 @@ export async function parseCustomersFromExcel(formData: FormData) {
 
         // 1. Try Header Matching
         firstRow.forEach((header, idx) => {
-            // Phone
             if (['telefon', 'phone', 'tel', 'mobile', 'cep', 'gsm'].some(k => header.includes(k))) {
                 phoneIdx = idx
-            }
-            // Name - Check for explicit "Ad Soyad" or "Full Name" first
-            else if (['ad soyad', 'isim soyisim', 'full name', 'ad-soyad'].some(k => header.includes(k))) {
+            } else if (['ad soyad', 'isim soyisim', 'full name', 'ad-soyad'].some(k => header.includes(k))) {
                 nameIdx = idx
-                surnameIdx = -1 // Reset surname if we found a full name column
-            }
-            // Check for separate Name column (only if we haven't found a full name column yet)
-            else if (['ad', 'isim', 'name', 'first name'].includes(header) || header === 'ad') {
+                surnameIdx = -1
+            } else if (['ad', 'isim', 'name', 'first name'].includes(header) || header === 'ad') {
                 if (nameIdx === -1 || !firstRow[nameIdx].includes('soyad')) {
                     nameIdx = idx
                 }
-            }
-            // Check for separate Surname column
-            else if (['soyad', 'soyisim', 'surname', 'last name'].includes(header) || header === 'soyad') {
+            } else if (['soyad', 'soyisim', 'surname', 'last name'].includes(header) || header === 'soyad') {
                 surnameIdx = idx
-            }
-            // Fallback for generic "Musteri" if no specific name found
-            else if (['müşteri', 'customer'].some(k => header.includes(k)) && nameIdx === -1) {
+            } else if (['müşteri', 'customer'].some(k => header.includes(k)) && nameIdx === -1) {
                 nameIdx = idx
-            }
-
-            // Email
-            else if (['email', 'e-posta', 'mail', 'eposta'].some(k => header.includes(k))) {
+            } else if (['email', 'e-posta', 'mail', 'eposta'].some(k => header.includes(k))) {
                 emailIdx = idx
-            }
-            // Source
-            else if (['kaynak', 'source'].some(k => header.includes(k))) {
+            } else if (['kaynak', 'source'].some(k => header.includes(k))) {
                 sourceIdx = idx
-            }
-            // Notes - STRICTER CHECK to avoid matching matching other things
-            else if (['notlar', 'notes', 'açıklama', 'description'].some(k => header.includes(k)) || header === 'not') {
+            } else if (['notlar', 'notes', 'açıklama', 'description', 'detay', 'içerik', 'yorum', 'bilgi'].some(k => header.includes(k)) || header === 'not') {
                 noteIdx = idx
-            }
-            // Date
-            else if (['kayıt tarihi', 'created_at', 'tarih', 'date'].some(k => header.includes(k))) {
+            } else if (['kayıt tarihi', 'created_at', 'tarih', 'date'].some(k => header.includes(k))) {
                 dateIdx = idx
             }
         })
+
+        const detectedColumns = {
+            fullName: nameIdx !== -1 ? firstRow[nameIdx] : null,
+            phone: phoneIdx !== -1 ? firstRow[phoneIdx] : null,
+            notes: noteIdx !== -1 ? firstRow[noteIdx] : null,
+            date: dateIdx !== -1 ? firstRow[dateIdx] : null
+        }
 
         // 2. If Headers Not Found (or first row looks like data)
         if (phoneIdx !== -1 || nameIdx !== -1) {
             startRow = 1
         } else {
-            // Fallback Content Detection
-            // Analyze first 5 rows to guess columns
             const sampleRows = rows.slice(0, 5)
             const colScores: { [key: number]: { phone: number, email: number, name: number } } = {}
 
@@ -93,41 +80,31 @@ export async function parseCustomersFromExcel(formData: FormData) {
                 row.forEach((cell: any, idx: number) => {
                     const val = String(cell).trim()
                     if (!val) return
-
                     if (!colScores[idx]) colScores[idx] = { phone: 0, email: 0, name: 0 }
-
-                    // Check Phone
                     if (standardizeTRPhone(val)) colScores[idx].phone++
-
-                    // Check Email
                     if (val.includes('@') && val.includes('.')) colScores[idx].email++
                 })
             })
 
-            // Assign indices based on max detection
             let maxPhone = 0, maxEmail = 0
-
             Object.keys(colScores).forEach((key) => {
                 const idx = parseInt(key)
                 const score = colScores[idx]
-
                 if (score.phone > maxPhone) { maxPhone = score.phone; phoneIdx = idx }
                 if (score.email > maxEmail) { maxEmail = score.email; emailIdx = idx }
             })
 
-            // Name detection: Pick first non-phone, non-email column with data
             if (nameIdx === -1) {
                 for (let i = 0; i < rows[0].length; i++) {
                     if (i !== phoneIdx && i !== emailIdx) {
-                        // Simple heuristic: if it has strings > 3 chars
                         nameIdx = i
                         break
                     }
                 }
             }
+            startRow = 0
         }
 
-        // Fallback
         if (phoneIdx === -1 && nameIdx === -1) {
             if (rows[0][1] && standardizeTRPhone(rows[0][1])) {
                 phoneIdx = 1
@@ -146,11 +123,8 @@ export async function parseCustomersFromExcel(formData: FormData) {
             const row = rows[i]
             if (!row || row.length === 0) continue
 
-            // Name Construction
             let finalName = 'İsimsiz Müşteri'
-
             if (nameIdx !== -1 && surnameIdx !== -1) {
-                // Combine Ad + Soyad columns
                 const namePart = row[nameIdx] ? String(row[nameIdx]).trim() : ''
                 const surnamePart = row[surnameIdx] ? String(row[surnameIdx]).trim() : ''
                 finalName = `${namePart} ${surnamePart}`.trim()
@@ -167,32 +141,25 @@ export async function parseCustomersFromExcel(formData: FormData) {
             const rawEmail = emailIdx !== -1 ? row[emailIdx] : null
             const rawSource = sourceIdx !== -1 ? row[sourceIdx] : 'Excel Import'
 
-            // Note parsing: handle numbers, dates, text safely
             let rawNote: string | null = null
             if (noteIdx !== -1 && row[noteIdx] !== undefined && row[noteIdx] !== null) {
-                const val = row[noteIdx]
-                rawNote = String(val).trim()
+                rawNote = String(row[noteIdx]).trim()
             }
 
-            // Date parsing
             let rawDate = dateIdx !== -1 ? row[dateIdx] : null
             if (typeof rawDate === 'number' && rawDate > 20000) {
                 const date = new Date((rawDate - 25569) * 86400 * 1000)
                 rawDate = date.toISOString()
             } else if (rawDate) {
                 const d = new Date(rawDate)
-                if (!isNaN(d.getTime())) {
-                    rawDate = d.toISOString()
-                } else {
-                    rawDate = null
-                }
+                if (!isNaN(d.getTime())) rawDate = d.toISOString()
+                else rawDate = null
             }
 
             const standardizedPhone = standardizeTRPhone(rawPhone)
-
             if (!standardizedPhone) {
-                skippedCount++;
-                continue;
+                skippedCount++
+                continue
             }
 
             validCustomers.push({
@@ -206,14 +173,15 @@ export async function parseCustomersFromExcel(formData: FormData) {
         }
 
         if (validCustomers.length === 0) {
-            return { error: 'Geçerli müşteri kaydı bulunamadı. Lütfen telefon sütununun formatını kontrol edin.' }
+            return { error: 'Geçerli müşteri kaydı bulunamadı.' }
         }
 
         return {
             success: true,
             data: validCustomers,
             skipped: skippedCount,
-            total: rows.length - startRow
+            total: rows.length - startRow,
+            debugInfo: detectedColumns
         }
 
     } catch (error) {
@@ -236,119 +204,169 @@ export async function bulkCreateCustomers(customers: any[]) {
 
         if (!profile?.tenant_id) return { error: 'No tenant found' }
 
-        let successCount = 0
+        let totalSuccess = 0
         const errors: string[] = []
-        const successfullyCreated: any[] = [] // { id, notes, created_at }
+        const CHUNK_SIZE = 500
 
-        // 1. Attempt Batch Insert for Customers
-        const customersToInsert = customers.map(c => ({
-            full_name: c.full_name,
-            phone: c.phone,
-            email: c.email,
-            source: c.source,
-            created_at: c.created_at || new Date().toISOString(),
-            tenant_id: profile.tenant_id
-        }))
+        // 1. Fetch existing 'Lead' sales to avoid duplicates
+        const { data: existingLeads } = await supabase
+            .from('sales')
+            .select('customer_id')
+            .eq('tenant_id', profile.tenant_id)
+            .eq('status', 'Lead')
+        const existingLeadMap = new Set(existingLeads?.map(s => s.customer_id) || [])
 
-        const { data: custData, error: custError } = await supabase
-            .from('customers')
-            .insert(customersToInsert)
-            .select('id, phone, created_at')
+        // 2. Process in chunks
+        for (let i = 0; i < customers.length; i += CHUNK_SIZE) {
+            const batch = customers.slice(i, i + CHUNK_SIZE)
+            const customersToUpsert = batch.map(c => ({
+                full_name: c.full_name,
+                phone: c.phone,
+                email: c.email,
+                source: c.source,
+                created_at: c.created_at || new Date().toISOString(),
+                tenant_id: profile.tenant_id!
+            }))
 
-        if (!custError && custData) {
-            // Batch success: Map results to original notes
-            custData.forEach(newCust => {
-                const original = customers.find(o => o.phone === newCust.phone)
-                successfullyCreated.push({
-                    id: newCust.id,
-                    notes: original?.notes,
-                    created_at: newCust.created_at
-                })
-            })
-        } else {
-            // Batch failure: Fallback to sequential for this batch
-            for (const c of customers) {
-                const { notes, ...customerData } = c
-                const { data: seqData, error: seqError } = await supabase
-                    .from('customers')
-                    .insert({
-                        full_name: customerData.full_name,
-                        phone: customerData.phone,
-                        email: customerData.email,
-                        source: customerData.source,
-                        created_at: customerData.created_at || new Date().toISOString(),
-                        tenant_id: profile.tenant_id
-                    })
-                    .select('id, created_at')
+            // A. Upsert Customers (Guarantee they exist)
+            const { error: upsertError } = await supabase
+                .from('customers')
+                .upsert(customersToUpsert, { onConflict: 'phone', ignoreDuplicates: false })
 
-                const newCust = seqData?.[0]
-                if (seqError || !newCust) {
-                    const errMsg = seqError?.message || 'Bilinmeyen hata'
-                    errors.push(`${c.full_name}: Müşteri oluşturulamadı (${errMsg})`)
-                } else {
-                    successfullyCreated.push({
-                        id: newCust.id,
-                        notes: notes,
-                        created_at: newCust.created_at
-                    })
+            if (upsertError) {
+                console.error(`Chunk ${i} Upsert Error:`, upsertError)
+                for (const c of batch) {
+                    const { data: sData, error: sError } = await supabase
+                        .from('customers')
+                        .upsert({
+                            full_name: c.full_name,
+                            phone: c.phone,
+                            email: c.email,
+                            source: c.source,
+                            created_at: c.created_at || new Date().toISOString(),
+                            tenant_id: profile.tenant_id!
+                        }, { onConflict: 'phone', ignoreDuplicates: false })
+                        .select('id, created_at')
+
+                    if (!sError && sData?.[0]) {
+                        await createRelatedRecords(sData[0].id, c.notes, sData[0].created_at)
+                        totalSuccess++
+                    } else {
+                        errors.push(`${c.full_name}: Müşteri oluşturulamadı (${sError?.message || 'Bilinmeyen hata'})`)
+                    }
                 }
+                continue
             }
-        }
 
-        successCount = successfullyCreated.length
+            // B. Explicitly Fetch IDs for this batch (Bulletproof)
+            const batchPhones = batch.map(c => c.phone)
+            const { data: idData, error: idError } = await supabase
+                .from('customers')
+                .select('id, phone, created_at')
+                .in('phone', batchPhones)
+                .eq('tenant_id', profile.tenant_id!)
 
-        // 2. Batch Insert Related Records
-        if (successfullyCreated.length > 0) {
-            const demandsData: any[] = []
-            const salesData: any[] = []
-            const activitiesData: any[] = []
+            if (idError || !idData || idData.length === 0) {
+                errors.push(`ID Fetch Error in Batch ${i / CHUNK_SIZE}: ${idError?.message || 'Data empty'}`)
+                continue
+            }
 
-            successfullyCreated.forEach(c => {
-                if (c.notes) {
-                    demandsData.push({
-                        tenant_id: profile.tenant_id,
-                        customer_id: c.id,
-                        notes: c.notes
+            // C. Prepare Child Records
+            const batchDemands: any[] = []
+            const batchSales: any[] = []
+            const batchActivities: any[] = []
+            const batchMap = new Map(batch.map(c => [c.phone, c]));
+
+            idData.forEach(match => {
+                const original = batchMap.get(match.phone);
+                if (original?.notes) {
+                    const createdAt = match.created_at || new Date().toISOString()
+
+                    batchDemands.push({
+                        tenant_id: profile.tenant_id!,
+                        customer_id: match.id,
+                        notes: original.notes
                     })
-                    salesData.push({
-                        tenant_id: profile.tenant_id,
-                        customer_id: c.id,
-                        status: 'Lead',
-                        description: c.notes
-                    })
-                    activitiesData.push({
-                        tenant_id: profile.tenant_id,
-                        customer_id: c.id,
+
+                    if (!existingLeadMap.has(match.id)) {
+                        batchSales.push({
+                            tenant_id: profile.tenant_id!,
+                            customer_id: match.id,
+                            status: 'Lead',
+                            assigned_to: null,
+                            project_id: null,
+                            unit_id: null
+                        })
+                        existingLeadMap.add(match.id)
+                    }
+
+                    batchActivities.push({
+                        tenant_id: profile.tenant_id!,
+                        customer_id: match.id,
                         user_id: user.id,
                         owner_id: user.id,
                         assigned_by_id: user.id,
                         topic: 'General',
                         type: 'Call',
                         summary: 'Excel Import Notu',
-                        description: c.notes,
-                        notes: c.notes,
+                        description: original.notes,
+                        notes: original.notes,
                         status: 'Completed',
                         outcome: 'Success',
-                        completed_at: c.created_at,
-                        done_at: c.created_at
+                        completed_at: createdAt,
+                        due_date: createdAt,
+                        done_at: createdAt
                     })
                 }
             })
 
-            if (demandsData.length > 0) {
-                await supabase.from('customer_demands').insert(demandsData)
+            // D. Insert Children
+            if (batchDemands.length > 0) {
+                const { error } = await supabase.from('customer_demands').insert(batchDemands)
+                if (error) errors.push(`Talepler Hatası: ${error.message}`)
             }
-            if (salesData.length > 0) {
-                await supabase.from('sales').insert(salesData)
+            if (batchSales.length > 0) {
+                const { error } = await supabase.from('sales').insert(batchSales)
+                if (error) errors.push(`Satışlar Hatası: ${error.message}`)
             }
-            if (activitiesData.length > 0) {
-                await supabase.from('activities').insert(activitiesData)
+            if (batchActivities.length > 0) {
+                const { error } = await supabase.from('activities').insert(batchActivities)
+                if (error) errors.push(`Aktiviteler Hatası: ${error.message}`)
             }
+
+            totalSuccess += idData.length
+        }
+
+        async function createRelatedRecords(id: string, notes: string | null, createdAt: string) {
+            if (!notes || !profile?.tenant_id || !user) return
+            const cDate = createdAt || new Date().toISOString()
+            await supabase.from('customer_demands').insert({ tenant_id: profile.tenant_id, customer_id: id, notes: notes })
+            if (!existingLeadMap.has(id)) {
+                await supabase.from('sales').insert({ tenant_id: profile.tenant_id, customer_id: id, status: 'Lead', assigned_to: null, project_id: null, unit_id: null })
+                existingLeadMap.add(id)
+            }
+            await supabase.from('activities').insert({
+                tenant_id: profile.tenant_id,
+                customer_id: id,
+                user_id: user.id,
+                owner_id: user.id,
+                assigned_by_id: user.id,
+                topic: 'General',
+                type: 'Call',
+                summary: 'Excel Import Notu',
+                description: notes,
+                notes: notes,
+                status: 'Completed',
+                outcome: 'Success',
+                completed_at: cDate,
+                due_date: cDate,
+                done_at: cDate
+            })
         }
 
         return {
             success: true,
-            count: successCount,
+            count: totalSuccess,
             messages: errors,
             totalRows: customers.length
         }
@@ -365,10 +383,7 @@ export async function cleanupImportedAssignments() {
     try {
         const supabase = await createClient()
         const { data: { user } } = await supabase.auth.getUser()
-        if (!user) {
-            console.log('Cleanup: No user found')
-            return { success: false, error: 'Unauthorized' }
-        }
+        if (!user) return { success: false, error: 'Unauthorized' }
 
         const { data: profile } = await supabase
             .from('profiles')
@@ -376,92 +391,58 @@ export async function cleanupImportedAssignments() {
             .eq('id', user.id)
             .single()
 
-        if (!profile?.tenant_id) {
-            console.log('Cleanup: No tenant found')
-            return { success: false, error: 'No tenant found' }
-        }
+        if (!profile?.tenant_id) return { success: false, error: 'No tenant found' }
 
-        console.log('Cleanup: Looking for imported customers in tenant:', profile.tenant_id)
-
-        // First, let's see what source values actually exist
-        const { data: allCustomers } = await supabase
-            .from('customers')
-            .select('source')
-            .eq('tenant_id', profile.tenant_id)
-
-        if (allCustomers) {
-            const uniqueSources = [...new Set(allCustomers.map(c => c.source).filter(Boolean))]
-            console.log('Cleanup: Unique source values in database:', uniqueSources)
-            console.log('Cleanup: Total customers in tenant:', allCustomers.length)
-        }
-
-        // Fetch IDs of customers imported from Excel
         const { data: importedCustomers, error: custError } = await supabase
             .from('customers')
-            .select('id, full_name, source')
+            .select('id')
             .eq('tenant_id', profile.tenant_id)
             .eq('source', 'Excel Import')
 
-        if (custError) {
-            console.error('Cleanup: Error fetching customers:', custError)
-            throw custError
-        }
-
-        console.log(`Cleanup: Found ${importedCustomers?.length || 0} imported customers`)
-
-        if (!importedCustomers || importedCustomers.length === 0) {
-            console.log('Cleanup: No imported customers found')
-            return { success: true, count: 0, message: 'Excel Import kaynaklı müşteri bulunamadı.' }
-        }
+        if (!importedCustomers || importedCustomers.length === 0) return { success: true, count: 0 }
 
         const customerIds = importedCustomers.map(c => c.id)
-        console.log('Cleanup: Customer IDs:', customerIds.slice(0, 5), '... (total:', customerIds.length, ')')
-
-        // Clear assigned_to for sales linked to these customers
         let totalUpdated = 0
         for (let i = 0; i < customerIds.length; i += 1000) {
             const chunk = customerIds.slice(i, i + 1000)
-            console.log(`Cleanup: Processing chunk ${i / 1000 + 1}, size: ${chunk.length}`)
-
-            const { data, error: updateError } = await supabase
+            const { data, error } = await supabase
                 .from('sales')
                 .update({ assigned_to: null })
                 .eq('tenant_id', profile.tenant_id)
                 .in('customer_id', chunk)
-                .select('id')
-
-            if (updateError) {
-                console.error('Cleanup: Chunk update error:', updateError)
-                // Continue with other chunks even if one fails
-            } else {
-                console.log(`Cleanup: Updated ${data?.length || 0} sales records in this chunk`)
-                totalUpdated += data?.length || 0
-            }
+            if (!error) totalUpdated += chunk.length
         }
 
-        console.log(`Cleanup: Total updated: ${totalUpdated}`)
         revalidatePath('/[locale]/(dashboard)/crm')
         return { success: true, count: totalUpdated }
-
     } catch (error: any) {
-        console.error('Cleanup: Fatal error:', error)
-        return { success: false, error: `Cleanup failed: ${error.message}` }
+        return { success: false, error: error.message }
     }
 }
 
 function standardizeTRPhone(input: any): string | null {
     if (!input) return null
-
-    // Convert to string and strip non-digits
+    // Strip everything except digits
     let digits = String(input).replace(/\D/g, '')
 
+    // TR numbers: 5xx... (10 digits), 05xx... (11 digits), 905xx... (12 digits)
+    // We standardize to the 10-digit version (5xxxxxxxxx) to match existing DB records
     if (digits.length === 10 && digits.startsWith('5')) {
-        return `+90${digits}`
+        return digits
     } else if (digits.length === 11 && digits.startsWith('05')) {
-        return `+9${digits}` // +905...
+        return digits.substring(1)
     } else if (digits.length === 12 && digits.startsWith('905')) {
-        return `+${digits}`
+        return digits.substring(2)
+    } else if (digits.length >= 13 && digits.includes('905')) {
+        // Handle cases like +90 5xx... with extra digits or leading +
+        const index = digits.indexOf('5')
+        if (index !== -1 && digits.substring(index).length === 10) {
+            return digits.substring(index)
+        }
     }
+
+    // If it's 10 digits but doesn't start with 5, still return it as is but it might be non-mobile
+    if (digits.length === 10) return digits
 
     return null
 }

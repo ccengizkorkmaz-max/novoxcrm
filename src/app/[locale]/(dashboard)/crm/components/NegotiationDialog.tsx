@@ -216,9 +216,9 @@ export default function NegotiationDialog({ offerId, currentPrice, currentCurren
                                 {loading ? (
                                     <div className="flex items-center gap-2">
                                         <span className="animate-spin h-4 w-4 border-2 border-white/20 border-t-white rounded-full" />
-                                        <span>{t('savingProposal') || 'Kaydediliyor...'}</span>
+                                        <span>{t.has('savingProposal') ? t('savingProposal') : 'Kaydediliyor...'}</span>
                                     </div>
-                                ) : t('saveProposal')}
+                                ) : (t.has('saveProposal') ? t('saveProposal') : 'Kaydet')}
                             </Button>
                         </div>
 
@@ -230,7 +230,7 @@ export default function NegotiationDialog({ offerId, currentPrice, currentCurren
                                     <h4 className="text-sm font-black text-slate-800 uppercase tracking-tight">{t('history')}</h4>
                                 </div>
                                 <span className="text-[10px] font-black text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
-                                    {history.length} {t('records') || 'KAYIT'}
+                                    {history.length} {t.has('records') ? t('records') : 'KAYIT'}
                                 </span>
                             </div>
 
@@ -335,13 +335,13 @@ export default function NegotiationDialog({ offerId, currentPrice, currentCurren
                         </div>
                         <AlertDialogHeader className="space-y-2">
                             <AlertDialogTitle className="text-xl font-black text-slate-900 leading-tight uppercase tracking-tight">
-                                {t('approveConfirmTitle') || 'Teklifi Onayla'}
+                                {t.has('approveConfirmTitle') ? t('approveConfirmTitle') : 'Teklifi Onayla'}
                             </AlertDialogTitle>
                             <AlertDialogDescription className="text-slate-500 font-medium leading-relaxed">
-                                {tMsg('approveConfirm') || 'Bu teklifi onaylayarak sözleşme aşamasına geçmek istediğinize emin misiniz?'}
+                                {t.has('approveConfirm') ? tMsg('approveConfirm') : 'Bu teklifi onaylayarak sözleşme aşamasına geçmek istediğinize emin misiniz?'}
                                 {approvalDeposit > 0 && (
                                     <div className="mt-3 p-3 bg-blue-50 text-blue-700 rounded-xl text-xs font-bold border border-blue-100">
-                                        {formatCurrency(approvalDeposit, 'TRY')} {t('depositAmountInfo') || 'kapora girişi yapılacaktır.'}
+                                        {formatCurrency(approvalDeposit, 'TRY')} {t.has('depositAmountInfo') ? t('depositAmountInfo') : 'kapora girişi yapılacaktır.'}
                                     </div>
                                 )}
                             </AlertDialogDescription>
@@ -349,7 +349,7 @@ export default function NegotiationDialog({ offerId, currentPrice, currentCurren
                     </div>
                     <AlertDialogFooter className="p-6 bg-slate-50 flex flex-col sm:flex-row gap-2 border-t border-slate-100">
                         <AlertDialogCancel className="w-full sm:w-1/2 h-12 rounded-xl border-slate-200 text-slate-600 font-bold hover:bg-white active:scale-95 transition-all outline-none">
-                            {t('cancel') || 'Vazgeç'}
+                            {t.has('cancel') ? t('cancel') : 'Vazgeç'}
                         </AlertDialogCancel>
                         <AlertDialogAction
                             onClick={handleApproveConfirm}
@@ -359,10 +359,10 @@ export default function NegotiationDialog({ offerId, currentPrice, currentCurren
                             {loading ? (
                                 <div className="flex items-center gap-2">
                                     <span className="animate-spin h-4 w-4 border-2 border-white/20 border-t-white rounded-full" />
-                                    <span>{t('approving') || 'Onaylanıyor...'}</span>
+                                    <span>{t.has('approving') ? t('approving') : 'Onaylanıyor...'}</span>
                                 </div>
                             ) : (
-                                t('approveConfirmAction') || 'Onayla'
+                                t.has('approveConfirmAction') ? t('approveConfirmAction') : 'Onayla'
                             )}
                         </AlertDialogAction>
                     </AlertDialogFooter>

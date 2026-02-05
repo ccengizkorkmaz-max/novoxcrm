@@ -235,3 +235,44 @@ export async function updateUnitProgress(unitId: string, stageId: string, percen
     revalidatePath(`/projects/${projectId}`)
     return { success: true }
 }
+
+export async function deleteAllUnits(projectId: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    const { error } = await supabase
+        .from('units')
+        .delete()
+        .eq('project_id', projectId)
+
+    if (error) {
+        console.error('Delete All Units Error:', error)
+        return { error: 'Üniteler silinemedi: ' + error.message }
+    }
+
+    revalidatePath(`/projects/${projectId}`)
+    return { success: true }
+}
+
+export async function bulkUpdateUnitStatus(projectId: string, unitIds: string[], status: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    if (!unitIds || unitIds.length === 0) return { error: 'No units selected' }
+
+    const { error } = await supabase
+        .from('units')
+        .update({ status })
+        .in('id', unitIds)
+        .eq('project_id', projectId)
+
+    if (error) {
+        console.error('Bulk Update Unit Status Error:', error)
+        return { error: 'Durum güncellenemedi: ' + error.message }
+    }
+
+    revalidatePath(`/projects/${projectId}`)
+    return { success: true }
+}
