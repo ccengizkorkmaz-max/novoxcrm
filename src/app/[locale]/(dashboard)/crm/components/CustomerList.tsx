@@ -557,11 +557,6 @@ export default function CustomerList({ customers }: { customers: Customer[] }) {
             {/* Pagination Controls */}
             {totalPages > 1 && (
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200 mt-4 shadow-sm">
-                    <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">
-                        Sayfa <span className="text-blue-600">{currentPage}</span> / {totalPages}
-                        <span className="mx-2 text-slate-200">|</span>
-                        Görüntülenen: {currentItems.length} / {filteredAndSortedCustomers.length}
-                    </p>
                     <div className="flex items-center gap-2">
                         <Button
                             variant="outline"
@@ -582,6 +577,11 @@ export default function CustomerList({ customers }: { customers: Customer[] }) {
                             İleri
                         </Button>
                     </div>
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">
+                        Sayfa <span className="text-blue-600">{currentPage}</span> / {totalPages}
+                        <span className="mx-2 text-slate-200">|</span>
+                        Görüntülenen: {currentItems.length} / {filteredAndSortedCustomers.length}
+                    </p>
                 </div>
             )}
 
