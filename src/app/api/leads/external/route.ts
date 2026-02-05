@@ -179,9 +179,8 @@ export async function POST(req: Request) {
         }
 
         // Check if this lead should go to Inbox for review
-        // Leads from web@novosirketlergrubu.com require manual approval
-        const customerEmail = email?.toLowerCase() || ''
-        const requiresInboxApproval = customerEmail === 'web@novosirketlergrubu.com'
+        // Web forms require manual approval since they all come from web@novosirketlergrubu.com
+        const requiresInboxApproval = source === 'WEB Form'
 
         const saleInsertData: any = {
             tenant_id: targetTenantId,
