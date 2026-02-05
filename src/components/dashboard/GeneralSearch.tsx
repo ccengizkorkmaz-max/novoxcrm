@@ -39,7 +39,7 @@ export default function GeneralSearch({
         <div className="relative w-full max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <Input
-                placeholder={t(placeholderKey as any) || "Ara..."}
+                placeholder={t.has(placeholderKey as any) ? t(placeholderKey as any) : "Ara..."}
                 value={value}
                 onChange={(e) => setValue(e.target.value)}
                 className="pl-10 h-10 bg-white border-slate-200 focus:ring-blue-500 rounded-xl transition-all shadow-sm"

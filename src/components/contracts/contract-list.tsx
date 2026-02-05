@@ -83,7 +83,9 @@ export function ContractList({ initialContracts: contracts }: ContractListProps)
                             ) : (
                                 <TableRow>
                                     <TableCell colSpan={7} className="text-center h-32 text-muted-foreground">
-                                        {searchTerm ? t('noResults') : t('empty')}
+                                        {searchTerm
+                                            ? (t.has('noResults') ? t('noResults') : 'Sonuç bulunamadı')
+                                            : (t.has('empty') ? t('empty') : 'Henüz kayıt bulunmuyor')}
                                     </TableCell>
                                 </TableRow>
                             )}
@@ -156,7 +158,9 @@ export function ContractList({ initialContracts: contracts }: ContractListProps)
                     ))
                 ) : (
                     <div className="bg-card border rounded-xl p-12 text-center text-muted-foreground">
-                        {searchTerm ? t('noResults') : t('empty')}
+                        {searchTerm
+                            ? (t.has('noResults') ? t('noResults') : 'Sonuç bulunamadı')
+                            : (t.has('empty') ? t('empty') : 'Henüz kayıt bulunmuyor')}
                     </div>
                 )}
             </div>
@@ -176,7 +180,7 @@ function StatusBadge({ status }: { status: string }) {
 
     return (
         <Badge variant="outline" className={cn("font-bold text-[10px] px-2.5 py-0.5 uppercase tracking-wider shadow-none transition-colors", styles[status] || 'bg-gray-100')}>
-            {t(status as any)}
+            {t.has(status as any) ? t(status as any) : status}
         </Badge>
     )
 }

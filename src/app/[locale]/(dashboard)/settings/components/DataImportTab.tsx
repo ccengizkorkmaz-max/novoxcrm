@@ -22,6 +22,18 @@ export default function DataImportTab() {
             <CardContent className="space-y-6">
                 <div className="p-6 border border-slate-100 bg-slate-50/50 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-6 transition-all hover:bg-white hover:shadow-sm">
                     <div className="space-y-1 text-center md:text-left">
+                        <h4 className="font-black text-slate-900 uppercase tracking-tight">Proje Üniteleri Yönetimi</h4>
+                        <p className="text-sm text-slate-500 font-medium max-w-md">
+                            Ünitelerinizi Excel olarak dışa aktarabilir veya şablon üzerinden toplu yükleme yapabilirsiniz.
+                        </p>
+                    </div>
+                    <Button variant="outline" asChild>
+                        <a href="/projects">Projelere Git</a>
+                    </Button>
+                </div>
+
+                <div className="p-6 border border-slate-100 bg-slate-50/50 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-6 transition-all hover:bg-white hover:shadow-sm">
+                    <div className="space-y-1 text-center md:text-left">
                         <h4 className="font-black text-slate-900 uppercase tracking-tight">Müşteri Listesi İçe Aktar</h4>
                         <p className="text-sm text-slate-500 font-medium max-w-md">
                             Excel dosyanızdaki müşterileri, iletişim bilgilerini ve notlarını toplu olarak sisteme aktarın.

@@ -137,84 +137,84 @@ export function InventoryFilters({ projects }: InventoryFiltersProps) {
                                 defaultValue={searchParams.get('status') || ''}
                             >
                                 <option value="">{t('all')}</option>
-                                <option value="For Sale">{tGlobal('status.ForSale')}</option>
-                                <option value="Reserved">{tGlobal('status.Reserved')}</option>
-                                <option value="Sold">{tGlobal('status.Sold')}</option>
+                                <option value="For Sale">{tGlobal.has('status.ForSale') ? tGlobal('status.ForSale') : 'Satılık'}</option>
+                                <option value="Reserved">{tGlobal.has('status.Reserved') ? tGlobal('status.Reserved') : 'Rezerve'}</option>
+                                <option value="Sold">{tGlobal.has('status.Sold') ? tGlobal('status.Sold') : 'Satıldı'}</option>
                             </select>
                         </div>
                     </div>
 
                     {/* Category & Type */}
                     <div className="space-y-2">
-                        <Label>{t('unitCategory')}</Label>
+                        <Label>{t.has('unitCategory') ? t('unitCategory') : 'Ünite Türü'}</Label>
                         <select
                             name="unit_category"
                             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                             defaultValue={searchParams.get('unit_category') || ''}
                         >
-                            <option value="">{t('all')}</option>
+                            <option value="">{t.has('all') ? t('all') : 'Tümü'}</option>
                             {UNIT_CATEGORIES.map(cat => (
                                 <option key={cat} value={cat}>{cat}</option>
                             ))}
                         </select>
                     </div>
                     <div className="space-y-2">
-                        <Label>{t('roomType')}</Label>
+                        <Label>{t.has('roomType') ? t('roomType') : 'Oda Tipi'}</Label>
                         <select
                             name="type"
                             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                             defaultValue={searchParams.get('type') || ''}
                         >
-                            <option value="">{t('all')}</option>
+                            <option value="">{t.has('all') ? t('all') : 'Tümü'}</option>
                             <option value="1+1">1+1</option>
                             <option value="2+1">2+1</option>
                             <option value="3+1">3+1</option>
                             <option value="4+1">4+1</option>
-                            <option value="Villa">{tGlobal('types.Villa')}</option>
-                            <option value="Commercial">{tGlobal('types.Commercial')}</option>
+                            <option value="Villa">{tGlobal.has('types.Villa') ? tGlobal('types.Villa') : 'Villa'}</option>
+                            <option value="Commercial">{tGlobal.has('types.Commercial') ? tGlobal('types.Commercial') : 'Ticari'}</option>
                         </select>
                     </div>
 
                     {/* Price Range */}
                     <div className="space-y-2">
-                        <Label>{t('priceRange')}</Label>
+                        <Label>{t.has('priceRange') ? t('priceRange') : 'Fiyat Aralığı'}</Label>
                         <div className="flex gap-2">
-                            <Input name="min_price" type="number" placeholder={t('min')} defaultValue={searchParams.get('min_price') || ''} />
-                            <Input name="max_price" type="number" placeholder={t('max')} defaultValue={searchParams.get('max_price') || ''} />
+                            <Input name="min_price" type="number" placeholder={t.has('min') ? t('min') : 'Min'} defaultValue={searchParams.get('min_price') || ''} />
+                            <Input name="max_price" type="number" placeholder={t.has('max') ? t('max') : 'Max'} defaultValue={searchParams.get('max_price') || ''} />
                         </div>
                     </div>
 
                     {/* Area Range */}
                     <div className="space-y-2">
-                        <Label>{t('areaRange')}</Label>
+                        <Label>{t.has('areaRange') ? t('areaRange') : 'Brüt m² Aralığı'}</Label>
                         <div className="flex gap-2">
-                            <Input name="min_area" type="number" placeholder={t('min')} defaultValue={searchParams.get('min_area') || ''} />
-                            <Input name="max_area" type="number" placeholder={t('max')} defaultValue={searchParams.get('max_area') || ''} />
+                            <Input name="min_area" type="number" placeholder={t.has('min') ? t('min') : 'Min'} defaultValue={searchParams.get('min_area') || ''} />
+                            <Input name="max_area" type="number" placeholder={t.has('max') ? t('max') : 'Max'} defaultValue={searchParams.get('max_area') || ''} />
                         </div>
                     </div>
 
                     {/* Floor & Direction */}
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label>{t('floor')}</Label>
-                            <Input name="floor" type="number" placeholder="5" defaultValue={searchParams.get('floor') || ''} />
+                            <Label>{t.has('floor') ? t('floor') : 'Kat'}</Label>
+                            <Input name="floor" type="text" placeholder="5" defaultValue={searchParams.get('floor') || ''} />
                         </div>
                         <div className="space-y-2">
-                            <Label>{t('direction')}</Label>
+                            <Label>{t.has('direction') ? t('direction') : 'Cephe'}</Label>
                             <select
                                 name="direction"
                                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                                 defaultValue={searchParams.get('direction') || ''}
                             >
-                                <option value="">{t('all')}</option>
-                                <option value="Kuzey">{tGlobal('directions.North')}</option>
-                                <option value="Güney">{tGlobal('directions.South')}</option>
-                                <option value="Doğu">{tGlobal('directions.East')}</option>
-                                <option value="Batı">{tGlobal('directions.West')}</option>
-                                <option value="Kuzey Doğu">{tGlobal('directions.NorthEast')}</option>
-                                <option value="Kuzey Batı">{tGlobal('directions.NorthWest')}</option>
-                                <option value="Güney Doğu">{tGlobal('directions.SouthEast')}</option>
-                                <option value="Güney Batı">{tGlobal('directions.SouthWest')}</option>
+                                <option value="">{t.has('all') ? t('all') : 'Tümü'}</option>
+                                <option value="Kuzey">{tGlobal.has('directions.North') ? tGlobal('directions.North') : 'Kuzey'}</option>
+                                <option value="Güney">{tGlobal.has('directions.South') ? tGlobal('directions.South') : 'Güney'}</option>
+                                <option value="Doğu">{tGlobal.has('directions.East') ? tGlobal('directions.East') : 'Doğu'}</option>
+                                <option value="Batı">{tGlobal.has('directions.West') ? tGlobal('directions.West') : 'Batı'}</option>
+                                <option value="Kuzey Doğu">{tGlobal.has('directions.NorthEast') ? tGlobal('directions.NorthEast') : 'Kuzey Doğu'}</option>
+                                <option value="Kuzey Batı">{tGlobal.has('directions.NorthWest') ? tGlobal('directions.NorthWest') : 'Kuzey Batı'}</option>
+                                <option value="Güney Doğu">{tGlobal.has('directions.SouthEast') ? tGlobal('directions.SouthEast') : 'Güney Doğu'}</option>
+                                <option value="Güney Batı">{tGlobal.has('directions.SouthWest') ? tGlobal('directions.SouthWest') : 'Güney Batı'}</option>
                             </select>
                         </div>
                     </div>
@@ -222,30 +222,30 @@ export function InventoryFilters({ projects }: InventoryFiltersProps) {
                     {/* Features - Row 1 */}
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label>{t('parking')}</Label>
+                            <Label>{t.has('parking') ? t('parking') : 'Otopark'}</Label>
                             <select
                                 name="parking_type"
                                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                                 defaultValue={searchParams.get('parking_type') || ''}
                             >
-                                <option value="">{t('all')}</option>
-                                <option value="Kapalı Otopark">{tGlobal('parking.Indoor')}</option>
-                                <option value="Açık Otopark">{tGlobal('parking.Outdoor')}</option>
-                                <option value="Yok">{tGlobal('parking.None')}</option>
+                                <option value="">{t.has('all') ? t('all') : 'Tümü'}</option>
+                                <option value="Kapalı Otopark">{tGlobal.has('parking.Indoor') ? tGlobal('parking.Indoor') : 'Kapalı Otopark'}</option>
+                                <option value="Açık Otopark">{tGlobal.has('parking.Outdoor') ? tGlobal('parking.Outdoor') : 'Açık Otopark'}</option>
+                                <option value="Yok">{tGlobal.has('parking.None') ? tGlobal('parking.None') : 'Yok'}</option>
                             </select>
                         </div>
                         <div className="space-y-2">
-                            <Label>{t('heating')}</Label>
+                            <Label>{t.has('heating') ? t('heating') : 'Isıtma'}</Label>
                             <select
                                 name="heating_type"
                                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                                 defaultValue={searchParams.get('heating_type') || ''}
                             >
-                                <option value="">{t('all')}</option>
-                                <option value="Kombi">{tGlobal('heating.Combi')}</option>
-                                <option value="Merkezi Sistem">{tGlobal('heating.Central')}</option>
-                                <option value="Yerden Isıtma">{tGlobal('heating.Floor')}</option>
-                                <option value="Klima">{tGlobal('heating.AC')}</option>
+                                <option value="">{t.has('all') ? t('all') : 'Tümü'}</option>
+                                <option value="Kombi">{tGlobal.has('heating.Combi') ? tGlobal('heating.Combi') : 'Kombi'}</option>
+                                <option value="Merkezi Sistem">{tGlobal.has('heating.Central') ? tGlobal('heating.Central') : 'Merkezi Sistem'}</option>
+                                <option value="Yerden Isıtma">{tGlobal.has('heating.Floor') ? tGlobal('heating.Floor') : 'Yerden Isıtma'}</option>
+                                <option value="Klima">{tGlobal.has('heating.AC') ? tGlobal('heating.AC') : 'Klima'}</option>
                             </select>
                         </div>
                     </div>
@@ -253,30 +253,30 @@ export function InventoryFilters({ projects }: InventoryFiltersProps) {
                     {/* Features - Row 2 */}
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                            <Label>{t('kitchen')}</Label>
+                            <Label>{t.has('kitchen') ? t('kitchen') : 'Mutfak Tipi'}</Label>
                             <select
                                 name="kitchen_type"
                                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                                 defaultValue={searchParams.get('kitchen_type') || ''}
                             >
-                                <option value="">{t('all')}</option>
-                                <option value="Kapalı Mutfak">{tGlobal('kitchen.Closed')}</option>
-                                <option value="Açık Mutfak">{tGlobal('kitchen.Open')}</option>
+                                <option value="">{t.has('all') ? t('all') : 'Tümü'}</option>
+                                <option value="Kapalı Mutfak">{tGlobal.has('kitchen.Closed') ? tGlobal('kitchen.Closed') : 'Kapalı Mutfak'}</option>
+                                <option value="Açık Mutfak">{tGlobal.has('kitchen.Open') ? tGlobal('kitchen.Open') : 'Açık Mutfak'}</option>
                             </select>
                         </div>
                         <div className="space-y-2">
-                            <Label>{t('view')}</Label>
+                            <Label>{t.has('view') ? t('view') : 'Manzara'}</Label>
                             <select
                                 name="view"
                                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                                 defaultValue={searchParams.get('view') || ''}
                             >
-                                <option value="">{t('all')}</option>
-                                <option value="Deniz">{tGlobal('views.Sea')}</option>
-                                <option value="Doğa">{tGlobal('views.Nature')}</option>
-                                <option value="Şehir">{tGlobal('views.City')}</option>
-                                <option value="Havuz">{tGlobal('views.Pool')}</option>
-                                <option value="Park">{tGlobal('views.Park')}</option>
+                                <option value="">{t.has('all') ? t('all') : 'Tümü'}</option>
+                                <option value="Deniz">{tGlobal.has('views.Sea') ? tGlobal('views.Sea') : 'Deniz'}</option>
+                                <option value="Doğa">{tGlobal.has('views.Nature') ? tGlobal('views.Nature') : 'Doğa'}</option>
+                                <option value="Şehir">{tGlobal.has('views.City') ? tGlobal('views.City') : 'Şehir'}</option>
+                                <option value="Havuz">{tGlobal.has('views.Pool') ? tGlobal('views.Pool') : 'Havuz'}</option>
+                                <option value="Park">{tGlobal.has('views.Park') ? tGlobal('views.Park') : 'Park'}</option>
                             </select>
                         </div>
                     </div>

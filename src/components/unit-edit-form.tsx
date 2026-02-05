@@ -148,7 +148,7 @@ export function UnitEditForm({ unit, disabled = false }: { unit: any; disabled?:
                             </div>
                             <div className="space-y-2">
                                 <Label>Kat</Label>
-                                <Input name="floor" type="number" defaultValue={unit.floor} />
+                                <Input name="floor" type="text" defaultValue={unit.floor} />
                             </div>
                             <div className="space-y-2">
                                 <Label>Cephe</Label>

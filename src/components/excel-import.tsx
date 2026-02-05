@@ -15,6 +15,8 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog"
 
+import { toast } from 'sonner'
+
 interface ExcelImportProps {
     projectId: string
     onImport: (formData: FormData) => Promise<any>
@@ -38,26 +40,26 @@ export function ExcelImport({ projectId, onImport }: ExcelImportProps) {
             setLoading(false)
 
             if (result?.success) {
-                alert(`${result.count || 0} ünite başarıyla içe aktarıldı!`)
+                toast.success(`${result.count || 0} ünite başarıyla içe aktarıldı!`)
                 setOpen(false)
                 setSelectedFile(null)
                     ; (e.target as HTMLFormElement).reset()
-                window.location.reload()
             } else {
-                alert(result?.error || 'İçe aktarma başarısız. Lütfen dosya formatını kontrol edin.')
+                toast.error(result?.error || 'İçe aktarma başarısız. Lütfen dosya formatını kontrol edin.')
             }
         } catch (error) {
             setLoading(false)
             console.error('Import error:', error)
-            alert('Bir hata oluştu. Lütfen konsolu kontrol edin.')
+            toast.error('Bir hata oluştu. Lütfen konsolu kontrol edin.')
         }
     }
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline" size="icon" title="Excel'den İçe Aktar">
-                    <FileSpreadsheet className="h-4 w-4" />
+                <Button variant="outline">
+                    <Upload className="h-4 w-4 mr-2" />
+                    Excel'den İçe Aktar
                 </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[600px]">
