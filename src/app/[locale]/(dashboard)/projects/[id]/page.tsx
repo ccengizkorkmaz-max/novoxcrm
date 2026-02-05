@@ -25,7 +25,6 @@ import { Building2, Save } from 'lucide-react'
 import { ProjectEditForm } from '@/components/projects/ProjectEditForm'
 import { ProjectSaveButton } from '@/components/projects/ProjectSaveButton'
 import { UnitExportButton } from '@/components/projects/UnitExportButton'
-import { DeleteAllUnitsButton } from '@/components/projects/DeleteAllUnitsButton'
 import { UnitListClient } from './components/UnitListClient'
 
 const AMENITIES_LIST = [
@@ -473,7 +472,6 @@ export default async function ProjectDetailPage({
                                 </p>
                             </div>
                             <div className="flex gap-2 items-center">
-                                <DeleteAllUnitsButton projectId={project.id} onDelete={deleteAllUnits} isAdmin={isAdmin} />
                                 <BatchUnitCreator projectId={project.id} action={batchCreateUnits} unitTypes={unitTypes || []} />
                                 <ExcelImport projectId={project.id} onImport={importUnitsFromExcel} />
                                 <UnitExportButton units={units || []} projectName={project.name} />
