@@ -156,7 +156,7 @@ export default async function ProjectDetailPage({
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                     <BackButton variant="outline" label="Listeye Dön" />
-                    <h1 className="text-2xl font-bold tracking-tight">Proje Detayları</h1>
+                    <h1 className="text-2xl font-bold tracking-tight">Proje Detayları: <span className="text-blue-600">{project.name}</span></h1>
                     {activeTab === 'info' && <ProjectSaveButton />}
                 </div>
             </div>
@@ -464,7 +464,7 @@ export default async function ProjectDetailPage({
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between">
                             <div>
-                                <CardTitle>Proje Üniteleri</CardTitle>
+                                <CardTitle>Proje Üniteleri: <span className="text-blue-600">{project.name}</span></CardTitle>
                                 <p className="text-sm text-muted-foreground mt-1">
                                     Projeye ait tüm bağımsız bölümleri buradan yönetebilirsiniz.
                                 </p>
