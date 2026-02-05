@@ -10,14 +10,14 @@ export default async function InboxPage() {
     const supabase = await createClient()
     const t = await getTranslations('Sidebar.Inbox')
 
-    const sourceList = ['E-Posta', 'E-posta', 'Email', 'email', 'External', 'external', 'Make', 'make', 'Kommo', 'kommo', 'Integromat', 'Spark', 'spark', 'Form', 'form', 'Digital', 'digital', 'Portal', 'Excel Import', 'Excel']
-
-    // Fetch sales records that originated from Email (E-Posta) or any digital source
+    // Fetch sales records that have descriptions (likely from external sources)
+    // Temporarily simplified to debug the filtering issue
     const { data: emails } = await supabase
         .from('sales')
         .select('*, customers!inner(full_name, email, phone, source)')
-        .or(`source.in.("${sourceList.join('","')}"),customers.source.in.("${sourceList.join('","')}")`)
+        .not('description', 'is', null)
         .order('created_at', { ascending: false })
+        .limit(100)
 
     return (
         <div className="flex flex-col gap-6">
