@@ -178,11 +178,16 @@ export async function POST(req: Request) {
             })
         }
 
+        // Check if this lead should go to Inbox for review
+        // Leads from web@novosirketlergrubu.com require manual approval
+        const customerEmail = email?.toLowerCase() || ''
+        const requiresInboxApproval = customerEmail === 'web@novosirketlergrubu.com'
+
         const saleInsertData: any = {
             tenant_id: targetTenantId,
             customer_id: customerId,
             project_id: projectId,
-            status: 'Lead',
+            status: requiresInboxApproval ? 'Inbox' : 'Lead',
             source: source,
             description: finalDescription
         }

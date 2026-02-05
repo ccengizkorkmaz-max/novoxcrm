@@ -12,8 +12,10 @@ import {
     MessageSquareText,
     Search,
     Filter,
-    ArrowUpRight
+    ArrowUpRight,
+    Check
 } from 'lucide-react'
+import { approveLead } from '../actions'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -39,6 +41,7 @@ export function InboxList({ initialEmails }: InboxListProps) {
     const locale = useLocale()
     const [viewingEmail, setViewingEmail] = useState<any | null>(null)
     const [searchQuery, setSearchQuery] = useState('')
+    const [approving, setApproving] = useState(false)
 
     const filteredEmails = initialEmails.filter(email => {
         const searchLower = searchQuery.toLowerCase()
@@ -161,16 +164,38 @@ export function InboxList({ initialEmails }: InboxListProps) {
                         </div>
                     </div>
 
-                    <div className="p-4 bg-slate-50 border-t flex justify-end gap-3">
-                        <Button variant="outline" onClick={() => setViewingEmail(null)}>
-                            Kapat
+                    <div className="p-4 bg-slate-50 border-t flex justify-between gap-3">
+                        <Button
+                            variant="default"
+                            className="bg-green-600 hover:bg-green-700 gap-2"
+                            onClick={async () => {
+                                if (!viewingEmail?.id) return
+                                setApproving(true)
+                                const result = await approveLead(viewingEmail.id)
+                                setApproving(false)
+                                if (result.success) {
+                                    setViewingEmail(null)
+                                    window.location.reload()
+                                } else {
+                                    alert('Onaylama sırasında hata oluştu: ' + (result.error || 'Bilinmeyen hata'))
+                                }
+                            }}
+                            disabled={approving}
+                        >
+                            <Check className="h-4 w-4" />
+                            {approving ? 'Onaylanıyor...' : 'CRM\'e Onayla'}
                         </Button>
-                        <Button className="bg-blue-600 hover:bg-blue-700 gap-2" asChild>
-                            <a href={`/crm?q=${viewingEmail?.customers?.full_name}`}>
-                                Pipeline'da Gör
-                                <ArrowUpRight className="h-4 w-4" />
-                            </a>
-                        </Button>
+                        <div className="flex gap-3">
+                            <Button variant="outline" onClick={() => setViewingEmail(null)}>
+                                Kapat
+                            </Button>
+                            <Button className="bg-blue-600 hover:bg-blue-700 gap-2" asChild>
+                                <a href={`/crm?q=${viewingEmail?.customers?.full_name}`}>
+                                    Pipeline'da Gör
+                                    <ArrowUpRight className="h-4 w-4" />
+                                </a>
+                            </Button>
+                        </div>
                     </div>
                 </DialogContent>
             </Dialog>

@@ -10,14 +10,12 @@ export default async function InboxPage() {
     const supabase = await createClient()
     const t = await getTranslations('Sidebar.Inbox')
 
-    // Fetch sales records that have descriptions (likely from external sources)
-    // Temporarily simplified to debug the filtering issue
+    // Fetch sales records with status 'Inbox' (pending approval from web@)
     const { data: emails } = await supabase
         .from('sales')
         .select('*, customers!inner(full_name, email, phone, source)')
-        .not('description', 'is', null)
+        .eq('status', 'Inbox')
         .order('created_at', { ascending: false })
-        .limit(100)
 
     return (
         <div className="flex flex-col gap-6">
