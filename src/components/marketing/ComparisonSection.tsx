@@ -36,7 +36,7 @@ export function ComparisonSection() {
                         </div>
 
                         <ul className="space-y-6">
-                            {[0, 1, 2, 3, 4].map((i) => (
+                            {[0, 1, 2, 3, 4, 5].map((i) => (
                                 <li key={i} className="flex items-start gap-4 text-red-200/60">
                                     <XCircle size={20} className="shrink-0 mt-1 text-red-500/50" />
                                     <span>{t(`oldWay.items.${i}`)}</span>
@@ -57,7 +57,7 @@ export function ComparisonSection() {
                         </div>
 
                         <ul className="space-y-6">
-                            {[0, 1, 2, 3, 4].map((i) => (
+                            {[0, 1, 2, 3, 4, 5].map((i) => (
                                 <li key={i} className="flex items-start gap-4 text-green-100">
                                     <CheckCircle size={20} className="shrink-0 mt-1 text-green-500" />
                                     <span className="font-medium">{t(`newWay.items.${i}`)}</span>

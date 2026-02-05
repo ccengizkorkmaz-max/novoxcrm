@@ -50,7 +50,8 @@
                 "Birbirinden habersiz satış ekibi",
                 "Manuel hesaplanan hatalı komisyonlar",
                 "Takip edilmeyen ödeme planları",
-                "Kasa ve stok uyumsuzlukları"
+                "Kasa ve stok uyumsuzlukları",
+                "Manuel veri girişi ve lead kaybı"
             ]
         },
         "newWay": {
@@ -60,7 +61,8 @@
                 "Tam entegre ekip ve yetkilendirme",
                 "Otomatik hakediş ve prim sistemi",
                 "Gecikme faizi ve vade farkı motoru",
-                "%100 Gerçek zamanlı stok kontrolü"
+                "%100 Gerçek zamanlı stok kontrolü",
+                "Otomatik lead aktarımı ve anlık takip"
             ]
         }
     },
@@ -105,6 +107,15 @@
                     "Stok yaşlandırma raporları",
                     "Gelir projeksiyonu",
                     "Pazarlama ROI analizi"
+                ]
+            },
+            "leads": {
+                "title": "Otomatik Lead Yakalama",
+                "features": [
+                    "Facebook Lead Ads entegrasyonu",
+                    "Webform & E-posta otomasyonu",
+                    "Saniyeler içinde satış hunisinde",
+                    "Sıfır veri kaybı garantisi"
                 ]
             }
         }
