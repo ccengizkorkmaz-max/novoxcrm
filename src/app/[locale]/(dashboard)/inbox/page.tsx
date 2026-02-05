@@ -10,11 +10,13 @@ export default async function InboxPage() {
     const supabase = await createClient()
     const t = await getTranslations('Sidebar.Inbox')
 
-    // Fetch sales records that originated from Email (E-Posta) or Kommo
+    const sourceList = ['E-Posta', 'E-posta', 'Email', 'email', 'External', 'external', 'Make', 'make', 'Kommo', 'kommo', 'Integromat', 'Spark', 'spark', 'Form', 'form', 'Digital', 'digital', 'Portal', 'Excel Import', 'Excel']
+
+    // Fetch sales records that originated from Email (E-Posta) or any digital source
     const { data: emails } = await supabase
         .from('sales')
         .select('*, customers!inner(full_name, email, phone, source)')
-        .in('customers.source', ['E-Posta', 'E-posta', 'Email', 'email', 'External', 'external', 'Make', 'make', 'Kommo', 'kommo', 'Integromat', 'Spark', 'spark', 'Form', 'form'])
+        .or(`source.in.(${sourceList.join(',')}),customers.source.in.(${sourceList.join(',')})`)
         .order('created_at', { ascending: false })
 
     return (

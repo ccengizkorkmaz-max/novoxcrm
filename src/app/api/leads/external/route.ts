@@ -183,6 +183,7 @@ export async function POST(req: Request) {
             customer_id: customerId,
             project_id: projectId,
             status: 'Lead',
+            source: source,
             description: finalDescription
         }
 
