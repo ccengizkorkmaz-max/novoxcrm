@@ -26,6 +26,37 @@ export async function POST(req: Request) {
             subject
         } = body
 
+        // Parse customer info from message content if available
+        // Email forms often contain structured data like:
+        // Ad Soyad: John Doe
+        // E-posta Adresi: john@example.com
+        // Telefon: 555...
+        if (bodyMessage && (!name || !email || !phone)) {
+            // Parse name
+            const nameMatch = bodyMessage.match(/Ad\s+Soyad:\s*([^:\n\r]+?)(?=\s*(?:E-posta|Telefon|Konu|$)|\r|\n)/i)
+            if (nameMatch && !name) {
+                name = nameMatch[1].trim()
+            }
+
+            // Parse email
+            const emailMatch = bodyMessage.match(/(?:E-posta Adresi|E-posta):\s*([^:\n\r\s]+?)(?=\s*(?:Ad Soyad|Telefon|Konu|$)|\r|\n)/i)
+            if (emailMatch && !email) {
+                email = emailMatch[1].trim()
+            }
+
+            // Parse phone
+            const phoneMatch = bodyMessage.match(/Telefon:\s*([^:\n\r\s]+?)(?=\s*(?:Ad Soyad|E-posta|Konu|$)|\r|\n)/i)
+            if (phoneMatch && !phone) {
+                phone = phoneMatch[1].trim()
+            }
+
+            // Parse subject if not provided
+            const subjectMatch = bodyMessage.match(/Konu:\s*([^:\n\r]+?)(?=\s*(?:Ad Soyad|E-posta|Telefon|$)|\r|\n)/i)
+            if (subjectMatch && !subject) {
+                subject = subjectMatch[1].trim()
+            }
+        }
+
         // Validate required fields
         if (!name || (!email && !phone)) {
             return NextResponse.json({ error: 'Missing required fields (name and email/phone)' }, { status: 400 })
