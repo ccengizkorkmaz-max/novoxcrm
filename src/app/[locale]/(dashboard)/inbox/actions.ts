@@ -96,7 +96,7 @@ export async function approveInboxItem(inboxItemId: string, projectId?: string) 
             .insert({
                 tenant_id: inboxItem.tenant_id,
                 customer_id: customerId,
-                project_id: projectId || null,
+                project_id: inboxItem.project_id || projectId || null,
                 status: 'Lead',
                 description: inboxItem.message
             })
