@@ -26,9 +26,10 @@ interface Project {
 
 interface NewUnitDialogProps {
     projects: Project[]
+    unitTypes?: any[]
 }
 
-export function NewUnitDialog({ projects }: NewUnitDialogProps) {
+export function NewUnitDialog({ projects, unitTypes }: NewUnitDialogProps) {
     const t = useTranslations('Inventory.newUnit')
     const tGlobal = useTranslations('Inventory')
     const [open, setOpen] = useState(false)
@@ -73,7 +74,26 @@ export function NewUnitDialog({ projects }: NewUnitDialogProps) {
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label className="text-right">{t('form.type')}</Label>
-                            <Input name="type" placeholder="2+1" className="col-span-3" required />
+                            <div className="col-span-3">
+                                <Select name="type" required>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Seçiniz" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {unitTypes && unitTypes.length > 0 ? (
+                                            unitTypes.map((t: any) => (
+                                                <SelectItem key={t.id} value={t.name}>{t.name}</SelectItem>
+                                            ))
+                                        ) : (
+                                            <>
+                                                <SelectItem value="1+1">1+1</SelectItem>
+                                                <SelectItem value="2+1">2+1</SelectItem>
+                                                <SelectItem value="3+1">3+1</SelectItem>
+                                            </>
+                                        )}
+                                    </SelectContent>
+                                </Select>
+                            </div>
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label className="text-right">{t('form.price')}</Label>

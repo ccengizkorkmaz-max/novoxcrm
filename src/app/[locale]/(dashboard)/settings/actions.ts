@@ -328,3 +328,125 @@ export async function updateUserRole(userId: string, newRole: string) {
     revalidatePath('/settings')
     return { success: true }
 }
+
+// --- Unit Types Actions ---
+
+export async function getUnitTypes() {
+    const supabase = await createClient()
+    const { data } = await supabase
+        .from('unit_types')
+        .select('*')
+        .order('order_index', { ascending: true })
+
+    return data || []
+}
+
+export async function createUnitType(formData: FormData) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    const name = formData.get('name') as string
+    const description = formData.get('description') as string
+    const order_index = Number(formData.get('order_index')) || 0
+
+    if (!name) return { error: 'İsim zorunludur' }
+
+    const { error } = await supabase.from('unit_types').insert({
+        name,
+        description,
+        order_index,
+        tenant_id: (await getTenantId(supabase, user.id))
+    })
+
+    if (error) return { error: 'Oluşturulamadı: ' + error.message }
+
+    revalidatePath('/settings')
+    return { success: true }
+}
+
+export async function updateUnitType(formData: FormData) {
+    const supabase = await createClient()
+    const id = formData.get('id') as string
+    const name = formData.get('name') as string
+    const description = formData.get('description') as string
+    const order_index = Number(formData.get('order_index')) || 0
+    const is_active = formData.get('is_active') === 'true'
+
+    const { error } = await supabase.from('unit_types').update({
+        name,
+        description,
+        order_index,
+        is_active
+    }).eq('id', id)
+
+    if (error) return { error: 'Güncellenemedi: ' + error.message }
+
+    revalidatePath('/settings')
+    return { success: true }
+}
+
+export async function deleteUnitType(id: string) {
+    const supabase = await createClient()
+    const { error } = await supabase.from('unit_types').delete().eq('id', id)
+
+    if (error) return { error: 'Silinemedi: ' + error.message }
+
+    revalidatePath('/settings')
+    return { success: true }
+}
+
+async function getTenantId(supabase: any, userId: string) {
+    const { data } = await supabase.from('profiles').select('tenant_id').eq('id', userId).single()
+    return data?.tenant_id
+}
+
+export async function initializeUnitTypes() {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    const defaultTypes = [
+        { name: 'Stüdyo (1+0)', order_index: 10 },
+        { name: '1+1', order_index: 20 },
+        { name: '1.5+1', order_index: 30 },
+        { name: '2+0', order_index: 40 },
+        { name: '2+1', order_index: 50 },
+        { name: '2.5+1', order_index: 60 },
+        { name: '2+2', order_index: 70 },
+        { name: '3+0', order_index: 80 },
+        { name: '3+1', order_index: 90 },
+        { name: '3.5+1', order_index: 100 },
+        { name: '3+2', order_index: 110 },
+        { name: '3+3', order_index: 120 },
+        { name: '4+0', order_index: 130 },
+        { name: '4+1', order_index: 140 },
+        { name: '4.5+1', order_index: 150 },
+        { name: '4.5+2', order_index: 160 },
+        { name: '4+2', order_index: 170 },
+        { name: '4+3', order_index: 180 },
+        { name: '4+4', order_index: 190 },
+        { name: '5+1', order_index: 200 },
+        { name: '5.5+1', order_index: 210 },
+        { name: '5+2', order_index: 220 },
+        { name: 'Villa', order_index: 300 },
+        { name: 'Ticari', order_index: 310 },
+        { name: 'Ofis', order_index: 320 },
+        { name: 'Depo', order_index: 330 },
+        { name: 'Dubleks', order_index: 340 },
+        { name: 'Penthouse', order_index: 350 }
+    ]
+
+    const tenantId = await getTenantId(supabase, user.id)
+
+    // Fallback: Try inserting one by one ignoring errors
+    for (const t of defaultTypes) {
+        const { error } = await supabase.from('unit_types').insert({ ...t, tenant_id: tenantId }).select()
+        if (error) {
+            console.log('Skipping existing type or error:', t.name, error.message)
+        }
+    }
+
+    revalidatePath('/settings')
+    return { success: true }
+}

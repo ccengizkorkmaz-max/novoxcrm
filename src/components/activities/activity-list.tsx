@@ -53,12 +53,12 @@ export function ActivityList({ activities, customers }: ActivityListProps) {
                 <Table>
                     <TableHeader className="sticky top-0 bg-white z-10">
                         <TableRow>
+                            <TableHead className="w-[150px]">{t('table.date')}</TableHead>
+                            <TableHead className="w-[120px]">{t('table.status')}</TableHead>
                             <TableHead className="w-[120px]">{t('table.typeTopic')}</TableHead>
                             <TableHead>{t('table.customer')}</TableHead>
                             <TableHead>{t('table.agent')}</TableHead>
                             <TableHead>{t('table.summary')}</TableHead>
-                            <TableHead className="w-[150px]">{t('table.date')}</TableHead>
-                            <TableHead className="w-[120px]">{t('table.status')}</TableHead>
                             <TableHead className="w-[100px]"></TableHead>
                         </TableRow>
                     </TableHeader>
@@ -111,6 +111,21 @@ function ActivityRow({ activity, customers }: { activity: Activity, customers: a
     return (
         <TableRow className="hover:bg-slate-50/50 group">
             <TableCell>
+                <div className="flex flex-col">
+                    <span className="text-sm font-medium">
+                        {format(new Date(activity.due_date), 'd MMM yyyy', { locale: locale === 'en' ? enUS : tr })}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                        {format(new Date(activity.due_date), 'HH:mm', { locale: locale === 'en' ? enUS : tr })}
+                    </span>
+                </div>
+            </TableCell>
+            <TableCell>
+                <Badge variant="outline" className={cn('whitespace-nowrap', statusColors[activity.status])}>
+                    {t(`status.${activity.status}`)}
+                </Badge>
+            </TableCell>
+            <TableCell>
                 <div className="flex flex-col gap-1">
                     <span className="font-medium">{t(`type.${activity.type}`)}</span>
                     {activity.topic && (
@@ -135,21 +150,6 @@ function ActivityRow({ activity, customers }: { activity: Activity, customers: a
                         <span className="text-xs text-muted-foreground line-clamp-1">{activity.notes}</span>
                     )}
                 </div>
-            </TableCell>
-            <TableCell>
-                <div className="flex flex-col">
-                    <span className="text-sm font-medium">
-                        {format(new Date(activity.due_date), 'd MMM yyyy', { locale: locale === 'en' ? enUS : tr })}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                        {format(new Date(activity.due_date), 'HH:mm', { locale: locale === 'en' ? enUS : tr })}
-                    </span>
-                </div>
-            </TableCell>
-            <TableCell>
-                <Badge variant="outline" className={cn('whitespace-nowrap', statusColors[activity.status])}>
-                    {t(`status.${activity.status}`)}
-                </Badge>
             </TableCell>
             <TableCell>
                 <div className="flex justify-end gap-1">

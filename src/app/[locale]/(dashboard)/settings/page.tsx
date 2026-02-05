@@ -1,3 +1,4 @@
+
 import { createClient } from '@/lib/supabase/server'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -8,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge'
 import { updateTenantProfile } from './actions'
 import { FormImageUpload } from '@/components/ui/form-image-upload'
-import { Building2, Users, FileText } from 'lucide-react'
+import { Building2, Users, FileText, Database } from 'lucide-react'
 import UserManagementHeader from './components/UserManagementHeader'
 import UserTableActions from './components/UserTableActions'
 import TenantProfileForm from './components/TenantProfileForm'
@@ -16,8 +17,8 @@ import UsersTable from './components/UsersTable'
 import RoleMatrix from './components/RoleMatrix'
 import DataImportTab from './components/DataImportTab'
 import { PaymentTemplatesTab } from './templates/payment-templates-tab'
-import { Database } from 'lucide-react'
 import { getTranslations, getLocale } from 'next-intl/server'
+import UnitTypesTab from './components/UnitTypesTab'
 
 export default async function SettingsPage() {
     const supabase = await createClient()
@@ -27,7 +28,7 @@ export default async function SettingsPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return <div>Unauthorized</div>
 
-    // 1. Get profile (Simple query, no join)
+    // 1. Get profile
     const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('tenant_id, role, full_name, email')
@@ -43,14 +44,14 @@ export default async function SettingsPage() {
         )
     }
 
-    // 2. Get tenant (Separate simple query)
+    // 2. Get tenant
     const { data: tenant } = await supabase
         .from('tenants')
         .select('*')
         .eq('id', profile.tenant_id)
         .single()
 
-    // 3. Get all users in tenant (Simple query)
+    // 3. Get all users
     const { data: users } = await supabase
         .from('profiles')
         .select('id, full_name, email, role, created_at')
@@ -62,6 +63,12 @@ export default async function SettingsPage() {
         .from('payment_plan_templates')
         .select('*')
         .order('created_at', { ascending: false })
+
+    // Get unit types
+    const { data: unitTypes } = await supabase
+        .from('unit_types')
+        .select('*')
+        .order('order_index', { ascending: true })
 
     const getRoleLabel = (role: string) => {
         switch (role) {
@@ -93,6 +100,10 @@ export default async function SettingsPage() {
                     <TabsTrigger value="templates" className="flex-1 md:flex-none py-2.5 px-4 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all">
                         <FileText className="w-4 h-4 mr-2" />
                         {t('tabs.templates')}
+                    </TabsTrigger>
+                    <TabsTrigger value="definitions" className="flex-1 md:flex-none py-2.5 px-4 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all">
+                        <Database className="w-4 h-4 mr-2" />
+                        Tanımlar
                     </TabsTrigger>
                     <TabsTrigger value="data" className="flex-1 md:flex-none py-2.5 px-4 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all">
                         <Database className="w-4 h-4 mr-2" />
@@ -138,6 +149,14 @@ export default async function SettingsPage() {
                 {/* Templates Tab */}
                 <TabsContent value="templates" className="space-y-4">
                     <PaymentTemplatesTab templates={templates || []} />
+                </TabsContent>
+
+                {/* Definitions Tab */}
+                <TabsContent value="definitions" className="space-y-4">
+                    <div className="text-xs text-muted-foreground">
+                        Debug: {unitTypes ? unitTypes.length : 0} types found.
+                    </div>
+                    <UnitTypesTab unitTypes={unitTypes || []} />
                 </TabsContent>
 
                 {/* Data Management Tab */}

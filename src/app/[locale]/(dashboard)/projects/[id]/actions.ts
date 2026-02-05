@@ -85,18 +85,26 @@ export async function batchCreateUnits(formData: FormData) {
         console.error('Failed to parse room_areas:', e)
     }
 
+    const overrideFloor = formData.get('floor') ? Number(formData.get('floor')) : null
+    const unitsPerFloor = Number(formData.get('units_per_floor')) || 4
+
     const units = []
     for (let i = 0; i < count; i++) {
+        const currentUnitNo = startNumber + i
+        // Auto Calc: Math.ceil(currentUnitNo / unitsPerFloor)
+        // Example: Unit 1, 4 per floor -> ceil(0.25) = 1. Unit 4 -> ceil(1) = 1. Unit 5 -> ceil(1.25) = 2.
+        const calculatedFloor = Math.ceil(currentUnitNo / unitsPerFloor)
+
         units.push({
             project_id: projectId,
-            unit_number: `${block}-${startNumber + i}`,
+            unit_number: `${block}-${currentUnitNo}`,
             unit_category: unitCategory,
             type: type,
             status: 'For Sale',
             price: price,
             currency: currency,
             area_gross: areaGross,
-            floor: Math.floor((startNumber + i) / 4) + 1,
+            floor: overrideFloor !== null ? overrideFloor : calculatedFloor,
             max_discount_rate: maxDiscountRate,
             block: block,
             // Unit features
@@ -271,6 +279,28 @@ export async function bulkUpdateUnitStatus(projectId: string, unitIds: string[],
     if (error) {
         console.error('Bulk Update Unit Status Error:', error)
         return { error: 'Durum güncellenemedi: ' + error.message }
+    }
+
+    revalidatePath(`/projects/${projectId}`)
+    return { success: true }
+}
+
+export async function bulkDeleteUnits(projectId: string, unitIds: string[]) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    if (!unitIds || unitIds.length === 0) return { error: 'No units selected' }
+
+    const { error } = await supabase
+        .from('units')
+        .delete()
+        .in('id', unitIds)
+        .eq('project_id', projectId)
+
+    if (error) {
+        console.error('Bulk Delete Error:', error)
+        return { error: 'Silme işlemi başarısız: ' + error.message }
     }
 
     revalidatePath(`/projects/${projectId}`)

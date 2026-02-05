@@ -21,6 +21,7 @@ import { useRouter } from 'next/navigation'
 interface BatchUnitCreatorProps {
     projectId: string
     action: (formData: FormData) => Promise<any>
+    unitTypes?: any[]
 }
 
 const UNIT_CATEGORIES = [
@@ -29,7 +30,7 @@ const UNIT_CATEGORIES = [
     "Roof Daire", "Loft Daire", "Penthouse", "Ticari Alan"
 ]
 
-export function BatchUnitCreator({ projectId, action }: BatchUnitCreatorProps) {
+export function BatchUnitCreator({ projectId, action, unitTypes }: BatchUnitCreatorProps) {
     const [open, setOpen] = useState(false)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -107,12 +108,20 @@ export function BatchUnitCreator({ projectId, action }: BatchUnitCreatorProps) {
                                         className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                                     >
                                         <option value="">Seçiniz...</option>
-                                        <option value="1+1">1+1</option>
-                                        <option value="2+1">2+1</option>
-                                        <option value="3+1">3+1</option>
-                                        <option value="4+1">4+1</option>
-                                        <option value="Villa">Villa</option>
-                                        <option value="Commercial">Ticari</option>
+                                        {unitTypes && unitTypes.length > 0 ? (
+                                            unitTypes.map((t: any) => (
+                                                <option key={t.id} value={t.name}>{t.name}</option>
+                                            ))
+                                        ) : (
+                                            <>
+                                                <option value="1+1">1+1</option>
+                                                <option value="2+1">2+1</option>
+                                                <option value="3+1">3+1</option>
+                                                <option value="4+1">4+1</option>
+                                                <option value="Villa">Villa</option>
+                                                <option value="Commercial">Ticari</option>
+                                            </>
+                                        )}
                                     </select>
                                 </div>
                                 <div className="space-y-2">
@@ -151,6 +160,14 @@ export function BatchUnitCreator({ projectId, action }: BatchUnitCreatorProps) {
                                 <div className="space-y-2">
                                     <Label htmlFor="start_number">Başlangıç Numarası</Label>
                                     <Input id="start_number" name="start_number" type="number" defaultValue="1" />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="floor">Sabit Kat Numarası (Opsiyonel)</Label>
+                                    <Input id="floor" name="floor" type="number" placeholder="Tüm üniteler bu kata atanır" />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="units_per_floor">Kattaki Daire Sayısı</Label>
+                                    <Input id="units_per_floor" name="units_per_floor" type="number" defaultValue="4" placeholder="Otomatik hesaplama için" />
                                 </div>
                             </div>
                         </div>

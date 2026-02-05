@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Trash2 } from 'lucide-react'
 import Link from 'next/link'
-import { bulkUpdateUnitStatus } from '../actions'
+import { bulkUpdateUnitStatus, bulkDeleteUnits } from '../actions'
 import { toast } from 'sonner'
 
 import {
@@ -63,6 +63,20 @@ export function UnitListClient({ units, projectId, unitProgress, constructionSta
         })
     }
 
+    const handleBulkDelete = () => {
+        if (selectedIds.length === 0) return
+
+        startTransition(async () => {
+            const result = await bulkDeleteUnits(projectId, selectedIds)
+            if (result.success) {
+                toast.success(`${selectedIds.length} ünite silindi`)
+                setSelectedIds([])
+            } else {
+                toast.error(result.error)
+            }
+        })
+    }
+
     return (
         <div className="space-y-4">
             {selectedIds.length > 0 && (
@@ -95,6 +109,37 @@ export function UnitListClient({ units, projectId, unitProgress, constructionSta
                         >
                             Rezerve Yap
                         </Button>
+                        {isAdmin && (
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button
+                                        size="sm"
+                                        variant="destructive"
+                                        disabled={isPending}
+                                    >
+                                        <Trash2 className="h-4 w-4 mr-2" />
+                                        Seçili Olanları Sil
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Seçili Üniteleri Silmek İstediğinize Emin Misiniz?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            Bu işlem geri alınamaz. Seçilen <strong>{selectedIds.length}</strong> adet ünite kalıcı olarak silinecektir.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>İptal</AlertDialogCancel>
+                                        <AlertDialogAction
+                                            onClick={handleBulkDelete}
+                                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                        >
+                                            Evet, Sil
+                                        </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        )}
                         <Button
                             size="sm"
                             variant="outline"

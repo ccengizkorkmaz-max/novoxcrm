@@ -56,7 +56,8 @@ export default async function ProjectDetailPage({
         docsRes,
         unitsRes,
         stagesRes,
-        accessRes
+        accessRes,
+        unitTypesRes
     ] = await Promise.all([
         supabase.auth.getUser(),
         supabase.from('broker_levels').select('*').order('min_sales_count', { ascending: true }),
@@ -82,7 +83,8 @@ export default async function ProjectDetailPage({
                 full_name,
                 email
             )
-        `).eq('project_id', id)
+        `).eq('project_id', id),
+        supabase.from('unit_types').select('*').order('order_index', { ascending: true })
     ])
 
     const user = userRes.data.user
@@ -93,6 +95,7 @@ export default async function ProjectDetailPage({
     const { data: units } = unitsRes
     const { data: constructionStages } = stagesRes
     const { data: manualAccess } = accessRes
+    const { data: unitTypes } = unitTypesRes
 
     if (projectError || !project) {
         return (
@@ -122,7 +125,7 @@ export default async function ProjectDetailPage({
     ])
 
     const currentUser = currentUserRes.data
-    const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'super_admin'
+    const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'super_admin' || currentUser?.role === 'owner' || currentUser?.role === 'manager'
     const { data: unitProgress } = unitProgressRes
     const { data: allBrokers } = allBrokersRes
 
@@ -471,7 +474,7 @@ export default async function ProjectDetailPage({
                             </div>
                             <div className="flex gap-2 items-center">
                                 <DeleteAllUnitsButton projectId={project.id} onDelete={deleteAllUnits} isAdmin={isAdmin} />
-                                <BatchUnitCreator projectId={project.id} action={batchCreateUnits} />
+                                <BatchUnitCreator projectId={project.id} action={batchCreateUnits} unitTypes={unitTypes || []} />
                                 <ExcelImport projectId={project.id} onImport={importUnitsFromExcel} />
                                 <UnitExportButton units={units || []} projectName={project.name} />
                             </div>

@@ -27,6 +27,9 @@ export default async function InventoryPage({
     // Get customers for reservation
     const { data: customers } = await supabase.from('customers').select('id, full_name').order('full_name', { ascending: true })
 
+    // Get unit types
+    const { data: unitTypes } = await supabase.from('unit_types').select('*').order('order_index', { ascending: true })
+
 
     // Build query
     let query = supabase.from('units').select('*, projects(name)').order('unit_number', { ascending: true })
@@ -141,7 +144,7 @@ export default async function InventoryPage({
                 <h1 className="text-xl md:text-2xl font-bold tracking-tight">{t('title')}</h1>
                 <div className="flex items-center gap-2">
                     <InventoryFilters projects={projects || []} />
-                    <NewUnitDialog projects={projects || []} />
+                    <NewUnitDialog projects={projects || []} unitTypes={unitTypes || []} />
                 </div>
             </div>
 
