@@ -48,8 +48,7 @@ export async function approveInboxItem(inboxItemId: string, projectId?: string) 
                         full_name: inboxItem.name,
                         email: inboxItem.email,
                         phone: inboxItem.phone,
-                        source: inboxItem.source,
-                        status: 'active'
+                        source: inboxItem.source
                     })
                     .select('id')
                     .single()
@@ -74,8 +73,7 @@ export async function approveInboxItem(inboxItemId: string, projectId?: string) 
                     full_name: inboxItem.name,
                     email: inboxItem.email,
                     phone: inboxItem.phone,
-                    source: inboxItem.source,
-                    status: 'active'
+                    source: inboxItem.source
                 })
                 .select('id')
                 .single()
