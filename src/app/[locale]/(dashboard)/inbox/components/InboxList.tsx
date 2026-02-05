@@ -15,7 +15,7 @@ import {
     ArrowUpRight,
     Check
 } from 'lucide-react'
-import { approveLead } from '../actions'
+import { approveLead, migrateWebLeadsToInbox } from '../actions'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -42,6 +42,7 @@ export function InboxList({ initialEmails }: InboxListProps) {
     const [viewingEmail, setViewingEmail] = useState<any | null>(null)
     const [searchQuery, setSearchQuery] = useState('')
     const [approving, setApproving] = useState(false)
+    const [migrating, setMigrating] = useState(false)
 
     const filteredEmails = initialEmails.filter(email => {
         const searchLower = searchQuery.toLowerCase()
@@ -71,9 +72,32 @@ export function InboxList({ initialEmails }: InboxListProps) {
             <Card className="overflow-hidden border-slate-200 shadow-sm">
                 <CardContent className="p-0">
                     {filteredEmails.length === 0 ? (
-                        <div className="py-12 flex flex-col items-center justify-center text-muted-foreground bg-slate-50/50">
+                        <div className="py-12 flex flex-col items-center justify-center text-muted-foreground bg-slate-50/50 gap-4">
                             <Mail className="h-10 w-10 mb-3 opacity-20" />
                             <p>{t('empty')}</p>
+                            {initialEmails.length === 0 && (
+                                <Button
+                                    variant="outline"
+                                    onClick={async () => {
+                                        setMigrating(true)
+                                        const result = await migrateWebLeadsToInbox()
+                                        setMigrating(false)
+                                        if (result.success) {
+                                            if (result.count > 0) {
+                                                alert(`${result.count} adet web@ kaydı Inbox'a taşındı. Sayfa yenileniyor...`)
+                                                window.location.reload()
+                                            } else {
+                                                alert('Hiç web@ kaydı bulunamadı.')
+                                            }
+                                        } else {
+                                            alert('Taşıma hatası: ' + (result.error || 'Bilinmeyen hata'))
+                                        }
+                                    }}
+                                    disabled={migrating}
+                                >
+                                    {migrating ? 'Taşınıyor...' : 'Mevcut web@ kayıtlarını getir'}
+                                </Button>
+                            )}
                         </div>
                     ) : (
                         <div className="divide-y divide-slate-100">
