@@ -38,14 +38,23 @@ import { CustomerImportDialog } from '@/components/customers/customer-import-dia
 import { CustomerEditDialog, type Customer } from './CustomerEditDialog'
 import { ActivityForm } from '@/components/activities/activity-form'
 import { toast } from 'sonner'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 
 type SortKey = 'full_name' | 'created_at'
 type SortOrder = 'asc' | 'desc'
 
-export default function CustomerList({ customers }: { customers: Customer[] }) {
+export default function CustomerList({
+    customers,
+    totalRecords = 0,
+    initialPage = 1
+}: {
+    customers: Customer[],
+    totalRecords?: number,
+    initialPage?: number
+}) {
     const t = useTranslations('Customers')
     const router = useRouter()
+    const searchParams = useSearchParams()
     const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null)
     const [isEditOpen, setIsEditOpen] = useState(false)
     const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -60,7 +69,7 @@ export default function CustomerList({ customers }: { customers: Customer[] }) {
         order: 'desc'
     })
 
-    const [currentPage, setCurrentPage] = useState(1)
+    const [currentPage, setCurrentPage] = useState(initialPage)
     const itemsPerPage = 50
 
     // Stats Calculation
@@ -128,11 +137,15 @@ export default function CustomerList({ customers }: { customers: Customer[] }) {
             return (new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) * order
         })
 
-    const totalPages = Math.ceil(filteredAndSortedCustomers.length / itemsPerPage)
-    const currentItems = filteredAndSortedCustomers.slice(
-        (currentPage - 1) * itemsPerPage,
-        currentPage * itemsPerPage
-    )
+    const totalPages = Math.ceil(totalRecords / itemsPerPage)
+    const currentItems = filteredAndSortedCustomers
+
+    const handlePageChange = (newPage: number) => {
+        const params = new URLSearchParams(searchParams.toString())
+        params.set('page', newPage.toString())
+        router.push(`?${params.toString()}`)
+        setCurrentPage(newPage)
+    }
 
     const SortIcon = ({ columnKey }: { columnKey: SortKey }) => {
         if (sortConfig.key !== columnKey) return <ArrowUpDown className="ml-2 h-4 w-4 opacity-50" />
@@ -562,7 +575,7 @@ export default function CustomerList({ customers }: { customers: Customer[] }) {
                             variant="outline"
                             size="sm"
                             className="h-9 px-4 rounded-xl border-slate-200 font-bold text-xs uppercase transition-all"
-                            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                            onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
                             disabled={currentPage === 1}
                         >
                             Geri
@@ -571,7 +584,7 @@ export default function CustomerList({ customers }: { customers: Customer[] }) {
                             variant="outline"
                             size="sm"
                             className="h-9 px-4 rounded-xl border-slate-200 font-bold text-xs uppercase transition-all"
-                            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                            onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
                             disabled={currentPage === totalPages}
                         >
                             İleri
@@ -580,7 +593,7 @@ export default function CustomerList({ customers }: { customers: Customer[] }) {
                     <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">
                         Sayfa <span className="text-blue-600">{currentPage}</span> / {totalPages}
                         <span className="mx-2 text-slate-200">|</span>
-                        Görüntülenen: {currentItems.length} / {filteredAndSortedCustomers.length}
+                        Görüntülenen: {currentItems.length} / {totalRecords}
                     </p>
                 </div>
             )}

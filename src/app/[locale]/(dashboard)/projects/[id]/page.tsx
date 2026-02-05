@@ -47,27 +47,52 @@ export default async function ProjectDetailPage({
     const { tab } = await searchParams
     const activeTab = tab || 'info'
 
-    const { data: { user } } = await supabase.auth.getUser()
-    const { data: currentUser } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user?.id)
-        .single()
+    // First batch of parallel fetches
+    const [
+        userRes,
+        brokerLevelsRes,
+        projectRes,
+        teamsRes,
+        docsRes,
+        unitsRes,
+        stagesRes,
+        accessRes
+    ] = await Promise.all([
+        supabase.auth.getUser(),
+        supabase.from('broker_levels').select('*').order('min_sales_count', { ascending: true }),
+        supabase.from('projects').select('*').eq('id', id).single(),
+        supabase.from('team_project_assignments').select(`
+            sales_teams(
+                id,
+                name,
+                region,
+                office_name,
+                team_members(
+                    profiles(full_name, role)
+                )
+            )
+        `).eq('project_id', id),
+        supabase.from('project_documents').select('*').eq('project_id', id).order('created_at', { ascending: false }),
+        supabase.from('units').select('*').eq('project_id', id).order('unit_number', { ascending: true }),
+        supabase.from('construction_stages').select('*').eq('project_id', id).order('order_index', { ascending: true }),
+        supabase.from('project_broker_access').select(`
+            id,
+            profiles (
+                id,
+                full_name,
+                email
+            )
+        `).eq('project_id', id)
+    ])
 
-    const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'super_admin'
-
-    // Fetch broker levels
-    const { data: brokerLevels } = await supabase
-        .from('broker_levels')
-        .select('*')
-        .order('min_sales_count', { ascending: true })
-
-    // Fetch project
-    const { data: project, error: projectError } = await supabase
-        .from('projects')
-        .select('*')
-        .eq('id', id)
-        .single()
+    const user = userRes.data.user
+    const brokerLevels = brokerLevelsRes.data
+    const { data: project, error: projectError } = projectRes
+    const { data: teamAssignments, error: teamsError } = teamsRes
+    const { data: documents } = docsRes
+    const { data: units } = unitsRes
+    const { data: constructionStages } = stagesRes
+    const { data: manualAccess } = accessRes
 
     if (projectError || !project) {
         return (
@@ -81,32 +106,25 @@ export default async function ProjectDetailPage({
         )
     }
 
-    // Fetch teams separately (Safe fetch)
-    const { data: teamAssignments, error: teamsError } = await supabase
-        .from('team_project_assignments')
-        .select(`
-            sales_teams(
-                id,
-                name,
-                region,
-                office_name,
-                team_members(
-                    profiles(full_name, role)
-                )
-            )
-        `)
-        .eq('project_id', id)
-
     if (teamsError) {
         console.warn('Teams could not be fetched (schema might be missing):', teamsError.message)
     }
 
-    // Fetch project documents
-    const { data: documents, error: docsError } = await supabase
-        .from('project_documents')
-        .select('*')
-        .eq('project_id', id)
-        .order('created_at', { ascending: false })
+    // Secondary batch of parallel fetches (dependent on first batch)
+    const [
+        currentUserRes,
+        unitProgressRes,
+        allBrokersRes
+    ] = await Promise.all([
+        supabase.from('profiles').select('role').eq('id', user?.id).single(),
+        supabase.from('unit_construction_progress').select('*').in('unit_id', units?.map(u => u.id) || []),
+        supabase.from('profiles').select('id, full_name, email').eq('tenant_id', project.tenant_id).eq('role', 'broker').eq('is_active', true)
+    ])
+
+    const currentUser = currentUserRes.data
+    const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'super_admin'
+    const { data: unitProgress } = unitProgressRes
+    const { data: allBrokers } = allBrokersRes
 
     // Fetch uploader names for each document
     if (documents && documents.length > 0) {
@@ -116,53 +134,11 @@ export default async function ProjectDetailPage({
             .select('id, full_name')
             .in('id', uploaderIds)
 
-        // Map uploader names to documents
         const uploaderMap = new Map(uploaders?.map(u => [u.id, u.full_name]) || [])
         documents.forEach((doc: any) => {
             doc.uploader_name = uploaderMap.get(doc.uploaded_by) || 'Unknown'
         })
     }
-
-    // Fetch units for this project
-    const { data: units } = await supabase
-        .from('units')
-        .select('*')
-        .eq('project_id', id)
-        .order('unit_number', { ascending: true })
-
-    // Fetch construction stages
-    const { data: constructionStages } = await supabase
-        .from('construction_stages')
-        .select('*')
-        .eq('project_id', id)
-        .order('order_index', { ascending: true })
-
-    // Fetch unit construction progress
-    const { data: unitProgress } = await supabase
-        .from('unit_construction_progress')
-        .select('*')
-        .in('unit_id', units?.map(u => u.id) || [])
-
-    // Fetch manual broker access list
-    const { data: manualAccess } = await supabase
-        .from('project_broker_access')
-        .select(`
-            id,
-            profiles (
-                id,
-                full_name,
-                email
-            )
-        `)
-        .eq('project_id', id)
-
-    // Fetch all brokers in the tenant for addition
-    const { data: allBrokers } = await supabase
-        .from('profiles')
-        .select('id, full_name, email')
-        .eq('tenant_id', project.tenant_id)
-        .eq('role', 'broker')
-        .eq('is_active', true)
 
 
     async function handleDeleteUnit(unitId: string) {

@@ -11,34 +11,28 @@ export default async function CustomersPage(props: { searchParams: Promise<{ [ke
     // 1. Build Base Query for Customers
     let query = supabase
         .from('customers')
-        .select('*, customer_demands(*), contract_customers(id)')
+        .select('*, customer_demands(*), contract_customers(id)', { count: 'exact' })
 
     if (filterSearch) {
         query = query.or(`full_name.ilike.%${filterSearch}%,phone.ilike.%${filterSearch}%,email.ilike.%${filterSearch}%`)
     }
 
-    // Fetch customers in batches (bypassing the 1000 limit)
-    let allCustomers: any[] = []
-    let from = 0
-    const batchSize = 1000
-    let hasMore = true
+    const page = Number(searchParams.page) || 1
+    const itemsPerPage = 50
+    const from = (page - 1) * itemsPerPage
+    const to = from + itemsPerPage - 1
 
-    while (hasMore) {
-        const { data, error } = await query
-            .order('created_at', { ascending: false })
-            .range(from, from + batchSize - 1)
+    // 2. Fetch customers with count and range
+    const { data: customers, count, error } = await query
+        .order('created_at', { ascending: false })
+        .range(from, to)
 
-        if (error) {
-            console.error('Error fetching customers batch:', error)
-            hasMore = false
-        } else if (data && data.length > 0) {
-            allCustomers = [...allCustomers, ...data]
-            from += batchSize
-            if (data.length < batchSize) hasMore = false
-        } else {
-            hasMore = false
-        }
+    if (error) {
+        console.error('Error fetching customers:', error)
     }
+
+    const allCustomers = customers || []
+    const totalCount = count || 0
 
     return (
         <div className="flex flex-col gap-6">
@@ -47,7 +41,11 @@ export default async function CustomersPage(props: { searchParams: Promise<{ [ke
             </div>
 
             <div className="rounded-md border bg-card p-6">
-                <CustomerList customers={allCustomers || []} />
+                <CustomerList
+                    customers={allCustomers || []}
+                    totalRecords={totalCount}
+                    initialPage={page}
+                />
             </div>
         </div>
     )

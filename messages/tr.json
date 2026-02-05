@@ -662,6 +662,10 @@
             "Reserved": "Rezerve",
             "Sold": "Satıldı"
         },
+        "types": {
+            "Villa": "Villa",
+            "Commercial": "Ticari Alan"
+        },
         "directions": {
             "North": "Kuzey",
             "South": "Güney",
@@ -706,6 +710,7 @@
             "status": "Durum",
             "validity": "Geçerlilik",
             "actions": "İşlemler",
+            "search": "Tekliflerde ara...",
             "empty": "Henüz bir teklif oluşturulmamış."
         },
         "status": {
@@ -758,7 +763,15 @@
             "approveContract": "Onayla & Sözleşme Yap",
             "approveTitle": "Teklifi Onaylamak İstediğinize Emin Misiniz?",
             "approveDesc": "Müşteri: {customer}\nÜnite: {unit}",
-            "approveWarning": "Bu işlem teklifi doğrudan 'Kabul Edildi' durumuna getirecektir."
+            "approveWarning": "Bu işlem teklifi doğrudan 'Kabul Edildi' durumuna getirecektir.",
+            "records": "KAYIT",
+            "savingProposal": "Kaydediliyor...",
+            "approveConfirmTitle": "Teklifi Onayla",
+            "approving": "Onaylanıyor...",
+            "approveConfirmAction": "Onayla",
+            "depositAmountInfo": "kapora girişi yapılacaktır.",
+            "cancel": "Vazgeç",
+            "save": "Kaydet"
         },
         "messages": {
             "proposalSaved": "Teklif önerisi kaydedildi.",
@@ -1200,7 +1213,9 @@
             "status": "Durum",
             "actions": "İşlemler",
             "search": "Sözleşme No veya Müşteri ara...",
-            "details": "Detay"
+            "details": "Detay",
+            "empty": "Henüz bir sözleşme oluşturulmamış.",
+            "noResults": "Aranan kriterlere uygun sözleşme bulunamadı."
         },
         "stats": {
             "totalSales": "Toplam Satış Bedeli",

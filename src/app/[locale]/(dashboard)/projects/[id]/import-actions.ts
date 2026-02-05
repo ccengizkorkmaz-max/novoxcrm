@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import * as XLSX from 'xlsx'
 
 export async function importUnitsFromExcel(formData: FormData) {
     const supabase = await createClient()
@@ -22,76 +23,120 @@ export async function importUnitsFromExcel(formData: FormData) {
     const file = formData.get('file') as File
 
     if (!file) {
-        return { error: 'File is required' }
+        return { error: 'Dosya gerekli' }
     }
 
     try {
-        // Read file content
-        const text = await file.text()
-        const lines = text.split('\n').filter(line => line.trim())
+        // Read file as buffer for XLSX
+        const bytes = await file.arrayBuffer()
+        const workbook = XLSX.read(bytes, { type: 'buffer' })
 
-        if (lines.length < 2) {
-            return { error: 'File is empty or invalid' }
+        // Get first sheet
+        const sheetName = workbook.SheetNames[0]
+        const worksheet = workbook.Sheets[sheetName]
+
+        // Convert to JSON
+        const data = XLSX.utils.sheet_to_json(worksheet)
+
+        if (data.length === 0) {
+            return { error: 'Dosya boş veya geçersiz format.' }
         }
 
-        // Parse CSV/Excel (simple implementation)
-        const headers = lines[0].split(/[,;\t]/).map(h => h.trim().toLowerCase())
         const units = []
 
-        for (let i = 1; i < lines.length; i++) {
-            const values = lines[i].split(/[,;\t]/).map(v => v.trim())
+        for (const row of data as any[]) {
             const unit: any = {
                 tenant_id: profile.tenant_id,
                 project_id: projectId,
-                created_by: user.id,
                 currency: 'TRY',
                 status: 'For Sale'
             }
 
-            headers.forEach((header, index) => {
-                const value = values[index]
-                if (!value) return
+            // Map columns (case-insensitive and alias matching)
+            Object.keys(row).forEach(key => {
+                const header = key.trim().toLowerCase()
+                const value = row[key]
+                if (value === undefined || value === null) return
 
                 switch (header) {
                     case 'unit_number':
                     case 'ünite_no':
-                        unit.unit_number = value
+                    case 'ünite no':
+                        unit.unit_number = String(value)
+                        break
+                    case 'unit_category':
+                    case 'ünite türü':
+                    case 'kategori':
+                        unit.unit_category = String(value)
                         break
                     case 'type':
                     case 'tip':
-                        unit.type = value
+                    case 'oda tipi':
+                        unit.type = String(value)
                         break
                     case 'status':
                     case 'durum':
-                        unit.status = value
+                        const s = String(value)
+                        if (s === 'Satılık') unit.status = 'For Sale'
+                        else if (s === 'Rezerve') unit.status = 'Reserved'
+                        else if (s === 'Satıldı') unit.status = 'Sold'
+                        else unit.status = s
                         break
                     case 'price':
                     case 'fiyat':
-                        unit.price = parseFloat(value) || 0
+                        if (typeof value === 'number') {
+                            unit.price = value
+                        } else {
+                            unit.price = parseFloat(String(value).replace(/\./g, '').replace(',', '.')) || 0
+                        }
+                        break
+                    case 'currency':
+                    case 'para birimi':
+                        unit.currency = String(value)
                         break
                     case 'area_gross':
+                    case 'brüt m²':
                     case 'brüt_alan':
                     case 'brut':
-                        unit.area_gross = parseFloat(value) || null
+                        unit.area_gross = typeof value === 'number' ? value : parseFloat(String(value).replace(',', '.')) || null
+                        break
+                    case 'area_net':
+                    case 'net m²':
+                    case 'net_alan':
+                    case 'net':
+                        unit.area_net = typeof value === 'number' ? value : parseFloat(String(value).replace(',', '.')) || null
+                        break
+                    case 'bathrooms':
+                    case 'banyo sayısı':
+                        unit.bathroom_count = typeof value === 'number' ? value : parseInt(String(value)) || null
+                        break
+                    case 'facade_direction':
+                    case 'cephe':
+                        unit.direction = String(value)
+                        break
+                    case 'view':
+                    case 'manzara':
+                        unit.view = String(value)
                         break
                     case 'floor':
                     case 'kat':
-                        unit.floor = parseInt(value) || null
+                        unit.floor = String(value)
                         break
                     case 'block':
                     case 'blok':
-                        unit.block = value
+                        unit.block = String(value)
                         break
                 }
             })
 
+            // Minimum required fields
             if (unit.unit_number && unit.type) {
                 units.push(unit)
             }
         }
 
         if (units.length === 0) {
-            return { error: 'No valid units found in file' }
+            return { error: 'Uygun ünite bulunamadı. Lütfen "Ünite No" ve "Oda Tipi" kolonlarının dolu olduğundan emin olun.' }
         }
 
         // Insert units
@@ -101,13 +146,13 @@ export async function importUnitsFromExcel(formData: FormData) {
 
         if (error) {
             console.error('Import Error:', error)
-            return { error: 'Failed to import units: ' + error.message }
+            return { error: 'Üniteler aktarılamadı: ' + error.message }
         }
 
         revalidatePath(`/projects/${projectId}`)
         return { success: true, count: units.length }
     } catch (error) {
         console.error('Parse Error:', error)
-        return { error: 'Failed to parse file' }
+        return { error: 'Dosya okunurken bir hata oluştu. Lütfen dosyanın bozuk olmadığından emin olun.' }
     }
 }

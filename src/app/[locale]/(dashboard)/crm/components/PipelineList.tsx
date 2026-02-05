@@ -22,6 +22,7 @@ import { RestartSaleButton } from './RestartSaleButton'
 import { toast } from 'sonner'
 import { CustomerEditDialog } from './CustomerEditDialog'
 import { ActivityForm } from '@/components/activities/activity-form'
+import { useRouter, useSearchParams } from 'next/navigation'
 
 // Removed redundant imports
 
@@ -34,12 +35,16 @@ export default function PipelineList({
     sales,
     customers,
     availableUnits,
-    templates = []
+    templates = [],
+    totalSalesCount = 0,
+    initialPage = 1
 }: {
     sales: any[],
     customers: any[],
     availableUnits: any[],
-    templates?: any[]
+    templates?: any[],
+    totalSalesCount?: number,
+    initialPage?: number
 }) {
     const t = useTranslations('CRM')
     const locale = useLocale()
@@ -52,8 +57,10 @@ export default function PipelineList({
     const [isEditOpen, setIsEditOpen] = useState(false)
     const [isActivityOpen, setIsActivityOpen] = useState(false)
     const [selectedCustomerForActivity, setSelectedCustomerForActivity] = useState<any | null>(null)
-    const [currentPage, setCurrentPage] = useState(1)
+    const [currentPage, setCurrentPage] = useState(initialPage)
     const itemsPerPage = 50
+    const router = useRouter()
+    const searchParams = useSearchParams()
 
     // Resizable Columns State
     const [colWidths, setColWidths] = useState<Record<string, number>>({
@@ -133,11 +140,15 @@ export default function PipelineList({
         setIsActivityOpen(true)
     }
 
-    const totalPages = Math.ceil(sales.length / itemsPerPage)
-    const currentSales = sales.slice(
-        (currentPage - 1) * itemsPerPage,
-        currentPage * itemsPerPage
-    )
+    const totalPages = Math.ceil(totalSalesCount / itemsPerPage)
+    const currentSales = sales
+
+    const handlePageChange = (newPage: number) => {
+        const params = new URLSearchParams(searchParams.toString())
+        params.set('page', newPage.toString())
+        router.push(`?${params.toString()}`)
+        setCurrentPage(newPage)
+    }
 
     return (
         <div className="space-y-4">
@@ -529,7 +540,7 @@ export default function PipelineList({
                             size="sm"
                             className="h-9 px-4 rounded-xl border-slate-200 font-bold text-xs uppercase transition-all hover:bg-slate-50 active:scale-95"
                             onClick={() => {
-                                setCurrentPage(prev => Math.max(1, prev - 1))
+                                handlePageChange(Math.max(1, currentPage - 1))
                                 window.scrollTo({ top: 0, behavior: 'smooth' })
                             }}
                             disabled={currentPage === 1}
@@ -541,7 +552,7 @@ export default function PipelineList({
                             size="sm"
                             className="h-9 px-4 rounded-xl border-slate-200 font-bold text-xs uppercase transition-all hover:bg-slate-50 active:scale-95"
                             onClick={() => {
-                                setCurrentPage(prev => Math.min(totalPages, prev + 1))
+                                handlePageChange(Math.min(totalPages, currentPage + 1))
                                 window.scrollTo({ top: 0, behavior: 'smooth' })
                             }}
                             disabled={currentPage === totalPages}
@@ -552,7 +563,7 @@ export default function PipelineList({
                     <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">
                         Sayfa <span className="text-blue-600 font-black">{currentPage}</span> / {totalPages}
                         <span className="mx-2 text-slate-200">|</span>
-                        Görüntülenen: {currentSales.length} / {sales.length}
+                        Görüntülenen: {currentSales.length} / {totalSalesCount}
                     </p>
                 </div>
             )}

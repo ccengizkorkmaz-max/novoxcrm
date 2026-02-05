@@ -41,108 +41,50 @@ export default async function CRMPage(props: { searchParams: Promise<{ [key: str
     const filterStatus = params.s as string
     const filterSearch = params.q as string
 
-    // 1. Fetch Projects & Profiles for Filter Options
-    const { data: projectsData } = await supabase.from('projects').select('id, name').order('name')
-    const { data: profilesData } = await supabase.from('profiles').select('id, full_name').order('full_name')
+    const page = Number(searchParams.page) || 1
+    const itemsPerPage = 50
+    const from = (page - 1) * itemsPerPage
+    const to = from + itemsPerPage - 1
 
-    // 2. Fetch all customers in batches (bypassing the 1000 limit)
-    let allCustomers: any[] = []
-
-    try {
-        let from = 0
-        const batchSize = 1000
-        let hasMore = true
-
-        while (hasMore) {
-            const { data, error } = await supabase
-                .from('customers')
-                .select('*, customer_demands(*), contract_customers(id)')
-                .order('created_at', { ascending: false })
-                .range(from, from + batchSize - 1)
-
-            if (error) {
-                console.error('Error fetching customers batch:', error)
-                hasMore = false
-            } else if (data && data.length > 0) {
-                allCustomers = [...allCustomers, ...data]
-                from += batchSize
-                if (data.length < batchSize) hasMore = false
-            } else {
-                hasMore = false
-            }
-        }
-    } catch (err) {
-        console.error('Unexpected error fetching customers:', err)
-        // Continue with empty customer list rather than crashing
-    }
-
-    const customers = allCustomers
-
-    // 3. Build base sales query for filtered data
+    // 1. Build base sales query for filtered data
     let baseQuery = supabase
         .from('sales')
-        .select('*, customers!inner(id, full_name, email, phone), units(unit_number, price, currency, projects(id, name)), projects(id, name), profiles(full_name)')
+        .select('*, customers!inner(id, full_name, email, phone), units(unit_number, price, currency, projects(id, name)), projects(id, name), profiles(full_name)', { count: 'exact' })
 
     if (filterProject) baseQuery = baseQuery.eq('project_id', filterProject)
     if (filterRep) baseQuery = baseQuery.eq('assigned_to', filterRep)
     if (filterStatus) baseQuery = baseQuery.eq('status', filterStatus)
     if (filterSearch) {
-        // Expand search to include name, phone, email and unit number
         baseQuery = baseQuery.or(`full_name.ilike.%${filterSearch}%,phone.ilike.%${filterSearch}%,email.ilike.%${filterSearch}%`, { foreignTable: 'customers' })
     }
 
-    // Fetch sales in batches
-    let allSales: any[] = []
-    let salesFrom = 0
-    const salesBatchSize = 1000
-    let hasMoreSales = true
+    // 2. Fetch initial background data in parallel
+    const [
+        projectsRes,
+        profilesRes,
+        templatesRes,
+        customersRes,
+        availableUnitsRes,
+        salesStatsRes,
+        salesListRes
+    ] = await Promise.all([
+        supabase.from('projects').select('id, name').order('name'),
+        supabase.from('profiles').select('id, full_name').order('full_name'),
+        supabase.from('payment_plan_templates').select('*').order('name', { ascending: true }),
+        supabase.from('customers').select('*, customer_demands(*), contract_customers(id)').order('created_at', { ascending: false }).limit(1000),
+        supabase.from('units').select('id, unit_number, projects(id, name)').in('status', ['For Sale', 'Stock']).limit(1000),
+        supabase.from('sales').select('status'),
+        baseQuery.order('created_at', { ascending: false }).range(from, to)
+    ])
 
-    while (hasMoreSales) {
-        const { data, error: salesError } = await baseQuery
-            .order('created_at', { ascending: false })
-            .range(salesFrom, salesFrom + salesBatchSize - 1)
-
-        if (salesError) {
-            console.error('Error fetching sales batch:', salesError)
-            hasMoreSales = false
-        } else if (data && data.length > 0) {
-            allSales = [...allSales, ...data]
-            salesFrom += salesBatchSize
-            if (data.length < salesBatchSize) hasMoreSales = false
-        } else {
-            hasMoreSales = false
-        }
-    }
-    const sales = allSales
-
-    // 4. For the create sale dialog - fetch all available units in batches
-    let allAvailableUnits: any[] = []
-    let unitsFrom = 0
-    const unitsBatchSize = 1000
-    let hasMoreUnits = true
-
-    while (hasMoreUnits) {
-        const { data, error: unitsError } = await supabase
-            .from('units')
-            .select('id, unit_number, projects(id, name)')
-            .in('status', ['For Sale', 'Stock'])
-            .range(unitsFrom, unitsFrom + unitsBatchSize - 1)
-
-        if (unitsError) {
-            console.error('Error fetching units batch:', unitsError)
-            hasMoreUnits = false
-        } else if (data && data.length > 0) {
-            allAvailableUnits = [...allAvailableUnits, ...data]
-            unitsFrom += unitsBatchSize
-            if (data.length < unitsBatchSize) hasMoreUnits = false
-        } else {
-            hasMoreUnits = false
-        }
-    }
-    const availableUnits = allAvailableUnits
-
-    // 5. Fetch Payment Plan Templates
-    const { data: templates } = await supabase.from('payment_plan_templates').select('*').order('name', { ascending: true })
+    const projectsData = projectsRes.data || []
+    const profilesData = profilesRes.data || []
+    const templates = templatesRes.data || []
+    const customers = customersRes.data || []
+    const availableUnits = availableUnitsRes.data || []
+    const salesForStats = salesStatsRes.data || []
+    const sales = salesListRes.data || []
+    const totalSalesCount = salesListRes.count || 0
 
     return (
         <div className="flex flex-col gap-6">
@@ -168,12 +110,12 @@ export default async function CRMPage(props: { searchParams: Promise<{ [key: str
                 </div>
 
                 <div className="hidden lg:block">
-                    <PipelineStats sales={sales || []} />
+                    <PipelineStats sales={salesForStats || []} />
                 </div>
             </div>
 
             <div className="lg:hidden px-1">
-                <PipelineStats sales={sales || []} />
+                <PipelineStats sales={salesForStats || []} />
             </div>
 
             <PipelineList
@@ -181,7 +123,9 @@ export default async function CRMPage(props: { searchParams: Promise<{ [key: str
                 customers={customers || []}
                 availableUnits={availableUnits || []}
                 templates={templates || []}
+                totalSalesCount={totalSalesCount}
+                initialPage={page}
             />
-        </div >
+        </div>
     )
 }
