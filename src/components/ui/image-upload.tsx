@@ -102,7 +102,7 @@ export function ImageUpload({ value, onChange, disabled }: ImageUploadProps) {
                                 <Trash2 className="h-4 w-4" />
                             </Button>
                         </div>
-                        <Image fill src={value} alt="Upload" className="object-cover" />
+                        <Image fill src={value} alt="Upload" className="object-contain" />
                     </>
                 ) : (
                     <div className="flex flex-col items-center justify-center text-muted-foreground text-xs gap-1">
