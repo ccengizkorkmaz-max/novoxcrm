@@ -100,7 +100,7 @@ export default async function BrokerProjectDetailPage({ params }: { params: { id
                             <img
                                 src={project.image_url}
                                 alt={project.name}
-                                className="w-full aspect-video object-cover"
+                                className="w-full aspect-video object-contain"
                             />
                         )}
                         <div className="p-4 space-y-4">
