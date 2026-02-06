@@ -156,7 +156,11 @@ export async function updateSession(request: NextRequest, response?: NextRespons
 
         // 3. INTERNAL STAFF RESTRICTIONS
         // If internal staff on root -> Dashboard
-        if (isInternalStaff && pathWithoutLocale === '/') {
+        // NOTE: We broadened the check. Any logged in user who is NOT a customer and NOT a broker
+        // should likely go to the dashboard if they hit the root path.
+        const isExcludedRole = profile?.role === 'customer' || profile?.role === 'broker'
+
+        if (!isExcludedRole && pathWithoutLocale === '/') {
             const url = request.nextUrl.clone()
             const targetPath = '/dashboard'
             const localeMatch = pathname.match(/^\/(tr|en)(\/|$)/)
