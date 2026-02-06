@@ -53,14 +53,14 @@ export default function PipelineList({
     templates = [],
     totalSalesCount = 0,
     initialPage = 1,
-    isAdmin = false
+    isAdmin = false,
+    profiles = []
 }: {
     sales: any[],
     customers: any[],
     availableUnits: any[],
     templates?: any[],
     totalSalesCount?: number,
-    initialPage?: number,
     initialPage?: number,
     isAdmin?: boolean,
     profiles?: any[]
