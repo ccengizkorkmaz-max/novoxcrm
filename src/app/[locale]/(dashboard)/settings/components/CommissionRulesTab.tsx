@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Edit, Save, X, Banknote } from 'lucide-react'
+import { Edit, Save, X, Banknote, AlertCircle } from 'lucide-react'
 import { updateCommissionRule } from '../commission-actions'
 import { toast } from 'sonner'
 import { Badge } from "@/components/ui/badge"
@@ -66,6 +66,18 @@ export default function CommissionRulesTab({ rules }: CommissionRulesTabProps) {
                         <CardDescription>
                             Satış personeli için uygulanan prim oranlarını buradan yönetebilirsiniz.
                         </CardDescription>
+                    </div>
+                </div>
+                <div className="mt-4 p-4 bg-blue-50 border border-blue-100 rounded-lg flex items-start gap-3">
+                    <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5" />
+                    <div className="text-sm text-blue-700 space-y-1">
+                        <p className="font-semibold">Önemli Hesaplama Kuralları:</p>
+                        <ul className="list-disc list-inside space-y-0.5 opacity-90">
+                            <li>Primler sadece <strong>Peşinat (Down Payment)</strong> tutarı üzerinden hesaplanır.</li>
+                            <li>Kapora ödemeleri ve taksitli kısımlar prime dahil edilmez.</li>
+                            <li>Tamamı peşin satışlarda (Peşinat %100), toplam satış bedeli üzerinden prim hesaplanır.</li>
+                            <li>Vadeli tutarlar (taksitler) üzerinden prim hakedişi oluşmaz.</li>
+                        </ul>
                     </div>
                 </div>
             </CardHeader>
