@@ -115,7 +115,7 @@ export default async function ProjectsPage() {
                                             src={project.image_url}
                                             alt={project.name}
                                             fill
-                                            className="object-cover transition-all group-hover:scale-105"
+                                            className="object-contain transition-all group-hover:scale-105"
                                         />
                                     </div>
                                 ) : (

@@ -48,7 +48,7 @@ export default async function BrokerProjectsPage() {
                                     <img
                                         src={project.image_url}
                                         alt={project.name}
-                                        className="object-cover w-full h-full"
+                                        className="object-contain w-full h-full"
                                     />
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center text-slate-300">
