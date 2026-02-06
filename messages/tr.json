@@ -74,7 +74,7 @@
         "button": "DETAYLI BİLGİ İÇİN TIKLAYIN",
         "cards": {
             "crm": {
-                "title": "CRM & Satış Yönetimi",
+                "title": "CRM & Satış",
                 "features": [
                     "Tüm müşteri görüşmeleri tek ekranda",
                     "Otomatik hatırlatmalar ve takip",
@@ -1968,7 +1968,7 @@
         "projectOnlyActivity": "Proje Bazlı Aktivite"
     },
     "CRM": {
-        "title": "CRM & Satış Yönetimi",
+        "title": "CRM & Satış",
         "locale": "tr",
         "searchPlaceholder": "İsim, telefon veya e-posta...",
         "messages": {
