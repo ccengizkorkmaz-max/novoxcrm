@@ -10,7 +10,8 @@ import { createEmployee, updateEmployee } from '../actions'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { toast } from "sonner"
-import { X, Save, ArrowLeft } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
+import { Camera, Loader2, Upload, X, Save, ArrowLeft } from 'lucide-react'
 
 interface EmployeeFormProps {
     initialData?: any
@@ -23,6 +24,7 @@ export default function EmployeeForm({ initialData, managers, users, id }: Emplo
     const t = useTranslations('HR')
     const router = useRouter()
     const [loading, setLoading] = useState(false)
+    const [isUploading, setIsUploading] = useState(false)
 
     const [formData, setFormData] = useState({
         first_name: initialData?.first_name || '',
@@ -39,6 +41,7 @@ export default function EmployeeForm({ initialData, managers, users, id }: Emplo
         region: initialData?.region || '',
         profile_id: initialData?.profile_id || null,
         status: initialData?.status || 'Active',
+        photo_url: initialData?.photo_url || '',
         assets: initialData?.assets || {
             laptop: false,
             car: false,
@@ -46,6 +49,37 @@ export default function EmployeeForm({ initialData, managers, users, id }: Emplo
             peripherals: false
         }
     })
+
+    const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        setIsUploading(true)
+        try {
+            const supabase = createClient()
+            const fileExt = file.name.split('.').pop()
+            const fileName = `${Date.now()}.${fileExt}`
+            const filePath = `photos/${fileName}`
+
+            const { error: uploadError } = await supabase.storage
+                .from('hr-documents')
+                .upload(filePath, file)
+
+            if (uploadError) throw uploadError
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('hr-documents')
+                .getPublicUrl(filePath)
+
+            setFormData({ ...formData, photo_url: publicUrl })
+            toast.success(t('messages.successUpdate'))
+        } catch (error: any) {
+            console.error(error)
+            toast.error(error.message || t('messages.error'))
+        } finally {
+            setIsUploading(false)
+        }
+    }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -95,6 +129,41 @@ export default function EmployeeForm({ initialData, managers, users, id }: Emplo
                         <CardDescription>Temel kimlik ve iletişim bilgileri</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
+                        <div className="flex flex-col items-center gap-4 py-4 border-b">
+                            <div className="relative group">
+                                <div className="h-24 w-24 rounded-full bg-muted flex items-center justify-center overflow-hidden border-2 border-dashed border-muted-foreground/25 group-hover:border-primary/50 transition-colors">
+                                    {formData.photo_url ? (
+                                        <img src={formData.photo_url} alt="Staff" className="h-full w-full object-cover" />
+                                    ) : (
+                                        <Camera className="h-8 w-8 text-muted-foreground" />
+                                    )}
+                                    {isUploading && (
+                                        <div className="absolute inset-0 bg-background/50 flex items-center justify-center">
+                                            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                                        </div>
+                                    )}
+                                </div>
+                                <label
+                                    htmlFor="photo-upload"
+                                    className="absolute -bottom-1 -right-1 h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center cursor-pointer hover:bg-primary/90 shadow-md transition-all scale-90 group-hover:scale-100"
+                                >
+                                    <Upload className="h-4 w-4" />
+                                    <input
+                                        id="photo-upload"
+                                        type="file"
+                                        accept="image/*"
+                                        className="hidden"
+                                        onChange={handlePhotoUpload}
+                                        disabled={isUploading}
+                                    />
+                                </label>
+                            </div>
+                            <div className="text-center">
+                                <p className="text-sm font-medium">{t('form.photo')}</p>
+                                <p className="text-xs text-muted-foreground">{formData.photo_url ? t('form.changePhoto') : t('form.selectPhoto')}</p>
+                            </div>
+                        </div>
+
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="first_name">{t('form.firstName')} *</Label>

@@ -103,8 +103,12 @@ export default function EmployeeList({ employees, totalRecords, initialPage }: E
                                 <TableRow key={employee.id} className="cursor-pointer hover:bg-muted/30" onClick={() => router.push(`${pathname}/${employee.id}`)}>
                                     <TableCell>
                                         <div className="flex items-center gap-3">
-                                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
-                                                <User className="h-4 w-4 text-muted-foreground" />
+                                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted overflow-hidden border">
+                                                {employee.photo_url ? (
+                                                    <img src={employee.photo_url} alt="" className="h-full w-full object-cover" />
+                                                ) : (
+                                                    <User className="h-5 w-5 text-muted-foreground" />
+                                                )}
                                             </div>
                                             <div className="flex flex-col">
                                                 <span className="font-medium">{employee.first_name} {employee.last_name}</span>

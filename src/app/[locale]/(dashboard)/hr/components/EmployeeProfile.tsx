@@ -54,8 +54,12 @@ export default function EmployeeProfile({ employee, documents }: EmployeeProfile
             <div className="flex flex-col md:flex-row gap-6">
                 <Card className="w-full md:w-[300px] h-fit">
                     <CardContent className="pt-6 flex flex-col items-center text-center">
-                        <div className="flex h-24 w-24 mb-4 items-center justify-center rounded-full bg-muted">
-                            <User className="h-12 w-12 text-muted-foreground" />
+                        <div className="flex h-24 w-24 mb-4 items-center justify-center rounded-full bg-muted overflow-hidden border">
+                            {employee.photo_url ? (
+                                <img src={employee.photo_url} alt="" className="h-full w-full object-cover" />
+                            ) : (
+                                <User className="h-12 w-12 text-muted-foreground" />
+                            )}
                         </div>
                         <h2 className="text-xl font-bold">{employee.first_name} {employee.last_name}</h2>
                         <p className="text-sm text-muted-foreground mb-4">{employee.department || '-'}</p>

@@ -2169,7 +2169,11 @@
             "assetsLabel": "Zimmetli Varlıklar (Teslim Edilen)",
             "status": "Durum",
             "currency": "Para Birimi",
-            "terminationDate": "İşten Ayrılış Tarihi"
+            "terminationDate": "İşten Ayrılış Tarihi",
+            "photo": "Personel Fotoğrafı",
+            "changePhoto": "Fotoğrafı Değiştir",
+            "selectPhoto": "Fotoğraf Seç",
+            "uploading": "Yükleniyor..."
         },
         "assets": {
             "laptop": "Laptop",
