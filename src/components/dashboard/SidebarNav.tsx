@@ -207,12 +207,7 @@ export function SidebarNav({ onElementClick }: { onElementClick?: () => void }) 
                 </>
             )}
 
-            {/* Settings: Owner & Admin Only within Sidebar */}
-            {(isOwner || role === 'admin') && (
-                <NavItem href="/settings" icon={Settings2} onClick={onElementClick}>
-                    {t('settings')}
-                </NavItem>
-            )}
+
         </nav>
     )
 }
