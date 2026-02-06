@@ -22,16 +22,24 @@ interface MatchUnitDialogProps {
     currentUnitId?: string | null
     availableUnits: any[]
     customerName: string
+    projects?: any[]
 }
 
-export default function MatchUnitDialog({ saleId, currentUnitId, availableUnits, customerName }: MatchUnitDialogProps) {
+export default function MatchUnitDialog({ saleId, currentUnitId, availableUnits, customerName, projects: projectsProp }: MatchUnitDialogProps) {
     const t = useTranslations('CRM.matchUnit')
     const [isOpen, setIsOpen] = useState(false)
     const [selectedProjectId, setSelectedProjectId] = useState("")
     const [selectedUnitId, setSelectedUnitId] = useState(currentUnitId || "")
 
-    // Extract unique projects from available units
+    // Extract unique projects from available units OR use passed string
     const projects = useMemo(() => {
+        if (projectsProp && projectsProp.length > 0) {
+            return projectsProp.map(p => ({
+                value: p.id,
+                label: p.name
+            }))
+        }
+
         const projectMap = new Map()
         availableUnits.forEach(u => {
             if (u.projects && !projectMap.has(u.projects.id)) {
@@ -42,7 +50,7 @@ export default function MatchUnitDialog({ saleId, currentUnitId, availableUnits,
             value: id,
             label: name
         }))
-    }, [availableUnits])
+    }, [availableUnits, projectsProp])
 
     // Filter units based on selected project
     const filteredUnits = useMemo(() => {

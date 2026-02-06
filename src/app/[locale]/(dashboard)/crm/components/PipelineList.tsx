@@ -54,7 +54,8 @@ export default function PipelineList({
     totalSalesCount = 0,
     initialPage = 1,
     isAdmin = false,
-    profiles = []
+    profiles = [],
+    projects = []
 }: {
     sales: any[],
     customers: any[],
@@ -63,7 +64,8 @@ export default function PipelineList({
     totalSalesCount?: number,
     initialPage?: number,
     isAdmin?: boolean,
-    profiles?: any[]
+    profiles?: any[],
+    projects?: any[]
 }) {
     const t = useTranslations('CRM')
     const locale = useLocale()
@@ -646,6 +648,7 @@ export default function PipelineList({
                                                             currentUnitId={sale.unit_id}
                                                             availableUnits={availableUnits}
                                                             customerName={sale.customers?.full_name}
+                                                            projects={projects}
                                                         />
                                                     )}
                                                 </>
