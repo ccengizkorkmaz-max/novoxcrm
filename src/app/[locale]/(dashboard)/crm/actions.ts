@@ -108,6 +108,16 @@ export async function createCustomer(formData: FormData) {
 
     revalidatePath('/crm')
     return { success: true }
+    revalidatePath('/crm')
+    return { success: true }
+}
+
+function mapSourceToCategory(source: string | null): string {
+    if (!source) return 'company'
+    const s = source.toLowerCase()
+    if (s.includes('emlak') || s.includes('agent') || s.includes('broker')) return 'personal_agent'
+    if (s.includes('referans') || s.includes('network') || s.includes('tanıdık') || s.includes('kişisel')) return 'personal'
+    return 'company'
 }
 
 
@@ -199,14 +209,18 @@ export async function createSale(formData: FormData) {
 
     if (!customer_id) return { error: 'Missing customer' }
 
+    const { data: customer } = await supabase.from('customers').select('source').eq('id', customer_id).single()
+    const lead_origin = mapSourceToCategory(customer?.source || null)
+
     // Start a sales process - if unit is matched, it's a Prospect
     const { data: newSaleData, error } = await supabase.from('sales').insert({
         tenant_id: profile?.tenant_id,
         customer_id,
         unit_id: unit_id || null,
-        project_id: project_id || null, // New schema support
+        project_id: project_id || null,
         assigned_to: null,
-        status: unit_id ? 'Prospect' : 'Lead'
+        status: unit_id ? 'Prospect' : 'Lead',
+        // lead_origin // TODO: Uncomment after DB migration
     }).select().single()
 
     if (error) {
@@ -548,7 +562,10 @@ export async function approveNegotiation(negotiationId: string, depositAmount: n
         if (saleFetchError) return { error: 'Satış kaydı bulunamadı' }
 
         if (sale) {
-            const { error: saleUpdateError } = await supabase.from('sales').update({ status: 'Teklif - Kapora Bekleniyor' }).eq('id', sale.id)
+            const { error: saleUpdateError } = await supabase.from('sales').update({
+                status: 'Teklif - Kapora Bekleniyor',
+                // payment_mode: neg.proposed_payment_plan?.installments?.length > 1 ? 'term' : 'cash' // TODO: Uncomment after DB migration
+            }).eq('id', sale.id)
             if (saleUpdateError) return { error: saleUpdateError.message }
 
             // Create Deposit Record
