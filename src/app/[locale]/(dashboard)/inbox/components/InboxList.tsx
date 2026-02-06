@@ -1,3 +1,5 @@
+'use client'
+
 import React, { useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import { useSupabaseRealtime } from '@/hooks/useSupabaseRealtime'
