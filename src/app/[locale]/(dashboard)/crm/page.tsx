@@ -100,7 +100,7 @@ export default async function CRMPage(props: { searchParams: Promise<{ [key: str
             <div className="sticky top-0 z-30 bg-background/95 backdrop-blur pb-2 pt-1 border-b mb-2">
                 <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-4 px-1">
-                        <h1 className="text-xl md:text-2xl font-bold tracking-tight">{t('title')}</h1>
+                        <h1 className="text-xl md:text-2xl font-bold tracking-tight whitespace-nowrap">{t('title')}</h1>
                         <CRMFilterSheet
                             projects={projectsData || []}
                             profiles={profilesData || []}
