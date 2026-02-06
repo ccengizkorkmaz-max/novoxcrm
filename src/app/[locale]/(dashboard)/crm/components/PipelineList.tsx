@@ -30,6 +30,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 
 
 import { useTranslations, useLocale } from 'next-intl'
+import { useSupabaseRealtime } from '@/hooks/useSupabaseRealtime'
 
 export default function PipelineList({
     sales,
@@ -63,6 +64,9 @@ export default function PipelineList({
     const itemsPerPage = 50
     const router = useRouter()
     const searchParams = useSearchParams()
+
+    // Real-time updates
+    useSupabaseRealtime({ table: 'sales' })
 
     // Resizable Columns State
     const [colWidths, setColWidths] = useState<Record<string, number>>({

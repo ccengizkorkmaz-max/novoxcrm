@@ -1,7 +1,6 @@
-'use client'
-
 import React, { useState } from 'react'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
+import { useSupabaseRealtime } from '@/hooks/useSupabaseRealtime'
 import toast from 'react-hot-toast'
 import {
     Mail,
@@ -30,7 +29,6 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { format } from 'date-fns'
 import { tr, enUS } from 'date-fns/locale'
-import { useLocale } from 'next-intl'
 
 interface InboxItem {
     id: string
@@ -54,6 +52,9 @@ export function InboxList({ initialItems }: InboxListProps) {
     const [viewingItem, setViewingItem] = useState<InboxItem | null>(null)
     const [approving, setApproving] = useState(false)
     const [rejecting, setRejecting] = useState(false)
+
+    // Real-time updates
+    useSupabaseRealtime({ table: 'inbox_items' })
 
     // Editable fields
     const [editName, setEditName] = useState('')
@@ -101,7 +102,6 @@ export function InboxList({ initialItems }: InboxListProps) {
         if (result.success) {
             toast.success('Lead CRM\'e başarıyla eklendi!')
             setViewingItem(null)
-            window.location.reload()
         } else {
             toast.error(result.error || 'Bilinmeyen hata')
         }
@@ -120,7 +120,6 @@ export function InboxList({ initialItems }: InboxListProps) {
         if (result.success) {
             toast.success('Kayıt reddedildi')
             setViewingItem(null)
-            window.location.reload()
         } else {
             toast.error(result.error || 'Bilinmeyen hata')
         }
