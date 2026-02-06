@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { createEmployee, updateEmployee } from '../actions'
+import { createEmployee, updateEmployee, uploadEmployeePhoto } from '../actions'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { toast } from "sonner"
@@ -25,6 +25,11 @@ export default function EmployeeForm({ initialData, managers, users, id }: Emplo
     const router = useRouter()
     const [loading, setLoading] = useState(false)
     const [isUploading, setIsUploading] = useState(false)
+    const [mounted, setMounted] = React.useState(false)
+
+    React.useEffect(() => {
+        setMounted(true)
+    }, [])
 
     const [formData, setFormData] = useState({
         first_name: initialData?.first_name || '',
@@ -56,20 +61,10 @@ export default function EmployeeForm({ initialData, managers, users, id }: Emplo
 
         setIsUploading(true)
         try {
-            const supabase = createClient()
-            const fileExt = file.name.split('.').pop()
-            const fileName = `${Date.now()}.${fileExt}`
-            const filePath = `photos/${fileName}`
+            const uploadData = new FormData()
+            uploadData.append('file', file)
 
-            const { error: uploadError } = await supabase.storage
-                .from('hr-documents')
-                .upload(filePath, file)
-
-            if (uploadError) throw uploadError
-
-            const { data: { publicUrl } } = supabase.storage
-                .from('hr-documents')
-                .getPublicUrl(filePath)
+            const publicUrl = await uploadEmployeePhoto(uploadData)
 
             setFormData({ ...formData, photo_url: publicUrl })
             toast.success(t('messages.successUpdate'))
@@ -108,6 +103,8 @@ export default function EmployeeForm({ initialData, managers, users, id }: Emplo
             setLoading(false)
         }
     }
+
+    if (!mounted) return null
 
     return (
         <form onSubmit={handleSubmit} className="space-y-6">
