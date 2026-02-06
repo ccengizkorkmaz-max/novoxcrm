@@ -6,7 +6,7 @@ import { startOfMonth, format } from 'date-fns'
 export async function getCommissionStats() {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { error: 'Unauthorized' }
+    if (!user) return { totalEarned: 0, pending: 0, thisMonth: 0, count: 0 }
 
     // Check role for filtering logic (RLS handles exact data, but good to know context)
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
