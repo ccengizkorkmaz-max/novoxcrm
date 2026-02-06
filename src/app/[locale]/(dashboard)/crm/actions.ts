@@ -659,7 +659,10 @@ export async function unmatchUnitFromSale(saleId: string) {
         .from('sales')
         .update({
             unit_id: null,
-            status: newStatus
+            status: newStatus,
+            final_price: null,
+            deposit_amount: 0,
+            currency: 'TRY'
         })
         .eq('id', saleId)
 

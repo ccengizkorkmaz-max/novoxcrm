@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Building2, Users, CreditCard, Activity, ArrowUpRight } from 'lucide-react'
+import { Building2, Users, CreditCard, Activity, ArrowUpRight, Briefcase } from 'lucide-react'
 import { DashboardCharts } from '@/components/dashboard/dashboard-charts'
 import { formatCurrency } from '@/lib/utils'
 import { DashboardGeneralStats } from '@/components/dashboard-general-stats'
@@ -169,6 +169,16 @@ async function getDashboardStats(t: any, locale: string) {
     .order('created_at', { ascending: false })
     .limit(5)
 
+  // 7. HR Stats
+  const { count: totalEmployees } = await supabase
+    .from('employees')
+    .select('*', { count: 'exact', head: true })
+
+  const { count: activeEmployees } = await supabase
+    .from('employees')
+    .select('*', { count: 'exact', head: true })
+    .eq('status', 'Active')
+
   return {
     activeProjects: activeProjects || 0,
     availableUnits: availableUnits || 0,
@@ -183,6 +193,10 @@ async function getDashboardStats(t: any, locale: string) {
       sold: soldUnits || 0,
       reserved: reservedUnits || 0,
       offers: activeOffers || 0
+    },
+    hrStats: {
+      total: totalEmployees || 0,
+      active: activeEmployees || 0
     }
   }
 }
@@ -241,6 +255,16 @@ export default async function DashboardPage({ params }: { params: { locale: stri
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalCustomers}</div>
             <p className="text-xs text-muted-foreground">{t('kpi.registeredCustomers')}</p>
+          </CardContent>
+        </Card>
+        <Card className="border-none shadow-sm bg-card/50 backdrop-blur-sm">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">{t('kpi.personnel')}</CardTitle>
+            <Briefcase className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.hrStats?.total || 0}</div>
+            <p className="text-xs text-muted-foreground">{stats.hrStats?.active || 0} {t('kpi.activeStaff')}</p>
           </CardContent>
         </Card>
       </div>

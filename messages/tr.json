@@ -381,7 +381,9 @@
             "unitsForSale": "Satılık Üniteler",
             "totalStock": "Stoktaki toplam bağımsız ünite",
             "customers": "Müşteriler",
-            "registeredCustomers": "Sistemde kayıtlı müşteriler"
+            "registeredCustomers": "Sistemde kayıtlı müşteriler",
+            "personnel": "Personel & İK",
+            "activeStaff": "Aktif Çalışan"
         },
         "stats": {
             "totalStock": "Toplam Stok",
@@ -462,7 +464,8 @@
             "empty": "Henüz bir e-posta bulunmuyor.",
             "viewMessage": "Mesajı Gör",
             "messageDetails": "Mesaj Detayları"
-        }
+        },
+        "hr": "İK (Personel Yönetimi)"
     },
     "Projects": {
         "title": "Projeler",
@@ -2114,5 +2117,81 @@
             "statusPending": "Kapora Bekleniyor",
             "cancel": "Vazgeç"
         }
+    },
+    "HR": {
+        "title": "İK (Personel Yönetimi)",
+        "description": "Şirket personeli, özlük dosyaları ve zimmet yönetimi.",
+        "newEmployee": "Yeni Personel Ekle",
+        "stats": {
+            "total": "Toplam Personel",
+            "active": "Aktif Çalışan",
+            "passive": "Pasif/Ayrılmış"
+        },
+        "table": {
+            "name": "Ad Soyad",
+            "department": "Departman",
+            "role": "Ünvan",
+            "status": "Durum",
+            "actions": {
+                "title": "İşlemler",
+                "edit": "Düzenle"
+            },
+            "sicilNo": "Sicil No",
+            "phone": "Telefon",
+            "empty": "Kayıtlı personel bulunmuyor."
+        },
+        "form": {
+            "personalInfo": "Kişisel Bilgiler",
+            "jobInfo": "İş Bilgileri",
+            "firstName": "Ad",
+            "lastName": "Soyad",
+            "email": "E-posta",
+            "phone": "Telefon",
+            "sicilNo": "Sicil/TC No",
+            "department": "Departman",
+            "role": "Ünvan",
+            "region": "Bölge/Şube",
+            "hireDate": "İşe Giriş Tarihi",
+            "salary": "Maaş/Ücret",
+            "manager": "Bağlı Olduğu Yönetici",
+            "crmUser": "CRM Kullanıcısı Eşleştirme",
+            "active": "Aktif",
+            "passive": "Pasif",
+            "save": "Personel Kaydet",
+            "cancel": "İptal",
+            "selectManager": "Yönetici Seçin...",
+            "selectUser": "CRM Kullanıcısı Seçin...",
+            "uploadPhoto": "Fotoğraf Yükle",
+            "addDocument": "Belge Ekle",
+            "documentName": "Doküman Adı",
+            "file": "Dosya",
+            "noDocuments": "Henüz belge eklenmemiş.",
+            "assetsLabel": "Zimmetli Varlıklar (Teslim Edilen)",
+            "status": "Durum",
+            "currency": "Para Birimi",
+            "terminationDate": "İşten Ayrılış Tarihi"
+        },
+        "assets": {
+            "laptop": "Laptop",
+            "car": "Araç",
+            "phone": "Telefon ve Hat",
+            "peripherals": "Laptop çantası+mouse"
+        },
+        "messages": {
+            "successCreate": "Personel kaydı başarıyla oluşturuldu.",
+            "successUpdate": "Personel bilgileri güncellendi.",
+            "successDelete": "Personel kaydı silindi.",
+            "confirmDelete": "Bu personeli silmek istediğinize emin misiniz? Bu işlem geri alınamaz.",
+            "error": "Bir hata oluştu."
+        },
+        "tabs": {
+            "personal": "Özlük Bilgileri",
+            "assets": "Zimmetli Varlıklar",
+            "documents": "Dokümanlar"
+        },
+        "searchPlaceholder": "Personel ara...",
+        "noEmployees": "Henüz personel kaydı bulunmuyor.",
+        "addFirst": "İlk personeli ekleyerek başlayın.",
+        "status": "Durum"
     }
 }

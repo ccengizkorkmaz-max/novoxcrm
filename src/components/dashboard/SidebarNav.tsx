@@ -23,7 +23,8 @@ import {
     ChevronDown,
     Clock,
     Zap,
-    Mail
+    Mail,
+    Briefcase
 } from 'lucide-react'
 import {
     Accordion,
@@ -133,6 +134,11 @@ export function SidebarNav({ onElementClick }: { onElementClick?: () => void }) 
             <NavItem href="/activities" icon={CalendarCheck} onClick={onElementClick}>
                 {t('activities')}
             </NavItem>
+            {isManager && (
+                <NavItem href="/hr" icon={Briefcase} onClick={onElementClick}>
+                    {t('hr')}
+                </NavItem>
+            )}
             <NavItem href="/customer-support" icon={MessageSquare} onClick={onElementClick}>
                 {t('serviceRequests')}
             </NavItem>
