@@ -207,10 +207,12 @@ export function SidebarNav({ onElementClick }: { onElementClick?: () => void }) 
                 </>
             )}
 
-            {/* Settings: Owner Only (Or Manager but limited, here we hide top level settings link if exists, 
-                usually settings is in user menu but if it's here: )*/}
-            {/* Sidebar typically doesn't have settings, it's in the footer or user menu. 
-                 But if we added one, we'd guard it here. */}
+            {/* Settings: Owner & Admin Only within Sidebar */}
+            {(isOwner || role === 'admin') && (
+                <NavItem href="/settings" icon={Settings2} onClick={onElementClick}>
+                    {t('settings')}
+                </NavItem>
+            )}
         </nav>
     )
 }
