@@ -131,6 +131,9 @@ export function SidebarNav({ onElementClick }: { onElementClick?: () => void }) 
             <NavItem href="/finance/deposits" icon={Banknote} onClick={onElementClick}>
                 {t('deposits')}
             </NavItem>
+            <NavItem href="/commissions" icon={Trophy} onClick={onElementClick}>
+                Primler
+            </NavItem>
             <NavItem href="/activities" icon={CalendarCheck} onClick={onElementClick}>
                 {t('activities')}
             </NavItem>
