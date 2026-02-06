@@ -220,7 +220,7 @@ export async function createSale(formData: FormData) {
         project_id: project_id || null,
         assigned_to: null,
         status: unit_id ? 'Prospect' : 'Lead',
-        // lead_origin // TODO: Uncomment after DB migration
+        lead_origin // Set calculated origin
     }).select().single()
 
     if (error) {
@@ -564,7 +564,7 @@ export async function approveNegotiation(negotiationId: string, depositAmount: n
         if (sale) {
             const { error: saleUpdateError } = await supabase.from('sales').update({
                 status: 'Teklif - Kapora Bekleniyor',
-                // payment_mode: neg.proposed_payment_plan?.installments?.length > 1 ? 'term' : 'cash' // TODO: Uncomment after DB migration
+                payment_mode: neg.proposed_payment_plan?.installments?.length > 1 ? 'term' : 'cash'
             }).eq('id', sale.id)
             if (saleUpdateError) return { error: saleUpdateError.message }
 
