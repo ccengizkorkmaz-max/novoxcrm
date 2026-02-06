@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge'
 import { updateTenantProfile } from './actions'
 import { FormImageUpload } from '@/components/ui/form-image-upload'
-import { Building2, Users, FileText, Database } from 'lucide-react'
+import { Building2, Users, FileText, Database, Banknote } from 'lucide-react'
 import UserManagementHeader from './components/UserManagementHeader'
 import UserTableActions from './components/UserTableActions'
 import TenantProfileForm from './components/TenantProfileForm'
@@ -19,6 +19,7 @@ import DataImportTab from './components/DataImportTab'
 import { PaymentTemplatesTab } from './templates/payment-templates-tab'
 import { getTranslations, getLocale } from 'next-intl/server'
 import UnitTypesTab from './components/UnitTypesTab'
+import CommissionRulesTab from './components/CommissionRulesTab'
 
 export default async function SettingsPage() {
     const supabase = await createClient()
@@ -70,6 +71,12 @@ export default async function SettingsPage() {
         .select('*')
         .order('order_index', { ascending: true })
 
+    // Get Commission Rules
+    const { data: commissionRules } = await supabase
+        .from('commission_rules')
+        .select('*')
+        .order('source_category', { ascending: true })
+
     const getRoleLabel = (role: string) => {
         switch (role) {
             case 'admin': return t('users.roles.admin')
@@ -108,6 +115,10 @@ export default async function SettingsPage() {
                     <TabsTrigger value="data" className="flex-1 md:flex-none py-2.5 px-4 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all">
                         <Database className="w-4 h-4 mr-2" />
                         {t('tabs.data')}
+                    </TabsTrigger>
+                    <TabsTrigger value="commissions" className="flex-1 md:flex-none py-2.5 px-4 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all">
+                        <Banknote className="w-4 h-4 mr-2" />
+                        Primler
                     </TabsTrigger>
                 </TabsList>
 
@@ -162,6 +173,11 @@ export default async function SettingsPage() {
                 {/* Data Management Tab */}
                 <TabsContent value="data" className="space-y-4">
                     <DataImportTab />
+                </TabsContent>
+
+                {/* Commission Rules Tab */}
+                <TabsContent value="commissions" className="space-y-4">
+                    <CommissionRulesTab rules={commissionRules || []} />
                 </TabsContent>
             </Tabs>
         </div>
