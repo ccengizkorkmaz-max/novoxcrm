@@ -14,7 +14,21 @@ import {
 } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Calculator, Sparkles, User, Info, Mail, MessageSquareText, CalendarPlus, Trash, AlertTriangle } from 'lucide-react'
-import { updateSaleStatus, autoAssignLead } from '../actions'
+import { updateSaleStatus, autoAssignLead, assignSale } from '../actions'
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from "@/components/ui/command"
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover"
+import { Pencil } from 'lucide-react'
 import PaymentPlanCalculator from './PaymentPlanCalculator'
 import MatchUnitDialog from './MatchUnitDialog'
 import PipelineReservationDialog from './PipelineReservationDialog'
@@ -47,7 +61,9 @@ export default function PipelineList({
     templates?: any[],
     totalSalesCount?: number,
     initialPage?: number,
-    isAdmin?: boolean
+    initialPage?: number,
+    isAdmin?: boolean,
+    profiles?: any[]
 }) {
     const t = useTranslations('CRM')
     const locale = useLocale()
@@ -55,6 +71,7 @@ export default function PipelineList({
     const [isPlanOpen, setIsPlanOpen] = useState(false)
 
     const [isAssigning, setIsAssigning] = useState<string | null>(null)
+    const [assignPopoverOpen, setAssignPopoverOpen] = useState<string | null>(null)
     const [viewingLead, setViewingLead] = useState<any | null>(null)
     const [editingCustomer, setEditingCustomer] = useState<any | null>(null)
     const [isEditOpen, setIsEditOpen] = useState(false)
@@ -129,6 +146,19 @@ export default function PipelineList({
             toast.error(result.error)
         } else {
             toast.success(t('actions.assigned'))
+        }
+    }
+
+    const handleManualAssign = async (saleId: string, userId: string | null) => {
+        setIsAssigning(saleId)
+        setAssignPopoverOpen(null)
+        const result = await assignSale(saleId, userId)
+        setIsAssigning(null)
+
+        if (result.error) {
+            toast.error(result.error)
+        } else {
+            toast.success(userId ? t('actions.assigned') : 'Atama kaldırıldı')
         }
     }
 
@@ -336,29 +366,89 @@ export default function PipelineList({
                                             <TableCell className="p-4 align-middle border-r border-border/50">
                                                 <div className="flex items-center gap-2">
                                                     {sale.profiles?.full_name ? (
-                                                        <div className="flex items-center gap-2 text-sm bg-muted/30 pl-1 pr-2 py-1 rounded-full border border-transparent hover:border-border transition-colors">
+                                                        <div className="flex items-center gap-2 text-sm bg-muted/30 pl-1 pr-2 py-1 rounded-full border border-transparent hover:border-border transition-colors group/rep">
                                                             <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-primary text-[10px] font-bold">
                                                                 {sale.profiles.full_name.substring(0, 2).toUpperCase()}
                                                             </div>
                                                             <span className="font-medium text-foreground text-xs">{sale.profiles.full_name}</span>
+
+                                                            {isAdmin && (
+                                                                <Popover open={assignPopoverOpen === sale.id} onOpenChange={(open) => setAssignPopoverOpen(open ? sale.id : null)}>
+                                                                    <PopoverTrigger asChild>
+                                                                        <Button variant="ghost" size="icon" className="h-5 w-5 ml-1 text-muted-foreground hover:text-blue-600 opacity-0 group-hover/rep:opacity-100 transition-opacity">
+                                                                            <Pencil className="h-3 w-3" />
+                                                                        </Button>
+                                                                    </PopoverTrigger>
+                                                                    <PopoverContent className="p-0" align="start">
+                                                                        <Command>
+                                                                            <CommandInput placeholder="Temsilci ara..." />
+                                                                            <CommandList>
+                                                                                <CommandEmpty>Temsilci bulunamadı.</CommandEmpty>
+                                                                                <CommandGroup>
+                                                                                    <CommandItem onSelect={() => handleManualAssign(sale.id, null)} className="text-red-600">
+                                                                                        Atamayı Kaldır
+                                                                                    </CommandItem>
+                                                                                    {profiles?.map((profile: any) => (
+                                                                                        <CommandItem
+                                                                                            key={profile.id}
+                                                                                            onSelect={() => handleManualAssign(sale.id, profile.id)}
+                                                                                        >
+                                                                                            {profile.full_name}
+                                                                                        </CommandItem>
+                                                                                    ))}
+                                                                                </CommandGroup>
+                                                                            </CommandList>
+                                                                        </Command>
+                                                                    </PopoverContent>
+                                                                </Popover>
+                                                            )}
                                                         </div>
                                                     ) : (
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            className="h-7 text-blue-600 hover:text-blue-700 hover:bg-blue-50 text-[11px] px-2 border border-blue-200 dashed bg-blue-50/30"
-                                                            onClick={() => handleAutoAssign(sale.id)}
-                                                            disabled={isAssigning === sale.id || !sale.units?.projects?.id}
-                                                            title={!sale.units?.projects?.id ? t('actions.assignError') : t('actions.assignTooltip')}
-                                                        >
-                                                            {isAssigning === sale.id ? (
-                                                                t('actions.assigning')
-                                                            ) : (
-                                                                <>
-                                                                    <Sparkles className="w-3 h-3 mr-1" /> {t('actions.autoAssign')}
-                                                                </>
+                                                        <div className="flex items-center gap-1">
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                className="h-7 text-blue-600 hover:text-blue-700 hover:bg-blue-50 text-[11px] px-2 border border-blue-200 dashed bg-blue-50/30"
+                                                                onClick={() => handleAutoAssign(sale.id)}
+                                                                disabled={isAssigning === sale.id || !sale.units?.projects?.id}
+                                                                title={!sale.units?.projects?.id ? t('actions.assignError') : t('actions.assignTooltip')}
+                                                            >
+                                                                {isAssigning === sale.id ? (
+                                                                    t('actions.assigning')
+                                                                ) : (
+                                                                    <>
+                                                                        <Sparkles className="w-3 h-3 mr-1" /> {t('actions.autoAssign')}
+                                                                    </>
+                                                                )}
+                                                            </Button>
+                                                            {isAdmin && (
+                                                                <Popover open={assignPopoverOpen === sale.id} onOpenChange={(open) => setAssignPopoverOpen(open ? sale.id : null)}>
+                                                                    <PopoverTrigger asChild>
+                                                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-blue-600 border border-transparent hover:border-border rounded-full">
+                                                                            <Pencil className="h-3 w-3" />
+                                                                        </Button>
+                                                                    </PopoverTrigger>
+                                                                    <PopoverContent className="p-0" align="start">
+                                                                        <Command>
+                                                                            <CommandInput placeholder="Temsilci Seç..." />
+                                                                            <CommandList>
+                                                                                <CommandEmpty>Temsilci bulunamadı.</CommandEmpty>
+                                                                                <CommandGroup>
+                                                                                    {profiles?.map((profile: any) => (
+                                                                                        <CommandItem
+                                                                                            key={profile.id}
+                                                                                            onSelect={() => handleManualAssign(sale.id, profile.id)}
+                                                                                        >
+                                                                                            {profile.full_name}
+                                                                                        </CommandItem>
+                                                                                    ))}
+                                                                                </CommandGroup>
+                                                                            </CommandList>
+                                                                        </Command>
+                                                                    </PopoverContent>
+                                                                </Popover>
                                                             )}
-                                                        </Button>
+                                                        </div>
                                                     )}
                                                 </div>
                                             </TableCell>

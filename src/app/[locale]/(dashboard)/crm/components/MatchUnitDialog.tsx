@@ -56,8 +56,9 @@ export default function MatchUnitDialog({ saleId, currentUnitId, availableUnits,
     }, [selectedProjectId, availableUnits])
 
     const handleMatch = async () => {
-        if (!selectedUnitId) return
-        const res = await matchUnitToSale(saleId, selectedUnitId)
+        // Allow match if project is selected. Unit is optional.
+        if (!selectedProjectId) return
+        const res = await matchUnitToSale(saleId, selectedUnitId, selectedProjectId)
         if (res.success) {
             setIsOpen(false)
             toast.success(t('successMatch'))
@@ -132,7 +133,7 @@ export default function MatchUnitDialog({ saleId, currentUnitId, availableUnits,
                     )}
                     <div className="flex gap-2">
                         <Button variant="outline" onClick={() => setIsOpen(false)}>{t('cancel', { defaultValue: 'İptal' })}</Button>
-                        <Button onClick={handleMatch} disabled={!selectedUnitId || selectedUnitId === currentUnitId}>
+                        <Button onClick={handleMatch} disabled={!selectedProjectId}>
                             {t('save', { defaultValue: 'Kaydet' })}
                         </Button>
                     </div>

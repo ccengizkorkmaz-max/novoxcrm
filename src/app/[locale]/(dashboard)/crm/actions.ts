@@ -384,6 +384,44 @@ export async function updateSaleStatus(id: string, status: string) {
     // Broker Sync
     await syncBrokerLeadFromSale(id, status)
 
+    // Broker Sync
+    await syncBrokerLeadFromSale(id, status)
+
+    return { success: true }
+}
+
+export async function assignSale(saleId: string, userId: string | null) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) return { error: 'Unauthorized' }
+
+    // Check Role
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+    const isAdmin = profile?.role === 'admin' || profile?.role === 'owner'
+
+    if (!isAdmin) return { error: 'Bu işlem için yetkiniz yok.' }
+
+    const { error } = await supabase
+        .from('sales')
+        .update({ assigned_to: userId })
+        .eq('id', saleId)
+
+    if (error) {
+        console.error('Assign Sale Error:', error)
+        return { error: 'Atama işlemi başarısız: ' + error.message }
+    }
+
+    revalidatePath('/crm')
+
+    // Broker Sync (if assigned user changed, maybe we trigger sync? Lead info might need update on Broker side if we sync rep name? 
+    // Currently broker sync sends lead status updates. Rep info isn't critical for now but good to sync.)
+    // Let's just sync to be safe.
+    const { data: sale } = await supabase.from('sales').select('status').eq('id', saleId).single()
+    if (sale) {
+        await syncBrokerLeadFromSale(saleId, sale.status || 'Lead')
+    }
+
     return { success: true }
 }
 
@@ -615,28 +653,45 @@ export async function finalizeOffer(offerId: string) {
 
 
 
-export async function matchUnitToSale(saleId: string, unitId: string) {
+export async function matchUnitToSale(saleId: string, unitId: string, projectId?: string) {
     const supabase = await createClient()
 
     const { data: sale } = await supabase.from('sales').select('status').eq('id', saleId).single()
 
-    // If status is 'Lead', promote to 'Prospect' (Fırsat)
-    // We promote anything below Prospect to Prospect when a unit is matched.
-    const promotableStatuses = ['Lead']
-    const newStatus = promotableStatuses.includes(sale?.status || '') ? 'Prospect' : sale?.status
+    // Status Logics:
+    // If unitId is provided (Match Unit) -> Promote to Prospect (if lower status)
+    // If unitId is empty (Project match only) -> Keep status OR if previously matched to unit and now unmatching unit but keeping project? -> Revert?
+    // Let's assume for Project Match we just keep current status if it's 'Lead'.
 
+    let newStatus = sale?.status
+
+    if (unitId) {
+        const promotableStatuses = ['Lead']
+        newStatus = promotableStatuses.includes(sale?.status || '') ? 'Prospect' : sale?.status
+    } else {
+        // If unmatching unit (or just matching project), and status was Prospect (due to unit match?), should we revert?
+        // Typically project match is weaker than unit match. 
+        // If we move from Unit Match (Prospect) to Project Match (Lead), we might want to downgrade.
+        // But let's stick to safe logic: if currently Prospect and we remove unit, maybe go back to Lead?
+        // Let's rely on standard flow: Project Match usually happens at Lead stage.
+        // If we remove unit, we might default to Lead if it was Prospect.
+        if (sale?.status === 'Prospect' && !unitId) {
+            newStatus = 'Lead'
+        }
+    }
 
     const { error } = await supabase
         .from('sales')
         .update({
-            unit_id: unitId,
+            unit_id: unitId || null,
+            project_id: projectId || null,
             status: newStatus
         })
         .eq('id', saleId)
 
     if (error) {
         console.error('Match Unit Error:', error)
-        return { error: 'Failed to match unit' }
+        return { error: 'Failed to match unit/project' }
     }
 
     revalidatePath('/crm')

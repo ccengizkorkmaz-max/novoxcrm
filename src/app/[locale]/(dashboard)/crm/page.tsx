@@ -132,6 +132,7 @@ export default async function CRMPage(props: { searchParams: Promise<{ [key: str
                 customers={customers || []}
                 availableUnits={availableUnits || []}
                 templates={templates || []}
+                profiles={profilesData || []}
                 totalSalesCount={totalSalesCount}
                 initialPage={page}
                 isAdmin={isAdmin}
