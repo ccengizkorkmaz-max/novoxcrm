@@ -220,7 +220,11 @@ export async function getFinancialAccounts() {
 
     const { data, error } = await supabase
         .from('financial_accounts')
-        .select('*')
+        .select(`
+            *,
+            project:projects(name),
+            unit:units(block, unit_number)
+        `)
         .order('account_name', { ascending: true })
 
     if (error) {
@@ -263,7 +267,10 @@ export async function createTransaction(params: {
     description: string,
     currency?: string,
     reference_type?: string,
-    reference_id?: string
+    reference_id?: string,
+    project_id?: string,
+    unit_id?: string,
+    contract_id?: string
 }) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -283,6 +290,9 @@ export async function createTransaction(params: {
             transaction_date: new Date().toISOString(),
             reference_type: params.reference_type || 'Manual',
             reference_id: params.reference_id,
+            project_id: params.project_id,
+            unit_id: params.unit_id,
+            contract_id: params.contract_id,
             created_by: user.id
         })
 
@@ -304,7 +314,9 @@ export async function getValuablePapers() {
         .from('valuable_papers')
         .select(`
             *,
-            customers ( full_name )
+            customers ( full_name ),
+            project:projects(name),
+            unit:units(block, unit_number)
         `)
         .order('due_date', { ascending: true })
 
@@ -345,7 +357,9 @@ export async function ensureFinancialAccount(params: {
     employee_id?: string,
     profile_id?: string,
     account_name: string,
-    tenant_id: string
+    tenant_id: string,
+    project_id?: string,
+    unit_id?: string
 }) {
     const supabase = await createClient()
 
@@ -368,7 +382,9 @@ export async function ensureFinancialAccount(params: {
             customer_id: params.customer_id,
             employee_id: params.employee_id,
             profile_id: params.profile_id,
-            account_name: params.account_name
+            account_name: params.account_name,
+            project_id: params.project_id,
+            unit_id: params.unit_id
         })
         .select('id')
         .single()
@@ -386,7 +402,12 @@ export async function createFinancialAccount(params: {
     account_code?: string,
     customer_id?: string,
     employee_id?: string,
-    profile_id?: string
+    profile_id?: string,
+    tax_no?: string,
+    address?: string,
+    project_id?: string,
+    unit_id?: string,
+    risk_limit?: number
 }) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -403,7 +424,12 @@ export async function createFinancialAccount(params: {
             owner_type: params.owner_type,
             customer_id: params.customer_id,
             employee_id: params.employee_id,
-            profile_id: params.profile_id
+            profile_id: params.profile_id,
+            tax_no: params.tax_no,
+            address: params.address,
+            project_id: params.project_id,
+            unit_id: params.unit_id,
+            risk_limit: params.risk_limit
         })
 
     if (error) {
@@ -426,7 +452,11 @@ export async function createValuablePaper(params: {
     due_date: string,
     issue_number?: string,
     bank_name?: string,
-    description?: string
+    description?: string,
+    direction?: 'Alınan' | 'Verilen',
+    issuer?: string,
+    project_id?: string,
+    unit_id?: string
 }) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -446,7 +476,11 @@ export async function createValuablePaper(params: {
             issue_number: params.issue_number,
             bank_name: params.bank_name,
             description: params.description,
-            status: 'Portfolio',
+            direction: params.direction || 'Alınan',
+            issuer: params.issuer,
+            project_id: params.project_id,
+            unit_id: params.unit_id,
+            status: 'Portföyde',
             created_by: user.id
         })
 
@@ -457,4 +491,145 @@ export async function createValuablePaper(params: {
 
     revalidatePath('/finance')
     return { success: true }
+}
+
+/**
+ * Fetches aggregated statistics for the finance dashboard.
+ */
+export async function getFinanceDashboardStats() {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return null
+
+    const today = new Date().toISOString().split('T')[0]
+    const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]
+
+    // 1. Total Receivables / Payables from Accounts
+    const { data: accounts } = await supabase.from('financial_accounts').select('balance')
+    const totalAlacak = accounts?.reduce((acc, curr) => curr.balance > 0 ? acc + Number(curr.balance) : acc, 0) || 0
+    const totalBorc = Math.abs(accounts?.reduce((acc, curr) => curr.balance < 0 ? acc + Number(curr.balance) : acc, 0) || 0)
+
+    // 2. Valuable Papers Stats
+    const { data: papers } = await supabase.from('valuable_papers')
+        .select('amount, due_date, status, paper_type')
+        .eq('status', 'Portföyde')
+
+    const portfolioTotal = papers?.reduce((acc, curr) => acc + Number(curr.amount), 0) || 0
+    const overduePapers = papers?.filter(p => p.due_date < today).reduce((acc, curr) => acc + Number(curr.amount), 0) || 0
+
+    // 3. Overdue Collections from Payment Items (CRM)
+    const { data: paymentItems } = await supabase.from('payment_items')
+        .select('amount, due_date, status')
+        .neq('status', 'Paid')
+        .lt('due_date', today)
+
+    const overdueCrmItems = paymentItems?.reduce((acc, curr) => acc + Number(curr.amount), 0) || 0
+
+    // 4. This Month's Collections (Transactions)
+    const { data: transactions } = await supabase.from('finance_transactions')
+        .select('amount, type, project_id, projects(name)')
+        .gte('transaction_date', startOfMonth)
+        .eq('type', 'Credit')
+
+    const collectionsThisMonth = transactions?.reduce((acc, curr) => acc + Number(curr.amount), 0) || 0
+
+    // 5. Project Based Collections
+    const projectCollections: Record<string, number> = {}
+    transactions?.forEach(tx => {
+        const projName = (tx.projects as any)?.name || 'Diğer'
+        projectCollections[projName] = (projectCollections[projName] || 0) + Number(tx.amount)
+    })
+
+    const projectData = Object.entries(projectCollections).map(([name, value]) => ({ name, value }))
+
+    return {
+        totalAlacak,
+        totalBorc,
+        portfolioTotal,
+        overdueItems: overduePapers + overdueCrmItems,
+        collectionsThisMonth,
+        projectData,
+        paperCount: papers?.length || 0
+    }
+}
+
+/**
+ * Fetches data for the Aging Report (Receivables analysis).
+ */
+export async function getAgingReport() {
+    const supabase = await createClient()
+    const today = new Date()
+
+    // Get overdue payment items from CRM
+    const { data: paymentItems } = await supabase.from('payment_items')
+        .select(`
+            amount, 
+            due_date, 
+            status,
+            payment_plans (
+                sales (
+                    customers ( full_name ),
+                    project:projects(name),
+                    unit:units(block, unit_number)
+                )
+            )
+        `)
+        .neq('status', 'Paid')
+        .lt('due_date', today.toISOString())
+        .order('due_date')
+
+    // Get overdue valuable papers
+    const { data: papers } = await supabase.from('valuable_papers')
+        .select(`
+            amount, 
+            due_date, 
+            status,
+            customers ( full_name ),
+            project:projects(name),
+            unit:units(block, unit_number)
+        `)
+        .eq('status', 'Portföyde')
+        .lt('due_date', today.toISOString())
+        .order('due_date')
+
+    const agingData = [
+        ...(paymentItems?.map(item => {
+            const dueDate = new Date(item.due_date)
+            const diffDays = Math.ceil((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24))
+            const plan = Array.isArray(item.payment_plans) ? item.payment_plans[0] : item.payment_plans
+            const sale = Array.isArray(plan?.sales) ? plan?.sales[0] : plan?.sales
+            return {
+                id: `crm-${(item as any).id}`,
+                customer: sale?.customers?.full_name || 'Bilinmiyor',
+                project: sale?.project?.name,
+                unit: sale?.unit ? `${sale.unit.block}-${sale.unit.unit_number}` : '',
+                amount: Number(item.amount),
+                due_date: item.due_date,
+                delay_days: diffDays,
+                type: 'Ödeme Planı'
+            }
+        }) || []),
+        ...(papers?.map(paper => {
+            const dueDate = new Date(paper.due_date)
+            const diffDays = Math.ceil((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24))
+            const customer = Array.isArray(paper.customers) ? paper.customers[0] : paper.customers
+            const project = Array.isArray(paper.project) ? paper.project[0] : paper.project
+            const unit = Array.isArray(paper.unit) ? paper.unit[0] : paper.unit
+            return {
+                id: `paper-${(paper as any).id}`,
+                customer: customer?.full_name || 'Bilinmiyor',
+                project: project?.name,
+                unit: unit ? `${unit.block}-${unit.unit_number}` : '',
+                amount: Number(paper.amount),
+                due_date: paper.due_date,
+                delay_days: diffDays,
+                type: 'Çek/Senet'
+            }
+        }) || [])
+    ]
+
+    // Sort by delay (most delayed first)
+    agingData.sort((a, b) => b.delay_days - a.delay_days)
+
+    return agingData
 }

@@ -718,7 +718,9 @@ export async function finalizeOffer(offerId: string) {
                 owner_type: 'Customer',
                 customer_id: offer.customer_id,
                 account_name: 'Customer Account',
-                tenant_id: offer.tenant_id
+                tenant_id: offer.tenant_id,
+                project_id: offer.project_id,
+                unit_id: offer.unit_id
             });
 
             await createTransaction({
@@ -728,7 +730,10 @@ export async function finalizeOffer(offerId: string) {
                 currency: offer.currency,
                 description: `Satış Sözleşmesi (${contract.contract_number})`,
                 reference_type: 'Sale',
-                reference_id: sale.id
+                reference_id: sale.id,
+                project_id: offer.project_id,
+                unit_id: offer.unit_id,
+                contract_id: contract.id
             });
 
             // 8. Finance Integration: Auto-create Valuable Papers from Payment Plan
@@ -742,7 +747,9 @@ export async function finalizeOffer(offerId: string) {
                             amount: item.amount,
                             currency: item.currency || offer.currency,
                             due_date: item.due_date,
-                            description: `${item.description} (${contract.contract_number})`
+                            description: `${item.description} (${contract.contract_number})`,
+                            project_id: offer.project_id,
+                            unit_id: offer.unit_id
                         });
                     }
                 }

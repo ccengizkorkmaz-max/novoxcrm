@@ -65,8 +65,10 @@ export default function AccountsTable({ accounts }: AccountsTableProps) {
                 <Table>
                     <TableHeader>
                         <TableRow className="bg-slate-50">
-                            <TableHead className="w-[300px]">Hesap Adı</TableHead>
+                            <TableHead className="w-[250px]">Cari Hesap / Ünvan</TableHead>
                             <TableHead>Tür</TableHead>
+                            <TableHead>Proje / Ünite</TableHead>
+                            <TableHead>Vergi / TC</TableHead>
                             <TableHead className="text-right">Bakiye</TableHead>
                             <TableHead className="text-right">İşlemler</TableHead>
                         </TableRow>
@@ -85,15 +87,29 @@ export default function AccountsTable({ accounts }: AccountsTableProps) {
                                         <Badge variant="outline" className="text-[10px] uppercase">
                                             {acc.owner_type === 'Customer' ? 'Müşteri' :
                                                 acc.owner_type === 'Employee' ? 'Personel' :
-                                                    acc.owner_type === 'Broker' ? 'Broker' : acc.owner_type}
+                                                    acc.owner_type === 'Broker' ? 'Broker' :
+                                                        acc.owner_type === 'Tedarikçi' ? 'Tedarikçi' : acc.owner_type}
                                         </Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                        {acc.project?.name ? (
+                                            <div className="flex flex-col text-[11px]">
+                                                <span className="font-medium">{acc.project.name}</span>
+                                                {acc.unit && <span className="text-muted-foreground">{acc.unit.block} - {acc.unit.unit_number}</span>}
+                                            </div>
+                                        ) : (
+                                            <span className="text-muted-foreground">-</span>
+                                        )}
+                                    </TableCell>
+                                    <TableCell className="text-[11px] font-mono">
+                                        {acc.tax_no || '-'}
                                     </TableCell>
                                     <TableCell className={`text-right font-mono font-bold ${acc.balance > 0 ? 'text-emerald-600' : acc.balance < 0 ? 'text-red-600' : ''}`}>
                                         <div className="flex items-center justify-end gap-1">
                                             {acc.balance > 0 && <ArrowUpRight className="h-3 w-3" />}
                                             {acc.balance < 0 && <ArrowDownLeft className="h-3 w-3" />}
                                             {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(Math.abs(acc.balance))}
-                                            <span className="text-[10px] ml-1 text-muted-foreground">{acc.balance > 0 ? '(Alacaklı)' : acc.balance < 0 ? '(Borçlu)' : ''}</span>
+                                            <span className="text-[10px] ml-1 text-muted-foreground">{acc.balance > 0 ? '(A)' : acc.balance < 0 ? '(B)' : ''}</span>
                                         </div>
                                     </TableCell>
                                     <TableCell className="text-right">

@@ -1,6 +1,4 @@
-'use client'
-
-import { useState, useTransition } from 'react'
+import { useState, useEffect, useTransition } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -15,6 +13,7 @@ import {
 import { createTransaction } from '../actions'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 
 interface TransactionFormProps {
     accounts: any[]
@@ -26,6 +25,37 @@ export default function TransactionForm({ accounts }: TransactionFormProps) {
     const [type, setType] = useState<'Debit' | 'Credit'>('Credit')
     const [amount, setAmount] = useState('')
     const [description, setDescription] = useState('')
+    const [projectId, setProjectId] = useState('')
+    const [unitId, setUnitId] = useState('')
+
+    const [projects, setProjects] = useState<any[]>([])
+    const [units, setUnits] = useState<any[]>([])
+
+    const supabase = createClient()
+
+    useEffect(() => {
+        const fetchProjects = async () => {
+            const { data } = await supabase.from('projects').select('id, name').order('name')
+            if (data) setProjects(data)
+        }
+        fetchProjects()
+    }, [supabase])
+
+    useEffect(() => {
+        const fetchUnits = async () => {
+            if (!projectId) {
+                setUnits([])
+                return
+            }
+            const { data } = await supabase
+                .from('units')
+                .select('id, unit_number, block')
+                .eq('project_id', projectId)
+                .order('unit_number')
+            if (data) setUnits(data)
+        }
+        fetchUnits()
+    }, [projectId, supabase])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -40,15 +70,18 @@ export default function TransactionForm({ accounts }: TransactionFormProps) {
                 type,
                 amount: parseFloat(amount),
                 description,
-                currency: 'TRY' // Default for now
+                currency: 'TRY',
+                project_id: projectId || undefined,
+                unit_id: unitId || undefined
             })
 
             if (res.success) {
                 toast.success('İşlem başarıyla kaydedildi.')
-                // Reset form
                 setAccountId('')
                 setAmount('')
                 setDescription('')
+                setProjectId('')
+                setUnitId('')
             } else {
                 toast.error(res.error || 'İşlem kaydedilemedi.')
             }
@@ -56,7 +89,7 @@ export default function TransactionForm({ accounts }: TransactionFormProps) {
     }
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-4 p-2">
+        <form onSubmit={handleSubmit} className="space-y-4 p-2 max-h-[85vh] overflow-y-auto px-1">
             <div>
                 <h3 className="text-lg font-bold">Yeni İşlem Kaydı</h3>
                 <p className="text-sm text-muted-foreground">Cari hesap hareketi girişi yapın.</p>
@@ -87,8 +120,8 @@ export default function TransactionForm({ accounts }: TransactionFormProps) {
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="Credit">Alacak (Tahsilat/Gelir)</SelectItem>
-                                <SelectItem value="Debit">Borç (Hakediş/Gider)</SelectItem>
+                                <SelectItem value="Credit">Alacak (Tahsilat / Gelir)</SelectItem>
+                                <SelectItem value="Debit">Borç (Hakediş / Gider)</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -106,6 +139,37 @@ export default function TransactionForm({ accounts }: TransactionFormProps) {
                             />
                             <span className="absolute right-3 top-2.5 text-xs text-muted-foreground font-bold">TRY</span>
                         </div>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                        <Label>İlgili Proje</Label>
+                        <Select value={projectId} onValueChange={(v) => { setProjectId(v); setUnitId(''); }}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Opsiyonel" />
+                            </SelectTrigger>
+                            <SelectContent className="max-h-48">
+                                <SelectItem value="NONE_SELECTED">Seçilmedi</SelectItem>
+                                {projects.map((p) => (
+                                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="grid gap-2">
+                        <Label>İlgili Ünite</Label>
+                        <Select value={unitId} onValueChange={setUnitId} disabled={!projectId || projectId === 'NONE_SELECTED'}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Opsiyonel" />
+                            </SelectTrigger>
+                            <SelectContent className="max-h-48">
+                                <SelectItem value="NONE_SELECTED">Seçilmedi</SelectItem>
+                                {units.map((u) => (
+                                    <SelectItem key={u.id} value={u.id}>{u.block} - {u.unit_number}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
                 </div>
 

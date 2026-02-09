@@ -37,10 +37,14 @@ export default function ValuablePapersTable({ papers }: ValuablePapersTableProps
 
     const getStatusBadge = (status: string) => {
         switch (status) {
+            case 'Portföyde': return <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100 border-blue-200">Portföyde</Badge>
+            case 'Tahsil Edildi': return <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-emerald-200">Tahsil Edildi</Badge>
+            case 'İade': return <Badge className="bg-red-100 text-red-700 hover:bg-red-100 border-red-200">İade Edildi</Badge>
+            case 'Ödendi': return <Badge className="bg-slate-100 text-slate-700 hover:bg-slate-100 border-slate-200">Ödendi</Badge>
+            case 'Karşılıksız': return <Badge className="bg-orange-100 text-orange-700 hover:bg-orange-100 border-orange-200">Karşılıksız</Badge>
+            // Fallback for old data
             case 'Portfolio': return <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100 border-blue-200">Portföyde</Badge>
             case 'Collected': return <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-emerald-200">Tahsil Edildi</Badge>
-            case 'Returned': return <Badge className="bg-red-100 text-red-700 hover:bg-red-100 border-red-200">İade Edildi</Badge>
-            case 'Endorsed': return <Badge className="bg-purple-100 text-purple-700 hover:bg-purple-100 border-purple-200">Ciro Edildi</Badge>
             default: return <Badge variant="outline">{status}</Badge>
         }
     }
@@ -64,7 +68,7 @@ export default function ValuablePapersTable({ papers }: ValuablePapersTableProps
                                 <Plus className="h-4 w-4 mr-2" /> Yeni Evrak Girişi
                             </Button>
                         </DialogTrigger>
-                        <DialogContent>
+                        <DialogContent className="max-w-2xl">
                             <ValuablePaperForm />
                         </DialogContent>
                     </Dialog>
@@ -80,8 +84,9 @@ export default function ValuablePapersTable({ papers }: ValuablePapersTableProps
                     <TableHeader>
                         <TableRow className="bg-slate-50">
                             <TableHead>Vade Tarihi</TableHead>
-                            <TableHead>Evrak Türü</TableHead>
-                            <TableHead>Müşteri</TableHead>
+                            <TableHead>Evrak Detayı</TableHead>
+                            <TableHead>Keşideci / Borçlu</TableHead>
+                            <TableHead>Cari / Proje</TableHead>
                             <TableHead className="text-right">Tutar</TableHead>
                             <TableHead>Durum</TableHead>
                             <TableHead className="text-right">İşlemler</TableHead>
@@ -90,7 +95,7 @@ export default function ValuablePapersTable({ papers }: ValuablePapersTableProps
                     <TableBody>
                         {filteredPapers.length > 0 ? (
                             filteredPapers.map((paper) => {
-                                const isExpired = new Date(paper.due_date) < new Date() && paper.status === 'Portfolio'
+                                const isExpired = new Date(paper.due_date) < new Date() && (paper.status === 'Portföyde' || paper.status === 'Portfolio')
 
                                 return (
                                     <TableRow key={paper.id} className="hover:bg-slate-50/50">
@@ -104,14 +109,29 @@ export default function ValuablePapersTable({ papers }: ValuablePapersTableProps
                                         </TableCell>
                                         <TableCell>
                                             <div className="flex flex-col">
-                                                <span className="text-sm font-semibold">{paper.paper_type === 'Check' ? 'Çek' : 'Senet'}</span>
+                                                <div className="flex items-center gap-1">
+                                                    <Badge variant="outline" className="text-[9px] py-0 px-1 font-normal">
+                                                        {paper.direction || 'Alınan'}
+                                                    </Badge>
+                                                    <span className="text-sm font-semibold">{paper.paper_type === 'Check' ? 'Çek' : 'Senet'}</span>
+                                                </div>
                                                 <span className="text-[10px] text-muted-foreground">No: {paper.issue_number || '-'}</span>
                                             </div>
                                         </TableCell>
                                         <TableCell>
-                                            <div className="flex items-center gap-2">
-                                                <User className="h-4 w-4 text-slate-400" />
-                                                <span className="text-sm">{paper.customers?.full_name}</span>
+                                            <span className="text-sm">{paper.issuer || '-'}</span>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex flex-col">
+                                                <div className="flex items-center gap-1">
+                                                    <User className="h-3 w-3 text-slate-400" />
+                                                    <span className="text-sm">{paper.customers?.full_name}</span>
+                                                </div>
+                                                {paper.project?.name && (
+                                                    <span className="text-[10px] text-muted-foreground ml-4">
+                                                        {paper.project.name} {paper.unit && `(${paper.unit.block}-${paper.unit.unit_number})`}
+                                                    </span>
+                                                )}
                                             </div>
                                         </TableCell>
                                         <TableCell className="text-right">
@@ -123,13 +143,13 @@ export default function ValuablePapersTable({ papers }: ValuablePapersTableProps
                                             {getStatusBadge(paper.status)}
                                         </TableCell>
                                         <TableCell className="text-right">
-                                            {paper.status === 'Portfolio' && (
+                                            {(paper.status === 'Portföyde' || paper.status === 'Portfolio') && (
                                                 <div className="flex justify-end gap-1">
                                                     <Button
                                                         variant="ghost"
                                                         size="icon"
                                                         className="h-8 w-8 text-emerald-600 hover:bg-emerald-50"
-                                                        onClick={() => handleStatusUpdate(paper.id, 'Collected')}
+                                                        onClick={() => handleStatusUpdate(paper.id, 'Tahsil Edildi')}
                                                         title="Tahsil Edildi"
                                                     >
                                                         <CheckCircle2 className="h-4 w-4" />
@@ -138,19 +158,19 @@ export default function ValuablePapersTable({ papers }: ValuablePapersTableProps
                                                         variant="ghost"
                                                         size="icon"
                                                         className="h-8 w-8 text-red-600 hover:bg-red-50"
-                                                        onClick={() => handleStatusUpdate(paper.id, 'Returned')}
+                                                        onClick={() => handleStatusUpdate(paper.id, 'İade')}
                                                         title="İade Et"
                                                     >
                                                         <XCircle className="h-4 w-4" />
                                                     </Button>
                                                 </div>
                                             )}
-                                            {paper.status !== 'Portfolio' && (
+                                            {(paper.status !== 'Portföyde' && paper.status !== 'Portfolio') && (
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
                                                     className="h-8 w-8 text-slate-400"
-                                                    onClick={() => handleStatusUpdate(paper.id, 'Portfolio')}
+                                                    onClick={() => handleStatusUpdate(paper.id, 'Portföyde')}
                                                     title="Geri Al"
                                                 >
                                                     <RotateCcw className="h-4 w-4" />
