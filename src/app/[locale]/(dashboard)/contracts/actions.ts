@@ -288,10 +288,10 @@ export async function payInstallment(paymentId: string, contractId: string) {
 export async function cancelContract(id: string, reason?: string) {
     const supabase = await createClient()
     try {
-        // 1. Get contract details
+        // 1. Get contract details (including unit and tenant)
         const { data: contract } = await supabase
             .from('contracts')
-            .select('unit_id, id')
+            .select('unit_id, id, tenant_id, sale_id, customer_id')
             .eq('id', id)
             .single()
 
@@ -308,8 +308,9 @@ export async function cancelContract(id: string, reason?: string) {
 
         if (contractError) throw contractError
 
-        // 3. Release unit
+        // 3. Release unit and related sales
         if (contract.unit_id) {
+            // Restore unit to 'For Sale'
             const { error: unitError } = await supabase
                 .from('units')
                 .update({ status: 'For Sale' })
@@ -317,38 +318,77 @@ export async function cancelContract(id: string, reason?: string) {
 
             if (unitError) console.error('Failed to release unit during cancellation', unitError)
 
-            // 4. Update Sales Status (Mark as Cancelled/Lost)
+            // 4. Update Sales Status (Mark AS MANY AS POSSIBLE AS Cancelled)
+            // We want to clear ANY sales records for this unit to prevent "Sold" artifacts
             await supabase
                 .from('sales')
                 .update({ status: 'Cancelled' })
                 .eq('unit_id', contract.unit_id)
-                .in('status', ['Sold', 'Completed', 'Contract'])
+                .in('status', ['Sold', 'Completed', 'Contract', 'Prospect', 'Reservation', 'Proposal'])
+        } else if (contract.sale_id) {
+            // If no unit_id on contract, but there is a sale_id, update it specifically
+            await supabase.from('sales').update({ status: 'Cancelled' }).eq('id', contract.sale_id)
         }
 
         // 5. Cancel Payment Plans
+        const { data: plans } = await supabase.from('payment_plans')
+            .select('id')
+            .eq('contract_id', id)
+
         await supabase
             .from('payment_plans')
             .update({ status: 'Cancelled' })
             .eq('contract_id', id)
 
-        // 6. Cleanup Finance Transactions (Delete transactions linked to this contract)
-        // This effectively removes them from reports as requested ("kayıtlardan kaldırılmalı")
-        await supabase
-            .from('finance_transactions')
-            .delete()
-            .or(`contract_id.eq.${id},reference_id.in.(select id from payment_plans where contract_id='${id}')`)
-        // Note: The above OR syntax might be tricky in raw string. 
-        // Safer to do two delete calls or use contract_id if populated.
-        // Let's rely on contract_id for direct links, and loop for plans if needed.
-        // Actually, best effort: delete by contract_id and then by payment plan IDs.
+        // 6. Handle Deposits (If PAID, mark as Refund Pending)
+        // Check for specific deposits linked to the sale or directly to this contract (if stored elsewhere)
+        if (contract.sale_id) {
+            const { data: deposits } = await supabase
+                .from('deposits')
+                .select('id, status')
+                .eq('sale_id', contract.sale_id)
 
+            if (deposits && deposits.length > 0) {
+                for (const dep of deposits) {
+                    if (dep.status === 'Paid') {
+                        await supabase.from('deposits').update({ status: 'Refund Pending' }).eq('id', dep.id)
+                    } else if (dep.status === 'Pending') {
+                        await supabase.from('deposits').update({ status: 'Cancelled' }).eq('id', dep.id)
+                    }
+                }
+            }
+        }
+
+        // 7. Handle Valuable Papers (Checks/Promissory Notes)
+        // If they are in Portfolio/Portföyde, they should be rejected/cancelled
+        const { data: papers } = await supabase
+            .from('valuable_papers')
+            .select('id')
+            .eq('tenant_id', contract.tenant_id)
+            .match({ customer_id: contract.customer_id, unit_id: contract.unit_id }) // Use these as identifiers
+            .in('status', ['Portfolio', 'Portföyde'])
+
+        if (papers && papers.length > 0) {
+            const paperIds = papers.map(p => p.id)
+            await supabase.from('valuable_papers')
+                .update({ status: 'Rejected' })
+                .in('id', paperIds)
+        }
+
+        // 8. Cleanup Finance Transactions (DELETE)
+        // Delete by contract_id
         await supabase.from('finance_transactions').delete().eq('contract_id', id)
 
-        // Also delete transactions where reference_id is in this contract's payment plans
-        const { data: plans } = await supabase.from('payment_plans').select('id').eq('contract_id', id)
+        // Delete by reference_id (Payment Plans)
         if (plans && plans.length > 0) {
             const planIds = plans.map(p => p.id)
             await supabase.from('finance_transactions').delete().in('reference_id', planIds)
+        }
+
+        // Delete by reference_id (Valuable Papers)
+        if (papers && papers.length > 0) {
+            const paperIds = papers.map(p => p.id)
+            await supabase.from('finance_transactions').delete().in('reference_id', paperIds)
         }
 
         revalidatePath(`/contracts/${id}`)
@@ -356,6 +396,8 @@ export async function cancelContract(id: string, reason?: string) {
         revalidatePath('/inventory')
         revalidatePath('/dashboard')
         revalidatePath('/finance')
+        revalidatePath('/crm')
+
         return { success: true }
     } catch (error: any) {
         console.error('Cancel Contract Error:', error)

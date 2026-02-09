@@ -86,28 +86,48 @@ export async function runRepair() {
             else logs.push('✅ All payment plans marked as Cancelled.')
         }
 
-        // 6. Fix Finance Transactions
-        logs.push('🔍 Checking Finance Transactions...')
-        // Delete by contract_id
-        const { count: count1 } = await supabase.from('finance_transactions').select('*', { count: 'exact', head: true }).eq('contract_id', contract.id)
-        if (count1) {
-            logs.push(`🗑️ Deleting ${count1} transactions linked to contract...`)
-            await supabase.from('finance_transactions').delete().eq('contract_id', contract.id)
-        }
-
-        // Delete by unit_id (if not linked to other active contracts? Be careful.)
-        // Actually, for specific contract repair, we should be careful. 
-        // But since this unit is being reset, we should clear transactions for this unit that are NOT cancelled?
-        // Let's stick to contract_id and payment_plans reference.
-
-        if (plans && plans.length > 0) {
-            const planIds = plans.map(p => p.id)
-            const { count: count2 } = await supabase.from('finance_transactions').select('*', { count: 'exact', head: true }).in('reference_id', planIds)
-            if (count2) {
-                logs.push(`🗑️ Deleting ${count2} transactions linked to payment plans...`)
-                await supabase.from('finance_transactions').delete().in('reference_id', planIds)
+        // 6. Fix Deposits
+        logs.push('🔍 Checking Deposits for this sale...')
+        if (contract.sale_id) {
+            const { data: deposits } = await supabase.from('deposits').select('id, status').eq('sale_id', contract.sale_id)
+            if (deposits && deposits.length > 0) {
+                logs.push(`ℹ️ Found ${deposits.length} deposits. Marking for refund/cancellation...`)
+                for (const dep of deposits) {
+                    if (dep.status === 'Paid') {
+                        await supabase.from('deposits').update({ status: 'Refund Pending' }).eq('id', dep.id)
+                    } else {
+                        await supabase.from('deposits').update({ status: 'Cancelled' }).eq('id', dep.id)
+                    }
+                }
             }
         }
+
+        // 7. Fix Valuable Papers
+        logs.push('🔍 Checking Valuable Papers...')
+        const { data: papers } = await supabase
+            .from('valuable_papers')
+            .select('id')
+            .match({ customer_id: contract.customer_id, unit_id: contract.unit_id })
+            .in('status', ['Portfolio', 'Portföyde'])
+
+        if (papers && papers.length > 0) {
+            logs.push(`🗑️ Updating ${papers.length} valuable papers to Rejected...`)
+            await supabase.from('valuable_papers').update({ status: 'Rejected' }).in('id', papers.map(p => p.id))
+        }
+
+        // 8. Fix Finance Transactions (DELETE)
+        logs.push('🔍 Cleaning Finance Transactions...')
+        // Delete by contract_id
+        await supabase.from('finance_transactions').delete().eq('contract_id', contract.id)
+
+        // Delete by payment plans reference
+        if (plans && plans.length > 0) {
+            const planIds = plans.map(p => p.id)
+            await supabase.from('finance_transactions').delete().in('reference_id', planIds)
+        }
+
+        // Delete by unit_id (Use with CAUTION, but for this repair it's targeted)
+        // await supabase.from('finance_transactions').delete().eq('unit_id', contract.unit_id).eq('tenant_id', contract.tenant_id)
 
         revalidatePath('/')
         revalidatePath('/dashboard')
