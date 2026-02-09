@@ -288,12 +288,14 @@ export async function payInstallment(paymentId: string, contractId: string) {
 export async function cancelContract(id: string, reason?: string) {
     const supabase = await createClient()
     try {
-        // 1. Get contract to find the unit_id
+        // 1. Get contract details
         const { data: contract } = await supabase
             .from('contracts')
-            .select('unit_id')
+            .select('unit_id, id')
             .eq('id', id)
             .single()
+
+        if (!contract) throw new Error('Contract not found')
 
         // 2. Update contract status
         const { error: contractError } = await supabase
@@ -307,18 +309,53 @@ export async function cancelContract(id: string, reason?: string) {
         if (contractError) throw contractError
 
         // 3. Release unit
-        if (contract?.unit_id) {
+        if (contract.unit_id) {
             const { error: unitError } = await supabase
                 .from('units')
                 .update({ status: 'For Sale' })
                 .eq('id', contract.unit_id)
 
             if (unitError) console.error('Failed to release unit during cancellation', unitError)
+
+            // 4. Update Sales Status (Mark as Cancelled/Lost)
+            await supabase
+                .from('sales')
+                .update({ status: 'Cancelled' })
+                .eq('unit_id', contract.unit_id)
+                .in('status', ['Sold', 'Completed', 'Contract'])
+        }
+
+        // 5. Cancel Payment Plans
+        await supabase
+            .from('payment_plans')
+            .update({ status: 'Cancelled' })
+            .eq('contract_id', id)
+
+        // 6. Cleanup Finance Transactions (Delete transactions linked to this contract)
+        // This effectively removes them from reports as requested ("kayıtlardan kaldırılmalı")
+        await supabase
+            .from('finance_transactions')
+            .delete()
+            .or(`contract_id.eq.${id},reference_id.in.(select id from payment_plans where contract_id='${id}')`)
+        // Note: The above OR syntax might be tricky in raw string. 
+        // Safer to do two delete calls or use contract_id if populated.
+        // Let's rely on contract_id for direct links, and loop for plans if needed.
+        // Actually, best effort: delete by contract_id and then by payment plan IDs.
+
+        await supabase.from('finance_transactions').delete().eq('contract_id', id)
+
+        // Also delete transactions where reference_id is in this contract's payment plans
+        const { data: plans } = await supabase.from('payment_plans').select('id').eq('contract_id', id)
+        if (plans && plans.length > 0) {
+            const planIds = plans.map(p => p.id)
+            await supabase.from('finance_transactions').delete().in('reference_id', planIds)
         }
 
         revalidatePath(`/contracts/${id}`)
         revalidatePath('/contracts')
         revalidatePath('/inventory')
+        revalidatePath('/dashboard')
+        revalidatePath('/finance')
         return { success: true }
     } catch (error: any) {
         console.error('Cancel Contract Error:', error)

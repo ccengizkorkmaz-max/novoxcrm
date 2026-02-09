@@ -2159,6 +2159,7 @@
             "active": "Aktif",
             "passive": "Pasif",
             "save": "Personel Kaydet",
+            "saveDocument": "Belge Kaydet",
             "cancel": "İptal",
             "selectManager": "Yönetici Seçin...",
             "selectUser": "CRM Kullanıcısı Seçin...",

@@ -6,6 +6,10 @@ import { formatCurrency } from '@/lib/utils'
 import { DashboardGeneralStats } from '@/components/dashboard-general-stats'
 import { getTranslations } from 'next-intl/server'
 
+// Force dynamic rendering and disable caching to ensure fresh data
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 async function getDashboardStats(t: any, locale: string) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -97,6 +101,7 @@ async function getDashboardStats(t: any, locale: string) {
     .from('contracts')
     .select('signed_amount, created_at')
     .eq('tenant_id', tenant_id)
+    .neq('status', 'Cancelled') // Exclude cancelled contracts
     .order('created_at', { ascending: true })
 
   const totalSalesVolume = contracts?.reduce((sum, c) => sum + Number(c.signed_amount), 0) || 0
@@ -136,7 +141,7 @@ async function getDashboardStats(t: any, locale: string) {
     .eq('tenant_id', tenant_id)
 
   // Calculate specific active leads (excluding Won/Lost)
-  const activeLeads = leads?.filter(l => l.status !== 'Sold' && l.status !== 'Lost').length || 0
+  const activeLeads = leads?.filter(l => l.status !== 'Sold' && l.status !== 'Lost' && l.status !== 'Cancelled').length || 0
 
 
   // Process chart data for Leads (Pie Chart)
@@ -149,7 +154,7 @@ async function getDashboardStats(t: any, locale: string) {
             curr.status === 'Reservation' ? 'reservation' :
               curr.status === 'Contract' ? 'contract' :
                 curr.status === 'Completed' || curr.status === 'Sold' ? 'won' :
-                  curr.status === 'Lost' ? 'lost' : 'lead'; // fallback
+                  curr.status === 'Lost' || curr.status === 'Cancelled' ? 'lost' : 'lead'; // fallback
 
     const translation = t(`status.${translationKey}`)
 

@@ -104,9 +104,20 @@ export async function deleteEmployee(id: string) {
 
 export async function addEmployeeDocument(data: any) {
     const supabase = await createClient()
+
+    // Get employee's tenant_id
+    const { data: employee } = await supabase
+        .from('employees')
+        .select('tenant_id')
+        .eq('id', data.employee_id)
+        .single()
+
+    if (!employee) throw new Error('Employee not found')
+
+    // Include tenant_id in the document data
     const { data: doc, error } = await supabase
         .from('employee_documents')
-        .insert([data])
+        .insert([{ ...data, tenant_id: employee.tenant_id }])
         .select()
         .single()
 

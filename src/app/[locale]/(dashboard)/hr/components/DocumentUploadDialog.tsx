@@ -118,7 +118,7 @@ export default function DocumentUploadDialog({ employeeId, isOpen, onOpenChange 
                     <DialogFooter>
                         <Button type="submit" disabled={loading || !file}>
                             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            {t('form.save')}
+                            {t('form.saveDocument')}
                         </Button>
                     </DialogFooter>
                 </form>

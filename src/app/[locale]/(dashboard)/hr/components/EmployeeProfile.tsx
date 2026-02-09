@@ -120,14 +120,14 @@ export default function EmployeeProfile({ employee, documents }: EmployeeProfile
                                         <p className="text-xs font-medium text-muted-foreground uppercase">{t('form.salary')}</p>
                                         <div className="flex items-center gap-2">
                                             <Wallet className="h-4 w-4 text-muted-foreground" />
-                                            <span className="font-bold">{new Intl.NumberFormat('tr-TR', { style: 'currency', currency: employee.currency || 'TL' }).format(employee.salary || 0)}</span>
+                                            <span className="font-bold">{new Intl.NumberFormat('tr-TR', { style: 'currency', currency: (employee.currency === 'TL' ? 'TRY' : employee.currency) || 'TRY' }).format(employee.salary || 0)}</span>
                                         </div>
                                     </div>
                                     <div className="space-y-1">
                                         <p className="text-xs font-medium text-muted-foreground uppercase">{t('form.crmUser')}</p>
                                         <div className="flex items-center gap-2">
                                             <ShieldCheck className="h-4 w-4 text-muted-foreground" />
-                                            <span>{employee.user_id ? 'Eşleştirildi' : 'Atanmadı'}</span>
+                                            <span>{employee.crm_user ? 'Eşleştirildi' : 'Atanmadı'}</span>
                                         </div>
                                     </div>
                                 </CardContent>

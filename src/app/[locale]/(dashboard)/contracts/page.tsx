@@ -52,19 +52,25 @@ export default async function ContractsPage(props: { searchParams: Promise<{ [ke
     const { data: contracts } = await baseQuery.order('created_at', { ascending: false })
 
     // Fetch Payments for stats
-    // Simplified stats calculation
-    const totalSales = contracts?.reduce((sum, c) => sum + (Number(c.total_amount) || 0), 0) || 0
-    // Fetching payments explicitly to be accurate
+    // Fetch Payments for stats
+    // Filter out cancelled contracts for stats calculation
+    const activeContracts = contracts?.filter(c => c.status !== 'Cancelled') || []
+
+    // Calculate total sales from only active contracts
+    const totalSales = activeContracts.reduce((sum, c) => sum + (Number(c.total_amount) || 0), 0)
+
+    // Fetching payments explicitly to be accurate, excluding those from cancelled contracts
     const { data: allPayments } = await supabase
         .from('payment_plans')
-        .select('amount, status, paid_amount, contracts!inner(tenant_id)')
+        .select('amount, status, paid_amount, contracts!inner(tenant_id, status)')
         .eq('contracts.tenant_id', profile.tenant_id)
+        .neq('contracts.status', 'Cancelled')
 
     const stats = {
         totalSales,
         totalPaid: allPayments?.reduce((sum, p) => sum + (Number(p.paid_amount) || 0), 0) || 0,
         pendingAmount: allPayments?.filter(p => p.status !== 'Paid').reduce((sum, p) => sum + (Number(p.amount) - (Number(p.paid_amount) || 0)), 0) || 0,
-        contractCount: contracts?.length || 0
+        contractCount: activeContracts.length
     }
 
     const t = await getTranslations('Contracts')
