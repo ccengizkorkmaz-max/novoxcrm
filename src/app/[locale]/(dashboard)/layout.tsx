@@ -53,7 +53,6 @@ export default async function DashboardLayout({
                         </Link>
                         <div className="flex items-center gap-1">
                             <NotificationBell />
-                            <LanguageSwitcher variant="light" />
                         </div>
                     </div>
                     <div className="mt-1 flex flex-col">
@@ -66,6 +65,7 @@ export default async function DashboardLayout({
                 </div>
                 <div className="mt-auto p-4 border-t border-slate-800 flex items-center justify-between gap-2">
                     <div className="flex items-center gap-1 overflow-hidden">
+                        <LanguageSwitcher variant="light" />
                         {isAuthorizedForSettings && (
                             <Link href="/settings">
                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-white hover:bg-slate-800">
@@ -107,7 +107,6 @@ export default async function DashboardLayout({
                                         <Building2 className="h-6 w-6 text-blue-500" />
                                         <span className="text-lg tracking-tight">NovoxCrm</span>
                                     </Link>
-                                    <LanguageSwitcher variant="light" />
                                 </div>
                                 <div className="mt-1 flex flex-col">
                                     <span className="text-xs font-bold text-slate-200">{tenant?.name}</span>
@@ -118,6 +117,7 @@ export default async function DashboardLayout({
                                 <SidebarNav />
                             </div>
                             <div className="p-4 border-t border-slate-800 mt-auto flex items-center justify-between">
+                                <LanguageSwitcher variant="light" />
                                 {isAuthorizedForSettings && (
                                     <Link href="/settings" className="flex items-center gap-2 text-sm text-slate-400 hover:text-white">
                                         <Settings className="h-4 w-4" />
