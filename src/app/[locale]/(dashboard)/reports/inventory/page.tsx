@@ -8,7 +8,10 @@ import UnitTypeChart from "../components/UnitTypeChart"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Progress } from "@/components/ui/progress"
 
-export default async function InventoryReportsPage() {
+export default async function InventoryReportsPage(props: {
+    params: Promise<{ locale: string }>
+}) {
+    const { locale } = await props.params
     const data = await getInventoryAnalytics()
 
     if ('error' in data) {

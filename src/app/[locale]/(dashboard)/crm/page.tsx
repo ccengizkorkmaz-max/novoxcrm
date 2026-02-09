@@ -30,7 +30,11 @@ import NewSaleButton from './components/NewSaleButton'
 import CRMFilterSheet from './components/CRMFilterSheet'
 import CRMSearch from './components/CRMSearch'
 
-export default async function CRMPage(props: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
+export default async function CRMPage(props: {
+    params: Promise<{ locale: string }>
+    searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}) {
+    const { locale } = await props.params
     const searchParams = await props.searchParams
     const supabase = await createClient()
     const t = await getTranslations('CRM')

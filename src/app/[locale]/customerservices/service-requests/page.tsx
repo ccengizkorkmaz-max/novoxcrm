@@ -18,7 +18,10 @@ import { Plus, MessageSquare, Clock, CheckCircle2 } from "lucide-react"
 import { CreateRequestDialog } from './CreateRequestDialog'
 import Link from 'next/link'
 
-export default async function PortalServiceRequests() {
+export default async function PortalServiceRequests(props: {
+    params: Promise<{ locale: string }>
+}) {
+    const { locale } = await props.params
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 

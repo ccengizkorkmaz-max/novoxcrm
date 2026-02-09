@@ -12,9 +12,11 @@ import { tr } from 'date-fns/locale'
 import { AlertCircle, HardHat } from 'lucide-react'
 import { Progress } from '@/components/ui/progress'
 
-export default async function UnitDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function UnitDetailPage(props: {
+    params: Promise<{ locale: string; id: string }>
+}) {
+    const { locale, id } = await props.params
     const supabase = await createClient()
-    const { id } = await params
 
     // Fetch unit with project name
     const { data: unit } = await supabase
@@ -52,11 +54,11 @@ export default async function UnitDetailPage({ params }: { params: Promise<{ id:
     // Calculate weighted progress
     let unitProgressPercentage = 0
     if (stages && stages.length > 0) {
-        let totalWeight = stages.reduce((acc, s) => acc + (s.weight || 0), 0)
+        let totalWeight = stages.reduce((acc: number, s: any) => acc + (s.weight || 0), 0)
         if (totalWeight > 0) {
             let weightedSum = 0
-            stages.forEach(s => {
-                const item = progress?.find(p => p.stage_id === s.id)
+            stages.forEach((s: any) => {
+                const item = progress?.find((p: any) => p.stage_id === s.id)
                 weightedSum += ((item?.completion_percentage || 0) * (s.weight || 0)) / totalWeight
             })
             unitProgressPercentage = Math.round(weightedSum)
@@ -122,8 +124,8 @@ export default async function UnitDetailPage({ params }: { params: Promise<{ id:
                                 <Progress value={unitProgressPercentage} className="h-2" />
 
                                 <div className="space-y-2 pt-2">
-                                    {stages?.map(stage => {
-                                        const p = progress?.find(item => item.stage_id === stage.id)
+                                    {stages?.map((stage: any) => {
+                                        const p = progress?.find((item: any) => item.stage_id === stage.id)
                                         return (
                                             <div key={stage.id} className="flex flex-col gap-1">
                                                 <div className="flex justify-between text-[11px]">

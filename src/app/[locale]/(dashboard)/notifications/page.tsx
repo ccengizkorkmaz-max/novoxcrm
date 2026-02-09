@@ -9,7 +9,10 @@ import { tr } from 'date-fns/locale'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
-export default async function NotificationsPage() {
+export default async function NotificationsPage(props: {
+    params: Promise<{ locale: string }>
+}) {
+    const { locale } = await props.params
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 

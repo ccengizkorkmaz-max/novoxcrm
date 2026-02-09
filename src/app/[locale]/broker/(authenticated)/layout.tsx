@@ -18,11 +18,12 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 
-export default async function BrokerLayout({
-    children,
-}: {
+export default async function BrokerLayout(props: {
     children: React.ReactNode
+    params: Promise<{ locale: string }>
 }) {
+    const { locale } = await props.params
+    const { children } = props
     const supabase = await createClient()
 
     const {

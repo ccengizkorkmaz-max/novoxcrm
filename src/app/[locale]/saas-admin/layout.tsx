@@ -1,11 +1,12 @@
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 
-export default async function SaasAdminLayout({
-    children,
-}: {
+export default async function SaasAdminLayout(props: {
     children: React.ReactNode
+    params: Promise<{ locale: string }>
 }) {
+    const { locale } = await props.params
+    const { children } = props
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 

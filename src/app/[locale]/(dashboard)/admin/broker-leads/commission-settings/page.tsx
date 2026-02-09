@@ -19,7 +19,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { getTranslations } from 'next-intl/server'
 
-export default async function CommissionSettingsPage() {
+export default async function CommissionSettingsPage(props: {
+    params: Promise<{ locale: string }>
+}) {
+    const { locale } = await props.params
     const models = await getCommissionModels()
     const t = await getTranslations('CommissionSettings')
 

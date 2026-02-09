@@ -7,9 +7,12 @@ import Link from 'next/link'
 import { formatCurrency } from '@/lib/utils'
 import { getTranslations, getLocale } from 'next-intl/server'
 
-export default async function PortalDashboard() {
+export default async function PortalDashboard(props: {
+    params: Promise<{ locale: string }>
+}) {
+    const { locale } = await props.params
     const t = await getTranslations('CustomerPortal.dashboard')
-    const locale = await getLocale()
+    // const locale = await getLocale() // No longer needed as we get it from params
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 

@@ -3,7 +3,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { FileText, Download, Building2, ExternalLink } from "lucide-react"
 
-export default async function PortalDocuments() {
+export default async function PortalDocuments(props: {
+    params: Promise<{ locale: string }>
+}) {
+    const { locale } = await props.params
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 

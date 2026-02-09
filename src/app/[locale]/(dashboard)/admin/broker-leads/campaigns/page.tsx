@@ -18,10 +18,12 @@ import { getIncentiveCampaigns } from '@/app/broker/actions'
 import CampaignActions from "./components/CampaignActions"
 import { getTranslations, getLocale } from 'next-intl/server'
 
-export default async function BrokerCampaignsPage() {
+export default async function BrokerCampaignsPage(props: {
+    params: Promise<{ locale: string }>
+}) {
+    const { locale } = await props.params
     const campaigns = await getIncentiveCampaigns()
     const t = await getTranslations('Campaigns')
-    const locale = await getLocale()
 
     const activeCampaigns = campaigns?.filter(c => c.is_active) || []
     const passiveCampaigns = campaigns?.filter(c => !c.is_active) || []

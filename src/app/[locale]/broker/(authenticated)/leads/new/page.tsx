@@ -1,12 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
 import NewLeadForm from './components/NewLeadForm'
 
-export default async function NewLeadPage({
-    searchParams
-}: {
+export default async function NewLeadPage(props: {
+    params: Promise<{ locale: string }>
     searchParams: Promise<{ project_id?: string, unit_id?: string }>
 }) {
-    const { project_id, unit_id } = await searchParams
+    const { locale } = await props.params
+    const { project_id, unit_id } = await props.searchParams
     const supabase = await createClient()
 
     // Fetch active projects for the selection dropdown

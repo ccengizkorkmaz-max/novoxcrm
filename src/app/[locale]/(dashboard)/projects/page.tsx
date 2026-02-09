@@ -18,7 +18,10 @@ import { Plus, MapPin, Building2 } from 'lucide-react'
 import Image from 'next/image'
 import { getTranslations } from 'next-intl/server'
 
-export default async function ProjectsPage() {
+export default async function ProjectsPage(props: {
+    params: Promise<{ locale: string }>
+}) {
+    const { locale } = await props.params
     const t = await getTranslations('Projects')
     const supabase = await createClient()
 

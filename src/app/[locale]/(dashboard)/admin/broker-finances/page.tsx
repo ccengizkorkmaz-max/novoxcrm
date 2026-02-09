@@ -17,11 +17,15 @@ import {
 import Link from 'next/link'
 import FinanceExcelActions from './components/FinanceExcelActions'
 import { getTranslations, getLocale } from 'next-intl/server'
+import { createClient } from '@/lib/supabase/server'
 
-export default async function BrokerFinanceDashboardPage() {
+export default async function AdminBrokerFinancesPage(props: {
+    params: Promise<{ locale: string }>
+}) {
+    const { locale } = await props.params
+    const supabase = await createClient()
     const { data: summary, error } = await getAdminBrokerFinanceSummary()
     const t = await getTranslations('BrokerFinances')
-    const locale = await getLocale()
 
     if (error) {
         return <div className="p-8 text-center text-red-500">Hata: {error}</div>

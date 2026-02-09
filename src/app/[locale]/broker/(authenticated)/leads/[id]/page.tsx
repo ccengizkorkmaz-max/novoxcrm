@@ -21,9 +21,11 @@ import { BackButton } from '@/components/back-button'
 import Link from 'next/link'
 import { getTranslations } from 'next-intl/server'
 
-export default async function BrokerLeadDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function BrokerLeadDetailPage(props: {
+    params: Promise<{ locale: string; id: string }>
+}) {
     const t = await getTranslations('BrokerLeads')
-    const { id } = await params
+    const { locale, id } = await props.params
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 

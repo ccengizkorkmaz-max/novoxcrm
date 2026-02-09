@@ -3,8 +3,10 @@ import { notFound } from 'next/navigation'
 import PublicLeadForm from './components/PublicLeadForm'
 import { getTranslations } from 'next-intl/server'
 
-export default async function PublicPage({ params }: { params: Promise<{ slug: string }> }) {
-    const { slug } = await params
+export default async function PublicPage(props: {
+    params: Promise<{ locale: string; slug: string }>
+}) {
+    const { locale, slug } = await props.params
     const broker = await getBrokerBySlug(slug)
     const t = await getTranslations('CRM.newSale')
 

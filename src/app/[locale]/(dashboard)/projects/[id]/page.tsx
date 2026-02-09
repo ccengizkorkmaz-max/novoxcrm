@@ -35,16 +35,13 @@ const AMENITIES_LIST = [
 
 export const dynamic = 'force-dynamic'
 
-export default async function ProjectDetailPage({
-    params,
-    searchParams
-}: {
-    params: Promise<{ id: string }>,
+export default async function ProjectDetailPage(props: {
+    params: Promise<{ id: string; locale: string }>,
     searchParams: Promise<{ tab?: string }>
 }) {
     const supabase = await createClient()
-    const { id } = await params
-    const { tab } = await searchParams
+    const { id } = await props.params
+    const { tab } = await props.searchParams
     const activeTab = tab || 'info'
 
     // First batch of parallel fetches

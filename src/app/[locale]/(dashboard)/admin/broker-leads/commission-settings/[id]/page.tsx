@@ -10,9 +10,11 @@ import UnitRuleManager from './components/UnitRuleManager'
 import { BackButton } from '@/components/back-button'
 import { getTranslations } from 'next-intl/server'
 
-export default async function CommissionModelDetailsPage(props: { params: Promise<{ id: string }> }) {
-    const params = await props.params
-    const result = await getCommissionModel(params.id)
+export default async function CommissionModelDetailsPage(props: {
+    params: Promise<{ locale: string; id: string }>
+}) {
+    const { locale, id } = await props.params
+    const result = await getCommissionModel(id)
     const t = await getTranslations('CommissionSettings')
 
     // Debug Error UI
@@ -33,8 +35,8 @@ export default async function CommissionModelDetailsPage(props: { params: Promis
     }
 
     const model = result.data
-    const tiers = await getCommissionTiers(params.id)
-    const unitRules = await getCommissionUnitRules(params.id)
+    const tiers = await getCommissionTiers(id)
+    const unitRules = await getCommissionUnitRules(id)
 
     // Helper to translate values safely
     const translateType = (type: string) => {

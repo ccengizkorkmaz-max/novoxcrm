@@ -3,7 +3,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Building2, CheckCircle2, Circle, Clock, MapPin, Key } from "lucide-react"
 
-export default async function PortalTracking() {
+export default async function PortalTracking(props: {
+    params: Promise<{ locale: string }>
+}) {
+    const { locale } = await props.params
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 

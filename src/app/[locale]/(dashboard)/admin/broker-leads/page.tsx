@@ -20,7 +20,10 @@ import { Input } from "@/components/ui/input"
 import BrokerLeadStatusAction from './components/BrokerLeadStatusAction'
 import { getWhatsAppLink } from '@/lib/whatsapp'
 
-export default async function AdminBrokerLeadsPage() {
+export default async function AdminBrokerLeadsPage(props: {
+    params: Promise<{ locale: string }>
+}) {
+    const { locale } = await props.params
     const supabase = await createClient()
 
     // Fetch broker leads with broker and project info

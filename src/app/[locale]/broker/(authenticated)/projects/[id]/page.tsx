@@ -8,8 +8,10 @@ import { notFound } from "next/navigation"
 import { BrokerUnitList } from '@/components/broker/BrokerUnitList'
 import { BackButton } from '@/components/back-button'
 
-export default async function BrokerProjectDetailPage(props: { params: Promise<{ id: string }> }) {
-    const { id } = await props.params
+export default async function BrokerProjectDetailPage(props: {
+    params: Promise<{ id: string; locale: string }>
+}) {
+    const { id, locale } = await props.params
     const supabase = await createClient()
 
     // Fetch Project Details (RLS will check access)

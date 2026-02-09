@@ -2,7 +2,10 @@ import { getTranslations } from 'next-intl/server'
 import { createClient } from '@/lib/supabase/server'
 import { InboxList } from './components/InboxList'
 
-export default async function InboxPage() {
+export default async function InboxPage(props: {
+    params: Promise<{ locale: string }>
+}) {
+    const { locale } = await props.params
     const supabase = await createClient()
     const t = await getTranslations('Sidebar.Inbox')
 

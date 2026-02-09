@@ -8,7 +8,10 @@ import FinanceCharts from './components/FinanceCharts'
 import AgingReportTable from './components/AgingReportTable'
 import { formatCurrency } from '@/lib/utils'
 
-export default async function FinancePage() {
+export default async function FinancePage(props: {
+    params: Promise<{ locale: string }>
+}) {
+    const { locale } = await props.params
     const accounts = await getFinancialAccounts()
     const papers = await getValuablePapers()
     const stats = await getFinanceDashboardStats()

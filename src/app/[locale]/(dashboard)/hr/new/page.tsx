@@ -2,7 +2,10 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from 'next-intl/server'
 import EmployeeForm from '../components/EmployeeForm'
 
-export default async function NewEmployeePage() {
+export default async function NewEmployeePage(props: {
+    params: Promise<{ locale: string }>
+}) {
+    const { locale } = await props.params
     const supabase = await createClient()
     const t = await getTranslations('HR')
 

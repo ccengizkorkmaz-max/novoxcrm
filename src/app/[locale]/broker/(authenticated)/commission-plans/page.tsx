@@ -2,7 +2,10 @@ import { getCommissionModels } from '@/app/broker/actions'
 import CommissionPlansClient from '../../components/CommissionPlansClient'
 import { BadgeTurkishLira } from 'lucide-react'
 
-export default async function CommissionPlansPage() {
+export default async function CommissionPlansPage(props: {
+    params: Promise<{ locale: string }>
+}) {
+    const { locale } = await props.params
     const models = await getCommissionModels()
 
     const today = new Date()

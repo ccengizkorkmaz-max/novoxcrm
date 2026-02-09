@@ -11,7 +11,10 @@ import {
     AccordionTrigger,
 } from "@/components/ui/accordion"
 
-export default async function BrokerReportsPage() {
+export default async function BrokerReportsPage(props: {
+    params: Promise<{ locale: string }>
+}) {
+    const { locale } = await props.params
     const reportResponse = await getBrokerPerformanceReport()
 
     // Check for error or invalid data

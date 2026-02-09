@@ -26,9 +26,11 @@ import CommissionModelsList from '../components/CommissionModelsList'
 import IncentiveCampaignsList from '../components/IncentiveCampaignsList'
 import { getTranslations, getLocale } from 'next-intl/server'
 
-export default async function BrokerDashboard() {
+export default async function BrokerDashboard(props: {
+    params: Promise<{ locale: string }>
+}) {
+    const { locale } = await props.params
     const t = await getTranslations('Broker.dashboard')
-    const locale = await getLocale()
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 

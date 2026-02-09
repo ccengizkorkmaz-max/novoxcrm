@@ -3,7 +3,10 @@ import { Truck, Package, Clock, CheckCheck, Calendar, Building2, ChevronRight } 
 import { BackButton } from "@/components/back-button"
 import { getDeliverySchedule } from "../actions"
 
-export default async function DeliveryReportsPage() {
+export default async function DeliveryReportsPage(props: {
+    params: Promise<{ locale: string }>
+}) {
+    const { locale } = await props.params
     const data = await getDeliverySchedule()
 
     if ('error' in data) {

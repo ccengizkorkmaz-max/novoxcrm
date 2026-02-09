@@ -5,7 +5,11 @@ import GeneralSearch from '@/components/dashboard/GeneralSearch'
 
 import { checkOfferExpirations } from './actions'
 
-export default async function OffersPage(props: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
+export default async function OffersPage(props: {
+    params: Promise<{ locale: string }>
+    searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}) {
+    const { locale } = await props.params
     const searchParams = await props.searchParams
     const query = searchParams.q as string
 

@@ -1,7 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
 import CampaignForm from './components/CampaignForm'
 
-export default async function NewCampaignPage() {
+export default async function NewCampaignPage(props: {
+    params: Promise<{ locale: string }>
+}) {
+    const { locale } = await props.params
     const supabase = await createClient()
 
     // Fetch active projects for the selection dropdown

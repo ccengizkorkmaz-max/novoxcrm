@@ -3,14 +3,16 @@ import OfferDetail from '@/app/[locale]/(dashboard)/crm/components/OfferDetail'
 import { notFound } from 'next/navigation'
 import { getPaymentPlan } from '@/app/[locale]/(dashboard)/crm/actions'
 
-export default async function OfferDetailPage(props: { params: Promise<{ id: string }> }) {
-    const params = await props.params;
+export default async function OfferDetailPage(props: {
+    params: Promise<{ locale: string; id: string }>
+}) {
+    const { locale, id } = await props.params;
     const supabase = await createClient()
 
     const { data: offer } = await supabase
         .from('offers')
         .select('*, customers(*), units(*, projects(*)), payment_plan')
-        .eq('id', params.id)
+        .eq('id', id)
         .single()
 
     if (!offer) {

@@ -1,7 +1,10 @@
 
 import { createClient } from '@/lib/supabase/server'
 
-export default async function InspectPage() {
+export default async function InspectPage(props: {
+    params: Promise<{ locale: string }>
+}) {
+    const { locale } = await props.params
     const supabase = await createClient()
     const contractNumber = 'SZL-20260206-841'
 

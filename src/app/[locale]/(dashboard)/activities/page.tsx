@@ -3,7 +3,10 @@ import { ActivitiesView } from './activities-view'
 import { redirect } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 
-export default async function ActivitiesPage() {
+export default async function ActivitiesPage(props: {
+    params: Promise<{ locale: string }>
+}) {
+    const { locale } = await props.params
     const supabase = await createClient()
 
     const { data: { user } } = await supabase.auth.getUser()

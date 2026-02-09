@@ -1,7 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
 import CommissionModelForm from './components/CommissionModelForm'
 
-export default async function NewCommissionModelPage() {
+export default async function NewCommissionModelPage(props: {
+    params: Promise<{ locale: string }>
+}) {
+    const { locale } = await props.params
     const supabase = await createClient()
 
     // Fetch active projects

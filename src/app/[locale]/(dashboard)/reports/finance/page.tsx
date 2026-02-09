@@ -6,7 +6,10 @@ import AnalyticsMetricCard from "../components/AnalyticsMetricCard"
 import CashFlowChart from "../components/CashFlowChart"
 import CollectionPieChart from "../components/CollectionPieChart"
 
-export default async function FinanceReportsPage() {
+export default async function FinanceReportsPage(props: {
+    params: Promise<{ locale: string }>
+}) {
+    const { locale } = await props.params
     const data = await getFinancialAnalytics()
 
     if ('error' in data) {

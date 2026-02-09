@@ -10,8 +10,10 @@ import { StatusManager } from '../components/StatusManager'
 import { BackButton } from '@/components/back-button'
 import { getTranslations } from 'next-intl/server'
 
-export default async function TenantSupportDetail({ params }: { params: Promise<{ id: string }> }) {
-    const { id } = await params
+export default async function TenantSupportDetail(props: {
+    params: Promise<{ locale: string; id: string }>
+}) {
+    const { locale, id } = await props.params
     const supabase = await createClient()
     const t = await getTranslations('ServiceRequests')
     const { data: { user } } = await supabase.auth.getUser()

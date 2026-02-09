@@ -2,7 +2,10 @@ import { getTranslations } from 'next-intl/server'
 import { createClient } from '@/lib/supabase/server'
 import { QuickCRMContent } from './components/QuickCRMContent'
 
-export default async function QuickCRMPage() {
+export default async function QuickCRMPage(props: {
+    params: Promise<{ locale: string }>
+}) {
+    const { locale } = await props.params
     const supabase = await createClient()
     const t = await getTranslations('QuickCRM')
 

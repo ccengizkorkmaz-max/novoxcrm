@@ -6,11 +6,12 @@ import { LayoutDashboard, CreditCard, CalendarCheck, FileText, LogOut, ShieldChe
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 import { getTranslations } from 'next-intl/server'
 
-export default async function PortalLayout({
-    children,
-}: {
+export default async function PortalLayout(props: {
     children: React.ReactNode
+    params: Promise<{ locale: string }>
 }) {
+    const { locale } = await props.params
+    const { children } = props
     const t = await getTranslations('CustomerPortal')
     const supabase = await createClient()
 

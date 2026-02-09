@@ -1,7 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
-export default async function DebugPage() {
+export default async function DebugPage(props: {
+    params: Promise<{ locale: string }>
+}) {
+    const { locale } = await props.params
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 

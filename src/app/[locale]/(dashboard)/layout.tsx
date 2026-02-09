@@ -10,11 +10,12 @@ import LanguageSwitcher from '@/components/LanguageSwitcher'
 import { ToastProvider } from '@/components/providers/ToastProvider'
 import NotificationBell from '@/components/notifications/NotificationBell'
 
-export default async function DashboardLayout({
-    children,
-}: {
+export default async function DashboardLayout(props: {
     children: React.ReactNode
+    params: Promise<{ locale: string }>
 }) {
+    const { locale } = await props.params
+    const { children } = props
     const t = await getTranslations('Dashboard')
     const supabase = await createClient()
 

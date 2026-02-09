@@ -5,7 +5,10 @@ import { getLossAnalytics } from "../actions"
 import AnalyticsMetricCard from "../components/AnalyticsMetricCard"
 import LossDistributionChart from "../components/LossDistributionChart"
 
-export default async function LossReportsPage() {
+export default async function LossReportsPage(props: {
+    params: Promise<{ locale: string }>
+}) {
+    const { locale } = await props.params
     const data = await getLossAnalytics()
 
     if ('error' in data) {

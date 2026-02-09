@@ -19,10 +19,12 @@ import BrokerManagementActions from './components/BrokerManagementActions'
 import BrokerReminderButton from './components/BrokerReminderButton'
 import { getTranslations, getLocale } from 'next-intl/server'
 
-export default async function AdminBrokerApplicationsPage() {
+export default async function AdminBrokerApplicationsPage(props: {
+    params: Promise<{ locale: string }>
+}) {
+    const { locale } = await props.params
     const supabase = await createClient()
     const t = await getTranslations('BrokerApplications')
-    const locale = await getLocale()
     const formatLocale = locale === 'tr' ? 'tr-TR' : 'en-US'
 
     // Fetch broker applications

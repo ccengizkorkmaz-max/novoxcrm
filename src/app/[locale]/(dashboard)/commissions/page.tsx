@@ -4,7 +4,10 @@ import CommissionStats from './components/CommissionStats'
 import CommissionList from './components/CommissionList'
 import { getCommissions, getCommissionStats } from './actions'
 
-export default async function CommissionsPage() {
+export default async function CommissionsPage(props: {
+    params: Promise<{ locale: string }>
+}) {
+    const { locale } = await props.params
     const t = await getTranslations('Commissions')
 
     // Parallel data fetching

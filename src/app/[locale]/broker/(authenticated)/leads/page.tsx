@@ -15,7 +15,10 @@ import Link from "next/link"
 import { Input } from "@/components/ui/input"
 import { getTranslations } from 'next-intl/server'
 
-export default async function BrokerLeadsPage() {
+export default async function BrokerLeadsPage(props: {
+    params: Promise<{ locale: string }>
+}) {
+    const { locale } = await props.params
     const t = await getTranslations('BrokerLeads')
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()

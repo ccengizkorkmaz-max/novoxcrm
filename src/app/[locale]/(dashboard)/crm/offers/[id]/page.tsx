@@ -2,14 +2,16 @@ import { createClient } from '@/lib/supabase/server'
 import OfferDetail from '../../components/OfferDetail'
 import { notFound } from 'next/navigation'
 
-export default async function OfferDetailPage(props: { params: Promise<{ id: string }> }) {
-    const params = await props.params
+export default async function OfferDetailPage(props: {
+    params: Promise<{ locale: string; id: string }>
+}) {
+    const { locale, id } = await props.params
     const supabase = await createClient()
 
     const { data: offer } = await supabase
         .from('offers')
         .select('*, customers(*), units(*, projects(*))')
-        .eq('id', params.id)
+        .eq('id', id)
         .single()
 
     if (!offer) {

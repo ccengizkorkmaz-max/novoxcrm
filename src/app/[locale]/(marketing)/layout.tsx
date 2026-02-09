@@ -33,11 +33,12 @@ export const metadata: Metadata = {
     }
 }
 
-export default function MarketingLayout({
-    children,
-}: {
+export default async function MarketingLayout(props: {
     children: React.ReactNode
+    params: Promise<{ locale: string }>
 }) {
+    const { locale } = await props.params
+    const { children } = props
     return (
         <div className="flex min-h-screen flex-col bg-slate-950 font-sans antialiased text-foreground">
             <Navbar />

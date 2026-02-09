@@ -6,7 +6,10 @@ import { Button } from "@/components/ui/button"
 import { CreditCard, Download, Upload, Info } from "lucide-react"
 import { formatCurrency } from '@/lib/utils'
 
-export default async function PortalFinancials() {
+export default async function PortalFinancials(props: {
+    params: Promise<{ locale: string }>
+}) {
+    const { locale } = await props.params
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 

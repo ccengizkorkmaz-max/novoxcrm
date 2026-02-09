@@ -13,13 +13,13 @@ import { formatCurrency, cn } from '@/lib/utils'
 import { InventoryActions } from './components/inventory-actions'
 
 
-export default async function InventoryPage({
-    searchParams
-}: {
+export default async function InventoryPage(props: {
+    params: Promise<{ locale: string }>
     searchParams: Promise<{ [key: string]: string | undefined }>
 }) {
+    const { locale } = await props.params
+    const params = await props.searchParams
     const supabase = await createClient()
-    const params = await searchParams
 
     // Get projects for filter dropdown
     const { data: projects } = await supabase.from('projects').select('id, name')

@@ -7,7 +7,10 @@ import AnalyticsMetricCard from "../components/AnalyticsMetricCard"
 import ActivityTrendChart from "../components/ActivityTrendChart"
 import StatusDistributionChart from "../components/StatusDistributionChart"
 
-export default async function ActivitiesReportsPage() {
+export default async function ActivitiesReportsPage(props: {
+    params: Promise<{ locale: string }>
+}) {
+    const { locale } = await props.params
     const data = await getActivityAnalytics()
 
     if ('error' in data) {

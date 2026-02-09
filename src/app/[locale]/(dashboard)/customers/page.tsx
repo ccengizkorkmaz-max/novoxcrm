@@ -2,7 +2,11 @@ import { createClient } from '@/lib/supabase/server'
 import CustomerList from '@/app/[locale]/(dashboard)/crm/components/CustomerList'
 import { getTranslations } from 'next-intl/server'
 
-export default async function CustomersPage(props: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
+export default async function CustomersPage(props: {
+    params: Promise<{ locale: string }>
+    searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}) {
+    const { locale } = await props.params
     const searchParams = await props.searchParams
     const t = await getTranslations('Customers')
     const supabase = await createClient()

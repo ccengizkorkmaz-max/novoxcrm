@@ -3,7 +3,11 @@ import { ContractForm } from '@/components/contracts/contract-form'
 import { redirect } from 'next/navigation'
 import { getPaymentTemplates, seedDefaultPaymentTemplates } from '@/app/[locale]/(dashboard)/contracts/actions'
 
-export default async function NewContractPage(props: { searchParams: Promise<{ offerId?: string, unitId?: string, customerId?: string }> }) {
+export default async function NewContractPage(props: {
+    params: Promise<{ locale: string }>
+    searchParams: Promise<{ offerId?: string, unitId?: string, customerId?: string }>
+}) {
+    const { locale } = await props.params
     const searchParams = await props.searchParams
 
     const supabase = await createClient()

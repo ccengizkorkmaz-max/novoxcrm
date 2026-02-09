@@ -5,7 +5,10 @@ import { MessageSquare, Clock, User, Building2 } from "lucide-react"
 import Link from 'next/link'
 import { getTranslations } from 'next-intl/server'
 
-export default async function TenantSupportListing() {
+export default async function TenantSupportListing(props: {
+    params: Promise<{ locale: string }>
+}) {
+    const { locale } = await props.params
     const supabase = await createClient()
     const t = await getTranslations('ServiceRequests')
     const { data: { user } } = await supabase.auth.getUser()

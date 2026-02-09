@@ -33,8 +33,10 @@ interface ContractPageProps {
     params: Promise<{ id: string }>
 }
 
-export default async function ContractDetailPage({ params }: ContractPageProps) {
-    const { id } = await params
+export default async function ContractDetailPage(props: {
+    params: Promise<{ locale: string; id: string }>
+}) {
+    const { locale, id } = await props.params
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 

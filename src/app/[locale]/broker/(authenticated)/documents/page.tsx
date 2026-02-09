@@ -19,7 +19,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
 import { getWhatsAppLink, MessageTemplates } from '@/lib/whatsapp'
 
-export default async function BrokerDocumentsPage() {
+export default async function BrokerDocumentsPage(props: {
+    params: Promise<{ locale: string }>
+}) {
+    const { locale } = await props.params
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 

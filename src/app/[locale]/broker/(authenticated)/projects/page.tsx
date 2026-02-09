@@ -5,7 +5,10 @@ import { Building2, MapPin, Eye, Info, LayoutGrid, PlusCircle } from "lucide-rea
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 
-export default async function BrokerProjectsPage() {
+export default async function BrokerProjectsPage(props: {
+    params: Promise<{ locale: string }>
+}) {
+    const { locale } = await props.params
     const supabase = await createClient()
 
     // Fetch projects - RLS will automatically filter based on:

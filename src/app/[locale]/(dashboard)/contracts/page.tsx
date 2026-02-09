@@ -8,7 +8,11 @@ import { ContractStats } from '@/components/contracts/contract-stats'
 import { getTranslations } from 'next-intl/server'
 import GeneralSearch from '@/components/dashboard/GeneralSearch'
 
-export default async function ContractsPage(props: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
+export default async function ContractsPage(props: {
+    params: Promise<{ locale: string }>
+    searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}) {
+    const { locale } = await props.params
     const searchParams = await props.searchParams
     const query = searchParams.q as string
 

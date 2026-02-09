@@ -12,7 +12,10 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Progress } from "@/components/ui/progress"
 
-export default async function BrokerAnalyticsPage() {
+export default async function BrokerAnalyticsPage(props: {
+    params: Promise<{ locale: string }>
+}) {
+    const { locale } = await props.params
     const supabase = await createClient()
 
     // Fetch brokers and leads separately to avoid complex RPC/parse errors

@@ -2,7 +2,10 @@ import { createClient } from '@/lib/supabase/server'
 import OptionList from './components/OptionList'
 import { getTranslations } from 'next-intl/server'
 
-export default async function OptionsPage() {
+export default async function OptionsPage(props: {
+    params: Promise<{ locale: string }>
+}) {
+    const { locale } = await props.params
     const supabase = await createClient()
     const t = await getTranslations('Options')
 
