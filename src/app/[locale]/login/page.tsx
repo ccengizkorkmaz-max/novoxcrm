@@ -5,18 +5,14 @@ import { Label } from "@/components/ui/label"
 import Link from 'next/link'
 import { Building2, ArrowRight, ShieldCheck } from 'lucide-react'
 import { LeadCaptureModal } from '@/components/marketing/LeadCaptureModal'
-import { useTranslations } from 'next-intl'
+import { getTranslations } from 'next-intl/server'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 
-export default function LoginPage({
-    searchParams,
-}: {
-    searchParams: { message: string, error: string }
+export default async function LoginPage(props: {
+    searchParams: Promise<{ message: string, error: string }>
 }) {
-    const t = useTranslations('Auth')
-
-    // Resolve searchParams before accessing properties
-    const params = searchParams;
+    const params = await props.searchParams
+    const t = await getTranslations('Auth')
 
     return (
         <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2">
@@ -76,14 +72,14 @@ export default function LoginPage({
                         </p>
                     </div>
 
-                    {(params as any)?.message && (
+                    {params?.message && (
                         <div className="p-4 rounded-lg bg-emerald-50 text-emerald-900 text-sm font-medium border border-emerald-200 animate-in fade-in slide-in-from-top-2">
-                            {(params as any).message}
+                            {params.message}
                         </div>
                     )}
-                    {(params as any)?.error && (
+                    {params?.error && (
                         <div className="p-4 rounded-lg bg-red-50 text-red-900 text-sm font-medium border border-red-200 animate-in fade-in slide-in-from-top-2">
-                            {(params as any).error}
+                            {params.error}
                         </div>
                     )}
 

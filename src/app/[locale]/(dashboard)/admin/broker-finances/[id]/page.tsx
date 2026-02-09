@@ -22,8 +22,8 @@ import { createClient } from '@/lib/supabase/server'
 import { BackButton } from '@/components/back-button'
 import { getTranslations, getLocale } from 'next-intl/server'
 
-export default async function BrokerFinanceDetailPage({ params }: { params: { id: string } }) {
-    const { id } = await params
+export default async function BrokerFinanceDetailPage(props: { params: Promise<{ id: string }> }) {
+    const { id } = await props.params
     const finance = await getBrokerFinanceDetail(id)
     const t = await getTranslations('BrokerFinances')
     const locale = await getLocale()

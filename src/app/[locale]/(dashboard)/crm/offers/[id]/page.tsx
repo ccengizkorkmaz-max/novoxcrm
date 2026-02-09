@@ -2,7 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import OfferDetail from '../../components/OfferDetail'
 import { notFound } from 'next/navigation'
 
-export default async function OfferDetailPage({ params }: { params: { id: string } }) {
+export default async function OfferDetailPage(props: { params: Promise<{ id: string }> }) {
+    const params = await props.params
     const supabase = await createClient()
 
     const { data: offer } = await supabase
