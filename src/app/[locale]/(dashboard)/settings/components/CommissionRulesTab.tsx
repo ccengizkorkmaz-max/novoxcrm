@@ -222,16 +222,39 @@ export default function CommissionRulesTab({ rules }: CommissionRulesTabProps) {
                                                 <Button size="sm" variant="ghost" type="submit" form={`edit-rule-${rule.id}`} disabled={isPending}>
                                                     <Save className="h-4 w-4 text-green-600" />
                                                 </Button>
-                                                <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>
+                                                <Button size="sm" variant="ghost" type="button" onClick={() => setEditingId(null)}>
                                                     <X className="h-4 w-4 text-red-500" />
                                                 </Button>
                                             </>
                                         ) : (
                                             <>
-                                                <Button size="sm" variant="ghost" title="Düzenle" className="text-slate-400 hover:text-blue-600" onClick={() => setEditingId(rule.id)}>
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    type="button"
+                                                    title="Düzenle"
+                                                    className="text-slate-400 hover:text-blue-600"
+                                                    onClick={(e) => {
+                                                        e.preventDefault()
+                                                        e.stopPropagation()
+                                                        setEditingId(rule.id)
+                                                    }}
+                                                >
                                                     <Edit className="h-4 w-4" />
                                                 </Button>
-                                                <Button size="sm" variant="ghost" title="Sil" className="text-slate-400 hover:text-red-600" onClick={() => handleDelete(rule.id)} disabled={isPending}>
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    type="button"
+                                                    title="Sil"
+                                                    className="text-slate-400 hover:text-red-600"
+                                                    onClick={(e) => {
+                                                        e.preventDefault()
+                                                        e.stopPropagation()
+                                                        handleDelete(rule.id)
+                                                    }}
+                                                    disabled={isPending}
+                                                >
                                                     <Trash2 className="h-4 w-4" />
                                                 </Button>
                                             </>
