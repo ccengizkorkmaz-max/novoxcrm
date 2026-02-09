@@ -61,7 +61,6 @@ export function Navbar() {
                 {/* Desktop Actions */}
                 <div className="hidden md:flex items-center gap-4">
                     <LanguageSwitcher variant="dark" />
-                    <NotificationBell />
                     <Button variant="ghost" className="text-slate-300 hover:text-white hover:bg-white/5" asChild>
                         <Link href="/login">{t('login')}</Link>
                     </Button>

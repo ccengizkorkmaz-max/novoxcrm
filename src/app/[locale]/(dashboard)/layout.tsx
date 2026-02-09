@@ -8,6 +8,7 @@ import { SidebarNav } from '@/components/dashboard/SidebarNav'
 import { getTranslations } from 'next-intl/server'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 import { ToastProvider } from '@/components/providers/ToastProvider'
+import NotificationBell from '@/components/notifications/NotificationBell'
 
 export default async function DashboardLayout({
     children,
@@ -50,7 +51,10 @@ export default async function DashboardLayout({
                             <Building2 className="h-6 w-6 text-blue-500" />
                             <span className="text-lg tracking-tight">NovoxCrm</span>
                         </Link>
-                        <LanguageSwitcher variant="light" />
+                        <div className="flex items-center gap-1">
+                            <NotificationBell />
+                            <LanguageSwitcher variant="light" />
+                        </div>
                     </div>
                     <div className="mt-1 flex flex-col">
                         <span className="text-xs font-bold text-slate-200 truncate">{tenant?.name || t('tenantLoading')}</span>
@@ -134,10 +138,12 @@ export default async function DashboardLayout({
                             </div>
                         </SheetContent>
                     </Sheet>
-                    <div className="flex flex-col ml-2">
-                        <div className="flex items-center justify-between w-full gap-4">
+                    <div className="flex flex-col ml-2 flex-1">
+                        <div className="flex items-center justify-between w-full">
                             <span className="font-bold text-sm leading-none">NovoxCrm</span>
-                            {/* Mobile Header Language Switcher Optional - kept in sidebar to save space */}
+                            <div className="flex items-center gap-2">
+                                <NotificationBell />
+                            </div>
                         </div>
                         <div className="flex items-center gap-2 mt-0.5">
                             <span className="text-[10px] text-muted-foreground font-medium">{tenant?.name}</span>
