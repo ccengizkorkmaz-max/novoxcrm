@@ -579,13 +579,13 @@ export async function approveNegotiation(negotiationId: string, depositAmount: n
         .eq('id', negotiationId)
         .single()
 
-    if (negError || !neg) return { error: 'Negotiation record not found' }
+    if (negError || !neg) return { success: false, error: 'Negotiation record not found' }
 
     const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single()
 
     // 2. Mark Approved
     const { error: approvalError } = await supabase.from('offer_negotiations').update({ status: 'Approved' }).eq('id', negotiationId)
-    if (approvalError) return { error: approvalError.message }
+    if (approvalError) return { success: false, error: approvalError.message }
 
     // 3. Update Offer Price/Terms
     const { error: offerPriceError } = await supabase.from('offers').update({
@@ -594,12 +594,12 @@ export async function approveNegotiation(negotiationId: string, depositAmount: n
         valid_until: neg.proposed_valid_until,
         payment_plan: neg.proposed_payment_plan
     }).eq('id', neg.offer_id)
-    if (offerPriceError) return { error: offerPriceError.message }
+    if (offerPriceError) return { success: false, error: offerPriceError.message }
 
     if (depositAmount > 0) {
         // Handle Deposit Pending flow
         const { error: statusError } = await supabase.from('offers').update({ status: 'Teklif - Kapora Bekleniyor' }).eq('id', neg.offer_id)
-        if (statusError) return { error: statusError.message }
+        if (statusError) return { success: false, error: statusError.message }
 
         const { data: sale, error: saleFetchError } = await supabase
             .from('sales')
@@ -607,14 +607,14 @@ export async function approveNegotiation(negotiationId: string, depositAmount: n
             .match({ customer_id: neg.offers.customer_id, unit_id: neg.offers.unit_id })
             .single()
 
-        if (saleFetchError) return { error: 'Satış kaydı bulunamadı' }
+        if (saleFetchError) return { success: false, error: 'Satış kaydı bulunamadı' }
 
         if (sale) {
             const { error: saleUpdateError } = await supabase.from('sales').update({
                 status: 'Teklif - Kapora Bekleniyor',
                 payment_mode: neg.proposed_payment_plan?.installments?.length > 1 ? 'term' : 'cash'
             }).eq('id', sale.id)
-            if (saleUpdateError) return { error: saleUpdateError.message }
+            if (saleUpdateError) return { success: false, error: saleUpdateError.message }
 
             // Create Deposit Record
             const { error: depositError } = await supabase.from('deposits').insert({
@@ -625,13 +625,13 @@ export async function approveNegotiation(negotiationId: string, depositAmount: n
                 currency: neg.proposed_currency,
                 status: 'Pending'
             })
-            if (depositError) return { error: depositError.message }
+            if (depositError) return { success: false, error: depositError.message }
         }
 
         revalidatePath('/crm')
         revalidatePath('/offers')
         revalidatePath('/finance/deposits')
-        return { success: true, message: 'Kapora kaydı oluşturuldu, onay bekleniyor.' }
+        return { success: true, message: 'Kapora kaydı oluşturuldu, onay bekleniyor.', error: undefined }
     } else {
         // Immediate Finalization
         return await finalizeOffer(neg.offer_id)
@@ -641,7 +641,7 @@ export async function approveNegotiation(negotiationId: string, depositAmount: n
 export async function finalizeOffer(offerId: string) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { error: 'Unauthorized' }
+    if (!user) return { success: false, error: 'Unauthorized' }
 
     // 1. Get Offer Details
     const { data: offer, error: offerError } = await supabase
@@ -650,7 +650,7 @@ export async function finalizeOffer(offerId: string) {
         .eq('id', offerId)
         .single()
 
-    if (offerError || !offer) return { error: 'Offer not found' }
+    if (offerError || !offer) return { success: false, error: 'Offer not found' }
 
     // 2. Update Offer Status
     await supabase.from('offers').update({ status: 'Accepted' }).eq('id', offerId)
@@ -713,7 +713,7 @@ export async function finalizeOffer(offerId: string) {
     // Broker Sync
     await syncBrokerLeadFromSale(sale?.id || '', 'Sold')
 
-    return { success: true }
+    return { success: true, error: undefined }
 }
 
 
