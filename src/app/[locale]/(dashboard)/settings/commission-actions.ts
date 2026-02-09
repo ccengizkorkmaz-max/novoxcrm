@@ -48,3 +48,74 @@ export async function updateCommissionRule(formData: FormData) {
     revalidatePath('/settings')
     return { success: true }
 }
+/**
+ * Creates a new commission rule.
+ */
+export async function createCommissionRule(formData: FormData) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    const { data: profile } = await supabase.from('profiles').select('role, tenant_id').eq('id', user.id).single()
+    if (!profile || !['admin', 'owner'].includes(profile.role || '')) {
+        return { error: 'Bu işlem için yetkiniz yok.' }
+    }
+
+    const source_category = formData.get('source_category') as string
+    const payment_type = formData.get('payment_type') as string
+    const rateRaw = formData.get('rate') as string
+    const description = formData.get('description') as string
+
+    if (!source_category || !payment_type || !rateRaw) {
+        return { error: 'Gerekli alanları doldurun.' }
+    }
+
+    const rate = parseFloat(rateRaw) / 100
+    if (isNaN(rate)) return { error: 'Geçersiz oran.' }
+
+    const { error } = await supabase
+        .from('commission_rules')
+        .insert({
+            tenant_id: profile.tenant_id,
+            source_category,
+            payment_type,
+            rate,
+            description,
+            role: 'sales' // Default role for now
+        })
+
+    if (error) {
+        console.error('Create Rule Error:', error)
+        return { error: 'Kural oluşturulamadı.' }
+    }
+
+    revalidatePath('/settings')
+    return { success: true }
+}
+
+/**
+ * Deletes a commission rule.
+ */
+export async function deleteCommissionRule(ruleId: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+    if (!['admin', 'owner'].includes(profile?.role || '')) {
+        return { error: 'Bu işlem için yetkiniz yok.' }
+    }
+
+    const { error } = await supabase
+        .from('commission_rules')
+        .delete()
+        .eq('id', ruleId)
+
+    if (error) {
+        console.error('Delete Rule Error:', error)
+        return { error: 'Kural silinemedi.' }
+    }
+
+    revalidatePath('/settings')
+    return { success: true }
+}
