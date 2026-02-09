@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { syncBrokerLeadFromSale } from '@/app/broker/actions'
+import { ensureFinancialAccount, createTransaction, createValuablePaper } from '../finance/actions'
 
 export async function createCustomer(formData: FormData) {
     const supabase = await createClient()
@@ -710,8 +711,46 @@ export async function finalizeOffer(offerId: string) {
     revalidatePath('/inventory')
     revalidatePath('/finance/deposits')
 
-    // Broker Sync
-    await syncBrokerLeadFromSale(sale?.id || '', 'Sold')
+    // 7. Finance Integration: Record Contract Amount as Debit
+    if (contract && sale) {
+        try {
+            const accId = await ensureFinancialAccount({
+                owner_type: 'Customer',
+                customer_id: offer.customer_id,
+                account_name: 'Customer Account',
+                tenant_id: offer.tenant_id
+            });
+
+            await createTransaction({
+                account_id: accId,
+                type: 'Debit',
+                amount: offer.price,
+                currency: offer.currency,
+                description: `Satış Sözleşmesi (${contract.contract_number})`,
+                reference_type: 'Sale',
+                reference_id: sale.id
+            });
+
+            // 8. Finance Integration: Auto-create Valuable Papers from Payment Plan
+            const plan = await getPaymentPlan(sale.id);
+            if (plan && plan.payment_items) {
+                for (const item of plan.payment_items) {
+                    if (item.payment_mode === 'Check' || item.payment_mode === 'Note') {
+                        await createValuablePaper({
+                            customer_id: offer.customer_id,
+                            paper_type: item.payment_mode === 'Check' ? 'Check' : 'PromissoryNote',
+                            amount: item.amount,
+                            currency: item.currency || offer.currency,
+                            due_date: item.due_date,
+                            description: `${item.description} (${contract.contract_number})`
+                        });
+                    }
+                }
+            }
+        } catch (fErr) {
+            console.error('Finance Link Error:', fErr);
+        }
+    }
 
     return { success: true, error: undefined }
 }
@@ -1106,7 +1145,8 @@ export async function createPaymentPlan(sale_id: string, items: any[], total_pri
                 item.payment_type === 'InterimPayment' ? 'Interim Payment' :
                     item.payment_type === 'DeliveryPayment' ? 'Final Payment' :
                         item.payment_type,
-        status: 'Pending'
+        status: 'Pending',
+        payment_mode: item.payment_mode || 'Cash'
     }))
 
     let { error: itemsError } = await supabase

@@ -5,6 +5,7 @@
 export interface PaymentScheduleItem {
     description: string;
     payment_type: 'DownPayment' | 'Installment' | 'Balloon' | 'DeliveryPayment' | 'Other' | 'InterimPayment';
+    payment_mode: 'Cash' | 'Check' | 'Note';
     amount: number;
     due_date: string;
     currency: string;
@@ -60,6 +61,7 @@ export function calculatePaymentSchedule(params: CalcParams): CalcResult {
     items.push({
         description: 'Peşinat',
         payment_type: 'DownPayment',
+        payment_mode: 'Cash',
         amount: downPaymentAmount,
         due_date: startDate,
         currency: currency,
@@ -83,6 +85,7 @@ export function calculatePaymentSchedule(params: CalcParams): CalcResult {
         items.push({
             description: `${i}. Taksit`,
             payment_type: 'Installment',
+            payment_mode: 'Cash',
             amount: Number(monthlyPayment.toFixed(2)),
             due_date: dateStr,
             currency: currency,
@@ -95,6 +98,7 @@ export function calculatePaymentSchedule(params: CalcParams): CalcResult {
             items.push({
                 description: `Ara Ödeme (${i}. Ay)`,
                 payment_type: 'Balloon',
+                payment_mode: 'Cash',
                 amount: interim.amount,
                 due_date: dateStr,
                 currency: currency,

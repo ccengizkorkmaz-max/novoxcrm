@@ -341,6 +341,7 @@ export default function PaymentPlanCalculator({ saleId, totalAmount = 0, initial
                                 <TableRow className="hover:bg-transparent border-slate-100">
                                     <TableHead className="text-[10px] h-9 font-bold text-slate-400 uppercase tracking-widest pl-4">Açıklama</TableHead>
                                     <TableHead className="text-[10px] h-9 font-bold text-slate-400 uppercase tracking-widest text-center">Tarih</TableHead>
+                                    <TableHead className="text-[10px] h-9 font-bold text-slate-400 uppercase tracking-widest text-center">Ödeme Türü</TableHead>
                                     <TableHead className="text-[10px] h-9 font-bold text-slate-400 uppercase tracking-widest text-right pr-4">Tutar</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -349,6 +350,21 @@ export default function PaymentPlanCalculator({ saleId, totalAmount = 0, initial
                                     <TableRow key={i} className="group border-slate-100 hover:bg-slate-50/50 transition-colors">
                                         <TableCell className="py-2.5 pl-4 text-xs font-medium text-slate-600 truncate max-w-[120px]">{item.description}</TableCell>
                                         <TableCell className="py-2.5 text-xs font-mono text-slate-500 text-center">{new Date(item.due_date).toLocaleDateString('tr-TR')}</TableCell>
+                                        <TableCell className="py-2.5 text-center px-2">
+                                            <select
+                                                value={item.payment_mode || 'Cash'}
+                                                onChange={(e) => {
+                                                    const newPlan = [...plan];
+                                                    newPlan[i] = { ...newPlan[i], payment_mode: e.target.value };
+                                                    setPlan(newPlan);
+                                                }}
+                                                className="bg-transparent border-none text-[11px] font-bold text-slate-600 uppercase focus:ring-0 cursor-pointer hover:bg-slate-100 rounded px-1 py-0.5"
+                                            >
+                                                <option value="Cash">Nakit/Havale</option>
+                                                <option value="Check">Çek</option>
+                                                <option value="Note">Senet</option>
+                                            </select>
+                                        </TableCell>
                                         <TableCell className="py-2.5 pr-4 text-xs font-bold text-slate-900 text-right">{Number(item.amount).toLocaleString('tr-TR', { style: 'currency', currency, maximumFractionDigits: 0 })}</TableCell>
                                     </TableRow>
                                 ))}

@@ -420,7 +420,7 @@ export async function createFinancialAccount(params: {
  */
 export async function createValuablePaper(params: {
     customer_id: string,
-    paper_type: 'Check' | 'Note',
+    paper_type: 'Check' | 'PromissoryNote',
     amount: number,
     currency: string,
     due_date: string,
