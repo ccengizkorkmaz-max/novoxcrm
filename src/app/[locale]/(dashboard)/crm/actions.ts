@@ -12,13 +12,14 @@ export async function createCustomer(formData: FormData) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) redirect('/login')
 
-    const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single()
+    const { data: profile } = await supabase.from('profiles').select('tenant_id, full_name').eq('id', user.id).single()
     // Assuming tenant_id exists or we handle it. For MVP, we trust profile.
 
     const full_name = formData.get('full_name') as string
     const phone = formData.get('phone') as string
     const email = formData.get('email') as string
-    const source = formData.get('source') as string
+    const sourceRaw = formData.get('source') as string
+    const source = sourceRaw?.trim() ? sourceRaw : `Personel: ${profile?.full_name || 'Bilinmiyor'}`
     const address = formData.get('address') as string
     const postal_code = formData.get('postal_code') as string
     const district = formData.get('district') as string
@@ -31,6 +32,7 @@ export async function createCustomer(formData: FormData) {
         .from('customers')
         .insert({
             tenant_id: profile?.tenant_id,
+            created_by: user.id,
             full_name,
             phone,
             email,
@@ -99,7 +101,8 @@ export async function createCustomer(formData: FormData) {
                         customer_id: data.id,
                         assigned_to: null,
                         status: 'Lead',
-                        unit_id: null
+                        unit_id: null,
+                        lead_origin: mapSourceToCategory(source)
                     })
                 }
             }
@@ -116,7 +119,7 @@ function mapSourceToCategory(source: string | null): string {
     if (!source) return 'company'
     const s = source.toLowerCase()
     if (s.includes('emlak') || s.includes('agent') || s.includes('broker')) return 'personal_agent'
-    if (s.includes('referans') || s.includes('network') || s.includes('tanıdık') || s.includes('kişisel')) return 'personal'
+    if (s.includes('referans') || s.includes('network') || s.includes('tanıdık') || s.includes('kişisel') || s.includes('personel')) return 'personal'
     return 'company'
 }
 

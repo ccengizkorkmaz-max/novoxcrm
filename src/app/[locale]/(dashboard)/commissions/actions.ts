@@ -8,16 +8,25 @@ export async function getCommissionStats() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { totalEarned: 0, pending: 0, thisMonth: 0, count: 0 }
 
-    // Check role for filtering logic (RLS handles exact data, but good to know context)
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-    const isAdmin = ['admin', 'owner', 'manager'].includes(profile?.role || '')
+    const role = profile?.role || 'user'
 
-    // Fetch all relevant commissions to calculate stats in memory or via simplified queries
-    // Since amount is numeric, we can sum it.
-    let query = supabase.from('commissions').select('amount, status, calculated_at')
+    let query = supabase.from('commissions').select('amount, status, calculated_at, user_id')
 
-    // If not admin, RLS filters implicitly, but let's be explicit if needed
-    // Actually RLS is best.
+    // RBAC Filtering
+    if (role === 'manager') {
+        // Find subordinates
+        const { data: employee } = await supabase.from('employees').select('id').eq('profile_id', user.id).single()
+        if (employee) {
+            const { data: subordinates } = await supabase.from('employees').select('profile_id').eq('manager_id', employee.id)
+            const subordinateIds = subordinates?.map(s => s.profile_id).filter(Boolean) || []
+            query = query.in('user_id', [user.id, ...subordinateIds])
+        } else {
+            query = query.eq('user_id', user.id)
+        }
+    } else if (role !== 'admin' && role !== 'owner') {
+        query = query.eq('user_id', user.id)
+    }
 
     const { data: commissions, error } = await query
 
@@ -51,8 +60,13 @@ export async function getCommissionStats() {
 
 export async function getCommissions() {
     const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return []
 
-    const { data, error } = await supabase
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+    const role = profile?.role || 'user'
+
+    let query = supabase
         .from('commissions')
         .select(`
             *,
@@ -64,7 +78,22 @@ export async function getCommissions() {
                 customers:customer_id ( full_name )
             )
         `)
-        .order('calculated_at', { ascending: false })
+
+    // RBAC Filtering
+    if (role === 'manager') {
+        const { data: employee } = await supabase.from('employees').select('id').eq('profile_id', user.id).single()
+        if (employee) {
+            const { data: subordinates } = await supabase.from('employees').select('profile_id').eq('manager_id', employee.id)
+            const subordinateIds = subordinates?.map(s => s.profile_id).filter(Boolean) || []
+            query = query.in('user_id', [user.id, ...subordinateIds])
+        } else {
+            query = query.eq('user_id', user.id)
+        }
+    } else if (role !== 'admin' && role !== 'owner') {
+        query = query.eq('user_id', user.id)
+    }
+
+    const { data, error } = await query.order('calculated_at', { ascending: false })
 
     if (error) {
         console.error('Commissions Fetch Error:', error)
