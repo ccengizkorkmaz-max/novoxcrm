@@ -52,6 +52,8 @@ export async function confirmDeposit(depositId: string) {
 
     if (fetchError || !deposit) return { error: 'Deposit not found' }
 
+    const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single()
+
     // 2. Update deposit status
     const { error: updateError } = await supabase
         .from('deposits')
@@ -81,6 +83,29 @@ export async function confirmDeposit(depositId: string) {
         if (finalizeResult.error) return { error: finalizeResult.error }
     }
 
+    // 4. Record Financial Transaction (Cari Kart İşlemi)
+    try {
+        const accountId = await ensureFinancialAccount({
+            owner_type: 'Customer',
+            customer_id: deposit.customer_id,
+            account_name: 'Customer Account', // Will be auto-fixed if exists
+            tenant_id: profile?.tenant_id || ''
+        })
+
+        await createTransaction({
+            account_id: accountId,
+            type: 'Credit',
+            amount: deposit.amount,
+            description: `Kapora Ödemesi (${deposit.paper_type === 'Check' ? 'Çek' : deposit.paper_type === 'Note' ? 'Senet' : 'Nakit/Transfer'})`,
+            currency: deposit.currency,
+            reference_type: 'Deposit',
+            reference_id: deposit.id
+        })
+    } catch (txError) {
+        console.error('Record Deposit Transaction Error:', txError)
+        // Non-blocking for the status update
+    }
+
     revalidatePath('/finance/deposits')
     revalidatePath('/inventory')
     revalidatePath('/offers')
@@ -104,6 +129,8 @@ export async function confirmRefund(depositId: string) {
         .single()
 
     if (fetchError || !deposit) return { error: 'Deposit not found' }
+
+    const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single()
 
     // 2. Update deposit status to Refunded
     const { error: updateError } = await supabase
@@ -132,6 +159,28 @@ export async function confirmRefund(depositId: string) {
     } else if (deposit.offer_id) {
         // Update Offer status
         await supabase.from('offers').update({ status: 'Cancelled' }).eq('id', deposit.offer_id)
+    }
+
+    // 4. Record Financial Transaction (İade Kaydı)
+    try {
+        const accountId = await ensureFinancialAccount({
+            owner_type: 'Customer',
+            customer_id: deposit.customer_id,
+            account_name: 'Customer Account',
+            tenant_id: profile?.tenant_id || ''
+        })
+
+        await createTransaction({
+            account_id: accountId,
+            type: 'Debit',
+            amount: deposit.amount,
+            description: 'Kapora İadesi',
+            currency: deposit.currency,
+            reference_type: 'Refund',
+            reference_id: deposit.id
+        })
+    } catch (txError) {
+        console.error('Record Refund Transaction Error:', txError)
     }
 
     revalidatePath('/finance/deposits')
