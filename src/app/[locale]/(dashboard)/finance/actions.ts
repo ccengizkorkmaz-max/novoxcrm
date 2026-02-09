@@ -327,3 +327,85 @@ export async function ensureFinancialAccount(params: {
     if (error) throw error
     return data.id
 }
+
+/**
+ * Manually creates a financial account.
+ */
+export async function createFinancialAccount(params: {
+    account_name: string,
+    owner_type: 'Customer' | 'Broker' | 'Employee' | 'Tedarikçi' | 'Diğer',
+    account_code?: string,
+    customer_id?: string,
+    employee_id?: string,
+    profile_id?: string
+}) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    const profile = (await supabase.from('profiles').select('tenant_id').eq('id', user.id).single()).data
+
+    const { error } = await supabase
+        .from('financial_accounts')
+        .insert({
+            tenant_id: profile?.tenant_id,
+            account_name: params.account_name,
+            account_code: params.account_code,
+            owner_type: params.owner_type,
+            customer_id: params.customer_id,
+            employee_id: params.employee_id,
+            profile_id: params.profile_id
+        })
+
+    if (error) {
+        console.error('Create Account Error:', error)
+        return { error: 'Hesap oluşturulamadı.' }
+    }
+
+    revalidatePath('/finance')
+    return { success: true }
+}
+
+/**
+ * Manually records a valuable paper.
+ */
+export async function createValuablePaper(params: {
+    customer_id: string,
+    paper_type: 'Check' | 'Note',
+    amount: number,
+    currency: string,
+    due_date: string,
+    issue_number?: string,
+    bank_name?: string,
+    description?: string
+}) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    const profile = (await supabase.from('profiles').select('tenant_id').eq('id', user.id).single()).data
+
+    const { error } = await supabase
+        .from('valuable_papers')
+        .insert({
+            tenant_id: profile?.tenant_id,
+            customer_id: params.customer_id,
+            paper_type: params.paper_type,
+            amount: params.amount,
+            currency: params.currency,
+            due_date: params.due_date,
+            issue_number: params.issue_number,
+            bank_name: params.bank_name,
+            description: params.description,
+            status: 'Portfolio',
+            created_by: user.id
+        })
+
+    if (error) {
+        console.error('Create Paper Error:', error)
+        return { error: 'Evrak kaydedilemedi.' }
+    }
+
+    revalidatePath('/finance')
+    return { success: true }
+}

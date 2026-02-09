@@ -9,6 +9,7 @@ import { Search, Plus, FileText, ArrowUpRight, ArrowDownLeft } from 'lucide-reac
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
 import StatementView from './StatementView'
 import TransactionForm from './TransactionForm'
+import AccountForm from './AccountForm'
 
 interface AccountsTableProps {
     accounts: any[]
@@ -35,16 +36,29 @@ export default function AccountsTable({ accounts }: AccountsTableProps) {
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
-                <Dialog>
-                    <DialogTrigger asChild>
-                        <Button className="bg-blue-600 hover:bg-blue-700">
-                            <Plus className="h-4 w-4 mr-2" /> Yeni İşlem Girişi
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                        <TransactionForm accounts={accounts} />
-                    </DialogContent>
-                </Dialog>
+                <div className="flex gap-2">
+                    <Dialog>
+                        <DialogTrigger asChild>
+                            <Button variant="outline" className="border-blue-200 text-blue-600 hover:bg-blue-50">
+                                <Plus className="h-4 w-4 mr-2" /> Yeni Hesap Tanımla
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <AccountForm />
+                        </DialogContent>
+                    </Dialog>
+
+                    <Dialog>
+                        <DialogTrigger asChild>
+                            <Button className="bg-blue-600 hover:bg-blue-700">
+                                <Plus className="h-4 w-4 mr-2" /> Yeni İşlem Girişi
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <TransactionForm accounts={accounts} />
+                        </DialogContent>
+                    </Dialog>
+                </div>
             </div>
 
             <div className="rounded-md border bg-white">

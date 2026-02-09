@@ -9,6 +9,9 @@ import { formatCurrency } from '@/lib/utils'
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
 import { updateValuablePaperStatus } from '../actions'
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
+import { Plus } from 'lucide-react'
+import ValuablePaperForm from './ValuablePaperForm'
 
 interface ValuablePapersTableProps {
     papers: any[]
@@ -55,6 +58,17 @@ export default function ValuablePapersTable({ papers }: ValuablePapersTableProps
                     />
                 </div>
                 <div className="flex gap-2">
+                    <Dialog>
+                        <DialogTrigger asChild>
+                            <Button className="bg-emerald-600 hover:bg-emerald-700">
+                                <Plus className="h-4 w-4 mr-2" /> Yeni Evrak Girişi
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <ValuablePaperForm />
+                        </DialogContent>
+                    </Dialog>
+
                     <Button variant="outline" size="sm">
                         <FileDown className="h-4 w-4 mr-2" /> Dışa Aktar
                     </Button>
