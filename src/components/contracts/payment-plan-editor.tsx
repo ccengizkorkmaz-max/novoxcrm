@@ -11,6 +11,7 @@ import { calculatePaymentSchedule } from '@/lib/utils/payment-calc'
 
 interface PaymentPlanItem {
     payment_type: 'DownPayment' | 'Installment' | 'Balloon' | 'DeliveryPayment' | 'Other'
+    payment_mode?: 'Cash' | 'Check' | 'Note'
     due_date: string
     amount: number
     currency: string
@@ -132,6 +133,7 @@ export function PaymentPlanEditor({ totalAmount, currency, templates = [], onCha
     const addRow = () => {
         setPlan([...plan, {
             payment_type: 'Installment',
+            payment_mode: 'Cash',
             due_date: startDate,
             amount: 0,
             currency: currency
@@ -306,6 +308,7 @@ export function PaymentPlanEditor({ totalAmount, currency, templates = [], onCha
                             <TableHead>Tip</TableHead>
                             <TableHead>Tarih</TableHead>
                             <TableHead>Tutar ({currency})</TableHead>
+                            <TableHead>Ödeme Şekli</TableHead>
                             <TableHead>Not</TableHead>
                             <TableHead className="w-[50px]"></TableHead>
                         </TableRow>
@@ -342,6 +345,17 @@ export function PaymentPlanEditor({ totalAmount, currency, templates = [], onCha
                                             value={item.amount}
                                             onChange={(e) => updateRow(originalIdx, 'amount', Number(e.target.value))}
                                         />
+                                    </TableCell>
+                                    <TableCell>
+                                        <select
+                                            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors"
+                                            value={item.payment_mode || 'Cash'}
+                                            onChange={(e) => updateRow(originalIdx, 'payment_mode', e.target.value)}
+                                        >
+                                            <option value="Cash">Nakit/Havale</option>
+                                            <option value="Check">Çek</option>
+                                            <option value="Note">Senet</option>
+                                        </select>
                                     </TableCell>
                                     <TableCell>
                                         <Input

@@ -29,6 +29,7 @@ import PipelineList from './components/PipelineList'
 import NewSaleButton from './components/NewSaleButton'
 import CRMFilterSheet from './components/CRMFilterSheet'
 import CRMSearch from './components/CRMSearch'
+import React from 'react'
 
 export default async function CRMPage(props: {
     params: Promise<{ locale: string }>
@@ -105,11 +106,15 @@ export default async function CRMPage(props: {
                 <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-4 px-1">
                         <h1 className="text-xl md:text-2xl font-bold tracking-tight whitespace-nowrap">{t('title')}</h1>
-                        <CRMFilterSheet
-                            projects={projectsData || []}
-                            profiles={profilesData || []}
-                        />
-                        <CRMSearch />
+                        <React.Suspense fallback={<div className="h-9 w-24 bg-gray-100 animate-pulse rounded" />}>
+                            <CRMFilterSheet
+                                projects={projectsData || []}
+                                profiles={profilesData || []}
+                            />
+                        </React.Suspense>
+                        <React.Suspense fallback={<div className="h-10 w-64 bg-gray-100 animate-pulse rounded" />}>
+                            <CRMSearch />
+                        </React.Suspense>
                         <NewSaleButton
                             customers={customers || []}
                             availableUnits={availableUnits || []}
@@ -131,17 +136,19 @@ export default async function CRMPage(props: {
                 <PipelineStats sales={salesForStats || []} />
             </div>
 
-            <PipelineList
-                sales={sales || []}
-                customers={customers || []}
-                availableUnits={availableUnits || []}
-                templates={templates || []}
-                profiles={profilesData || []}
-                projects={projectsData || []}
-                totalSalesCount={totalSalesCount}
-                initialPage={page}
-                isAdmin={isAdmin}
-            />
+            <React.Suspense fallback={<div className="h-96 w-full bg-gray-100 animate-pulse rounded" />}>
+                <PipelineList
+                    sales={sales || []}
+                    customers={customers || []}
+                    availableUnits={availableUnits || []}
+                    templates={templates || []}
+                    profiles={profilesData || []}
+                    projects={projectsData || []}
+                    totalSalesCount={totalSalesCount}
+                    initialPage={page}
+                    isAdmin={isAdmin}
+                />
+            </React.Suspense>
         </div>
     )
 }

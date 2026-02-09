@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import CustomerList from '@/app/[locale]/(dashboard)/crm/components/CustomerList'
 import { getTranslations } from 'next-intl/server'
+import React from 'react'
 
 export default async function CustomersPage(props: {
     params: Promise<{ locale: string }>
@@ -56,12 +57,14 @@ export default async function CustomersPage(props: {
             </div>
 
             <div className="rounded-md border bg-card p-6">
-                <CustomerList
-                    customers={allCustomers || []}
-                    totalRecords={totalCount}
-                    initialPage={page}
-                    sourceStats={sourceCounts}
-                />
+                <React.Suspense fallback={<div className="h-96 w-full bg-gray-100 animate-pulse rounded" />}>
+                    <CustomerList
+                        customers={allCustomers || []}
+                        totalRecords={totalCount}
+                        initialPage={page}
+                        sourceStats={sourceCounts}
+                    />
+                </React.Suspense>
             </div>
         </div>
     )

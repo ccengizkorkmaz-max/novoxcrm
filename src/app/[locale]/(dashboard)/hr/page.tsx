@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from 'next-intl/server'
 import { redirect } from 'next/navigation'
 import EmployeeList from '@/app/[locale]/(dashboard)/hr/components/EmployeeList'
+import React from 'react'
 
 export default async function HRPage(props: {
     params: Promise<{ locale: string }>
@@ -49,10 +50,15 @@ export default async function HRPage(props: {
         .range(from, to)
 
     if (error) {
+        console.error('HR Page DB Error:', error)
         return (
             <div className="p-10 bg-red-50 text-red-900 border border-red-200">
-                <h1 className="font-bold">Veritabanı Hatası</h1>
-                <pre className="text-xs mt-4">{JSON.stringify(error, null, 2)}</pre>
+                <h1 className="font-bold text-lg">Veritabanı Hatası</h1>
+                <p className="mt-2"><strong>Code:</strong> {error.code}</p>
+                <p><strong>Message:</strong> {error.message}</p>
+                <p><strong>Details:</strong> {error.details || 'N/A'}</p>
+                <p><strong>Hint:</strong> {error.hint || 'N/A'}</p>
+                <pre className="text-xs mt-4 bg-red-100 p-4 rounded overflow-auto">{JSON.stringify(error, null, 2)}</pre>
             </div>
         )
     }
@@ -94,11 +100,13 @@ export default async function HRPage(props: {
             </div>
 
             <div className="rounded-md border bg-card p-6 shadow-sm">
-                <EmployeeList
-                    employees={employees || []}
-                    totalRecords={count || 0}
-                    initialPage={page}
-                />
+                <React.Suspense fallback={<div className="h-64 w-full bg-gray-100 animate-pulse rounded" />}>
+                    <EmployeeList
+                        employees={employees || []}
+                        totalRecords={count || 0}
+                        initialPage={page}
+                    />
+                </React.Suspense>
             </div>
         </div>
     )

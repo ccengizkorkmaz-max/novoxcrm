@@ -182,7 +182,7 @@ export default function EmployeeProfile({ employee, documents }: EmployeeProfile
                                                     <div className="flex items-center gap-3">
                                                         <FileText className="h-5 w-5 text-blue-600" />
                                                         <div className="flex flex-col">
-                                                            <span className="text-sm font-medium">{doc.document_name}</span>
+                                                            <span className="text-sm font-medium">{doc.file_name}</span>
                                                             <span className="text-[10px] text-muted-foreground">
                                                                 {format(new Date(doc.created_at), 'dd.MM.yyyy HH:mm')}
                                                             </span>

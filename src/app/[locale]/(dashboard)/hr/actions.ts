@@ -1,22 +1,15 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { createClient as createAdminClient } from '@supabase/supabase-js'
+
 import { revalidatePath } from 'next/cache'
 
 export async function uploadEmployeePhoto(formData: FormData) {
     const file = formData.get('file') as File
     if (!file) throw new Error('No file provided')
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-
-    const adminClient = createAdminClient(supabaseUrl, serviceRoleKey, {
-        auth: {
-            autoRefreshToken: false,
-            persistSession: false
-        }
-    })
+    // Use standard authenticated client to respect RLS policies
+    const supabase = await createClient()
 
     const fileExt = file.name.split('.').pop()
     const fileName = `${Date.now()}.${fileExt}`
@@ -25,7 +18,7 @@ export async function uploadEmployeePhoto(formData: FormData) {
     const arrayBuffer = await file.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
 
-    const { error: uploadError } = await adminClient.storage
+    const { error: uploadError } = await supabase.storage
         .from('hr-documents')
         .upload(filePath, buffer, {
             contentType: file.type,
@@ -37,7 +30,7 @@ export async function uploadEmployeePhoto(formData: FormData) {
         throw uploadError
     }
 
-    const { data: { publicUrl } } = adminClient.storage
+    const { data: { publicUrl } } = supabase.storage
         .from('hr-documents')
         .getPublicUrl(filePath)
 

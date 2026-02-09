@@ -50,7 +50,7 @@ function NavItem({ href, icon: Icon, children, onClick }: NavItemProps) {
             href={href}
             onClick={onClick}
             className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2 transition-all",
+                "flex items-center gap-3 rounded-lg px-3 py-1.5 transition-all text-[13px]",
                 isActive
                     ? "bg-blue-600 text-white font-bold shadow-lg shadow-blue-900/20"
                     : "text-slate-400 hover:text-white hover:bg-slate-800"
@@ -85,7 +85,7 @@ export function SidebarNav({ onElementClick }: { onElementClick?: () => void }) 
     const isOwner = role === 'owner' || role === 'admin'
 
     return (
-        <nav className="grid items-start px-2 text-sm font-medium lg:px-4 gap-1">
+        <nav className="grid items-start px-2 text-sm font-medium lg:px-4 gap-0.5">
             <NavItem href="/" icon={LayoutDashboard} onClick={onElementClick}>
                 {t('overview')}
             </NavItem>
@@ -94,10 +94,7 @@ export function SidebarNav({ onElementClick }: { onElementClick?: () => void }) 
             </NavItem>
             {/* ... Quick CRM, Projects, Inventory etc are common ... */}
             <NavItem href="/quick-crm" icon={Zap} onClick={onElementClick}>
-                <span className="flex items-center gap-2">
-                    {t('quickCRM')}
-                    <Badge className="h-4 px-1 text-[8px] bg-yellow-500 hover:bg-yellow-600">NEW</Badge>
-                </span>
+                {t('quickCRM')}
             </NavItem>
             <NavItem href="/projects" icon={Building2} onClick={onElementClick}>
                 {t('projects')}
@@ -154,7 +151,7 @@ export function SidebarNav({ onElementClick }: { onElementClick?: () => void }) 
                 <>
                     <Accordion type="multiple" className="w-full border-none">
                         <AccordionItem value="broker" className="border-none">
-                            <AccordionTrigger className="px-3 py-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg hover:no-underline [&[data-state=open]]:text-white font-medium justify-start">
+                            <AccordionTrigger className="px-3 py-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg hover:no-underline [&[data-state=open]]:text-white font-medium justify-start text-[13px]">
                                 <div className="flex items-center gap-3 whitespace-nowrap">
                                     <Users className="h-4 w-4" />
                                     <span>{t('broker.title')}</span>
@@ -185,7 +182,7 @@ export function SidebarNav({ onElementClick }: { onElementClick?: () => void }) 
                         </AccordionItem>
 
                         <AccordionItem value="reports" className="border-none">
-                            <AccordionTrigger className="px-3 py-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg hover:no-underline [&[data-state=open]]:text-white font-medium justify-start">
+                            <AccordionTrigger className="px-3 py-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg hover:no-underline [&[data-state=open]]:text-white font-medium justify-start text-[13px]">
                                 <div className="flex items-center gap-3 whitespace-nowrap">
                                     <BarChart3 className="h-4 w-4" />
                                     <span>{t('reports.title')}</span>

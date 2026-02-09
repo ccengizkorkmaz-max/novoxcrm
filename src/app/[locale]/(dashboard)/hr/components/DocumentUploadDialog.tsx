@@ -63,7 +63,7 @@ export default function DocumentUploadDialog({ employeeId, isOpen, onOpenChange 
             // 3. Save reference to database
             await addEmployeeDocument({
                 employee_id: employeeId,
-                document_name: fileName,
+                file_name: fileName,
                 file_url: publicUrl
             })
 
