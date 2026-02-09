@@ -53,6 +53,20 @@ export async function createCustomer(formData: FormData) {
         return { error: `Müşteri oluşturulamadı: ${error.message}` }
     }
 
+    // Auto-create financial account (Cari)
+    try {
+        const { ensureFinancialAccount } = await import('../finance/actions')
+        await ensureFinancialAccount({
+            owner_type: 'Customer',
+            customer_id: data.id,
+            account_name: full_name,
+            tenant_id: profile?.tenant_id
+        })
+    } catch (financeError) {
+        console.error('Auto-create Finance Account Error:', financeError)
+        // Non-blocking but logged
+    }
+
     if (data) {
         // Sync Portal Access if credentials provided
         if (portal_username && portal_password) {
@@ -393,6 +407,37 @@ export async function updateSaleStatus(id: string, status: string) {
     // If status is Lost, free up the unit
     if (status === 'Lost' && sale?.unit_id) {
         await supabase.from('units').update({ status: 'For Sale' }).eq('id', sale.unit_id)
+    }
+
+    // Finance Integration: Record total debt if Sold/Completed
+    if ((status === 'Sold' || status === 'Completed') && sale) {
+        try {
+            const { ensureFinancialAccount } = await import('../finance/actions')
+            const accountId = await ensureFinancialAccount({
+                owner_type: 'Customer',
+                customer_id: sale.customer_id,
+                account_name: sale.customers?.full_name || 'Müşteri',
+                tenant_id: profile?.tenant_id
+            })
+
+            // Record Debit (Borç)
+            const amount = sale.final_price || sale.units?.price || 0
+            if (amount > 0) {
+                await supabase.from('finance_transactions').insert({
+                    tenant_id: profile?.tenant_id,
+                    account_id: accountId,
+                    type: 'Debit', // Borç
+                    amount,
+                    currency: sale.currency || sale.units?.currency || 'TRY',
+                    description: `Satış Sözleşmesi: ${sale.units?.unit_number || sale.id.slice(0, 8)}`,
+                    reference_type: 'Sale',
+                    reference_id: sale.id,
+                    created_by: user?.id
+                })
+            }
+        } catch (financeError) {
+            console.error('Finance Sale Integration Error:', financeError)
+        }
     }
 
     revalidatePath('/crm')
