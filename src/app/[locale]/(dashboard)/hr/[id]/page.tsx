@@ -6,6 +6,22 @@ import EmployeeProfile from '@/app/[locale]/(dashboard)/hr/components/EmployeePr
 export default async function EmployeePage(props: { params: Promise<{ id: string; locale: string }> }) {
     const params = await props.params
     const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+        notFound()
+    }
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+
+    if (profile?.role !== 'owner' && profile?.role !== 'admin') {
+        notFound()
+    }
+
     const t = await getTranslations('HR')
 
     const { data: employee, error } = await supabase

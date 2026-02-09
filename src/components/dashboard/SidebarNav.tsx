@@ -140,7 +140,7 @@ export function SidebarNav({ onElementClick }: { onElementClick?: () => void }) 
             <NavItem href="/finance" icon={Banknote} onClick={onElementClick}>
                 Finans Yönetimi
             </NavItem>
-            {isManager && (
+            {isOwner && (
                 <NavItem href="/hr" icon={Briefcase} onClick={onElementClick}>
                     {t('hr')}
                 </NavItem>

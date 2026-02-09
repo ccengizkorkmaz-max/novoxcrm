@@ -1,27 +1,34 @@
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from 'next-intl/server'
+import { redirect } from 'next/navigation'
 import EmployeeList from '@/app/[locale]/(dashboard)/hr/components/EmployeeList'
 
-export default async function HRPage({
-    searchParams
-}: {
+export default async function HRPage(props: {
+    params: Promise<{ locale: string }>
     searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
-    const params = await searchParams
+    const { locale } = await props.params
+    const searchParams = await props.searchParams
     const t = await getTranslations('HR')
     const supabase = await createClient()
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-        return (
-            <div className="p-10 text-center">
-                <p>Oturum hatası. Lütfen tekrar giriş yapın.</p>
-                <a href="/login" className="underline font-bold">Giriş</a>
-            </div>
-        )
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+        redirect(`/${locale}/login`)
     }
 
-    const filterSearch = params.q as string
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+
+    if (profile?.role !== 'owner' && profile?.role !== 'admin') {
+        redirect(`/${locale}/dashboard`)
+    }
+
+    const filterSearch = searchParams.q as string
 
     // 1. Build Base Query
     let query = supabase
@@ -32,7 +39,7 @@ export default async function HRPage({
         query = query.or(`first_name.ilike.%${filterSearch}%,last_name.ilike.%${filterSearch}%,email.ilike.%${filterSearch}%,sicil_no.ilike.%${filterSearch}%`)
     }
 
-    const page = Number(params.page) || 1
+    const page = Number(searchParams.page) || 1
     const itemsPerPage = 50
     const from = (page - 1) * itemsPerPage
     const to = from + itemsPerPage - 1

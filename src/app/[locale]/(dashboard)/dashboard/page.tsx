@@ -206,8 +206,8 @@ async function getDashboardStats(t: any, locale: string) {
   }
 }
 
-export default async function DashboardPage({ params }: { params: { locale: string } }) {
-  const { locale } = params
+export default async function DashboardPage(props: { params: Promise<{ locale: string }> }) {
+  const { locale } = await props.params
   const t = await getTranslations('Dashboard')
   const stats = await getDashboardStats(t, locale)
 
