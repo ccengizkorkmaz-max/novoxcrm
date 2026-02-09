@@ -15,7 +15,7 @@ export default function ValuablePaperForm() {
     const [customers, setCustomers] = useState<any[]>([])
     const [formData, setFormData] = useState({
         customer_id: '',
-        paper_type: 'Check' as 'Check' | 'Note',
+        paper_type: 'Check' as 'Check' | 'PromissoryNote',
         amount: 0,
         currency: 'TRY',
         due_date: '',
@@ -66,7 +66,7 @@ export default function ValuablePaperForm() {
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="Check">Çek</SelectItem>
-                            <SelectItem value="Note">Senet</SelectItem>
+                            <SelectItem value="PromissoryNote">Senet</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
