@@ -54,9 +54,20 @@ export async function createEmployee(data: any) {
         termination_date: data.termination_date || null
     }
 
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Not authenticated')
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', user.id)
+        .single()
+
+    if (!profile?.tenant_id) throw new Error('Tenant ID not found')
+
     const { data: employee, error } = await supabase
         .from('employees')
-        .insert([sanitizedData])
+        .insert([{ ...sanitizedData, tenant_id: profile.tenant_id }])
         .select()
         .single()
 
