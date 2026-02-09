@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge'
 import { updateTenantProfile } from './actions'
 import { FormImageUpload } from '@/components/ui/form-image-upload'
-import { Building2, Users, FileText, Database, Banknote } from 'lucide-react'
+import { Building2, Users, FileText, Database, Banknote, Bell } from 'lucide-react'
 import UserManagementHeader from './components/UserManagementHeader'
 import UserTableActions from './components/UserTableActions'
 import TenantProfileForm from './components/TenantProfileForm'
@@ -20,6 +20,7 @@ import { PaymentTemplatesTab } from './templates/payment-templates-tab'
 import { getTranslations, getLocale } from 'next-intl/server'
 import UnitTypesTab from './components/UnitTypesTab'
 import CommissionRulesTab from './components/CommissionRulesTab'
+import NotificationSettingsTab from './components/NotificationSettingsTab'
 
 export default async function SettingsPage() {
     const supabase = await createClient()
@@ -77,6 +78,13 @@ export default async function SettingsPage() {
         .select('*')
         .order('source_category', { ascending: true })
 
+    // Get Notification Settings
+    const { data: notificationSettings } = await supabase
+        .from('notification_settings')
+        .select('*')
+        .eq('tenant_id', profile.tenant_id)
+        .single()
+
     const getRoleLabel = (role: string) => {
         switch (role) {
             case 'admin': return t('users.roles.admin')
@@ -99,6 +107,10 @@ export default async function SettingsPage() {
                     <TabsTrigger value="profile" className="flex-1 md:flex-none py-2.5 px-4 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all">
                         <Building2 className="w-4 h-4 mr-2" />
                         {t('tabs.profile')}
+                    </TabsTrigger>
+                    <TabsTrigger value="notifications" className="flex-1 md:flex-none py-2.5 px-4 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all">
+                        <Bell className="w-4 h-4 mr-2" />
+                        Bildirimler
                     </TabsTrigger>
                     <TabsTrigger value="users" className="flex-1 md:flex-none py-2.5 px-4 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all">
                         <Users className="w-4 h-4 mr-2" />
@@ -144,6 +156,11 @@ export default async function SettingsPage() {
                             )}
                         </CardContent>
                     </Card>
+                </TabsContent>
+
+                {/* Notification Settings Tab */}
+                <TabsContent value="notifications" className="space-y-4">
+                    <NotificationSettingsTab settings={notificationSettings} />
                 </TabsContent>
 
                 {/* User Management Tab */}
