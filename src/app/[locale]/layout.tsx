@@ -33,8 +33,12 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black-translucent",
+    statusBarStyle: "default",
     title: "NovoxCRM",
+  },
+  icons: {
+    icon: "/icon-512.png",
+    apple: "/icon-512.png",
   },
   formatDetection: {
     telephone: false,
