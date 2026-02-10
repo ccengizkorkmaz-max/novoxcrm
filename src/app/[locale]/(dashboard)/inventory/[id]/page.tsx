@@ -9,8 +9,13 @@ import { BackButton } from '@/components/back-button'
 import { Badge } from '@/components/ui/badge'
 import { format } from 'date-fns'
 import { tr } from 'date-fns/locale'
-import { AlertCircle, HardHat } from 'lucide-react'
+import { AlertCircle, HardHat, TrendingUp } from 'lucide-react'
 import { Progress } from '@/components/ui/progress'
+import { formatCurrency } from '@/lib/utils'
+import { getUnitImages, getUnitTimeline } from '../actions'
+import { UnitImageGallery } from './components/UnitImageGallery'
+import { UnitTimeline } from './components/UnitTimeline'
+import { UnitStatusChanger } from './components/UnitStatusChanger'
 
 export default async function UnitDetailPage(props: {
     params: Promise<{ locale: string; id: string }>
@@ -65,7 +70,21 @@ export default async function UnitDetailPage(props: {
         }
     }
 
+    // Fetch unit images
+    const images = await getUnitImages(id)
+
+    // Fetch unit timeline (activity log + negotiations)
+    const timeline = await getUnitTimeline(id)
+
+    // Calculate price per m²
+    const pricePerM2 = unit.area_gross ? Math.round(unit.price / unit.area_gross) : null
+
+    // Days on market
+    const listedDate = new Date(unit.listed_at || unit.created_at)
+    const daysOnMarket = Math.floor((new Date().getTime() - listedDate.getTime()) / (1000 * 60 * 60 * 24))
+
     const isSold = unit.status === 'Sold'
+    const isBlocked = unit.status === 'Blocked'
 
     return (
         <div className="flex flex-col gap-6">
@@ -75,7 +94,31 @@ export default async function UnitDetailPage(props: {
                     <div>
                         <div className="flex items-center gap-2">
                             <h1 className="text-2xl font-bold tracking-tight">Ünite Kartı: {unit.unit_number}</h1>
-                            {isSold && <Badge variant="destructive">SATILDI</Badge>}
+                            <Badge variant={
+                                unit.status === 'Sold' ? 'destructive' :
+                                    unit.status === 'Reserved' ? 'secondary' :
+                                        unit.status === 'Blocked' ? 'outline' :
+                                            unit.status === 'Option' ? 'secondary' :
+                                                unit.status === 'Rented' ? 'secondary' :
+                                                    unit.status === 'Delivered' ? 'default' :
+                                                        'default'
+                            } className={
+                                unit.status === 'For Sale' ? 'bg-emerald-600 text-white' :
+                                    unit.status === 'Blocked' ? 'bg-slate-600 text-white' :
+                                        unit.status === 'Option' ? 'bg-violet-600 text-white' :
+                                            unit.status === 'Rented' ? 'bg-cyan-600 text-white' :
+                                                unit.status === 'Delivered' ? 'bg-green-800 text-white' :
+                                                    ''
+                            }>
+                                {unit.status === 'For Sale' ? 'SATIŞTA' :
+                                    unit.status === 'Sold' ? 'SATILDI' :
+                                        unit.status === 'Reserved' ? 'REZERVE' :
+                                            unit.status === 'Blocked' ? 'BLOKE' :
+                                                unit.status === 'Option' ? 'OPSİYON' :
+                                                    unit.status === 'Rented' ? 'KİRADA' :
+                                                        unit.status === 'Delivered' ? 'TESLİM EDİLDİ' :
+                                                            unit.status}
+                            </Badge>
                         </div>
                         <p className="text-muted-foreground">{unit.projects?.name} - {unit.type}</p>
                         {isSold && contract && (
@@ -101,12 +144,61 @@ export default async function UnitDetailPage(props: {
                 </div>
             </div>
 
+            {/* Quick Stats Row */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <Card className="shadow-sm">
+                    <CardContent className="pt-4 pb-3">
+                        <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Fiyat</p>
+                        <p className="text-lg font-black text-slate-900 mt-1">{formatCurrency(unit.price, unit.currency)}</p>
+                    </CardContent>
+                </Card>
+                <Card className="shadow-sm">
+                    <CardContent className="pt-4 pb-3">
+                        <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">m² Birim Fiyat</p>
+                        <p className="text-lg font-black text-slate-900 mt-1">
+                            {pricePerM2 ? formatCurrency(pricePerM2, unit.currency) : '-'}
+                        </p>
+                    </CardContent>
+                </Card>
+                <Card className="shadow-sm">
+                    <CardContent className="pt-4 pb-3">
+                        <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Brüt / Net Alan</p>
+                        <p className="text-lg font-black text-slate-900 mt-1">
+                            {unit.area_gross || '-'} / {unit.area_net || '-'} m²
+                        </p>
+                    </CardContent>
+                </Card>
+                <Card className="shadow-sm">
+                    <CardContent className="pt-4 pb-3">
+                        <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider flex items-center gap-1">
+                            <TrendingUp className="h-3 w-3" /> Stokta Kalma
+                        </p>
+                        <p className="text-lg font-black text-slate-900 mt-1">
+                            {daysOnMarket} gün
+                        </p>
+                    </CardContent>
+                </Card>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Left: Edit Form */}
                 <Card className="md:col-span-2">
                     <UnitEditForm unit={unit} disabled={isSold} />
                 </Card>
 
+                {/* Right sidebar */}
                 <div className="space-y-6">
+                    {/* Status Changer */}
+                    <UnitStatusChanger unitId={unit.id} currentStatus={unit.status} />
+
+                    {/* Image Gallery */}
+                    <UnitImageGallery
+                        unitId={unit.id}
+                        projectId={unit.project_id}
+                        images={images}
+                        disabled={isSold}
+                    />
+
                     {/* Construction Progress Card */}
                     <Card>
                         <CardHeader className="pb-2">
@@ -150,6 +242,9 @@ export default async function UnitDetailPage(props: {
                             </div>
                         </CardContent>
                     </Card>
+
+                    {/* Unit Timeline */}
+                    <UnitTimeline timeline={timeline} />
 
                     {isSold && (
                         <div className="flex items-center gap-2 p-4 bg-amber-50 border border-amber-200 rounded-lg">

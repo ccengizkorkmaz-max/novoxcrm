@@ -58,6 +58,10 @@ export async function updateUnit(formData: FormData) {
         has_master_bathroom: formData.get('has_master_bathroom') === 'true'
     }
 
+    // Get old price for logging
+    const { data: oldUnit } = await supabase.from('units').select('price, currency').eq('id', id).single()
+    const oldPrice = oldUnit?.price
+
     const { error } = await supabase
         .from('units')
         .update(updates)
@@ -68,8 +72,25 @@ export async function updateUnit(formData: FormData) {
         return { error: 'Failed to update unit: ' + error.message }
     }
 
+    // Log price change if it happened
+    if (updates.price !== oldPrice) {
+        try {
+            const { logUnitActivity } = await import('../actions')
+            await logUnitActivity(
+                id,
+                'price_change',
+                `Fiyat güncellendi: ${oldPrice ? new Intl.NumberFormat('tr-TR').format(oldPrice) : '0'} → ${updates.price ? new Intl.NumberFormat('tr-TR').format(updates.price) : '0'} ${updates.currency || 'TRY'}`,
+                oldPrice?.toString() || '0',
+                updates.price?.toString() || '0'
+            )
+        } catch (e) {
+            console.error('Failed to log unit activity during manual update:', e)
+        }
+    }
+
     revalidatePath(`/inventory/${id}`)
     revalidatePath('/inventory')
+
     return { success: true }
 }
 

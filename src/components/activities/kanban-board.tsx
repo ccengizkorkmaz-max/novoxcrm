@@ -9,9 +9,10 @@ import { useTranslations } from 'next-intl'
 interface KanbanBoardProps {
     activities: Activity[]
     customers?: any[]
+    profiles?: any[]
 }
 
-export function KanbanBoard({ activities, customers }: KanbanBoardProps) {
+export function KanbanBoard({ activities, customers, profiles }: KanbanBoardProps) {
     const t = useTranslations('Activities.kanban')
     // Categorize activities
     // Categorize activities
@@ -38,17 +39,17 @@ export function KanbanBoard({ activities, customers }: KanbanBoardProps) {
 
     return (
         <div className="flex overflow-x-auto pb-4 gap-4 h-[calc(100vh-200px)]">
-            <KanbanColumn title={t('overdue')} count={overdue.length} activities={overdue} customers={customers} color="border-red-500" emptyText={t('noActivity')} />
-            <KanbanColumn title={t('today')} count={today.length} activities={today} customers={customers} color="border-blue-500" emptyText={t('noActivity')} />
-            <KanbanColumn title={t('tomorrow')} count={tomorrow.length} activities={tomorrow} customers={customers} color="border-indigo-500" emptyText={t('noActivity')} />
-            <KanbanColumn title={t('thisWeek')} count={thisWeek.length} activities={thisWeek} customers={customers} color="border-purple-500" emptyText={t('noActivity')} />
-            <KanbanColumn title="Tarihsiz" count={noDate.length} activities={noDate} customers={customers} color="border-gray-500" emptyText={t('noActivity')} />
-            <KanbanColumn title={t('completed')} count={completed.length} activities={completed} customers={customers} color="border-green-500" emptyText={t('noActivity')} />
+            <KanbanColumn title={t('overdue')} count={overdue.length} activities={overdue} customers={customers} profiles={profiles} color="border-red-500" emptyText={t('noActivity')} />
+            <KanbanColumn title={t('today')} count={today.length} activities={today} customers={customers} profiles={profiles} color="border-blue-500" emptyText={t('noActivity')} />
+            <KanbanColumn title={t('tomorrow')} count={tomorrow.length} activities={tomorrow} customers={customers} profiles={profiles} color="border-indigo-500" emptyText={t('noActivity')} />
+            <KanbanColumn title={t('thisWeek')} count={thisWeek.length} activities={thisWeek} customers={customers} profiles={profiles} color="border-purple-500" emptyText={t('noActivity')} />
+            <KanbanColumn title="Tarihsiz" count={noDate.length} activities={noDate} customers={customers} profiles={profiles} color="border-gray-500" emptyText={t('noActivity')} />
+            <KanbanColumn title={t('completed')} count={completed.length} activities={completed} customers={customers} profiles={profiles} color="border-green-500" emptyText={t('noActivity')} />
         </div>
     )
 }
 
-function KanbanColumn({ title, count, activities, customers, color, emptyText }: { title: string, count: number, activities: Activity[], customers?: any[], color: string, emptyText?: string }) {
+function KanbanColumn({ title, count, activities, customers, profiles, color, emptyText }: { title: string, count: number, activities: Activity[], customers?: any[], profiles?: any[], color: string, emptyText?: string }) {
     return (
         <div className="flex-shrink-0 w-80 flex flex-col bg-muted/30 rounded-lg border-t-4 border-muted-foreground/20 h-full p-2">
             <div className={`p-3 font-semibold text-sm flex justify-between items-center border-b mb-2 ${color ? color.replace('border-', 'text-') : ''} border-l-4 pl-3`}>
@@ -58,7 +59,7 @@ function KanbanColumn({ title, count, activities, customers, color, emptyText }:
             <ScrollArea className="flex-1 pr-3">
                 <div className="flex flex-col gap-2">
                     {activities.map(act => (
-                        <ActivityCard key={act.id} activity={act} customers={customers} />
+                        <ActivityCard key={act.id} activity={act} customers={customers} profiles={profiles} />
                     ))}
                     {activities.length === 0 && (
                         <div className="text-center py-8 text-muted-foreground text-sm border-2 border-dashed rounded-md">

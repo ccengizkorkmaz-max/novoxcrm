@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { createNotification } from '@/lib/notifications/create'
 
 export async function createActivity(formData: FormData) {
     const supabase = await createClient()
@@ -10,9 +11,10 @@ export async function createActivity(formData: FormData) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) redirect('/login')
 
-    const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single()
+    const { data: profile } = await supabase.from('profiles').select('tenant_id, full_name').eq('id', user.id).single()
 
-    const customer_id = (formData.get('customer_id') as string) || (formData.get('customer_id_select') as string)
+    const customer_id_raw = (formData.get('customer_id') as string) || (formData.get('customer_id_select') as string)
+    const customer_id = customer_id_raw && customer_id_raw.trim() !== '' ? customer_id_raw : null
     const topic = formData.get('topic') as string
     const type = formData.get('type') as string
     const summary = formData.get('summary') as string
@@ -22,6 +24,8 @@ export async function createActivity(formData: FormData) {
     const owner_id = formData.get('owner_id') as string || user.id
     const project_id = formData.get('project_id') as string
     const unit_id = formData.get('unit_id') as string
+    const priority = formData.get('priority') as string || 'Medium'
+    const reminder_at = formData.get('reminder_at') as string
 
     // Check if due_date is "now" (within last 5 minutes or next 5 minutes)
     let isAutoCompleted = false
@@ -34,6 +38,9 @@ export async function createActivity(formData: FormData) {
             isAutoCompleted = true
         }
     }
+
+    const explicitStatus = formData.get('status') as string
+    const status = explicitStatus || (isAutoCompleted ? 'Completed' : 'Planned')
 
     const { error } = await supabase
         .from('activities')
@@ -51,15 +58,33 @@ export async function createActivity(formData: FormData) {
             notes,
             project_id: project_id || null,
             unit_id: unit_id || null,
-            status: isAutoCompleted ? 'Completed' : 'Planned',
-            completed_at: isAutoCompleted ? new Date().toISOString() : null,
-            done_at: isAutoCompleted ? new Date().toISOString() : null,
-            outcome: isAutoCompleted ? 'Success' : null
+            priority,
+            reminder_at: reminder_at ? new Date(reminder_at).toISOString() : null,
+            status,
+            completed_at: status === 'Completed' ? new Date().toISOString() : null,
+            done_at: status === 'Completed' ? new Date().toISOString() : null,
+            outcome: status === 'Completed' ? (isAutoCompleted ? 'Success' : null) : null
         })
 
     if (error) {
         console.error('Create Activity Error:', error)
-        return { error: 'Failed to create activity' }
+        return { error: `Geri bildirim: ${error.message} (Kod: ${error.code})` }
+    }
+
+    // 4. Send Notification (Always send to the assignee)
+    if (owner_id && profile?.tenant_id) {
+        const isSelf = owner_id === user.id
+        createNotification({
+            tenant_id: profile.tenant_id,
+            user_id: owner_id,
+            type: 'Info',
+            category: 'CRM',
+            title: isSelf ? '📌 Not Alındı' : '🎯 Yeni Görev Atandı',
+            message: isSelf
+                ? `Kendi ajandanıza yeni bir görev eklediniz: ${summary}`
+                : `${profile.full_name || 'Bir çalışma arkadaşınız'} size yeni bir görev atadı: ${summary}`,
+            link: '/activities'
+        }).catch(console.error)
     }
 
     revalidatePath('/activities')
@@ -71,6 +96,8 @@ export async function updateActivity(formData: FormData) {
     const supabase = await createClient()
     const id = formData.get('id') as string
 
+    const status = formData.get('status') as string
+
     const { error } = await supabase
         .from('activities')
         .update({
@@ -80,11 +107,42 @@ export async function updateActivity(formData: FormData) {
             type: formData.get('type') as string,
             topic: formData.get('topic') as string,
             notes: formData.get('notes') as string,
-            owner_id: formData.get('owner_id') as string
+            owner_id: (formData.get('owner_id') as string)?.trim() !== '' ? formData.get('owner_id') as string : null,
+            priority: formData.get('priority') as string,
+            status: status || undefined,
+            completed_at: status === 'Completed' ? new Date().toISOString() : undefined,
+            done_at: status === 'Completed' ? new Date().toISOString() : undefined,
+            reminder_at: formData.get('reminder_at') && (formData.get('reminder_at') as string).trim() !== ''
+                ? new Date(formData.get('reminder_at') as string).toISOString()
+                : null,
         })
         .eq('id', id)
 
-    if (error) return { error: 'Failed to update activity' }
+    if (!error) {
+        // Fetch original to check for owner change or just notify current owner
+        const { data: currentAct } = await supabase.from('activities').select('owner_id, summary, creator:profiles!user_id(full_name), tenant_id').eq('id', id).single()
+        const { data: currentUser } = await supabase.auth.getUser()
+
+        if (currentAct && currentUser.user) {
+            const isSelf = currentAct.owner_id === currentUser.user.id
+            createNotification({
+                tenant_id: currentAct.tenant_id,
+                user_id: currentAct.owner_id,
+                type: 'Info',
+                category: 'CRM',
+                title: isSelf ? '📝 Görev Güncellendi' : '📝 Görev Güncellendi',
+                message: isSelf
+                    ? `"${currentAct.summary}" görevinizdeki değişiklikler kaydedildi.`
+                    : `Size atanan "${currentAct.summary}" görevi ${(currentAct.creator as any)?.full_name || (Array.isArray(currentAct.creator) && (currentAct.creator as any)[0]?.full_name) || 'bir yönetici'} tarafından güncellendi.`,
+                link: '/activities'
+            }).catch(console.error)
+        }
+    }
+
+    if (error) {
+        console.error('Update Activity Error:', error)
+        return { error: `Güncelleme başarısız: ${error.message} (Kod: ${error.code})` }
+    }
 
     revalidatePath('/activities')
     revalidatePath('/crm')

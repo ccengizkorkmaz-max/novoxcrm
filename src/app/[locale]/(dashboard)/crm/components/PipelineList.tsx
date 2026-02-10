@@ -814,6 +814,7 @@ export default function PipelineList({
                 mode="create"
                 activity={{ customer_id: selectedCustomerForActivity?.id }}
                 customers={customers}
+                profiles={profiles}
             />
         </div>
     )

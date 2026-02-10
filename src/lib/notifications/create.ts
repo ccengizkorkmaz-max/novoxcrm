@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 export type NotificationType = 'Info' | 'Warning' | 'Alert' | 'Success'
 export type NotificationCategory = 'CRM' | 'Finance' | 'System' | 'HR' | 'Inventory'
@@ -16,29 +16,46 @@ interface CreateNotificationParams {
 }
 
 /**
- * Creates a system notification. Can be called from any server action or API route.
- * If user_id is null, the notification is visible to all users in the tenant.
+ * Creates a system notification.
  */
 export async function createNotification(params: CreateNotificationParams) {
-    const supabase = await createClient()
+    console.log('🔔 Attempting to create notification:', params.title);
+    const supabaseAdmin = createAdminClient()
 
-    // Deduplicate: check if same unread notification exists today
+    // Deduplicate: check if same unread notification exists today for this specific user
     const startOfDay = new Date()
     startOfDay.setHours(0, 0, 0, 0)
 
-    const { data: existing } = await supabase
+    const query = supabaseAdmin
         .from('system_notifications')
         .select('id')
         .eq('tenant_id', params.tenant_id)
         .eq('title', params.title)
         .eq('message', params.message)
         .eq('is_read', false)
-        .gte('created_at', startOfDay.toISOString())
-        .maybeSingle()
+        .gte('created_at', startOfDay.toISOString());
 
-    if (existing) return { skipped: true, id: existing.id }
+    if (params.user_id) {
+        query.eq('user_id', params.user_id);
+    } else {
+        query.is('user_id', null);
+    }
 
-    const { data, error } = await supabase
+    /* 
+    const { data: existing, error: checkError } = await query.maybeSingle();
+
+    if (checkError) {
+        console.error('❌ Notification check error:', checkError);
+    }
+
+    if (existing) {
+        console.log('⏭️ Notification skipped (duplicate):', params.title);
+        return { skipped: true, id: existing.id };
+    }
+    */
+
+    console.log('✍️ Inserting notification into DB...');
+    const { data, error } = await supabaseAdmin
         .from('system_notifications')
         .insert({
             tenant_id: params.tenant_id,
@@ -53,10 +70,11 @@ export async function createNotification(params: CreateNotificationParams) {
         .single()
 
     if (error) {
-        console.error('Create notification error:', error)
+        console.error('❌ Insert notification error:', error)
         return { error: error.message }
     }
 
+    console.log('✅ Notification created successfully:', data?.id);
     return { success: true, id: data?.id }
 }
 

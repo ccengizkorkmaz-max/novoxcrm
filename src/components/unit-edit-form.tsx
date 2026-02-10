@@ -80,18 +80,9 @@ export function UnitEditForm({ unit, disabled = false }: { unit: any; disabled?:
 
                     <Card>
                         <CardHeader className="p-4">
-                            <CardTitle className="text-sm">Durum & Fiyat</CardTitle>
+                            <CardTitle className="text-sm">Fiyat Bilgileri</CardTitle>
                         </CardHeader>
                         <CardContent className="p-4 pt-0 space-y-4">
-                            <div className="space-y-2">
-                                <Label>Durum</Label>
-                                <select name="status" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" defaultValue={unit.status || 'For Sale'} key={unit.status} disabled={disabled}>
-                                    <option value="For Sale">Satılık</option>
-                                    <option value="Stock">Satılık (Stok)</option>
-                                    <option value="Reserved">Rezerve (Opsiyonlu)</option>
-                                    <option value="Sold">Satıldı</option>
-                                </select>
-                            </div>
                             <div className="space-y-2">
                                 <Label>Liste Fiyatı</Label>
                                 <div className="flex gap-2">

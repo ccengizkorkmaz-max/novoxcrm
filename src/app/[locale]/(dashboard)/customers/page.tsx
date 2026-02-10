@@ -50,6 +50,12 @@ export default async function CustomersPage(props: {
         return acc
     }, {})
 
+    // 4. Fetch Profiles for Activity assignment
+    const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .order('full_name')
+
     return (
         <div className="flex flex-col gap-6">
             <div className="flex items-center justify-between">
@@ -63,6 +69,7 @@ export default async function CustomersPage(props: {
                         totalRecords={totalCount}
                         initialPage={page}
                         sourceStats={sourceCounts}
+                        profiles={profiles || []}
                     />
                 </React.Suspense>
             </div>

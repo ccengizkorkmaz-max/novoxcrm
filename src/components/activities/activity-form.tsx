@@ -17,6 +17,7 @@ import { createActivity, updateActivity, outcomeActivity } from '@/app/[locale]/
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
+import { cn } from '@/lib/utils'
 
 interface ActivityFormProps {
     open: boolean
@@ -24,12 +25,14 @@ interface ActivityFormProps {
     mode: 'create' | 'edit' | 'complete'
     activity?: any
     customers?: any[]
+    profiles?: any[]
 }
 
-export function ActivityForm({ open, onOpenChange, mode, activity, customers }: ActivityFormProps) {
+export function ActivityForm({ open, onOpenChange, mode, activity, customers, profiles }: ActivityFormProps) {
     const t = useTranslations('Activities')
     const router = useRouter()
-    const isCompleteMode = mode === 'complete'
+    const [status, setStatus] = useState(activity?.status || 'Planned')
+    const isCompleteMode = mode === 'complete' || status === 'Completed'
 
     async function handleSubmit(formData: FormData) {
         let result;
@@ -41,7 +44,7 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers }: 
                 formData.set('due_date', localDate.toISOString())
             }
             result = await createActivity(formData)
-        } else if (mode === 'edit') {
+        } else if (mode === 'edit' && status !== 'Completed') {
             const dueDateStr = formData.get('due_date') as string
             if (dueDateStr) {
                 const localDate = new Date(dueDateStr)
@@ -49,8 +52,11 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers }: 
             }
             formData.append('id', activity.id)
             result = await updateActivity(formData)
-        } else if (mode === 'complete') {
+        } else if (isCompleteMode) {
+            // This covers both mode === 'complete' AND mode === 'edit' where status became 'Completed'
             formData.append('id', activity.id)
+            // If in edit mode, ensure other fields are also captured if needed, 
+            // but outcomeActivity is focused on the completion flow.
             result = await outcomeActivity(formData)
         }
 
@@ -79,7 +85,8 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers }: 
                 <form action={handleSubmit}>
                     <div className="grid gap-4 py-4">
 
-                        {!isCompleteMode && (
+                        {/* Basic Info - Hidden only in specialized complete mode */}
+                        {mode !== 'complete' && (
                             <>
                                 <input type="hidden" name="customer_id" value={activity?.customer_id || ''} />
                                 <div className="grid gap-2">
@@ -116,6 +123,35 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers }: 
                                     </select>
                                 </div>
 
+                                <div className="grid gap-2">
+                                    <Label>{t('table.status')}</Label>
+                                    <select
+                                        name="status"
+                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-semibold"
+                                        value={status}
+                                        onChange={(e) => setStatus(e.target.value)}
+                                    >
+                                        <option value="Planned">{t('status.Planned')}</option>
+                                        <option value="In Progress">{t('status.In Progress')}</option>
+                                        <option value="Completed">{t('status.Completed')}</option>
+                                        <option value="Cancelled">{t('status.Cancelled')}</option>
+                                    </select>
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label>{t('form.owner')}</Label>
+                                    <select
+                                        name="owner_id"
+                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                        defaultValue={activity?.owner_id || ''}
+                                    >
+                                        <option value="">{t('form.selectOwner') || 'Ata...'}</option>
+                                        {profiles?.map((p: any) => (
+                                            <option key={p.id} value={p.id}>{p.full_name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="grid gap-2">
                                         <Label>{t('form.type')}</Label>
@@ -146,6 +182,33 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers }: 
                                     </div>
                                 </div>
 
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid gap-2">
+                                        <Label>{t('form.priority') || 'Öncelik'}</Label>
+                                        <select
+                                            name="priority"
+                                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                            defaultValue={activity?.priority || 'Medium'}
+                                        >
+                                            <option value="Low">{t('form.priorityLow') || 'Düşük'}</option>
+                                            <option value="Medium">{t('form.priorityMedium') || 'Orta'}</option>
+                                            <option value="High">{t('form.priorityHigh') || 'Yüksek'}</option>
+                                            <option value="Urgent">{t('form.priorityUrgent') || 'Acil'}</option>
+                                        </select>
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label>{t('form.reminder') || 'Hatırlatıcı'}</Label>
+                                        <Input
+                                            name="reminder_at"
+                                            type="datetime-local"
+                                            defaultValue={activity?.reminder_at
+                                                ? new Date(new Date(activity.reminder_at).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)
+                                                : ''
+                                            }
+                                        />
+                                    </div>
+                                </div>
+
                                 <div className="grid gap-2">
                                     <Label>{t('form.summary')}</Label>
                                     <Input name="summary" defaultValue={activity?.summary || ''} placeholder={t('form.summaryPlaceholder')} required />
@@ -157,14 +220,18 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers }: 
                             </>
                         )}
 
+                        {/* Completion Details - outcome, notes, next action */}
                         {isCompleteMode && (
-                            <>
-                                <div className="p-3 bg-muted rounded-md mb-2 text-sm">
-                                    <span className="font-semibold">{activity?.summary}</span> {t('form.completingMsg')}
-                                </div>
+                            <div className={cn("space-y-4 pt-4 border-t mt-2", mode === 'edit' && "bg-muted/30 p-4 rounded-lg border")}>
+                                {mode === 'complete' && (
+                                    <div className="p-3 bg-muted rounded-md mb-2 text-sm">
+                                        <span className="font-semibold">{activity?.summary}</span> {t('form.completingMsg')}
+                                    </div>
+                                )}
+
                                 <div className="grid gap-2">
-                                    <Label>{t('form.outcome')}</Label>
-                                    <select name="outcome" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" required>
+                                    <Label className="font-bold text-primary">{t('form.outcome')}</Label>
+                                    <select name="outcome" className="flex h-10 w-full rounded-md border-2 border-primary/20 bg-background px-3 py-2 text-sm focus:border-primary" required>
                                         <option value="">{t('form.select')}</option>
                                         <option value="Success">{t('form.outcomes.Success')}</option>
                                         <option value="Reached Interested">{t('form.outcomes.Reached Interested')}</option>
@@ -175,11 +242,15 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers }: 
                                     </select>
                                 </div>
                                 <div className="grid gap-2">
-                                    <Label>{t('form.notes')}</Label>
-                                    <Textarea name="notes" placeholder={t('form.notesPlaceholder')} required rows={3} />
+                                    <Label className="font-bold">{t('form.notes')}</Label>
+                                    <Textarea name="notes" placeholder={t('form.notesPlaceholder')} required rows={3} className="border-2" />
                                 </div>
-                                <div className="border-t pt-4 mt-2">
-                                    <h4 className="mb-3 text-sm font-medium">{t('form.nextAction')}</h4>
+
+                                <div className="border-t-2 border-dashed pt-4 mt-2">
+                                    <h4 className="mb-3 text-sm font-bold flex items-center gap-2">
+                                        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-white">!</span>
+                                        {t('form.nextAction')}
+                                    </h4>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="grid gap-2">
                                             <Label>{t('form.type')}</Label>
@@ -201,12 +272,13 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers }: 
                                         <Input name="next_action_summary" placeholder={t('form.summaryPlaceholder')} />
                                     </div>
                                 </div>
-                            </>
+                            </div>
                         )}
-
                     </div>
                     <DialogFooter>
-                        <Button type="submit">{isCompleteMode ? t('form.completeAndSave') : t('form.save')}</Button>
+                        <Button type="submit" className={cn(isCompleteMode && "bg-green-600 hover:bg-green-700 w-full")}>
+                            {isCompleteMode ? t('form.completeAndSave') : t('form.save')}
+                        </Button>
                     </DialogFooter>
                 </form>
             </DialogContent>

@@ -11,15 +11,17 @@ import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ActivityList } from '@/components/activities/activity-list'
+import { ActivityCalendar } from '@/components/activities/activity-calendar'
 import { useTranslations } from 'next-intl'
 
 interface ActivitiesViewProps {
     initialActivities: any[]
     customers: any[]
+    profiles: any[]
     user: any
 }
 
-export function ActivitiesView({ initialActivities, customers, user }: ActivitiesViewProps) {
+export function ActivitiesView({ initialActivities, customers, profiles, user }: ActivitiesViewProps) {
     const t = useTranslations('Activities')
     const [showCreate, setShowCreate] = useState(false)
     const [showFilters, setShowFilters] = useState(true)
@@ -54,6 +56,8 @@ export function ActivitiesView({ initialActivities, customers, user }: Activitie
     const [selectedTypes, setSelectedTypes] = useState<string[]>([])
     const [selectedTopics, setSelectedTopics] = useState<string[]>([])
     const [selectedStatuses, setSelectedStatuses] = useState<string[]>([])
+    const [selectedPriorities, setSelectedPriorities] = useState<string[]>([])
+    const [selectedOwners, setSelectedOwners] = useState<string[]>([])
     const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'week' | 'month'>('all')
     const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest')
 
@@ -76,6 +80,16 @@ export function ActivitiesView({ initialActivities, customers, user }: Activitie
         // Status Filter
         if (selectedStatuses.length > 0) {
             if (!selectedStatuses.includes(a.status)) return false
+        }
+
+        // Priority Filter
+        if (selectedPriorities.length > 0) {
+            if (!selectedPriorities.includes(a.priority || 'Medium')) return false
+        }
+
+        // Owner Filter (Multi-select)
+        if (selectedOwners.length > 0) {
+            if (!selectedOwners.includes(a.owner_id)) return false
         }
 
         // Date Filter
@@ -122,7 +136,10 @@ export function ActivitiesView({ initialActivities, customers, user }: Activitie
         status: a.status,
         outcome: a.outcome,
         notes: a.notes,
-        description: a.description
+        description: a.description,
+        priority: a.priority,
+        reminder_at: a.reminder_at,
+        owner_id: a.owner_id
     }))
 
     const toggleType = (id: string) => {
@@ -139,6 +156,18 @@ export function ActivitiesView({ initialActivities, customers, user }: Activitie
 
     const toggleStatus = (id: string) => {
         setSelectedStatuses(prev =>
+            prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+        )
+    }
+
+    const togglePriority = (id: string) => {
+        setSelectedPriorities(prev =>
+            prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+        )
+    }
+
+    const toggleOwner = (id: string) => {
+        setSelectedOwners(prev =>
             prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
         )
     }
@@ -176,6 +205,8 @@ export function ActivitiesView({ initialActivities, customers, user }: Activitie
                                     setSelectedTypes([])
                                     setSelectedTopics([])
                                     setSelectedStatuses([])
+                                    setSelectedPriorities([])
+                                    setSelectedOwners([])
                                     setDateFilter('all')
                                     setSortOrder('newest')
                                 }}
@@ -258,6 +289,38 @@ export function ActivitiesView({ initialActivities, customers, user }: Activitie
                             ))}
                         </div>
 
+                        {/* Row 4b: Priorities */}
+                        <div className="flex flex-wrap items-center gap-y-1 gap-x-6">
+                            <span className="text-sm font-semibold w-24 shrink-0 text-muted-foreground">Öncelik:</span>
+                            {['Urgent', 'High', 'Medium', 'Low'].map(p => (
+                                <div key={p} className="flex items-center space-x-2">
+                                    <Checkbox
+                                        id={`priority-${p}`}
+                                        checked={selectedPriorities.includes(p)}
+                                        onCheckedChange={() => togglePriority(p)}
+                                    />
+                                    <Label htmlFor={`priority-${p}`} className="cursor-pointer font-normal text-xs">{t(`form.priority${p}`)}</Label>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Row 4c: Assignees (if admin) */}
+                        {profiles.length > 1 && (
+                            <div className="flex flex-wrap items-center gap-y-1 gap-x-6">
+                                <span className="text-sm font-semibold w-24 shrink-0 text-muted-foreground">{t('form.owner')}:</span>
+                                {profiles.map(p => (
+                                    <div key={p.id} className="flex items-center space-x-2">
+                                        <Checkbox
+                                            id={`owner-${p.id}`}
+                                            checked={selectedOwners.includes(p.id)}
+                                            onCheckedChange={() => toggleOwner(p.id)}
+                                        />
+                                        <Label htmlFor={`owner-${p.id}`} className="cursor-pointer font-normal text-xs">{p.full_name}</Label>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
                         {/* Row 5: Date Range */}
                         <div className="flex items-center gap-6">
                             <span className="text-sm font-semibold w-24 shrink-0 text-muted-foreground flex items-center gap-2">
@@ -336,18 +399,25 @@ export function ActivitiesView({ initialActivities, customers, user }: Activitie
                     <TabsList>
                         <TabsTrigger value="kanban">{t('tabs.kanban')}</TabsTrigger>
                         <TabsTrigger value="list">{t('tabs.list')}</TabsTrigger>
+                        <TabsTrigger value="calendar">{t('tabs.calendar')}</TabsTrigger>
                     </TabsList>
                 </div>
 
                 <TabsContent value="kanban" className="mt-0 flex-1 min-h-0 overflow-hidden">
                     <div className="h-full overflow-y-auto pr-2">
-                        <KanbanBoard activities={activities} customers={customers} />
+                        <KanbanBoard activities={activities} customers={customers} profiles={profiles} />
                     </div>
                 </TabsContent>
 
                 <TabsContent value="list" className="mt-0 flex-1 min-h-0 overflow-hidden">
                     <div className="h-full overflow-y-auto">
-                        <ActivityList activities={activities} customers={customers} />
+                        <ActivityList activities={activities} customers={customers} profiles={profiles} />
+                    </div>
+                </TabsContent>
+
+                <TabsContent value="calendar" className="mt-0 flex-1 min-h-0 overflow-hidden">
+                    <div className="h-full overflow-y-auto rounded-lg border bg-card">
+                        <ActivityCalendar activities={activities} customers={customers} profiles={profiles} />
                     </div>
                 </TabsContent>
             </Tabs>
@@ -357,6 +427,7 @@ export function ActivitiesView({ initialActivities, customers, user }: Activitie
                 onOpenChange={setShowCreate}
                 mode="create"
                 customers={customers}
+                profiles={profiles}
             />
         </div>
     )

@@ -115,6 +115,21 @@ export async function approveInboxItem(
             return { success: false, error: 'Failed to create sale' }
         }
 
+        // 2b. Create automatic activity for new web lead 
+        await supabase.from('activities').insert({
+            tenant_id: inboxItem.tenant_id,
+            customer_id: customerId,
+            user_id: user.id,
+            owner_id: user.id,
+            type: 'Call',
+            topic: 'Sales',
+            summary: `Web Form Takibi: ${finalName}`,
+            description: `İnbox üzerinden onaylanan yeni talep: ${inboxItem.message || '-'}`,
+            due_date: new Date(Date.now() + 1 * 60 * 60 * 1000).toISOString(), // 1 hour later
+            status: 'Planned',
+            priority: 'High'
+        })
+
         // 3. Update inbox item status
         const { error: updateError } = await supabase
             .from('inbox_items')

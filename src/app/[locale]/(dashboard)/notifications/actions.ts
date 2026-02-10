@@ -87,7 +87,7 @@ export async function getSystemNotifications() {
     const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single()
     if (!profile?.tenant_id) return []
 
-    const { data: notifications } = await supabase
+    const { data: notifications, error } = await supabase
         .from('system_notifications')
         .select('*')
         .eq('tenant_id', profile.tenant_id)
@@ -95,6 +95,11 @@ export async function getSystemNotifications() {
         .order('created_at', { ascending: false })
         .limit(20)
 
+    if (error) {
+        console.error('❌ Fetch notifications error:', error)
+    }
+
+    console.log(`📡 Found ${notifications?.length || 0} notifications for user ${user.id} in tenant ${profile.tenant_id}`)
     return notifications || []
 }
 

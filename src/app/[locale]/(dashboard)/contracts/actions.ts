@@ -342,6 +342,21 @@ export async function cancelContract(id: string, reason?: string) {
 
             if (unitError) console.error('Failed to release unit during cancellation', unitError)
 
+            // Log unit activity
+            try {
+                const { logUnitActivity } = await import('../inventory/actions')
+                await logUnitActivity(
+                    contract.unit_id,
+                    'status_change',
+                    `Sözleşme iptal edildi. Ünite tekrar satışa açıldı.${reason ? ` (Neden: ${reason})` : ''}`,
+                    'Sold',
+                    'For Sale',
+                    { reason, contractId: id }
+                )
+            } catch (e) {
+                console.error('Failed to log unit activity during contract cancellation:', e)
+            }
+
             // 4. Update Sales Status (Mark AS MANY AS POSSIBLE AS Cancelled)
             await supabase
                 .from('sales')
@@ -445,6 +460,20 @@ export async function deleteContract(id: string) {
         // 2. Release unit
         if (contract.unit_id) {
             await supabase.from('units').update({ status: 'For Sale' }).eq('id', contract.unit_id)
+
+            // Log unit activity
+            try {
+                const { logUnitActivity } = await import('../inventory/actions')
+                await logUnitActivity(
+                    contract.unit_id,
+                    'status_change',
+                    'Sözleşme iptal edildi/silindi, ünite tekrar satışa açıldı.',
+                    'Sold',
+                    'For Sale'
+                )
+            } catch (e) {
+                console.error('Failed to log unit activity during contract deletion:', e)
+            }
         }
 
         // 3. Delete the contract (Cascading will handle customers, payments, documents, activities if set up)

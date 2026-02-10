@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { ActivitiesView } from './activities-view'
 import { redirect } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
+import { Suspense } from 'react'
 
 export default async function ActivitiesPage(props: {
     params: Promise<{ locale: string }>
@@ -22,7 +23,8 @@ export default async function ActivitiesPage(props: {
         const { data, error } = await supabase
             .from('customers')
             .select('id, full_name')
-            .order('full_name')
+            .order('full_name', { ascending: true })
+            .order('id', { ascending: true })
             .range(custFrom, custFrom + batchSize - 1)
 
         if (error) {
@@ -36,7 +38,8 @@ export default async function ActivitiesPage(props: {
             hasMoreCust = false
         }
     }
-    const customers = allCustomers
+    // Ensure unique customers by ID
+    const customers = Array.from(new Map(allCustomers.map(c => [c.id, c])).values())
 
     // 2. Fetch Activities in batches
     let allActivities: any[] = []
@@ -48,6 +51,7 @@ export default async function ActivitiesPage(props: {
             .from('activities')
             .select('*, customers(full_name), owner:profiles!activities_owner_id_fkey(full_name)')
             .order('due_date', { ascending: true })
+            .order('id', { ascending: true })
             .range(actFrom, actFrom + batchSize - 1)
 
         if (error) {
@@ -61,7 +65,28 @@ export default async function ActivitiesPage(props: {
             hasMoreAct = false
         }
     }
-    const activities = allActivities
+    // Ensure unique activities by ID
+    const activities = Array.from(new Map(allActivities.map(a => [a.id, a])).values())
+
+    // 3. Fetch Profiles (Users) for assignment - Role Based
+    const { data: currentUserProfile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+
+    const isAdmin = currentUserProfile?.role === 'admin' || currentUserProfile?.role === 'owner'
+
+    let profilesQuery = supabase
+        .from('profiles')
+        .select('id, full_name')
+        .order('full_name')
+
+    if (!isAdmin) {
+        profilesQuery = profilesQuery.eq('id', user.id)
+    }
+
+    const { data: profiles } = await profilesQuery
 
     const t = await getTranslations('Activities')
 
@@ -70,11 +95,14 @@ export default async function ActivitiesPage(props: {
             <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
             </div>
-            <ActivitiesView
-                initialActivities={activities || []}
-                customers={customers || []}
-                user={user}
-            />
+            <Suspense fallback={<div>Yükleniyor...</div>}>
+                <ActivitiesView
+                    initialActivities={activities || []}
+                    customers={customers || []}
+                    profiles={profiles || []}
+                    user={user}
+                />
+            </Suspense>
         </div>
     )
 }

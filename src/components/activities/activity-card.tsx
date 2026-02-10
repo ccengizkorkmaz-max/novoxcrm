@@ -30,16 +30,20 @@ export interface Activity {
     outcome?: string
     notes?: string
     description?: string
+    priority?: 'Low' | 'Medium' | 'High' | 'Urgent'
+    reminder_at?: string
+    owner_id?: string
     previous_activity_id?: string
 }
 
 interface ActivityCardProps {
     activity: Activity
     customers?: any[]
+    profiles?: any[]
     onComplete?: (id: string) => void // Trigger form externally or handle internally
 }
 
-export function ActivityCard({ activity, customers, onComplete }: ActivityCardProps) {
+export function ActivityCard({ activity, customers, profiles, onComplete }: ActivityCardProps) {
     const t = useTranslations('Activities')
     const locale = useLocale()
     const [showEdit, setShowEdit] = useState(false)
@@ -66,11 +70,19 @@ export function ActivityCard({ activity, customers, onComplete }: ActivityCardPr
                                 </div>
                             )}
                             <h4 className="font-semibold text-sm leading-none">{activity.summary}</h4>
+                            <div className="text-xs text-primary font-medium mt-1">
+                                {activity.customers?.full_name || 'Bilinmiyor'}
+                            </div>
 
-                            <div className="flex items-center gap-2 mt-1.5">
+                            <div className="flex flex-wrap items-center gap-2 mt-1.5">
                                 <Badge variant="secondary" className={`text-[10px] px-1 py-0 h-4 font-normal ${getStatusColor(activity.status)} bg-transparent border-0 p-0`}>
                                     {isOverdue && activity.status !== 'Completed' ? t('kanban.overdue') : t(`status.${activity.status}`)}
                                 </Badge>
+                                {activity.priority && activity.priority !== 'Medium' && (
+                                    <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-4 border-dashed bg-transparent ${getPriorityColor(activity.priority)}`}>
+                                        {t(`form.priority${activity.priority}`)}
+                                    </Badge>
+                                )}
                             </div>
 
                             {activity.description && (
@@ -79,7 +91,17 @@ export function ActivityCard({ activity, customers, onComplete }: ActivityCardPr
                                 </p>
                             )}
 
-                            {/* Date Section - More prominent */}
+                            {/* Owner Badge - Always visible if exists */}
+                            {activity.owner?.full_name && (
+                                <div className="flex items-center gap-1.5 mt-2 px-1.5 py-0.5 rounded-md bg-muted/50 border border-muted-foreground/10 w-fit">
+                                    <User className="h-3 w-3 text-muted-foreground" />
+                                    <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-tight">
+                                        {activity.owner.full_name}
+                                    </span>
+                                </div>
+                            )}
+
+                            {/* Date Section */}
                             {activity.due_date && (
                                 <div className={`mt-2 p-2 rounded-md border ${isOverdue ? 'bg-red-50/50 border-red-200' : 'bg-blue-50/50 border-blue-200'}`}>
                                     <div className="flex items-center gap-2">
@@ -114,6 +136,7 @@ export function ActivityCard({ activity, customers, onComplete }: ActivityCardPr
                 mode="edit"
                 activity={activity}
                 customers={customers}
+                profiles={profiles}
             />
             <ActivityForm
                 open={showComplete}
@@ -121,6 +144,7 @@ export function ActivityCard({ activity, customers, onComplete }: ActivityCardPr
                 mode="complete"
                 activity={activity}
                 customers={customers}
+                profiles={profiles}
             />
         </Card>
     )
@@ -147,5 +171,14 @@ function getStatusColor(status: string) {
         case 'Completed': return 'bg-green-50 text-green-700 border-green-200'
         case 'Cancelled': return 'bg-gray-50 text-gray-500 border-gray-200'
         default: return 'bg-blue-50 text-blue-700 border-blue-200'
+    }
+}
+
+function getPriorityColor(priority: string) {
+    switch (priority) {
+        case 'Urgent': return 'border-red-500 text-red-600'
+        case 'High': return 'border-orange-500 text-orange-600'
+        case 'Low': return 'border-blue-300 text-blue-400'
+        default: return 'border-gray-200 text-gray-400'
     }
 }

@@ -140,6 +140,10 @@ export function InventoryFilters({ projects }: InventoryFiltersProps) {
                                 <option value="For Sale">{tGlobal.has('status.ForSale') ? tGlobal('status.ForSale') : 'Satılık'}</option>
                                 <option value="Reserved">{tGlobal.has('status.Reserved') ? tGlobal('status.Reserved') : 'Rezerve'}</option>
                                 <option value="Sold">{tGlobal.has('status.Sold') ? tGlobal('status.Sold') : 'Satıldı'}</option>
+                                <option value="Blocked">Bloke</option>
+                                <option value="Option">Opsiyon</option>
+                                <option value="Rented">Kirada</option>
+                                <option value="Delivered">Teslim Edildi</option>
                             </select>
                         </div>
                     </div>

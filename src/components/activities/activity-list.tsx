@@ -16,6 +16,7 @@ import { Card } from "@/components/ui/card"
 interface ActivityListProps {
     activities: Activity[]
     customers: any[]
+    profiles: any[]
 }
 
 const statusColors: Record<string, string> = {
@@ -27,7 +28,7 @@ const statusColors: Record<string, string> = {
 
 const ITEMS_PER_PAGE = 20
 
-export function ActivityList({ activities, customers }: ActivityListProps) {
+export function ActivityList({ activities, customers, profiles }: ActivityListProps) {
     const t = useTranslations('Activities')
     const [currentPage, setCurrentPage] = useState(1)
 
@@ -64,7 +65,7 @@ export function ActivityList({ activities, customers }: ActivityListProps) {
                     </TableHeader>
                     <TableBody>
                         {currentActivities.map((activity) => (
-                            <ActivityRow key={activity.id} activity={activity} customers={customers} />
+                            <ActivityRow key={activity.id} activity={activity} customers={customers} profiles={profiles} />
                         ))}
                     </TableBody>
                 </Table>
@@ -102,7 +103,7 @@ export function ActivityList({ activities, customers }: ActivityListProps) {
     )
 }
 
-function ActivityRow({ activity, customers }: { activity: Activity, customers: any[] }) {
+function ActivityRow({ activity, customers, profiles }: { activity: Activity, customers: any[], profiles: any[] }) {
     const t = useTranslations('Activities')
     const locale = useLocale()
     const [showEdit, setShowEdit] = useState(false)
@@ -179,6 +180,7 @@ function ActivityRow({ activity, customers }: { activity: Activity, customers: a
                     mode="edit"
                     activity={activity}
                     customers={customers}
+                    profiles={profiles}
                 />
                 <ActivityForm
                     open={showComplete}

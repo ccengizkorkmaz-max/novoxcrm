@@ -143,3 +143,23 @@
         linear-gradient(to bottom, oklch(1 0 0 / 5%) 1px, transparent 1px);
     background-size: 20px 20px;
 }
+
+@layer utilities {
+    .custom-scrollbar-thin::-webkit-scrollbar {
+        height: 4px;
+        width: 4px;
+    }
+
+    .custom-scrollbar-thin::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .custom-scrollbar-thin::-webkit-scrollbar-thumb {
+        background: #e2e8f0;
+        border-radius: 10px;
+    }
+
+    .custom-scrollbar-thin::-webkit-scrollbar-thumb:hover {
+        background: #cbd5e1;
+    }
+}

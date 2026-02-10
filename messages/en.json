@@ -659,7 +659,11 @@
             "ForSale": "For Sale",
             "Reserved": "Reserved",
             "Sold": "Sold",
-            "Stock": "Stock"
+            "Stock": "Stock",
+            "Blocked": "Blocked",
+            "Option": "Option",
+            "Rented": "Rented",
+            "Delivered": "Delivered"
         },
         "directions": {
             "North": "North",

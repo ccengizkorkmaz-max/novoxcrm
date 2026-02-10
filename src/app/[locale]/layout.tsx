@@ -89,7 +89,7 @@ export default async function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <NextIntlClientProvider messages={messages}>
+        <NextIntlClientProvider messages={messages} locale={locale}>
           <Script
             src="https://www.googletagmanager.com/gtag/js?id=G-FB3G9V25SP"
             strategy="afterInteractive"

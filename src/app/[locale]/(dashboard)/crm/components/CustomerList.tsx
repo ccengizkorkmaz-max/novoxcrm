@@ -47,12 +47,14 @@ export default function CustomerList({
     customers,
     totalRecords = 0,
     initialPage = 1,
-    sourceStats = {}
+    sourceStats = {},
+    profiles = []
 }: {
     customers: Customer[],
     totalRecords?: number,
     initialPage?: number,
-    sourceStats?: Record<string, number>
+    sourceStats?: Record<string, number>,
+    profiles?: any[]
 }) {
     const t = useTranslations('Customers')
     const router = useRouter()
@@ -612,6 +614,7 @@ export default function CustomerList({
                 mode="create"
                 activity={{ customer_id: selectedCustomerForActivity?.id }}
                 customers={customers}
+                profiles={profiles}
             />
 
             {/* Delete Confirmation */}

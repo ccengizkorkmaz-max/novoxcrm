@@ -10,6 +10,7 @@ import { tr } from 'date-fns/locale'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { getSystemNotifications, markNotificationAsRead, markAllNotificationsAsRead } from '@/app/[locale]/(dashboard)/notifications/actions'
+import { createClient } from '@/lib/supabase/client'
 
 interface Notification {
     id: string
@@ -53,6 +54,7 @@ export default function NotificationBell() {
             isFetching.current = true
             setLoading(true)
             const data = await getSystemNotifications()
+            console.log('🔔 Notifications received:', data?.length, data)
             if (data) setNotifications(data as Notification[])
         } catch (err) {
             console.error('Fetch notifications error:', err)
@@ -63,11 +65,36 @@ export default function NotificationBell() {
         }
     }, [])
 
+    // Add Real-time listener for new notifications
+    useEffect(() => {
+        const supabase = createClient()
+
+        const channel = supabase
+            .channel('system_notifications_changes')
+            .on(
+                'postgres_changes',
+                {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'system_notifications'
+                },
+                () => {
+                    // When a new notification arrives, refresh the list
+                    fetchNotifications()
+                }
+            )
+            .subscribe()
+
+        return () => {
+            supabase.removeChannel(channel)
+        }
+    }, [fetchNotifications])
+
     useEffect(() => {
         if (!hadInitialFetch) {
             fetchNotifications()
         }
-        const interval = setInterval(fetchNotifications, 120000) // 2 minutes
+        const interval = setInterval(fetchNotifications, 120000) // 2 minutes backup
         return () => clearInterval(interval)
     }, [fetchNotifications, hadInitialFetch])
 

@@ -112,14 +112,31 @@ export async function createCustomer(formData: FormData) {
                     .maybeSingle()
 
                 if (!existingSale) {
-                    await supabase.from('sales').insert({
+                    const { data: newSale, error: saleError } = await supabase.from('sales').insert({
                         tenant_id: profile?.tenant_id,
                         customer_id: data.id,
-                        assigned_to: null,
+                        assigned_to: user.id, // Assign to creator by default
                         status: 'Lead',
                         unit_id: null,
                         lead_origin: mapSourceToCategory(source)
-                    })
+                    }).select().single()
+
+                    if (!saleError && newSale) {
+                        // Automatic Follow-up Task
+                        await supabase.from('activities').insert({
+                            tenant_id: profile?.tenant_id,
+                            customer_id: data.id,
+                            user_id: user.id,
+                            owner_id: user.id,
+                            type: 'Call',
+                            topic: 'Sales',
+                            summary: 'Yeni Lead Takibi',
+                            description: `${full_name} için otomatik oluşturulan takip görevi.`,
+                            due_date: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(), // 2 hours later
+                            status: 'Planned',
+                            priority: 'High'
+                        })
+                    }
                 }
             }
         }
@@ -720,6 +737,20 @@ export async function finalizeOffer(offerId: string) {
 
     // 4. Update Unit (status to Sold)
     await supabase.from('units').update({ status: 'Sold' }).eq('id', offer.unit_id)
+
+    // Log unit activity
+    try {
+        const { logUnitActivity } = await import('../inventory/actions')
+        await logUnitActivity(
+            offer.unit_id,
+            'sale',
+            `Satış tamamlandı. Sözleşme oluşturuldu. Müşteri: ${offer.customers?.full_name || 'Bilinmiyor'}`,
+            offer.units?.status || 'Active',
+            'Sold'
+        )
+    } catch (e) {
+        console.error('Failed to log unit activity during offer finalization:', e)
+    }
 
     // 5. Create Contract
     const { data: contract, error: contractError } = await supabase

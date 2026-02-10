@@ -162,7 +162,7 @@
                 "period": "/ay",
                 "description": "Küçük ölçekli projeler ve butik satış ofisleri için.",
                 "features": [
-                    "Stok Yönetimi",
+                    "Envanter Yönetimi",
                     "Müşteri Kartları",
                     "Satış İşlemleri",
                     "Basit Raporlama",
@@ -362,7 +362,7 @@
         "privacyLink": "Gizlilik Politikası",
         "agreementSuffix": "'nı kabul etmiş sayılırsınız.",
         "sidebarTitle": "Satış süreçlerinizi modern bir deneyimle yönetin.",
-        "sidebarDesc": "Müşteri takibi, stok yönetimi, sözleşmeler ve finansal raporlar tek bir platformda.",
+        "sidebarDesc": "Müşteri takibi, envanter yönetimi, sözleşmeler ve finansal raporlar tek bir platformda.",
         "secureInfrastructure": "Güvenli Altyapı",
         "version": "Sürüm 2.0",
         "and": "ve"
@@ -429,7 +429,7 @@
         "inbox": "Gelen Kutusu (Inbox)",
         "quickCRM": "Hızlı CRM (Komuta Merkezi)",
         "projects": "Projeler",
-        "inventory": "Stok Yönetimi",
+        "inventory": "Envanter Yönetimi",
         "customers": "Müşteriler",
         "salesTeams": "Satış Ekipleri",
         "salesManagement": "Satış Yönetimi",
@@ -582,7 +582,7 @@
         }
     },
     "Inventory": {
-        "title": "Stok Yönetimi",
+        "title": "Envanter Yönetimi",
         "clean": "Temizle",
         "activeFilters": "Aktif Filtreler",
         "filters": {
@@ -678,7 +678,11 @@
         "status": {
             "ForSale": "Satılık",
             "Reserved": "Rezerve",
-            "Sold": "Satıldı"
+            "Sold": "Satıldı",
+            "Blocked": "Bloke",
+            "Option": "Opsiyon",
+            "Rented": "Kirada",
+            "Delivered": "Teslim Edildi"
         },
         "types": {
             "Villa": "Villa",
@@ -1292,7 +1296,8 @@
         },
         "tabs": {
             "kanban": "Panolar",
-            "list": "Liste"
+            "list": "Liste",
+            "calendar": "Takvim"
         },
         "type": {
             "Call": "Telefon",
@@ -1377,7 +1382,15 @@
                 "created": "Aktivite başarıyla oluşturuldu",
                 "updated": "Aktivite güncellendi",
                 "completed": "Aktivite tamamlandı"
-            }
+            },
+            "owner": "Atanan Kişi",
+            "selectOwner": "Ata...",
+            "priority": "Öncelik",
+            "priorityLow": "Düşük",
+            "priorityMedium": "Orta",
+            "priorityHigh": "Yüksek",
+            "priorityUrgent": "Acil",
+            "reminder": "Hatırlatıcı"
         }
     },
     "Teams": {

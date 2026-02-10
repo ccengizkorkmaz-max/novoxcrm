@@ -12,6 +12,9 @@ import { InventoryFilters } from '@/components/inventory-filters'
 import { formatCurrency, cn } from '@/lib/utils'
 import { InventoryActions } from './components/inventory-actions'
 import { InventoryViewWrapper } from '@/components/inventory-view-toggle'
+import { StockAgingReport } from './components/StockAgingReport'
+import { InventoryExport } from './components/InventoryExport'
+import { getStockAgingReport } from './actions'
 
 
 export default async function InventoryPage(props: {
@@ -31,6 +34,9 @@ export default async function InventoryPage(props: {
     // Get unit types
     const { data: unitTypes } = await supabase.from('unit_types').select('*').order('order_index', { ascending: true })
 
+
+    // Get stock aging data
+    const agingData = await getStockAgingReport()
 
     // Build query
     let query = supabase.from('units').select('*, projects(name)').order('unit_number', { ascending: true })
@@ -116,7 +122,11 @@ export default async function InventoryPage(props: {
         'Satıldı': 'Sold',
         'For Sale': 'ForSale',
         'Reserved': 'Reserved',
-        'Sold': 'Sold'
+        'Sold': 'Sold',
+        'Blocked': 'Blocked',
+        'Option': 'Option',
+        'Rented': 'Rented',
+        'Delivered': 'Delivered'
     }
 
     const heatingMap: Record<string, string> = {
@@ -143,10 +153,25 @@ export default async function InventoryPage(props: {
             <InventoryStats units={units || []} />
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <h1 className="text-xl md:text-2xl font-bold tracking-tight">{t('title')}</h1>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                    <InventoryExport projects={projects || []} />
                     <InventoryFilters projects={projects || []} />
                     <NewUnitDialog projects={projects || []} unitTypes={unitTypes || []} />
                 </div>
+            </div>
+
+            {/* Stock Aging Report */}
+            {params.tab === 'aging' && (
+                <StockAgingReport data={agingData} />
+            )}
+
+            {/* Aging Report Tab Button */}
+            <div className="flex gap-2">
+                <Button variant={params.tab === 'aging' ? 'default' : 'outline'} size="sm" className="h-7 text-xs" asChild>
+                    <Link href={params.tab === 'aging' ? '/inventory' : '/inventory?tab=aging'}>
+                        {params.tab === 'aging' ? 'Stok Listesine Dön' : '📊 Stok Yaşlandırma Raporu'}
+                    </Link>
+                </Button>
             </div>
 
 
@@ -229,7 +254,13 @@ export default async function InventoryPage(props: {
                                                 <TableCell className="font-mono font-bold">{unit.unit_number}</TableCell>
                                                 <TableCell>
                                                     <div className="flex flex-col gap-1">
-                                                        <Badge variant={unit.status === 'Sold' ? 'destructive' : unit.status === 'Reserved' ? 'secondary' : 'default'} className={cn("text-[10px] px-2 py-0", unit.status === 'For Sale' ? 'bg-green-600' : '')}>
+                                                        <Badge variant={unit.status === 'Sold' ? 'destructive' : unit.status === 'Reserved' ? 'secondary' : 'default'} className={cn("text-[10px] px-2 py-0",
+                                                            unit.status === 'For Sale' ? 'bg-green-600' : '',
+                                                            unit.status === 'Blocked' ? 'bg-slate-600' : '',
+                                                            unit.status === 'Option' ? 'bg-violet-600' : '',
+                                                            unit.status === 'Rented' ? 'bg-cyan-600' : '',
+                                                            unit.status === 'Delivered' ? 'bg-green-800' : ''
+                                                        )}>
                                                             {statusMap[unit.status] ? t(`status.${statusMap[unit.status]}`) : unit.status}
                                                         </Badge>
                                                         {unit.is_legacy && (
