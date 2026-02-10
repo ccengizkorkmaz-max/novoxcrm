@@ -152,7 +152,7 @@ export default async function BrokerLayout(props: {
             {/* Main Content Area */}
             <div className="flex-1 min-w-0 flex flex-col sm:pl-64">
                 {/* Mobile Header */}
-                <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-white px-4 sm:hidden">
+                <header className="sticky top-0 z-30 flex min-h-[calc(4rem+env(safe-area-inset-top))] pt-[env(safe-area-inset-top)] items-center gap-4 border-b bg-white px-4 sm:hidden">
                     <Sheet>
                         <SheetTrigger asChild>
                             <Button size="icon" variant="ghost">

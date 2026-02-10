@@ -54,7 +54,7 @@ export default async function LoginPage(props: {
             </div>
 
             {/* Right Side: Form */}
-            <div className="flex items-center justify-center py-8 px-4 sm:px-6 lg:px-8 bg-gray-50/30 relative">
+            <div className="flex items-center justify-center py-8 px-4 sm:px-6 lg:px-8 bg-background relative">
                 <div className="absolute top-4 right-4">
                     <LanguageSwitcher variant="light" />
                 </div>
@@ -66,7 +66,7 @@ export default async function LoginPage(props: {
                                 <Building2 className="h-8 w-8" />
                             </div>
                         </div>
-                        <h1 className="text-3xl font-bold tracking-tight text-gray-900">{t('welcome')}</h1>
+                        <h1 className="text-3xl font-bold tracking-tight">{t('welcome')}</h1>
                         <p className="text-muted-foreground">
                             {t('description')}
                         </p>
@@ -85,26 +85,26 @@ export default async function LoginPage(props: {
 
                     <form className="grid gap-6">
                         <div className="grid gap-2">
-                            <Label htmlFor="email" className="font-semibold text-gray-700">{t('emailLabel')}</Label>
+                            <Label htmlFor="email" className="font-semibold">{t('emailLabel')}</Label>
                             <Input
                                 id="email"
                                 name="email"
                                 type="text"
                                 placeholder={t('emailPlaceholder')}
                                 required
-                                className="h-11 bg-white border-gray-200 focus:border-blue-500 transition-colors"
+                                className="h-11 border-gray-200 focus:border-blue-500 transition-colors"
                             />
                         </div>
                         <div className="grid gap-2">
                             <div className="flex items-center justify-between">
-                                <Label htmlFor="password" className="font-semibold text-gray-700">{t('passwordLabel')}</Label>
+                                <Label htmlFor="password" className="font-semibold">{t('passwordLabel')}</Label>
                             </div>
                             <Input
                                 id="password"
                                 name="password"
                                 type="password"
                                 required
-                                className="h-11 bg-white border-gray-200 focus:border-blue-500 transition-colors"
+                                className="h-11 border-gray-200 focus:border-blue-500 transition-colors"
                                 placeholder={t('passwordPlaceholder')}
                             />
                         </div>

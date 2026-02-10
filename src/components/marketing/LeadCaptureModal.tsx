@@ -58,19 +58,19 @@ export function LeadCaptureModal({ children, title, description, resourceName }:
                         </DialogHeader>
                         <form onSubmit={handleSubmit} className="grid gap-4 py-4">
                             <div className="grid gap-2">
-                                <Label htmlFor="full_name">Ad Soyad</Label>
+                                <Label htmlFor="full_name" className="font-semibold">Ad Soyad</Label>
                                 <Input id="full_name" name="full_name" required placeholder="Adınız Soyadınız" />
                             </div>
                             <div className="grid gap-2">
-                                <Label htmlFor="email">E-posta</Label>
+                                <Label htmlFor="email" className="font-semibold">E-posta</Label>
                                 <Input id="email" name="email" type="email" required placeholder="ornek@sirket.com" />
                             </div>
                             <div className="grid gap-2">
-                                <Label htmlFor="company">Firma Adı</Label>
+                                <Label htmlFor="company" className="font-semibold">Firma Adı</Label>
                                 <Input id="company" name="company" placeholder="Firma Adı" />
                             </div>
                             <div className="grid gap-2">
-                                <Label htmlFor="phone">Telefon</Label>
+                                <Label htmlFor="phone" className="font-semibold">Telefon</Label>
                                 <Input id="phone" name="phone" type="tel" placeholder="0555 555 55 55" />
                             </div>
                             <Button type="submit" disabled={loading} className="w-full mt-2">

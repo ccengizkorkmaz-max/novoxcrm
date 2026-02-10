@@ -81,7 +81,7 @@ export default async function PortalLayout(props: {
             </aside>
 
             {/* Mobile Header (visible only on small screens) */}
-            <div className="sm:hidden fixed top-0 left-0 right-0 z-20 flex items-center justify-between border-b bg-white px-4 py-3">
+            <div className="sm:hidden fixed top-0 left-0 right-0 z-20 flex min-h-[calc(4rem+env(safe-area-inset-top))] pt-[env(safe-area-inset-top)] items-center justify-between border-b bg-white px-4">
                 <div className="flex items-center gap-2 font-bold text-blue-600">
                     <ShieldCheck className="h-6 w-6" />
                     <span className="text-lg">{t('sidebar.title')}</span>

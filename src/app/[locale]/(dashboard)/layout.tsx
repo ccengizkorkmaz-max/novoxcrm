@@ -95,7 +95,7 @@ export default async function DashboardLayout(props: {
 
             {/* Main Content */}
             <div className="flex-1 min-w-0 flex flex-col md:gap-4 md:py-4 md:pl-64 print:pl-0">
-                <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 md:static md:h-auto md:border-0 md:bg-transparent md:px-6 md:hidden print:hidden">
+                <header className="sticky top-0 z-30 flex min-h-[calc(3.5rem+env(safe-area-inset-top))] pt-[env(safe-area-inset-top)] items-center gap-4 border-b bg-background px-4 md:static md:h-auto md:border-0 md:bg-transparent md:px-6 md:hidden print:hidden">
                     <Sheet>
                         <SheetTrigger asChild>
                             <Button size="icon" variant="outline" className="md:hidden" suppressHydrationWarning>
