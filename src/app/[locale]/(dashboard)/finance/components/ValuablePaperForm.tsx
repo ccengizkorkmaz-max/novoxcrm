@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Combobox } from '@/components/ui/combobox'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -56,6 +57,8 @@ export default function ValuablePaperForm() {
         }
         fetchUnits()
     }, [formData.project_id, supabase])
+
+    const customerOptions = customers.map(c => ({ value: c.id, label: c.full_name }))
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -122,19 +125,14 @@ export default function ValuablePaperForm() {
             <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                     <Label htmlFor="customer">Bağlı Cari (Müşteri/Firma)</Label>
-                    <Select
+                    <Combobox
+                        items={customerOptions}
                         value={formData.customer_id}
-                        onValueChange={(val) => setFormData({ ...formData, customer_id: val })}
-                    >
-                        <SelectTrigger>
-                            <SelectValue placeholder="Cari seçiniz" />
-                        </SelectTrigger>
-                        <SelectContent className="max-h-[200px]">
-                            {customers.map(c => (
-                                <SelectItem key={c.id} value={c.id}>{c.full_name}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+                        onChange={(val) => setFormData({ ...formData, customer_id: val })}
+                        placeholder="Cari seçiniz..."
+                        searchPlaceholder="Cari ara..."
+                        emptyText="Cari bulunamadı."
+                    />
                 </div>
                 <div className="grid gap-2">
                     <Label htmlFor="issuer">Keşideci / Borçlu</Label>
@@ -250,6 +248,6 @@ export default function ValuablePaperForm() {
             <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700" disabled={loading}>
                 {loading ? 'Kaydediliyor...' : 'Kıymetli Evrak Girişi Yap'}
             </Button>
-        </form>
+        </form >
     )
 }
