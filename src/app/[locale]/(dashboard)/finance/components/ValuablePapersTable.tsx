@@ -151,7 +151,7 @@ export default function ValuablePapersTable({ papers }: ValuablePapersTableProps
                                                         variant="ghost"
                                                         size="icon"
                                                         className="h-8 w-8 text-emerald-600 hover:bg-emerald-50"
-                                                        onClick={() => handleStatusUpdate(paper.id, 'Tahsil Edildi')}
+                                                        onClick={() => handleStatusUpdate(paper.id, 'Collected')}
                                                         title="Tahsil Edildi"
                                                     >
                                                         <CheckCircle2 className="h-4 w-4" />
@@ -160,7 +160,7 @@ export default function ValuablePapersTable({ papers }: ValuablePapersTableProps
                                                         variant="ghost"
                                                         size="icon"
                                                         className="h-8 w-8 text-red-600 hover:bg-red-50"
-                                                        onClick={() => handleStatusUpdate(paper.id, 'İade')}
+                                                        onClick={() => handleStatusUpdate(paper.id, 'Returned')}
                                                         title="İade Et"
                                                     >
                                                         <XCircle className="h-4 w-4" />
@@ -172,7 +172,7 @@ export default function ValuablePapersTable({ papers }: ValuablePapersTableProps
                                                     variant="ghost"
                                                     size="icon"
                                                     className="h-8 w-8 text-slate-400"
-                                                    onClick={() => handleStatusUpdate(paper.id, 'Portföyde')}
+                                                    onClick={() => handleStatusUpdate(paper.id, 'Portfolio')}
                                                     title="Geri Al"
                                                 >
                                                     <RotateCcw className="h-4 w-4" />
@@ -255,14 +255,14 @@ export default function ValuablePapersTable({ papers }: ValuablePapersTableProps
                                             <>
                                                 <Button
                                                     className="flex-1 h-9 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold"
-                                                    onClick={() => handleStatusUpdate(paper.id, 'Tahsil Edildi')}
+                                                    onClick={() => handleStatusUpdate(paper.id, 'Collected')}
                                                 >
                                                     <CheckCircle2 className="h-3.5 w-3.5 mr-2" /> Tahsil Et
                                                 </Button>
                                                 <Button
                                                     variant="outline"
                                                     className="flex-1 h-9 border-red-100 text-red-600 hover:bg-red-50 text-xs font-bold"
-                                                    onClick={() => handleStatusUpdate(paper.id, 'İade')}
+                                                    onClick={() => handleStatusUpdate(paper.id, 'Returned')}
                                                 >
                                                     <XCircle className="h-3.5 w-3.5 mr-2" /> İade
                                                 </Button>
@@ -271,7 +271,7 @@ export default function ValuablePapersTable({ papers }: ValuablePapersTableProps
                                             <Button
                                                 variant="outline"
                                                 className="w-full h-9 border-slate-200 text-slate-600 text-xs font-bold"
-                                                onClick={() => handleStatusUpdate(paper.id, 'Portföyde')}
+                                                onClick={() => handleStatusUpdate(paper.id, 'Portfolio')}
                                             >
                                                 <RotateCcw className="h-3.5 w-3.5 mr-2" /> Portföye Geri Al
                                             </Button>

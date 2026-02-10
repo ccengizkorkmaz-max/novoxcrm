@@ -334,11 +334,28 @@ export async function getValuablePapers() {
 /**
  * Updates the status of a valuable paper.
  */
+/**
+ * Updates the status of a valuable paper.
+ */
 export async function updateValuablePaperStatus(id: string, status: string) {
     const supabase = await createClient()
+
+    // 1. Get Paper Details
+    const { data: paper, error: fetchError } = await supabase
+        .from('valuable_papers')
+        .select('*, customers(full_name)')
+        .eq('id', id)
+        .single()
+
+    if (fetchError || !paper) return { error: 'Evrak bulunamadı.' }
+
+    // 2. Update Status
     const { error } = await supabase
         .from('valuable_papers')
-        .update({ status })
+        .update({
+            status,
+            updated_at: new Date().toISOString()
+        })
         .eq('id', id)
 
     if (error) {
@@ -346,6 +363,110 @@ export async function updateValuablePaperStatus(id: string, status: string) {
         return { error: 'Durum güncellenemedi.' }
     }
 
+    // 3. Finance Integration: Auto-create Transaction if Collected
+    if (status === 'Collected') { // Tahsil Edildi
+        try {
+            const accId = await ensureFinancialAccount({
+                owner_type: 'Customer',
+                customer_id: paper.customer_id,
+                account_name: paper.customers?.full_name || 'Müşteri Hesabı',
+                tenant_id: paper.tenant_id,
+                project_id: paper.project_id,
+                unit_id: paper.unit_id
+            })
+
+            await createTransaction({
+                account_id: accId,
+                type: 'Credit', // Alacak (Ödeme Yaptı)
+                amount: paper.amount,
+                currency: paper.currency,
+                description: `Evrak Tahsilatı (${paper.paper_type === 'Check' ? 'Çek' : 'Senet'} - ${paper.issue_number || ''})`,
+                reference_type: paper.paper_type,
+                reference_id: paper.id,
+                project_id: paper.project_id,
+                unit_id: paper.unit_id
+            })
+        } catch (txError) {
+            console.error('Paper Collection TX Error:', txError)
+        }
+    }
+
+    revalidatePath('/finance')
+    return { success: true }
+}
+
+/**
+ * Collects an installment payment (Cash/Transfer).
+ */
+export async function collectInstallment(itemId: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    // 1. Get Payment Item Details
+    const { data: item, error: fetchError } = await supabase
+        .from('payment_items')
+        .select(`
+            *,
+            payment_plans (
+                sale_id,
+                sales (
+                    customer_id,
+                    project_id,
+                    unit_id,
+                    customers ( full_name )
+                )
+            )
+        `)
+        .eq('id', itemId)
+        .single()
+
+    if (fetchError || !item) return { error: 'Taksit bulunamadı.' }
+
+    if (item.status === 'Paid') return { error: 'Bu taksit zaten ödenmiş.' }
+
+    // 2. Update Item Status
+    const { error: updateError } = await supabase
+        .from('payment_items')
+        .update({
+            status: 'Paid',
+            paid_at: new Date().toISOString()
+        })
+        .eq('id', itemId)
+
+    if (updateError) return { error: updateError.message }
+
+    // 3. Finance Integration: Record Transaction
+    const sale = item.payment_plans?.sales
+    if (sale) {
+        try {
+            const accId = await ensureFinancialAccount({
+                owner_type: 'Customer',
+                customer_id: sale.customer_id,
+                account_name: sale.customers?.full_name || 'Müşteri Hesabı',
+                tenant_id: item.tenant_id,
+                project_id: sale.project_id,
+                unit_id: sale.unit_id
+            })
+
+            await createTransaction({
+                account_id: accId,
+                type: 'Credit', // Alacak (Ödeme)
+                amount: item.amount,
+                currency: item.currency || 'TRY',
+                description: `Taksit Tahsilatı (${new Date(item.due_date).toLocaleDateString()})`,
+                reference_type: 'Payment', // Payment Item
+                reference_id: item.id,
+                project_id: sale.project_id,
+                unit_id: sale.unit_id,
+                contract_id: item.payment_plans?.contract_id
+            })
+        } catch (txError) {
+            console.error('Installment Collection TX Error:', txError)
+        }
+    }
+
+    revalidatePath('/crm')
     revalidatePath('/finance')
     return { success: true }
 }

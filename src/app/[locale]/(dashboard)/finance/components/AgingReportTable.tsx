@@ -9,15 +9,40 @@ import {
     TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button' // Added Button
 import { formatCurrency } from '@/lib/utils'
-import { AlertTriangle, Clock, User } from 'lucide-react'
+import { AlertTriangle, Clock, User, CheckCircle2 } from 'lucide-react' // Added CheckCircle2
 import { Card, CardHeader, CardContent } from '@/components/ui/card'
+import { collectInstallment, updateValuablePaperStatus } from '../actions' // Added actions
+import { toast } from 'sonner' // Added toast
 
 interface AgingReportTableProps {
     data: any[]
 }
 
 export default function AgingReportTable({ data }: AgingReportTableProps) {
+
+    const handleCollect = async (id: string, type: string) => {
+        if (!confirm('Bu ödemeyi tahsil etmek istediğinize emin misiniz?')) return
+
+        let result
+        if (type === 'Çek/Senet') {
+            // ID format: paper-{uuid}
+            const paperId = id.replace('paper-', '')
+            result = await updateValuablePaperStatus(paperId, 'Collected')
+        } else {
+            // ID format: crm-{uuid}
+            const itemId = id.replace('crm-', '')
+            result = await collectInstallment(itemId)
+        }
+
+        if (result.success) {
+            toast.success('Tahsilat başarıyla kaydedildi.')
+        } else {
+            toast.error(result.error || 'Tahsilat işlemi başarısız.')
+        }
+    }
+
     if (!data || data.length === 0) {
         return (
             <div className="flex h-48 flex-col items-center justify-center gap-2 border-2 border-dashed rounded-xl border-slate-100 bg-slate-50/30">
@@ -39,6 +64,7 @@ export default function AgingReportTable({ data }: AgingReportTableProps) {
                             <TableHead>Vade Tarihi</TableHead>
                             <TableHead>Gecikme</TableHead>
                             <TableHead className="text-right">Tutar</TableHead>
+                            <TableHead className="w-[100px]"></TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -71,6 +97,17 @@ export default function AgingReportTable({ data }: AgingReportTableProps) {
                                 </TableCell>
                                 <TableCell className="text-right font-mono font-bold text-slate-900 text-sm">
                                     {formatCurrency(item.amount, 'TRY')}
+                                </TableCell>
+                                <TableCell>
+                                    <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 h-8 px-2"
+                                        onClick={() => handleCollect(item.id, item.type)}
+                                        title="Tahsil Et"
+                                    >
+                                        <CheckCircle2 className="h-4 w-4 mr-1.5" /> Tahsil Et
+                                    </Button>
                                 </TableCell>
                             </TableRow>
                         ))}
@@ -123,6 +160,12 @@ export default function AgingReportTable({ data }: AgingReportTableProps) {
                                     </span>
                                 </div>
                             </div>
+                            <Button
+                                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white h-9 mt-2"
+                                onClick={() => handleCollect(item.id, item.type)}
+                            >
+                                <CheckCircle2 className="h-4 w-4 mr-2" /> Tahsil Et
+                            </Button>
                         </CardContent>
                     </Card>
                 ))}
