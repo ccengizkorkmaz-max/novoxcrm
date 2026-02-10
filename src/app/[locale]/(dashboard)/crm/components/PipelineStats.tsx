@@ -52,7 +52,7 @@ export function PipelineStats({ sales }: PipelineStatsProps) {
     ]
 
     return (
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-6">
             {items.map((item) => (
                 <Card key={item.label} className="border-none shadow-sm">
                     <CardHeader className={`flex flex-row items-center justify-between space-y-0 pb-2 ${item.bg} rounded-t-lg px-4 pt-4`}>

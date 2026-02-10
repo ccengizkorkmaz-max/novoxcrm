@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Search, Plus, FileText, ArrowUpRight, ArrowDownLeft } from 'lucide-react'
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
+import { Card, CardHeader, CardContent } from '@/components/ui/card'
 import StatementView from './StatementView'
 import TransactionForm from './TransactionForm'
 import AccountForm from './AccountForm'
@@ -61,7 +62,8 @@ export default function AccountsTable({ accounts }: AccountsTableProps) {
                 </div>
             </div>
 
-            <div className="rounded-md border bg-white">
+            {/* Desktop View */}
+            <div className="hidden sm:block rounded-md border bg-white overflow-hidden">
                 <Table>
                     <TableHeader>
                         <TableRow className="bg-slate-50">
@@ -128,13 +130,73 @@ export default function AccountsTable({ accounts }: AccountsTableProps) {
                             ))
                         ) : (
                             <TableRow>
-                                <TableCell colSpan={4} className="h-24 text-center text-muted-foreground italic">
+                                <TableCell colSpan={6} className="h-24 text-center text-muted-foreground italic">
                                     Hesap bulunamadı.
                                 </TableCell>
                             </TableRow>
                         )}
                     </TableBody>
                 </Table>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="grid grid-cols-1 gap-4 sm:hidden">
+                {filteredAccounts.length > 0 ? (
+                    filteredAccounts.map((acc) => (
+                        <Card key={acc.id} className="border-none shadow-sm overflow-hidden">
+                            <CardHeader className="bg-slate-50/50 p-4 pb-3 border-b border-slate-100">
+                                <div className="flex justify-between items-start">
+                                    <div className="flex flex-col">
+                                        <span className="font-bold text-slate-900">{acc.account_name}</span>
+                                        {acc.account_code && <span className="text-[10px] text-muted-foreground font-mono">{acc.account_code}</span>}
+                                    </div>
+                                    <Badge variant="outline" className="text-[9px] uppercase px-1.5 h-4">
+                                        {acc.owner_type === 'Customer' ? 'Müşteri' :
+                                            acc.owner_type === 'Employee' ? 'Personel' :
+                                                acc.owner_type === 'Broker' ? 'Broker' :
+                                                    acc.owner_type === 'Tedarikçi' ? 'Tedarikçi' : acc.owner_type}
+                                    </Badge>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="p-4 space-y-3">
+                                <div className="grid gap-2 text-xs">
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground uppercase font-bold tracking-tight text-[10px]">Proje / Ünite</span>
+                                        <span className="font-medium">
+                                            {acc.project?.name ? `${acc.project.name} ${acc.unit ? `(${acc.unit.unit_number})` : ''}` : '-'}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between items-center pt-1 border-t border-slate-50">
+                                        <span className="text-muted-foreground uppercase font-bold tracking-tight text-[10px]">Bakiye</span>
+                                        <div className={`font-mono font-bold text-sm ${acc.balance > 0 ? 'text-emerald-600' : acc.balance < 0 ? 'text-red-600' : ''}`}>
+                                            <div className="flex items-center gap-1">
+                                                {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(Math.abs(acc.balance))}
+                                                <span className="text-[9px] font-bold">{acc.balance > 0 ? '(A)' : acc.balance < 0 ? '(B)' : ''}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="pt-2">
+                                    <Dialog>
+                                        <DialogTrigger asChild>
+                                            <Button variant="outline" className="w-full h-9 text-xs border-blue-100 text-blue-600 hover:bg-blue-50">
+                                                <FileText className="h-3.5 w-3.5 mr-2" /> İşlem Ekstresini Görüntüle
+                                            </Button>
+                                        </DialogTrigger>
+                                        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto w-[95vw] rounded-2xl">
+                                            <StatementView account={acc} />
+                                        </DialogContent>
+                                    </Dialog>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))
+                ) : (
+                    <div className="bg-card border-none shadow-sm rounded-xl p-8 text-center text-muted-foreground italic">
+                        Hesap bulunamadı.
+                    </div>
+                )}
             </div>
         </div>
     )

@@ -301,12 +301,12 @@ export function CustomerView({ customer, activities, contracts = [] }: CustomerV
                                 onClick={async () => {
                                     const user = (document.getElementById('portal_user') as HTMLInputElement).value
                                     const pass = (document.getElementById('portal_pass') as HTMLInputElement).value
-                                    if (!user || !pass) return alert('Lütfen bilgileri eksiksiz girin.')
+                                    if (!user || !pass) return toast.warning('Lütfen bilgileri eksiksiz girin.')
 
                                     const { syncPortalAccess } = await import('@/lib/actions/customer-portal')
                                     const res = await syncPortalAccess(customer.id, user, pass)
-                                    if (res.success) alert('Portal erişimi güncellendi!')
-                                    else alert('Hata: ' + res.error)
+                                    if (res.success) toast.success('Portal erişimi güncellendi!')
+                                    else toast.error('Hata: ' + res.error)
                                 }}
                             >
                                 Kaydet & Yetkilendir

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { ImagePlus, Loader2, Trash2, Pencil } from 'lucide-react'
 import Image from 'next/image'
 import { cn } from "@/lib/utils"
+import { toast } from 'sonner'
 
 interface ImageUploadProps {
     value?: string
@@ -44,7 +45,7 @@ export function ImageUpload({ value, onChange, disabled }: ImageUploadProps) {
             onChange(data.publicUrl)
         } catch (error: any) {
             console.error('Upload Error:', error)
-            alert('Görsel yüklenirken bir hata oluştu.')
+            toast.error('Görsel yüklenirken bir hata oluştu.')
         } finally {
             setLoading(false)
         }

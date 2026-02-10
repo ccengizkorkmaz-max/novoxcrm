@@ -65,7 +65,7 @@ export default async function TenantSupportListing(props: {
                                         </div>
                                         <div className="flex items-center gap-1">
                                             <Clock className="h-3 w-3" />
-                                            {new Date(req.created_at).toLocaleDateString('tr-TR')}
+                                            {new Date(req.created_at).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US')}
                                         </div>
                                     </div>
                                 </div>

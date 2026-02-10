@@ -74,7 +74,7 @@ export async function getCommissions() {
             sales:sale_id (
                 id,
                 projects:project_id ( name ),
-                units:unit_id ( unit_no ),
+                units:unit_id ( unit_number ),
                 customers:customer_id ( full_name )
             )
         `)

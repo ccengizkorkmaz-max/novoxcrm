@@ -14,6 +14,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from '@/components/ui/textarea'
 import { updateCustomer } from '../actions'
+import { toast } from 'sonner'
 import CustomerDemands from './CustomerDemands'
 
 export interface Customer {
@@ -59,8 +60,11 @@ export function CustomerEditDialog({ customer, isOpen, onOpenChange }: CustomerE
                     <TabsContent value="details" forceMount={true} className="data-[state=inactive]:hidden">
                         <form action={async (formData) => {
                             const res = await updateCustomer(formData)
-                            if (res?.error) alert(res.error)
-                            else onOpenChange(false)
+                            if (res?.error) toast.error(res.error)
+                            else {
+                                toast.success(t('messages.updated') || 'Müşteri güncellendi')
+                                onOpenChange(false)
+                            }
                         }}>
                             <input type="hidden" name="id" value={customer.id} />
                             <div className="grid gap-4 py-4">

@@ -16,6 +16,7 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog"
 import { createServiceRequest } from './actions'
+import { toast } from 'sonner'
 
 export function CreateRequestDialog() {
     const [open, setOpen] = useState(false)
@@ -27,10 +28,11 @@ export function CreateRequestDialog() {
         setLoading(false)
 
         if (res.error) {
-            alert(res.error)
+            toast.error(res.error)
         } else {
-            alert('Talebiniz başarıyla oluşturuldu.')
+            toast.success('Talebiniz başarıyla oluşturuldu.')
             setOpen(false)
+            // Using window.location.reload() as it was there to refresh the list
             window.location.reload()
         }
     }

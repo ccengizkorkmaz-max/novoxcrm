@@ -2,12 +2,14 @@ import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Building2, CheckCircle2, Circle, Clock, MapPin, Key } from "lucide-react"
+import { getTranslations } from 'next-intl/server'
 
 export default async function PortalTracking(props: {
     params: Promise<{ locale: string }>
 }) {
     const { locale } = await props.params
     const supabase = await createClient()
+    const t = await getTranslations('PortalTracking')
     const { data: { user } } = await supabase.auth.getUser()
 
     // Get customer profile
@@ -30,18 +32,38 @@ export default async function PortalTracking(props: {
         `)
         .eq('contract_customers.customer_id', profile?.customer_id)
 
+    const translateDeliveryStatus = (status: string) => {
+        const map: Record<string, string> = {
+            'Pending': t('status.pending'),
+            'In Progress': t('status.preparing'),
+            'Ready': t('status.readyForDelivery'),
+            'Delivered': t('status.delivered')
+        }
+        return map[status] || t('status.construction')
+    }
+
+    const translateTitleDeedStatus = (status: string) => {
+        const map: Record<string, string> = {
+            'Pending': t('status.prepStage'),
+            'In Progress': t('status.applied'),
+            'Ready': t('status.deedReady'),
+            'Handed Over': t('status.deedHandedOver')
+        }
+        return map[status] || t('status.pending')
+    }
+
     return (
         <div className="space-y-8">
             <div>
-                <h1 className="text-2xl font-bold tracking-tight text-slate-900">Tapu & Teslimat Takibi</h1>
-                <p className="text-slate-500">Mülkünüzün yasal ve fiziksel teslim süreçlerini buradan izleyebilirsiniz.</p>
+                <h1 className="text-2xl font-bold tracking-tight text-slate-900">{t('title')}</h1>
+                <p className="text-slate-500">{t('subtitle')}</p>
             </div>
 
             {contracts?.map((contract) => (
                 <div key={contract.id} className="grid gap-6 lg:grid-cols-3">
                     <Card className="lg:col-span-1 border-none shadow-sm h-fit">
                         <CardHeader>
-                            <CardTitle className="text-lg">Mülk Bilgisi</CardTitle>
+                            <CardTitle className="text-lg">{t('propertyInfo')}</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="flex items-center gap-3">
@@ -55,11 +77,11 @@ export default async function PortalTracking(props: {
                             </div>
                             <div className="pt-4 space-y-2">
                                 <div className="flex justify-between text-sm">
-                                    <span className="text-slate-500">Sözleşme No</span>
+                                    <span className="text-slate-500">{t('contractNo')}</span>
                                     <span className="font-medium">{contract.contract_number}</span>
                                 </div>
                                 <div className="flex justify-between text-sm">
-                                    <span className="text-slate-500">Teslimat Durumu</span>
+                                    <span className="text-slate-500">{t('deliveryStatus')}</span>
                                     <Badge variant="outline" className="text-blue-600 border-blue-100 bg-blue-50">
                                         {translateDeliveryStatus(contract.delivery_status)}
                                     </Badge>
@@ -70,7 +92,7 @@ export default async function PortalTracking(props: {
 
                     <Card className="lg:col-span-2 border-none shadow-sm">
                         <CardHeader>
-                            <CardTitle>Süreç Akışı</CardTitle>
+                            <CardTitle>{t('processFlow')}</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <div className="relative space-y-8 before:absolute before:inset-0 before:ml-5 before:h-full before:w-0.5 before:bg-slate-200">
@@ -80,10 +102,10 @@ export default async function PortalTracking(props: {
                                         <CheckCircle2 className="h-6 w-6" />
                                     </div>
                                     <div className="flex flex-col">
-                                        <span className="font-bold text-slate-900">Sözleşme İmzalandı</span>
-                                        <span className="text-xs text-slate-500">Süreç başarıyla başlatıldı.</span>
+                                        <span className="font-bold text-slate-900">{t('steps.contractSigned')}</span>
+                                        <span className="text-xs text-slate-500">{t('steps.contractSignedDesc')}</span>
                                         <span className="mt-1 text-xs font-medium text-emerald-600">
-                                            {new Date(contract.contract_date).toLocaleDateString('tr-TR')}
+                                            {new Date(contract.contract_date).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US')}
                                         </span>
                                     </div>
                                 </div>
@@ -97,11 +119,11 @@ export default async function PortalTracking(props: {
                                     </div>
                                     <div className="flex flex-col">
                                         <span className={`font-bold ${contract.title_deed_status === 'Pending' ? 'text-slate-400' : 'text-slate-900'}`}>
-                                            Tapu İşlemleri
+                                            {t('steps.titleDeed')}
                                         </span>
-                                        <span className="text-xs text-slate-500">Yasal mülkiyet devri süreci.</span>
+                                        <span className="text-xs text-slate-500">{t('steps.titleDeedDesc')}</span>
                                         <Badge className="mt-1 w-fit bg-slate-100 text-slate-600 hover:bg-slate-100 border-none">
-                                            {contract.title_deed_status === 'In Progress' ? 'İşlemde' : contract.title_deed_status === 'Handed Over' ? 'Tamamlandı' : 'Beklemede'}
+                                            {translateTitleDeedStatus(contract.title_deed_status)}
                                         </Badge>
                                     </div>
                                 </div>
@@ -115,11 +137,11 @@ export default async function PortalTracking(props: {
                                     </div>
                                     <div className="flex flex-col">
                                         <span className={`font-bold ${contract.delivery_status === 'Pending' ? 'text-slate-400' : 'text-slate-900'}`}>
-                                            Anahtar Teslimi
+                                            {t('steps.delivery')}
                                         </span>
-                                        <span className="text-xs text-slate-500">Fiziksel teslimat ve teknik kontrol.</span>
+                                        <span className="text-xs text-slate-500">{t('steps.deliveryDesc')}</span>
                                         <Badge className="mt-1 w-fit bg-slate-100 text-slate-600 hover:bg-slate-100 border-none">
-                                            {contract.delivery_status === 'Ready' ? 'Hazır' : contract.delivery_status === 'Delivered' ? 'Teslim Edildi' : 'İnşaat Sürüyor'}
+                                            {translateDeliveryStatus(contract.delivery_status)}
                                         </Badge>
                                     </div>
                                 </div>
@@ -132,29 +154,9 @@ export default async function PortalTracking(props: {
             {(!contracts || contracts.length === 0) && (
                 <div className="h-64 flex flex-col items-center justify-center bg-white rounded-2xl border border-dashed text-slate-400">
                     <Building2 className="h-12 w-12 mb-2 opacity-20" />
-                    <p>Henüz takibi yapılacak bir mülkünüz bulunmuyor.</p>
+                    <p>{t('empty')}</p>
                 </div>
             )}
         </div>
     )
-}
-
-function translateDeliveryStatus(status: string) {
-    const map: Record<string, string> = {
-        'Pending': 'Beklemede',
-        'In Progress': 'Hazırlanıyor',
-        'Ready': 'Teslime Hazır',
-        'Delivered': 'Teslim Edildi'
-    }
-    return map[status] || 'İnşaat Sürüyor'
-}
-
-function translateTitleDeedStatus(status: string) {
-    const map: Record<string, string> = {
-        'Pending': 'Hazırlık Aşamasında',
-        'In Progress': 'Başvuru Yapıldı',
-        'Ready': 'Tapu Hazır',
-        'Handed Over': 'Tapu Teslim Edildi'
-    }
-    return map[status] || 'Beklemede'
 }

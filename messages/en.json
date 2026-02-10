@@ -362,6 +362,7 @@
         "logout": "Log Out",
         "toggleMenu": "Toggle Menu",
         "overview": "Overview",
+        "description": "Overview and performance metrics",
         "kpi": {
             "totalSalesVolume": "Total Sales Volume",
             "totalContracts": "Total Confirmed Contracts",
@@ -370,7 +371,9 @@
             "unitsForSale": "Units For Sale",
             "totalStock": "Total independent units in stock",
             "customers": "Customers",
-            "registeredCustomers": "Registered customers in system"
+            "registeredCustomers": "Registered customers in system",
+            "personnel": "Personnel",
+            "activeStaff": "Active Staff"
         },
         "stats": {
             "totalStock": "Total Stock",
@@ -424,6 +427,9 @@
         "deposits": "Deposits",
         "activities": "Activities",
         "serviceRequests": "Service Requests",
+        "commissions": "Commissions",
+        "finance": "Finance Management",
+        "hr": "Human Resources",
         "broker": {
             "title": "B2B Broker Management",
             "management": "Broker Management",
@@ -652,7 +658,8 @@
         "status": {
             "ForSale": "For Sale",
             "Reserved": "Reserved",
-            "Sold": "Sold"
+            "Sold": "Sold",
+            "Stock": "Stock"
         },
         "directions": {
             "North": "North",
@@ -665,9 +672,23 @@
             "SouthWest": "South West"
         },
         "parking": {
-            "Indoor": "Indoor Parking",
-            "Outdoor": "Outdoor Parking",
+            "Indoor": "Indoor",
+            "Outdoor": "Outdoor",
             "None": "None"
+        },
+        "categories": {
+            "Daire": "Apartment",
+            "Depo": "Warehouse",
+            "Dükkan": "Shop",
+            "Ofis": "Office",
+            "Villa": "Villa",
+            "Dubleks Daire": "Duplex",
+            "Bahçe Dubleks Daire": "Garden Duplex",
+            "Çatı Dubleks Daire": "Roof Duplex",
+            "Roof Daire": "Roof Apartment",
+            "Loft Daire": "Loft",
+            "Penthouse": "Penthouse",
+            "Ticari Alan": "Commercial"
         },
         "heating": {
             "Combi": "Combi Boiler",
@@ -1124,7 +1145,9 @@
                 "nextPayment": "Next Payment",
                 "progress": "Construction Progress",
                 "delivery": "Est. Delivery",
-                "requests": "Active Requests"
+                "requests": "Active Requests",
+                "activePropertyCount": "Active Properties",
+                "guaranteedByNovoxCrm": "Guaranteed by NovoxCrm"
             },
             "buttons": {
                 "makePayment": "Make Payment",
@@ -1139,12 +1162,17 @@
                     "paid": "Paid",
                     "pending": "Pending",
                     "overdue": "Overdue"
-                }
+                },
+                "contractRevised": "Contract Revised",
+                "paymentApproved": "Payment Approved",
+                "daysAgo": "{days} days ago"
             },
             "projectStatus": {
                 "title": "Project Status",
                 "completed": "Completed"
-            }
+            },
+            "myProperties": "My Properties",
+            "ownedUnitsDesc": "Units owned by you."
         }
     },
     "PublicLeadForm": {
@@ -2062,6 +2090,85 @@
             "buttonConfirm": "Confirm Option",
             "statusPending": "Deposit Pending",
             "cancel": "Cancel"
+        }
+    },
+    "Finance": {
+        "title": "Finance Management",
+        "description": "Project-based current accounts, debt/credit tracking, and valuable paper management.",
+        "tabs": {
+            "dashboard": "Summary",
+            "accounts": "Current Accounts",
+            "papers": "Valuable Papers",
+            "reports": "Aging Report"
+        },
+        "stats": {
+            "totalReceivable": "Total Receivables",
+            "receivableDesc": "Expected from current accounts",
+            "totalDebt": "Total Debt",
+            "debtDesc": "Obligations to companies",
+            "pendingCollection": "Pending Collection",
+            "collectionDesc": "Overdue valuable papers",
+            "totalBalance": "Total Balance",
+            "balanceDesc": "General financial status"
+        }
+    },
+    "Common": {
+        "total": "Total",
+        "sold": "Sold",
+        "remaining": "Remaining"
+    },
+    "PortalTracking": {
+        "title": "Title Deed & Delivery Tracking",
+        "subtitle": "Track the legal and physical delivery process of your property.",
+        "propertyInfo": "Property Information",
+        "contractNo": "Contract No",
+        "deliveryStatus": "Delivery Status",
+        "processFlow": "Process Flow",
+        "steps": {
+            "contractSigned": "Contract Signed",
+            "contractSignedDesc": "Process started successfully.",
+            "titleDeed": "Title Deed Process",
+            "titleDeedDesc": "Legal ownership transfer process.",
+            "delivery": "Key Delivery",
+            "deliveryDesc": "Physical delivery and technical check."
+        },
+        "status": {
+            "inProgress": "In Progress",
+            "completed": "Completed",
+            "pending": "Pending",
+            "ready": "Ready",
+            "delivered": "Delivered",
+            "construction": "Under Construction",
+            "preparing": "Preparing",
+            "readyForDelivery": "Ready for Delivery",
+            "prepStage": "Preparation Stage",
+            "applied": "Application Submission",
+            "deedReady": "Title Deed Ready",
+            "deedHandedOver": "Title Deed Handed Over"
+        },
+        "empty": "You do not have any property tracking available."
+    },
+    "PortalFinancials": {
+        "title": "My Payments",
+        "subtitle": "Your installments, payment history, and remaining balance.",
+        "uploadReceipt": "Upload Receipt",
+        "totalPaid": "Total Paid",
+        "remainingDebt": "Remaining Debt",
+        "paymentPlan": "Payment Plan",
+        "paymentPlanDesc": "Installment details for all your properties.",
+        "table": {
+            "projectUnit": "Project / Unit",
+            "dueDate": "Due Date",
+            "amount": "Amount",
+            "status": "Status",
+            "action": "Actions",
+            "receipt": "Receipt",
+            "detail": "Detail",
+            "empty": "No payment plan found yet."
+        },
+        "status": {
+            "paid": "Paid",
+            "pending": "Pending"
         }
     }
 }

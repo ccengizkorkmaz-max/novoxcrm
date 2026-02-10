@@ -118,13 +118,13 @@ export default async function PortalDashboard(props: {
 
                 <Card className="border-none shadow-sm">
                     <CardHeader className="pb-2">
-                        <CardDescription>Aktif Mülk Sayısı</CardDescription>
+                        <CardDescription>{t('cards.activePropertyCount')}</CardDescription>
                         <CardTitle className="text-3xl text-slate-900">{contracts?.length || 0}</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="flex items-center gap-2 text-sm text-slate-500">
                             <Building2 className="h-4 w-4" />
-                            NovoxCrm Güvencesiyle
+                            {t('cards.guaranteedByNovoxCrm')}
                         </div>
                     </CardContent>
                 </Card>
@@ -193,8 +193,8 @@ export default async function PortalDashboard(props: {
                 <Card className="border-none shadow-sm">
                     <CardHeader className="flex flex-row items-center justify-between">
                         <div>
-                            <CardTitle>Mülklerim</CardTitle>
-                            <CardDescription>Sahibi olduğunuz bağımsız bölümler.</CardDescription>
+                            <CardTitle>{t('myProperties')}</CardTitle>
+                            <CardDescription>{t('ownedUnitsDesc')}</CardDescription>
                         </div>
                         <Home className="h-5 w-5 text-slate-400" />
                     </CardHeader>
@@ -231,15 +231,15 @@ export default async function PortalDashboard(props: {
                             <div className="flex gap-4">
                                 <div className="mt-1 h-2 w-2 rounded-full bg-blue-600" />
                                 <div>
-                                    <p className="text-sm font-medium">Sözleşme Revize Edildi</p>
-                                    <p className="text-xs text-slate-500">2 gün önce</p>
+                                    <p className="text-sm font-medium">{t('recentPayments.contractRevised')}</p>
+                                    <p className="text-xs text-slate-500">{t('recentPayments.daysAgo', { days: 2 })}</p>
                                 </div>
                             </div>
                             <div className="flex gap-4">
                                 <div className="mt-1 h-2 w-2 rounded-full bg-slate-300" />
                                 <div>
-                                    <p className="text-sm font-medium">Ödeme Onaylandı: 50.000 TL</p>
-                                    <p className="text-xs text-slate-500">5 gün önce</p>
+                                    <p className="text-sm font-medium">{t('recentPayments.paymentApproved')}: 50.000 TL</p>
+                                    <p className="text-xs text-slate-500">{t('recentPayments.daysAgo', { days: 5 })}</p>
                                 </div>
                             </div>
                         </div>

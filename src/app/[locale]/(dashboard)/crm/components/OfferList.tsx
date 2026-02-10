@@ -18,6 +18,7 @@ import {
 
 import NegotiationDialog from './NegotiationDialog'
 import ApproveOfferButton from './ApproveOfferButton'
+import { toast } from 'sonner'
 
 
 interface Offer {
@@ -53,7 +54,7 @@ export default function OfferList({ offers }: { offers: Offer[] }) {
 
     // Placeholder for delete or print actions
     const handlePrint = (id: string) => {
-        alert('PDF yazdırma özelliği eklenecek: ' + id)
+        toast.info('PDF yazdırma özelliği yakında eklenecek.')
     }
 
     const openPlan = (offer: Offer) => {

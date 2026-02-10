@@ -328,7 +328,7 @@ export default async function DashboardPage(props: {
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">{t('overview')}</h1>
-        <p className="text-muted-foreground text-sm mt-1">Genel bakış ve performans metrikleri</p>
+        <p className="text-muted-foreground text-sm mt-1">{t('description')}</p>
       </div>
 
       {/* General Stock Stats */}

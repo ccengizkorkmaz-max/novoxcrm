@@ -373,6 +373,7 @@
         "logout": "Çıkış",
         "toggleMenu": "Menüyü Aç/Kapa",
         "overview": "Genel Bakış",
+        "description": "Genel bakış ve performans metrikleri",
         "kpi": {
             "totalSalesVolume": "Toplam Satış Hacmi",
             "totalContracts": "Onaylanmış Toplam Sözleşmeler",
@@ -438,6 +439,9 @@
         "deposits": "Kapora Yönetimi",
         "activities": "Aktiviteler",
         "serviceRequests": "Servis Talepleri",
+        "commissions": "Primler",
+        "finance": "Finans Yönetimi",
+        "hr": "İnsan Kaynakları",
         "settings": "Ayarlar",
         "broker": {
             "title": "B2B Broker Yönetimi",
@@ -465,8 +469,7 @@
             "empty": "Henüz bir e-posta bulunmuyor.",
             "viewMessage": "Mesajı Gör",
             "messageDetails": "Mesaj Detayları"
-        },
-        "hr": "İK (Personel Yönetimi)"
+        }
     },
     "Projects": {
         "title": "Projeler",
@@ -695,6 +698,20 @@
             "Indoor": "Kapalı Otopark",
             "Outdoor": "Açık Otopark",
             "None": "Yok"
+        },
+        "categories": {
+            "Daire": "Daire",
+            "Depo": "Depo",
+            "Dükkan": "Dükkan",
+            "Ofis": "Ofis",
+            "Villa": "Villa",
+            "Dubleks Daire": "Dubleks Daire",
+            "Bahçe Dubleks Daire": "Bahçe Dubleks",
+            "Çatı Dubleks Daire": "Çatı Dubleks",
+            "Roof Daire": "Roof Daire",
+            "Loft Daire": "Loft Daire",
+            "Penthouse": "Penthouse",
+            "Ticari Alan": "Ticari Alan"
         },
         "heating": {
             "Combi": "Kombi",
@@ -1164,7 +1181,9 @@
                 "nextPayment": "Sonraki Ödeme",
                 "progress": "İnşaat İlerlemesi",
                 "delivery": "Tahmini Teslim",
-                "requests": "Aktif Talepler"
+                "requests": "Aktif Talepler",
+                "activePropertyCount": "Aktif Mülk Sayısı",
+                "guaranteedByNovoxCrm": "NovoxCrm Güvencesiyle"
             },
             "buttons": {
                 "makePayment": "Ödeme Yap",
@@ -1179,12 +1198,17 @@
                     "paid": "Ödendi",
                     "pending": "Bekliyor",
                     "overdue": "Gecikmiş"
-                }
+                },
+                "contractRevised": "Sözleşme Revize Edildi",
+                "paymentApproved": "Ödeme Onaylandı",
+                "daysAgo": "{days} gün önce"
             },
             "projectStatus": {
                 "title": "Proje Durumu",
                 "completed": "Tamamlandı"
-            }
+            },
+            "myProperties": "Mülklerim",
+            "ownedUnitsDesc": "Sahibi olduğunuz bağımsız bölümler."
         }
     },
     "PublicLeadForm": {
@@ -2199,5 +2223,84 @@
         "noEmployees": "Henüz personel kaydı bulunmuyor.",
         "addFirst": "İlk personeli ekleyerek başlayın.",
         "status": "Durum"
+    },
+    "Finance": {
+        "title": "Finans Yönetimi",
+        "description": "Proje bazlı cari hesaplar, borç/alacak takibi ve kıymetli evrak yönetimi.",
+        "tabs": {
+            "dashboard": "Özet",
+            "accounts": "Cari Hesaplar",
+            "papers": "Kıymetli Evrak",
+            "reports": "Yaşlandırma Raporu"
+        },
+        "stats": {
+            "totalReceivable": "Toplam Alacak",
+            "receivableDesc": "Cari hesaplardan beklenen",
+            "totalDebt": "Toplam Borç",
+            "debtDesc": "Firmalara olan yükümlülükler",
+            "pendingCollection": "Bekleyen Tahsilat",
+            "collectionDesc": "Vadesi gelmiş kıymetli evraklar",
+            "totalBalance": "Toplam Bakiye",
+            "balanceDesc": "Genel finansal durum"
+        }
+    },
+    "Common": {
+        "total": "Toplam",
+        "sold": "Satılan",
+        "remaining": "Kalan"
+    },
+    "PortalTracking": {
+        "title": "Tapu & Teslimat Takibi",
+        "subtitle": "Mülkünüzün yasal ve fiziksel teslim süreçlerini buradan izleyebilirsiniz.",
+        "propertyInfo": "Mülk Bilgisi",
+        "contractNo": "Sözleşme No",
+        "deliveryStatus": "Teslimat Durumu",
+        "processFlow": "Süreç Akışı",
+        "steps": {
+            "contractSigned": "Sözleşme İmzalandı",
+            "contractSignedDesc": "Süreç başarıyla başlatıldı.",
+            "titleDeed": "Tapu İşlemleri",
+            "titleDeedDesc": "Yasal mülkiyet devri süreci.",
+            "delivery": "Anahtar Teslimi",
+            "deliveryDesc": "Fiziksel teslimat ve teknik kontrol."
+        },
+        "status": {
+            "inProgress": "İşlemde",
+            "completed": "Tamamlandı",
+            "pending": "Beklemede",
+            "ready": "Hazır",
+            "delivered": "Teslim Edildi",
+            "construction": "İnşaat Sürüyor",
+            "preparing": "Hazırlanıyor",
+            "readyForDelivery": "Teslime Hazır",
+            "prepStage": "Hazırlık Aşamasında",
+            "applied": "Başvuru Yapıldı",
+            "deedReady": "Tapu Hazır",
+            "deedHandedOver": "Tapu Teslim Edildi"
+        },
+        "empty": "Henüz takibi yapılacak bir mülkünüz bulunmuyor."
+    },
+    "PortalFinancials": {
+        "title": "Ödemelerim",
+        "subtitle": "Taksitleriniz, ödeme geçmişiniz ve kalan bakiyeniz.",
+        "uploadReceipt": "Dekont Yükle",
+        "totalPaid": "Toplam Ödenen",
+        "remainingDebt": "Kalan Borç",
+        "paymentPlan": "Ödeme Planı",
+        "paymentPlanDesc": "Tüm mülklerinize ait taksit detayları.",
+        "table": {
+            "projectUnit": "Proje / No",
+            "dueDate": "Vade Tarihi",
+            "amount": "Tutar",
+            "status": "Durum",
+            "action": "İşlem",
+            "receipt": "Makbuz",
+            "detail": "Detay",
+            "empty": "Henüz bir ödeme planı bulunmuyor."
+        },
+        "status": {
+            "paid": "Ödendi",
+            "pending": "Bekliyor"
+        }
     }
 }

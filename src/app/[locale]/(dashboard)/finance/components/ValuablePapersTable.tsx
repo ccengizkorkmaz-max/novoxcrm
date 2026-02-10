@@ -11,6 +11,7 @@ import { toast } from 'sonner'
 import { updateValuablePaperStatus } from '../actions'
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
 import { Plus } from 'lucide-react'
+import { Card, CardHeader, CardContent } from '@/components/ui/card'
 import ValuablePaperForm from './ValuablePaperForm'
 
 interface ValuablePapersTableProps {
@@ -79,7 +80,8 @@ export default function ValuablePapersTable({ papers }: ValuablePapersTableProps
                 </div>
             </div>
 
-            <div className="rounded-md border bg-white overflow-hidden shadow-sm">
+            {/* Desktop Table View */}
+            <div className="hidden sm:block rounded-md border bg-white overflow-hidden shadow-sm">
                 <Table>
                     <TableHeader>
                         <TableRow className="bg-slate-50">
@@ -182,13 +184,108 @@ export default function ValuablePapersTable({ papers }: ValuablePapersTableProps
                             })
                         ) : (
                             <TableRow>
-                                <TableCell colSpan={6} className="h-24 text-center text-muted-foreground italic">
+                                <TableCell colSpan={7} className="h-24 text-center text-muted-foreground italic">
                                     Kıymetli evrak bulunamadı.
                                 </TableCell>
                             </TableRow>
                         )}
                     </TableBody>
                 </Table>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="grid grid-cols-1 gap-4 sm:hidden">
+                {filteredPapers.length > 0 ? (
+                    filteredPapers.map((paper) => {
+                        const isExpired = new Date(paper.due_date) < new Date() && (paper.status === 'Portföyde' || paper.status === 'Portfolio')
+
+                        return (
+                            <Card key={paper.id} className="border-none shadow-sm overflow-hidden">
+                                <CardHeader className="bg-slate-50/50 p-4 pb-3 border-b border-slate-100">
+                                    <div className="flex justify-between items-start">
+                                        <div className="flex flex-col gap-1">
+                                            <div className="flex items-center gap-2">
+                                                <Calendar className={`h-3.5 w-3.5 ${isExpired ? 'text-red-500' : 'text-slate-400'}`} />
+                                                <span className={`text-xs font-bold ${isExpired ? 'text-red-600' : 'text-slate-700'}`}>
+                                                    {new Date(paper.due_date).toLocaleDateString('tr-TR')}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5 mt-0.5">
+                                                <Badge variant="outline" className="text-[9px] py-0 px-1 font-normal h-4">
+                                                    {paper.direction || 'Alınan'}
+                                                </Badge>
+                                                <span className="text-sm font-bold text-slate-900">{paper.paper_type === 'Check' ? 'Çek' : 'Senet'}</span>
+                                            </div>
+                                        </div>
+                                        {getStatusBadge(paper.status)}
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="p-4 space-y-3">
+                                    <div className="grid gap-2 text-xs">
+                                        <div className="flex justify-between">
+                                            <span className="text-muted-foreground uppercase font-bold tracking-tight text-[10px]">Tutar</span>
+                                            <span className="font-mono font-black text-slate-900 text-sm">
+                                                {formatCurrency(paper.amount, paper.currency)}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between items-start">
+                                            <span className="text-muted-foreground uppercase font-bold tracking-tight text-[10px]">Borçlu / Cari</span>
+                                            <div className="flex flex-col items-end text-right">
+                                                <span className="font-bold text-slate-800">{paper.issuer || '-'}</span>
+                                                <span className="text-[10px] text-muted-foreground mt-0.5">{paper.customers?.full_name}</span>
+                                            </div>
+                                        </div>
+                                        {paper.project?.name && (
+                                            <div className="flex justify-between pt-1 border-t border-slate-50">
+                                                <span className="text-muted-foreground uppercase font-bold tracking-tight text-[10px]">Proje</span>
+                                                <span className="text-[10px] font-medium">
+                                                    {paper.project.name} {paper.unit && `(${paper.unit.block}-${paper.unit.unit_number})`}
+                                                </span>
+                                            </div>
+                                        )}
+                                        <div className="flex justify-between pt-1 border-t border-slate-50">
+                                            <span className="text-muted-foreground uppercase font-bold tracking-tight text-[10px]">Evrak No</span>
+                                            <span className="text-[10px] font-mono">{paper.issue_number || '-'}</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Action Buttons for Mobile */}
+                                    <div className="pt-2 flex gap-2">
+                                        {(paper.status === 'Portföyde' || paper.status === 'Portfolio') ? (
+                                            <>
+                                                <Button
+                                                    className="flex-1 h-9 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold"
+                                                    onClick={() => handleStatusUpdate(paper.id, 'Tahsil Edildi')}
+                                                >
+                                                    <CheckCircle2 className="h-3.5 w-3.5 mr-2" /> Tahsil Et
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    className="flex-1 h-9 border-red-100 text-red-600 hover:bg-red-50 text-xs font-bold"
+                                                    onClick={() => handleStatusUpdate(paper.id, 'İade')}
+                                                >
+                                                    <XCircle className="h-3.5 w-3.5 mr-2" /> İade
+                                                </Button>
+                                            </>
+                                        ) : (
+                                            <Button
+                                                variant="outline"
+                                                className="w-full h-9 border-slate-200 text-slate-600 text-xs font-bold"
+                                                onClick={() => handleStatusUpdate(paper.id, 'Portföyde')}
+                                            >
+                                                <RotateCcw className="h-3.5 w-3.5 mr-2" /> Portföye Geri Al
+                                            </Button>
+                                        )}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )
+                    })
+                ) : (
+                    <div className="bg-white border rounded-xl p-8 text-center text-muted-foreground italic shadow-sm">
+                        Kıymetli evrak bulunamadı.
+                    </div>
+                )}
             </div>
         </div>
     )

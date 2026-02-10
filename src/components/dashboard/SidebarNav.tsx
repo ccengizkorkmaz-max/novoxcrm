@@ -114,13 +114,13 @@ export function SidebarNav({ role = 'sales', onElementClick }: { role?: string |
                 {t('deposits')}
             </NavItem>
             <NavItem href="/commissions" icon={Trophy} onClick={onElementClick}>
-                Primler
+                {t('commissions')}
             </NavItem>
             <NavItem href="/activities" icon={CalendarCheck} onClick={onElementClick}>
                 {t('activities')}
             </NavItem>
             <NavItem href="/finance" icon={Banknote} onClick={onElementClick}>
-                Finans Yönetimi
+                {t('finance')}
             </NavItem>
             {isOwner && (
                 <NavItem href="/hr" icon={Briefcase} onClick={onElementClick}>

@@ -291,20 +291,20 @@ export default async function InventoryPage(props: {
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-3 gap-y-3 text-[11px] pb-3 border-b border-slate-50">
+                                    <div className="grid grid-cols-2 gap-y-3 text-[11px] pb-3 border-b border-slate-50">
                                         <div className="flex flex-col gap-0.5">
                                             <span className="text-muted-foreground text-[9px] uppercase font-bold">{t('table.roomType')}</span>
                                             <span className="font-medium">{unit.type}</span>
                                         </div>
-                                        <div className="flex flex-col gap-0.5">
-                                            <span className="text-muted-foreground text-[9px] uppercase font-bold">{t('table.floor')}</span>
-                                            <span className="font-medium text-center">{unit.floor}</span>
-                                        </div>
                                         <div className="flex flex-col gap-0.5 text-right">
+                                            <span className="text-muted-foreground text-[9px] uppercase font-bold">{t('table.floor')}</span>
+                                            <span className="font-medium">{unit.floor}</span>
+                                        </div>
+                                        <div className="flex flex-col gap-0.5">
                                             <span className="text-muted-foreground text-[9px] uppercase font-bold">{t('table.grossArea')}</span>
                                             <span className="font-medium font-mono">{unit.area_gross} m²</span>
                                         </div>
-                                        <div className="flex flex-col gap-0.5">
+                                        <div className="flex flex-col gap-0.5 text-right">
                                             <span className="text-muted-foreground text-[9px] uppercase font-bold">{t('table.direction')}</span>
                                             <span className="font-medium truncate">{unit.direction ? (directionMap[unit.direction] ? t(`directions.${directionMap[unit.direction]}`) : unit.direction) : '-'}</span>
                                         </div>

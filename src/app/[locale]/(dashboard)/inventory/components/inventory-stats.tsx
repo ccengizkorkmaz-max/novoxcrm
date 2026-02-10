@@ -29,8 +29,8 @@ export function InventoryStats({ units }: InventoryStatsProps) {
         .reduce((sum, u) => sum + (Number(u.price) || 0), 0)
 
     return (
-        <div className="flex flex-wrap gap-4 mb-4 w-fit">
-            <Card className="shadow-sm min-w-[150px] flex-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+            <Card className="shadow-sm">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">{t('total')}</CardTitle>
                     <Building2 className="h-4 w-4 text-muted-foreground" />
@@ -40,7 +40,7 @@ export function InventoryStats({ units }: InventoryStatsProps) {
                 </CardContent>
             </Card>
 
-            <Card className="shadow-sm border-l-4 border-l-green-500 min-w-[150px] flex-1">
+            <Card className="shadow-sm border-l-4 border-l-green-500">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">{t('forSale')}</CardTitle>
                     <Home className="h-4 w-4 text-muted-foreground" />
@@ -50,7 +50,7 @@ export function InventoryStats({ units }: InventoryStatsProps) {
                 </CardContent>
             </Card>
 
-            <Card className="shadow-sm border-l-4 border-l-yellow-500 min-w-[150px] flex-1">
+            <Card className="shadow-sm border-l-4 border-l-yellow-500">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">{t('reserved')}</CardTitle>
                     <Key className="h-4 w-4 text-muted-foreground" />
@@ -60,7 +60,7 @@ export function InventoryStats({ units }: InventoryStatsProps) {
                 </CardContent>
             </Card>
 
-            <Card className="shadow-sm border-l-4 border-l-red-500 min-w-[150px] flex-1">
+            <Card className="shadow-sm border-l-4 border-l-red-500">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">{t('sold')}</CardTitle>
                     <BadgeCheck className="h-4 w-4 text-muted-foreground" />
@@ -70,7 +70,7 @@ export function InventoryStats({ units }: InventoryStatsProps) {
                 </CardContent>
             </Card>
 
-            <Card className="shadow-sm min-w-[200px] flex-[1.5]">
+            <Card className="shadow-sm">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">{t('portfolioValue')}</CardTitle>
                     <Banknote className="h-4 w-4 text-muted-foreground" />

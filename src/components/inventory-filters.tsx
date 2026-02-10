@@ -154,7 +154,9 @@ export function InventoryFilters({ projects }: InventoryFiltersProps) {
                         >
                             <option value="">{t.has('all') ? t('all') : 'Tümü'}</option>
                             {UNIT_CATEGORIES.map(cat => (
-                                <option key={cat} value={cat}>{cat}</option>
+                                <option key={cat} value={cat}>
+                                    {tGlobal.has(`categories.${cat}`) ? tGlobal(`categories.${cat}`) : cat}
+                                </option>
                             ))}
                         </select>
                     </div>

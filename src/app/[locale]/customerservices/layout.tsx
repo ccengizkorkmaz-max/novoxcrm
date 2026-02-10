@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { LayoutDashboard, CreditCard, CalendarCheck, FileText, LogOut, ShieldCheck } from 'lucide-react'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 import { getTranslations } from 'next-intl/server'
+import PortalMobileMenu from './components/PortalMobileMenu'
 
 export default async function PortalLayout(props: {
     children: React.ReactNode
@@ -82,14 +83,23 @@ export default async function PortalLayout(props: {
 
             {/* Mobile Header (visible only on small screens) */}
             <div className="sm:hidden fixed top-0 left-0 right-0 z-20 flex min-h-[calc(4rem+env(safe-area-inset-top))] pt-[env(safe-area-inset-top)] items-center justify-between border-b bg-white px-4">
-                <div className="flex items-center gap-2 font-bold text-blue-600">
-                    <ShieldCheck className="h-6 w-6" />
-                    <span className="text-lg">{t('sidebar.title')}</span>
+                <div className="flex items-center gap-2">
+                    <PortalMobileMenu
+                        profile={profile}
+                        menuItems={menuItems.map(({ label, href }) => ({ label, href }))}
+                        translations={{
+                            title: t('sidebar.title'),
+                            logout: t('sidebar.logout')
+                        }}
+                    />
+                    <div className="flex items-center gap-2 font-bold text-blue-600">
+                        <ShieldCheck className="h-6 w-6" />
+                        <span className="text-lg">{t('sidebar.title')}</span>
+                    </div>
                 </div>
-                {/* Mobile Menu Button - simplified */}
+                {/* Mobile Menu Button - now right is Lang */}
                 <div className="flex items-center gap-2">
                     <LanguageSwitcher variant="light" />
-                    <Button size="sm" variant="outline">Menu</Button>
                 </div>
             </div>
 

@@ -576,12 +576,12 @@ export default function PipelineList({
                                     </div>
                                 )}
 
-                                <div className="grid grid-cols-2 gap-y-3 text-xs">
+                                <div className="grid grid-cols-1 gap-y-3 text-xs">
                                     <div className="flex flex-col gap-1">
                                         <span className="text-muted-foreground text-[10px] uppercase font-bold tracking-tight">{t('table.project')}</span>
                                         <span className="font-medium truncate">{sale.units?.projects?.name || sale.projects?.name || '-'}</span>
                                     </div>
-                                    <div className="flex flex-col gap-1 text-right">
+                                    <div className="flex flex-col gap-1">
                                         <span className="text-muted-foreground text-[10px] uppercase font-bold tracking-tight">{t('table.unit')}</span>
                                         <span className="font-medium">
                                             {sale.units ? (
@@ -606,7 +606,7 @@ export default function PipelineList({
                                             )}
                                         </div>
                                     </div>
-                                    <div className="flex flex-col gap-1 text-right">
+                                    <div className="flex flex-col gap-1">
                                         <span className="text-muted-foreground text-[10px] uppercase font-bold tracking-tight">{t('table.amount')}</span>
                                         <span className="font-bold text-slate-900 font-mono">
                                             {sale.final_price || sale.units?.price ? (

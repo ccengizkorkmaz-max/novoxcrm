@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { createOffer } from '@/app/[locale]/(dashboard)/offers/actions'
+import { toast } from 'sonner'
 
 interface CreateOfferDialogProps {
     customers: any[]
@@ -27,10 +28,11 @@ export function CreateOfferDialog({ customers, units }: CreateOfferDialogProps) 
     async function handleSubmit(formData: FormData) {
         const result = await createOffer(formData)
         if (result?.success) {
+            toast.success('Teklif başarıyla oluşturuldu')
             setOpen(false)
         } else {
             console.error(result?.error)
-            alert('Hata: ' + result?.error)
+            toast.error(result?.error || 'Teklif oluşturulurken bir hata oluştu')
         }
     }
 

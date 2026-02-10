@@ -23,6 +23,7 @@ export default async function ProjectsPage(props: {
 }) {
     const { locale } = await props.params
     const t = await getTranslations('Projects')
+    const tc = await getTranslations('Common')
     const supabase = await createClient()
 
     const { data: { user } } = await supabase.auth.getUser()
@@ -135,15 +136,15 @@ export default async function ProjectsPage(props: {
                                 <CardContent className="pb-4">
                                     <div className="grid grid-cols-3 gap-2 py-3 px-3 bg-slate-50 rounded-xl border border-slate-100">
                                         <div className="flex flex-col items-center gap-0.5">
-                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Toplam</span>
+                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{tc('total')}</span>
                                             <span className="text-sm font-black text-slate-700">{totalUnits}</span>
                                         </div>
                                         <div className="flex flex-col items-center gap-0.5 border-x border-slate-200">
-                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Satılan</span>
+                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{tc('sold')}</span>
                                             <span className="text-sm font-black text-emerald-600">{soldUnits}</span>
                                         </div>
                                         <div className="flex flex-col items-center gap-0.5">
-                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Kalan</span>
+                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{tc('remaining')}</span>
                                             <span className="text-sm font-black text-blue-600">{remainingUnits}</span>
                                         </div>
                                     </div>
