@@ -52,7 +52,7 @@ export function DashboardGeneralStats({ stats }: DashboardGeneralStatsProps) {
     ]
 
     return (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {items.map((item, index) => (
                 <Card key={index} className="border-none shadow-sm bg-card/50 backdrop-blur-sm">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

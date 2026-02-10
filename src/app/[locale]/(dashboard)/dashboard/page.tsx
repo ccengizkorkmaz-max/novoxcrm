@@ -335,7 +335,7 @@ export default async function DashboardPage(props: {
       <DashboardGeneralStats stats={stats.generalStats} />
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card className="border-none shadow-sm bg-card/50 backdrop-blur-sm">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">{t('kpi.totalSalesVolume')}</CardTitle>
