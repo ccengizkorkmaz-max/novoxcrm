@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Combobox } from '@/components/ui/combobox'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -51,6 +52,9 @@ export default function AccountForm() {
         }
         fetchUnits()
     }, [formData.project_id, supabase])
+
+    const projectOptions = projects.map(p => ({ value: p.id, label: p.name }))
+    const unitOptions = units.map(u => ({ value: u.id, label: `${u.block} - ${u.unit_number}` }))
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -172,36 +176,26 @@ export default function AccountForm() {
             <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                     <Label htmlFor="project">İlgili Proje</Label>
-                    <Select
+                    <Combobox
+                        items={projectOptions}
                         value={formData.project_id}
-                        onValueChange={(val) => setFormData({ ...formData, project_id: val, unit_id: '' })}
-                    >
-                        <SelectTrigger>
-                            <SelectValue placeholder="Proje Seç" />
-                        </SelectTrigger>
-                        <SelectContent className="max-h-[200px]">
-                            {projects.map(p => (
-                                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+                        onChange={(val) => setFormData({ ...formData, project_id: val, unit_id: '' })}
+                        placeholder="Proje Seç"
+                        searchPlaceholder="Proje ara..."
+                        emptyText="Proje bulunamadı."
+                    />
                 </div>
                 <div className="grid gap-2">
                     <Label htmlFor="unit">İlgili Ünite</Label>
-                    <Select
+                    <Combobox
+                        items={unitOptions}
                         value={formData.unit_id}
-                        onValueChange={(val) => setFormData({ ...formData, unit_id: val })}
+                        onChange={(val) => setFormData({ ...formData, unit_id: val })}
+                        placeholder="Ünite Seç"
+                        searchPlaceholder="Ünite ara..."
+                        emptyText="Ünite bulunamadı."
                         disabled={!formData.project_id}
-                    >
-                        <SelectTrigger>
-                            <SelectValue placeholder="Ünite Seç" />
-                        </SelectTrigger>
-                        <SelectContent className="max-h-[200px]">
-                            {units.map(u => (
-                                <SelectItem key={u.id} value={u.id}>{u.block} - {u.unit_number}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+                    />
                 </div>
             </div>
 

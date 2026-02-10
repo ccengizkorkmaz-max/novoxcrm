@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Combobox } from '@/components/ui/combobox'
 import {
     Select,
     SelectContent,
@@ -57,6 +58,10 @@ export default function TransactionForm({ accounts }: TransactionFormProps) {
         fetchUnits()
     }, [projectId, supabase])
 
+    const accountOptions = accounts.map(a => ({ value: a.id, label: a.account_name }))
+    const projectOptions = projects.map(p => ({ value: p.id, label: p.name }))
+    const unitOptions = units.map(u => ({ value: u.id, label: `${u.block} - ${u.unit_number}` }))
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!accountId || !amount || !description) {
@@ -98,18 +103,15 @@ export default function TransactionForm({ accounts }: TransactionFormProps) {
             <div className="grid gap-4 py-4">
                 <div className="grid gap-2">
                     <Label>Hesap Seçin</Label>
-                    <Select value={accountId} onValueChange={setAccountId}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Bir hesap seçiniz..." />
-                        </SelectTrigger>
-                        <SelectContent className="max-h-64">
-                            {accounts.map((acc) => (
-                                <SelectItem key={acc.id} value={acc.id}>
-                                    {acc.account_name}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+                    <Label>Hesap Seçin</Label>
+                    <Combobox
+                        items={accountOptions}
+                        value={accountId}
+                        onChange={setAccountId}
+                        placeholder="Bir hesap seçiniz..."
+                        searchPlaceholder="Hesap ara..."
+                        emptyText="Hesap bulunamadı."
+                    />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -145,31 +147,26 @@ export default function TransactionForm({ accounts }: TransactionFormProps) {
                 <div className="grid grid-cols-2 gap-4">
                     <div className="grid gap-2">
                         <Label>İlgili Proje</Label>
-                        <Select value={projectId} onValueChange={(v) => { setProjectId(v); setUnitId(''); }}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Opsiyonel" />
-                            </SelectTrigger>
-                            <SelectContent className="max-h-48">
-                                <SelectItem value="NONE_SELECTED">Seçilmedi</SelectItem>
-                                {projects.map((p) => (
-                                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        <Combobox
+                            items={projectOptions}
+                            value={projectId}
+                            onChange={(v) => { setProjectId(v); setUnitId(''); }}
+                            placeholder="Proje Seç (Opsiyonel)"
+                            searchPlaceholder="Proje ara..."
+                            emptyText="Proje bulunamadı."
+                        />
                     </div>
                     <div className="grid gap-2">
                         <Label>İlgili Ünite</Label>
-                        <Select value={unitId} onValueChange={setUnitId} disabled={!projectId || projectId === 'NONE_SELECTED'}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Opsiyonel" />
-                            </SelectTrigger>
-                            <SelectContent className="max-h-48">
-                                <SelectItem value="NONE_SELECTED">Seçilmedi</SelectItem>
-                                {units.map((u) => (
-                                    <SelectItem key={u.id} value={u.id}>{u.block} - {u.unit_number}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        <Combobox
+                            items={unitOptions}
+                            value={unitId}
+                            onChange={setUnitId}
+                            placeholder="Ünite Seç (Opsiyonel)"
+                            searchPlaceholder="Ünite ara..."
+                            emptyText="Ünite bulunamadı."
+                            disabled={!projectId || projectId === 'NONE_SELECTED'}
+                        />
                     </div>
                 </div>
 
