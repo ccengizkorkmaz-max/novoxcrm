@@ -2,20 +2,19 @@
 
 import { format } from 'date-fns'
 import { enUS, tr } from 'date-fns/locale'
-import { CalendarIcon, CheckCircle2, Phone, Mail, MessageSquare, Briefcase, FileText, User, MoreHorizontal, Clock, AlertTriangle } from 'lucide-react'
+import { CalendarIcon, Phone, Mail, MessageSquare, Briefcase, FileText, User, MoreHorizontal } from 'lucide-react'
 import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
-    DropdownMenuLabel,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { ActivityForm } from './activity-form'
 import { useState } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
+import { cn } from "@/lib/utils"
 
 export interface Activity {
     id: string
@@ -40,7 +39,19 @@ interface ActivityCardProps {
     activity: Activity
     customers?: any[]
     profiles?: any[]
-    onComplete?: (id: string) => void // Trigger form externally or handle internally
+    onComplete?: (id: string) => void
+}
+
+function getActivityIcon(type: string) {
+    switch (type) {
+        case 'Call': return Phone
+        case 'Email': return Mail
+        case 'Whatsapp': return MessageSquare
+        case 'Meeting':
+        case 'Site Visit': return Briefcase
+        case 'Offer Sent': return FileText
+        default: return CalendarIcon
+    }
 }
 
 export function ActivityCard({ activity, customers, profiles, onComplete }: ActivityCardProps) {
@@ -50,86 +61,109 @@ export function ActivityCard({ activity, customers, profiles, onComplete }: Acti
     const [showComplete, setShowComplete] = useState(false)
 
     const Icon = getActivityIcon(activity.type)
-    const isOverdue = activity.due_date ? new Date(activity.due_date) < new Date() && activity.status === 'Planned' : false
+    const isOverdue = activity.due_date ? new Date(activity.due_date) < new Date() && activity.status !== 'Completed' && activity.status !== 'Cancelled' : false
+    const isCompleted = activity.status === 'Completed'
+    const isCancelled = activity.status === 'Cancelled'
 
     return (
-        <Card
-            className={`mb-2 hover:shadow-sm transition-all border-l-2 cursor-pointer hover:bg-slate-50/80 ${isOverdue ? 'border-l-red-500' : 'border-l-transparent'}`}
-            onClick={() => setShowEdit(true)}
-        >
-            <CardContent className="p-2.5">
-                <div className="flex justify-between items-start">
-                    <div className="flex items-start gap-2.5">
-                        <div className={`p-1.5 rounded-full mt-0.5 ${isOverdue ? 'bg-red-100 text-red-600' : 'bg-blue-50 text-blue-600'}`}>
-                            <Icon className="h-3.5 w-3.5" />
-                        </div>
-                        <div>
-                            {activity.topic && (
-                                <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold leading-none mb-0.5">
-                                    {t(`topic.${activity.topic}`)}
-                                </div>
-                            )}
-                            <h4 className="font-semibold text-sm leading-none">{activity.summary}</h4>
-                            <div className="text-xs text-primary font-medium mt-1">
-                                {activity.customers?.full_name || 'Bilinmiyor'}
+        <>
+            <Card
+                className={cn(
+                    "group relative border shadow-sm transition-all hover:shadow-md cursor-pointer bg-white overflow-hidden",
+                    isOverdue ? "border-red-200 shadow-red-50" : "border-slate-200",
+                    isCompleted ? "opacity-75 bg-slate-50" : "",
+                    isCancelled ? "opacity-60 bg-slate-50" : ""
+                )}
+                onClick={() => setShowEdit(true)}
+            >
+                <CardContent className="p-2.5 space-y-2">
+                    {/* Header: Icon, Type/Topic, Priority */}
+                    <div className="flex items-start justify-between gap-1.5">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                            <div className={cn(
+                                "flex h-6 w-6 shrink-0 items-center justify-center rounded-md border shadow-sm transition-colors",
+                                isOverdue ? "bg-red-50 text-red-600 border-red-100" :
+                                    isCompleted ? "bg-green-50 text-green-600 border-green-100" :
+                                        "bg-white text-slate-500 border-slate-200 group-hover:border-blue-200 group-hover:text-blue-600"
+                            )}>
+                                <Icon className="h-3 w-3" />
                             </div>
-
-                            <div className="flex flex-wrap items-center gap-2 mt-1.5">
-                                <Badge variant="secondary" className={`text-[10px] px-1 py-0 h-4 font-normal ${getStatusColor(activity.status)} bg-transparent border-0 p-0`}>
-                                    {isOverdue && activity.status !== 'Completed' ? t('kanban.overdue') : t(`status.${activity.status}`)}
-                                </Badge>
+                            <div className="flex flex-col min-w-0">
+                                <span className="text-[9px] uppercase font-bold text-slate-400 tracking-wider leading-none truncate">
+                                    {activity.topic ? t(`topic.${activity.topic}`) : t(`type.${activity.type}`)}
+                                </span>
                                 {activity.priority && activity.priority !== 'Medium' && (
-                                    <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-4 border-dashed bg-transparent ${getPriorityColor(activity.priority)}`}>
+                                    <span className={cn(
+                                        "text-[9px] font-bold leading-tight mt-0.5",
+                                        activity.priority === 'Urgent' ? "text-red-600" :
+                                            activity.priority === 'High' ? "text-orange-600" :
+                                                "text-blue-500"
+                                    )}>
                                         {t(`form.priority${activity.priority}`)}
-                                    </Badge>
+                                    </span>
                                 )}
                             </div>
-
-                            {activity.description && (
-                                <p className="mt-2 text-xs text-muted-foreground whitespace-pre-wrap line-clamp-3 bg-muted/30 p-2 rounded-md border border-muted-foreground/5 italic">
-                                    "{activity.description}"
-                                </p>
-                            )}
-
-                            {/* Owner Badge - Always visible if exists */}
-                            {activity.owner?.full_name && (
-                                <div className="flex items-center gap-1.5 mt-2 px-1.5 py-0.5 rounded-md bg-muted/50 border border-muted-foreground/10 w-fit">
-                                    <User className="h-3 w-3 text-muted-foreground" />
-                                    <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-tight">
-                                        {activity.owner.full_name}
-                                    </span>
-                                </div>
-                            )}
-
-                            {/* Date Section */}
-                            {activity.due_date && (
-                                <div className={`mt-2 p-2 rounded-md border ${isOverdue ? 'bg-red-50/50 border-red-200' : 'bg-blue-50/50 border-blue-200'}`}>
-                                    <div className="flex items-center gap-2">
-                                        <CalendarIcon className={`h-3.5 w-3.5 ${isOverdue ? 'text-red-600' : 'text-blue-600'}`} />
-                                        <span className={`text-xs font-semibold ${isOverdue ? 'text-red-700' : 'text-blue-700'}`}>
-                                            {format(new Date(activity.due_date), 'd MMMM yyyy, HH:mm', { locale: locale === 'tr' ? tr : enUS })}
-                                        </span>
-                                    </div>
-                                </div>
-                            )}
                         </div>
+
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                <Button variant="ghost" size="icon" className="h-5 w-5 -mr-1 text-slate-400 hover:text-slate-600">
+                                    <MoreHorizontal className="h-3 w-3" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuItem onSelect={(e) => { e.stopPropagation(); setShowComplete(true); }}>
+                                    {t('actions.complete')}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onSelect={(e) => { e.stopPropagation(); setShowEdit(true); }}>
+                                    {t('actions.edit')}
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </div>
 
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                            <Button variant="ghost" className="h-8 w-8 p-0 -mr-1 hover:bg-slate-200/50">
-                                <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            <DropdownMenuItem onSelect={(e) => { e.stopPropagation(); setShowComplete(true); }}>{t('actions.complete')}</DropdownMenuItem>
-                            <DropdownMenuItem onSelect={(e) => { e.stopPropagation(); setShowEdit(true); }}>{t('actions.edit')}</DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                </div>
-            </CardContent>
+                    {/* Body: Summary & Customer */}
+                    <div className="min-w-0">
+                        <h4 className={cn(
+                            "text-[12px] font-bold text-slate-700 leading-tight mb-1 group-hover:text-blue-700 transition-colors line-clamp-2",
+                            isCompleted && "line-through text-slate-400 font-medium",
+                            isCancelled && "line-through text-slate-400 font-medium"
+                        )}>
+                            {activity.summary}
+                        </h4>
+                        {activity.customers?.full_name && (
+                            <div className="flex items-center gap-1 text-[10px] text-slate-500 font-semibold truncate bg-slate-50/50 rounded px-1 w-fit max-w-full">
+                                <User className="h-2.5 w-2.5 shrink-0" />
+                                <span className="truncate">{activity.customers.full_name}</span>
+                            </div>
+                        )}
+                    </div>
 
-            {/* Dialogs */}
+                    {/* Footer: Date & Owner */}
+                    <div className="flex items-center justify-between pt-1.5 border-t border-slate-100">
+                        {activity.due_date ? (
+                            <div className={cn(
+                                "flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full",
+                                isOverdue
+                                    ? "bg-red-50 text-red-600"
+                                    : "bg-slate-50/80 text-slate-500"
+                            )}>
+                                <CalendarIcon className="h-2.5 w-2.5" />
+                                {format(new Date(activity.due_date), 'd MMM, HH:mm', { locale: locale === 'tr' ? tr : enUS })}
+                            </div>
+                        ) : (
+                            <span className="text-[9px] text-slate-400 italic">No Date</span>
+                        )}
+
+                        {activity.owner?.full_name && (
+                            <div title={activity.owner.full_name} className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-100 border border-slate-200 text-[9px] font-black text-slate-600 uppercase shrink-0">
+                                {activity.owner.full_name.substring(0, 2)}
+                            </div>
+                        )}
+                    </div>
+                </CardContent>
+            </Card>
+
             <ActivityForm
                 open={showEdit}
                 onOpenChange={setShowEdit}
@@ -146,39 +180,6 @@ export function ActivityCard({ activity, customers, profiles, onComplete }: Acti
                 customers={customers}
                 profiles={profiles}
             />
-        </Card>
+        </>
     )
-}
-
-function getActivityIcon(type: string) {
-    switch (type) {
-        case 'Call': return Phone
-        case 'Email': return Mail
-        case 'Whatsapp': return MessageSquare
-        case 'Meeting': return Briefcase
-        case 'Site Visit': return HomeIcon // Need to import or use Briefcase
-        case 'Offer Sent': return FileText
-        default: return CalendarIcon
-    }
-}
-
-function HomeIcon(props: any) {
-    return <Briefcase {...props} /> // Fallback
-}
-
-function getStatusColor(status: string) {
-    switch (status) {
-        case 'Completed': return 'bg-green-50 text-green-700 border-green-200'
-        case 'Cancelled': return 'bg-gray-50 text-gray-500 border-gray-200'
-        default: return 'bg-blue-50 text-blue-700 border-blue-200'
-    }
-}
-
-function getPriorityColor(priority: string) {
-    switch (priority) {
-        case 'Urgent': return 'border-red-500 text-red-600'
-        case 'High': return 'border-orange-500 text-orange-600'
-        case 'Low': return 'border-blue-300 text-blue-400'
-        default: return 'border-gray-200 text-gray-400'
-    }
 }

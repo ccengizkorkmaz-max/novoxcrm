@@ -525,42 +525,7 @@ export async function getUnitTimeline(unitId: string) {
     }
 }
 
-// --- Stock Aging Report ---
-export async function getStockAgingReport() {
-    const supabase = await createClient()
-
-    const { data: units } = await supabase
-        .from('units')
-        .select('id, unit_number, block, type, price, currency, status, area_gross, created_at, listed_at, project_id, projects(name)')
-        .eq('status', 'For Sale')
-        .order('created_at', { ascending: true })
-
-    if (!units) return []
-
-    const now = new Date()
-    return units.map((unit: any) => {
-        const listedDate = new Date(unit.listed_at || unit.created_at)
-        const daysOnMarket = Math.floor((now.getTime() - listedDate.getTime()) / (1000 * 60 * 60 * 24))
-
-        let agingBucket: string
-        if (daysOnMarket <= 30) agingBucket = '0-30 gün'
-        else if (daysOnMarket <= 60) agingBucket = '31-60 gün'
-        else if (daysOnMarket <= 90) agingBucket = '61-90 gün'
-        else if (daysOnMarket <= 180) agingBucket = '91-180 gün'
-        else agingBucket = '180+ gün'
-
-        const pricePerM2 = unit.area_gross ? Math.round(unit.price / unit.area_gross) : null
-
-        return {
-            ...unit,
-            projectName: unit.projects?.name,
-            daysOnMarket,
-            agingBucket,
-            pricePerM2,
-            listedDate: listedDate.toISOString()
-        }
-    })
-}
+// --- Stock Aging Report moved to ./stats-actions.ts
 
 // --- Bulk Price Update ---
 export async function bulkUpdatePrices(unitIds: string[], changeType: 'percentage' | 'fixed', changeValue: number) {
@@ -670,3 +635,41 @@ export async function getInventoryExportData(projectId?: string) {
         'Parsel': u.parsel_no || ''
     }))
 }
+
+// --- Bulk Status Update ---
+export async function bulkUpdateStatuses(unitIds: string[], newStatus: string, reason?: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Not authenticated' }
+
+    let updatedCount = 0
+    const PROTECTED_STATUSES = ['Sold', 'Satıldı', 'Delivered']
+
+    for (const unitId of unitIds) {
+        const { data: unit } = await supabase.from('units').select('status').eq('id', unitId).single()
+        if (!unit) continue
+
+        // Skip units with protected statuses
+        if (PROTECTED_STATUSES.includes(unit.status)) continue
+
+        const oldStatus = unit.status
+
+        const { error } = await supabase.from('units').update({ status: newStatus }).eq('id', unitId)
+        if (!error) {
+            updatedCount++
+            await logUnitActivity(
+                unitId,
+                'status_change',
+                `Toplu durum değişikliği: ${oldStatus} → ${newStatus}${reason ? ` (Sebep: ${reason})` : ''}`,
+                oldStatus,
+                newStatus,
+                { reason, bulk: true }
+            )
+        }
+    }
+
+    revalidatePath('/inventory')
+    return { success: true, updatedCount }
+}
+
+// --- Sales Velocity Report moved to ./stats-actions.ts

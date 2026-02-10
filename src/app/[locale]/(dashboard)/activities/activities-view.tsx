@@ -24,7 +24,7 @@ interface ActivitiesViewProps {
 export function ActivitiesView({ initialActivities, customers, profiles, user }: ActivitiesViewProps) {
     const t = useTranslations('Activities')
     const [showCreate, setShowCreate] = useState(false)
-    const [showFilters, setShowFilters] = useState(true)
+    const [showFilters, setShowFilters] = useState(false)
 
     const ACTIVITY_TYPES = [
         { id: 'Call', label: t('type.Call') },
@@ -175,31 +175,31 @@ export function ActivitiesView({ initialActivities, customers, profiles, user }:
     return (
         <div className="flex flex-col gap-4 h-full">
             {/* Header & Controls */}
-            <div className="flex flex-col gap-0 border rounded-lg bg-card shadow-sm">
+            <div className="flex flex-col gap-0 border rounded-lg bg-white shadow-sm">
                 {/* Top Bar */}
-                <div className="flex items-center justify-start gap-3 p-3 bg-muted/20 border-b first:rounded-t-lg">
+                <div className="flex items-center justify-start gap-3 p-3 border-b first:rounded-t-lg bg-slate-50/30">
                     <div className="flex items-center gap-2">
                         <Button
-                            variant={showFilters ? 'secondary' : 'ghost'}
+                            variant={showFilters ? 'secondary' : 'outline'}
                             size="sm"
                             onClick={() => setShowFilters(!showFilters)}
-                            className="gap-2 relative"
+                            className="gap-2 relative h-9 border-dashed"
                         >
                             <Filter className="h-4 w-4" />
                             {t('filters.title')}
                             {(selectedTypes.length > 0 || selectedTopics.length > 0 || selectedStatuses.length > 0 || onlyMyActivities || dateFilter !== 'all' || sortOrder !== 'newest') && (
                                 <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
                                 </span>
                             )}
-                            {showFilters ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                            {showFilters ? <ChevronUp className="h-3 w-3 text-muted-foreground" /> : <ChevronDown className="h-3 w-3 text-muted-foreground" />}
                         </Button>
                         {(selectedTypes.length > 0 || selectedTopics.length > 0 || selectedStatuses.length > 0 || onlyMyActivities || dateFilter !== 'all' || sortOrder !== 'newest') && (
                             <Button
                                 variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                size="sm"
+                                className="h-9 px-2 text-muted-foreground hover:text-red-500 hover:bg-red-50"
                                 onClick={() => {
                                     setOnlyMyActivities(false)
                                     setSelectedTypes([])
@@ -212,39 +212,38 @@ export function ActivitiesView({ initialActivities, customers, profiles, user }:
                                 }}
                                 title={t('filters.clear')}
                             >
+                                <span className="text-xs mr-2">{t('filters.clear')}</span>
                                 <X className="h-4 w-4" />
                             </Button>
                         )}
                     </div>
 
-                    <div className="h-6 w-px bg-border mx-1" />
+                    <div className="h-6 w-px bg-slate-200 mx-1" />
 
-                    <Button onClick={() => setShowCreate(true)} size="sm">
+                    <Button onClick={() => setShowCreate(true)} size="sm" className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm h-9">
                         <Plus className="mr-2 h-4 w-4" /> {t('newActivity')}
                     </Button>
                 </div>
 
                 {/* Collapsible Filter Area */}
                 {showFilters && (
-                    <div className="p-4 pb-8 bg-slate-50/50 space-y-2 animate-in slide-in-from-top-2 duration-200 border-t">
+                    <div className="p-5 pb-8 space-y-5 animate-in slide-in-from-top-2 duration-200 bg-white">
                         {/* Row 1: Source */}
                         <div className="flex items-center gap-6">
-                            <span className="text-sm font-semibold w-24 shrink-0 text-muted-foreground">{t('filters.view')}:</span>
+                            <span className="text-xs font-bold uppercase tracking-wider w-24 shrink-0 text-slate-400">{t('filters.view')}</span>
                             <div className="flex items-center space-x-2">
                                 <Checkbox
                                     id="filter-my"
                                     checked={onlyMyActivities}
                                     onCheckedChange={(c) => setOnlyMyActivities(!!c)}
                                 />
-                                <Label htmlFor="filter-my" className="cursor-pointer font-normal">{t('filters.onlyMyActivities')}</Label>
+                                <Label htmlFor="filter-my" className="cursor-pointer font-medium text-slate-700">{t('filters.onlyMyActivities')}</Label>
                             </div>
                         </div>
 
-
-
                         {/* Row 2: Types */}
-                        <div className="flex flex-wrap items-center gap-y-1 gap-x-6">
-                            <span className="text-sm font-semibold w-24 shrink-0 text-muted-foreground">{t('filters.types')}:</span>
+                        <div className="flex flex-wrap items-center gap-y-2 gap-x-6">
+                            <span className="text-xs font-bold uppercase tracking-wider w-24 shrink-0 text-slate-400">{t('filters.types')}</span>
                             {ACTIVITY_TYPES.map(type => (
                                 <div key={type.id} className="flex items-center space-x-2">
                                     <Checkbox
@@ -252,16 +251,14 @@ export function ActivitiesView({ initialActivities, customers, profiles, user }:
                                         checked={selectedTypes.includes(type.id)}
                                         onCheckedChange={() => toggleType(type.id)}
                                     />
-                                    <Label htmlFor={`type-${type.id}`} className="cursor-pointer font-normal">{type.label}</Label>
+                                    <Label htmlFor={`type-${type.id}`} className="cursor-pointer font-normal text-slate-600">{type.label}</Label>
                                 </div>
                             ))}
                         </div>
 
-
-
                         {/* Row 3: Statuses */}
-                        <div className="flex flex-wrap items-center gap-y-1 gap-x-6">
-                            <span className="text-sm font-semibold w-24 shrink-0 text-muted-foreground">{t('filters.statuses')}:</span>
+                        <div className="flex flex-wrap items-center gap-y-2 gap-x-6">
+                            <span className="text-xs font-bold uppercase tracking-wider w-24 shrink-0 text-slate-400">{t('filters.statuses')}</span>
                             {ACTIVITY_STATUSES.map(status => (
                                 <div key={status.id} className="flex items-center space-x-2">
                                     <Checkbox
@@ -269,14 +266,14 @@ export function ActivitiesView({ initialActivities, customers, profiles, user }:
                                         checked={selectedStatuses.includes(status.id)}
                                         onCheckedChange={() => toggleStatus(status.id)}
                                     />
-                                    <Label htmlFor={`status-${status.id}`} className="cursor-pointer font-normal">{status.label}</Label>
+                                    <Label htmlFor={`status-${status.id}`} className="cursor-pointer font-normal text-slate-600">{status.label}</Label>
                                 </div>
                             ))}
                         </div>
 
                         {/* Row 4: Topics */}
-                        <div className="flex flex-wrap items-center gap-y-1 gap-x-6">
-                            <span className="text-sm font-semibold w-24 shrink-0 text-muted-foreground">{t('filters.topics')}:</span>
+                        <div className="flex flex-wrap items-center gap-y-2 gap-x-6">
+                            <span className="text-xs font-bold uppercase tracking-wider w-24 shrink-0 text-slate-400">{t('filters.topics')}</span>
                             {ACTIVITY_TOPICS.map(topic => (
                                 <div key={topic.id} className="flex items-center space-x-2">
                                     <Checkbox
@@ -284,14 +281,14 @@ export function ActivitiesView({ initialActivities, customers, profiles, user }:
                                         checked={selectedTopics.includes(topic.id)}
                                         onCheckedChange={() => toggleTopic(topic.id)}
                                     />
-                                    <Label htmlFor={`topic-${topic.id}`} className="cursor-pointer font-normal">{topic.label}</Label>
+                                    <Label htmlFor={`topic-${topic.id}`} className="cursor-pointer font-normal text-slate-600">{topic.label}</Label>
                                 </div>
                             ))}
                         </div>
 
                         {/* Row 4b: Priorities */}
-                        <div className="flex flex-wrap items-center gap-y-1 gap-x-6">
-                            <span className="text-sm font-semibold w-24 shrink-0 text-muted-foreground">Öncelik:</span>
+                        <div className="flex flex-wrap items-center gap-y-2 gap-x-6">
+                            <span className="text-xs font-bold uppercase tracking-wider w-24 shrink-0 text-slate-400">Öncelik</span>
                             {['Urgent', 'High', 'Medium', 'Low'].map(p => (
                                 <div key={p} className="flex items-center space-x-2">
                                     <Checkbox
@@ -299,15 +296,15 @@ export function ActivitiesView({ initialActivities, customers, profiles, user }:
                                         checked={selectedPriorities.includes(p)}
                                         onCheckedChange={() => togglePriority(p)}
                                     />
-                                    <Label htmlFor={`priority-${p}`} className="cursor-pointer font-normal text-xs">{t(`form.priority${p}`)}</Label>
+                                    <Label htmlFor={`priority-${p}`} className="cursor-pointer font-normal text-slate-600 text-sm">{t(`form.priority${p}`)}</Label>
                                 </div>
                             ))}
                         </div>
 
                         {/* Row 4c: Assignees (if admin) */}
                         {profiles.length > 1 && (
-                            <div className="flex flex-wrap items-center gap-y-1 gap-x-6">
-                                <span className="text-sm font-semibold w-24 shrink-0 text-muted-foreground">{t('form.owner')}:</span>
+                            <div className="flex flex-wrap items-center gap-y-2 gap-x-6">
+                                <span className="text-xs font-bold uppercase tracking-wider w-24 shrink-0 text-slate-400">{t('form.owner')}</span>
                                 {profiles.map(p => (
                                     <div key={p.id} className="flex items-center space-x-2">
                                         <Checkbox
@@ -315,7 +312,7 @@ export function ActivitiesView({ initialActivities, customers, profiles, user }:
                                             checked={selectedOwners.includes(p.id)}
                                             onCheckedChange={() => toggleOwner(p.id)}
                                         />
-                                        <Label htmlFor={`owner-${p.id}`} className="cursor-pointer font-normal text-xs">{p.full_name}</Label>
+                                        <Label htmlFor={`owner-${p.id}`} className="cursor-pointer font-normal text-slate-600 text-sm">{p.full_name}</Label>
                                     </div>
                                 ))}
                             </div>
@@ -323,40 +320,39 @@ export function ActivitiesView({ initialActivities, customers, profiles, user }:
 
                         {/* Row 5: Date Range */}
                         <div className="flex items-center gap-6">
-                            <span className="text-sm font-semibold w-24 shrink-0 text-muted-foreground flex items-center gap-2">
-                                <Calendar className="h-4 w-4" />
-                                {t('filters.dateRange')}:
+                            <span className="text-xs font-bold uppercase tracking-wider w-24 shrink-0 text-slate-400 flex items-center gap-2">
+                                {t('filters.dateRange')}
                             </span>
                             <div className="flex gap-2">
                                 <Button
-                                    variant={dateFilter === 'all' ? 'default' : 'outline'}
+                                    variant={dateFilter === 'all' ? 'secondary' : 'outline'}
                                     size="sm"
                                     onClick={() => setDateFilter('all')}
-                                    className="h-8"
+                                    className="h-8 text-xs"
                                 >
                                     {t('filters.allDates')}
                                 </Button>
                                 <Button
-                                    variant={dateFilter === 'today' ? 'default' : 'outline'}
+                                    variant={dateFilter === 'today' ? 'secondary' : 'outline'}
                                     size="sm"
                                     onClick={() => setDateFilter('today')}
-                                    className="h-8"
+                                    className="h-8 text-xs"
                                 >
                                     {t('filters.today')}
                                 </Button>
                                 <Button
-                                    variant={dateFilter === 'week' ? 'default' : 'outline'}
+                                    variant={dateFilter === 'week' ? 'secondary' : 'outline'}
                                     size="sm"
                                     onClick={() => setDateFilter('week')}
-                                    className="h-8"
+                                    className="h-8 text-xs"
                                 >
                                     {t('filters.thisWeek')}
                                 </Button>
                                 <Button
-                                    variant={dateFilter === 'month' ? 'default' : 'outline'}
+                                    variant={dateFilter === 'month' ? 'secondary' : 'outline'}
                                     size="sm"
                                     onClick={() => setDateFilter('month')}
-                                    className="h-8"
+                                    className="h-8 text-xs"
                                 >
                                     {t('filters.thisMonth')}
                                 </Button>
@@ -365,24 +361,23 @@ export function ActivitiesView({ initialActivities, customers, profiles, user }:
 
                         {/* Row 6: Sort Order */}
                         <div className="flex items-center gap-6">
-                            <span className="text-sm font-semibold w-24 shrink-0 text-muted-foreground flex items-center gap-2">
-                                <ArrowUpDown className="h-4 w-4" />
-                                {t('filters.sortBy')}:
+                            <span className="text-xs font-bold uppercase tracking-wider w-24 shrink-0 text-slate-400 flex items-center gap-2">
+                                {t('filters.sortBy')}
                             </span>
                             <div className="flex gap-2">
                                 <Button
-                                    variant={sortOrder === 'newest' ? 'default' : 'outline'}
+                                    variant={sortOrder === 'newest' ? 'secondary' : 'outline'}
                                     size="sm"
                                     onClick={() => setSortOrder('newest')}
-                                    className="h-8"
+                                    className="h-8 text-xs"
                                 >
                                     {t('filters.newest')}
                                 </Button>
                                 <Button
-                                    variant={sortOrder === 'oldest' ? 'default' : 'outline'}
+                                    variant={sortOrder === 'oldest' ? 'secondary' : 'outline'}
                                     size="sm"
                                     onClick={() => setSortOrder('oldest')}
-                                    className="h-8"
+                                    className="h-8 text-xs"
                                 >
                                     {t('filters.oldest')}
                                 </Button>
@@ -394,14 +389,20 @@ export function ActivitiesView({ initialActivities, customers, profiles, user }:
             </div>
 
             {/* Content Tabs */}
-            <Tabs defaultValue="kanban" className="flex flex-col gap-4 flex-1 min-h-0">
+            <Tabs defaultValue="calendar" className="flex flex-col gap-4 flex-1 min-h-0">
                 <div className="flex items-center px-1">
                     <TabsList>
+                        <TabsTrigger value="calendar">{t('tabs.calendar')}</TabsTrigger>
                         <TabsTrigger value="kanban">{t('tabs.kanban')}</TabsTrigger>
                         <TabsTrigger value="list">{t('tabs.list')}</TabsTrigger>
-                        <TabsTrigger value="calendar">{t('tabs.calendar')}</TabsTrigger>
                     </TabsList>
                 </div>
+
+                <TabsContent value="calendar" className="mt-0 flex-1 min-h-0 overflow-hidden">
+                    <div className="h-full overflow-y-auto rounded-lg border bg-card">
+                        <ActivityCalendar activities={activities} customers={customers} profiles={profiles} />
+                    </div>
+                </TabsContent>
 
                 <TabsContent value="kanban" className="mt-0 flex-1 min-h-0 overflow-hidden">
                     <div className="h-full overflow-y-auto pr-2">
@@ -412,12 +413,6 @@ export function ActivitiesView({ initialActivities, customers, profiles, user }:
                 <TabsContent value="list" className="mt-0 flex-1 min-h-0 overflow-hidden">
                     <div className="h-full overflow-y-auto">
                         <ActivityList activities={activities} customers={customers} profiles={profiles} />
-                    </div>
-                </TabsContent>
-
-                <TabsContent value="calendar" className="mt-0 flex-1 min-h-0 overflow-hidden">
-                    <div className="h-full overflow-y-auto rounded-lg border bg-card">
-                        <ActivityCalendar activities={activities} customers={customers} profiles={profiles} />
                     </div>
                 </TabsContent>
             </Tabs>

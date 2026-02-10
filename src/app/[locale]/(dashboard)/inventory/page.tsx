@@ -5,16 +5,20 @@ import { createClient } from '@/lib/supabase/server'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
+import { TabsContent } from '@/components/ui/tabs'
 
 import { NewUnitDialog } from '@/components/new-unit-dialog'
 import { InventoryStats } from './components/inventory-stats'
 import { InventoryFilters } from '@/components/inventory-filters'
 import { formatCurrency, cn } from '@/lib/utils'
 import { InventoryActions } from './components/inventory-actions'
-import { InventoryViewWrapper } from '@/components/inventory-view-toggle'
 import { StockAgingReport } from './components/StockAgingReport'
+import { SalesVelocityReport } from './components/SalesVelocityReport'
 import { InventoryExport } from './components/InventoryExport'
-import { getStockAgingReport } from './actions'
+import { getStockAgingReport, getSalesVelocityReport } from './stats-actions'
+import { FloorPlansTab } from './components/floor-plans/FloorPlansTab'
+import { InventoryTabs } from './components/inventory-tabs'
+import { InventoryGridView } from '@/components/inventory-grid-view'
 
 
 export default async function InventoryPage(props: {
@@ -25,20 +29,7 @@ export default async function InventoryPage(props: {
     const params = await props.searchParams
     const supabase = await createClient()
 
-    // Get projects for filter dropdown
-    const { data: projects } = await supabase.from('projects').select('id, name')
-
-    // Get customers for reservation
-    const { data: customers } = await supabase.from('customers').select('id, full_name').order('full_name', { ascending: true })
-
-    // Get unit types
-    const { data: unitTypes } = await supabase.from('unit_types').select('*').order('order_index', { ascending: true })
-
-
-    // Get stock aging data
-    const agingData = await getStockAgingReport()
-
-    // Build query
+    // 1. Prepare Unit Query (Synchronous part)
     let query = supabase.from('units').select('*, projects(name)').order('unit_number', { ascending: true })
 
     if (params.project && params.project !== 'all') {
@@ -93,8 +84,25 @@ export default async function InventoryPage(props: {
         query = query.eq('has_builtin_kitchen', true)
     }
 
-    const t = await getTranslations('Inventory')
-    const { data: units } = await query
+    // 2. Fetch ALL data in parallel using Promise.all
+    // This significantly reduces load time by waiting for the longest request instead of the sum of all requests
+    const [
+        { data: projects },
+        { data: customers },
+        { data: unitTypes },
+        agingData,
+        velocityData,
+        t,
+        { data: units }
+    ] = await Promise.all([
+        supabase.from('projects').select('id, name'),
+        supabase.from('customers').select('id, full_name').order('full_name', { ascending: true }),
+        supabase.from('unit_types').select('*').order('order_index', { ascending: true }),
+        getStockAgingReport(),
+        getSalesVelocityReport(),
+        getTranslations('Inventory'),
+        query
+    ])
 
     // Helper maps for DB values to Translation Keys
     const directionMap: Record<string, string> = {
@@ -148,232 +156,189 @@ export default async function InventoryPage(props: {
         'Yok': 'None'
     }
 
-    return (
-        <div className="flex flex-col gap-6 w-full overflow-hidden">
-            <InventoryStats units={units || []} />
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <h1 className="text-xl md:text-2xl font-bold tracking-tight">{t('title')}</h1>
-                <div className="flex items-center gap-2 flex-wrap">
-                    <InventoryExport projects={projects || []} />
-                    <InventoryFilters projects={projects || []} />
-                    <NewUnitDialog projects={projects || []} unitTypes={unitTypes || []} />
-                </div>
-            </div>
+    const currentTab = params.tab || 'dashboard'
 
-            {/* Stock Aging Report */}
-            {params.tab === 'aging' && (
-                <StockAgingReport data={agingData} />
-            )}
+    // Helper Component for Active Filters
+    const ActiveFilters = () => (
+        Object.keys(params).length > 0 && Object.keys(params).some(k => params[k] && k !== 'tab') ? (
+            <div className="flex gap-2 flex-wrap items-center mb-4">
+                <span className="text-sm text-muted-foreground mr-2">{t('activeFilters')}:</span>
+                {Object.entries(params).map(([key, value]) => {
+                    if (!value || key === 'tab') return null
+                    let label = key
+                    if (key === 'project') label = t('filters.project')
+                    if (key === 'block') label = t('filters.block')
+                    if (key === 'unit_category') label = t('filters.unitCategory')
+                    if (key === 'status') label = t('filters.status')
+                    if (key === 'min_price') label = t('filters.min') + ' ' + t('table.price')
+                    if (key === 'max_price') label = t('filters.max') + ' ' + t('table.price')
+                    if (key === 'min_area') label = t('filters.min') + ' ' + t('table.grossArea')
+                    if (key === 'max_area') label = t('filters.max') + ' ' + t('table.grossArea')
+                    if (key === 'floor') label = t('filters.floor')
+                    if (key === 'direction') label = t('filters.direction')
+                    if (key === 'parking_type') label = t('filters.parking')
+                    if (key === 'heating_type') label = t('filters.heating')
+                    if (key === 'kitchen_type') label = t('filters.kitchen')
+                    if (key === 'view') label = t('filters.view')
+                    if (key === 'has_master_bathroom') label = t('filters.features.masterBath')
+                    if (key === 'has_builtin_kitchen') label = t('filters.features.builtinKitchen')
 
-            {/* Aging Report Tab Button */}
-            <div className="flex gap-2">
-                <Button variant={params.tab === 'aging' ? 'default' : 'outline'} size="sm" className="h-7 text-xs" asChild>
-                    <Link href={params.tab === 'aging' ? '/inventory' : '/inventory?tab=aging'}>
-                        {params.tab === 'aging' ? 'Stok Listesine Dön' : '📊 Stok Yaşlandırma Raporu'}
-                    </Link>
+                    return (
+                        <Badge key={key} variant="secondary" className="px-2 py-1 text-[10px] md:text-xs">
+                            {label}: {value === 'true' ? 'Var' : value}
+                        </Badge>
+                    )
+                })}
+                <Button variant="ghost" size="sm" asChild className="h-6 px-2 text-[10px]">
+                    <Link href={`/inventory?tab=${currentTab}`}>{t('clean')}</Link>
                 </Button>
             </div>
+        ) : null
+    )
 
+    return (
+        <div className="flex flex-col gap-6 w-full h-[calc(100vh-120px)] overflow-hidden">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
+                {(currentTab === 'list' || currentTab === 'grid') && (
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <InventoryExport projects={projects || []} />
+                        <NewUnitDialog projects={projects || []} unitTypes={unitTypes || []} />
+                    </div>
+                )}
+            </div>
 
-            {Object.keys(params).length > 0 && Object.keys(params).some(k => params[k] && k !== 'tab') && (
-                <div className="flex gap-2 flex-wrap items-center">
-                    <span className="text-sm text-muted-foreground mr-2">{t('activeFilters')}:</span>
-                    {Object.entries(params).map(([key, value]) => {
-                        if (!value || key === 'tab') return null
-                        let label = key
-                        if (key === 'project') label = t('filters.project')
-                        if (key === 'block') label = t('filters.block')
-                        if (key === 'unit_category') label = t('filters.unitCategory')
-                        if (key === 'status') label = t('filters.status')
-                        if (key === 'min_price') label = t('filters.min') + ' ' + t('table.price')
-                        if (key === 'max_price') label = t('filters.max') + ' ' + t('table.price')
-                        if (key === 'min_area') label = t('filters.min') + ' ' + t('table.grossArea')
-                        if (key === 'max_area') label = t('filters.max') + ' ' + t('table.grossArea')
-                        if (key === 'floor') label = t('filters.floor')
-                        if (key === 'direction') label = t('filters.direction')
-                        if (key === 'parking_type') label = t('filters.parking')
-                        if (key === 'heating_type') label = t('filters.heating')
-                        if (key === 'kitchen_type') label = t('filters.kitchen')
-                        if (key === 'view') label = t('filters.view')
-                        if (key === 'has_master_bathroom') label = t('filters.features.masterBath')
-                        if (key === 'has_builtin_kitchen') label = t('filters.features.builtinKitchen')
+            <InventoryTabs defaultValue={currentTab}>
+                {/* DASHBOARD TAB */}
+                <TabsContent value="dashboard" className="space-y-6">
+                    <InventoryStats units={units || []} />
+                </TabsContent>
 
-                        return (
-                            <Badge key={key} variant="secondary" className="px-2 py-1 text-[10px] md:text-xs">
-                                {label}: {value === 'true' ? 'Var' : value}
-                            </Badge>
-                        )
-                    })}
-                    <Button variant="ghost" size="sm" asChild className="h-6 px-2 text-[10px]">
-                        <Link href="/inventory">{t('clean')}</Link>
-                    </Button>
-                </div>
-            )}
+                {/* FORECASTS TAB */}
+                <TabsContent value="forecasts" className="h-full overflow-auto space-y-6 pb-20">
+                    <SalesVelocityReport data={velocityData} />
+                </TabsContent>
 
-            <InventoryViewWrapper
-                units={units || []}
-                tableView={
-                    <div className="relative group">
-                        <div className="rounded-xl border bg-card overflow-x-auto max-w-full">
-                            <Table>
-                                <TableHeader className="bg-slate-50/50">
-                                    <TableRow>
-                                        <TableHead className="text-left sticky left-0 bg-background/95 backdrop-blur z-20 shadow-[5px_0_5px_-5px_rgba(0,0,0,0.1)]">{t('table.actions')}</TableHead>
-                                        <TableHead className="min-w-[150px]">{t('table.project')}</TableHead>
-                                        <TableHead>{t('table.block')}</TableHead>
-                                        <TableHead className="min-w-[100px]">{t('table.unitNo')}</TableHead>
-                                        <TableHead className="min-w-[100px]">{t('table.status')}</TableHead>
-                                        <TableHead>{t('table.roomType')}</TableHead>
-                                        <TableHead className="min-w-[120px]">{t('table.category')}</TableHead>
-                                        <TableHead>{t('table.floor')}</TableHead>
-                                        <TableHead className="min-w-[100px]">{t('table.direction')}</TableHead>
-                                        <TableHead className="min-w-[100px]">{t('table.view')}</TableHead>
-                                        <TableHead>{t('table.grossArea')}</TableHead>
-                                        <TableHead>{t('table.netArea')}</TableHead>
-                                        <TableHead className="min-w-[120px] font-bold">{t('table.price')}</TableHead>
-                                        <TableHead>{t('table.vat')}</TableHead>
-                                        <TableHead>{t('table.discount')}</TableHead>
-                                        <TableHead className="min-w-[120px]">{t('table.parking')}</TableHead>
-                                        <TableHead className="min-w-[120px]">{t('table.heating')}</TableHead>
-                                        <TableHead className="min-w-[120px]">{t('table.kitchen')}</TableHead>
-                                        <TableHead className="text-center">{t('table.builtin')}</TableHead>
-                                        <TableHead className="text-center">{t('table.masterBath')}</TableHead>
-                                        <TableHead>{t('table.ada')}</TableHead>
-                                        <TableHead>{t('table.parsel')}</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {units && units.length > 0 ? (
-                                        units.map((unit: any) => (
-                                            <TableRow key={unit.id} className="hover:bg-muted/30 transition-colors">
-                                                <TableCell className="text-left sticky left-0 bg-background/95 backdrop-blur z-20 shadow-[5px_0_5px_-5px_rgba(0,0,0,0.1)]">
-                                                    <InventoryActions unit={unit} customers={customers || []} />
-                                                </TableCell>
-                                                <TableCell className="font-medium">{unit.projects?.name}</TableCell>
-                                                <TableCell>{unit.block || '-'}</TableCell>
-                                                <TableCell className="font-mono font-bold">{unit.unit_number}</TableCell>
-                                                <TableCell>
-                                                    <div className="flex flex-col gap-1">
-                                                        <Badge variant={unit.status === 'Sold' ? 'destructive' : unit.status === 'Reserved' ? 'secondary' : 'default'} className={cn("text-[10px] px-2 py-0",
-                                                            unit.status === 'For Sale' ? 'bg-green-600' : '',
-                                                            unit.status === 'Blocked' ? 'bg-slate-600' : '',
-                                                            unit.status === 'Option' ? 'bg-violet-600' : '',
-                                                            unit.status === 'Rented' ? 'bg-cyan-600' : '',
-                                                            unit.status === 'Delivered' ? 'bg-green-800' : ''
-                                                        )}>
-                                                            {statusMap[unit.status] ? t(`status.${statusMap[unit.status]}`) : unit.status}
-                                                        </Badge>
-                                                        {unit.is_legacy && (
-                                                            <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-slate-300 text-slate-500 whitespace-nowrap">
-                                                                Eski Kayıt
-                                                            </Badge>
-                                                        )}
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>{unit.type}</TableCell>
-                                                <TableCell>{unit.unit_category || '-'}</TableCell>
-                                                <TableCell>{unit.floor}</TableCell>
-                                                <TableCell>{unit.direction ? (directionMap[unit.direction] ? t(`directions.${directionMap[unit.direction]}`) : unit.direction) : '-'}</TableCell>
-                                                <TableCell>{unit.view ? (viewMap[unit.view] ? t(`views.${viewMap[unit.view]}`) : unit.view) : '-'}</TableCell>
-                                                <TableCell className="font-mono">{unit.area_gross || '-'}</TableCell>
-                                                <TableCell className="font-mono">{unit.area_net || '-'}</TableCell>
-                                                <TableCell className="font-bold text-slate-900">{formatCurrency(unit.price, unit.currency)}</TableCell>
-                                                <TableCell>{unit.kdv_rate ? `%${unit.kdv_rate}` : '-'}</TableCell>
-                                                <TableCell>{unit.max_discount_rate ? `%${unit.max_discount_rate}` : '-'}</TableCell>
-                                                <TableCell>{unit.parking_type ? t(`parking.${parkingMap[unit.parking_type] || unit.parking_type}`) : '-'}</TableCell>
-                                                <TableCell>{unit.heating_type ? t(`heating.${heatingMap[unit.heating_type] || unit.heating_type}`) : '-'}</TableCell>
-                                                <TableCell>{unit.kitchen_type ? t(`kitchen.${kitchenMap[unit.kitchen_type] || unit.kitchen_type}`) : '-'}</TableCell>
-                                                <TableCell className="text-center">{unit.has_builtin_kitchen ? '✅' : '-'}</TableCell>
-                                                <TableCell className="text-center">{unit.has_master_bathroom ? '✅' : '-'}</TableCell>
-                                                <TableCell className="text-xs text-muted-foreground">{unit.ada_no || '-'}</TableCell>
-                                                <TableCell className="text-xs text-muted-foreground">{unit.parsel_no || '-'}</TableCell>
-                                            </TableRow>
-                                        ))
-                                    ) : (
-                                        <TableRow>
-                                            <TableCell colSpan={22} className="h-32 text-center text-muted-foreground">
-                                                {t('table.empty')}
+                {/* LIST TAB (TABLE VIEW) */}
+                <TabsContent value="list" className="flex flex-col h-full overflow-hidden gap-4">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50 p-4 rounded-lg border">
+                        <div className="font-medium text-sm text-slate-700">Filtreleme Seçenekleri</div>
+                        <InventoryFilters projects={projects || []} />
+                    </div>
+
+                    <ActiveFilters />
+
+                    <div className="rounded-xl border bg-card overflow-auto flex-1 shadow-sm relative group">
+                        <Table>
+                            <TableHeader className="bg-slate-50/50">
+                                <TableRow>
+                                    <TableHead className="text-left sticky left-0 bg-background/95 backdrop-blur z-20 shadow-[5px_0_5px_-5px_rgba(0,0,0,0.1)]">{t('table.actions')}</TableHead>
+                                    <TableHead className="min-w-[150px]">{t('table.project')}</TableHead>
+                                    <TableHead>{t('table.block')}</TableHead>
+                                    <TableHead className="min-w-[100px]">{t('table.unitNo')}</TableHead>
+                                    <TableHead className="min-w-[100px]">{t('table.status')}</TableHead>
+                                    <TableHead>{t('table.roomType')}</TableHead>
+                                    <TableHead className="min-w-[120px]">{t('table.category')}</TableHead>
+                                    <TableHead>{t('table.floor')}</TableHead>
+                                    <TableHead className="min-w-[100px]">{t('table.direction')}</TableHead>
+                                    <TableHead className="min-w-[100px]">{t('table.view')}</TableHead>
+                                    <TableHead>{t('table.grossArea')}</TableHead>
+                                    <TableHead>{t('table.netArea')}</TableHead>
+                                    <TableHead className="min-w-[120px] font-bold">{t('table.price')}</TableHead>
+                                    <TableHead>{t('table.vat')}</TableHead>
+                                    <TableHead>{t('table.discount')}</TableHead>
+                                    <TableHead className="min-w-[120px]">{t('table.parking')}</TableHead>
+                                    <TableHead className="min-w-[120px]">{t('table.heating')}</TableHead>
+                                    <TableHead className="min-w-[120px]">{t('table.kitchen')}</TableHead>
+                                    <TableHead className="text-center">{t('table.builtin')}</TableHead>
+                                    <TableHead className="text-center">{t('table.masterBath')}</TableHead>
+                                    <TableHead>{t('table.ada')}</TableHead>
+                                    <TableHead>{t('table.parsel')}</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {units && units.length > 0 ? (
+                                    units.map((unit: any) => (
+                                        <TableRow key={unit.id} className="hover:bg-muted/30 transition-colors">
+                                            <TableCell className="text-left sticky left-0 bg-background/95 backdrop-blur z-20 shadow-[5px_0_5px_-5px_rgba(0,0,0,0.1)]">
+                                                <InventoryActions unit={unit} customers={customers || []} />
                                             </TableCell>
+                                            <TableCell className="font-medium">{unit.projects?.name}</TableCell>
+                                            <TableCell>{unit.block || '-'}</TableCell>
+                                            <TableCell className="font-mono font-bold">{unit.unit_number}</TableCell>
+                                            <TableCell>
+                                                <div className="flex flex-col gap-1">
+                                                    <Badge variant={unit.status === 'Sold' ? 'destructive' : unit.status === 'Reserved' ? 'secondary' : 'default'} className={cn("text-[10px] px-2 py-0",
+                                                        unit.status === 'For Sale' ? 'bg-green-600' : '',
+                                                        unit.status === 'Blocked' ? 'bg-slate-600' : '',
+                                                        unit.status === 'Option' ? 'bg-violet-600' : '',
+                                                        unit.status === 'Rented' ? 'bg-cyan-600' : '',
+                                                        unit.status === 'Delivered' ? 'bg-green-800' : ''
+                                                    )}>
+                                                        {statusMap[unit.status] ? t(`status.${statusMap[unit.status]}`) : unit.status}
+                                                    </Badge>
+                                                    {unit.is_legacy && (
+                                                        <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-slate-300 text-slate-500 whitespace-nowrap">
+                                                            Eski Kayıt
+                                                        </Badge>
+                                                    )}
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>{unit.type}</TableCell>
+                                            <TableCell>{unit.unit_category || '-'}</TableCell>
+                                            <TableCell>{unit.floor}</TableCell>
+                                            <TableCell>{unit.direction ? (directionMap[unit.direction] ? t(`directions.${directionMap[unit.direction]}`) : unit.direction) : '-'}</TableCell>
+                                            <TableCell>{unit.view ? (viewMap[unit.view] ? t(`views.${viewMap[unit.view]}`) : unit.view) : '-'}</TableCell>
+                                            <TableCell className="font-mono">{unit.area_gross || '-'}</TableCell>
+                                            <TableCell className="font-mono">{unit.area_net || '-'}</TableCell>
+                                            <TableCell className="font-bold text-slate-900">{formatCurrency(unit.price, unit.currency)}</TableCell>
+                                            <TableCell>{unit.kdv_rate ? `%${unit.kdv_rate}` : '-'}</TableCell>
+                                            <TableCell>{unit.max_discount_rate ? `%${unit.max_discount_rate}` : '-'}</TableCell>
+                                            <TableCell>{unit.parking_type ? t(`parking.${parkingMap[unit.parking_type] || unit.parking_type}`) : '-'}</TableCell>
+                                            <TableCell>{unit.heating_type ? t(`heating.${heatingMap[unit.heating_type] || unit.heating_type}`) : '-'}</TableCell>
+                                            <TableCell>{unit.kitchen_type ? t(`kitchen.${kitchenMap[unit.kitchen_type] || unit.kitchen_type}`) : '-'}</TableCell>
+                                            <TableCell className="text-center">{unit.has_builtin_kitchen ? '✅' : '-'}</TableCell>
+                                            <TableCell className="text-center">{unit.has_master_bathroom ? '✅' : '-'}</TableCell>
+                                            <TableCell className="text-xs text-muted-foreground">{unit.ada_no || '-'}</TableCell>
+                                            <TableCell className="text-xs text-muted-foreground">{unit.parsel_no || '-'}</TableCell>
                                         </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </div>
+                                    ))
+                                ) : (
+                                    <TableRow>
+                                        <TableCell colSpan={22} className="h-32 text-center text-muted-foreground">
+                                            {t('table.empty')}
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
                     </div>
-                }
-                mobileView={
-                    <div className="flex flex-col gap-4">
-                        {units && units.length > 0 ? (
-                            units.map((unit: any) => (
-                                <div key={unit.id} className="rounded-xl border bg-card p-4 shadow-sm space-y-4 relative overflow-hidden">
-                                    <div className="flex justify-between items-start">
-                                        <div className="flex flex-col">
-                                            <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tight mb-1">{unit.projects?.name}</span>
-                                            <div className="flex items-center gap-2">
-                                                <span className="font-bold text-lg text-slate-900">{unit.block} / {unit.unit_number}</span>
-                                                <Badge variant={unit.status === 'Sold' ? 'destructive' : unit.status === 'Reserved' ? 'secondary' : 'default'} className={cn("text-[9px] px-1.5 py-0", unit.status === 'For Sale' ? 'bg-green-600' : '')}>
-                                                    {statusMap[unit.status] ? t(`status.${statusMap[unit.status]}`) : unit.status}
-                                                </Badge>
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tight block mb-1">{t('table.price')}</span>
-                                            <span className="font-bold text-blue-600 font-mono">{formatCurrency(unit.price, unit.currency)}</span>
-                                        </div>
-                                    </div>
+                </TabsContent>
 
-                                    <div className="grid grid-cols-2 gap-y-3 text-[11px] pb-3 border-b border-slate-50">
-                                        <div className="flex flex-col gap-0.5">
-                                            <span className="text-muted-foreground text-[9px] uppercase font-bold">{t('table.roomType')}</span>
-                                            <span className="font-medium">{unit.type}</span>
-                                        </div>
-                                        <div className="flex flex-col gap-0.5 text-right">
-                                            <span className="text-muted-foreground text-[9px] uppercase font-bold">{t('table.floor')}</span>
-                                            <span className="font-medium">{unit.floor}</span>
-                                        </div>
-                                        <div className="flex flex-col gap-0.5">
-                                            <span className="text-muted-foreground text-[9px] uppercase font-bold">{t('table.grossArea')}</span>
-                                            <span className="font-medium font-mono">{unit.area_gross} m²</span>
-                                        </div>
-                                        <div className="flex flex-col gap-0.5 text-right">
-                                            <span className="text-muted-foreground text-[9px] uppercase font-bold">{t('table.direction')}</span>
-                                            <span className="font-medium truncate">{unit.direction ? (directionMap[unit.direction] ? t(`directions.${directionMap[unit.direction]}`) : unit.direction) : '-'}</span>
-                                        </div>
-                                        <div className="flex flex-col gap-0.5">
-                                            <span className="text-muted-foreground text-[9px] uppercase font-bold">{t('table.view')}</span>
-                                            <span className="font-medium truncate">{unit.view ? (viewMap[unit.view] ? t(`views.${viewMap[unit.view]}`) : unit.view) : '-'}</span>
-                                        </div>
-                                        <div className="flex flex-col gap-0.5 text-right">
-                                            <span className="text-muted-foreground text-[9px] uppercase font-bold">{t('table.category')}</span>
-                                            <span className="font-medium truncate">{unit.unit_category}</span>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-center justify-between gap-4">
-                                        <div className="flex gap-4">
-                                            {unit.has_builtin_kitchen && (
-                                                <div className="flex items-center gap-1 text-[10px] text-slate-500 font-medium bg-slate-50 px-2 py-0.5 rounded-full">
-                                                    <span>🍳</span> {t('table.builtin')}
-                                                </div>
-                                            )}
-                                            {unit.has_master_bathroom && (
-                                                <div className="flex items-center gap-1 text-[10px] text-slate-500 font-medium bg-slate-50 px-2 py-0.5 rounded-full">
-                                                    <span>🚿</span> {t('table.masterBath')}
-                                                </div>
-                                            )}
-                                        </div>
-                                        <InventoryActions unit={unit} customers={customers || []} />
-                                    </div>
-                                </div>
-                            ))
-                        ) : (
-                            <div className="bg-card border rounded-xl p-12 text-center text-muted-foreground">
-                                {t('table.empty')}
-                            </div>
-                        )}
+                {/* GRID TAB (MATRIX VIEW) */}
+                <TabsContent value="grid" className="flex flex-col h-full overflow-hidden gap-4">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50 p-4 rounded-lg border flex-shrink-0">
+                        <div className="font-medium text-sm text-slate-700">Filtreleme Seçenekleri</div>
+                        <InventoryFilters projects={projects || []} />
                     </div>
-                }
-            />
+
+                    <ActiveFilters />
+
+                    <div className="flex-1 overflow-auto pr-2">
+                        <InventoryGridView units={units || []} />
+                    </div>
+                </TabsContent>
+
+                {/* PLANS TAB */}
+                <TabsContent value="plans" className="space-y-6">
+                    <FloorPlansTab projects={projects || []} />
+                </TabsContent>
+
+                {/* REPORTS TAB */}
+                <TabsContent value="reports" className="space-y-6">
+                    <StockAgingReport data={agingData} />
+                </TabsContent>
+            </InventoryTabs>
         </div>
     )
 }

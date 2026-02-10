@@ -13,9 +13,13 @@ import { AlertCircle, HardHat, TrendingUp } from 'lucide-react'
 import { Progress } from '@/components/ui/progress'
 import { formatCurrency } from '@/lib/utils'
 import { getUnitImages, getUnitTimeline } from '../actions'
+import { getUnitDocuments, getUnitNotes } from '../unit-details-actions'
 import { UnitImageGallery } from './components/UnitImageGallery'
 import { UnitTimeline } from './components/UnitTimeline'
 import { UnitStatusChanger } from './components/UnitStatusChanger'
+import { UnitPriceChart } from './components/UnitPriceChart'
+import { UnitDocuments } from './components/UnitDocuments'
+import { UnitNotes } from './components/UnitNotes'
 
 export default async function UnitDetailPage(props: {
     params: Promise<{ locale: string; id: string }>
@@ -75,6 +79,10 @@ export default async function UnitDetailPage(props: {
 
     // Fetch unit timeline (activity log + negotiations)
     const timeline = await getUnitTimeline(id)
+
+    // Fetch documents & notes
+    const documents = await getUnitDocuments(id)
+    const notes = await getUnitNotes(id)
 
     // Calculate price per m²
     const pricePerM2 = unit.area_gross ? Math.round(unit.price / unit.area_gross) : null
@@ -181,15 +189,25 @@ export default async function UnitDetailPage(props: {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Left: Edit Form */}
-                <Card className="md:col-span-2">
-                    <UnitEditForm unit={unit} disabled={isSold} />
-                </Card>
+                {/* Left: Edit Form & Documents */}
+                <div className="md:col-span-2 space-y-6">
+                    <Card>
+                        <UnitEditForm unit={unit} disabled={isSold} />
+                    </Card>
+                    <UnitDocuments unitId={unit.id} documents={documents as any[]} />
+                </div>
 
                 {/* Right sidebar */}
                 <div className="space-y-6">
                     {/* Status Changer */}
                     <UnitStatusChanger unitId={unit.id} currentStatus={unit.status} />
+
+                    {/* Price History Chart */}
+                    <UnitPriceChart
+                        priceHistory={timeline.filter((t: any) => t.type === 'price_change' && t.oldValue && t.newValue)}
+                        currentPrice={unit.price}
+                        currency={unit.currency || 'TRY'}
+                    />
 
                     {/* Image Gallery */}
                     <UnitImageGallery
@@ -242,6 +260,9 @@ export default async function UnitDetailPage(props: {
                             </div>
                         </CardContent>
                     </Card>
+
+                    {/* Internal Notes */}
+                    <UnitNotes unitId={unit.id} notes={notes as any[]} />
 
                     {/* Unit Timeline */}
                     <UnitTimeline timeline={timeline} />

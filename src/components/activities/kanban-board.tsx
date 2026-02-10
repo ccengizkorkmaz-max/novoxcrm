@@ -5,6 +5,8 @@ import { ActivityCard } from './activity-card'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { isToday, isTomorrow, isThisWeek, parseISO, isPast } from 'date-fns'
 import { useTranslations } from 'next-intl'
+import { cn } from '@/lib/utils'
+import { Badge } from '@/components/ui/badge'
 
 interface KanbanBoardProps {
     activities: Activity[]
@@ -12,10 +14,77 @@ interface KanbanBoardProps {
     profiles?: any[]
 }
 
+interface KanbanColumnProps {
+    title: string
+    activities: Activity[]
+    customers?: any[]
+    profiles?: any[]
+    variant?: 'default' | 'danger' | 'warning' | 'success' | 'info' | 'primary' | 'secondary'
+}
+
+function KanbanColumn({ title, activities, customers, profiles, variant = 'default' }: KanbanColumnProps) {
+    const t = useTranslations('Activities')
+
+    const colors = {
+        danger: 'bg-red-50 text-red-700 border-red-100',
+        warning: 'bg-orange-50 text-orange-700 border-orange-100',
+        success: 'bg-green-50 text-green-700 border-green-100',
+        info: 'bg-sky-50 text-sky-700 border-sky-100',
+        primary: 'bg-indigo-50 text-indigo-700 border-indigo-100',
+        secondary: 'bg-slate-50 text-slate-700 border-slate-100',
+        default: 'bg-slate-50 text-slate-600 border-slate-200'
+    }
+
+    const dotColors = {
+        danger: 'bg-red-500',
+        warning: 'bg-orange-500',
+        info: 'bg-sky-500',
+        primary: 'bg-indigo-500',
+        success: 'bg-green-500',
+        secondary: 'bg-slate-400',
+        default: 'bg-slate-300'
+    }
+
+    return (
+        <div className="flex flex-col w-[260px] shrink-0 h-full rounded-xl bg-slate-50/30 border border-slate-200/60 overflow-hidden">
+            <div className={cn("px-2.5 py-2 border-b flex items-center justify-between", colors[variant])}>
+                <div className="flex items-center gap-1.5 min-w-0">
+                    <div className={cn("h-1.5 w-1.5 rounded-full shrink-0", dotColors[variant])} />
+                    <h3 className="font-bold text-[11px] uppercase tracking-tight truncate">
+                        {title}
+                    </h3>
+                </div>
+                <Badge variant="secondary" className="bg-white/80 hover:bg-white text-[10px] h-4 px-1.5 border-0 font-bold shadow-sm shrink-0">
+                    {activities.length}
+                </Badge>
+            </div>
+
+            <ScrollArea className="flex-1 p-2">
+                <div className="space-y-1.5 pb-4">
+                    {activities.map((activity) => (
+                        <ActivityCard
+                            key={activity.id}
+                            activity={activity}
+                            customers={customers}
+                            profiles={profiles}
+                        />
+                    ))}
+                    {activities.length === 0 && (
+                        <div className="h-16 rounded-lg border border-dashed border-slate-200 flex items-center justify-center bg-white/20">
+                            <span className="text-[10px] text-slate-400 font-medium italic">
+                                {t('kanban.noActivity')}
+                            </span>
+                        </div>
+                    )}
+                </div>
+            </ScrollArea>
+        </div>
+    )
+}
+
 export function KanbanBoard({ activities, customers, profiles }: KanbanBoardProps) {
-    const t = useTranslations('Activities.kanban')
-    // Categorize activities
-    // Categorize activities
+    const t = useTranslations('Activities')
+
     const overdue = activities.filter(a => a.status !== 'Completed' && a.status !== 'Cancelled' && a.due_date && isPast(parseISO(a.due_date)) && !isToday(parseISO(a.due_date)))
     const today = activities.filter(a => a.status !== 'Completed' && a.status !== 'Cancelled' && a.due_date && isToday(parseISO(a.due_date)))
     const tomorrow = activities.filter(a => a.status !== 'Completed' && a.status !== 'Cancelled' && a.due_date && isTomorrow(parseISO(a.due_date)))
@@ -33,41 +102,16 @@ export function KanbanBoard({ activities, customers, profiles }: KanbanBoardProp
         a.status !== 'Cancelled' &&
         !a.due_date
     )
-
-    // Completed recently
-    const completed = activities.filter(a => a.status === 'Completed').slice(0, 5) // Show last 5 completed for MVP
+    const completed = activities.filter(a => a.status === 'Completed')
 
     return (
-        <div className="flex overflow-x-auto pb-4 gap-4 h-[calc(100vh-200px)]">
-            <KanbanColumn title={t('overdue')} count={overdue.length} activities={overdue} customers={customers} profiles={profiles} color="border-red-500" emptyText={t('noActivity')} />
-            <KanbanColumn title={t('today')} count={today.length} activities={today} customers={customers} profiles={profiles} color="border-blue-500" emptyText={t('noActivity')} />
-            <KanbanColumn title={t('tomorrow')} count={tomorrow.length} activities={tomorrow} customers={customers} profiles={profiles} color="border-indigo-500" emptyText={t('noActivity')} />
-            <KanbanColumn title={t('thisWeek')} count={thisWeek.length} activities={thisWeek} customers={customers} profiles={profiles} color="border-purple-500" emptyText={t('noActivity')} />
-            <KanbanColumn title="Tarihsiz" count={noDate.length} activities={noDate} customers={customers} profiles={profiles} color="border-gray-500" emptyText={t('noActivity')} />
-            <KanbanColumn title={t('completed')} count={completed.length} activities={completed} customers={customers} profiles={profiles} color="border-green-500" emptyText={t('noActivity')} />
-        </div>
-    )
-}
-
-function KanbanColumn({ title, count, activities, customers, profiles, color, emptyText }: { title: string, count: number, activities: Activity[], customers?: any[], profiles?: any[], color: string, emptyText?: string }) {
-    return (
-        <div className="flex-shrink-0 w-80 flex flex-col bg-muted/30 rounded-lg border-t-4 border-muted-foreground/20 h-full p-2">
-            <div className={`p-3 font-semibold text-sm flex justify-between items-center border-b mb-2 ${color ? color.replace('border-', 'text-') : ''} border-l-4 pl-3`}>
-                {title}
-                <span className="bg-background text-foreground text-xs px-2 py-0.5 rounded-full border shadow-sm">{count}</span>
-            </div>
-            <ScrollArea className="flex-1 pr-3">
-                <div className="flex flex-col gap-2">
-                    {activities.map(act => (
-                        <ActivityCard key={act.id} activity={act} customers={customers} profiles={profiles} />
-                    ))}
-                    {activities.length === 0 && (
-                        <div className="text-center py-8 text-muted-foreground text-sm border-2 border-dashed rounded-md">
-                            {emptyText || 'Aktivite yok'}
-                        </div>
-                    )}
-                </div>
-            </ScrollArea>
+        <div className="flex grow h-full gap-2.5 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
+            <KanbanColumn variant="danger" title={t('kanban.overdue')} activities={overdue} customers={customers} profiles={profiles} />
+            <KanbanColumn variant="info" title={t('kanban.today')} activities={today} customers={customers} profiles={profiles} />
+            <KanbanColumn variant="primary" title={t('kanban.tomorrow')} activities={tomorrow} customers={customers} profiles={profiles} />
+            <KanbanColumn variant="default" title={t('kanban.thisWeek')} activities={thisWeek} customers={customers} profiles={profiles} />
+            <KanbanColumn variant="secondary" title="Tarihsiz" activities={noDate} customers={customers} profiles={profiles} />
+            <KanbanColumn variant="success" title={t('kanban.completed')} activities={completed} customers={customers} profiles={profiles} />
         </div>
     )
 }

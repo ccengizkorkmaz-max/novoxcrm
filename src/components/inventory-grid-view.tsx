@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { X, Building2 } from 'lucide-react'
+import { X, Building2, Thermometer } from 'lucide-react'
 
 interface Unit {
     id: string
@@ -22,6 +22,8 @@ interface Unit {
     project_id: string
     projects?: { name: string }
 }
+
+type ColorMode = 'status' | 'heatmap'
 
 interface InventoryGridViewProps {
     units: Unit[]
@@ -47,6 +49,39 @@ export function InventoryGridView({ units, onUnitClick }: InventoryGridViewProps
     const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null)
     const [selectedBlock, setSelectedBlock] = useState<string>('all')
     const [selectedProject, setSelectedProject] = useState<string>('all')
+    const [colorMode, setColorMode] = useState<ColorMode>('status')
+
+    // Calculate m² price range for heat map coloring
+    const pricePerM2Stats = useMemo(() => {
+        const relevantUnits = units.filter(u => u.area_gross && u.area_gross > 0 && u.price > 0)
+        if (relevantUnits.length === 0) return { min: 0, max: 1, avg: 0 }
+        const prices = relevantUnits.map(u => u.price / (u.area_gross || 1))
+        const min = Math.min(...prices)
+        const max = Math.max(...prices)
+        const avg = prices.reduce((s, v) => s + v, 0) / prices.length
+        return { min, max, avg }
+    }, [units])
+
+    // Get heat map color based on m² price
+    const getHeatMapStyle = (unit: Unit) => {
+        if (!unit.area_gross || unit.area_gross === 0 || unit.price === 0) {
+            return { bg: 'bg-slate-200', border: 'border-slate-300', text: 'text-slate-600', label: 'N/A' }
+        }
+        const pricePerM2 = unit.price / unit.area_gross
+        const range = pricePerM2Stats.max - pricePerM2Stats.min
+        const ratio = range > 0 ? (pricePerM2 - pricePerM2Stats.min) / range : 0.5
+
+        // Green (cheap) → Yellow → Orange → Red (expensive)
+        if (ratio <= 0.25) return { bg: 'bg-emerald-500', border: 'border-emerald-400', text: 'text-white', label: `₺${Math.round(pricePerM2).toLocaleString('tr-TR')}/m²` }
+        if (ratio <= 0.50) return { bg: 'bg-yellow-500', border: 'border-yellow-400', text: 'text-white', label: `₺${Math.round(pricePerM2).toLocaleString('tr-TR')}/m²` }
+        if (ratio <= 0.75) return { bg: 'bg-orange-500', border: 'border-orange-400', text: 'text-white', label: `₺${Math.round(pricePerM2).toLocaleString('tr-TR')}/m²` }
+        return { bg: 'bg-red-500', border: 'border-red-400', text: 'text-white', label: `₺${Math.round(pricePerM2).toLocaleString('tr-TR')}/m²` }
+    }
+
+    const getUnitStyle = (unit: Unit) => {
+        if (colorMode === 'heatmap') return getHeatMapStyle(unit)
+        return getStatusStyle(unit.status)
+    }
 
     // Group units by project, then by block, then by floor
     const gridData = useMemo(() => {
@@ -138,6 +173,11 @@ export function InventoryGridView({ units, onUnitClick }: InventoryGridViewProps
         }).format(price)
     }
 
+    const formatM2Price = (price: number, area: number | null) => {
+        if (!area || area === 0) return '-'
+        return `₺${Math.round(price / area).toLocaleString('tr-TR')}`
+    }
+
     return (
         <div className="space-y-6">
             {/* Legend & Filters */}
@@ -194,30 +234,80 @@ export function InventoryGridView({ units, onUnitClick }: InventoryGridViewProps
                         </div>
                     </div>
 
-                    {/* Legend */}
-                    <div className="flex items-center gap-4 flex-wrap bg-white p-3 rounded-lg shadow-sm border border-slate-100">
-                        <div className="flex items-center gap-1.5">
-                            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                            <span className="text-[10px] font-bold text-slate-600">Satışta <span className="text-slate-400 font-medium">({stats.forSale})</span></span>
+                    <div className="flex flex-col gap-3 items-end">
+                        {/* Color Mode Toggle */}
+                        <div className="flex items-center gap-2">
+                            <Button
+                                variant={colorMode === 'status' ? 'default' : 'outline'}
+                                size="sm"
+                                className="h-7 text-[10px] px-3 rounded-full font-bold gap-1.5"
+                                onClick={() => setColorMode('status')}
+                            >
+                                <Building2 className="h-3 w-3" />
+                                Durum
+                            </Button>
+                            <Button
+                                variant={colorMode === 'heatmap' ? 'default' : 'outline'}
+                                size="sm"
+                                className={`h-7 text-[10px] px-3 rounded-full font-bold gap-1.5 ${colorMode === 'heatmap' ? 'bg-gradient-to-r from-emerald-600 via-yellow-500 to-red-500 border-none hover:opacity-90' : ''}`}
+                                onClick={() => setColorMode('heatmap')}
+                            >
+                                <Thermometer className="h-3 w-3" />
+                                m² Fiyat
+                            </Button>
                         </div>
-                        <div className="flex items-center gap-1.5">
-                            <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
-                            <span className="text-[10px] font-bold text-slate-600">Satıldı <span className="text-slate-400 font-medium">({stats.sold})</span></span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                            <div className="w-2.5 h-2.5 rounded-full bg-amber-400" />
-                            <span className="text-[10px] font-bold text-slate-600">Rezerve <span className="text-slate-400 font-medium">({stats.reserved})</span></span>
-                        </div>
-                        {stats.blocked > 0 && (
-                            <div className="flex items-center gap-1.5">
-                                <div className="w-2.5 h-2.5 rounded-full bg-slate-600" />
-                                <span className="text-[10px] font-bold text-slate-600">Bloke <span className="text-slate-400 font-medium">({stats.blocked})</span></span>
+
+                        {/* Legend - Changes based on color mode */}
+                        {colorMode === 'status' ? (
+                            <div className="flex items-center gap-4 flex-wrap bg-white p-3 rounded-lg shadow-sm border border-slate-100">
+                                <div className="flex items-center gap-1.5">
+                                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                                    <span className="text-[10px] font-bold text-slate-600">Satışta <span className="text-slate-400 font-medium">({stats.forSale})</span></span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                    <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
+                                    <span className="text-[10px] font-bold text-slate-600">Satıldı <span className="text-slate-400 font-medium">({stats.sold})</span></span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                    <div className="w-2.5 h-2.5 rounded-full bg-amber-400" />
+                                    <span className="text-[10px] font-bold text-slate-600">Rezerve <span className="text-slate-400 font-medium">({stats.reserved})</span></span>
+                                </div>
+                                {stats.blocked > 0 && (
+                                    <div className="flex items-center gap-1.5">
+                                        <div className="w-2.5 h-2.5 rounded-full bg-slate-600" />
+                                        <span className="text-[10px] font-bold text-slate-600">Bloke <span className="text-slate-400 font-medium">({stats.blocked})</span></span>
+                                    </div>
+                                )}
+                                {stats.option > 0 && (
+                                    <div className="flex items-center gap-1.5">
+                                        <div className="w-2.5 h-2.5 rounded-full bg-violet-500" />
+                                        <span className="text-[10px] font-bold text-slate-600">Opsiyon <span className="text-slate-400 font-medium">({stats.option})</span></span>
+                                    </div>
+                                )}
                             </div>
-                        )}
-                        {stats.option > 0 && (
-                            <div className="flex items-center gap-1.5">
-                                <div className="w-2.5 h-2.5 rounded-full bg-violet-500" />
-                                <span className="text-[10px] font-bold text-slate-600">Opsiyon <span className="text-slate-400 font-medium">({stats.option})</span></span>
+                        ) : (
+                            <div className="flex items-center gap-3 bg-white p-3 rounded-lg shadow-sm border border-slate-100">
+                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">m² Fiyat:</span>
+                                <div className="flex items-center gap-1">
+                                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                                    <span className="text-[10px] font-bold text-slate-600">Düşük</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                    <div className="w-2.5 h-2.5 rounded-full bg-yellow-500" />
+                                    <span className="text-[10px] font-bold text-slate-600">Orta</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                    <div className="w-2.5 h-2.5 rounded-full bg-orange-500" />
+                                    <span className="text-[10px] font-bold text-slate-600">Yüksek</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                    <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
+                                    <span className="text-[10px] font-bold text-slate-600">Premium</span>
+                                </div>
+                                <div className="h-4 w-px bg-slate-200" />
+                                <span className="text-[9px] text-slate-400 font-medium">
+                                    ₺{Math.round(pricePerM2Stats.min).toLocaleString('tr-TR')} — ₺{Math.round(pricePerM2Stats.max).toLocaleString('tr-TR')}/m²
+                                </span>
                             </div>
                         )}
                     </div>
@@ -290,7 +380,7 @@ export function InventoryGridView({ units, onUnitClick }: InventoryGridViewProps
                                                                 {/* Unit Cells - Dynamic width with flex-grow and max-width */}
                                                                 <div className="flex-1 flex flex-wrap gap-1.5 pb-1">
                                                                     {floorUnits.map(unit => {
-                                                                        const style = getStatusStyle(unit.status)
+                                                                        const style = getUnitStyle(unit)
                                                                         return (
                                                                             <button
                                                                                 key={unit.id}
@@ -308,7 +398,10 @@ export function InventoryGridView({ units, onUnitClick }: InventoryGridViewProps
                                                                                     {unit.unit_number}
                                                                                 </div>
                                                                                 <div className="text-[8px] opacity-80 leading-tight truncate font-bold">
-                                                                                    {unit.type}
+                                                                                    {colorMode === 'heatmap' && unit.area_gross
+                                                                                        ? formatM2Price(unit.price, unit.area_gross)
+                                                                                        : unit.type
+                                                                                    }
                                                                                 </div>
 
                                                                                 {/* Hover tooltip */}
@@ -317,7 +410,12 @@ export function InventoryGridView({ units, onUnitClick }: InventoryGridViewProps
                                                                                         <div className="font-black text-blue-400">{unit.projects?.name}</div>
                                                                                         <div className="font-bold">{unit.block} • {unit.unit_number} • {unit.type}</div>
                                                                                         <div className="text-emerald-400 font-black mt-1">{formatPrice(unit.price, unit.currency)}</div>
-                                                                                        {unit.area_gross && <div className="text-slate-400">{unit.area_gross} m²</div>}
+                                                                                        {unit.area_gross && (
+                                                                                            <div className="text-slate-400">
+                                                                                                {unit.area_gross} m² • <span className="text-yellow-400 font-bold">{formatM2Price(unit.price, unit.area_gross)}/m²</span>
+                                                                                            </div>
+                                                                                        )}
+                                                                                        <div className="text-slate-500 text-[9px] mt-0.5">{getStatusStyle(unit.status).label}</div>
                                                                                     </div>
                                                                                 </div>
                                                                             </button>
