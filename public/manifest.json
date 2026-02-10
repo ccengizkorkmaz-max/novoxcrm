@@ -1,0 +1,56 @@
+{
+    "name": "NovoxCRM",
+    "short_name": "NovoxCRM",
+    "description": "Gayrimenkul Satış ve Müşteri Yönetim Platformu",
+    "start_url": "/tr",
+    "display": "standalone",
+    "background_color": "#020617",
+    "theme_color": "#020617",
+    "orientation": "portrait-primary",
+    "icons": [
+        {
+            "src": "/icon-512.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any"
+        }
+    ],
+    "shortcuts": [
+        {
+            "name": "Dashboard",
+            "url": "/tr",
+            "icons": [
+                {
+                    "src": "/icon-512.png",
+                    "sizes": "192x192"
+                }
+            ]
+        },
+        {
+            "name": "Broker Portalı",
+            "url": "/tr/broker",
+            "icons": [
+                {
+                    "src": "/icon-512.png",
+                    "sizes": "192x192"
+                }
+            ]
+        },
+        {
+            "name": "Müşteri Hizmetleri",
+            "url": "/tr/customerservices",
+            "icons": [
+                {
+                    "src": "/icon-512.png",
+                    "sizes": "192x192"
+                }
+            ]
+        }
+    ]
+}

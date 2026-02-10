@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { syncBrokerLeadFromSale } from '@/app/broker/actions'
 import { ensureFinancialAccount, createTransaction, createValuablePaper } from '../finance/actions'
+import { createNotification } from '@/lib/notifications/create'
 
 export async function createCustomer(formData: FormData) {
     const supabase = await createClient()
@@ -124,8 +125,18 @@ export async function createCustomer(formData: FormData) {
         }
     }
 
-    revalidatePath('/crm')
-    return { success: true }
+    // Notification: new customer added
+    if (profile?.tenant_id) {
+        createNotification({
+            tenant_id: profile.tenant_id,
+            type: 'Info',
+            category: 'CRM',
+            title: '👤 Yeni Müşteri Eklendi',
+            message: `${full_name} isimli yeni müşteri sisteme eklendi.`,
+            link: '/crm'
+        }).catch(console.error)
+    }
+
     revalidatePath('/crm')
     return { success: true }
 }
@@ -412,6 +423,23 @@ export async function updateSaleStatus(id: string, status: string) {
 
     // Finance Integration: Record total debt if Sold/Completed
     if ((status === 'Sold' || status === 'Completed') && sale) {
+        // Notification: Sale completed
+        if (profile?.tenant_id) {
+            const customerName = sale.customers?.full_name || 'Müşteri'
+            const unitInfo = sale.units?.unit_number || ''
+            const saleAmount = sale.final_price || sale.units?.price || 0
+            const formattedAmount = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: sale.currency || 'TRY', maximumFractionDigits: 0 }).format(saleAmount)
+
+            createNotification({
+                tenant_id: profile.tenant_id,
+                type: 'Success',
+                category: 'CRM',
+                title: '🎉 Satış Tamamlandı!',
+                message: `${customerName} - ${unitInfo} ünitesi ${formattedAmount} bedelle satıldı.`,
+                link: '/crm'
+            }).catch(console.error)
+        }
+
         try {
             const { ensureFinancialAccount } = await import('../finance/actions')
             const accountId = await ensureFinancialAccount({
@@ -460,7 +488,7 @@ export async function assignSale(saleId: string, userId: string | null) {
     if (!user) return { error: 'Unauthorized' }
 
     // Check Role
-    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+    const { data: profile } = await supabase.from('profiles').select('role, tenant_id').eq('id', user.id).single()
     const isAdmin = profile?.role === 'admin' || profile?.role === 'owner'
 
     if (!isAdmin) return { error: 'Bu işlem için yetkiniz yok.' }
@@ -473,6 +501,22 @@ export async function assignSale(saleId: string, userId: string | null) {
     if (error) {
         console.error('Assign Sale Error:', error)
         return { error: 'Atama işlemi başarısız: ' + error.message }
+    }
+
+    // Notification: lead assigned
+    if (userId && profile?.tenant_id) {
+        const { data: sale } = await supabase.from('sales').select('customers(full_name)').eq('id', saleId).single()
+        const customerName = (sale as any)?.customers?.full_name || 'Müşteri'
+
+        createNotification({
+            tenant_id: profile.tenant_id,
+            user_id: userId,
+            type: 'Info',
+            category: 'CRM',
+            title: '🎯 Yeni LEAD Atandı',
+            message: `${customerName} isimli lead takibinize atandı.`,
+            link: '/crm'
+        }).catch(console.error)
     }
 
     revalidatePath('/crm')
@@ -711,6 +755,22 @@ export async function finalizeOffer(offerId: string) {
     revalidatePath('/inventory')
     revalidatePath('/finance/deposits')
 
+    // Notification: Contract finalized
+    if (offer.tenant_id) {
+        const customerName = offer.customers?.full_name || 'Müşteri'
+        const unitInfo = offer.units?.unit_number || ''
+        const formattedAmount = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: offer.currency || 'TRY', maximumFractionDigits: 0 }).format(offer.price)
+
+        createNotification({
+            tenant_id: offer.tenant_id,
+            type: 'Success',
+            category: 'CRM',
+            title: '📝 Sözleşme Oluşturuldu',
+            message: `${customerName} - ${unitInfo} ünitesi için ${formattedAmount} tutarında sözleşme oluşturuldu. (${contract?.contract_number || ''})`,
+            link: '/contracts'
+        }).catch(console.error)
+    }
+
     // 7. Finance Integration: Record Contract Amount as Debit
     if (contract && sale) {
         try {
@@ -909,6 +969,29 @@ export async function updateSaleToReservation(saleId: string, unitId: string, ex
     })
 
     if (offerError) console.error('Create Offer Error (Reservation):', offerError)
+
+    // Notification: Reservation created
+    const { data: reservationCustomer } = await supabase
+        .from('customers')
+        .select('full_name')
+        .eq('id', updatedSale.customer_id)
+        .single()
+
+    const { data: reservationUnit } = await supabase
+        .from('units')
+        .select('unit_number, block, projects(name)')
+        .eq('id', unitId)
+        .single()
+
+    createNotification({
+        tenant_id: profile.tenant_id,
+        type: 'Info',
+        category: 'CRM',
+        title: '🔒 Yeni Opsiyon/Rezervasyon',
+        // @ts-ignore
+        message: `${reservationCustomer?.full_name || 'Müşteri'} - ${reservationUnit?.projects?.name || ''} ${reservationUnit?.block || ''} ${reservationUnit?.unit_number || ''} ünitesi ${new Date(expiryDate).toLocaleDateString('tr-TR')} tarihine kadar opsiyonlandı.`,
+        link: '/options'
+    }).catch(console.error)
 
     revalidatePath('/crm')
     revalidatePath('/options')

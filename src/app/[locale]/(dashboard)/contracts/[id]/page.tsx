@@ -28,6 +28,7 @@ import { ContractDocumentUpload } from '@/components/contracts/contract-document
 import { uploadContractDocument } from './documents-actions'
 import { Download } from 'lucide-react'
 import { DeleteDocumentButton } from '@/components/contracts/delete-document-button'
+import { ContractPDFGenerator } from '@/components/contracts/contract-pdf-generator'
 
 interface ContractPageProps {
     params: Promise<{ id: string }>
@@ -41,6 +42,14 @@ export default async function ContractDetailPage(props: {
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) redirect('/login')
+
+    // Fetch tenant name for PDF
+    const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single()
+    let tenantName = 'NovoxCRM'
+    if (profile?.tenant_id) {
+        const { data: tenant } = await supabase.from('tenants').select('company_name').eq('id', profile.tenant_id).single()
+        if (tenant?.company_name) tenantName = tenant.company_name
+    }
 
     const { data: contract } = await supabase
         .from('contracts')
@@ -90,9 +99,7 @@ export default async function ContractDetailPage(props: {
                     </div>
                 )}
                 <div className="flex gap-2">
-                    <Button variant="outline" className="gap-2">
-                        <FileText className="h-4 w-4" /> Yazdır
-                    </Button>
+                    <ContractPDFGenerator contract={contract} tenantName={tenantName} />
                     <ContractStatusActions contractId={contract.id} status={contract.status} />
                 </div>
             </div>

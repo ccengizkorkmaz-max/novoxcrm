@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { createNotification } from '@/lib/notifications/create'
 
 // Helper function to log contract activities
 async function logContractActivity(
@@ -231,6 +232,19 @@ export async function signContract(id: string) {
             { old_status: 'Draft', new_status: 'Signed', unit_id: contract.unit_id }
         )
 
+        // 7. Notification: Contract signed
+        const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', (await supabase.auth.getUser()).data.user?.id).single()
+        if (profile?.tenant_id) {
+            await createNotification({
+                tenant_id: profile.tenant_id,
+                type: 'Success',
+                category: 'Finance',
+                title: '✍️ Sözleşme İmzalandı',
+                message: `${contract.contract_number} nolu sözleşme başarıyla imzalandı. Ünite satış listesinden çıkarıldı.`,
+                link: `/contracts/${id}`
+            })
+        }
+
         revalidatePath(`/contracts/${id}`)
         revalidatePath('/contracts')
         revalidatePath('/inventory')
@@ -291,11 +305,21 @@ export async function cancelContract(id: string, reason?: string) {
         // 1. Get contract details (including unit and tenant)
         const { data: contract } = await supabase
             .from('contracts')
-            .select('unit_id, id, tenant_id, sale_id, customer_id')
+            .select('unit_id, id, tenant_id, sale_id')
             .eq('id', id)
             .single()
 
-        if (!contract) throw new Error('Contract not found')
+        if (!contract) throw new Error('Sözleşme bulunamadı')
+
+        // Get primary customer for valuable papers cleanup
+        const { data: primaryCustomer } = await supabase
+            .from('contract_customers')
+            .select('customer_id')
+            .eq('contract_id', id)
+            .eq('role', 'Primary')
+            .single()
+
+        const customer_id = primaryCustomer?.customer_id
 
         // 2. Update contract status
         const { error: contractError } = await supabase
@@ -319,14 +343,12 @@ export async function cancelContract(id: string, reason?: string) {
             if (unitError) console.error('Failed to release unit during cancellation', unitError)
 
             // 4. Update Sales Status (Mark AS MANY AS POSSIBLE AS Cancelled)
-            // We want to clear ANY sales records for this unit to prevent "Sold" artifacts
             await supabase
                 .from('sales')
                 .update({ status: 'Cancelled' })
                 .eq('unit_id', contract.unit_id)
                 .in('status', ['Sold', 'Completed', 'Contract', 'Prospect', 'Reservation', 'Proposal'])
         } else if (contract.sale_id) {
-            // If no unit_id on contract, but there is a sale_id, update it specifically
             await supabase.from('sales').update({ status: 'Cancelled' }).eq('id', contract.sale_id)
         }
 
@@ -341,7 +363,6 @@ export async function cancelContract(id: string, reason?: string) {
             .eq('contract_id', id)
 
         // 6. Handle Deposits (If PAID, mark as Refund Pending)
-        // Check for specific deposits linked to the sale or directly to this contract (if stored elsewhere)
         if (contract.sale_id) {
             const { data: deposits } = await supabase
                 .from('deposits')
@@ -360,42 +381,46 @@ export async function cancelContract(id: string, reason?: string) {
         }
 
         // 7. Handle Valuable Papers (Checks/Promissory Notes)
-        // If they are in Portfolio/Portföyde, they should be rejected/cancelled
-        const { data: papers } = await supabase
-            .from('valuable_papers')
-            .select('id')
-            .eq('tenant_id', contract.tenant_id)
-            .match({ customer_id: contract.customer_id, unit_id: contract.unit_id }) // Use these as identifiers
-            .in('status', ['Portfolio', 'Portföyde'])
+        if (customer_id) {
+            const { data: papers } = await supabase
+                .from('valuable_papers')
+                .select('id')
+                .eq('tenant_id', contract.tenant_id)
+                .match({ customer_id: customer_id, unit_id: contract.unit_id })
+                .in('status', ['Portfolio', 'Portföyde'])
 
-        if (papers && papers.length > 0) {
-            const paperIds = papers.map(p => p.id)
-            await supabase.from('valuable_papers')
-                .update({ status: 'Rejected' })
-                .in('id', paperIds)
+            if (papers && papers.length > 0) {
+                const paperIds = papers.map(p => p.id)
+                await supabase.from('valuable_papers')
+                    .update({ status: 'Rejected' })
+                    .in('id', paperIds)
+            }
         }
 
         // 8. Cleanup Finance Transactions (DELETE)
-        // Delete by contract_id
         await supabase.from('finance_transactions').delete().eq('contract_id', id)
 
-        // Delete by reference_id (Payment Plans)
         if (plans && plans.length > 0) {
             const planIds = plans.map(p => p.id)
             await supabase.from('finance_transactions').delete().in('reference_id', planIds)
         }
 
-        // Delete by reference_id (Valuable Papers)
-        if (papers && papers.length > 0) {
-            const paperIds = papers.map(p => p.id)
-            await supabase.from('finance_transactions').delete().in('reference_id', paperIds)
+        // 9. Notification: Contract cancelled
+        if (contract.tenant_id) {
+            await createNotification({
+                tenant_id: contract.tenant_id,
+                type: 'Alert',
+                category: 'Finance',
+                title: '🚫 Sözleşme İptal Edildi',
+                message: `${id.slice(0, 8)}... referanslı sözleşme iptal edildi. Ünite tekrar satışa açıldı.`,
+                link: '/contracts'
+            })
         }
 
         revalidatePath(`/contracts/${id}`)
         revalidatePath('/contracts')
         revalidatePath('/inventory')
         revalidatePath('/dashboard')
-        revalidatePath('/finance')
         revalidatePath('/crm')
 
         return { success: true }
@@ -405,9 +430,46 @@ export async function cancelContract(id: string, reason?: string) {
     }
 }
 
+export async function deleteContract(id: string) {
+    const supabase = await createClient()
+    try {
+        // 1. Get contract info first
+        const { data: contract } = await supabase
+            .from('contracts')
+            .select('unit_id, id')
+            .eq('id', id)
+            .single()
+
+        if (!contract) throw new Error('Sözleşme bulunamadı')
+
+        // 2. Release unit
+        if (contract.unit_id) {
+            await supabase.from('units').update({ status: 'For Sale' }).eq('id', contract.unit_id)
+        }
+
+        // 3. Delete the contract (Cascading will handle customers, payments, documents, activities if set up)
+        const { error } = await supabase
+            .from('contracts')
+            .delete()
+            .eq('id', id)
+
+        if (error) throw error
+
+        revalidatePath('/contracts')
+        revalidatePath('/inventory')
+        return { success: true }
+    } catch (error: any) {
+        console.error('Delete Contract Error:', error)
+        return { error: error.message }
+    }
+}
+
+
 export async function transferContract(id: string, notes: string) {
     const supabase = await createClient()
     try {
+        const { data: contract } = await supabase.from('contracts').select('contract_number, tenant_id').eq('id', id).single()
+
         const { error } = await supabase
             .from('contracts')
             .update({
@@ -417,6 +479,18 @@ export async function transferContract(id: string, notes: string) {
             .eq('id', id)
 
         if (error) throw error
+
+        // Notification: Contract transferred
+        if (contract?.tenant_id) {
+            await createNotification({
+                tenant_id: contract.tenant_id,
+                type: 'Warning',
+                category: 'Finance',
+                title: '🔄 Sözleşme Devredildi',
+                message: `${contract.contract_number} nolu sözleşme devir işlemi yapıldı.`,
+                link: `/contracts/${id}`
+            })
+        }
 
         revalidatePath(`/contracts/${id}`)
         revalidatePath('/contracts')

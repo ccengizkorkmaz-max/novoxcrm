@@ -2,9 +2,10 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { signContract, payInstallment, cancelContract, transferContract } from '@/app/[locale]/(dashboard)/contracts/actions'
+import { useRouter } from '@/i18n/routing'
+import { signContract, payInstallment, cancelContract, transferContract, deleteContract } from '@/app/[locale]/(dashboard)/contracts/actions'
 import { toast } from 'sonner'
-import { FileCheck, Loader2, XCircle, ArrowRightLeft } from 'lucide-react'
+import { FileCheck, Loader2, XCircle, ArrowRightLeft, Trash2 } from 'lucide-react'
 import {
     AlertDialog,
     AlertDialogAction,
@@ -46,15 +47,17 @@ export function ContractStatusActions({ contractId, status }: { contractId: stri
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle>Sözleşmeyi imzalandı olarak işaretlemek istediğinize emin misiniz?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        Bu işlem sonrasında:
-                        <ul className="list-disc list-inside mt-2 space-y-1">
-                            <li>Sözleşme durumu "İmzalandı" olarak güncellenecek</li>
-                            <li>İlgili ünite "Satıldı" olarak işaretlenecek ve kilitlenecek</li>
-                            <li>Tüm satış süreci kayıtları tamamlanacak</li>
-                            <li>Aktif teklifler kapatılacak</li>
-                        </ul>
-                        <p className="mt-2 font-semibold text-destructive">Bu işlem geri alınamaz.</p>
+                    <AlertDialogDescription asChild>
+                        <div>
+                            Bu işlem sonrasında:
+                            <ul className="list-disc list-inside mt-2 space-y-1">
+                                <li>Sözleşme durumu "İmzalandı" olarak güncellenecek</li>
+                                <li>İlgili ünite "Satıldı" olarak işaretlenecek ve kilitlenecek</li>
+                                <li>Tüm satış süreci kayıtları tamamlanacak</li>
+                                <li>Aktif teklifler kapatılacak</li>
+                            </ul>
+                            <p className="mt-2 font-semibold text-destructive">Bu işlem geri alınamaz.</p>
+                        </div>
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -101,9 +104,11 @@ export function IndividualPaymentAction({ paymentId, contractId, status }: { pay
 }
 
 export function ContractLegalActions({ contractId, status }: { contractId: string, status: string }) {
+    const router = useRouter()
     const [loading, setLoading] = useState(false)
     const [cancelDialogOpen, setCancelDialogOpen] = useState(false)
     const [transferDialogOpen, setTransferDialogOpen] = useState(false)
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
     const [cancelReason, setCancelReason] = useState('')
     const [transferNotes, setTransferNotes] = useState('')
 
@@ -137,6 +142,21 @@ export function ContractLegalActions({ contractId, status }: { contractId: strin
         }
     }
 
+    const handleDelete = async () => {
+        setLoading(true)
+        try {
+            const res = await deleteContract(contractId)
+            if (res.error) throw new Error(res.error)
+            toast.success('Sözleşme kalıcı olarak silindi')
+            setDeleteDialogOpen(false)
+            router.push('/contracts')
+        } catch (error: any) {
+            toast.error(error.message)
+        } finally {
+            setLoading(false)
+        }
+    }
+
     if (['Cancelled', 'Transferred', 'Completed'].includes(status)) return null
 
     return (
@@ -156,9 +176,11 @@ export function ContractLegalActions({ contractId, status }: { contractId: strin
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>Sözleşmeyi iptal etmek istediğinize emin misiniz?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Bu işlem sonrasında sözleşme iptal edilecek ve ilgili ünite serbest bırakılacaktır.
-                            <p className="mt-2 font-semibold text-destructive">Bu işlem geri alınamaz.</p>
+                        <AlertDialogDescription asChild>
+                            <div>
+                                Bu işlem sonrasında sözleşme iptal edilecek ve ilgili ünite serbest bırakılacaktır.
+                                <p className="mt-2 font-semibold text-destructive">Bu işlem geri alınamaz.</p>
+                            </div>
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <div className="space-y-2">
@@ -222,6 +244,45 @@ export function ContractLegalActions({ contractId, status }: { contractId: strin
                         >
                             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             Devret
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            {/* Permanent Delete Contract */}
+            <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <AlertDialogTrigger asChild>
+                    <Button
+                        disabled={loading}
+                        variant="ghost"
+                        className="w-full justify-start gap-2 h-11 text-slate-400 hover:text-red-600 hover:bg-red-50 border border-dashed border-slate-200"
+                    >
+                        <Trash2 className="h-4 w-4" />
+                        Sözleşmeyi Kalıcı Olarak Sil
+                    </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>BU İŞLEM SÖZLEŞMEYİ TAMAMEN SİLER</AlertDialogTitle>
+                        <AlertDialogDescription asChild>
+                            <div>
+                                Bu sözleşme ve ona bağlı tüm bilgiler (ödemeler, dökümanlar, aktiviteler) sistemden tamamen silinecektir.
+                                Ünite tekrar satışa açılacaktır.
+                                <p className="mt-4 p-3 bg-red-50 text-red-700 rounded-lg font-bold">
+                                    DİKKAT: Bu işlemin geri dönüşü yoktur. Veriler kurtarılamaz.
+                                </p>
+                            </div>
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Vazgeç</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleDelete}
+                            className="bg-red-600 hover:bg-red-700"
+                            disabled={loading}
+                        >
+                            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Kalıcı Olarak Sil
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

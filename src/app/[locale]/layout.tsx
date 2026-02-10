@@ -7,6 +7,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { routing } from '@/i18n/routing';
+import PWARegister from '@/components/PWARegister';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -22,6 +23,7 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://novoxcrm.com'),
   title: "NovoxCRM | İnşaat & Gayrimenkul CRM – Konut Projeleri için Satış Yönetimi",
   description: "NovoxCRM, inşaat ve gayrimenkul firmaları için özel geliştirilmiş CRM yazılımıdır. Konut projeleri, stok takibi, broker yönetimi ve satış süreçlerini tek platformda yönetin.",
+  manifest: '/manifest.json',
   alternates: {
     canonical: '/',
     languages: {
@@ -31,7 +33,7 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
+    statusBarStyle: "black-translucent",
     title: "NovoxCRM",
   },
   formatDetection: {
@@ -51,11 +53,12 @@ export const metadata: Metadata = {
 };
 
 export const viewport = {
-  themeColor: "#1e40af",
+  themeColor: "#020617", // Dark background for PWA
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  viewportFit: "cover", // For notch phones
 };
 
 export default async function RootLayout({
@@ -97,6 +100,7 @@ export default async function RootLayout({
             `}
           </Script>
           <Toaster />
+          <PWARegister />
           {children}
         </NextIntlClientProvider>
       </body>

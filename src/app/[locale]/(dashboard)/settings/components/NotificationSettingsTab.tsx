@@ -9,20 +9,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
 import { updateNotificationSettings } from '@/app/[locale]/(dashboard)/notifications/actions'
-import { Bell, Mail, MessageSquare } from 'lucide-react'
+import { Bell, Mail, MessageSquare, RefreshCw, Zap } from 'lucide-react'
 
 interface NotificationSettingsTabProps {
-    settings: any // Typed as any to avoid strict type deps in MVP
+    settings: any
 }
 
 export default function NotificationSettingsTab({ settings }: NotificationSettingsTabProps) {
     const [loading, setLoading] = useState(false)
+    const [scanning, setScanning] = useState(false)
     const [formData, setFormData] = useState({
         sms_provider: settings?.sms_provider || 'netgsm',
         sms_api_key: settings?.sms_api_key || '',
         sms_api_secret: settings?.sms_api_secret || '',
         sms_header: settings?.sms_header || '',
-        email_enabled: settings?.email_enabled ?? true, // Default true
+        email_enabled: settings?.email_enabled ?? true,
         sms_enabled: settings?.sms_enabled ?? false,
         notify_overdue_payments: settings?.notify_overdue_payments ?? true,
         notify_approaching_checks: settings?.notify_approaching_checks ?? true,
@@ -38,6 +39,28 @@ export default function NotificationSettingsTab({ settings }: NotificationSettin
             toast.success('Bildirim ayarları güncellendi.')
         } else {
             toast.error(res.error || 'Ayarlar kaydedilemedi.')
+        }
+    }
+
+    const handleManualScan = async () => {
+        setScanning(true)
+        try {
+            const res = await fetch('/api/notifications/scan')
+            const data = await res.json()
+            if (data.success) {
+                const total = (data.expiringReservations || 0) + (data.overduePayments || 0) + (data.approachingPapers || 0) + (data.staleLeads || 0)
+                if (total > 0) {
+                    toast.success(`Tarama tamamlandı: ${total} yeni bildirim oluşturuldu.`)
+                } else {
+                    toast.info('Tarama tamamlandı: Yeni bildirim bulunmadı.')
+                }
+            } else {
+                toast.error('Tarama sırasında bir hata oluştu.')
+            }
+        } catch {
+            toast.error('Tarama servisine ulaşılamadı.')
+        } finally {
+            setScanning(false)
         }
     }
 
@@ -173,6 +196,33 @@ export default function NotificationSettingsTab({ settings }: NotificationSettin
                     </CardContent>
                 </Card>
             </div>
+
+            {/* 3. Manual Scan */}
+            <Card className="border-amber-100 bg-gradient-to-r from-amber-50/50 to-white">
+                <CardContent className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5">
+                    <div className="flex items-start gap-3">
+                        <div className="flex items-center justify-center h-10 w-10 rounded-xl bg-amber-100 flex-shrink-0">
+                            <Zap className="h-5 w-5 text-amber-600" />
+                        </div>
+                        <div>
+                            <p className="font-semibold text-sm text-slate-800">Manuel Tarama</p>
+                            <p className="text-xs text-slate-500 mt-0.5">
+                                Gecikmiş ödemeler, süresi dolan opsiyonlar, yaklaşan çek/senet vadeleri ve
+                                hareketsiz lead&apos;leri şimdi tarayarak bildirim oluşturur.
+                            </p>
+                        </div>
+                    </div>
+                    <Button
+                        onClick={handleManualScan}
+                        disabled={scanning}
+                        variant="outline"
+                        className="gap-2 text-amber-700 border-amber-300 hover:bg-amber-100 min-w-[160px]"
+                    >
+                        <RefreshCw className={`h-4 w-4 ${scanning ? 'animate-spin' : ''}`} />
+                        {scanning ? 'Taranıyor...' : 'Şimdi Tara'}
+                    </Button>
+                </CardContent>
+            </Card>
 
             <div className="flex justify-end">
                 <Button onClick={handleSave} disabled={loading} className="bg-blue-600 hover:bg-blue-700 min-w-[200px]">
