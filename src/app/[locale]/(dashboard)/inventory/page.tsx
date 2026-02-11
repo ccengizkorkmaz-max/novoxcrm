@@ -16,11 +16,62 @@ import { formatCurrency, cn } from '@/lib/utils'
 import { InventoryActions } from './components/inventory-actions'
 import { StockAgingReport } from './components/StockAgingReport'
 import { SalesVelocityReport } from './components/SalesVelocityReport'
+import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
 import { InventoryExport } from './components/InventoryExport'
 import { getStockAgingReport, getSalesVelocityReport } from './stats-actions'
 import { FloorPlansTab } from './components/floor-plans/FloorPlansTab'
 import { InventoryTabs } from './components/inventory-tabs'
 import { InventoryGridView } from '@/components/inventory-grid-view'
+import { RealtimeInventoryRefresher } from './components/RealtimeInventoryRefresher'
+import { InventoryPdfExport } from './components/InventoryPdfExport'
+import { PublicLinkCreator } from './components/PublicLinkCreator'
+
+
+// Helper component for sortable headers
+function SortableHeader({
+    column,
+    label,
+    currentSort,
+    currentOrder,
+    params,
+    className
+}: {
+    column: string,
+    label: string,
+    currentSort: string,
+    currentOrder: 'asc' | 'desc',
+    params: any,
+    className?: string
+}) {
+    const isCurrent = currentSort === column
+    const nextOrder = isCurrent && currentOrder === 'asc' ? 'desc' : 'asc'
+
+    // Build URL with preserved filters
+    const searchParams = new URLSearchParams()
+    Object.entries(params).forEach(([key, value]) => {
+        if (value && key !== 'sort' && key !== 'order') {
+            searchParams.append(key, value as string)
+        }
+    })
+    searchParams.set('sort', column)
+    searchParams.set('order', nextOrder)
+
+    return (
+        <TableHead className={cn("whitespace-nowrap", className)}>
+            <Link
+                href={`/inventory?${searchParams.toString()}`}
+                className="flex items-center gap-1 hover:text-slate-900 transition-colors group"
+            >
+                {label}
+                {isCurrent ? (
+                    currentOrder === 'asc' ? <ChevronUp className="h-3 w-3 text-blue-600" /> : <ChevronDown className="h-3 w-3 text-blue-600" />
+                ) : (
+                    <ChevronsUpDown className="h-3 w-3 text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity" />
+                )}
+            </Link>
+        </TableHead>
+    )
+}
 
 
 export default async function InventoryPage(props: {
@@ -32,7 +83,17 @@ export default async function InventoryPage(props: {
     const supabase = await createClient()
 
     // 1. Prepare Unit Query (Synchronous part)
-    let query = supabase.from('units').select('*, projects(name)').order('unit_number', { ascending: true })
+    const sortBy = params.sort || 'unit_number'
+    const sortOrder = params.order === 'desc' ? 'desc' : 'asc'
+
+    let query = supabase.from('units').select('*, projects(name)')
+
+    // Apply sorting
+    if (sortBy === 'project_name') {
+        query = query.order('name', { foreignTable: 'projects', ascending: sortOrder === 'asc' })
+    } else {
+        query = query.order(sortBy, { ascending: sortOrder === 'asc' })
+    }
 
     if (params.project && params.project !== 'all') {
         query = query.eq('project_id', params.project)
@@ -185,9 +246,37 @@ export default async function InventoryPage(props: {
                     if (key === 'has_master_bathroom') label = t('filters.features.masterBath')
                     if (key === 'has_builtin_kitchen') label = t('filters.features.builtinKitchen')
 
+                    let displayValue = value
+                    if (key === 'project') {
+                        const project = projects?.find(p => p.id === value)
+                        displayValue = project ? project.name : value
+                    }
+                    if (key === 'sort') {
+                        label = 'Sıralama'
+                        const sortLabels: any = {
+                            project_name: t('table.project'),
+                            block: t('table.block'),
+                            unit_number: t('table.unitNo'),
+                            status: t('table.status'),
+                            type: t('table.roomType'),
+                            unit_category: t('table.category'),
+                            floor: t('table.floor'),
+                            direction: t('table.direction'),
+                            view: t('table.view'),
+                            area_gross: t('table.grossArea'),
+                            area_net: t('table.netArea'),
+                            price: t('table.price')
+                        }
+                        displayValue = sortLabels[value as string] || value
+                    }
+                    if (key === 'order') {
+                        label = 'Düzen'
+                        displayValue = value === 'asc' ? 'Artan' : 'Azalan'
+                    }
+
                     return (
                         <Badge key={key} variant="secondary" className="px-2 py-1 text-[10px] md:text-xs">
-                            {label}: {value === 'true' ? 'Var' : value}
+                            {label}: {displayValue === 'true' ? 'Var' : displayValue}
                         </Badge>
                     )
                 })}
@@ -204,13 +293,18 @@ export default async function InventoryPage(props: {
                 <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
                 {(currentTab === 'list' || currentTab === 'grid') && (
                     <div className="flex items-center gap-2 flex-wrap">
+
+                        <PublicLinkCreator unitIds={units?.map(u => u.id) || []} unitsCount={units?.length || 0} />
+                        <InventoryPdfExport units={units || []} />
                         <InventoryExport projects={projects || []} />
                         <NewUnitDialog projects={projects || []} unitTypes={unitTypes || []} />
                     </div>
                 )}
             </div>
 
+            <RealtimeInventoryRefresher />
             <InventoryTabs defaultValue={currentTab}>
+
                 {/* DASHBOARD TAB */}
                 <TabsContent value="dashboard" className="space-y-6">
                     <InventoryStats units={units || []} />
@@ -241,18 +335,20 @@ export default async function InventoryPage(props: {
                             <TableHeader className="bg-slate-50/50">
                                 <TableRow>
                                     <TableHead className="text-left sticky left-0 bg-background/95 backdrop-blur z-20 shadow-[5px_0_5px_-5px_rgba(0,0,0,0.1)]">{t('table.actions')}</TableHead>
-                                    <TableHead className="min-w-[150px]">{t('table.project')}</TableHead>
-                                    <TableHead>{t('table.block')}</TableHead>
-                                    <TableHead className="min-w-[100px]">{t('table.unitNo')}</TableHead>
-                                    <TableHead className="min-w-[100px]">{t('table.status')}</TableHead>
-                                    <TableHead>{t('table.roomType')}</TableHead>
-                                    <TableHead className="min-w-[120px]">{t('table.category')}</TableHead>
-                                    <TableHead>{t('table.floor')}</TableHead>
-                                    <TableHead className="min-w-[100px]">{t('table.direction')}</TableHead>
-                                    <TableHead className="min-w-[100px]">{t('table.view')}</TableHead>
-                                    <TableHead>{t('table.grossArea')}</TableHead>
-                                    <TableHead>{t('table.netArea')}</TableHead>
-                                    <TableHead className="min-w-[120px] font-bold">{t('table.price')}</TableHead>
+
+                                    <SortableHeader column="project_name" label={t('table.project')} currentSort={sortBy} currentOrder={sortOrder} params={params} />
+                                    <SortableHeader column="block" label={t('table.block')} currentSort={sortBy} currentOrder={sortOrder} params={params} />
+                                    <SortableHeader column="unit_number" label={t('table.unitNo')} currentSort={sortBy} currentOrder={sortOrder} params={params} />
+                                    <SortableHeader column="status" label={t('table.status')} currentSort={sortBy} currentOrder={sortOrder} params={params} />
+                                    <SortableHeader column="type" label={t('table.roomType')} currentSort={sortBy} currentOrder={sortOrder} params={params} />
+                                    <SortableHeader column="unit_category" label={t('table.category')} currentSort={sortBy} currentOrder={sortOrder} params={params} />
+                                    <SortableHeader column="floor" label={t('table.floor')} currentSort={sortBy} currentOrder={sortOrder} params={params} />
+                                    <SortableHeader column="direction" label={t('table.direction')} currentSort={sortBy} currentOrder={sortOrder} params={params} />
+                                    <SortableHeader column="view" label={t('table.view')} currentSort={sortBy} currentOrder={sortOrder} params={params} />
+                                    <SortableHeader column="area_gross" label={t('table.grossArea')} currentSort={sortBy} currentOrder={sortOrder} params={params} />
+                                    <SortableHeader column="area_net" label={t('table.netArea')} currentSort={sortBy} currentOrder={sortOrder} params={params} />
+                                    <SortableHeader column="price" label={t('table.price')} currentSort={sortBy} currentOrder={sortOrder} params={params} className="font-bold" />
+
                                     <TableHead>{t('table.vat')}</TableHead>
                                     <TableHead>{t('table.discount')}</TableHead>
                                     <TableHead className="min-w-[120px]">{t('table.parking')}</TableHead>

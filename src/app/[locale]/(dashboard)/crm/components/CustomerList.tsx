@@ -130,7 +130,8 @@ export default function CustomerList({
             return (
                 c.full_name?.toLowerCase().includes(query) ||
                 c.phone?.includes(query) ||
-                c.email?.toLowerCase().includes(query)
+                c.email?.toLowerCase().includes(query) ||
+                c.customer_number?.toLowerCase().includes(query)
             )
         })
         .sort((a, b) => {
@@ -417,7 +418,7 @@ export default function CustomerList({
                                     onClick={() => toggleSort('full_name')}
                                 >
                                     <div className="flex items-center">
-                                        {t('table.fullName')}
+                                        ID / {t('table.fullName')}
                                         <SortIcon columnKey="full_name" />
                                     </div>
                                 </TableHead>
@@ -446,7 +447,14 @@ export default function CustomerList({
                                                     {c.full_name.substring(0, 2).toUpperCase()}
                                                 </div>
                                                 <div className="flex flex-col gap-0.5">
-                                                    <span className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors uppercase tracking-tight">{c.full_name}</span>
+                                                    <div className="flex items-center gap-2">
+                                                        {c.customer_number && (
+                                                            <span className="text-[10px] font-black px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded-md border border-blue-100 flex-shrink-0">
+                                                                {c.customer_number}
+                                                            </span>
+                                                        )}
+                                                        <span className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors uppercase tracking-tight">{c.full_name}</span>
+                                                    </div>
                                                     <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{new Date(c.created_at).toLocaleDateString()}</span>
                                                 </div>
                                             </Link>
@@ -510,7 +518,14 @@ export default function CustomerList({
                                         {c.full_name.substring(0, 2).toUpperCase()}
                                     </div>
                                     <div className="flex flex-col">
-                                        <span className="font-black text-slate-900 text-[16px] leading-tight uppercase tracking-tight">{c.full_name}</span>
+                                        <div className="flex items-center gap-2">
+                                            {c.customer_number && (
+                                                <span className="text-[9px] font-black px-1.5 bg-blue-100 text-blue-700 rounded-lg">
+                                                    {c.customer_number}
+                                                </span>
+                                            )}
+                                            <span className="font-black text-slate-900 text-[16px] leading-tight uppercase tracking-tight">{c.full_name}</span>
+                                        </div>
                                         <span className="text-[10px] text-slate-400 uppercase font-black tracking-widest mt-0.5">
                                             {new Date(c.created_at).toLocaleDateString()}
                                         </span>

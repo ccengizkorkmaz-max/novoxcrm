@@ -79,6 +79,7 @@ export function ContractForm({
     const activeOffer = offers.find(o => o.unit_id === formData.unit_id)
 
     const [paymentPlan, setPaymentPlan] = useState<any[]>([])
+    const [customerSearch, setCustomerSearch] = useState('')
 
     const handlePaymentPlanChange = useCallback((newPlan: any[]) => {
         setPaymentPlan(newPlan)
@@ -333,27 +334,45 @@ export function ContractForm({
                         <CardTitle>Müşteri Seçimi</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <div className="space-y-2">
-                            <Label>Müşteriler</Label>
+                        <div className="space-y-4">
+                            <div className="relative">
+                                <Input
+                                    placeholder="Müşteri ismi veya telefon ile ara..."
+                                    value={customerSearch}
+                                    onChange={(e) => setCustomerSearch(e.target.value)}
+                                    className="pl-10"
+                                />
+                                <div className="absolute left-3 top-2.5 text-muted-foreground">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>
+                                </div>
+                            </div>
                             <div className="border rounded-md p-4 h-64 overflow-y-auto space-y-2">
-                                {customers.map((c: any) => (
-                                    <div key={c.id} className="flex items-center space-x-2">
-                                        <input
-                                            type="checkbox"
-                                            id={c.id}
-                                            checked={formData.selectedCustomers.includes(c.id)}
-                                            onChange={(e) => {
-                                                const selected = formData.selectedCustomers
-                                                if (e.target.checked) setFormData({ ...formData, selectedCustomers: [...selected, c.id] })
-                                                else setFormData({ ...formData, selectedCustomers: selected.filter(id => id !== c.id) })
-                                            }}
-                                            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                                        />
-                                        <label htmlFor={c.id} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                                            {c.full_name} <span className="text-muted-foreground ml-2">{c.phone}</span>
-                                        </label>
-                                    </div>
-                                ))}
+                                {customers
+                                    .filter((c: any) => {
+                                        const query = customerSearch.toLowerCase()
+                                        return (
+                                            c.full_name?.toLowerCase().includes(query) ||
+                                            c.phone?.toLowerCase().includes(query)
+                                        )
+                                    })
+                                    .map((c: any) => (
+                                        <div key={c.id} className="flex items-center space-x-2 p-1 hover:bg-slate-50 rounded transition-colors">
+                                            <input
+                                                type="checkbox"
+                                                id={c.id}
+                                                checked={formData.selectedCustomers.includes(c.id)}
+                                                onChange={(e) => {
+                                                    const selected = formData.selectedCustomers
+                                                    if (e.target.checked) setFormData({ ...formData, selectedCustomers: [...selected, c.id] })
+                                                    else setFormData({ ...formData, selectedCustomers: selected.filter(id => id !== c.id) })
+                                                }}
+                                                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                            />
+                                            <label htmlFor={c.id} className="text-sm font-medium leading-none cursor-pointer flex-1 py-1">
+                                                {c.full_name} <span className="text-muted-foreground ml-2">{c.phone}</span>
+                                            </label>
+                                        </div>
+                                    ))}
                             </div>
                             <p className="text-sm text-muted-foreground">Birden fazla müşteri seçebilirsiniz (Ortaklık).</p>
                         </div>

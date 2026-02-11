@@ -40,7 +40,7 @@ export function ReserveUnitDialog({ unitId, unitNumber, projectName, customers, 
     const defaultDate = new Date()
     defaultDate.setDate(defaultDate.getDate() + 3)
     const [expiryDate, setExpiryDate] = useState(defaultDate.toISOString().split('T')[0])
-    const [depositAmount, setDepositAmount] = useState(0)
+    const [depositAmount, setDepositAmount] = useState<number | string>(0)
 
     const handleSubmit = async (formData: FormData) => {
         if (!selectedCustomerId) {
@@ -114,7 +114,7 @@ export function ReserveUnitDialog({ unitId, unitNumber, projectName, customers, 
                                     name="deposit_amount"
                                     type="number"
                                     value={depositAmount}
-                                    onChange={(e) => setDepositAmount(Number(e.target.value))}
+                                    onChange={(e) => setDepositAmount(e.target.value)}
                                     placeholder="0"
                                 />
                                 <div className="absolute right-3 top-2 text-sm text-muted-foreground font-semibold">

@@ -30,6 +30,7 @@ export interface Customer {
     country?: string
     portal_username?: string
     portal_password?: string
+    customer_number?: string
     created_at: string
     customer_demands?: any[]
     contract_customers?: any[]
@@ -50,7 +51,14 @@ export function CustomerEditDialog({ customer, isOpen, onOpenChange }: CustomerE
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-lg w-[95vw] rounded-2xl">
                 <DialogHeader>
-                    <DialogTitle>{t('editCustomer')}</DialogTitle>
+                    <DialogTitle className="flex items-center gap-2">
+                        {customer.customer_number && (
+                            <span className="text-xs font-black px-2 py-0.5 bg-blue-100 text-blue-700 rounded-lg">
+                                {customer.customer_number}
+                            </span>
+                        )}
+                        {t('editCustomer')}
+                    </DialogTitle>
                 </DialogHeader>
                 <Tabs defaultValue="details" className="w-full">
                     <TabsList className="grid w-full grid-cols-2">

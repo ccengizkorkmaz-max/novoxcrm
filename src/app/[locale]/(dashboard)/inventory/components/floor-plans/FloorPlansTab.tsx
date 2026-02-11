@@ -167,8 +167,8 @@ export function FloorPlansTab({ projects, currentProject }: FloorPlansTabProps) 
                                     key={plan.id}
                                     onClick={() => setSelectedPlanId(plan.id)}
                                     className={`text-left px-4 py-3 rounded-lg text-sm transition-colors border ${selectedPlanId === plan.id
-                                            ? 'bg-white border-primary shadow-sm font-medium text-primary'
-                                            : 'bg-slate-50 border-transparent hover:bg-slate-100 text-slate-600'
+                                        ? 'bg-white border-primary shadow-sm font-medium text-primary'
+                                        : 'bg-slate-50 border-transparent hover:bg-slate-100 text-slate-600'
                                         }`}
                                 >
                                     {plan.title}
@@ -204,7 +204,8 @@ export function FloorPlansTab({ projects, currentProject }: FloorPlansTabProps) 
                                             price: p.unit?.price || 0,
                                             currency: p.unit?.currency || 'TRY',
                                             type: p.unit?.type || '',
-                                            area_gross: p.unit?.area_gross || null
+                                            area_gross: p.unit?.area_gross || null,
+                                            area_net: p.unit?.area_net || null
                                         }
                                     }))}
                                     onUnitClick={(id) => router.push(`/inventory/${id}`)}

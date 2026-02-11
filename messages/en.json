@@ -445,7 +445,8 @@
             "sales": "Sales Performance",
             "inventory": "Stock & Project Analysis",
             "finance": "Financial Analysis",
-            "efficiency": "Field & Team Efficiency"
+            "efficiency": "Field & Team Efficiency",
+            "publicLinks": "Catalog & Link Tracking"
         },
         "Inbox": {
             "title": "Inbox",
@@ -1974,8 +1975,15 @@
             "allProjects": "All Projects",
             "rep": "Sales Representative",
             "allTeam": "All Team",
-            "status": "Status",
+            "statusLabel": "Status",
             "allStatuses": "All Statuses",
+            "status": {
+                "Lead": "Lead",
+                "Prospect": "Prospect",
+                "Reservation": "Reservation",
+                "Sold": "Sold",
+                "Lost": "Lost"
+            },
             "apply": "Apply Filters",
             "reset": "Reset Filters"
         },

@@ -508,7 +508,14 @@ export async function assignSale(saleId: string, userId: string | null) {
     const { data: profile } = await supabase.from('profiles').select('role, tenant_id').eq('id', user.id).single()
     const isAdmin = profile?.role === 'admin' || profile?.role === 'owner'
 
-    if (!isAdmin) return { error: 'Bu işlem için yetkiniz yok.' }
+    // If not admin, only allow assigning to self IF currently unassigned
+    if (!isAdmin) {
+        if (userId !== user.id) return { error: 'Sadece kendinize atama yapabilirsiniz.' }
+
+        // Check if already assigned
+        const { data: currentSale } = await supabase.from('sales').select('assigned_to').eq('id', saleId).single()
+        if (currentSale?.assigned_to) return { error: 'Bu lead zaten atanmış durumda.' }
+    }
 
     const { error } = await supabase
         .from('sales')

@@ -17,6 +17,7 @@ interface Position {
         price: number
         currency: string
         area_gross: number | null
+        area_net: number | null
         type: string
     }
 }
@@ -101,18 +102,53 @@ export function PlanViewer({ imageUrl, title, positions, onUnitClick }: PlanView
                                 {scale > 1.2 ? <span className="text-[6px]">{pos.unit.unit_number}</span> : ''}
                             </button>
 
-                            {/* Hover Tooltip */}
-                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-max max-w-[200px] bg-slate-900 border border-slate-800 text-white p-3 rounded-lg shadow-xl opacity-0 scale-90 group-hover/marker:opacity-100 group-hover/marker:scale-100 transition-all pointer-events-none z-20 origin-bottom">
-                                <div className="flex flex-col gap-1">
-                                    <div className="flex items-center justify-between gap-4">
-                                        <span className="font-bold text-emerald-400">No: {pos.unit.unit_number}</span>
-                                        <Badge variant="outline" className="text-[9px] border-slate-600 text-slate-300 h-4 px-1">{pos.unit.status}</Badge>
+                            {/* Hover Tooltip - High Quality Mini Card */}
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-max min-w-[180px] bg-white border border-slate-200 text-slate-900 p-0 rounded-xl shadow-2xl opacity-0 scale-90 group-hover/marker:opacity-100 group-hover/marker:scale-100 transition-all pointer-events-none z-20 origin-bottom ring-4 ring-black/5">
+                                <div className="flex flex-col">
+                                    {/* Header */}
+                                    <div className={cn(
+                                        "px-3 py-2 rounded-t-xl flex items-center justify-between gap-4 border-b",
+                                        pos.unit.status === 'Sold' ? 'bg-red-50 border-red-100' :
+                                            pos.unit.status === 'Reserved' ? 'bg-amber-50 border-amber-100' :
+                                                'bg-slate-50 border-slate-100'
+                                    )}>
+                                        <span className="font-black text-xs tracking-tight">Ünite {pos.unit.unit_number}</span>
+                                        <Badge className={cn(
+                                            "text-[9px] h-4 px-1 border-none font-bold",
+                                            STATUS_COLORS[pos.unit.status] || 'bg-slate-400'
+                                        )}>
+                                            {pos.unit.status}
+                                        </Badge>
                                     </div>
-                                    <div className="text-xs text-slate-300">{pos.unit.type} • {pos.unit.area_gross ? `${pos.unit.area_gross} m²` : '-'}</div>
-                                    <div className="text-sm font-black text-white">{pos.unit.price ? formatCurrency(pos.unit.price, pos.unit.currency) : '-'}</div>
+
+                                    {/* Body */}
+                                    <div className="p-3 space-y-2">
+                                        <div className="flex flex-col gap-0.5">
+                                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Ünite Tipi</div>
+                                            <div className="text-xs font-bold text-slate-700">{pos.unit.type || 'Belirtilmedi'}</div>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-3 pb-1">
+                                            <div className="flex flex-col gap-0.5">
+                                                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Net Alan</div>
+                                                <div className="text-xs font-bold text-slate-700">{pos.unit.area_net || '-'} m²</div>
+                                            </div>
+                                            <div className="flex flex-col gap-0.5 border-l pl-3">
+                                                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Brüt Alan</div>
+                                                <div className="text-xs font-bold text-slate-700">{pos.unit.area_gross || '-'} m²</div>
+                                            </div>
+                                        </div>
+
+                                        <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Fiyat</span>
+                                            <span className="text-sm font-black text-blue-600">
+                                                {pos.unit.price ? formatCurrency(pos.unit.price, pos.unit.currency) : '-'}
+                                            </span>
+                                        </div>
+                                    </div>
                                 </div>
                                 {/* Arrow */}
-                                <div className="absolute bottom-[-4px] left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-900 rotate-45 border-r border-b border-slate-800"></div>
+                                <div className="absolute bottom-[-5px] left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-white rotate-45 border-r border-b border-slate-200"></div>
                             </div>
                         </div>
                     ))}

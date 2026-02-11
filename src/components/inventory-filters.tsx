@@ -71,6 +71,9 @@ export function InventoryFilters({ projects }: InventoryFiltersProps) {
         appendIf('has_master_bathroom')
         appendIf('has_builtin_kitchen')
 
+        const currentTab = searchParams.get('tab')
+        if (currentTab) params.set('tab', currentTab)
+
         setOpen(false)
         router.push(`/inventory?${params.toString()}`)
     }

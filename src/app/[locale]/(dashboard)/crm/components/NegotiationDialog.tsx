@@ -50,7 +50,7 @@ export default function NegotiationDialog({ offerId, currentPrice, currentCurren
     const [notes, setNotes] = useState('')
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
-    const [approvalDeposit, setApprovalDeposit] = useState<number>(0)
+    const [approvalDeposit, setApprovalDeposit] = useState<number | string>(0)
     const [negToApprove, setNegToApprove] = useState<any>(null)
     const router = useRouter()
 
@@ -111,7 +111,7 @@ export default function NegotiationDialog({ offerId, currentPrice, currentCurren
 
         setLoading(true)
         try {
-            const res = await approveNegotiation(negToApprove.id, approvalDeposit)
+            const res = await approveNegotiation(negToApprove.id, Number(approvalDeposit))
             if (res.success) {
                 toast.success(tMsg('offerApproved'))
                 setIsOpen(false)
@@ -166,9 +166,8 @@ export default function NegotiationDialog({ offerId, currentPrice, currentCurren
                                             type="number"
                                             value={newPrice}
                                             onChange={(e) => setNewPrice(Number(e.target.value))}
-                                            className="h-12 bg-slate-50 border-slate-200 focus:ring-blue-500 rounded-xl font-black text-lg pl-10"
+                                            className="h-12 bg-slate-50 border-slate-200 focus:ring-blue-500 rounded-xl font-black text-lg px-4"
                                         />
-                                        <DollarSign className="absolute left-3.5 top-3.5 h-5 w-5 text-slate-300" />
                                     </div>
                                 </div>
                                 <div className="space-y-2">
@@ -304,7 +303,7 @@ export default function NegotiationDialog({ offerId, currentPrice, currentCurren
                                                                 type="number"
                                                                 className="h-10 pr-12 text-sm text-right bg-white border-slate-200 rounded-lg font-black"
                                                                 value={approvalDeposit}
-                                                                onChange={(e) => setApprovalDeposit(Number(e.target.value))}
+                                                                onChange={(e) => setApprovalDeposit(e.target.value)}
                                                             />
                                                             <span className="absolute right-3 top-2.5 text-[10px] font-black text-slate-300">TRY</span>
                                                         </div>
@@ -314,7 +313,7 @@ export default function NegotiationDialog({ offerId, currentPrice, currentCurren
                                                         onClick={() => setNegToApprove(neg)}
                                                         disabled={loading}
                                                     >
-                                                        {approvalDeposit > 0 ? t('approveWithDeposit') : t('approveContract')}
+                                                        {Number(approvalDeposit) > 0 ? t('approveWithDeposit') : t('approveContract')}
                                                     </Button>
                                                 </div>
                                             )}
@@ -339,9 +338,9 @@ export default function NegotiationDialog({ offerId, currentPrice, currentCurren
                             </AlertDialogTitle>
                             <AlertDialogDescription className="text-slate-500 font-medium leading-relaxed">
                                 {t.has('approveConfirm') ? tMsg('approveConfirm') : 'Bu teklifi onaylayarak sözleşme aşamasına geçmek istediğinize emin misiniz?'}
-                                {approvalDeposit > 0 && (
+                                {Number(approvalDeposit) > 0 && (
                                     <div className="mt-3 p-3 bg-blue-50 text-blue-700 rounded-xl text-xs font-bold border border-blue-100">
-                                        {formatCurrency(approvalDeposit, 'TRY')} {t.has('depositAmountInfo') ? t('depositAmountInfo') : 'kapora girişi yapılacaktır.'}
+                                        {formatCurrency(Number(approvalDeposit), 'TRY')} {t.has('depositAmountInfo') ? t('depositAmountInfo') : 'kapora girişi yapılacaktır.'}
                                     </div>
                                 )}
                             </AlertDialogDescription>

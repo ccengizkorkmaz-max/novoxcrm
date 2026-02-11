@@ -673,3 +673,255 @@ export async function bulkUpdateStatuses(unitIds: string[], newStatus: string, r
 }
 
 // --- Sales Velocity Report moved to ./stats-actions.ts
+// --- Public Inventory Links ---
+export async function createPublicInventoryLink(title: string, unitIds: string[], expiryDays: number, password?: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Not authenticated' }
+
+    const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single()
+    if (!profile?.tenant_id) return { error: 'Tenant not found' }
+
+    // Generate a unique slug
+    const slug = Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10)
+
+    // Calculate expiry
+    const expiresAt = new Date()
+    expiresAt.setDate(expiresAt.getDate() + expiryDays)
+
+    const { data, error } = await supabase.from('public_inventory_links').insert({
+        tenant_id: profile.tenant_id,
+        slug,
+        title,
+        unit_ids: unitIds,
+        expires_at: expiresAt.toISOString(),
+        password_hash: password || null, // Simple storage for now
+        created_by: user.id
+    }).select().single()
+
+    if (error) {
+        console.error('Create public link error:', error)
+        return { error: 'Link creation failed: ' + error.message }
+    }
+
+    return { success: true, slug: data.slug }
+}
+export async function getPublicInventoryLinkBySlug(slug: string) {
+    const { createAdminClient } = await import('@/lib/supabase/admin')
+    const supabase = createAdminClient()
+
+    // Fetch the link meta data
+    const { data: link, error } = await supabase
+        .from('public_inventory_links')
+        .select('*')
+        .eq('slug', slug)
+        .eq('is_active', true)
+        .maybeSingle()
+
+    if (error || !link) return null
+
+    // Tracking: Update view count asynchronously (don't wait for it to return the page)
+    supabase.from('public_inventory_links')
+        .update({
+            views_count: (link.views_count || 0) + 1,
+            last_viewed_at: new Date().toISOString()
+        })
+        .eq('id', link.id)
+        .then(({ error: trackError }) => {
+            if (trackError) console.error('Tracking update failed:', trackError)
+        })
+
+    // Check expiry
+    if (link.expires_at && new Date(link.expires_at) < new Date()) {
+        return { expired: true }
+    }
+
+    // Fetch units in chunks to avoid URL length limits (414 Request-URI Too Large)
+    // UUID strings are long, so if we share 100+ units, the .in() filter can break.
+    const CHUNK_SIZE = 100
+    const allUnits = []
+
+    for (let i = 0; i < link.unit_ids.length; i += CHUNK_SIZE) {
+        const chunk = link.unit_ids.slice(i, i + CHUNK_SIZE)
+        const { data: units, error: unitsError } = await supabase
+            .from('units')
+            .select('*, projects(name)')
+            .in('id', chunk)
+            .order('unit_number', { ascending: true })
+
+        if (!unitsError && units) {
+            allUnits.push(...units)
+        } else if (unitsError) {
+            console.error('Error fetching unit chunk:', unitsError)
+        }
+    }
+
+    // Sort the combined results
+    allUnits.sort((a, b) => a.unit_number.localeCompare(b.unit_number, undefined, { numeric: true }))
+
+    return { ...link, units: allUnits }
+}
+
+export async function submitPublicInquiry(data: {
+    link_id: string;
+    unit_id?: string;
+    full_name: string;
+    email?: string;
+    phone: string;
+    message?: string;
+}) {
+    // We use admin client to bypass any insertion blocks and successfully update lead count
+    const { createAdminClient } = await import('@/lib/supabase/admin')
+    const supabase = createAdminClient()
+
+    // 1. Get the link to find the tenant_id and creator
+    const { data: link, error: linkError } = await supabase
+        .from('public_inventory_links')
+        .select('tenant_id, leads_count, created_by, title')
+        .eq('id', data.link_id)
+        .single()
+
+    if (linkError || !link) return { error: 'Link not found' }
+
+    // 2. CRM INTEGRATION: Create or Update Customer
+    // Find existing customer by phone or email
+    let customerId: string | null = null
+    const { data: existingCustomer } = await supabase
+        .from('customers')
+        .select('id')
+        .eq('tenant_id', link.tenant_id)
+        .or(`phone.eq.${data.phone}${data.email ? `,email.eq.${data.email}` : ''}`)
+        .maybeSingle()
+
+    if (existingCustomer) {
+        customerId = existingCustomer.id
+    } else {
+        const { data: newCustomer, error: customerError } = await supabase
+            .from('customers')
+            .insert({
+                tenant_id: link.tenant_id,
+                full_name: data.full_name,
+                phone: data.phone,
+                email: data.email || null,
+                source: `Public Katalog: ${link.title || 'İsimsiz'}`
+                // created_by: link.created_by // Temporarily disabled due to schema cache error
+            })
+            .select('id')
+            .single()
+
+        if (customerError) {
+            console.error('CRM INTEGRATION ERROR (Customer Creation):', customerError)
+        } else if (newCustomer) {
+            console.log('CRM Integration: New customer created:', newCustomer.id)
+            customerId = newCustomer.id
+        }
+    }
+
+    // 3. Create a Sales Lead (Lead or Prospect if unit is selected)
+    if (customerId) {
+        console.log('CRM Integration: Creating sales lead for customer:', customerId)
+
+        // Fetch project_id from unit if available
+        let projectId = null
+        if (data.unit_id) {
+            const { data: unit } = await supabase.from('units').select('project_id').eq('id', data.unit_id).single()
+            if (unit) projectId = unit.project_id
+        }
+
+        const { data: saleData, error: saleError } = await supabase.from('sales').insert({
+            tenant_id: link.tenant_id,
+            customer_id: customerId,
+            unit_id: data.unit_id || null,
+            project_id: projectId,
+            assigned_to: link.created_by, // Auto-assign to link creator
+            status: data.unit_id ? 'Prospect' : 'Lead',
+            lead_origin: 'company',
+            description: data.message || 'Katalog üzerinden gelen talep.'
+        }).select('id').single()
+
+        if (saleError) {
+            console.error('CRM INTEGRATION ERROR (Sale Lead Creation):', saleError)
+        } else {
+            console.log('CRM Integration: Sale lead created successfully:', saleData?.id)
+        }
+    } else {
+        console.error('CRM INTEGRATION ERROR: Could not determine customerId. Sales lead skipped.')
+    }
+
+    // 4. Insert the inquiry record (for tracking/history)
+    const { error: inquiryError } = await supabase
+        .from('public_inquiries')
+        .insert({
+            link_id: data.link_id,
+            tenant_id: link.tenant_id,
+            unit_id: data.unit_id || null,
+            full_name: data.full_name,
+            email: data.email,
+            phone: data.phone,
+            message: data.message,
+            source: 'catalog'
+        })
+
+    if (inquiryError) {
+        console.error('Inquiry submission error:', inquiryError)
+        return { error: 'Submission failed' }
+    }
+
+    // 5. Increment leads_count on the link
+    await supabase.from('public_inventory_links')
+        .update({ leads_count: (link.leads_count || 0) + 1 })
+        .eq('id', data.link_id)
+
+    // 6. Notify the link creator
+    if (link.created_by) {
+        try {
+            const { createNotification } = await import('@/lib/notifications/create')
+            await createNotification({
+                tenant_id: link.tenant_id,
+                user_id: link.created_by,
+                type: 'Success',
+                category: 'CRM',
+                title: '🔥 Yeni Katalog Talebi!',
+                message: `${data.full_name} isimli müşteri "${link.title || 'Katalog'}" üzerinden bilgi istedi.`,
+                link: '/crm'
+            })
+        } catch (noteError) {
+            console.error('Notification error in public inquiry:', noteError)
+        }
+    }
+
+    return { success: true }
+}
+
+export async function getPublicLinksReport() {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return []
+
+    const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single()
+    if (!profile?.tenant_id) return []
+
+    const { data, error } = await supabase
+        .from('public_inventory_links')
+        .select(`
+            id,
+            title,
+            slug,
+            views_count,
+            leads_count,
+            expires_at,
+            created_at,
+            is_active,
+            last_viewed_at,
+            created_by:profiles(full_name)
+        `)
+        .eq('tenant_id', profile.tenant_id)
+        .order('created_at', { ascending: false })
+
+    if (error) {
+        console.error('Fetch public links report error detail:', JSON.stringify(error, null, 2))
+        return []
+    }
+
+    return data || []
+}

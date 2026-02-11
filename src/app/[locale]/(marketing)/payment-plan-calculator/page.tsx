@@ -94,8 +94,8 @@ export default function PaymentPlanCalculator() {
                                             <Input
                                                 type="number"
                                                 className="bg-slate-950 border-slate-800"
-                                                value={price}
-                                                onChange={(e) => setPrice(Number(e.target.value))}
+                                                value={price?.toString() || ""}
+                                                onChange={(e) => setPrice(Number(e.target.value) || 0)}
                                             />
                                             <Select value={currency} onValueChange={setCurrency}>
                                                 <SelectTrigger className="w-24 bg-slate-950 border-slate-800">
@@ -114,8 +114,8 @@ export default function PaymentPlanCalculator() {
                                         <Input
                                             type="number"
                                             className="bg-slate-950 border-slate-800"
-                                            value={downPayment}
-                                            onChange={(e) => setDownPayment(Number(e.target.value))}
+                                            value={downPayment?.toString() || ""}
+                                            onChange={(e) => setDownPayment(Number(e.target.value) || 0)}
                                         />
                                         <p className="text-xs text-slate-500">Satışın %{((downPayment / price) * 100).toFixed(1)}'i</p>
                                     </div>
@@ -126,8 +126,8 @@ export default function PaymentPlanCalculator() {
                                         <Input
                                             type="number"
                                             className="bg-slate-950 border-slate-800"
-                                            value={installments}
-                                            onChange={(e) => setInstallments(Number(e.target.value))}
+                                            value={installments?.toString() || ""}
+                                            onChange={(e) => setInstallments(Number(e.target.value) || 0)}
                                         />
                                     </div>
                                     <div className="p-4 bg-blue-500/10 rounded-xl border border-blue-500/20">
@@ -145,8 +145,8 @@ export default function PaymentPlanCalculator() {
                                                     type="number"
                                                     step="0.01"
                                                     className="bg-slate-950 border-slate-800 border-blue-500/30"
-                                                    value={interestRate}
-                                                    onChange={(e) => setInterestRate(Number(e.target.value))}
+                                                    value={interestRate?.toString() || ""}
+                                                    onChange={(e) => setInterestRate(Number(e.target.value) || 0)}
                                                 />
                                                 <p className="text-[10px] text-blue-400 font-medium italic">Vade farkı aylık bazda hesaplanır.</p>
                                             </div>
@@ -180,8 +180,8 @@ export default function PaymentPlanCalculator() {
                                                 <Input
                                                     type="number"
                                                     className="bg-slate-950 border-slate-800"
-                                                    value={p.month}
-                                                    onChange={(e) => updateInterimPayment(p.id, 'month', Number(e.target.value))}
+                                                    value={p.month?.toString() || ""}
+                                                    onChange={(e) => updateInterimPayment(p.id, 'month', Number(e.target.value) || 0)}
                                                 />
                                             </div>
                                             <div className="flex-[2] space-y-2">
@@ -189,8 +189,8 @@ export default function PaymentPlanCalculator() {
                                                 <Input
                                                     type="number"
                                                     className="bg-slate-950 border-slate-800"
-                                                    value={p.amount}
-                                                    onChange={(e) => updateInterimPayment(p.id, 'amount', Number(e.target.value))}
+                                                    value={p.amount?.toString() || ""}
+                                                    onChange={(e) => updateInterimPayment(p.id, 'amount', Number(e.target.value) || 0)}
                                                 />
                                             </div>
                                             <Button

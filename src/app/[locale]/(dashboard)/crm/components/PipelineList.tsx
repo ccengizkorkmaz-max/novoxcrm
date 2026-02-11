@@ -303,7 +303,13 @@ export default function PipelineList({
                                                             </Button>
                                                         )}
                                                     </div>
-                                                    <span className="text-xs text-muted-foreground hidden lg:inline-block">ID: {sale.id.slice(0, 8)}...</span>
+                                                    {sale.customers?.customer_number ? (
+                                                        <span className="text-[10px] font-black px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded-md border border-blue-100 flex-shrink-0 w-fit">
+                                                            {sale.customers.customer_number}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-xs text-muted-foreground hidden lg:inline-block">ID: {sale.id.slice(0, 8)}...</span>
+                                                    )}
                                                 </div>
                                             </TableCell>
                                             <TableCell className="p-4 align-middle border-r border-border/50">
@@ -407,48 +413,63 @@ export default function PipelineList({
                                                         </div>
                                                     ) : (
                                                         <div className="flex items-center gap-1">
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="sm"
-                                                                className="h-7 text-blue-600 hover:text-blue-700 hover:bg-blue-50 text-[11px] px-2 border border-blue-200 dashed bg-blue-50/30"
-                                                                onClick={() => handleAutoAssign(sale.id)}
-                                                                disabled={isAssigning === sale.id || !sale.units?.projects?.id}
-                                                                title={!sale.units?.projects?.id ? t('actions.assignError') : t('actions.assignTooltip')}
-                                                            >
-                                                                {isAssigning === sale.id ? (
-                                                                    t('actions.assigning')
-                                                                ) : (
-                                                                    <>
-                                                                        <Sparkles className="w-3 h-3 mr-1" /> {t('actions.autoAssign')}
-                                                                    </>
-                                                                )}
-                                                            </Button>
-                                                            {isAdmin && (
-                                                                <Popover open={assignPopoverOpen === sale.id} onOpenChange={(open) => setAssignPopoverOpen(open ? sale.id : null)}>
-                                                                    <PopoverTrigger asChild>
-                                                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-blue-600 border border-transparent hover:border-border rounded-full">
-                                                                            <Pencil className="h-3 w-3" />
-                                                                        </Button>
-                                                                    </PopoverTrigger>
-                                                                    <PopoverContent className="p-0" align="start">
-                                                                        <Command>
-                                                                            <CommandInput placeholder="Temsilci Seç..." />
-                                                                            <CommandList>
-                                                                                <CommandEmpty>Temsilci bulunamadı.</CommandEmpty>
-                                                                                <CommandGroup>
-                                                                                    {profiles?.map((profile: any) => (
-                                                                                        <CommandItem
-                                                                                            key={profile.id}
-                                                                                            onSelect={() => handleManualAssign(sale.id, profile.id)}
-                                                                                        >
-                                                                                            {profile.full_name}
-                                                                                        </CommandItem>
-                                                                                    ))}
-                                                                                </CommandGroup>
-                                                                            </CommandList>
-                                                                        </Command>
-                                                                    </PopoverContent>
-                                                                </Popover>
+                                                            {isAdmin ? (
+                                                                <>
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        className="h-7 text-blue-600 hover:text-blue-700 hover:bg-blue-50 text-[11px] px-2 border border-blue-200 dashed bg-blue-50/30"
+                                                                        onClick={() => handleAutoAssign(sale.id)}
+                                                                        disabled={isAssigning === sale.id || !sale.units?.projects?.id}
+                                                                        title={!sale.units?.projects?.id ? t('actions.assignError') : t('actions.assignTooltip')}
+                                                                    >
+                                                                        {isAssigning === sale.id ? (
+                                                                            t('actions.assigning')
+                                                                        ) : (
+                                                                            <>
+                                                                                <Sparkles className="w-3 h-3 mr-1" /> {t('actions.autoAssign')}
+                                                                            </>
+                                                                        )}
+                                                                    </Button>
+                                                                    <Popover open={assignPopoverOpen === sale.id} onOpenChange={(open) => setAssignPopoverOpen(open ? sale.id : null)}>
+                                                                        <PopoverTrigger asChild>
+                                                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-blue-600 border border-transparent hover:border-border rounded-full">
+                                                                                <Pencil className="h-3 w-3" />
+                                                                            </Button>
+                                                                        </PopoverTrigger>
+                                                                        <PopoverContent className="p-0" align="start">
+                                                                            <Command>
+                                                                                <CommandInput placeholder="Temsilci Seç..." />
+                                                                                <CommandList>
+                                                                                    <CommandEmpty>Temsilci bulunamadı.</CommandEmpty>
+                                                                                    <CommandGroup>
+                                                                                        {profiles?.map((profile: any) => (
+                                                                                            <CommandItem
+                                                                                                key={profile.id}
+                                                                                                onSelect={() => handleManualAssign(sale.id, profile.id)}
+                                                                                            >
+                                                                                                {profile.full_name}
+                                                                                            </CommandItem>
+                                                                                        ))}
+                                                                                    </CommandGroup>
+                                                                                </CommandList>
+                                                                            </Command>
+                                                                        </PopoverContent>
+                                                                    </Popover>
+                                                                </>
+                                                            ) : (
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    className="h-7 text-blue-600 hover:text-blue-700 hover:bg-blue-50 text-[11px] px-2 border-blue-200"
+                                                                    onClick={async () => {
+                                                                        const { data: { user } } = await (await import('@/lib/supabase/client')).createClient().auth.getUser()
+                                                                        if (user) handleManualAssign(sale.id, user.id)
+                                                                    }}
+                                                                    disabled={isAssigning === sale.id}
+                                                                >
+                                                                    <User className="w-3 h-3 mr-1" /> Üzerine Al
+                                                                </Button>
                                                             )}
                                                         </div>
                                                     )}
@@ -553,7 +574,13 @@ export default function PipelineList({
                                         >
                                             {sale.customers?.full_name}
                                         </button>
-                                        <span className="text-[10px] text-muted-foreground font-mono">ID: {sale.id.slice(0, 8)}</span>
+                                        {sale.customers?.customer_number ? (
+                                            <span className="text-[10px] font-black px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded-md border border-blue-100 w-fit">
+                                                {sale.customers.customer_number}
+                                            </span>
+                                        ) : (
+                                            <span className="text-[10px] text-muted-foreground font-mono">ID: {sale.id.slice(0, 8)}</span>
+                                        )}
                                     </div>
                                     <div className={cn(
                                         "px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider",
@@ -600,9 +627,21 @@ export default function PipelineList({
                                                     <span className="font-medium truncate">{sale.profiles.full_name}</span>
                                                 </>
                                             ) : (
-                                                <button onClick={() => handleAutoAssign(sale.id)} className="text-blue-600 font-bold hover:underline">
-                                                    {t('actions.autoAssign')}
-                                                </button>
+                                                isAdmin ? (
+                                                    <button onClick={() => handleAutoAssign(sale.id)} className="text-blue-600 font-bold hover:underline">
+                                                        {t('actions.autoAssign')}
+                                                    </button>
+                                                ) : (
+                                                    <button
+                                                        onClick={async () => {
+                                                            const { data: { user } } = await (await import('@/lib/supabase/client')).createClient().auth.getUser()
+                                                            if (user) handleManualAssign(sale.id, user.id)
+                                                        }}
+                                                        className="text-blue-600 font-bold hover:underline"
+                                                    >
+                                                        Üzerine Al
+                                                    </button>
+                                                )
                                             )}
                                         </div>
                                     </div>
@@ -681,41 +720,43 @@ export default function PipelineList({
             </div>
 
             {/* Pagination Controls */}
-            {totalPages > 1 && (
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 mt-4 shadow-sm">
-                    <div className="flex items-center gap-2">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-9 px-4 rounded-xl border-slate-200 font-bold text-xs uppercase transition-all hover:bg-slate-50 active:scale-95"
-                            onClick={() => {
-                                handlePageChange(Math.max(1, currentPage - 1))
-                                window.scrollTo({ top: 0, behavior: 'smooth' })
-                            }}
-                            disabled={currentPage === 1}
-                        >
-                            Geri
-                        </Button>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-9 px-4 rounded-xl border-slate-200 font-bold text-xs uppercase transition-all hover:bg-slate-50 active:scale-95"
-                            onClick={() => {
-                                handlePageChange(Math.min(totalPages, currentPage + 1))
-                                window.scrollTo({ top: 0, behavior: 'smooth' })
-                            }}
-                            disabled={currentPage === totalPages}
-                        >
-                            İleri
-                        </Button>
+            {
+                totalPages > 1 && (
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 mt-4 shadow-sm">
+                        <div className="flex items-center gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-9 px-4 rounded-xl border-slate-200 font-bold text-xs uppercase transition-all hover:bg-slate-50 active:scale-95"
+                                onClick={() => {
+                                    handlePageChange(Math.max(1, currentPage - 1))
+                                    window.scrollTo({ top: 0, behavior: 'smooth' })
+                                }}
+                                disabled={currentPage === 1}
+                            >
+                                Geri
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-9 px-4 rounded-xl border-slate-200 font-bold text-xs uppercase transition-all hover:bg-slate-50 active:scale-95"
+                                onClick={() => {
+                                    handlePageChange(Math.min(totalPages, currentPage + 1))
+                                    window.scrollTo({ top: 0, behavior: 'smooth' })
+                                }}
+                                disabled={currentPage === totalPages}
+                            >
+                                İleri
+                            </Button>
+                        </div>
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">
+                            Sayfa <span className="text-blue-600 font-black">{currentPage}</span> / {totalPages}
+                            <span className="mx-2 text-slate-200">|</span>
+                            Görüntülenen: {currentSales.length} / {totalSalesCount}
+                        </p>
                     </div>
-                    <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">
-                        Sayfa <span className="text-blue-600 font-black">{currentPage}</span> / {totalPages}
-                        <span className="mx-2 text-slate-200">|</span>
-                        Görüntülenen: {currentSales.length} / {totalSalesCount}
-                    </p>
-                </div>
-            )}
+                )
+            }
 
             <Dialog open={isPlanOpen} onOpenChange={setIsPlanOpen}>
                 <DialogContent className="max-w-2xl w-[95vw] rounded-2xl">
@@ -816,6 +857,6 @@ export default function PipelineList({
                 customers={customers}
                 profiles={profiles}
             />
-        </div>
+        </div >
     )
 }

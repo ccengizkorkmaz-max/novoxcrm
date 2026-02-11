@@ -54,7 +54,7 @@ export default async function CRMPage(props: {
     // 1. Build base sales query for filtered data
     let baseQuery = supabase
         .from('sales')
-        .select('*, customers!inner(id, full_name, email, phone), units(unit_number, price, currency, projects(id, name)), projects(id, name), profiles(full_name)', { count: 'exact' })
+        .select('*, customers!inner(id, full_name, email, phone, customer_number), units(unit_number, price, currency, projects(id, name)), projects(id, name), profiles(full_name)', { count: 'exact' })
         .neq('status', 'Inbox') // Exclude inbox items (pending approval)
 
     if (filterProject) baseQuery = baseQuery.eq('project_id', filterProject)

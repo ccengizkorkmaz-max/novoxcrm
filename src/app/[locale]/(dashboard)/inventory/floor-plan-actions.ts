@@ -24,6 +24,7 @@ export interface UnitPosition {
         currency: string
         type: string
         area_gross: number
+        area_net: number
     }
 }
 
@@ -155,7 +156,8 @@ export async function getFloorPlanPositions(floorPlanId: string) {
                 price,
                 currency,
                 type,
-                area_gross
+                area_gross,
+                area_net
             )
         `)
         .eq('floor_plan_id', floorPlanId)

@@ -20,6 +20,8 @@ import { UnitStatusChanger } from './components/UnitStatusChanger'
 import { UnitPriceChart } from './components/UnitPriceChart'
 import { UnitDocuments } from './components/UnitDocuments'
 import { UnitNotes } from './components/UnitNotes'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { FileText, Image as ImageIcon, History, ClipboardList, Info } from 'lucide-react'
 
 export default async function UnitDetailPage(props: {
     params: Promise<{ locale: string; id: string }>
@@ -92,189 +94,176 @@ export default async function UnitDetailPage(props: {
     const daysOnMarket = Math.floor((new Date().getTime() - listedDate.getTime()) / (1000 * 60 * 60 * 24))
 
     const isSold = unit.status === 'Sold'
-    const isBlocked = unit.status === 'Blocked'
+
+    const statusConfig = {
+        'Sold': { label: 'SATILDI', color: 'bg-rose-500', variant: 'destructive' },
+        'Reserved': { label: 'REZERVE', color: 'bg-amber-500', variant: 'secondary' },
+        'Option': { label: 'OPSİYON', color: 'bg-violet-500', variant: 'secondary' },
+        'Blocked': { label: 'BLOKE', color: 'bg-slate-500', variant: 'outline' },
+        'Rented': { label: 'KİRADA', color: 'bg-cyan-600', variant: 'secondary' },
+        'Delivered': { label: 'TESLİM EDİLDİ', color: 'bg-emerald-700', variant: 'default' },
+        'For Sale': { label: 'SATIŞTA', color: 'bg-emerald-600', variant: 'default' },
+    } as any
+
+    const status = statusConfig[unit.status] || { label: unit.status, color: 'bg-slate-400', variant: 'outline' }
 
     return (
-        <div className="flex flex-col gap-6">
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-6 max-w-[1600px] mx-auto pb-10">
+            {/* COMPACT BREADCRUMB & HEADER */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-4 rounded-xl border shadow-sm">
+                <div className="flex items-center gap-4">
                     <BackButton href="/inventory" />
+                    <div className="h-10 w-[1px] bg-slate-200 hidden md:block" />
                     <div>
                         <div className="flex items-center gap-2">
-                            <h1 className="text-2xl font-bold tracking-tight">Ünite Kartı: {unit.unit_number}</h1>
-                            <Badge variant={
-                                unit.status === 'Sold' ? 'destructive' :
-                                    unit.status === 'Reserved' ? 'secondary' :
-                                        unit.status === 'Blocked' ? 'outline' :
-                                            unit.status === 'Option' ? 'secondary' :
-                                                unit.status === 'Rented' ? 'secondary' :
-                                                    unit.status === 'Delivered' ? 'default' :
-                                                        'default'
-                            } className={
-                                unit.status === 'For Sale' ? 'bg-emerald-600 text-white' :
-                                    unit.status === 'Blocked' ? 'bg-slate-600 text-white' :
-                                        unit.status === 'Option' ? 'bg-violet-600 text-white' :
-                                            unit.status === 'Rented' ? 'bg-cyan-600 text-white' :
-                                                unit.status === 'Delivered' ? 'bg-green-800 text-white' :
-                                                    ''
-                            }>
-                                {unit.status === 'For Sale' ? 'SATIŞTA' :
-                                    unit.status === 'Sold' ? 'SATILDI' :
-                                        unit.status === 'Reserved' ? 'REZERVE' :
-                                            unit.status === 'Blocked' ? 'BLOKE' :
-                                                unit.status === 'Option' ? 'OPSİYON' :
-                                                    unit.status === 'Rented' ? 'KİRADA' :
-                                                        unit.status === 'Delivered' ? 'TESLİM EDİLDİ' :
-                                                            unit.status}
+                            <h1 className="text-xl font-black text-slate-900 tracking-tight">Ünite {unit.unit_number}</h1>
+                            <Badge className={`${status.color} text-white border-none px-2 py-0.5 text-[10px] font-bold`}>
+                                {status.label}
                             </Badge>
                         </div>
-                        <p className="text-muted-foreground">{unit.projects?.name} - {unit.type}</p>
-                        {isSold && contract && (
-                            <p className="text-sm text-muted-foreground mt-1">
-                                Sözleşme: <span className="font-semibold">{contract.contract_number}</span> •
-                                Tarih: <span className="font-semibold">{format(new Date(contract.contract_date), 'dd MMM yyyy', { locale: tr })}</span>
-                            </p>
-                        )}
+                        <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground font-medium">
+                            <span className="text-slate-900">{unit.projects?.name}</span>
+                            <span>•</span>
+                            <span>{unit.type}</span>
+                            {isSold && contract && (
+                                <>
+                                    <span>•</span>
+                                    <span className="text-rose-600 font-bold">
+                                        Sözleşme: {contract.contract_number} ({format(new Date(contract.contract_date), 'dd MMM yyyy', { locale: tr })})
+                                    </span>
+                                </>
+                            )}
+                        </div>
                     </div>
                 </div>
-                <div className="flex gap-2">
+
+                <div className="flex items-center gap-2">
                     <Button
                         asChild
                         variant="default"
+                        size="sm"
                         disabled={isSold || unit.status === 'Reserved'}
-                        className="bg-green-600 hover:bg-green-700"
+                        className="bg-emerald-600 hover:bg-emerald-700 font-bold text-xs"
                     >
                         <Link href={isSold || unit.status === 'Reserved' ? '#' : `/crm?newSale=true&unitId=${unit.id}&projectId=${unit.project_id}`}>
-                            Satış Başlat
+                            Hızlı Satış
                         </Link>
                     </Button>
                     <DeleteUnitButton unitId={unit.id} projectId={unit.project_id} disabled={isSold} />
                 </div>
             </div>
 
-            {/* Quick Stats Row */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <Card className="shadow-sm">
-                    <CardContent className="pt-4 pb-3">
-                        <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Fiyat</p>
-                        <p className="text-lg font-black text-slate-900 mt-1">{formatCurrency(unit.price, unit.currency)}</p>
-                    </CardContent>
-                </Card>
-                <Card className="shadow-sm">
-                    <CardContent className="pt-4 pb-3">
-                        <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">m² Birim Fiyat</p>
-                        <p className="text-lg font-black text-slate-900 mt-1">
-                            {pricePerM2 ? formatCurrency(pricePerM2, unit.currency) : '-'}
-                        </p>
-                    </CardContent>
-                </Card>
-                <Card className="shadow-sm">
-                    <CardContent className="pt-4 pb-3">
-                        <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Brüt / Net Alan</p>
-                        <p className="text-lg font-black text-slate-900 mt-1">
-                            {unit.area_gross || '-'} / {unit.area_net || '-'} m²
-                        </p>
-                    </CardContent>
-                </Card>
-                <Card className="shadow-sm">
-                    <CardContent className="pt-4 pb-3">
-                        <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider flex items-center gap-1">
-                            <TrendingUp className="h-3 w-3" /> Stokta Kalma
-                        </p>
-                        <p className="text-lg font-black text-slate-900 mt-1">
-                            {daysOnMarket} gün
-                        </p>
-                    </CardContent>
-                </Card>
+            {/* QUICK STATS */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {[
+                    { label: 'Fiyat', value: formatCurrency(unit.price, unit.currency), sub: unit.currency, color: 'text-blue-600' },
+                    { label: 'Birim Fiyat', value: pricePerM2 ? formatCurrency(pricePerM2, unit.currency) : '-', sub: 'm² başı', color: 'text-slate-600' },
+                    { label: 'Brüt / Net', value: `${unit.area_gross || '-'} / ${unit.area_net || '-'}`, sub: 'm²', color: 'text-emerald-600' },
+                    { label: 'Pazarda', value: `${daysOnMarket} Gün`, sub: 'Aktif Süre', color: 'text-amber-600' },
+                ].map((stat, i) => (
+                    <div key={i} className="bg-white p-3 rounded-xl border shadow-sm flex flex-col items-center justify-center text-center">
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{stat.label}</span>
+                        <div className="flex items-baseline gap-1 mt-1">
+                            <span className={`text-lg font-black tracking-tight ${stat.color}`}>{stat.value.split(' ')[0]}</span>
+                            <span className="text-[10px] font-bold text-muted-foreground">{stat.sub}</span>
+                        </div>
+                    </div>
+                ))}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Left: Edit Form & Documents */}
-                <div className="md:col-span-2 space-y-6">
-                    <Card>
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+                <div className="xl:col-span-8 space-y-6">
+                    <Card className="rounded-xl overflow-hidden shadow-sm border">
+                        <div className="bg-slate-50 px-4 py-3 border-b border-slate-100 flex items-center gap-2">
+                            <Info className="h-4 w-4 text-blue-500" />
+                            <h3 className="text-sm font-bold text-slate-700 uppercase tracking-tight">Ünite Detayları & Özellikler</h3>
+                        </div>
                         <UnitEditForm unit={unit} disabled={isSold} />
                     </Card>
-                    <UnitDocuments unitId={unit.id} documents={documents as any[]} />
+
+                    {isSold && (
+                        <div className="flex items-center gap-3 p-4 bg-rose-50 border border-rose-100 rounded-xl text-rose-700 text-sm">
+                            <AlertCircle className="h-5 w-5 flex-shrink-0" />
+                            <p className="font-medium">Bu ünite satılmıştır. Kayıtlar üzerinde değişiklik yapılamaz.</p>
+                        </div>
+                    )}
                 </div>
 
-                {/* Right sidebar */}
-                <div className="space-y-6">
-                    {/* Status Changer */}
+                <div className="xl:col-span-4 space-y-6">
                     <UnitStatusChanger unitId={unit.id} currentStatus={unit.status} />
 
-                    {/* Price History Chart */}
                     <UnitPriceChart
                         priceHistory={timeline.filter((t: any) => t.type === 'price_change' && t.oldValue && t.newValue)}
                         currentPrice={unit.price}
                         currency={unit.currency || 'TRY'}
                     />
 
-                    {/* Image Gallery */}
-                    <UnitImageGallery
-                        unitId={unit.id}
-                        projectId={unit.project_id}
-                        images={images}
-                        disabled={isSold}
-                    />
-
-                    {/* Construction Progress Card */}
-                    <Card>
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-sm font-medium flex items-center gap-2">
-                                <HardHat className="h-4 w-4 text-primary" />
-                                İnşaat İlerlemesi
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-4">
-                                <div className="flex justify-between items-end">
-                                    <span className="text-2xl font-bold">%{unitProgressPercentage}</span>
-                                    <span className="text-xs text-muted-foreground">Genel Tamamlanma</span>
-                                </div>
-                                <Progress value={unitProgressPercentage} className="h-2" />
-
-                                <div className="space-y-2 pt-2">
-                                    {stages?.map((stage: any) => {
-                                        const p = progress?.find((item: any) => item.stage_id === stage.id)
-                                        return (
-                                            <div key={stage.id} className="flex flex-col gap-1">
-                                                <div className="flex justify-between text-[11px]">
-                                                    <span className="text-muted-foreground">{stage.name}</span>
-                                                    <span className="font-medium">%{p?.completion_percentage || 0}</span>
-                                                </div>
-                                                <div className="w-full h-1 bg-muted rounded-full overflow-hidden">
-                                                    <div
-                                                        className="h-full bg-primary/60"
-                                                        style={{ width: `${p?.completion_percentage || 0}%` }}
-                                                    />
-                                                </div>
-                                            </div>
-                                        )
-                                    })}
-                                    {(!stages || stages.length === 0) && (
-                                        <p className="text-xs text-muted-foreground italic text-center py-4">
-                                            İnşaat aşamaları henüz tanımlanmamış.
-                                        </p>
-                                    )}
-                                </div>
+                    <Card className="rounded-xl border shadow-sm overflow-hidden flex flex-col h-[600px]">
+                        <Tabs defaultValue="gallery" className="flex flex-col h-full">
+                            <div className="bg-slate-50 border-b overflow-x-auto no-scrollbar">
+                                <TabsList className="bg-transparent border-none h-12 w-full justify-start rounded-none px-2 space-x-2">
+                                    <TabsTrigger value="gallery" className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg text-xs font-bold gap-1.5 h-9">
+                                        <ImageIcon className="h-3.5 w-3.5" /> Görsel
+                                    </TabsTrigger>
+                                    <TabsTrigger value="progress" className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg text-xs font-bold gap-1.5 h-9">
+                                        <HardHat className="h-3.5 w-3.5" /> İnşaat
+                                    </TabsTrigger>
+                                    <TabsTrigger value="files" className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg text-xs font-bold gap-1.5 h-9">
+                                        <FileText className="h-3.5 w-3.5" /> Dosya
+                                    </TabsTrigger>
+                                    <TabsTrigger value="history" className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg text-xs font-bold gap-1.5 h-9">
+                                        <History className="h-3.5 w-3.5" /> Kayıt
+                                    </TabsTrigger>
+                                    <TabsTrigger value="notes" className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg text-xs font-bold gap-1.5 h-9">
+                                        <ClipboardList className="h-3.5 w-3.5" /> Not
+                                    </TabsTrigger>
+                                </TabsList>
                             </div>
-                        </CardContent>
+
+                            <div className="flex-1 overflow-auto p-4">
+                                <TabsContent value="gallery" className="mt-0">
+                                    <UnitImageGallery unitId={unit.id} projectId={unit.project_id} images={images} disabled={isSold} />
+                                </TabsContent>
+
+                                <TabsContent value="progress" className="mt-0 space-y-4">
+                                    <div className="flex justify-between items-center">
+                                        <h4 className="text-xs font-bold text-slate-500 uppercase">İnşaat İlerlemesi</h4>
+                                        <Badge variant="secondary" className="text-[10px]">%{unitProgressPercentage}</Badge>
+                                    </div>
+                                    <Progress value={unitProgressPercentage} className="h-1.5" />
+                                    <div className="space-y-3 pt-3">
+                                        {stages?.map((stage: any) => {
+                                            const p = progress?.find((item: any) => item.stage_id === stage.id)
+                                            return (
+                                                <div key={stage.id} className="flex flex-col gap-1.5">
+                                                    <div className="flex justify-between text-[11px] font-medium">
+                                                        <span className="text-slate-500">{stage.name}</span>
+                                                        <span>%{p?.completion_percentage || 0}</span>
+                                                    </div>
+                                                    <Progress value={p?.completion_percentage || 0} className="h-1" />
+                                                </div>
+                                            )
+                                        })}
+                                        {(!stages || stages.length === 0) && (
+                                            <p className="text-xs text-muted-foreground italic text-center py-4">Aşama tanımlanmamış.</p>
+                                        )}
+                                    </div>
+                                </TabsContent>
+
+                                <TabsContent value="files" className="mt-0">
+                                    <UnitDocuments unitId={unit.id} documents={documents as any[]} />
+                                </TabsContent>
+
+                                <TabsContent value="history" className="mt-0">
+                                    <UnitTimeline timeline={timeline} />
+                                </TabsContent>
+
+                                <TabsContent value="notes" className="mt-0">
+                                    <UnitNotes unitId={unit.id} notes={notes as any[]} />
+                                </TabsContent>
+                            </div>
+                        </Tabs>
                     </Card>
-
-                    {/* Internal Notes */}
-                    <UnitNotes unitId={unit.id} notes={notes as any[]} />
-
-                    {/* Unit Timeline */}
-                    <UnitTimeline timeline={timeline} />
-
-                    {isSold && (
-                        <div className="flex items-center gap-2 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                            <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0" />
-                            <p className="text-sm text-amber-800">
-                                Bu ünite satılmış durumdadır. Sözleşme nedeniyle düzenleme ve silme işlemleri yapılamaz.
-                            </p>
-                        </div>
-                    )}
                 </div>
             </div>
             <Toaster />

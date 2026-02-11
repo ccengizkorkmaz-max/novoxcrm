@@ -131,7 +131,8 @@ export async function submitBrokerLead(formData: FormData) {
  * Public Lead Submission (from external forms)
  */
 export async function submitPublicLead(brokerId: string, tenantId: string, formData: FormData) {
-    const supabase = await createClient()
+    const { createAdminClient } = await import('@/lib/supabase/admin')
+    const supabase = createAdminClient()
 
     const phone = formData.get('phone') as string
     const full_name = formData.get('full_name') as string
@@ -174,11 +175,78 @@ export async function submitPublicLead(brokerId: string, tenantId: string, formD
 
     if (leadError) return { error: 'Başvuru iletilemedi.' }
 
+    // --- CRM INTEGRATION ---
+    // 1. Create or Update Customer in main CRM
+    let customerId: string | null = null
+    const { data: existingCustomer } = await supabase
+        .from('customers')
+        .select('id')
+        .eq('tenant_id', tenantId)
+        .or(`phone.eq.${phone}${email ? `,email.eq.${email}` : ''}`)
+        .maybeSingle()
+
+    if (existingCustomer) {
+        customerId = existingCustomer.id
+    } else {
+        const { data: newCustomer, error: customerError } = await supabase
+            .from('customers')
+            .insert({
+                tenant_id: tenantId,
+                full_name: full_name,
+                phone: phone,
+                email: email || null,
+                source: 'Broker Formu (Dış Kaynak)'
+                // created_by: brokerId // Temporarily disabled due to schema cache error
+            })
+            .select('id')
+            .single()
+
+        if (customerError) {
+            console.error('CRM INTEGRATION ERROR (Customer Creation):', customerError)
+        } else if (newCustomer) {
+            console.log('CRM Integration: New customer created:', newCustomer.id)
+            customerId = newCustomer.id
+        }
+    }
+
+    if (customerId) {
+        console.log('CRM Integration: Creating sales lead for customer:', customerId)
+        // 2. Create Sale Lead
+        const { data: saleData, error: saleError } = await supabase.from('sales').insert({
+            tenant_id: tenantId,
+            customer_id: customerId,
+            status: 'Lead',
+            assigned_to: brokerId, // Assign to the broker who owns the form
+            lead_origin: 'personal_agent',
+            description: notes || 'Broker formu üzerinden iletildi.'
+        }).select('id').single()
+
+        if (saleError) {
+            console.error('CRM INTEGRATION ERROR (Sale Lead Creation):', saleError)
+        } else {
+            console.log('CRM Integration: Sale lead created successfully:', saleData?.id)
+        }
+
+        // 3. Link customer to broker lead
+        await supabase.from('broker_leads').update({ customer_id: customerId }).eq('id', lead.id)
+    } else {
+        console.error('CRM INTEGRATION ERROR: Could not determine customerId. Sales lead skipped.')
+    }
+
+    // --- NOTIFICATION ---
+    // Notify the broker
+    await supabase.from('portal_notifications').insert({
+        user_id: brokerId,
+        title: '🔥 Yeni Lead Başvurusu!',
+        content: `${full_name} isimli müşteri paylaştığınız form üzerinden başvuru yaptı.`,
+        link_url: `/broker/leads/${lead.id}`
+    })
+
     // Log History
     await supabase.from('broker_lead_history').insert({
         lead_id: lead.id,
         new_status: 'Submitted',
-        notes: 'Dış kaynaklı web formu üzerinden başvuru yapıldı.'
+        notes: 'Dış kaynaklı web formu üzerinden başvuru yapıldı. CRM kaydı otomatik oluşturuldu.'
     })
 
     return { success: true }

@@ -182,6 +182,9 @@ export function SidebarNav({ role = 'sales', onElementClick }: { role?: string |
                             <NavItem href="/admin/broker-leads/reports" icon={BarChart3} onClick={onElementClick} isSubItem>
                                 {t('broker.earnings')}
                             </NavItem>
+                            <NavItem href="/reports/public-links" icon={Building2} onClick={onElementClick} isSubItem>
+                                {t('reports.publicLinks')}
+                            </NavItem>
                         </AccordionContent>
                     </AccordionItem>
                 </Accordion>

@@ -28,7 +28,7 @@ export function QuickOfferDialog({ customer, unit }: Props) {
     const t = useTranslations('QuickCRM')
     const [isOpen, setIsOpen] = useState(false)
     const [loading, setLoading] = useState(false)
-    const [price, setPrice] = useState(unit?.price || 0)
+    const [price, setPrice] = useState<number | string>(unit?.price || 0)
 
     async function handleSubmit(formData: FormData) {
         setLoading(true)
@@ -75,7 +75,7 @@ export function QuickOfferDialog({ customer, unit }: Props) {
                                 name="price"
                                 type="number"
                                 value={price}
-                                onChange={(e) => setPrice(Number(e.target.value))}
+                                onChange={(e) => setPrice(e.target.value)}
                                 required
                             />
                         </div>

@@ -28,13 +28,13 @@ export default function PaymentPlanCalculator({ saleId, totalAmount = 0, initial
 
     const [price, setPrice] = useState(totalAmount)
     const [currency, setCurrency] = useState(initialCurrency)
-    const [downPaymentRate, setDownPaymentRate] = useState(25)
-    const [months, setMonths] = useState(12)
+    const [downPaymentRate, setDownPaymentRate] = useState<number | string>(25)
+    const [months, setMonths] = useState<number | string>(12)
     const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0])
 
     const [interims, setInterims] = useState<InterimPayment[]>([])
     const [applyInterest, setApplyInterest] = useState(false)
-    const [interestRate, setInterestRate] = useState(1.5)
+    const [interestRate, setInterestRate] = useState<number | string>(1.5)
     const [plan, setPlan] = useState<any[]>([])
     const [totals, setTotals] = useState({ interest: 0, grandTotal: 0 })
     const [loading, setLoading] = useState(true);
@@ -76,6 +76,11 @@ export default function PaymentPlanCalculator({ saleId, totalAmount = 0, initial
 
     const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const val = e.target.value.replace(/\D/g, '')
+        if (val === '') {
+            setPrice(0)
+            setDisplayPrice('')
+            return
+        }
         const num = Number(val)
         setPrice(num)
         setDisplayPrice(new Intl.NumberFormat(localeStr, { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(num))
@@ -96,8 +101,8 @@ export default function PaymentPlanCalculator({ saleId, totalAmount = 0, initial
     const applyTemplate = (id: string) => {
         const tmpl = templates?.find(t => t.id === id)
         if (!tmpl) return
-        if (tmpl.down_payment_rate) setDownPaymentRate(Number(tmpl.down_payment_rate))
-        if (tmpl.installment_count) setMonths(Number(tmpl.installment_count))
+        if (tmpl.down_payment_rate) setDownPaymentRate(Number(tmpl.down_payment_rate) || 0)
+        if (tmpl.installment_count) setMonths(Number(tmpl.installment_count) || 0)
         if (Array.isArray(tmpl.interim_payment_structure)) {
             const newInts = tmpl.interim_payment_structure.map((i: any) => ({
                 month: i.month,
@@ -114,9 +119,9 @@ export default function PaymentPlanCalculator({ saleId, totalAmount = 0, initial
 
         const result = calculatePaymentSchedule({
             principal: price,
-            downPaymentAmount: price * (downPaymentRate / 100),
-            monthlyInterestRate: applyInterest ? interestRate : 0,
-            installmentCount: months,
+            downPaymentAmount: price * (Number(downPaymentRate) / 100),
+            monthlyInterestRate: applyInterest ? Number(interestRate) : 0,
+            installmentCount: Number(months),
             startDate,
             currency,
             interimPayments: interims
@@ -198,7 +203,7 @@ export default function PaymentPlanCalculator({ saleId, totalAmount = 0, initial
                     <Input
                         type="number"
                         value={downPaymentRate}
-                        onChange={e => setDownPaymentRate(Number(e.target.value))}
+                        onChange={e => setDownPaymentRate(e.target.value)}
                         className="h-10 text-sm font-semibold border-slate-200 focus:border-blue-500"
                     />
                 </div>
@@ -207,7 +212,7 @@ export default function PaymentPlanCalculator({ saleId, totalAmount = 0, initial
                     <Input
                         type="number"
                         value={months}
-                        onChange={e => setMonths(Number(e.target.value))}
+                        onChange={e => setMonths(e.target.value)}
                         className="h-10 text-sm font-semibold border-slate-200 focus:border-blue-500"
                     />
                 </div>
@@ -243,7 +248,7 @@ export default function PaymentPlanCalculator({ saleId, totalAmount = 0, initial
                                 type="number"
                                 step="0.01"
                                 value={interestRate}
-                                onChange={e => setInterestRate(Number(e.target.value))}
+                                onChange={e => setInterestRate(e.target.value)}
                                 className="h-10 border-blue-200 focus:border-blue-500 bg-blue-50/30 text-sm font-bold text-blue-700"
                             />
                         </div>
@@ -272,8 +277,8 @@ export default function PaymentPlanCalculator({ saleId, totalAmount = 0, initial
                                         <Input
                                             type="number"
                                             placeholder="6"
-                                            value={int.month}
-                                            onChange={e => updateInterim(idx, 'month', Number(e.target.value))}
+                                            value={int.month?.toString() || ""}
+                                            onChange={e => updateInterim(idx, 'month', Number(e.target.value) || 0)}
                                             className="h-8 text-xs border-slate-200"
                                         />
                                     </div>
@@ -281,8 +286,8 @@ export default function PaymentPlanCalculator({ saleId, totalAmount = 0, initial
                                         <Label className="text-[9px] font-bold text-slate-400 uppercase">Tutar</Label>
                                         <Input
                                             type="number"
-                                            value={int.amount}
-                                            onChange={e => updateInterim(idx, 'amount', Number(e.target.value))}
+                                            value={int.amount?.toString() || ""}
+                                            onChange={e => updateInterim(idx, 'amount', Number(e.target.value) || 0)}
                                             className="h-8 text-xs border-slate-200 font-semibold"
                                         />
                                     </div>

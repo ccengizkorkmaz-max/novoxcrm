@@ -458,7 +458,8 @@
             "sales": "Satış Performansı",
             "inventory": "Stok & Proje Analizi",
             "finance": "Finansal Analiz",
-            "efficiency": "Saha & Ekip Verimliliği"
+            "efficiency": "Saha & Ekip Verimliliği",
+            "publicLinks": "Katalog & Link Takibi"
         },
         "Inbox": {
             "title": "Gelen Kutusu",
@@ -1084,12 +1085,52 @@
                 "partial": "Kısıtlı / Sadece Kendi Verisi"
             },
             "permissions": {
-                "viewAllSales": "Tüm Satışları Görüntüleme",
-                "manageUsers": "Kullanıcı Yönetimi",
-                "manageSettings": "Şirket Ayarları",
-                "deleteData": "Veri Silme (Müşteri/Satış)",
-                "createSales": "Satış Kaydı Oluşturma",
-                "viewReports": "Raporlara Erişim"
+                "categories": {
+                    "general": "Genel Sayfa Erişimi",
+                    "crm": "CRM ve Satış İşlemleri",
+                    "inventory": "Envanter ve Proje",
+                    "management": "Yönetimsel Yetkiler"
+                },
+                "viewDashboard": "Genel Bakış (Dashboard)",
+                "viewSales": "Satış / CRM Listesi",
+                "editSales": "Satış Kaydı Düzenleme",
+                "assignLeads": "Talepleri (Lead) Atama",
+                "claimLeads": "Boştaki Talebi Üzerine Alma",
+                "viewInventory": "Stok ve Envanter İzleme",
+                "editPrices": "Fiyat ve Birim Güncelleme",
+                "viewReports": "Gelişmiş Raporlama",
+                "viewHR": "İK ve Personel Listesi",
+                "manageUsers": "Kullanıcı ve Rol Yönetimi",
+                "manageSettings": "Sistem ve Şirket Ayarları",
+                "exportExcel": "Toplu Veri Aktarımı (Excel)",
+                "deleteData": "Kritik Veri Silme",
+                "descriptions": {
+                    "viewDashboard": {
+                        "allowed": "Tüm şirket verilerini ve özet grafikleri görür.",
+                        "partial": "Sadece kendisine ait satış performansını görür."
+                    },
+                    "viewSales": {
+                        "allowed": "Tüm satış ekibinin fırsatlarını ve müşteri listesini görür.",
+                        "partial": "Sadece kendisine atanan lead'leri ve müşterileri görür."
+                    },
+                    "editSales": {
+                        "allowed": "Herkesin kaydını düzenleyebilir.",
+                        "partial": "Sadece kendi müşteri kayıtlarını düzenleyebilir."
+                    },
+                    "assignLeads": {
+                        "allowed": "Gelen lead'leri istediği satış temsilcisine atayabilir.",
+                        "denied": "Başkasına lead ataması yapamaz."
+                    },
+                    "claimLeads": {
+                        "allowed": "Boştaki (sahipsiz) lead'leri tek tıkla kendi üzerine alabilir."
+                    },
+                    "viewInventory": {
+                        "allowed": "Tüm proje stok durumunu, fiyatları ve müsaitlikleri anlık görür."
+                    },
+                    "manageSettings": {
+                        "allowed": "Şirket profili, kullanıcılar ve komisyon ayarlarını yönetir."
+                    }
+                }
             }
         }
     },
@@ -2028,7 +2069,7 @@
             "statusLabel": "Durum",
             "allStatuses": "Tüm Durumlar",
             "status": {
-                "Lead": "Potansiyel",
+                "Lead": "Lead",
                 "Prospect": "Fırsat",
                 "Reservation": "Rezervasyon",
                 "Sold": "Satıldı",
