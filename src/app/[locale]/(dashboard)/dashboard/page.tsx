@@ -5,6 +5,7 @@ import { EnhancedDashboardCharts } from '@/components/dashboard/enhanced-dashboa
 import { formatCurrency } from '@/lib/utils'
 import { DashboardGeneralStats } from '@/components/dashboard-general-stats'
 import { getTranslations } from 'next-intl/server'
+import { AiInsightWidget } from '@/components/dashboard/AiInsightWidget'
 
 // Force dynamic rendering and disable caching to ensure fresh data
 export const dynamic = 'force-dynamic'
@@ -331,8 +332,14 @@ export default async function DashboardPage(props: {
         <p className="text-muted-foreground text-sm mt-1">{t('description')}</p>
       </div>
 
-      {/* General Stock Stats */}
-      <DashboardGeneralStats stats={stats.generalStats} />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <DashboardGeneralStats stats={stats.generalStats} />
+        </div>
+        <div className="lg:col-span-1">
+          <AiInsightWidget />
+        </div>
+      </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
