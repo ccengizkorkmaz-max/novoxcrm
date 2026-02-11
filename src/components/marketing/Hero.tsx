@@ -4,6 +4,8 @@ import { LeadCaptureModal } from '@/components/marketing/LeadCaptureModal'
 import { useTranslations } from 'next-intl'
 import { Link } from '@/i18n/routing'
 
+import { HeroCarousel } from '@/components/marketing/HeroCarousel'
+
 export function Hero() {
     const t = useTranslations('Hero')
 
@@ -24,7 +26,7 @@ export function Hero() {
                         {t('badge')}
                     </div>
 
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-indigo-300 text-[10px] md:text-sm font-black uppercase tracking-[0.2em] shadow-[0_0_20px_rgba(99,102,241,0.2)] animate-bounce">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-indigo-300 text-[10px] md:text-sm font-black uppercase tracking-[0.2em] shadow-[0_0_20px_rgba(99,102,241,0.2)] animate-bounce text-nowrap">
                         <Sparkles className="h-3 w-3 md:h-4 md:w-4 text-indigo-400" />
                         Sektörün İlk AI Destekli CRM'i
                     </div>
@@ -70,20 +72,7 @@ export function Hero() {
                     </Button>
                 </div>
 
-                <div className="relative mx-auto max-w-6xl mt-12 animate-in fade-in slide-in-from-bottom-10 duration-1000 delay-300">
-                    <div className="relative rounded-2xl border border-slate-800 bg-slate-900/40 p-2 shadow-[0_0_50px_rgba(37,99,235,0.15)] backdrop-blur-xl ring-1 ring-white/10 overflow-hidden group">
-                        {/* Interactive Shine effect */}
-                        <div className="absolute inset-0 bg-gradient-to-tr from-white/5 via-transparent to-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
-
-                        <div className="rounded-xl overflow-hidden bg-slate-950/50 shadow-inner">
-                            <img
-                                src="/images/dashboard-preview-v2.png"
-                                alt="NovoxCRM Dashboard View"
-                                className="w-full h-auto object-cover opacity-95 group-hover:opacity-100 transition-all duration-700 group-hover:scale-[1.01]"
-                            />
-                        </div>
-                    </div>
-                </div>
+                <HeroCarousel />
             </div>
         </section>
     )
