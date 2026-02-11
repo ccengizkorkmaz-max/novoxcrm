@@ -24,13 +24,6 @@ export const metadata: Metadata = {
   title: "NovoxCRM | İnşaat & Gayrimenkul CRM – Konut Projeleri için Satış Yönetimi",
   description: "NovoxCRM, inşaat ve gayrimenkul firmaları için özel geliştirilmiş CRM yazılımıdır. Konut projeleri, stok takibi, broker yönetimi ve satış süreçlerini tek platformda yönetin.",
   manifest: '/manifest.json',
-  alternates: {
-    canonical: '/',
-    languages: {
-      'tr': '/',
-      'en': '/en',
-    },
-  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
