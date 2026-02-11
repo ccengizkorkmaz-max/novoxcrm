@@ -16,6 +16,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         '/wiki',
         '/payment-plan-calculator',
         '/system-details',
+        '/bir-bakista-novoxcrm',
         '/broker/apply',
     ].map((route) => ({
         url: `${baseUrl}${route}`,
