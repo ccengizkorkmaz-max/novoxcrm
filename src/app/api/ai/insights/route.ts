@@ -73,6 +73,24 @@ export async function GET(req: NextRequest) {
             .order('due_date', { ascending: true })
             .limit(3)
 
+        // 4. Overdue Payments (Finance Module)
+        const { data: overduePayments } = await supabase
+            .from('payment_plans')
+            .select('amount, currency, due_date, contracts(contract_number, projects(name))')
+            .eq('status', 'Overdue')
+            .limit(5)
+
+        // 5. Contracts with Missing Documents (Audit Core Sales Process)
+        // We look for contract_activities to see if documents were ever uploaded or use document table
+        const { data: contractsWithDocs } = await supabase
+            .from('contracts')
+            .select('id, contract_number, contract_documents(id)')
+            .eq('tenant_id', profile.tenant_id)
+            .limit(10)
+
+        const missingDocs = contractsWithDocs?.filter(c => !c.contract_documents || c.contract_documents.length === 0)
+            .map(c => ({ number: c.contract_number })) || []
+
         // --- Gemini Prompting ---
         const genAI = new GoogleGenerativeAI(apiKey)
         const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" })
@@ -84,6 +102,8 @@ export async function GET(req: NextRequest) {
         - Bekleyen Kritik Görevler: ${JSON.stringify(tasks)}
         - Stoğu Azalan Projeler: ${JSON.stringify(lowStock)}
         - İlgilenilmeyen Müşteriler (7 gündür işlem yok): ${JSON.stringify(staleLeads)}
+        - Geciken Ödemeler: ${JSON.stringify(overduePayments)}
+        - Evrakları Eksik Sözleşmeler: ${JSON.stringify(missingDocs)}
         
         Cevabını şu JSON formatında ver:
         {
