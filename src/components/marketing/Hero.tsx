@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button'
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, Sparkles } from 'lucide-react'
 import { LeadCaptureModal } from '@/components/marketing/LeadCaptureModal'
 import { useTranslations } from 'next-intl'
 import { Link } from '@/i18n/routing'
@@ -17,10 +17,17 @@ export function Hero() {
             </div>
 
             <div className="container relative z-10 mx-auto px-4 text-center">
-                {/* Badge */}
-                <div className="inline-flex items-center rounded-full border border-blue-500/30 bg-blue-500/10 px-4 py-1.5 text-sm font-bold text-blue-300 mb-8 backdrop-blur-sm shadow-[0_0_15px_rgba(59,130,246,0.3)] animate-in fade-in slide-in-from-bottom-4 duration-1000">
-                    <span className="flex h-2 w-2 rounded-full bg-blue-400 mr-2 animate-pulse"></span>
-                    {t('badge')}
+                {/* Badge Container */}
+                <div className="flex flex-col items-center gap-4 mb-8">
+                    <div className="inline-flex items-center rounded-full border border-blue-500/30 bg-blue-500/10 px-4 py-1.5 text-sm font-bold text-blue-300 backdrop-blur-sm shadow-[0_0_15px_rgba(59,130,246,0.3)] animate-in fade-in slide-in-from-bottom-4 duration-1000">
+                        <span className="flex h-2 w-2 rounded-full bg-blue-400 mr-2 animate-pulse"></span>
+                        {t('badge')}
+                    </div>
+
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-indigo-300 text-[10px] md:text-sm font-black uppercase tracking-[0.2em] shadow-[0_0_20px_rgba(99,102,241,0.2)] animate-bounce">
+                        <Sparkles className="h-3 w-3 md:h-4 md:w-4 text-indigo-400" />
+                        Sektörün İlk AI Destekli CRM'i
+                    </div>
                 </div>
 
                 {/* Headline */}

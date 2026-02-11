@@ -4,6 +4,7 @@ import { Link } from '@/i18n/routing'
 import { Hero } from '@/components/marketing/Hero'
 import { TrustSection } from '@/components/marketing/TrustSection'
 import { ComparisonSection } from '@/components/marketing/ComparisonSection'
+import { AiFeaturesSection } from '@/components/marketing/AiFeaturesSection'
 import { PainSection } from '@/components/marketing/PainSection'
 import { CRMLifecycle } from '@/components/marketing/CRMLifecycle'
 import { SolutionSection } from '@/components/marketing/SolutionSection'
@@ -30,6 +31,7 @@ export default function MarketingPage() {
             <Hero />
             <TrustSection />
             <ComparisonSection />
+            <AiFeaturesSection />
             <PainSection />
             <CRMLifecycle />
             <div id="solutions">

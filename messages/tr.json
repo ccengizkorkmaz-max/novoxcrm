@@ -12,7 +12,31 @@
         "ctaPrimary": "Hemen Dijitalleşin",
         "ctaSecondary": "Sistem Detaylarını İncele",
         "demoTitle": "Ücretsiz Tanıtım ve Demo",
-        "demoDescription": "Projenizin satışlarını nasıl dijitalleştirebileceğimizi göstermek için bir uzmanımız sizinle iletişime geçecek."
+        "demoDescription": "Sektörün ilk AI destekli CRM'ini keşfedin. Projenizin satışlarını nasıl dijitalleştirebileceğimizi göstermek için bir uzmanımız sizinle iletişime geçecek."
+    },
+    "AiFeaturesSection": {
+        "badge": "YENİ NESİL ZEKA",
+        "title": "Dijital Bir Satış Asistanından",
+        "titleHighlight": "Daha Fazlası",
+        "description": "NovoxCRM sadece veri tutmaz; veriyi analiz eder, riskleri fark eder ve satış ekibinize her sabah özel stratejiler sunar.",
+        "features": {
+            "copilot": {
+                "title": "AI Co-Pilot & Günlük Briefing",
+                "desc": "Her sabah sizi karşılayan bir zeka. Geciken ödemeleri, ilgilenilmeyen sıcak lead'leri ve düşük stoklu projeleri sizin yerinize takip eder."
+            },
+            "voice": {
+                "title": "Sesli Not'tan Veriye (Voice-to-Data)",
+                "desc": "Klavyeyi unutun. Müşteri görüşmesi sonrası ses kaydı bırakın, AI tüm detayları ayrıştırıp saniyeler içinde CRM kaydına dönüştürsün."
+            },
+            "match": {
+                "title": "Akıllı Mülk Eşleşme & Sales Pitch",
+                "desc": "Elinizdeki binlerce daire arasından hangisi bu müşteri için en iyisi? AI bulur, nedenini açıklar ve müşteriyi ikna edecek özel metni hazırlar."
+            },
+            "audit": {
+                "title": "Operasyonel Finansal Gardiyan",
+                "desc": "Geciken taksitler veya eksik sözleşme evrakları... AI riskleri henüz büyümeden fark eder ve ekibi proaktif olarak uyarır."
+            }
+        }
     },
     "Marketing_CTA": {
         "title": "Satışlarınızı Hızlandırmaya Hazır Mısınız?",
@@ -58,11 +82,11 @@
             "title": "NovoxCRM Yöntemi",
             "items": [
                 "Müşteri geçmişi ve notları tek ekranda",
-                "Tam entegre ekip ve yetkilendirme",
-                "Otomatik hakediş ve prim sistemi",
-                "Gecikme faizi ve vade farkı motoru",
-                "%100 Gerçek zamanlı stok kontrolü",
-                "Otomatik lead aktarımı ve anlık takip"
+                "AI Co-Pilot ile her sabah proaktif iş planı",
+                "Sesli not ile saniyeler içinde veri girişi",
+                "AI destekli akıllı mülk eşleştirmesi",
+                "Gecikmiş ödeme ve eksik evrak AI uyarıları",
+                "%100 Gerçek zamanlı stok ve finans kontrolü"
             ]
         }
     },
@@ -164,8 +188,8 @@
                 "features": [
                     "Envanter Yönetimi",
                     "Müşteri Kartları",
+                    "Temel AI Asistanı",
                     "Satış İşlemleri",
-                    "Basit Raporlama",
                     "5 Kullanıcıya Kadar"
                 ],
                 "cta": "Başlayın"
@@ -177,10 +201,10 @@
                 "description": "Büyüyen ekipler ve aktif satış ofisleri için.",
                 "features": [
                     "Her şey (Basic)",
+                    "AI Satış Co-Pilot (Tam Sürüm)",
+                    "Sesli Not ile Veri Girişi",
+                    "Akıllı Mülk Eşleme",
                     "Broker Portalı",
-                    "Ödeme Planı Sihirbazı",
-                    "Dijital Sözleşme Yönetimi",
-                    "Gelişmiş Raporlama",
                     "20 Kullanıcıya Kadar"
                 ],
                 "cta": "Ücretsiz Deneyin"
@@ -192,10 +216,10 @@
                 "description": "Çoklu proje ve büyük organizasyonlar için.",
                 "features": [
                     "Her şey (Pro)",
-                    "Mobil Uygulama (iOS/Android)",
-                    "API Erişimi",
-                    "ERP Entegrasyonları",
-                    "Özel Sunucu (On-Premise)",
+                    "Özelleştirilmiş AI Modelleri",
+                    "Finansal & Operasyonel AI Denetçi",
+                    "ERP & API Entegrasyonları",
+                    "Özel Sunucu Seçeneği",
                     "Sınırsız Kullanıcı"
                 ],
                 "cta": "İletişime Geçin"
