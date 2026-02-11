@@ -54,7 +54,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         return {
             ...route,
             languages: {
-                tr: `${baseUrl}/tr${path}`,
+                tr: `${baseUrl}${path}`, // Remove /tr prefix for default locale
                 en: `${baseUrl}/en${path}`,
             },
         }
