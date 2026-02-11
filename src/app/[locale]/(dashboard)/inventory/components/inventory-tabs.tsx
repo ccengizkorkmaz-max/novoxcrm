@@ -1,21 +1,23 @@
 'use client'
 
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useRouter } from 'next/navigation'
 import { LayoutDashboard, List, LayoutGrid, Map, BarChart3, TrendingUp } from 'lucide-react'
 import * as React from 'react'
 
 export function InventoryTabs({ children, defaultValue }: { children: React.ReactNode, defaultValue: string }) {
     // Initialize state with the default value passed from the server
     const [activeTab, setActiveTab] = React.useState(defaultValue)
+    const router = useRouter() // Initialized useRouter
 
     const handleTabChange = (value: string) => {
         setActiveTab(value)
 
-        // Update the URL query parameter without triggering a server request/page reload
-        // This makes tab switching instant
+        // Update URL search param for 'tab' WITHOUT browser reload
+        // Since buttons are now inside TabsContent, we don't need a server-side re-render
         const url = new URL(window.location.href)
         url.searchParams.set('tab', value)
-        window.history.pushState({}, '', url)
+        window.history.pushState({}, '', url.toString())
     }
 
     return (

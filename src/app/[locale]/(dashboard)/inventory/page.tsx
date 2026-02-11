@@ -10,6 +10,8 @@ import { TabsContent } from '@/components/ui/tabs'
 import { NewUnitDialog } from '@/components/new-unit-dialog'
 import { InventoryStats } from './components/inventory-stats'
 import { InventoryFilters } from '@/components/inventory-filters'
+import { BulkPriceUpdate } from './components/BulkPriceUpdate'
+import { BulkStatusUpdate } from './components/BulkStatusUpdate'
 import { formatCurrency, cn } from '@/lib/utils'
 import { InventoryActions } from './components/inventory-actions'
 import { StockAgingReport } from './components/StockAgingReport'
@@ -221,8 +223,14 @@ export default async function InventoryPage(props: {
 
                 {/* LIST TAB (TABLE VIEW) */}
                 <TabsContent value="list" className="flex flex-col h-full overflow-hidden gap-4">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50 p-4 rounded-lg border">
-                        <div className="font-medium text-sm text-slate-700">Filtreleme Seçenekleri</div>
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50 p-4 rounded-lg border flex-shrink-0">
+                        <div className="flex items-center gap-4">
+                            <div className="font-medium text-sm text-slate-700">Filtreleme</div>
+                            <div className="flex items-center gap-2 border-l pl-4">
+                                <BulkStatusUpdate selectedUnits={[]} totalUnits={units?.length || 0} />
+                                <BulkPriceUpdate selectedUnits={[]} totalUnits={units?.length || 0} />
+                            </div>
+                        </div>
                         <InventoryFilters projects={projects || []} />
                     </div>
 
@@ -318,7 +326,13 @@ export default async function InventoryPage(props: {
                 {/* GRID TAB (MATRIX VIEW) */}
                 <TabsContent value="grid" className="flex flex-col h-full overflow-hidden gap-4">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50 p-4 rounded-lg border flex-shrink-0">
-                        <div className="font-medium text-sm text-slate-700">Filtreleme Seçenekleri</div>
+                        <div className="flex items-center gap-4">
+                            <div className="font-medium text-sm text-slate-700">Filtreleme</div>
+                            <div className="flex items-center gap-2 border-l pl-4">
+                                <BulkStatusUpdate selectedUnits={[]} totalUnits={units?.length || 0} />
+                                <BulkPriceUpdate selectedUnits={[]} totalUnits={units?.length || 0} />
+                            </div>
+                        </div>
                         <InventoryFilters projects={projects || []} />
                     </div>
 
