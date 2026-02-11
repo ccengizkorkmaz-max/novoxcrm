@@ -18,6 +18,8 @@ import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { cn } from '@/lib/utils'
+import { Combobox } from '@/components/ui/combobox'
+import { VoiceInput } from '@/components/ui/voice-input'
 
 interface ActivityFormProps {
     open: boolean
@@ -31,8 +33,36 @@ interface ActivityFormProps {
 export function ActivityForm({ open, onOpenChange, mode, activity, customers, profiles }: ActivityFormProps) {
     const t = useTranslations('Activities')
     const router = useRouter()
+
+    // Form States
+    const [summary, setSummary] = useState(activity?.summary || '')
+    const [description, setDescription] = useState(activity?.description || '')
+    const [notes, setNotes] = useState(activity?.notes || '')
     const [status, setStatus] = useState(activity?.status || 'Planned')
+    const [selectedCustomerId, setSelectedCustomerId] = useState(activity?.customer_id || '')
+    const [isProcessingVoice, setIsProcessingVoice] = useState(false)
+
+    // Derived State
     const isCompleteMode = mode === 'complete' || status === 'Completed'
+
+    const handleVoiceData = (text: string) => {
+        // Simple autofill logic based on mode
+        if (isCompleteMode) {
+            setNotes((prev: string) => prev ? prev + "\n" + text : text)
+        } else {
+            setDescription((prev: string) => prev ? prev + "\n" + text : text)
+        }
+
+        // Suggest summary if empty and in create/edit mode
+        if (!summary && !isCompleteMode) {
+            const firstSentence = text.split('.')[0]
+            if (firstSentence && firstSentence.length < 50) {
+                setSummary(firstSentence)
+            } else {
+                setSummary("Sesli Not: " + text.substring(0, 20) + "...")
+            }
+        }
+    }
 
     async function handleSubmit(formData: FormData) {
         let result;
@@ -74,35 +104,42 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[500px]" key={open ? `activity-${activity?.customer_id || 'new'}` : 'closed'}>
+            <DialogContent className="sm:max-w-[600px] overflow-visible" key={open ? `activity-${activity?.customer_id || 'new'}` : 'closed'}>
                 <DialogHeader>
-                    <DialogTitle>
-                        {mode === 'create' ? t('form.createTitle') :
-                            mode === 'edit' ? t('form.editTitle') :
-                                t('form.completeTitle')}
-                    </DialogTitle>
+                    <div className="flex items-center justify-between pr-8">
+                        <DialogTitle>
+                            {mode === 'create' ? t('form.createTitle') :
+                                mode === 'edit' ? t('form.editTitle') :
+                                    t('form.completeTitle')}
+                        </DialogTitle>
+
+                        {/* Voice Input Button - Visible in Header */}
+                        <VoiceInput
+                            onTranscriptionComplete={handleVoiceData}
+                            isProcessing={isProcessingVoice}
+                        />
+                    </div>
                 </DialogHeader>
                 <form action={handleSubmit}>
-                    <div className="grid gap-4 py-4">
+                    <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto px-1">
 
                         {/* Basic Info - Hidden only in specialized complete mode */}
                         {mode !== 'complete' && (
                             <>
-                                <input type="hidden" name="customer_id" value={activity?.customer_id || ''} />
+                                <input type="hidden" name="customer_id" value={selectedCustomerId} />
                                 <div className="grid gap-2">
                                     <Label>{t('form.customer')}</Label>
-                                    <select
-                                        name="customer_id_select"
-                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                        defaultValue={activity?.customer_id || ''}
-                                        required={mode === 'create' && !activity?.customer_id}
-                                        disabled={mode === 'edit' || (mode === 'create' && !!activity?.customer_id)}
-                                    >
-                                        <option value="">{t('form.select')}</option>
-                                        {customers?.map((c: any) => (
-                                            <option key={c.id} value={c.id}>{c.full_name}</option>
-                                        ))}
-                                    </select>
+                                    <div className="w-full">
+                                        <Combobox
+                                            items={customers?.map((c: any) => ({ value: c.id, label: c.full_name })) || []}
+                                            value={selectedCustomerId}
+                                            onChange={setSelectedCustomerId}
+                                            placeholder={t('form.select')}
+                                            searchPlaceholder={t('form.search') || 'Müşteri Ara...'}
+                                            emptyText={t('form.noResults') || 'Müşteri bulunamadı.'}
+                                            disabled={mode === 'edit' || (mode === 'create' && !!activity?.customer_id)}
+                                        />
+                                    </div>
                                 </div>
 
                                 <div className="grid gap-2">
@@ -211,11 +248,25 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
 
                                 <div className="grid gap-2">
                                     <Label>{t('form.summary')}</Label>
-                                    <Input name="summary" defaultValue={activity?.summary || ''} placeholder={t('form.summaryPlaceholder')} required />
+                                    <Input
+                                        name="summary"
+                                        value={summary}
+                                        onChange={(e) => setSummary(e.target.value)}
+                                        placeholder={t('form.summaryPlaceholder')}
+                                        required
+                                    />
                                 </div>
                                 <div className="grid gap-2">
                                     <Label>{t('form.description')}</Label>
-                                    <Textarea name="description" defaultValue={activity?.description || ''} placeholder={t('form.descriptionPlaceholder')} rows={3} />
+                                    <Textarea
+                                        name="description"
+                                        value={description}
+                                        onChange={(e) => setDescription(e.target.value)}
+                                        placeholder={t('form.descriptionPlaceholder')}
+                                        rows={3}
+                                    />
+                                    {/* Additional hidden notes field just in case */}
+                                    <input type="hidden" name="notes" value={notes} />
                                 </div>
                             </>
                         )}
@@ -243,7 +294,15 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
                                 </div>
                                 <div className="grid gap-2">
                                     <Label className="font-bold">{t('form.notes')}</Label>
-                                    <Textarea name="notes" placeholder={t('form.notesPlaceholder')} required rows={3} className="border-2" />
+                                    <Textarea
+                                        name="notes"
+                                        value={notes}
+                                        onChange={(e) => setNotes(e.target.value)}
+                                        placeholder={t('form.notesPlaceholder')}
+                                        required
+                                        rows={3}
+                                        className="border-2"
+                                    />
                                 </div>
 
                                 <div className="border-t-2 border-dashed pt-4 mt-2">

@@ -1391,6 +1391,8 @@
             "empty": "Görüntülenecek aktivite bulunamadı."
         },
         "form": {
+            "search": "Müşteri Ara...",
+            "noResults": "Müşteri bulunamadı.",
             "createTitle": "Yeni Aktivite Oluştur",
             "editTitle": "Aktiviteyi Düzenle",
             "completeTitle": "Aktiviteyi Tamamla",
