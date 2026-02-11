@@ -84,8 +84,8 @@ export async function POST(req: NextRequest) {
                 });
             } catch (geminiError) {
                 console.error('Gemini Processing Error:', geminiError);
-                // Fallback to OpenAI if Gemini fails and OpenAI key exists
-                if (!finalOpenAIKey) {
+                // Fallback to OpenAI only if Gemini fails AND OpenAI is available and enabled
+                if (!finalOpenAIKey || !isOpenAIEnabled) {
                     throw geminiError;
                 }
             }
