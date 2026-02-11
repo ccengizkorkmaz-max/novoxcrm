@@ -971,7 +971,8 @@
             "profile": "Firma Profili",
             "users": "Kullanıcılar",
             "templates": "Ödeme Şablonları",
-            "data": "Veri Yönetimi"
+            "data": "Veri Yönetimi",
+            "ai": "AI Modülü"
         },
         "profile": {
             "title": "Firma Bilgileri",

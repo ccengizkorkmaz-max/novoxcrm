@@ -450,3 +450,43 @@ export async function initializeUnitTypes() {
     revalidatePath('/settings')
     return { success: true }
 }
+
+export async function updateAiSettings(formData: FormData) {
+    const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    // Get tenant_id from profile
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id, role')
+        .eq('id', user.id)
+        .single()
+
+    if (!profile?.tenant_id) return { error: 'No tenant found' }
+    if (profile.role !== 'owner' && profile.role !== 'admin') {
+        return { error: 'Yalnızca yönetici yetkisi olanlar bu ayarları değiştirebilir.' }
+    }
+
+    const updates = {
+        openai_api_key: formData.get('openai_api_key') as string,
+        gemini_api_key: formData.get('gemini_api_key') as string,
+        is_openai_enabled: formData.get('is_openai_enabled') === 'on',
+        is_gemini_enabled: formData.get('is_gemini_enabled') === 'on',
+    }
+
+    const { error } = await supabase
+        .from('tenants')
+        .update(updates)
+        .eq('id', profile.tenant_id)
+
+    if (error) {
+        console.error('Update AI Settings Error:', error)
+        return { error: 'Ayarlar güncellenirken bir hata oluştu.' }
+    }
+
+    revalidatePath('/settings')
+    return { success: true }
+}
+

@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge'
 import { updateTenantProfile } from './actions'
 import { FormImageUpload } from '@/components/ui/form-image-upload'
-import { Building2, Users, FileText, Database, Banknote, Bell } from 'lucide-react'
+import { Building2, Users, FileText, Database, Banknote, Bell, Brain } from 'lucide-react'
 import UserManagementHeader from './components/UserManagementHeader'
 import UserTableActions from './components/UserTableActions'
 import TenantProfileForm from './components/TenantProfileForm'
@@ -21,6 +21,8 @@ import { getTranslations, getLocale } from 'next-intl/server'
 import UnitTypesTab from './components/UnitTypesTab'
 import CommissionRulesTab from './components/CommissionRulesTab'
 import NotificationSettingsTab from './components/NotificationSettingsTab'
+import AiSettingsTab from './components/AiSettingsTab'
+
 
 export default async function SettingsPage() {
     const supabase = await createClient()
@@ -132,7 +134,12 @@ export default async function SettingsPage() {
                         <Banknote className="w-4 h-4 mr-2" />
                         Primler
                     </TabsTrigger>
+                    <TabsTrigger value="ai" className="flex-1 md:flex-none py-2.5 px-4 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all">
+                        <Brain className="w-4 h-4 mr-2" />
+                        {t('tabs.ai')}
+                    </TabsTrigger>
                 </TabsList>
+
 
                 {/* Tenant Profile Tab */}
                 <TabsContent value="profile" className="space-y-4">
@@ -196,7 +203,13 @@ export default async function SettingsPage() {
                 <TabsContent value="commissions" className="space-y-4">
                     <CommissionRulesTab rules={commissionRules || []} />
                 </TabsContent>
+
+                {/* AI Settings Tab */}
+                <TabsContent value="ai" className="space-y-4">
+                    <AiSettingsTab tenant={tenant as any} />
+                </TabsContent>
             </Tabs>
+
         </div>
     )
 }
