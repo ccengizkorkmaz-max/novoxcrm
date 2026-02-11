@@ -332,119 +332,125 @@ export default async function DashboardPage(props: {
         <p className="text-muted-foreground text-sm mt-1">{t('description')}</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+        {/* Main Content (3/4 width on XL) */}
+        <div className="xl:col-span-3 space-y-6">
+          {/* General Stock Stats */}
           <DashboardGeneralStats stats={stats.generalStats} />
-        </div>
-        <div className="lg:col-span-1">
-          <AiInsightWidget />
-        </div>
-      </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        <Card className="border-none shadow-sm bg-card/50 backdrop-blur-sm">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{t('kpi.totalSalesVolume')}</CardTitle>
-            <CreditCard className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {formatCurrency(stats.totalSalesVolume)}
-            </div>
-            <p className="text-xs text-muted-foreground">{t('kpi.totalContracts')}</p>
-          </CardContent>
-        </Card>
-        <Card className="border-none shadow-sm bg-card/50 backdrop-blur-sm">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{t('kpi.activeOpportunities')}</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.activeLeads}</div>
-            <p className="text-xs text-muted-foreground">{t('kpi.ongoingNegotiations')}</p>
-          </CardContent>
-        </Card>
-        <Card className="border-none shadow-sm bg-card/50 backdrop-blur-sm">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{t('kpi.unitsForSale')}</CardTitle>
-            <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.availableUnits}</div>
-            <p className="text-xs text-muted-foreground">{t('kpi.totalStock')}</p>
-          </CardContent>
-        </Card>
-        <Card className="border-none shadow-sm bg-card/50 backdrop-blur-sm">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{t('kpi.customers')}</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalCustomers}</div>
-            <p className="text-xs text-muted-foreground">{t('kpi.registeredCustomers')}</p>
-          </CardContent>
-        </Card>
-        <Card className="border-none shadow-sm bg-card/50 backdrop-blur-sm">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{t('kpi.personnel')}</CardTitle>
-            <Briefcase className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.hrStats?.total || 0}</div>
-            <p className="text-xs text-muted-foreground">{stats.hrStats?.active || 0} {t('kpi.activeStaff')}</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Enhanced Charts & Analytics */}
-      <EnhancedDashboardCharts
-        monthlySales={stats.chartData}
-        opportunityDist={stats.leadStatusData}
-        funnelData={stats.funnelData}
-        projectOccupancy={stats.projectOccupancy}
-        leaderboard={stats.leaderboard}
-        monthlyComparison={stats.monthlyComparison}
-      />
-
-      {/* Recent Activity */}
-      <Card className="border-none shadow-sm bg-card/50 backdrop-blur-sm">
-        <CardHeader>
-          <CardTitle>{t('activity.title')}</CardTitle>
-          <CardDescription>{t('activity.description')}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-6">
-            {stats.recentActivities.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t('activity.empty')}</p>
-            ) : (
-              stats.recentActivities.map((activity: any) => {
-                const typeKey = activity.type === 'Call' || activity.type === 'Phone' ? 'call' :
-                  activity.type === 'Meeting' ? 'meeting' :
-                    activity.type === 'Visit' || activity.type === 'Site Visit' ? 'visit' :
-                      activity.type === 'Whatsapp' ? 'whatsapp' :
-                        activity.type === 'Email' ? 'email' : 'call'
-
-                return (
-                  <div key={activity.id} className="flex items-center">
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium leading-none">
-                        {activity.customers?.full_name} - {t(`activity.types.${typeKey}`)}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {activity.summary}
-                      </p>
-                    </div>
-                    <div className="ml-auto font-medium text-xs text-muted-foreground">
-                      {new Date(activity.created_at).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US')}
-                    </div>
-                  </div>
-                )
-              })
-            )}
+          {/* KPI Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            <Card className="border-none shadow-sm bg-card/50 backdrop-blur-sm">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">{t('kpi.totalSalesVolume')}</CardTitle>
+                <CreditCard className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {formatCurrency(stats.totalSalesVolume)}
+                </div>
+                <p className="text-xs text-muted-foreground">{t('kpi.totalContracts')}</p>
+              </CardContent>
+            </Card>
+            <Card className="border-none shadow-sm bg-card/50 backdrop-blur-sm">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">{t('kpi.activeOpportunities')}</CardTitle>
+                <Activity className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.activeLeads}</div>
+                <p className="text-xs text-muted-foreground">{t('kpi.ongoingNegotiations')}</p>
+              </CardContent>
+            </Card>
+            <Card className="border-none shadow-sm bg-card/50 backdrop-blur-sm">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">{t('kpi.unitsForSale')}</CardTitle>
+                <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.availableUnits}</div>
+                <p className="text-xs text-muted-foreground">{t('kpi.totalStock')}</p>
+              </CardContent>
+            </Card>
+            <Card className="border-none shadow-sm bg-card/50 backdrop-blur-sm">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">{t('kpi.customers')}</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.totalCustomers}</div>
+                <p className="text-xs text-muted-foreground">{t('kpi.registeredCustomers')}</p>
+              </CardContent>
+            </Card>
+            <Card className="border-none shadow-sm bg-card/50 backdrop-blur-sm">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">{t('kpi.personnel')}</CardTitle>
+                <Briefcase className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.hrStats?.total || 0}</div>
+                <p className="text-xs text-muted-foreground">{stats.hrStats?.active || 0} {t('kpi.activeStaff')}</p>
+              </CardContent>
+            </Card>
           </div>
-        </CardContent>
-      </Card>
+
+          {/* Enhanced Charts & Analytics */}
+          <EnhancedDashboardCharts
+            monthlySales={stats.chartData}
+            opportunityDist={stats.leadStatusData}
+            funnelData={stats.funnelData}
+            projectOccupancy={stats.projectOccupancy}
+            leaderboard={stats.leaderboard}
+            monthlyComparison={stats.monthlyComparison}
+          />
+
+          {/* Recent Activity */}
+          <Card className="border-none shadow-sm bg-card/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle>{t('activity.title')}</CardTitle>
+              <CardDescription>{t('activity.description')}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                {stats.recentActivities.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">{t('activity.empty')}</p>
+                ) : (
+                  stats.recentActivities.map((activity: any) => {
+                    const typeKey = activity.type === 'Call' || activity.type === 'Phone' ? 'call' :
+                      activity.type === 'Meeting' ? 'meeting' :
+                        activity.type === 'Visit' || activity.type === 'Site Visit' ? 'visit' :
+                          activity.type === 'Whatsapp' ? 'whatsapp' :
+                            activity.type === 'Email' ? 'email' : 'call'
+
+                    return (
+                      <div key={activity.id} className="flex items-center">
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium leading-none">
+                            {activity.customers?.full_name} - {t(`activity.types.${typeKey}`)}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {activity.summary}
+                          </p>
+                        </div>
+                        <div className="ml-auto font-medium text-xs text-muted-foreground">
+                          {new Date(activity.created_at).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US')}
+                        </div>
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Sidebar (AI Co-Pilot) - 1/4 width on XL */}
+        <div className="xl:col-span-1">
+          <div className="sticky top-6">
+            <AiInsightWidget />
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
