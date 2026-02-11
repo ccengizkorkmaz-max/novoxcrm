@@ -100,9 +100,9 @@ export function VoiceInput({ onTranscriptionComplete, isProcessing: externalProc
                 onTranscriptionComplete(data.text)
                 toast.success('Ses başarıyla yazıya döküldü!')
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Transcription error:', error)
-            toast.error('Ses işlenirken bir hata oluştu.')
+            toast.error(error.message || 'Ses işlenirken bir hata oluştu.')
         } finally {
             setIsInternalProcessing(false)
             setDuration(0)
