@@ -90,7 +90,7 @@ export default async function PublicLinksReportPage() {
                                                     </span>
                                                     <div className="flex items-center gap-2 text-[10px] text-slate-400 font-medium uppercase tracking-wider">
                                                         <User className="h-3 w-3" />
-                                                        {link.created_by?.full_name}
+                                                        {(link.created_by as any)?.full_name || 'Bilinmiyor'}
                                                     </div>
                                                 </div>
                                             </TableCell>
