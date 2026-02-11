@@ -35,6 +35,7 @@ import PipelineReservationDialog from './PipelineReservationDialog'
 import { RestartSaleButton } from './RestartSaleButton'
 import { toast } from 'sonner'
 import { CustomerEditDialog } from './CustomerEditDialog'
+import { AiMatchDialog } from '@/components/customers/AiMatchDialog'
 import { ActivityForm } from '@/components/activities/activity-form'
 import { useRouter, useSearchParams } from 'next/navigation'
 
@@ -498,9 +499,16 @@ export default function PipelineList({
                                                                     customerName={sale.customers?.full_name}
                                                                 />
                                                             )}
-                                                            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handlePlanClick(sale.id)} title="Ödeme Planı">
+
+                                                            <AiMatchDialog
+                                                                customerId={sale.customers?.id}
+                                                                customerName={sale.customers?.full_name}
+                                                            />
+
+                                                            <Button variant="outline" size="icon" className="h-8 w-8 border-slate-200 hover:bg-slate-50 transition-all active:scale-95" onClick={() => handlePlanClick(sale.id)} title="Ödeme Planı">
                                                                 <Calculator className="h-4 w-4 text-muted-foreground" />
                                                             </Button>
+
 
                                                             <Button variant="outline" size="icon" className="h-8 w-8 text-blue-600 border-blue-100 hover:bg-blue-50" onClick={() => handleCreateActivity(sale.customers)} title="Aktivite Ekle">
                                                                 <CalendarPlus className="h-4 w-4" />
@@ -690,6 +698,11 @@ export default function PipelineList({
                                                             projects={projects}
                                                         />
                                                     )}
+
+                                                    <AiMatchDialog
+                                                        customerId={sale.customers?.id}
+                                                        customerName={sale.customers?.full_name}
+                                                    />
                                                 </>
                                             )}
                                             {sale.status === 'Lost' && !sale.restarted_at && (
