@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import OpenAI from 'openai'
+import OpenAI, { toFile } from 'openai'
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY || '',
@@ -8,7 +8,8 @@ const openai = new OpenAI({
 export async function POST(req: NextRequest) {
     try {
         if (!process.env.OPENAI_API_KEY) {
-            return NextResponse.json({ error: 'OpenAI API Key is missing' }, { status: 500 })
+            console.error('OPENAI_API_KEY environment variable is missing')
+            return NextResponse.json({ error: 'OpenAI API Key is missing. Please add it to your .env.local file.' }, { status: 500 })
         }
 
         const formData = await req.formData()
@@ -19,9 +20,9 @@ export async function POST(req: NextRequest) {
         }
 
         // 1. Transcribe Audio (Whisper)
-        // Convert Blob to File-like object for OpenAI SDK
+        // Convert Blob to OpenAI compatible file object
         const buffer = Buffer.from(await file.arrayBuffer())
-        const fileObj = new File([buffer], 'recording.webm', { type: file.type })
+        const fileObj = await toFile(buffer, 'recording.webm', { type: file.type })
 
         const transcription = await openai.audio.transcriptions.create({
             file: fileObj,
@@ -66,7 +67,12 @@ export async function POST(req: NextRequest) {
             response_format: { type: 'json_object' }
         })
 
-        const structure = JSON.parse(completion.choices[0].message.content || '{}')
+        let structure = {}
+        try {
+            structure = JSON.parse(completion.choices[0].message.content || '{}')
+        } catch (e) {
+            console.error('Failed to parse GPT response:', e)
+        }
 
         return NextResponse.json({
             text,
@@ -75,6 +81,8 @@ export async function POST(req: NextRequest) {
 
     } catch (error: any) {
         console.error('AI Processing Error:', error)
-        return NextResponse.json({ error: error.message || 'Processing failed' }, { status: 500 })
+        // Ensure error message is string
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+        return NextResponse.json({ error: errorMessage || 'Processing failed' }, { status: 500 })
     }
 }
