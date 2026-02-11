@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Phone, Mail, Filter, MapPin } from 'lucide-react'
 import { ActivityTimeline } from '@/components/activities/activity-timeline'
+import { AiMatchWidget } from './AiMatchWidget'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
@@ -207,6 +208,9 @@ export function CustomerView({ customer, activities, contracts = [] }: CustomerV
                             </div>
                         </CardContent>
                     </Card>
+
+                    {/* AI Smart Match Widget */}
+                    <AiMatchWidget customerId={customer.id} />
 
                     {/* Filters Card */}
                     <Card className="overflow-hidden">
