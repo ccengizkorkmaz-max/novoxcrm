@@ -7,7 +7,7 @@ import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
 interface VoiceInputProps {
-    onTranscriptionComplete: (text: string) => void
+    onTranscriptionComplete: (text: string, data?: any) => void
     isProcessing?: boolean
 }
 
@@ -41,7 +41,13 @@ export function VoiceInput({ onTranscriptionComplete, isProcessing: externalProc
 
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-            mediaRecorderRef.current = new MediaRecorder(stream)
+
+            // Prefer opus in webm for best compatibility with Gemini/Whisper
+            const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+                ? 'audio/webm;codecs=opus'
+                : 'audio/webm'
+
+            mediaRecorderRef.current = new MediaRecorder(stream, { mimeType })
             chunksRef.current = []
 
             mediaRecorderRef.current.ondataavailable = (e) => {
@@ -51,7 +57,11 @@ export function VoiceInput({ onTranscriptionComplete, isProcessing: externalProc
             }
 
             mediaRecorderRef.current.onstop = async () => {
-                const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' })
+                if (chunksRef.current.length === 0) {
+                    toast.error('Ses kaydedilemedi. Lütfen tekrar deneyin.')
+                    return
+                }
+                const audioBlob = new Blob(chunksRef.current, { type: mimeType })
                 await handleTranscription(audioBlob)
 
                 // Stop all tracks
@@ -80,6 +90,13 @@ export function VoiceInput({ onTranscriptionComplete, isProcessing: externalProc
     }
 
     const handleTranscription = async (audioBlob: Blob) => {
+        // Minimum size check (e.g., 500 bytes) to avoid sending empty/silent recordings
+        if (audioBlob.size < 500) {
+            toast.error('Ses çok kısa veya sessiz.')
+            setIsInternalProcessing(false)
+            return
+        }
+
         setIsInternalProcessing(true)
         const formData = new FormData()
         formData.append('file', audioBlob, 'recording.webm')
@@ -96,9 +113,11 @@ export function VoiceInput({ onTranscriptionComplete, isProcessing: externalProc
             }
 
             const data = await response.json()
-            if (data.text) {
-                onTranscriptionComplete(data.text)
+            if (data.text || data.structured) {
+                onTranscriptionComplete(data.text || "", data.structured)
                 toast.success('Ses başarıyla yazıya döküldü!')
+            } else {
+                toast.info('Ses kaydında anlamlı bir konuşma bulunamadı.')
             }
         } catch (error: any) {
             console.error('Transcription error:', error)

@@ -45,8 +45,21 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
     // Derived State
     const isCompleteMode = mode === 'complete' || status === 'Completed'
 
-    const handleVoiceData = (text: string) => {
-        // Simple autofill logic based on mode
+    const handleVoiceData = (text: string, data?: any) => {
+        // If we have structured data from the AI, use it to fill the whole form
+        if (data) {
+            if (isCompleteMode) {
+                if (data.description) setNotes((prev: string) => prev ? prev + "\n" + data.description : data.description)
+                // We could also auto-select outcome if we find a way to set the ref or form value
+            } else {
+                if (data.summary) setSummary(data.summary)
+                if (data.description) setDescription(data.description)
+                // Other fields could be filled here too if needed
+            }
+            return
+        }
+
+        // Fallback to simple text append if no structured data
         if (isCompleteMode) {
             setNotes((prev: string) => prev ? prev + "\n" + text : text)
         } else {

@@ -47,29 +47,28 @@ export default function ActivitiesTab({ activities, customers }: { activities: a
         }
     }, [isCreateOpen])
 
-    const handleVoiceData = async (text: string) => {
+    const handleVoiceData = async (text: string, data?: any) => {
         setIsProcessingVoice(true)
         try {
-            // We need to parse the structured data from the voice input response
-            // The VoiceInput component returns text, but our API returns { text, structured }
-            // So we need to modify VoiceInput slightly or handle it here.
-            // Actually, VoiceInput in its current implementation calls onTranscriptionComplete(data.text).
-            // Let's rely on a separate call or modify VoiceInput to return the full object.
-            // FOR NOW: Let's assume we want to re-process the text if VoiceInput only gives text,
-            // OR better, let's update VoiceInput to pass the full structured object.
-            // But since I cannot easily edit VoiceInput again without a new turn, 
-            // I will assume the text IS the transcription and I will manually call the fill logic or 
-            // set the notes to the text.
+            // Fill based on structured AI data if available
+            if (data) {
+                if (data.summary) setSummary(data.summary)
+                if (data.description) setNotes(data.description)
+                // Map AI type to our select options if possible
+                if (data.type) {
+                    const typeMap: Record<string, string> = {
+                        'Call': 'Phone',
+                        'Meeting': 'Meeting',
+                        'Site Visit': 'Visit',
+                        'Visit': 'Visit',
+                        'Email': 'Email'
+                    }
+                    if (typeMap[data.type]) setType(typeMap[data.type])
+                }
+                return
+            }
 
-            // WAIT: I realized I implemented the API to return structured data, 
-            // but the VoiceInput component only passes 'data.text' to the callback.
-            // I should have updated VoiceInput to pass the whole data object.
-            // As a quick fix/workaround that is robust:
-            // I will just put the full text into "Notes" and "Summary" for now,
-            // enabling "AI Assisted" note taking immediately.
-
-            // Ideally, we want the structured data. 
-            // Let's just set the notes for now, which is the requested feature (Voice Note).
+            // Fallback to simple text
             setNotes(prev => prev ? prev + "\n" + text : text)
 
             // Attempt to guess summary from first sentence

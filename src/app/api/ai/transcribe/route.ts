@@ -43,26 +43,23 @@ export async function POST(req: NextRequest) {
         if (finalGeminiKey && isGeminiEnabled) {
             try {
                 const genAI = new GoogleGenerativeAI(finalGeminiKey)
-                const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+                const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
                 const buffer = Buffer.from(await file.arrayBuffer());
                 const base64Audio = buffer.toString('base64');
 
-                const prompt = `Sen bir Gayrimenkul CRM asistanısın. Bu sesli notu dinle ve şu JSON formatında yapılandırılmış veri çıkar:
+                const prompt = `Görevin bu sesli notu dinleyip metne çevirmek. 
+                Ses kaydında konuşulanları analiz et ve şu JSON formatında cevap ver:
                 {
-                    "summary": "5 kelimeyi geçmeyen kısa ve vurucu bir başlık (Örn: Ahmet Bey ile Proje Sunumu)",
-                    "description": "Notun tamamının düzeltilmiş ve profesyonel hali.",
+                    "summary": "Maksimum 5 kelimelik kısa özet",
+                    "description": "Ses kaydının tam ve düzeltilmiş transkripsiyonu",
                     "type": "Call, Meeting, Site Visit, Email, Whatsapp, Other",
                     "outcome": "Success, Reached Interested, Reached Not Interested, No Answer, Busy, Follow Up Required",
-                    "next_action": "Varsa bir sonraki aksiyon (yoksa null)",
-                    "topic": "General, Sales, Negotiation, Contract, Support"
+                    "topic": "General, Sales, Negotiation, Contract, Support",
+                    "next_action": "Varsa bir sonraki adım"
                 }
                 
-                Kurallar:
-                - Eğer notta 'aradım açmadı' deniyorsa outcome: 'No Answer' olmalı.
-                - Eğer 'randevu verdik' deniyorsa type: 'Meeting' veya 'Site Visit' olmalı.
-                - Eğer 'ilgilenmiyor' deniyorsa outcome: 'Reached Not Interested' olmalı.
-                - Sadece geçerli bir JSON döndür.`;
+                Önemli: Eğer ses kaydı boşsa veya konuşma içermiyorsa "description" alanını boş bırak. Sadece JSON döndür.`;
 
                 const result = await model.generateContent([
                     prompt,
@@ -75,11 +72,12 @@ export async function POST(req: NextRequest) {
                 ]);
 
                 const responseText = result.response.text();
+                // Extract JSON from response (handling potential markdown)
                 const jsonMatch = responseText.match(/\{[\s\S]*\}/);
                 const structure = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
 
                 return NextResponse.json({
-                    text: structure.description || "Ses analiz edildi.",
+                    text: structure.description || "",
                     structured: structure
                 });
             } catch (geminiError) {
