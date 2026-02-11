@@ -291,15 +291,13 @@ export default async function InventoryPage(props: {
         <div className="flex flex-col gap-6 w-full h-[calc(100vh-120px)] overflow-hidden">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
-                {(currentTab === 'list' || currentTab === 'grid') && (
-                    <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center gap-2 flex-wrap">
 
-                        <PublicLinkCreator unitIds={units?.map(u => u.id) || []} unitsCount={units?.length || 0} />
-                        <InventoryPdfExport units={units || []} />
-                        <InventoryExport projects={projects || []} />
-                        <NewUnitDialog projects={projects || []} unitTypes={unitTypes || []} />
-                    </div>
-                )}
+                    <PublicLinkCreator unitIds={units?.map(u => u.id) || []} unitsCount={units?.length || 0} />
+                    <InventoryPdfExport units={units || []} />
+                    <InventoryExport projects={projects || []} />
+                    <NewUnitDialog projects={projects || []} unitTypes={unitTypes || []} />
+                </div>
             </div>
 
             <RealtimeInventoryRefresher />

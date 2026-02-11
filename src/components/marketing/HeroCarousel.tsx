@@ -2,32 +2,40 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronLeft, ChevronRight, Brain, Target, Mic, BarChart3 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Brain, Target, Mic, BarChart3, Sparkles, LayoutGrid, FileText, Settings2 } from 'lucide-react'
 
 const slides = [
     {
         id: 1,
-        title: "Akıllı Dashboard & AI Co-Pilot",
-        description: "Tüm operasyonunuzu AI desteğiyle tek ekrandan yönetin.",
-        image: "/images/dashboard-preview-v2.png",
-        icon: Brain,
+        title: "AI Akıllı Eşleşme",
+        description: "Müşteri taleplerini saniyeler içinde en uygun mülkle eşleştirin, nedenini AI açıklasın.",
+        image: "/images/crm akıllı eşleşme.png",
+        icon: Sparkles,
         color: "indigo"
     },
     {
         id: 2,
-        title: "Broker Portalı & B2B Ağ Yönetimi",
-        description: "Yüzlerce broker ve satış ortağını şeffaf bir platformda buluşturun.",
-        image: "/images/broker-portal-final.png",
-        icon: Target,
+        title: "Görsel Envanter Yönetimi",
+        description: "Tüm projeyi, blokları ve üniteleri canlı matris görünümüyle anlık takip edin.",
+        image: "/images/Envanter Grid.png",
+        icon: LayoutGrid,
         color: "emerald"
     },
     {
         id: 3,
-        title: "Gelişmiş Operasyonel Analitik",
-        description: "Veriye dayalı kararlar alarak satış sürecinizi optimize edin.",
-        image: "/images/operational-speed-final.png",
-        icon: BarChart3,
+        title: "Dijital Sözleşme Akışı",
+        description: "Karmaşık satış süreçlerini yalın, hatasız ve hızlı bir dijital forma dönüştürün.",
+        image: "/images/otomatik sözleşme oluşturma.png",
+        icon: FileText,
         color: "blue"
+    },
+    {
+        id: 4,
+        title: "AI Komuta Merkezi",
+        description: "Yapay zeka modellerini ve API anahtarlarınızı tek merkezden güvenle yönetin.",
+        image: "/images/ayarlar.png",
+        icon: Settings2,
+        color: "violet"
     }
 ]
 
@@ -75,20 +83,20 @@ export function HeroCarousel() {
             <div className="relative rounded-2xl border border-slate-800 bg-slate-900/40 p-2 shadow-[0_0_50px_rgba(37,99,235,0.15)] backdrop-blur-xl ring-1 ring-white/10 overflow-hidden">
 
                 {/* Content Overlay - Labels */}
-                <div className="absolute top-6 left-6 z-20 flex gap-3 pointer-events-none">
+                <div className="absolute top-6 left-6 z-20 flex flex-wrap gap-2 pointer-events-none pr-12">
                     {slides.map((slide, idx) => {
                         const Icon = slide.icon
                         const isActive = currentIndex === idx
                         return (
                             <div
                                 key={slide.id}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-full border transition-all duration-500 ${isActive
+                                className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all duration-500 ${isActive
                                         ? 'bg-blue-600/20 border-blue-500/50 text-white shadow-lg shadow-blue-900/40'
                                         : 'bg-slate-900/60 border-slate-800 text-slate-500 opacity-50'
                                     }`}
                             >
-                                <Icon size={14} className={isActive ? 'text-blue-400' : ''} />
-                                <span className="text-[10px] md:text-sm font-bold uppercase tracking-wider">{slide.title}</span>
+                                <Icon size={12} className={isActive ? 'text-blue-400' : ''} />
+                                <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider">{slide.title}</span>
                             </div>
                         )
                     })}
@@ -113,13 +121,27 @@ export function HeroCarousel() {
                             <img
                                 src={slides[currentIndex].image}
                                 alt={slides[currentIndex].title}
-                                className="w-full h-full object-cover object-top opacity-90 transition-all duration-700"
+                                className="w-full h-full object-contain bg-slate-950/50 opacity-90 transition-all duration-700"
                             />
                         </motion.div>
                     </AnimatePresence>
 
                     {/* Shadow edges */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-slate-950/40 pointer-events-none" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-slate-950/20 pointer-events-none" />
+                </div>
+
+                {/* Text Description Overlay */}
+                <div className="absolute bottom-12 left-6 z-20 max-w-md pointer-events-none hidden md:block">
+                    <motion.div
+                        key={currentIndex}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.2 }}
+                        className="bg-slate-950/80 backdrop-blur-md p-4 rounded-2xl border border-slate-800 shadow-2xl"
+                    >
+                        <h4 className="text-white font-bold mb-1">{slides[currentIndex].title}</h4>
+                        <p className="text-slate-400 text-xs leading-relaxed">{slides[currentIndex].description}</p>
+                    </motion.div>
                 </div>
 
                 {/* Navigation Buttons */}
