@@ -80,22 +80,39 @@ export async function createLeadFromAi(leadData: {
         tenantId = anyProj?.tenant_id
     }
 
-    const { data, error } = await supabase
+    const { data: customer, error: customerError } = await supabase
         .from('customers')
         .insert({
-            first_name: leadData.name || 'AI Lead',
+            full_name: leadData.name || 'AI Müşteri',
             phone: leadData.phone,
             email: leadData.email,
             tenant_id: tenantId,
-            description: `AI Asistan üzerinden geldi. Notlar: ${leadData.notes || ''}`
+            source: 'AI Asistan',
+            description: `AI Asistan üzerinden geldi. ${leadData.notes || ''}`
         })
         .select()
         .single()
 
-    if (error) {
-        console.error('Error creating lead:', error)
-        return { success: false, error: error.message }
+    if (customerError) {
+        console.error('Error creating customer:', customerError)
+        return { success: false, error: customerError.message }
     }
 
-    return { success: true, data }
+    // 2. Create Sale (Lead) entry to show in Pipeline
+    const { error: saleError } = await supabase
+        .from('sales')
+        .insert({
+            tenant_id: tenantId,
+            customer_id: customer.id,
+            project_id: leadData.projectId || null,
+            status: 'Lead',
+            source: 'AI Asistan'
+        })
+
+    if (saleError) {
+        console.error('Error creating sale entry:', saleError)
+        // We don't return false here because customer was created, but pipeline entry failed
+    }
+
+    return { success: true, data: customer }
 }
