@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Mic, Send, X, MessageSquare, Phone, Info, Layout, Sparkles } from 'lucide-react'
+import { Mic, Send, X, MessageSquare, Phone, Info, Layout, Sparkles, Volume2 } from 'lucide-react'
 import { createLeadFromAi } from '@/app/[locale]/ai/actions'
 import { toast } from 'sonner'
 
@@ -13,15 +13,23 @@ interface Message {
 
 interface SalesAssistantProps {
     project: any
+    aiSettings?: {
+        name: string
+        personality: string
+        instructions: string
+        gender: 'male' | 'female'
+    }
 }
 
-export default function SalesAssistant({ project }: SalesAssistantProps) {
+export default function SalesAssistant({ project, aiSettings }: SalesAssistantProps) {
+    const assistantName = aiSettings?.name || 'Novox AI'
+
     const [messages, setMessages] = useState<Message[]>([
         {
             role: 'assistant',
             content: project
-                ? `Merhaba! Ben Novox AI. ${project.name} projesi hakkında bilgi almak isterseniz size yardımcı olabilirim.`
-                : "Merhaba! Ben Novox AI. Tüm projelerimiz hakkında size bilgi verebilir, bütçenize ve tercihinize en uygun projeyi önerebilirim. Nasıl yardımcı olabilirim?"
+                ? `Merhaba! Ben ${assistantName}. ${project.name} projesi hakkında bilgi almak isterseniz size yardımcı olabilirim.`
+                : `Merhaba! Ben ${assistantName}. Tüm projelerimiz hakkında size bilgi verebilir, bütçenize ve tercihinize en uygun projeyi önerebilirim. Nasıl yardımcı olabilirim?`
         }
     ])
     const [input, setInput] = useState('')
@@ -29,6 +37,13 @@ export default function SalesAssistant({ project }: SalesAssistantProps) {
     const [isProcessing, setIsProcessing] = useState(false)
     const scrollRef = useRef<HTMLDivElement>(null)
     const recognitionRef = useRef<any>(null)
+
+    const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([])
+
+    // DEBUG: Log settings to verify they are coming from the server correctly
+    useEffect(() => {
+        console.log('AI Settings Received:', aiSettings)
+    }, [aiSettings])
 
     useEffect(() => {
         // Initialize Speech Recognition
@@ -48,11 +63,31 @@ export default function SalesAssistant({ project }: SalesAssistantProps) {
             recognitionRef.current.onerror = () => setIsListening(false)
             recognitionRef.current.onend = () => setIsListening(false)
         }
+
+        // Handle async voice loading
+        const loadVoices = () => {
+            const trVoices = window.speechSynthesis.getVoices()
+            if (trVoices.length > 0) {
+                setVoices(trVoices)
+            }
+        }
+        loadVoices()
+        if (typeof window !== 'undefined' && window.speechSynthesis) {
+            window.speechSynthesis.onvoiceschanged = loadVoices
+        }
     }, [])
 
     useEffect(() => {
         if (scrollRef.current) {
             scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+        }
+
+        // Speak initial message if it's the first render using Cloud TTS
+        if (messages.length === 1 && messages[0].role === 'assistant') {
+            const timer = setTimeout(() => {
+                speak(messages[0].content)
+            }, 1000)
+            return () => clearTimeout(timer)
         }
     }, [messages])
 
@@ -90,8 +125,8 @@ export default function SalesAssistant({ project }: SalesAssistantProps) {
                     const result = await createLeadFromAi({
                         name: data.leadData?.name || "AI Müşteri",
                         phone: data.leadData?.phone || "000",
-                        projectId: project?.id || null,
-                        notes: `Müşteri ilgisi tespiti (${project?.name || data.leadData?.projectName || 'Genel Portföy'}): ${text}`
+                        projectId: data.leadData?.projectId || project?.id || null,
+                        notes: `Müşteri ilgisi tespiti (${project?.name || 'Genel Portföy'}): ${text}`
                     })
 
                     if (result.success) {
@@ -112,31 +147,54 @@ export default function SalesAssistant({ project }: SalesAssistantProps) {
         }
     }
 
-    const speak = (text: string) => {
-        if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-            // Cancel any ongoing speech
-            window.speechSynthesis.cancel()
+    const speak = async (text: string) => {
+        if (!text || typeof window === 'undefined') return
 
-            // Remove markdown bolding and special characters for cleaner speech
-            const cleanText = text.replace(/\*\*/g, '').replace(/\[LEAD_CAPTURE_EVENT\]/g, '')
-            const utterance = new SpeechSynthesisUtterance(cleanText)
+        const cleanText = text.replace(/\*\*/g, '').replace(/\[LEAD_CAPTURE_EVENT\]/g, '').trim()
+        if (!cleanText) return
 
-            // Get available voices
-            const voices = window.speechSynthesis.getVoices()
+        console.log('AI Speaking (Cloud TTS):', cleanText.substring(0, 30) + '...')
 
-            // Try to find a more natural Turkish voice (Google or Microsoft often have better ones)
-            const trVoice = voices.find(v => v.lang === 'tr-TR' && (v.name.includes('Google') || v.name.includes('Natural')))
-                || voices.find(v => v.lang === 'tr-TR')
-
-            if (trVoice) {
-                utterance.voice = trVoice
+        try {
+            const existingAudio = document.getElementById('ai-audio-player') as HTMLAudioElement
+            if (existingAudio) {
+                existingAudio.pause()
+                existingAudio.remove()
             }
 
-            utterance.lang = 'tr-TR'
-            utterance.rate = 0.95 // Slightly slower is usually more natural
-            utterance.pitch = 1.05 // Slightly higher pitch can sound less robotic
+            const response = await fetch('/api/ai/tts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    text: cleanText,
+                    gender: aiSettings?.gender || 'female'
+                })
+            })
 
-            window.speechSynthesis.speak(utterance)
+            if (!response.ok) {
+                const errData = await response.json()
+                throw new Error(errData.error || 'TTS API hatası')
+            }
+
+            const data = await response.json()
+            if (data.audioContent) {
+                const audio = new Audio(`data:audio/mp3;base64,${data.audioContent}`)
+                audio.id = 'ai-audio-player'
+                audio.play().catch(e => {
+                    // Silently fail for initial message if user hasn't interacted yet
+                    console.warn('Audio play blocked by browser (waiting for user interaction)')
+                })
+            }
+        } catch (error: any) {
+            console.warn('Cloud TTS failed, using fallback...', error.message)
+
+            // Final fallback to browser synthesis so the bot still speaks
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel()
+                const utterance = new SpeechSynthesisUtterance(cleanText)
+                utterance.lang = 'tr-TR'
+                window.speechSynthesis.speak(utterance)
+            }
         }
     }
 
@@ -170,7 +228,7 @@ export default function SalesAssistant({ project }: SalesAssistantProps) {
                             <Sparkles size={20} className="text-white" />
                         </div>
                         <div>
-                            <h1 className="text-base font-semibold tracking-tight text-white/90">Novox AI</h1>
+                            <h1 className="text-base font-semibold tracking-tight text-white/90">{assistantName}</h1>
                             <div className="flex items-center gap-1.5">
                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                                 <p className="text-[10px] text-blue-400 uppercase tracking-widest font-medium">
@@ -178,6 +236,18 @@ export default function SalesAssistant({ project }: SalesAssistantProps) {
                                 </p>
                             </div>
                         </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => {
+                                const lastMsg = messages[messages.length - 1];
+                                if (lastMsg) speak(lastMsg.content);
+                            }}
+                            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/40 hover:text-blue-400 transition-all border border-white/5"
+                            title="Son mesajı seslendir"
+                        >
+                            <Volume2 size={18} />
+                        </button>
                     </div>
                 </header>
 

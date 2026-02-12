@@ -8,8 +8,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Switch } from '@/components/ui/switch'
 import { Brain, Sparkles, AlertCircle, Info, ToggleLeft, ToggleRight } from 'lucide-react'
 import { toast } from 'sonner'
-import { updateAiSettings } from '../actions'
+import { updateAiSettings, updateAiAssistantCharacter } from '../actions'
 import { useTranslations } from 'next-intl'
+import { MessageSquare, User, HelpCircle, Save } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 
 interface AiSettingsTabProps {
     tenant: {
@@ -18,6 +22,11 @@ interface AiSettingsTabProps {
         gemini_api_key?: string | null
         is_openai_enabled?: boolean
         is_gemini_enabled?: boolean
+        // New assistant fields
+        ai_assistant_name?: string | null
+        ai_assistant_personality?: string | null
+        ai_assistant_gender?: string | null
+        ai_assistant_instructions?: string | null
     }
 }
 
@@ -147,9 +156,121 @@ export default function AiSettingsTab({ tenant }: AiSettingsTabProps) {
                         </div>
                     </div>
 
-                    <Button type="submit" className="w-full md:w-auto bg-purple-600 hover:bg-purple-700" disabled={isPending}>
+                    <Button type="submit" className="w-full md:w-auto bg-blue-600 hover:bg-blue-700" disabled={isPending}>
                         {isPending ? 'Kaydediliyor...' : 'API Anahtarlarını Kaydet'}
                     </Button>
+                </form>
+
+                <div className="my-10 border-t border-slate-100" />
+
+                {/* Assistant Personality Section */}
+                <form
+                    action={async (formData) => {
+                        setIsPending(true)
+                        try {
+                            const res = await updateAiAssistantCharacter(formData)
+                            if (res?.error) {
+                                toast.error(res.error)
+                            } else {
+                                toast.success('Asistan karakteri başarıyla güncellendi.')
+                            }
+                        } catch (e: any) {
+                            toast.error('Giriş yapılırken bir hata oluştu: ' + e.message)
+                        } finally {
+                            setIsPending(false)
+                        }
+                    }}
+                    className="space-y-8"
+                >
+                    <div className="space-y-6">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center">
+                                <Sparkles className="h-5 w-5 text-purple-600" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-semibold text-slate-900">Satış Asistanı Karakteri</h3>
+                                <p className="text-sm text-muted-foreground">Asistanın müşterilerle nasıl konuşacağını ve ismini belirleyin.</p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <Label htmlFor="ai_assistant_name" className="text-sm font-medium">Asistanın İsmi</Label>
+                                <div className="relative">
+                                    <User className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                                    <Input
+                                        id="ai_assistant_name"
+                                        name="ai_assistant_name"
+                                        defaultValue={tenant.ai_assistant_name || 'Novox AI'}
+                                        placeholder="Örn: Novox AI, Selin, Kerem"
+                                        className="pl-10"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="ai_assistant_gender" className="text-sm font-medium">Asistanın Sesi / Cinsiyeti</Label>
+                                <Select
+                                    onValueChange={(val) => {
+                                        const input = document.getElementById('gender_hidden_input') as HTMLInputElement;
+                                        if (input) input.value = val;
+                                    }}
+                                    defaultValue={tenant.ai_assistant_gender || 'female'}
+                                >
+                                    <SelectTrigger className="w-full">
+                                        <SelectValue placeholder="Seçiniz" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="female">Kadın Sesi (Daha yumuşak ve nazik)</SelectItem>
+                                        <SelectItem value="male">Erkek Sesi (Daha ciddi ve güven veren)</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <input
+                                    type="hidden"
+                                    id="gender_hidden_input"
+                                    name="ai_assistant_gender"
+                                    defaultValue={tenant.ai_assistant_gender || 'female'}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="ai_assistant_personality" className="text-sm font-medium text-slate-700">Genel Karakter ve Üslup</Label>
+                            <Input
+                                id="ai_assistant_personality"
+                                name="ai_assistant_personality"
+                                defaultValue={tenant.ai_assistant_personality || 'Kurumsal, kibar ve çözüm odaklı'}
+                                placeholder="Örn: Samimi ve neşeli, Çok kurumsal ve mesafeli, Profesyonel ve hızlı"
+                            />
+                            <p className="text-[10px] text-muted-foreground italic">Asistanın cevap verirken takınacağı genel tavır.</p>
+                        </div>
+
+                        <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                                <Label htmlFor="ai_assistant_instructions" className="text-sm font-medium text-slate-700">Kurumsal Özel Talimatlar</Label>
+                                <Badge variant="secondary" className="text-[10px] font-normal">Sadece {tenant.ai_assistant_name || 'Asistan'} görür</Badge>
+                            </div>
+                            <Textarea
+                                id="ai_assistant_instructions"
+                                name="ai_assistant_instructions"
+                                defaultValue={tenant.ai_assistant_instructions || ''}
+                                placeholder="Örn: Her zaman en düşük fiyatlı projeyi önce öner. Kocaeli'deki projemizi özellikle vurgula. Müşteriye mutlaka 'Efendim' diye hitap et."
+                                className="min-h-[120px] resize-none"
+                            />
+                            <p className="text-[10px] text-muted-foreground">Bu talimatlar asistanın zekasına (system prompt) doğrudan eklenir.</p>
+                        </div>
+                    </div>
+
+                    <div className="flex justify-end">
+                        <Button type="submit" className="bg-purple-600 hover:bg-purple-700 text-white min-w-[200px]" disabled={isPending}>
+                            {isPending ? 'Kaydediliyor...' : (
+                                <>
+                                    <Save className="w-4 h-4 mr-2" />
+                                    Karakteri Kaydet
+                                </>
+                            )}
+                        </Button>
+                    </div>
                 </form>
             </CardContent>
         </Card>

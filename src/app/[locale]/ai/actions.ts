@@ -59,6 +59,22 @@ export async function getProjectBySlug(slug: string) {
     }
 }
 
+export async function getAiSettings(tenantId: string) {
+    const supabase = createAdminClient()
+    const { data } = await supabase
+        .from('tenants')
+        .select('ai_assistant_name, ai_assistant_personality, ai_assistant_instructions, ai_assistant_gender')
+        .eq('id', tenantId)
+        .maybeSingle()
+
+    return {
+        name: data?.ai_assistant_name || 'Novox AI',
+        personality: data?.ai_assistant_personality || 'Kurumsal, kibar ve çözüm odaklı',
+        instructions: data?.ai_assistant_instructions || '',
+        gender: data?.ai_assistant_gender || 'female'
+    }
+}
+
 export async function createLeadFromAi(leadData: {
     name?: string,
     phone: string,
@@ -95,8 +111,7 @@ export async function createLeadFromAi(leadData: {
                 phone: leadData.phone,
                 email: leadData.email,
                 tenant_id: tenantId,
-                source: 'AI Asistan',
-                description: `AI Asistan üzerinden geldi. ${leadData.notes || ''}`
+                source: 'AI Asistan'
             })
             .select()
             .single()
@@ -106,8 +121,17 @@ export async function createLeadFromAi(leadData: {
             return { success: false, error: customerError.message }
         }
 
+        // 2.5 Save notes to customer_demands if present
+        if (leadData.notes) {
+            await supabase.from('customer_demands').insert({
+                tenant_id: tenantId,
+                customer_id: customer.id,
+                notes: leadData.notes
+            })
+        }
+
         // 3. Create Sale (Lead) entry to show in Pipeline
-        // IMPORTANT: The table uses 'lead_origin', not 'source'.
+        // IMPORTANT: We add 'description' here so the (i) icon appears in the table.
         const { error: saleError } = await supabase
             .from('sales')
             .insert({
@@ -115,7 +139,8 @@ export async function createLeadFromAi(leadData: {
                 customer_id: customer.id,
                 project_id: leadData.projectId || null,
                 status: 'Lead',
-                lead_origin: 'company'
+                lead_origin: 'company',
+                description: leadData.notes || 'AI Asistan üzerinden geldi.'
             })
 
         if (saleError) {

@@ -490,3 +490,46 @@ export async function updateAiSettings(formData: FormData) {
     return { success: true }
 }
 
+export async function updateAiAssistantCharacter(formData: FormData) {
+    const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    // Get tenant_id from profile
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id, role')
+        .eq('id', user.id)
+        .single()
+
+    if (!profile?.tenant_id) return { error: 'No tenant found' }
+    if (profile.role !== 'owner' && profile.role !== 'admin') {
+        return { error: 'Yalnızca yönetici yetkisi olanlar bu ayarları değiştirebilir.' }
+    }
+
+    const updates = {
+        ai_assistant_name: formData.get('ai_assistant_name') as string,
+        ai_assistant_personality: formData.get('ai_assistant_personality') as string,
+        ai_assistant_gender: formData.get('ai_assistant_gender') as string,
+        ai_assistant_instructions: formData.get('ai_assistant_instructions') as string,
+    }
+
+    const { error } = await supabase
+        .from('tenants')
+        .update(updates)
+        .eq('id', profile.tenant_id)
+
+    if (error) {
+        console.error('Update AI Character Error:', error)
+        return { error: 'Karakter ayarları güncellenirken bir hata oluştu.' }
+    }
+
+    // Comprehensive revalidation
+    revalidatePath('/(dashboard)/settings', 'page')
+    revalidatePath('/ai', 'layout')
+    revalidatePath('/ai/[slug]', 'page')
+
+    return { success: true }
+}
+
