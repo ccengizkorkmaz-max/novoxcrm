@@ -68,13 +68,25 @@ export async function createLeadFromAi(leadData: {
     const supabase = await createClient()
 
     // Insert into customers table or a specific leads table
+    let tenantId = null
+    if (leadData.projectId) {
+        const { data: proj } = await supabase.from('projects').select('tenant_id').eq('id', leadData.projectId).single()
+        tenantId = proj?.tenant_id
+    }
+
+    // Default tenant fallback if still null (get from any project)
+    if (!tenantId) {
+        const { data: anyProj } = await supabase.from('projects').select('tenant_id').limit(1).single()
+        tenantId = anyProj?.tenant_id
+    }
+
     const { data, error } = await supabase
         .from('customers')
         .insert({
             first_name: leadData.name || 'AI Lead',
             phone: leadData.phone,
             email: leadData.email,
-            tenant_id: (await supabase.from('projects').select('tenant_id').eq('id', leadData.projectId).single()).data?.tenant_id,
+            tenant_id: tenantId,
             description: `AI Asistan üzerinden geldi. Notlar: ${leadData.notes || ''}`
         })
         .select()

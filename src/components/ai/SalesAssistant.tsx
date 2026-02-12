@@ -88,9 +88,10 @@ export default function SalesAssistant({ project }: SalesAssistantProps) {
                 // Actual Lead Capture in Database
                 if (data.leadCaptured) {
                     await createLeadFromAi({
-                        phone: "AI Görüşmesi",
+                        name: data.leadData?.name || "AI Müşteri",
+                        phone: data.leadData?.phone || "000",
                         projectId: project?.id || null,
-                        notes: `Müşteri ilgisi tespiti (${project?.name || 'Genel Portföy'}): ${text}`
+                        notes: `Müşteri ilgisi tespiti (${project?.name || data.leadData?.projectName || 'Genel Portföy'}): ${text}`
                     })
                     toast.success("Bilgileriniz kaydedildi, uzmanlarımız sizi arayacak!")
                 }

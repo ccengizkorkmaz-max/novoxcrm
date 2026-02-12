@@ -67,17 +67,32 @@ export async function POST(req: NextRequest) {
         const result = await chat.sendMessage(message)
         const responseText = result.response.text()
 
-        // Check if lead captured
+        // Check if lead captured and extract data
         const hasLeadCaptureStatus = responseText.includes('[LEAD_CAPTURE_EVENT]')
-        const cleanReply = responseText.replace('[LEAD_CAPTURE_EVENT]', '').trim()
+        let cleanReply = responseText.replace('[LEAD_CAPTURE_EVENT]', '').trim()
+        let extractedLeadData = null
 
-        // If lead captured, we could trigger a background process or flag it to the client
-        // In a real implementation, we would extract the number/name here using another prompt 
-        // or regex, but for now we'll just flag it.
+        if (hasLeadCaptureStatus) {
+            // Internal sub-request to extract details from the reply or history
+            try {
+                const extractionModel = genAI.getGenerativeModel({ model: "gemini-2.0-flash" })
+                const extractionResult = await extractionModel.generateContent(`
+                    Aşağıdaki konuşma geçmişinden müşterinin ismini, telefon numarasını ve ilgilendiği proje adını JSON formatında ayıkla. 
+                    Sadece JSON döndür. Örnek: {"name": "Ahmet Yılmaz", "phone": "05321234567", "projectName": "Mavi Şehir Konutları"}
+                    Eğer bulamazsan ilgili alanı boş bırak.
+                    Konuşma: ${message}
+                `)
+                const jsonText = extractionResult.response.text().replace(/```json/g, '').replace(/```/g, '').trim()
+                extractedLeadData = JSON.parse(jsonText)
+            } catch (e) {
+                console.error("Lead extraction failed:", e)
+            }
+        }
 
         return NextResponse.json({
             reply: cleanReply,
-            leadCaptured: hasLeadCaptureStatus
+            leadCaptured: hasLeadCaptureStatus,
+            leadData: extractedLeadData
         })
 
     } catch (error: any) {
