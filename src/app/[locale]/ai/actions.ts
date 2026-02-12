@@ -107,6 +107,7 @@ export async function createLeadFromAi(leadData: {
         }
 
         // 3. Create Sale (Lead) entry to show in Pipeline
+        // IMPORTANT: The table uses 'lead_origin', not 'source'.
         const { error: saleError } = await supabase
             .from('sales')
             .insert({
@@ -114,11 +115,12 @@ export async function createLeadFromAi(leadData: {
                 customer_id: customer.id,
                 project_id: leadData.projectId || null,
                 status: 'Lead',
-                source: 'AI Asistan'
+                lead_origin: 'company'
             })
 
         if (saleError) {
-            console.error('Lead Capture Error (Sale):', saleError)
+            console.error('Lead Capture Error (Sale Table):', saleError)
+            // We don't return false here because the customer WAS created successfully.
         }
 
         return { success: true, data: customer }

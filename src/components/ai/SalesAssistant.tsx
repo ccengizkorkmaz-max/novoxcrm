@@ -87,13 +87,18 @@ export default function SalesAssistant({ project }: SalesAssistantProps) {
 
                 // Actual Lead Capture in Database
                 if (data.leadCaptured) {
-                    await createLeadFromAi({
+                    const result = await createLeadFromAi({
                         name: data.leadData?.name || "AI Müşteri",
                         phone: data.leadData?.phone || "000",
                         projectId: project?.id || null,
                         notes: `Müşteri ilgisi tespiti (${project?.name || data.leadData?.projectName || 'Genel Portföy'}): ${text}`
                     })
-                    toast.success("Bilgileriniz kaydedildi, uzmanlarımız sizi arayacak!")
+
+                    if (result.success) {
+                        toast.success("Bilgileriniz kaydedildi, uzmanlarımız sizi arayacak!")
+                    } else {
+                        toast.error(`Kayıt oluşturulamadı: ${result.error}`)
+                    }
                 }
             } else {
                 throw new Error("AI yanıt veremedi (boş yanıt).")
