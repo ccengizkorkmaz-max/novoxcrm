@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 export async function getProjectBySlug(slug: string) {
     const supabase = await createClient()
@@ -65,54 +66,65 @@ export async function createLeadFromAi(leadData: {
     projectId: string,
     notes?: string
 }) {
-    const supabase = await createClient()
+    // For public visitors, we must use Admin Client to bypass RLS and ensure the lead is saved
+    const supabase = createAdminClient()
 
-    // Insert into customers table or a specific leads table
-    let tenantId = null
-    if (leadData.projectId) {
-        const { data: proj } = await supabase.from('projects').select('tenant_id').eq('id', leadData.projectId).single()
-        tenantId = proj?.tenant_id
+    try {
+        // 1. Determine Tenant ID (crucial for CRM visibility)
+        let tenantId = null
+        if (leadData.projectId) {
+            const { data: proj } = await supabase.from('projects').select('tenant_id').eq('id', leadData.projectId).maybeSingle()
+            tenantId = proj?.tenant_id
+        }
+
+        if (!tenantId) {
+            const { data: anyProj } = await supabase.from('projects').select('tenant_id').limit(1).maybeSingle()
+            tenantId = anyProj?.tenant_id
+        }
+
+        if (!tenantId) {
+            console.error('Lead Capture Error: Could not determine tenant_id')
+            return { success: false, error: 'Hesap bilgisi alınamadı' }
+        }
+
+        // 2. Create/Insert Customer
+        const { data: customer, error: customerError } = await supabase
+            .from('customers')
+            .insert({
+                full_name: leadData.name || 'AI Müşteri',
+                phone: leadData.phone,
+                email: leadData.email,
+                tenant_id: tenantId,
+                source: 'AI Asistan',
+                description: `AI Asistan üzerinden geldi. ${leadData.notes || ''}`
+            })
+            .select()
+            .single()
+
+        if (customerError) {
+            console.error('Lead Capture Error (Customer):', customerError)
+            return { success: false, error: customerError.message }
+        }
+
+        // 3. Create Sale (Lead) entry to show in Pipeline
+        const { error: saleError } = await supabase
+            .from('sales')
+            .insert({
+                tenant_id: tenantId,
+                customer_id: customer.id,
+                project_id: leadData.projectId || null,
+                status: 'Lead',
+                source: 'AI Asistan'
+            })
+
+        if (saleError) {
+            console.error('Lead Capture Error (Sale):', saleError)
+        }
+
+        return { success: true, data: customer }
+
+    } catch (err: any) {
+        console.error('Lead Capture Critical Error:', err)
+        return { success: false, error: err.message }
     }
-
-    // Default tenant fallback if still null (get from any project)
-    if (!tenantId) {
-        const { data: anyProj } = await supabase.from('projects').select('tenant_id').limit(1).single()
-        tenantId = anyProj?.tenant_id
-    }
-
-    const { data: customer, error: customerError } = await supabase
-        .from('customers')
-        .insert({
-            full_name: leadData.name || 'AI Müşteri',
-            phone: leadData.phone,
-            email: leadData.email,
-            tenant_id: tenantId,
-            source: 'AI Asistan',
-            description: `AI Asistan üzerinden geldi. ${leadData.notes || ''}`
-        })
-        .select()
-        .single()
-
-    if (customerError) {
-        console.error('Error creating customer:', customerError)
-        return { success: false, error: customerError.message }
-    }
-
-    // 2. Create Sale (Lead) entry to show in Pipeline
-    const { error: saleError } = await supabase
-        .from('sales')
-        .insert({
-            tenant_id: tenantId,
-            customer_id: customer.id,
-            project_id: leadData.projectId || null,
-            status: 'Lead',
-            source: 'AI Asistan'
-        })
-
-    if (saleError) {
-        console.error('Error creating sale entry:', saleError)
-        // We don't return false here because customer was created, but pipeline entry failed
-    }
-
-    return { success: true, data: customer }
 }
