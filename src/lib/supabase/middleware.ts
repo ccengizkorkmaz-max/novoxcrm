@@ -68,6 +68,7 @@ export async function updateSession(request: NextRequest, response?: NextRespons
         pathWithoutLocale.startsWith('/customerservices/login') ||
         pathWithoutLocale.startsWith('/auth') ||
         pathWithoutLocale.startsWith('/p/') ||
+        pathWithoutLocale.startsWith('/ai') ||
         pathWithoutLocale.startsWith('/broker/apply')
 
     if (!user && !isPublicRoute) {
