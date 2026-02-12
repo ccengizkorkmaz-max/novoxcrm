@@ -233,7 +233,8 @@
             "realestate": "Gayrimenkul CRM",
             "construction": "İnşaat CRM",
             "all": "Tüm Çözümler",
-            "paymentCalculator": "Ödeme Planı Sihirbazı"
+            "paymentCalculator": "Ödeme Planı Sihirbazı",
+            "mulkunuhesapla": "Mülkünü Hesapla"
         },
         "corporateTitle": "Kurumsal",
         "corporate": {

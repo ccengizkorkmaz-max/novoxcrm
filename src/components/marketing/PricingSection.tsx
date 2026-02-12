@@ -82,13 +82,14 @@ export function PricingSection() {
                             </ul>
 
                             <LeadCaptureModal
-                                title={`${t(`plans.${plan.key}.name`)} ${t('title')}`} // Using title generically or adjusting translation if needed
+                                title={`${t(`plans.${plan.key}.name`)} ${t('title')}`}
                                 description={`${t(`plans.${plan.key}.name`)} - ${t(`plans.${plan.key}.description`)}`}
                                 resourceName={`Pricing_${plan.key}_Request`}
                             >
                                 <Button
                                     size="lg"
                                     variant={plan.popular ? 'default' : 'outline'}
+                                    suppressHydrationWarning
                                     className={`w-full rounded-xl h-12 font-semibold transition-all duration-300
                                         ${plan.popular
                                             ? 'bg-blue-600 hover:bg-blue-500 text-white border-none shadow-[0_0_20px_rgba(37,99,235,0.3)] hover:shadow-[0_0_30px_rgba(37,99,235,0.5)]'

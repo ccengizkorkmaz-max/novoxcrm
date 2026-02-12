@@ -24,7 +24,7 @@ export function FAQSection() {
                     </div>
 
                     <div className="md:col-span-8">
-                        <Accordion type="single" collapsible className="w-full space-y-4">
+                        <Accordion type="single" collapsible className="w-full space-y-4" suppressHydrationWarning>
                             {[0, 1, 2, 3, 4, 5].map((i) => (
                                 <AccordionItem key={i} value={`item-${i}`} className="border border-slate-800 rounded-xl px-4 bg-slate-900/30 data-[state=open]:bg-slate-900/80 data-[state=open]:border-blue-500/30 transition-all duration-200">
                                     <AccordionTrigger className="text-white hover:text-blue-400 hover:no-underline text-left text-lg font-medium py-6">

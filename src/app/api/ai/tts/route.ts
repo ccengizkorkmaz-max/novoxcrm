@@ -9,7 +9,12 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Google TTS API Key missing' }, { status: 500 })
         }
 
-        const cleanText = text.replace(/\*\*/g, '').replace(/\[LEAD_CAPTURE_EVENT\]/g, '').trim()
+        // Clean text: remove markdown, lead events, and emojis (so it doesn't read "ağzı açık gülme")
+        const cleanText = text
+            .replace(/\*\*/g, '')
+            .replace(/\[LEAD_CAPTURE_EVENT\]/g, '')
+            .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '')
+            .trim()
         if (!cleanText) return NextResponse.json({ error: 'No text to speak' })
 
         // Switching to WAVENET-C and WAVENET-D which are high-quality and universally supported

@@ -44,7 +44,7 @@ export function LeadCaptureModal({ children, title, description, resourceName }:
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
+            <DialogTrigger asChild suppressHydrationWarning>
                 {children}
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">

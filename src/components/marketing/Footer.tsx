@@ -37,6 +37,7 @@ export function Footer() {
                             <li><Link href="/solutions/insaat-crm" className="hover:text-white transition-colors">{t('solutions.construction')}</Link></li>
                             <li><Link href="/solutions" className="hover:text-white transition-colors">{t('solutions.all')}</Link></li>
                             <li><Link href="/payment-plan-calculator" className="hover:text-white transition-colors">{t('solutions.paymentCalculator')}</Link></li>
+                            <li><a href="https://mulkunuhesapla.com/" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">{t('solutions.mulkunuhesapla')}</a></li>
                         </ul>
                     </div>
 
