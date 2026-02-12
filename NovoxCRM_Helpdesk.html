@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NovoxCRM Destek Merkezi | Self-Servis Yardım Portalı</title>
+    <style>
+        :root {
+            --primary: #0067b8;
+            /* Microsoft Blue */
+            --text-main: #242424;
+            --text-light: #616161;
+            --bg-sidebar: #f5f5f5;
+            --border: #e1e1e1;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            margin: 0;
+            display: flex;
+            color: var(--text-main);
+            line-height: 1.6;
+        }
+
+        /* Sidebar Navigation */
+        nav {
+            width: 300px;
+            background: var(--bg-sidebar);
+            height: 100vh;
+            position: fixed;
+            border-right: 1px solid var(--border);
+            overflow-y: auto;
+            padding: 20px 0;
+        }
+
+        .nav-logo {
+            padding: 0 25px 30px;
+            font-size: 20px;
+            font-weight: bold;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-section {
+            padding: 10px 25px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--text-light);
+            letter-spacing: 0.5px;
+        }
+
+        nav ul {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 20px;
+        }
+
+        nav li a {
+            display: block;
+            padding: 8px 25px;
+            text-decoration: none;
+            color: var(--text-main);
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        nav li a:hover {
+            background: #e1e1e1;
+            color: var(--primary);
+        }
+
+        nav li a.active {
+            color: var(--primary);
+            font-weight: 600;
+            border-left: 4px solid var(--primary);
+            background: #ffffff;
+        }
+
+        /* Main Content Area */
+        main {
+            margin-left: 300px;
+            padding: 60px 80px;
+            max-width: 900px;
+        }
+
+        .breadcrumb {
+            font-size: 12px;
+            color: var(--text-light);
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 42px;
+            margin-top: 0;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 15px;
+        }
+
+        h2 {
+            font-size: 28px;
+            margin-top: 50px;
+            color: #1a1a1a;
+        }
+
+        h3 {
+            font-size: 20px;
+            margin-top: 30px;
+            color: var(--primary);
+        }
+
+        .alert {
+            background: #fdf6f6;
+            border-left: 4px solid #d83b01;
+            padding: 15px 20px;
+            margin: 25px 0;
+            font-size: 14px;
+        }
+
+        .tip {
+            background: #f3f9fd;
+            border-left: 4px solid var(--primary);
+            padding: 15px 20px;
+            margin: 25px 0;
+            font-size: 14px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        th,
+        td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+            font-size: 14px;
+        }
+
+        th {
+            background: #fafafa;
+        }
+
+        code {
+            background: #f0f0f0;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: Consolas, monospace;
+        }
+
+        .action-button {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 2px;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            margin: 10px 0;
+        }
+
+        .feature-card {
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: box-shadow 0.2s;
+        }
+
+        .feature-card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        @media (max-width: 1024px) {
+            nav {
+                width: 240px;
+            }
+
+            main {
+                margin-left: 240px;
+                padding: 40px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav>
+        <div class="nav-logo">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                <rect width="11" height="11" />
+                <rect x="13" width="11" height="11" />
+                <rect y="13" width="11" height="11" />
+                <rect x="13" y="13" width="11" height="11" />
+            </svg>
+            NovoxCRM Docs
+        </div>
+
+        <div class="nav-section">Başlangıç</div>
+        <ul>
+            <li><a href="#welcome" class="active">Hoş Geldiniz</a></li>
+            <li><a href="#quickstart">Hızlı Başlangıç Klavuzu</a></li>
+            <li><a href="#dashboard">Dashboard ve Genel Arama</a></li>
+        </ul>
+
+        <div class="nav-section">Modüller</div>
+        <ul>
+            <li><a href="#inbox">Akıllı Inbox & Lead Havuzu</a></li>
+            <li><a href="#quick-crm">Hızlı CRM (Komuta Merkezi)</a></li>
+            <li><a href="#projects">Projeler & Şantiye Yönetimi</a></li>
+            <li><a href="#inventory">Envanter & Stok Yönetimi</a></li>
+            <li><a href="#customers">Müşteri Portföyü (CRM)</a></li>
+            <li><a href="#sales-teams">Satış Ekipleri ve Hedef Yönetimi</a></li>
+            <li><a href="#crm">CRM & Satış Süreçleri</a></li>
+            <li><a href="#options">Opsiyon ve Rezervasyon</a></li>
+            <li><a href="#proposals">Teklif Yönetimi</a></li>
+            <li><a href="#contracts">Sözleşme Süreçleri</a></li>
+            <li><a href="#deposits">Kapora ve Ön Ödeme</a></li>
+            <li><a href="#commissions">Prim ve Komisyon</a></li>
+            <li><a href="#activities">Aktivite ve Görev Takibi</a></li>
+            <li><a href="#finance">Finans ve Cari Yönetimi</a></li>
+            <li><a href="#hr">İnsan Kaynakları</a></li>
+            <li><a href="#services">Servis ve Destek Talepleri</a></li>
+            <li><a href="#reports">Analiz ve Raporlar</a></li>
+        </ul>
+
+        <div class="nav-section">Yapay Zeka (AI)</div>
+        <ul>
+            <li><a href="#ai-match">AI Smart Match Motoru</a></li>
+            <li><a href="#ai-voice">Sesli Veri Girişi (Voice)</a></li>
+            <li><a href="#ai-insights">Stratejik Öngörüler</a></li>
+        </ul>
+
+        <div class="nav-section">Destek & Yardım</div>
+        <ul>
+            <li><a href="#troubleshooting">Sorun Giderme</a></li>
+            <li><a href="#faq">Sıkça Sorulan Sorular</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <div class="breadcrumb">Belgeler > NovoxCRM > Kullanıcı Klavuzu</div>
+
+        <section id="welcome">
+            <h1>NovoxCRM Kullanıcı Rehberi</h1>
+            <p>NovoxCRM, inşaat ve gayrimenkul geliştiriciler için tasarlanmış, uçtan uca satış ve operasyon yönetim
+                platformudur. Bu dökümantasyon, sistemin her bir parçasını en verimli şekilde kullanmanız için
+                hazırlanmıştır.</p>
+
+            <div class="tip">
+                <strong>İpucu:</strong> Ekranın sol tarafındaki menüyü kullanarak ilgili modüle hızlıca geçiş
+                yapabilirsiniz. Aradığınız bir özelliği bulamazsanız, sistem içindeki <strong>Genel Arama (Smart
+                    Search)</strong> çubuğunu kullanın.
+            </div>
+        </section>
+
+        <section id="quick-crm">
+            <h1>Hızlı CRM (Komuta Merkezi) — Derin Bakış</h1>
+            <p>Hızlı CRM, yoğun operasyon anlarında müşteri verisini 10 saniye içinde sisteme kaydetmek için tasarlanmış
+                "Süper Hızlı Giriş" katmanıdır.</p>
+
+            <div class="tip">
+                <strong>Hızlı Erişim:</strong> Dashboard'un sağ üst köşesinde veya Sidebar'daki <strong>Hızlı Kayıt
+                    (+)</strong> simgesine tıklayarak bu formu açabilirsiniz.
+            </div>
+
+            <h2>1. Operasyonel Çeviklik</h2>
+            <p>Geleneksel CRM sistemlerinde müşteri kaydı dakikalar sürerken, NovoxCRM Hızlı CRM sadece en kritik 3-4
+                veriye odaklanır:</p>
+            <ul>
+                <li><strong>İsim & Soyisim:</strong> Kiminle görüşüldüğü.</li>
+                <li><strong>Telefon Numarası:</strong> Temel iletişim köprüsü (Mükerrerlik otomatik taranır).</li>
+                <li><strong>İlgili Proje:</strong> Müşterinin hangi projeyle ilgilendiği.</li>
+                <li><strong>Kısa Not:</strong> Görüşmenin özeti.</li>
+            </ul>
+
+            <h2>2. Otomatik Süreç Tetikleyicileri</h2>
+            <p>Hızlı CRM üzerinden kaydı tamamladığınızda sistem arka planda şu işlemleri saniyeler içinde yapar:</p>
+            <div class="feature-card">
+                <h3>A. Pipeline (Huni) Ataması</h3>
+                <p>Müşteri otomatik olarak <strong>"Lead" (Yeni Aday)</strong> aşamasına yerleştirilir. Manuel olarak
+                    Pipeline'a gitmenize gerek kalmaz.</p>
+            </div>
+            <div class="feature-card">
+                <h3>B. Kaynak Tespiti</h3>
+                <p>Kayıt yapıldığı an, danışmanın profilinden veya seçilen kanaldan "Müşteri Kaynağı" sisteme işlenir,
+                    böylece raporlama doğruluğu korunur.</p>
+            </div>
+
+            <h2>3. Sesli Veri Girişi (Voice Conversion) — Opsiyonel</h2>
+            <p>Hızlı CRM formu içinde mikrofon simgesine basarak notlarınızı sesli olarak söyleyebilirsiniz. Yapay zeka
+                sesinizi metne çevirir ve müşteri kartındaki "Görüşme Notları" kısmına profesyonel bir dille işler.</p>
+
+            <h2>4. Çakışma Kontrolü (Duplication Check)</h2>
+            <p>Hızlı CRM formunda telefon numarası girildiği an sistem saniyelik bir tarama yapar:</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Durum</th>
+                        <th>Sistem Mesajı</th>
+                        <th>Gerekli Aksiyon</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Yeni Kayıt</strong></td>
+                        <td>✅ Temiz Kayıt</td>
+                        <td>İşlemi tamamlayın.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Mükerrer Kayıt</strong></td>
+                        <td>⚠️ Bu müşteri [Satışçı Adı] üzerinde kayıtlıdır.</td>
+                        <td>Kaydı durdurun veya ilgili arkadaşınıza aktarın.</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="alert">
+                <strong>Hız Odaklı Kural:</strong> Hızlı CRM modülünde teknik detaylar (TCKN, Adres vb.) istenmez. Bu
+                detayları daha sonra "Müşteri Kartı Düzenle" ekranından ekleyebilirsiniz.
+            </div>
+        </section>
+
+        <section id="projects">
+            <h1>Projeler ve Şantiye Yönetimi — Derin Bakış</h1>
+            <p>Projeler modülü, NovoxCRM'in fiziksel temelidir. Her bir inşaat projesi burada tanımlanır ve şantiye
+                aşamaları bu merkezden takip edilir.</p>
+
+            <div class="tip">
+                <strong>Hızlı Erişim:</strong> Sidebar menüsünden <strong>Projeler (Bina Simgesi)</strong> sayfasına
+                tıklayarak aktif projelerinizi yönetebilirsiniz.
+            </div>
+
+            <h2>1. Proje Tanımlama ve Konfigürasyon</h2>
+            <p>Yeni bir inşaat projesi başlatırken şu adımları izleyin:</p>
+            <div class="feature-card">
+                <h3>A. Genel Bilgiler</h3>
+                <p>Proje adı, lokasyonu ve toplam ünite kapasitesi girilir. Bu bilgiler, tüm teklif formlarında ve
+                    kataloglarda projenin kimliği olarak kullanılır.</p>
+            </div>
+            <div class="feature-card">
+                <h3>B. Döviz ve Finans Ayarları</h3>
+                <p>Projenin ana para birimi (TL, USD, EUR) belirlenir. Sistemin döviz kurlarını hangi kaynaktan çekeceği
+                    (Örn: TCMB) proje bazında konfigüre edilebilir.</p>
+            </div>
+
+            <h2>2. İnşaat Aşamaları (Construction Stages)</h2>
+            <p>Bir projenin fiziksel ilerlemesini takip etmek için "Aşamalar" (Milestones) kullanılır:</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Aşama Adı</th>
+                        <th>Ağırlık (%)</th>
+                        <th>Durum</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Hafriyat ve Temel</strong></td>
+                        <td>%15</td>
+                        <td>Tamamlandı</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Kaba İnşaat (Betonarme)</strong></td>
+                        <td>%35</td>
+                        <td>Devam Ediyor</td>
+                    </tr>
+                    <tr>
+                        <td><strong>İnce İşçilik (Elektrik/Mekanik)</strong></td>
+                        <td>%30</td>
+                        <td>Beklemede</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Peyzaj ve Teslimat</strong></td>
+                        <td>%20</td>
+                        <td>Beklemede</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h2>3. Süreç Odaklı Ödeme Tetikleyicileri</h2>
+            <p>NovoxCRM'in en güçlü özelliklerinden biri, inşaat ilerlemesi ile ödemeleri senkronize etmesidir:</p>
+            <ul>
+                <li><strong>Hakediş Bağlantısı:</strong> Eğer bir ödeme planı "Kaba İnşaat Bitişi"ne bağlandıysa;
+                    şantiye şefi bu aşamayı <code>Tamamlandı</code> olarak işaretlediğinde, sistem ilgili müşterilere
+                    otomatik ödeme hatırlatması gönderir.</li>
+                <li><strong>Gecikme Analizi:</strong> İnşaat takvimi saptığında, AI motoru finansal akış üzerindeki
+                    riskleri (Gecikecek taksitler) anlık olarak hesaplar.</li>
+            </ul>
+
+            <h2>4. Teknik Doküman Kasası (Vault)</h2>
+            <p>Proje bazlı tüm resmi dökümanlar bulut üzerinde güvenle saklanır:</p>
+            <ul>
+                <li><strong>Resmi Evraklar:</strong> Yapı Ruhsatı, Kat İrtifakı, Tapu Örnekleri.</li>
+                <li><strong>Pazarlama Materyalleri:</strong> Kataloglar, 3D Renderlar, Teknik Şartnameler.</li>
+                <li><strong>Yetki:</strong> Bu dökümanlara kimlerin erişebileceği `Admin` tarafından panel üzerinden
+                    kısıtlanabilir.</li>
+            </ul>
+
+            <div class="alert">
+                <strong>Kritik Bilgi:</strong> Bir projenin inşaat yüzdesi %100 olduktan sonra proje "Arşiv" statüsüne
+                alınabilir. Arşivlenen projelerin üniteleri satışa kapalı kalır ancak tüm geçmiş raporları saklanmaya
+                devam eder.
+            </div>
+        </section>
+
+        <section id="inventory">
+            <h1>Envanter ve Stok Yönetimi — Derin Bakış</h1>
+            <p>Envanter modülü, NovoxCRM ekosisteminin veri kaynağıdır. Burada yönetilen her bilgi, Finans ve CRM
+                modüllerini doğrudan etkiler.</p>
+
+            <div class="tip">
+                <strong>Hızlı Erişim:</strong> Sidebar menüsünden <strong>Home (Ev)</strong> simgesine tıklayarak
+                Envanter sayfasına ulaşabilirsiniz.
+            </div>
+
+            <h2>1. Ünite Yönetimi ve Kayıt İşlemleri</h2>
+            <p>Sisteme gayrimenkul varlıklarını eklemek için iki ana yöntem bulunur:</p>
+
+            <div class="feature-card">
+                <h3>A. Tekil Ünite Ekleme</h3>
+                <p><code>+ Yeni Ünite Ekle</code> butonu ile açılan formda şu alanlar kritik önem taşır:</p>
+                <ul>
+                    <li><strong>Ünite No & Blok:</strong> Adresleme için benzersiz olmalıdır.</li>
+                    <li><strong>Liste Fiyatı:</strong> Dövizli veya TL bazlı girilebilir. KDV oranı sistem tarafından
+                        otomatik hesaplanır.</li>
+                    <li><strong>Şerefiye Verileri:</strong> "Manzara", "Kat", "Cephe" gibi veriler AI öneri motorunun
+                        (Smart Match) temel yakıtıdır.</li>
+                </ul>
+            </div>
+
+            <div class="feature-card">
+                <h3>B. Toplu Veri Yönetimi</h3>
+                <ul>
+                    <li><strong>Excel Import:</strong> Yüzlerce daireyi şablon dosya ile saniyeler içinde yükleyin.</li>
+                    <li><strong>Toplu Fiyat Güncelleme:</strong> Seçili ünitelerin fiyatını % veya sabit tutar bazlı tek
+                        tıkla güncelleyin (Zam dönemleri için idealdir).</li>
+                    <li><strong>Toplu Durum Güncelleme:</strong> Birden fazla üniteyi aynı anda "Satışa Kapalı" veya
+                        "Blokaj" statüsüne alın.</li>
+                </ul>
+            </div>
+
+            <h2>2. Ünite Yaşam Döngüsü ve Statüler</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Statü</th>
+                        <th>Renk Kodu</th>
+                        <th>Sistem Davranışı</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Satılık (For Sale)</strong></td>
+                        <td>Yeşil</td>
+                        <td>Tüm satış ekibi tarafından görülebilir ve teklif verilebilir.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Rezerve (Reserved)</strong></td>
+                        <td>Sarı / Turuncu</td>
+                        <td>Müşteriye opsiyonlanmıştır. Diğer danışmanlar bu daireyi "Kilitli" görür.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Satıldı (Sold)</strong></td>
+                        <td>Kırmızı</td>
+                        <td>Envanterden düşer. Finans modülünde otomatik borç/alacak kaydı açılır.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Blokaj (Blocked)</strong></td>
+                        <td>Gri / Siyah</td>
+                        <td>Yönetim tarafından satış dışı bırakılmıştır.</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h2>3. Komuta Merkezi Görünümleri (Views & Tabs)</h2>
+            <p>NovoxCRM envanterinizi 5 farklı sekmede analiz etmenize olanak tanır:</p>
+            <ul>
+                <li><strong>Liste Görünümü:</strong> Detaylı tablo ve filtreleme ekranı.</li>
+                <li><strong>Matris (Grid) Görünümü:</strong> Kat ve blok bazlı görsel vaziyet planı.</li>
+                <li><strong>Kat Planları (Floor Plans):</strong> Ünite tiplerine atanmış mimari 2D/3D çizimlerin
+                    yönetimi.</li>
+                <li><strong>İstatistikler:</strong> Canlı stok doluluk ve ciro potansiyeli grafikleri.</li>
+                <li><strong>Raporlar:</strong> "Stok Yaşlandırma" ve "Satış Hızı" raporlarına doğrudan erişim.</li>
+            </ul>
+
+            <h2>4. Birim Bazlı Aksiyonlar (Action Menu)</h2>
+            <p>Her bir ünitenin yanındaki <code>...</code> menüsünde şu operasyonel güçler bulunur:</p>
+            <ul>
+                <li><strong>Detay & Edit:</strong> Resim yükleme, teknik kapasite ve ünite geçmişini görme.</li>
+                <li><strong>Hızlı Rezerve:</strong> Müşteri için opsiyon süresi tanımlama.</li>
+                <li><strong>Teklif Hazırla:</strong> Liste fiyatı ve ödeme planını içeren profesyonel teklif dökümanı
+                    üretme.</li>
+                <li><strong>Satış Yap:</strong> Süreci finansal borçlandırma aşamasına taşıma.</li>
+            </ul>
+
+            <div class="alert">
+                <strong>Önemli Kural:</strong> Satılmış (`Sold`) bir ünitenin fiyatı veya teknik özellikleri, satış
+                iptal edilmeden değiştirilemez. Veri bütünlüğü için bu bir sistem kuralıdır.
+            </div>
+
+            <h2>5. Gelişmiş Paylaşım ve Export</h2>
+            <ul>
+                <li><strong>PDF Katalog Üretici:</strong> Filtrelenmiş listenizi profesyonel bir PDF fiyat listesine
+                    dönüştürür.</li>
+                <li><strong>Public Link (Mikrosite):</strong> Seçilen daireleri müşteriye özel, süreli ve şık bir web
+                    sayfasında sunar.</li>
+            </ul>
+        </section>
+
+        <section id="inbox">
+            <h1>Akıllı Inbox ve Lead Havuzu — Derin Bakış</h1>
+            <p>Inbox modülü, NovoxCRM'in "Giriş Kapısı"dır. Dijital dünyadan gelen tüm taleplerin tek bir merkezde
+                filtrelediği operasyonel havuzdur.</p>
+
+            <div class="tip">
+                <strong>Hızlı Erişim:</strong> Sidebar menüsünden <strong>Inbox (Gelen Kutusu)</strong> simgesine
+                tıklayarak tüm yeni talepleri görebilirsiniz.
+            </div>
+
+            <h2>1. Merkezi Talep Toplama (Lead Aggregation)</h2>
+            <p>Sistem, farklı kanallardan gelen verileri standart bir formata dönüştürür:</p>
+            <ul>
+                <li><strong>Web Formları:</strong> Web sitenizdeki "İletişim" veya "Bilgi Al" formları anında düşer.
+                </li>
+                <li><strong>Sosyal Medya:</strong> Meta (Facebook/Instagram) üzerinden gelen reklam formları entegre
+                    çalışır.</li>
+                <li><strong>Çağrı Merkezi:</strong> Manuel girilen telefon notları "Ham Veri" olarak havuzda birikir.
+                </li>
+            </ul>
+
+            <h2>2. Sahiplenme Sistemi (Claim Logic)</h2>
+            <p>Inbox'taki müşteri adayları başlangıçta <strong>"Sahipsiz" (Unassigned)</strong> statüsündedir. Bu
+                aşamada iki yöntem izlenebilir:</p>
+            <div class="feature-card">
+                <h3>A. Havuzdan Sahiplenme (Self-Claim)</h3>
+                <p>Satış danışmanları havuzdaki adayları <code>Sahiplen (Claim)</code> butonu ile kendi portföylerine
+                    alabilirler. Bir aday sahiplenildiği an, diğer danışmanların ekranından kaybolur.</p>
+            </div>
+            <div class="feature-card">
+                <h3>B. Otomatik Atama (Auto-Assign)</h3>
+                <p>Admin, gelen talepleri danışmanların uzmanlık alanına (Örn: Yabancı dil, Proje uzmanlığı) göre
+                    otomatik olarak dağıtabilir.</p>
+            </div>
+
+            <h2>3. AI Lead Scoring (Yapay Zeka Analizi)</h2>
+            <p>Gelen mesajın içeriği Gemini AI tarafından saniyeler içinde analiz edilir:</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Gösterge</th>
+                        <th>Anlamı</th>
+                        <th>AI Aksiyonu</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>🔥 <strong>Sıcak (Hot)</strong></td>
+                        <td>"Hemen satın almak istiyorum", "Yarın ofise geleceğim" gibi ifadeler.</td>
+                        <td>Danışmana "Acil" bildirimi gönderir.</td>
+                    </tr>
+                    <tr>
+                        <td>⚡ <strong>Ilık (Warm)</strong></td>
+                        <td>"Fiyat listesi rica ediyorum", "Detaylı bilgi bekliyorum".</td>
+                        <td>Kataloğu otomatik gönderme önerisi sunar.</td>
+                    </tr>
+                    <tr>
+                        <td>❄️ <strong>Soğuk (Cold)</strong></td>
+                        <td>"Sadece merak ettim", "Fiyatlar nedir?".</td>
+                        <td>Uzun vadeli takip listesine alır.</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h2>4. Hızlı CRM Dönüşümü (Quick Convert)</h2>
+            <p>Gelen her inbox mesajı, bir "Müşteri Kaydı" adayıdır:</p>
+            <ol>
+                <li>Mesajın yanındaki <strong>CRM'e Aktar</strong> butonuna tıklayın.</li>
+                <li>Sistem mesajdaki İsim ve Telefon verilerini otomatik ayıklar.</li>
+                <li>Müşteri kartı anında oluşur ve Sales Pipeline'ın (Satış Hunisi) ilk aşamasına (`Lead`)
+                    yerleştirilir.</li>
+            </ol>
+
+            <div class="alert">
+                <strong>Gecikme Uyarısı:</strong> Inbox'a düşen bir talebe 15 dakika içinde dönülmezse, sistem bu kaydı
+                "Kritik" olarak işaretler ve yönetici dashboarduna raporlar.
+            </div>
+        </section>
+
+        <section id="customers">
+            <h1>Müşteri Portföyü ve Veri Yönetimi — Derin Bakış</h1>
+            <p>Müşteri modülü, tüm satış faaliyetlerinin merkezindeki "İnsan" faktörünü yönetir. Bir ismin nasıl sadık
+                bir müşteriye dönüştüğünü bu modül üzerinden takip edersiniz.</p>
+
+            <div class="tip">
+                <strong>Hızlı Erişim:</strong> Sidebar menüsünden <strong>Müşteriler (Kişiler Simgesi)</strong>
+                sayfasına tıklayarak tüm portföyünüze erişebilirsiniz.
+            </div>
+
+            <h2>1. Müşteri Kayıt ve Profilleme</h2>
+            <p>Sisteme müşteri girişi yaparken sadece iletişim bilgilerini değil, "Niyet" bilgilerini de toplarsınız:
+            </p>
+            <div class="feature-card">
+                <h3>A. Profil Bilgileri</h3>
+                <ul>
+                    <li><strong>İsim & Soyisim:</strong> Resmi hitap ve kontrat işlemleri için.</li>
+                    <li><strong>İletişim Kanalları:</strong> Telefon, E-posta, Sosyal Medya adresleri.</li>
+                    <li><strong>Müşteri Kaynağı:</strong> "Nereden geldi?" verisi. Pazarlama ROI raporları için
+                        hayatidir.</li>
+                </ul>
+            </div>
+            <div class="feature-card">
+                <h3>B. AI Destekli Talep (Demands) Analizi</h3>
+                <p>Müşteri kartı içindeki "Talepler" bölümü, yapay zekanın en sevdiği yerdir:</p>
+                <ul>
+                    <li><strong>Yatırım mı, Oturum mu?</strong> Müşterinin önceliği nedir?</li>
+                    <li><strong>Bütçe Aralığı:</strong> Gerçekçi fiyat beklentisi.</li>
+                    <li><strong>Kritik Özellikler:</strong> "Ebeveyn banyosu şart", "Deniz manzarası olmazsa olmaz" gibi
+                        notlar.</li>
+                </ul>
+            </div>
+
+            <h2>2. Aktivite ve Görüşme Geçmişi (Timeline)</h2>
+            <p>Müşteriyle yapılan her temas kronolojik bir akış (Timeline) olarak saklanır:</p>
+            <ul>
+                <li><strong>Aramalar:</strong> Telefon görüşmelerinin özeti.</li>
+                <li><strong>Ziyaretler:</strong> Satış ofisine geliş tarihi ve yapılan sunumlar.</li>
+                <li><strong>Notlar:</strong> "Eşiyle beraber gelecek", "Fiyatta indirim bekliyor" gibi özel bilgiler.
+                </li>
+            </ul>
+
+            <h2>3. Akıllı Çakışma ve Mülkiyet Kuralları</h2>
+            <p>Sistem, satış ekibi arasındaki etik çatışmaları önlemek için şu kuralları uygular:</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Kural</th>
+                        <th>Açıklama</th>
+                        <th>Sonuç</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Mükerrer Kontrolü</strong></td>
+                        <td>Aynı telefon numarasıyla kayıt açılmasını engeller.</td>
+                        <td>Veri kirliliği önlenir.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Müşteri Mülkiyeti</strong></td>
+                        <td>Bir müşteriyi sisteme ilk giren danışman, o müşterinin "Sahibi" olur.</td>
+                        <td>Satış komisyonu karmaşası biter.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Aktiflik Süresi</strong></td>
+                        <td>Müşteriyle 60 gün görüşülmezse, kayıt "Boşa Düşer".</td>
+                        <td>Diğer danışmanlara fırsat tanınır.</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h2>4. AI Smart Match Entegrasyonu</h2>
+            <p>Müşteri kartı içindeki <code>Akıllı Öneriler</code> butonu, bu modülün en güçlü yanıdır. Müşterinin
+                girdiği talepleri tek tıkla envanterle kıyaslar ve size "İkna Edici" satış tüyoları verir.</p>
+
+            <div class="alert">
+                <strong>Veri Güvenliği:</strong> Müşteri datası şirketinizin en büyük varlığıdır. NovoxCRM, GDPR ve KVKK
+                uyumlu altyapısı ile bu verileri şifreli ve kiracı bazlı izole olarak saklar.
+            </div>
+        </section>
+
+        <section id="sales-teams">
+            <h1>Satış Ekipleri ve Hedef Yönetimi — Derin Bakış</h1>
+            <p>Satış Ekipleri modülü, organizasyon şemanızı ve saha ekibinizin performansını yönettiğiniz stratejik bir
+                paneldir.</p>
+
+            <div class="tip">
+                <strong>Hızlı Erişim:</strong> Sidebar menüsünden <strong>Ekipler (Grup Simgesi)</strong> sayfasına
+                tıklayarak ekip yapısını yönetebilirsiniz.
+            </div>
+
+            <h2>1. Ekip Hiyerarşisi ve Rol Tanımları</h2>
+            <p>Sistem, esnek bir yetki ve raporlama şeması sunar:</p>
+            <ul>
+                <li><strong>Satış Direktörü:</strong> Tüm projeleri ve tüm ekiplerin cirolarını görme yetkisine
+                    sahiptir.</li>
+                <li><strong>Ekip Lideri:</strong> Sadece kendi ekibindeki danışmanların müşteri ve satış verilerini
+                    yönetebilir.</li>
+                <li><strong>Satış Danışmanı:</strong> Sadece kendisine atanmış veya havuzdan (Inbox) sahiplendiği
+                    müşterileri görür.</li>
+            </ul>
+
+            <h2>2. Kota ve Hedef (KPI) Belirleme</h2>
+            <p>Her bir danışman veya ekip için aylık/yıllık hedefler tanımlanabilir:</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Hedef Türü</th>
+                        <th>Açıklama</th>
+                        <th>Takip Metriği</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Ciro Hedefi</strong></td>
+                        <td>Belirli bir döviz cinsinden toplam satış tutarı.</td>
+                        <td>TL / USD / EUR</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Ziyaret Hedefi</strong></td>
+                        <td>Ofise davet edilen ve sunum yapılan müşteri sayısı.</td>
+                        <td>Adet</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Arama Hedefi</strong></td>
+                        <td>Günlük veya haftalık toplam arama trafiği.</td>
+                        <td>Adet / Dakika</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h2>3. Adil Lead Dağıtım Politikası</h2>
+            <p>Yeni gelen adayların (Lead) ekibe nasıl dağıtılacağı sistem üzerinden konfigüre edilebilir:</p>
+            <div class="feature-card">
+                <h3>Round Robin (Sıralı Dağıtım)</h3>
+                <p>Gelen kayıtlar sırayla danışmanlara atanır. Bu, adil bir fırsat eşitliği sağlar.</p>
+            </div>
+            <div class="feature-card">
+                <h3>Performans Bazlı Dağıtım</h3>
+                <p>Satış kapatma oranı en yüksek olan danışmana, "Sıcak" leadlerin öncelikli yönlendirilmesi
+                    kurgulanabilir.</p>
+            </div>
+
+            <h2>4. Liderlik Tablosu (Leaderboard) ve Motivasyon</h2>
+            <p>Satış ofisindeki rekabeti artırmak için canlı skorboardlar kullanılır:</p>
+            <ul>
+                <li><strong>Top Performers:</strong> Ayın en çok satış yapan ilk 3 danışmanı.</li>
+                <li><strong>Progress Bar:</strong> Danışmanın aylık hedefine ne kadar yaklaştığını gösteren görsel
+                    çubuklar.</li>
+            </ul>
+
+            <div class="alert">
+                <strong>Önemli Not:</strong> Bir danışman işten ayrıldığında, müşterilerini tek tıkla başka bir
+                danışmana veya "Genel Havuza" aktarabilirsiniz. Veri kaybı asla yaşanmaz.
+            </div>
+        </section>
+
+        <section id="crm">
+            <h1>CRM ve Satış Yönetimi — Derin Bakış</h1>
+            <p>CRM modülü, potansiyel müşteri adaylarının (Lead) resmi birer ev sahibine dönüşme yolculuğunu yöneten
+                operasyonel merkezdir.</p>
+
+            <div class="tip">
+                <strong>Hızlı Erişim:</strong> Sidebar'daki <strong>Pipeline (Huni Simgesi)</strong> üzerinden satış
+                aşamalarını sürükle-bırak yöntemiyle yönetebilirsiniz.
+            </div>
+
+            <h2>1. Satış Hunisi (Sales Pipeline) Aşamaları</h2>
+            <p>Her aday müşteri, satışın olgunluğuna göre şu aşamalardan geçer:</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Aşama</th>
+                        <th>Kritik Aksiyon</th>
+                        <th>Sistem Etkisi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Lead (Yeni Aday)</strong></td>
+                        <td>İlk temas kurulur, talepler alınır.</td>
+                        <td>Aday müşteri havuzuna işlenir.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Prospect (Sunum)</strong></td>
+                        <td>Ünite bakılır, AI Smart Match kullanılır.</td>
+                        <td>İlgi düzeyi (Hot/Warm) belirlenir.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Negotiation (Pazarlık)</strong></td>
+                        <td>Liste fiyatı dışı teklifler konuşulur.</td>
+                        <td>Yönetici onay mekanizması tetiklenebilir.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Contract (Sözleşme)</strong></td>
+                        <td>Resmi evraklar ve ödeme planı hazırlanır.</td>
+                        <td>Ünite "Rezerve" statüsüne kilitlenir.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Sold (Satıldı)</strong></td>
+                        <td>Peşinat alınır, satış finalize edilir.</td>
+                        <td>Ünite "Satıldı" (Kırmızı) olur, Finans kaydı açılır.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Lost (Kaybedildi)</strong></td>
+                        <td>Müşteri vazgeçer.</td>
+                        <td>"Kaybetme Nedeni" seçilir, istatistiklere işlenir.</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h2>2. Pazarlık ve Onay Mekanizması (Negotiation)</h2>
+            <p>Satış danışmanı, liste fiyatında indirim yapmak veya ödeme planında esneklik sağlamak istediğinde
+                <code>Pazarlık Formu</code>'nu doldurur:
+            </p>
+            <ul>
+                <li><strong>Talep Edilen İskonto:</strong> % veya Tutar bazlı indirim talebi.</li>
+                <li><strong>Ödeme Planı Revizyonu:</strong> Taksit vadesini uzatma veya peşinatı düşürme talebi.</li>
+                <li><strong>Yönetici Onayı:</strong> Belirli bir oranın üzerindeki indirimler, yöneticinin ekranına
+                    anlık bildirim olarak düşer. Onaylanmadan satış finalize edilemez.</li>
+            </ul>
+
+            <h2>3. Resmi Teklif Hazırlama (Proposals)</h2>
+            <p>Müşteriye sunulan her fiyat çalışması sistemde bir "Teklif" olarak saklanır:</p>
+            <div class="feature-card">
+                <h3>A. Profesyonel Çıktı (PDF)</h3>
+                <p>Teklifler, şirket logonuz ve projenin görseliyle birlikte profesyonel bir PDF dosyasına dönüşür.
+                    Müşteriye WhatsApp veya E-posta yoluyla anında gönderilebilir.</p>
+            </div>
+            <div class="feature-card">
+                <h3>B. Teklif Revizyon Takibi</h3>
+                <p>Müşteriyle yapılan her yeni pazarlık, teklifin yeni bir versiyonu (v1, v2, v3) olarak kaydedilir.
+                    Böylece fiyatın nereden nereye geldiğini tarihsel olarak görebilirsiniz.</p>
+            </div>
+
+            <h2>4. Satış Kapatma (Finalizing the Sale)</h2>
+            <p>Bir satışın "Satıldı" statüsüne geçmesi için şu 3 temel şartın sağlanması gerekir:</p>
+            <ol>
+                <li>Ünite seçilmiş ve başka birine satılmamış olmalı.</li>
+                <li>Müşteri kartındaki zorunlu alanlar (TCKN, Adres vb.) doldurulmuş olmalı.</li>
+                <li>Ödeme Planı (Finans Planı) sistem tarafından onaylanmış olmalı.</li>
+            </ol>
+
+            <h2>5. Kayıp Analizi (Lost Lead Management)</h2>
+            <p>Her kaybedilen müşteri, bir "Ders" niteliğindedir. Müşteri kaybedildiğinde şu nedenlerden biri seçilir:
+            </p>
+            <ul>
+                <li><strong>Fiyat:</strong> Bütçe uymadı.</li>
+                <li><strong>Lokasyon:</strong> Bölgeyi beğenmedi.</li>
+                <li><strong>Başka Proje:</strong> Rakip projeden alım yaptı.</li>
+                <li><strong>Ertelenme:</strong> Alım kararından vazgeçti.</li>
+            </ul>
+            <p><em>Bu veriler, yönetimin stratejik kararlar almasını sağlayan "Kayıp Raporu"nu besler.</em></p>
+
+            <div class="alert">
+                <strong>Geri Kazanım:</strong> "Lost" olarak işaretlenen bir müşteri, 6 ay sonra tekrar iletişime
+                geçerse; tüm geçmiş verisi korunmuş şekilde tek tıkla tekrar "Active" hale getirilebilir.
+            </div>
+        </section>
+
+        <section id="options">
+            <h1>Opsiyon ve Rezervasyon Yönetimi</h1>
+            <p>Opsiyon mekanizması, bir ünitenin belirli bir süre boyunca bir müşteri için "rezerve" edilmesini sağlar
+                ve diğer satışların önüne geçer.</p>
+
+            <div class="feature-card">
+                <h3>Süreç ve Kurallar</h3>
+                <ul>
+                    <li><strong>Süre Sınırı:</strong> Genellikle 3-7 gün arası belirlenir. Süre bittiğinde ünite
+                        otomatik olarak "Satılık" statüsüne döner.</li>
+                    <li><strong>Görsel Uyarı:</strong> Matris görünümünde ünite sarı/turuncu renge döner. Üzerine
+                        gelindiğinde "Kim için rezerve?" bilgisi görünür.</li>
+                    <li><strong>Opsiyon İptali:</strong> Danışman veya yönetici istediği an opsiyonu kaldırarak stokta
+                        boşa çıkarabilir.</li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="proposals">
+            <h1>Teklif Yönetimi (Proposals)</h1>
+            <p>Müşteriye sunulan her fiyat çalışması sistemde bir "Teklif" olarak saklanır ve revize edilebilir.</p>
+            <div class="tip">
+                <strong>İpucu:</strong> Teklif hazırlarken müşterinin bütçesine göre farklı ödeme planları
+                (vadeli/peşin) simüle edilebilir.
+            </div>
+            <ul>
+                <li><strong>PDF Jeneratörü:</strong> Şirket logolu ve proje görselli şık teklif formları üretilir.</li>
+                <li><strong>Geçerlilik Süresi:</strong> Fiyat artışı riskine karşı her teklif bir son kullanma tarihi
+                    ile oluşturulur.</li>
+                <li><strong>Onay Akışı:</strong> Satış müdürü onayı gerektiren özel fiyatlar teklif aşamasında
+                    belirlenir.</li>
+            </ul>
+        </section>
+
+        <section id="contracts">
+            <h1>Sözleşme Süreçleri</h1>
+            <p>Satışın resmiyet kazandığı, hukuksal ve ticari verilerin birleştiği aşamadır.</p>
+            <div class="feature-card">
+                <h3>Sözleşme Hazırlama Adımları</h3>
+                <ol>
+                    <li>Müşterinin kimlik/pasaport bilgileri doğrulanır.</li>
+                    <li>Nihai ödeme planı ve daire detayları sözleşmeye aktarılır.</li>
+                    <li>Sistem üzerinden "Sözleşme Üret" denilerek resmi şablon doldurulur.</li>
+                    <li>Sözleşme onaylandığı an ünite "Satıldı" (Kırmızı) olur.</li>
+                </ol>
+            </div>
+        </section>
+
+        <section id="deposits">
+            <h1>Kapora ve Ön Ödeme Yönetimi</h1>
+            <p>Niyetin ciddiyetini gösteren ilk finansal veri girişidir.</p>
+            <ul>
+                <li><strong>Kapora Kaydı:</strong> Banka transferi veya makbuz numarası ile sisteme işlenir.</li>
+                <li><strong>Eşleştirme:</strong> Yatırılan tutar doğrudan ilgili ünitenin toplam borcundan düşülür.</li>
+                <li><strong>İade Süreci:</strong> Vazgeçme durumunda "İade Prosedürü" başlatılarak finans departmanına
+                    talimat gönderilir.</li>
+            </ul>
+        </section>
+
+        <section id="commissions">
+            <h1>Prim ve Komisyon Yönetimi</h1>
+            <p>Satış ekiplerinin hak edişlerini otomatik olarak hesaplayan modüldür.</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Prim Türü</th>
+                        <th>Hesaplama Mantığı</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Satış Primi</strong></td>
+                        <td>Net satış tutarı üzerinden % oranında hesaplanır.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Kademe Primi</strong></td>
+                        <td>Hedef aşımında (Örn: 5. satıştan sonra) artan oranlar uygulanır.</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Tahsilat Primi</strong></td>
+                        <td>Müşteri ödeme yaptıkça danışmana ödenen hak ediş.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section id="activities">
+            <h1>Aktivite ve Görev Takibi</h1>
+            <p>Satış operasyonunun nabzını tutan kayıt sistemidir.</p>
+            <div class="tip">
+                <strong>Kritik Kural:</strong> Görüşmesi olmayan müşteri, "Kaybedilmeye Mahkum Müşteridir".
+            </div>
+            <ul>
+                <li><strong>Call Log:</strong> Telefon görüşme notları.</li>
+                <li><strong>Site Visit:</strong> Örnek daire gezisi ve ofis randevuları.</li>
+                <li><strong>Next Action:</strong> "3 gün sonra teklif için geri ara" gibi hatırlatıcılı görevler.</li>
+            </ul>
+        </section>
+
+        <section id="finance">
+            <h1>Finans ve Cari Yönetimi</h1>
+            <p>Satışın nakit akışına dönüştüğü, çek, senet ve ödemelerin yönetildiği modüldür.</p>
+            <div class="feature-card">
+                <h3>Temel Özellikler</h3>
+                <ul>
+                    <li><strong>Ödeme Planları:</strong> Her müşteriye özel vadeli/senetli takvimler.</li>
+                    <li><strong>Senet Tahsilatı:</strong> Vadesi gelen senetlerin banka/kasa entegrasyonuyla
+                        kapatılması.</li>
+                    <li><strong>Yaşlandırma Raporu:</strong> Geciken ödemelerin gün bazlı risk analizi.</li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="hr">
+            <h1>İnsan Kaynakları</h1>
+            <p>Personel dosyaları, yetki seviyeleri ve ekip performansının yönetimi.</p>
+            <ul>
+                <li><strong>Yetki (RBAC):</strong> Hangi personelin finansal verileri görebileceği belirlenir.</li>
+                <li><strong>Performans Kartı:</strong> Çalışanın ciro, arama ve satış kapatma istatistikleri.</li>
+                <li><strong>İzin ve Evrak:</strong> Personel özlük dosyalarının dijital arşivi.</li>
+            </ul>
+        </section>
+
+        <section id="services">
+            <h1>Servis ve Destek Talepleri</h1>
+            <p>Satış sonrası müşteri memnuniyeti ve teknik destek süreçleridir.</p>
+            <div class="alert">
+                <strong>Satış Sonrası:</strong> "Anahtar Teslimi" bir son değil, yeni bir destek sürecinin
+                başlangıcıdır.
+            </div>
+            <ul>
+                <li><strong>Arıza Bildirimi:</strong> Teslim edilen konuttaki teknik sorunların (Tesisat, Elektrik vb.)
+                    kaydı.</li>
+                <li><strong>Müşteri Şikayetleri:</strong> Hizmet kalitesiyle ilgili geri bildirimlerin takibi.</li>
+                <li><strong>Çözüm Takibi:</strong> Talebin hangi aşamada olduğu (Atandı/Devam Ediyor/Tamamlandı).</li>
+            </ul>
+        </section>
+
+        <section id="reports">
+            <h1>Analiz ve Raporlar</h1>
+            <p>Yönetimin karar almasını sağlayan veriye dayalı özet ekranlarıdır.</p>
+            <div class="feature-card">
+                <h3>Stratejik Raporlar</h3>
+                <ul>
+                    <li><strong>Satış Analizi:</strong> Hangi bloklar daha hızlı satılıyor?</li>
+                    <li><strong>Pazarlama Raporu:</strong> En çok hangi kanaldan (Instagram, Web, Emlakçı) müşteri
+                        geliyor?</li>
+                    <li><strong>Mali Analiz:</strong> Toplam ciro, beklenen hakediş ve nakit akış tahminleri.</li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="ai-match">
+            <h1>Yapay Zeka (AI) Destekli Modüller</h1>
+            <p>NovoxCRM, sadece veri saklamaz; Google Gemini AI altyapısıyla bu veriyi işleyerek size satış tüyoları
+                verir.</p>
+
+            <h2>AI Smart Match Motoru</h2>
+            <div class="feature-card">
+                <strong>1. Talep Analizi:</strong> Müşteri kartındaki "Talep" bölümüne bütçe, oda sayısı gibi verileri
+                girin.<br><br>
+                <strong>2. Hesaplama:</strong> <code>Akıllı Öneriler</code> düğmesine basın. Sistem Google Gemini
+                altyapısıyla çalışmaya başlar.<br><br>
+                <strong>3. İpuçları:</strong> AI size sadece daire no vermez, aynı zamanda satış sırasında kullanmanız
+                için <em>"Müşteri yatırımcı olduğu için bu dairenin kira potansiyelinden bahsedin"</em> gibi stratejik
+                tüyolar verir.
+            </div>
+        </section>
+
+        <section id="troubleshooting">
+            <h2>Sorun Giderme</h2>
+
+            <h3>Sistem Yavaş Çalışıyor, Ne Yapmalıyım?</h3>
+            <ul>
+                <li>İnternet bağlantınızı kontrol edin.</li>
+                <li>Tarayıcı önbelleğini temizleyin veya "Gizli Sekme"de deneme yapın.</li>
+                <li>Proje envanteriniz çok büyükse (10.000+ ünite), liste görünümü yerine filtrelenmiş görünümleri
+                    kullanın.</li>
+            </ul>
+
+            <h3>Yetki Hatası Alıyorum</h3>
+            <p>Eğer "Bu işlemi yapmak için yetkiniz yok" uyarısı alıyorsanız, yöneticinizle iletişime geçin. Rol Bazlı
+                Erişim Sistemi (RBAC) kapsamında bazı fonksiyonlar (Örn: Fiyat silme, Ödeme onaylama) sadece Admin
+                kullanıcılarına açıktır.</p>
+        </section>
+
+        <section id="faq">
+            <h2>Sıkça Sorulan Sorular (SSS)</h2>
+
+            <h3>1. Senet tahsil edildiğinde ne olur?</h3>
+            <p>Sistemde senedi "Tahsil Edildi" olarak işaretlediğinizde, müşterinin toplam borç bakiyesi otomatik düşer
+                ve bu hareket finans raporlarına (Kasa girişi) işlenir.</p>
+
+            <h3>2. Excel ile toplu ünite yükleyebilir miyim?</h3>
+            <p>Evet. Envanter sayfasındaki <code>Export/Import</code> düğmesini kullanarak şablon Excel'i indirin ve
+                verilerinizi doldurup geri yükleyin.</p>
+
+            <h3>3. AI verilerimi okuyor mu?</h3>
+            <p>Yapay zekâ sadece eşleştirme yapmak için müşterinin taleplerini ve daire özelliklerini okur. Özel
+                finansal verileriniz veya şirket sırlarınız AI eğitiminde kullanılmaz, izoledir.</p>
+        </section>
+
+        <hr style="margin-top: 100px; opacity: 0.3;">
+        <footer style="text-align: center; color: var(--text-light); font-size: 12px; padding-bottom: 50px;">
+            &copy; 2026 NovoxCRM Documentation Team | Tüm Hakları Saklıdır.
+        </footer>
+    </main>
+
+    <script>
+        // Smooth scrolling for sidebar links
+        document.querySelectorAll('nav a').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+                this.classList.add('active');
+
+                const targetId = this.getAttribute('href').substring(1);
+                const targetElement = document.getElementById(targetId);
+                window.scrollTo({
+                    top: targetElement.offsetTop - 50,
+                    behavior: 'smooth'
+                });
+            });
+        });
+    </script>
+</body>
+
+</html>
