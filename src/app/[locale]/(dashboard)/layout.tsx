@@ -55,7 +55,7 @@ export default async function DashboardLayout(props: {
                         <div className="flex items-center justify-between">
                             <Link href="/" className="flex items-center gap-2 font-bold text-white">
                                 <Building2 className="h-6 w-6 text-blue-500" />
-                                <span className="text-lg tracking-tight">NovoxCrm</span>
+                                <span className="text-lg tracking-tight">Novo CRM</span>
                             </Link>
                             <div className="flex items-center gap-1">
                                 <NotificationBell />
@@ -113,7 +113,7 @@ export default async function DashboardLayout(props: {
                                     <div className="flex items-center justify-between mb-2">
                                         <Link href="/" className="flex items-center gap-2 font-bold text-white">
                                             <Building2 className="h-6 w-6 text-blue-500" />
-                                            <span className="text-lg tracking-tight">NovoxCrm</span>
+                                            <span className="text-lg tracking-tight">Novo CRM</span>
                                         </Link>
                                     </div>
                                     <div className="mt-1 flex flex-col">
@@ -150,7 +150,7 @@ export default async function DashboardLayout(props: {
                         </Sheet>
                         <div className="flex flex-col ml-2 flex-1">
                             <div className="flex items-center justify-between w-full">
-                                <span className="font-bold text-sm leading-none">NovoxCrm</span>
+                                <span className="font-bold text-sm leading-none">Novo CRM</span>
                                 <div className="flex items-center gap-2">
                                     <NotificationBell />
                                 </div>

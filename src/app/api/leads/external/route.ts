@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache'
 export async function GET() {
     return NextResponse.json({
         status: 'active',
-        message: 'NovoxCRM External Lead API is running. Use POST to submit leads.'
+        message: 'Novo CRM External Lead API is running. Use POST to submit leads.'
     })
 }
 

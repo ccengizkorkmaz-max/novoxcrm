@@ -288,7 +288,7 @@ export async function captureMarketingLead(formData: FormData) {
 
     try {
         await resend.emails.send({
-            from: 'Novox Leads <onboarding@novoxcrm.com>',
+            from: 'Novo CRM Leads <onboarding@novocrm.com>',
             to: 'ccengizkorkmaz@gmail.com', // Admin Email
             subject: `New Lead: ${resource}`,
             html: `
@@ -333,12 +333,12 @@ export async function sendVerificationCode(email: string) {
     // 3. Send Email
     try {
         const { error } = await resend.emails.send({
-            from: 'Novox <onboarding@novoxcrm.com>',
+            from: 'Novo CRM <onboarding@novocrm.com>',
             to: email,
             subject: 'Broker Onay Kodu',
             html: `
                 <div style="font-family: sans-serif; max-width: 500px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-                    <h2 style="color: #2563eb;">Novox Partner Programı</h2>
+                    <h2 style="color: #2563eb;">Novo CRM Partner Programı</h2>
                     <p>Başvurunuzu tamamlamak için kullanmanız gereken doğrulama kodu:</p>
                     <div style="background: #f8fafc; padding: 20px; border-radius: 8px; text-align: center; font-size: 32px; font-bold; letter-spacing: 5px; color: #1e40af;">
                         ${code}
@@ -508,7 +508,7 @@ export async function processBrokerApplication(applicationId: string, status: 'A
             const resend = new Resend(process.env.RESEND_API_KEY)
 
             // Using verified domain provided by user
-            const fromAddress = 'NovaCRM <noreply@novoxcrm.com>'
+            const fromAddress = 'Novo CRM <noreply@novocrm.com>'
 
             await resend.emails.send({
                 from: fromAddress,
@@ -545,7 +545,7 @@ export async function processBrokerApplication(applicationId: string, status: 'A
             // Send "Approved" Email (No Password)
             const resend = new Resend(process.env.RESEND_API_KEY)
             await resend.emails.send({
-                from: 'NovaCRM <noreply@novoxcrm.com>',
+                from: 'Novo CRM <noreply@novocrm.com>',
                 to: app.email,
                 subject: 'Broker Başvurunuz Onaylandı',
                 html: `
@@ -1658,9 +1658,9 @@ export async function sendBrokerReminderEmail(applicationId: string) {
 
     try {
         await resend.emails.send({
-            from: 'NovaCRM <noreply@novoxcrm.com>',
+            from: 'Novo CRM <noreply@novocrm.com>',
             to: app.email,
-            subject: 'Hatırlatma: Hesabınızı Oluşturun - Novox Broker Programı',
+            subject: 'Hatırlatma: Hesabınızı Oluşturun - Novo Broker Programı',
             html: `
                 <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
                     <h2 style="color: #4F46E5;">Hesabınızı Oluşturmayı Unutmayın!</h2>

@@ -154,7 +154,7 @@ export default function StatementView({ account }: StatementViewProps) {
                         </div>
                     </div>
                     <div className="text-right opacity-50 text-[10px]">
-                        NovoxCRM Finans Modülü - {new Date().toLocaleDateString('tr-TR')}
+                        Novo CRM Finans Modülü - {new Date().toLocaleDateString('tr-TR')}
                     </div>
                 </div>
             </div>

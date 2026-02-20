@@ -1,14 +1,14 @@
 {
     "Index": {
-        "title": "NovoxCRM | İnşaat & Gayrimenkul CRM – Konut Projeleri için Satış Yönetimi",
-        "description": "NovoxCRM, inşaat ve gayrimenkul firmaları için özel geliştirilmiş CRM yazılımıdır."
+        "title": "Novo CRM | İnşaat & Gayrimenkul CRM – Konut Projeleri için Satış Yönetimi",
+        "description": "Novo CRM, inşaat ve gayrimenkul firmaları için özel geliştirilmiş CRM yazılımıdır."
     },
     "Hero": {
         "badge": "İnşaat ve Gayrimenkul Sektörü İçin Özel CRM",
         "title1": "Dijital Pazarlamadan",
         "title2": "Satış Ofisine",
         "titleHighlight": "Tam Saha Hakimiyet",
-        "description": "Pazarlama bütçenizi verimli kullanın, müşteri kazanma araçlarını güçlendirin. NovoxCRM; konut satışından stok takibine, broker ağ yönetiminden finansal raporlamaya kadar inşaat projelerinin tüm dinamiklerini tek merkezden yönetmek ve satış hacminizi artırmak için tasarlandı.",
+        "description": "Pazarlama bütçenizi verimli kullanın, müşteri kazanma araçlarını güçlendirin. Novo CRM; konut satışından stok takibine, broker ağ yönetiminden finansal raporlamaya kadar inşaat projelerinin tüm dinamiklerini tek merkezden yönetmek ve satış hacminizi artırmak için tasarlandı.",
         "ctaPrimary": "Hemen Dijitalleşin",
         "ctaSecondary": "Sistem Detaylarını İncele",
         "demoTitle": "Ücretsiz Tanıtım ve Demo",
@@ -18,7 +18,7 @@
         "badge": "YENİ NESİL ZEKA",
         "title": "Dijital Bir Satış Asistanından",
         "titleHighlight": "Daha Fazlası",
-        "description": "NovoxCRM sadece veri tutmaz; veriyi analiz eder, riskleri fark eder ve satış ekibinize her sabah özel stratejiler sunar.",
+        "description": "Novo CRM sadece veri tutmaz; veriyi analiz eder, riskleri fark eder ve satış ekibinize her sabah özel stratejiler sunar.",
         "features": {
             "copilot": {
                 "title": "AI Co-Pilot & Günlük Briefing",
@@ -79,7 +79,7 @@
             ]
         },
         "newWay": {
-            "title": "NovoxCRM Yöntemi",
+            "title": "Novo CRM Yöntemi",
             "items": [
                 "Müşteri geçmişi ve notları tek ekranda",
                 "AI Co-Pilot ile her sabah proaktif iş planı",
@@ -94,7 +94,7 @@
         "badge": "Bütünleşik Mimari",
         "title": "Parça Parça Değil,",
         "titleHighlight": "Tam Entegre Çözüm",
-        "description": "İnşaat ve gayrimenkul satışlarının kendine has dinamikleri vardır. NovoxCRM, lead aşamasından tapu teslimine kadar tüm süreci tek platformda çözer.",
+        "description": "İnşaat ve gayrimenkul satışlarının kendine has dinamikleri vardır. Novo CRM, lead aşamasından tapu teslimine kadar tüm süreci tek platformda çözer.",
         "button": "DETAYLI BİLGİ İÇİN TIKLAYIN",
         "cards": {
             "crm": {
@@ -155,7 +155,7 @@
             },
             {
                 "question": "Kurulum süreci ne kadar sürer?",
-                "answer": "NovoxCRM bulut tabanlı bir sistemdir, kurulum gerektirmez. Hesabınız açıldığı an kullanmaya başlayabilirsiniz. Personelinizin eğitimi ve tam adaptasyon genellikle 1-2 iş günü sürer."
+                "answer": "Novo CRM bulut tabanlı bir sistemdir, kurulum gerektirmez. Hesabınız açıldığı an kullanmaya başlayabilirsiniz. Personelinizin eğitimi ve tam adaptasyon genellikle 1-2 iş günü sürer."
             },
             {
                 "question": "Verilerimiz ne kadar güvende?",
@@ -249,13 +249,13 @@
             "placeholder": "E-posta",
             "button": "OK"
         },
-        "copyright": "© 2026 NovoxCRM. Tüm hakları saklıdır.",
+        "copyright": "© 2026 Novo CRM. Tüm hakları saklıdır.",
         "tagline1": "Gayrimenkul CRM Yazılımı",
         "tagline2": "İnşaat Proje Satış Sistemi"
     },
     "PainSection": {
         "title": "Neden",
-        "titleHighlight": "NovoxCRM?",
+        "titleHighlight": "Novo CRM?",
         "description": "Geleneksel yöntemlerin yarattığı kronik sorunları çözüyor, büyümenin önündeki engelleri kaldırıyoruz.",
         "cards": {
             "sales": {
@@ -313,7 +313,7 @@
     },
     "PersonaSection": {
         "title": "Herkese Kazandıran Çözüm",
-        "description": "NovoxCRM organizasyonunuzdaki her rol için özelleştirilmiş araçlar sunar.",
+        "description": "Novo CRM organizasyonunuzdaki her rol için özelleştirilmiş araçlar sunar.",
         "cta": "Daha Fazla Bilgi",
         "personas": {
             "patron": {
@@ -380,8 +380,8 @@
         "loginButton": "Giriş Yap",
         "brokerLink": "Satış Ortağımız (Broker) Olun →",
         "registerModalTitle": "Yeni Hesap Oluştur",
-        "registerModalDesc": "NovoxCRM dünyasına katılmak için bilgilerinizi bırakın, ekibimiz size hemen ulaşsın.",
-        "registerLink": "Şirketinizi NovoxCRM ile güçlendirin",
+        "registerModalDesc": "Novo CRM dünyasına katılmak için bilgilerinizi bırakın, ekibimiz size hemen ulaşsın.",
+        "registerLink": "Şirketinizi Novo CRM ile güçlendirin",
         "termsAgreement": "Giriş yaparak",
         "termsLink": "Kullanım Şartları",
         "privacyLink": "Gizlilik Politikası",
@@ -1198,9 +1198,9 @@
             }
         },
         "apply": {
-            "title": "Novox Projelerini Satmaya Başlayın",
+            "title": "Novo Projelerini Satmaya Başlayın",
             "subtitle": "Dünya çapındaki projelerimize ortak olun, yüksek komisyonlardan yararlanın.",
-            "program": "Novox Partner Programı",
+            "program": "Novo Partner Programı",
             "formTitle": "Broker Başvuru Formu",
             "step1": "E-postanızı doğrulayarak başlayın.",
             "step2": "Doğrulama kodunu ve bilgilerinizi girin.",
@@ -1254,7 +1254,7 @@
                 "delivery": "Tahmini Teslim",
                 "requests": "Aktif Talepler",
                 "activePropertyCount": "Aktif Mülk Sayısı",
-                "guaranteedByNovoxCrm": "NovoxCrm Güvencesiyle"
+                "guaranteedByNovoCrm": "Novo CRM Güvencesiyle"
             },
             "buttons": {
                 "makePayment": "Ödeme Yap",
@@ -1299,7 +1299,7 @@
             "budgetLabel": "Tahmini Bütçe",
             "budgetPlaceholder": "100.000 â‚¬ - 250.000 â‚¬",
             "projectLabel": "İlgilendiğiniz Proje",
-            "projectPlaceholder": "Novox Vadi...",
+            "projectPlaceholder": "Novo Vadi...",
             "noteLabel": "Notunuz (Opsiyonel)",
             "notePlaceholder": "Sorularınız veya özel talepleriniz...",
             "submit": "Bilgi Al",
@@ -2124,7 +2124,7 @@
             "customerNotFound": "Müşteri bulunamadı.",
             "projectNotFound": "Proje bulunamadı.",
             "unitNotFound": "Ünite bulunamadı.",
-            "poweredBy": "NovoxCRM tarafından desteklenmektedir",
+            "poweredBy": "Novo CRM tarafından desteklenmektedir",
             "createdSuccess": "Fırsat başarıyla oluşturuldu"
         },
         "stats": {

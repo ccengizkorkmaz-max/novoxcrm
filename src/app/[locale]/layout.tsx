@@ -20,14 +20,14 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://novoxcrm.com'),
-  title: "NovoxCRM | İnşaat & Gayrimenkul CRM – Konut Projeleri için Satış Yönetimi",
-  description: "NovoxCRM, inşaat ve gayrimenkul firmaları için özel geliştirilmiş CRM yazılımıdır. Konut projeleri, stok takibi, broker yönetimi ve satış süreçlerini tek platformda yönetin.",
+  metadataBase: new URL('https://novocrm.com'),
+  title: "Novo CRM | İnşaat & Gayrimenkul CRM – Konut Projeleri için Satış Yönetimi",
+  description: "Novo CRM, inşaat ve gayrimenkul firmaları için özel geliştirilmiş CRM yazılımıdır. Konut projeleri, stok takibi, broker yönetimi ve satış süreçlerini tek platformda yönetin.",
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "NovoxCRM",
+    title: "Novo CRM",
   },
   icons: {
     icon: "/icon-512.png",

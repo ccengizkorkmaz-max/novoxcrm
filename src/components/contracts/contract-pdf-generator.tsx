@@ -143,7 +143,7 @@ export function ContractPDFGenerator({ contract, tenantName }: ContractPDFGenera
                     ${contract.status === 'Signed' ? '<div class="signed-stamp">İMZALANDI</div>' : ''}
                     <div class="header">
                         <div>
-                            <div class="company-name">${tenantName || 'NovoxCRM'}</div>
+                            <div class="company-name">${tenantName || 'Novo CRM'}</div>
                             <div style="color: #64748b">Gayrimenkul Satış Sözleşmesi</div>
                         </div>
                         <div style="text-align: right">

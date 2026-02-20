@@ -20,6 +20,6 @@ export default function robots(): MetadataRoute.Robots {
                 '/_next/',
             ],
         },
-        sitemap: 'https://novoxcrm.com/sitemap.xml',
+        sitemap: 'https://novocrm.com/sitemap.xml',
     }
 }

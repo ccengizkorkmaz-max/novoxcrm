@@ -42,7 +42,7 @@ export function Navbar() {
                     <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-[0_0_15px_rgba(37,99,235,0.4)] group-hover:scale-110 transition-transform">
                         <Building2 size={24} className="text-white" />
                     </div>
-                    <span className="tracking-tight">NovoxCRM</span>
+                    <span className="tracking-tight">Novo CRM</span>
                 </Link>
 
                 {/* Desktop Nav */}

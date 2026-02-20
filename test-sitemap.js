@@ -1,5 +1,5 @@
 
-const baseUrl = 'https://novoxcrm.com'
+const baseUrl = 'https://novocrm.com'
 const path = '/wiki'
 const languages = {
     tr: `${baseUrl}${path}`,

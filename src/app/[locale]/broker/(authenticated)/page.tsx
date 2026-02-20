@@ -131,6 +131,7 @@ export default async function BrokerDashboard(props: {
         .from('commission_models')
         .select('*, projects(name)')
         .eq('tenant_id', profile?.tenant_id || '')
+        .eq('status', 'Active')
         .order('created_at', { ascending: false })
         .limit(3)
 

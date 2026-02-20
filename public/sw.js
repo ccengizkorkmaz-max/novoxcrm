@@ -1,4 +1,4 @@
-const CACHE_NAME = 'novox-cache-v1';
+const CACHE_NAME = 'novo-cache-v1';
 const ASSETS_TO_CACHE = [
     '/',
     '/manifest.json',

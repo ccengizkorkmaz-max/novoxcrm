@@ -52,7 +52,7 @@ export default function CommissionModelsList({ models }: { models: CommissionMod
                                     </div>
                                     <div className="flex items-center gap-2 shrink-0 ml-4">
                                         <span className="text-xs font-black text-green-600 bg-green-50 px-2 py-0.5 rounded-md">
-                                            %{model.value}
+                                            {model.type.includes('%') || model.type === 'Tiered' ? '%' : ''}{model.value}
                                         </span>
                                         <ChevronRight className="h-3 w-3 text-slate-300 group-hover:text-slate-500 transition-colors" />
                                     </div>

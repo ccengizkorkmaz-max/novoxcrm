@@ -68,7 +68,7 @@ export async function getAiSettings(tenantId: string) {
         .maybeSingle()
 
     return {
-        name: data?.ai_assistant_name || 'Novox AI',
+        name: data?.ai_assistant_name || 'Novo AI',
         personality: data?.ai_assistant_personality || 'Kurumsal, kibar ve çözüm odaklı',
         instructions: data?.ai_assistant_instructions || '',
         gender: data?.ai_assistant_gender || 'female'

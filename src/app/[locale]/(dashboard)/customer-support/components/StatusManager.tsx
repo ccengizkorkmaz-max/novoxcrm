@@ -8,7 +8,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
-import { updateServiceRequestStatus } from '@/app/[locale]/customerservices/service-requests/actions'
+import { updateServiceRequestStatus } from '@/app/[locale]/customerservices/tickets/actions'
 import { toast } from "sonner"
 import { useTranslations } from 'next-intl'
 

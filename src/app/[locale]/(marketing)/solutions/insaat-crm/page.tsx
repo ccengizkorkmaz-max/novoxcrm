@@ -6,8 +6,8 @@ import Link from 'next/link'
 import { LeadCaptureModal } from '@/components/marketing/LeadCaptureModal'
 
 export const metadata: Metadata = {
-    title: "İnşaat Firmaları için CRM | Proje Satış ve Stok Yönetimi – NovoxCRM",
-    description: "İnşaat firmalarına özel CRM yazılımı. Proje bazlı satış takibi, daire envanteri ve ödeme planı NovoxCRM'de.",
+    title: "İnşaat Firmaları için CRM | Proje Satış ve Stok Yönetimi – Novo CRM",
+    description: "İnşaat firmalarına özel CRM yazılımı. Proje bazlı satış takibi, daire envanteri ve ödeme planı Novo CRM'de.",
 };
 
 export default function InsaatCRMPage() {
@@ -24,7 +24,7 @@ export default function InsaatCRMPage() {
                     </span>
                 </h1>
                 <p className="text-xl text-slate-400 max-w-3xl mx-auto leading-relaxed mb-12">
-                    İnşaat projelerinde satış süreçleri, klasik CRM sistemleriyle yönetilemeyecek kadar karmaşıktır. NovoxCRM, inşaat firmalarının proje satışlarını tek panelden yönetmesini sağlar.
+                    İnşaat projelerinde satış süreçleri, klasik CRM sistemleriyle yönetilemeyecek kadar karmaşıktır. Novo CRM, inşaat firmalarının proje satışlarını tek panelden yönetmesini sağlar.
                 </p>
                 <div className="flex flex-wrap justify-center gap-6">
                     <LeadCaptureModal

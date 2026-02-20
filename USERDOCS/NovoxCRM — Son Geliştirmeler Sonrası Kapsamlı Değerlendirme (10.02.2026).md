@@ -1,11 +1,11 @@
-# NovoxCRM — Son Geliştirmeler Sonrası Kapsamlı Değerlendirme
+# Novo CRM — Son Geliştirmeler Sonrası Kapsamlı Değerlendirme
 ## 10 Şubat 2026 | Rakip Analizi & Sektör İhtiyaçları Perspektifi
 
 ---
 
 ## 📊 YÖNETİCİ ÖZETİ
 
-NovoxCRM, Türkiye'deki konut projesi satış süreçlerine özel geliştirilmiş dikey (vertical) bir CRM platformudur. Son geliştirmeler sonrası platform, **22 ana modül** ve **64 veritabanı migrasyonu** ile olgun bir ürün haline gelmiştir. Bu değerlendirme, NovoxCRM'in rakiplerine kıyasla güçlü yönlerini, eksiklerini ve stratejik fırsatlarını analiz etmektedir.
+Novo CRM, Türkiye'deki konut projesi satış süreçlerine özel geliştirilmiş dikey (vertical) bir CRM platformudur. Son geliştirmeler sonrası platform, **22 ana modül** ve **64 veritabanı migrasyonu** ile olgun bir ürün haline gelmiştir. Bu değerlendirme, Novo CRM'in rakiplerine kıyasla güçlü yönlerini, eksiklerini ve stratejik fırsatlarını analiz etmektedir.
 
 | Kriter | Puan (10 üzerinden) | Trend |
 |--------|---------------------|-------|
@@ -215,7 +215,7 @@ NovoxCRM, Türkiye'deki konut projesi satış süreçlerine özel geliştirilmi�
 
 ### 1. Genel CRM'ler (Salesforce, HubSpot, Pipedrive, Zoho)
 
-| Özellik | NovoxCRM | Salesforce | HubSpot | Pipedrive |
+| Özellik | Novo CRM | Salesforce | HubSpot | Pipedrive |
 |---|---|---|---|---|
 | Envanter/Stok Yönetimi | ✅ Konut özel | ❌ | ❌ | ❌ |
 | Ödeme Planı Motoru | ✅ Tam | ❌ | ❌ | ❌ |
@@ -230,11 +230,11 @@ NovoxCRM, Türkiye'deki konut projesi satış süreçlerine özel geliştirilmi�
 | Entegrasyonlar | ⚠ FB Ads + Web Form | ✅ 3000+ | ✅ 1000+ | ✅ 300+ |
 | Fiyat (5 kullanıcı/ay) | ₺2.900 | ~₺15.000+ | ~₺8.000 | ~₺5.000 |
 
-**Sonuç:** Genel CRM'ler konut sektörünün özgün ihtiyaçlarını (envanter grid, opsiyon, ödeme planı, broker portali) karşılayamıyor. NovoxCRM bu niş ihtiyaçlarda tartışmasız üstün.
+**Sonuç:** Genel CRM'ler konut sektörünün özgün ihtiyaçlarını (envanter grid, opsiyon, ödeme planı, broker portali) karşılayamıyor. Novo CRM bu niş ihtiyaçlarda tartışmasız üstün.
 
 ### 2. Türkiye Gayrimenkul CRM'leri (EmlakJet CRM, Apsiyon, RealGT)
 
-| Özellik | NovoxCRM | EmlakJet CRM | Apsiyon | RealGT |
+| Özellik | Novo CRM | EmlakJet CRM | Apsiyon | RealGT |
 |---|---|---|---|---|
 | Proje Satış Odaklı | ✅ Tam | ⚠ Genel | ❌ Yönetim | ⚠ |
 | Envanter Grid | ✅ Blok/Kat matrisi | ⚠ Basit | ❌ | ⚠ |
@@ -248,11 +248,11 @@ NovoxCRM, Türkiye'deki konut projesi satış süreçlerine özel geliştirilmi�
 | Çoklu Dil | ✅ TR/EN | ❌ | ⚠ | ❌ |
 | Modern UI | ✅ | ⚠ | ⚠ | ⚠ |
 
-**Sonuç:** Türkiye pazarındaki rakipler genellikle tek bir alana odaklanmış (portföy, site yönetimi). NovoxCRM "lead'den tapuya" uçtan uca yaklaşımıyla benzersiz.
+**Sonuç:** Türkiye pazarındaki rakipler genellikle tek bir alana odaklanmış (portföy, site yönetimi). Novo CRM "lead'den tapuya" uçtan uca yaklaşımıyla benzersiz.
 
 ### 3. Uluslararası Gayrimenkul CRM'leri (Propertybase, RealNex, Buildium)
 
-| Özellik | NovoxCRM | Propertybase | RealNex | Buildium |
+| Özellik | Novo CRM | Propertybase | RealNex | Buildium |
 |---|---|---|---|---|
 | Proje Satış (Off-plan) | ✅ | ⚠ | ❌ | ❌ |
 | Türkiye Mevzuatı | ✅ KVKK, KDV | ❌ | ❌ | ❌ |
@@ -261,7 +261,7 @@ NovoxCRM, Türkiye'deki konut projesi satış süreçlerine özel geliştirilmi�
 | İnşaat Takibi | ⚠ Başlangıç | ❌ | ❌ | ❌ |
 | Fiyat | ₺2.900-5.900 | $79/user | $169/user | $55/unit |
 
-**Sonuç:** Uluslararası rakipler ikinci el/kiralama pazarına odaklı. Off-plan (proje) satış akışları yok. NovoxCRM'in Türkiye + Kuzey Kıbrıs pazarında konumlanması doğru.
+**Sonuç:** Uluslararası rakipler ikinci el/kiralama pazarına odaklı. Off-plan (proje) satış akışları yok. Novo CRM'in Türkiye + Kuzey Kıbrıs pazarında konumlanması doğru.
 
 ---
 
@@ -373,7 +373,7 @@ NovoxCRM, Türkiye'deki konut projesi satış süreçlerine özel geliştirilmi�
 
 ## 📊 SONUÇ & GENEL DEĞERLENDİRME
 
-**NovoxCRM bugün itibariyle Türkiye'deki konut projesi satış yönetimi alanında en kapsamlı dikey SaaS çözümüdür.**
+**Novo CRM bugün itibariyle Türkiye'deki konut projesi satış yönetimi alanında en kapsamlı dikey SaaS çözümüdür.**
 
 22 modül, 64 veritabanı migrasyonu ve sürekli iyileştirilen UI/UX ile platform, rakiplerinden açıkça ayrışmaktadır. Son geliştirmeler—özellikle aktivite modülünün yeniden tasarımı, bildirim realtime altyapısı ve sözleşme iptal otomasyonu—ürünü operasyonel güvenilirlik açısından bir üst seviyeye taşımıştır.
 
@@ -381,7 +381,7 @@ NovoxCRM, Türkiye'deki konut projesi satış süreçlerine özel geliştirilmi�
 ```
                      Konut Sektörü Uyumu
                           ▲
-                  10 │    ★ NovoxCRM
+                  10 │    ★ Novo CRM
                      │
                    8 │           ○ Propertybase
                      │
@@ -402,4 +402,4 @@ NovoxCRM, Türkiye'deki konut projesi satış süreçlerine özel geliştirilmi�
 
 ---
 
-*Bu değerlendirme NovoxCRM kod tabanının 10 Şubat 2026 tarihli snapshot'ına dayanmaktadır.*
+*Bu değerlendirme Novo CRM kod tabanının 10 Şubat 2026 tarihli snapshot'ına dayanmaktadır.*

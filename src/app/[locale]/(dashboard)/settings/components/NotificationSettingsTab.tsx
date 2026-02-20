@@ -110,7 +110,7 @@ export default function NotificationSettingsTab({ settings }: NotificationSettin
                                 <div className="grid gap-2">
                                     <Label>Başlık (Sender ID)</Label>
                                     <Input
-                                        placeholder="Orn: NOVOX"
+                                        placeholder="Orn: NOVO"
                                         value={formData.sms_header}
                                         onChange={(e) => setFormData({ ...formData, sms_header: e.target.value })}
                                     />

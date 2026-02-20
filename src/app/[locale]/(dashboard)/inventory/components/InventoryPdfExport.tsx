@@ -49,7 +49,7 @@ export function InventoryPdfExport({ units, projectName = 'Genel Envanter' }: In
             doc.setTextColor(255, 255, 255)
             doc.setFontSize(22)
             doc.setFont('helvetica', 'bold')
-            doc.text('NOVOX CRM', 14, 22)
+            doc.text('NOVO CRM', 14, 22)
 
             doc.setFontSize(9)
             doc.setFont('helvetica', 'normal')
@@ -95,10 +95,10 @@ export function InventoryPdfExport({ units, projectName = 'Genel Envanter' }: In
                 doc.setTextColor(150)
                 // Distinct positions for page info and brand disclaimer
                 doc.text(`Sayfa ${i} / ${pageCount}`, 105, 285, { align: 'center' })
-                doc.text('Bu rapor NovoxCRM uzerinden otomatik olarak olusturulmustur.', 14, 290)
+                doc.text('Bu rapor Novo CRM uzerinden otomatik olarak olusturulmustur.', 14, 290)
             }
 
-            doc.save(`Novox_Envanter_${projectName.replace(/\s/g, '_')}_${now}.pdf`)
+            doc.save(`Novo_Envanter_${projectName.replace(/\s/g, '_')}_${now}.pdf`)
         } catch (error) {
             console.error('PDF Generation Error:', error)
         } finally {

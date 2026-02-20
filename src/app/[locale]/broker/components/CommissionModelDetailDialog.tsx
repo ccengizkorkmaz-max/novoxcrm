@@ -94,7 +94,7 @@ export default function CommissionModelDetailDialog({
                                 {model.type === 'Tiered' ? 'Baz Oranı' : 'Komisyon Oranı'}
                             </p>
                             <p className="text-xl font-black text-slate-900">
-                                %{model.value}
+                                {model.type.includes('%') || model.type === 'Tiered' ? '%' : ''}{model.value}
                             </p>
                         </div>
                         <div className="p-3 rounded-xl border border-slate-100 bg-white shadow-sm">
@@ -125,7 +125,7 @@ export default function CommissionModelDetailDialog({
                                                     {tier.min_units}{tier.max_units ? ` - ${tier.max_units}` : '+'} Satış
                                                 </TableCell>
                                                 <TableCell className="py-2 text-sm font-bold text-blue-600 text-right">
-                                                    %{tier.commission_value}
+                                                    {(model.type.includes('%') || model.type === 'Tiered') ? '%' : ''}{tier.commission_value}
                                                 </TableCell>
                                             </TableRow>
                                         ))}
@@ -157,7 +157,7 @@ export default function CommissionModelDetailDialog({
                                                     {rule.property_type}
                                                 </TableCell>
                                                 <TableCell className="py-2 text-sm font-bold text-blue-600 text-right">
-                                                    {model.type === 'Fixed Unit Based' ? `${rule.commission_value.toLocaleString('tr-TR')} ${model.currency}` : `%${rule.commission_value}`}
+                                                    {model.type.includes('Amount') ? `${rule.commission_value.toLocaleString('tr-TR')} ${model.currency}` : `%${rule.commission_value}`}
                                                 </TableCell>
                                             </TableRow>
                                         ))}

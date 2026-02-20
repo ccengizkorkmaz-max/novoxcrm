@@ -1,14 +1,14 @@
 {
     "Index": {
-        "title": "NovoxCRM | Construction & Real Estate CRM – Sales Management for Residential Projects",
-        "description": "NovoxCRM is a CRM software specifically developed for construction and real estate companies."
+        "title": "Novo CRM | Construction & Real Estate CRM – Sales Management for Residential Projects",
+        "description": "Novo CRM is a CRM software specifically developed for construction and real estate companies."
     },
     "Hero": {
         "badge": "Custom CRM for Construction and Real Estate Industry",
         "title1": "From Digital Marketing",
         "title2": "to the Sales Office",
         "titleHighlight": "Full Field Mastery",
-        "description": "Use your marketing budget efficiently, strengthen customer acquisition tools. NovoxCRM is designed to manage all dynamics of construction projects from a single center, from housing sales to stock tracking, broker network management to financial reporting, and to increase your sales volume.",
+        "description": "Use your marketing budget efficiently, strengthen customer acquisition tools. Novo CRM is designed to manage all dynamics of construction projects from a single center, from housing sales to stock tracking, broker network management to financial reporting, and to increase your sales volume.",
         "ctaPrimary": "Digitize Now",
         "ctaSecondary": "Examine System Details",
         "demoTitle": "Free Introduction and Demo",
@@ -54,7 +54,7 @@
             ]
         },
         "newWay": {
-            "title": "NovoxCRM Method",
+            "title": "Novo CRM Method",
             "items": [
                 "Customer history and notes on one screen",
                 "Fully integrated team and authorization",
@@ -68,7 +68,7 @@
         "badge": "Integrated Architecture",
         "title": "Not Piece by Piece,",
         "titleHighlight": "Fully Integrated Solution",
-        "description": "Construction and real estate sales have their own unique dynamics. NovoxCRM solves the entire process from lead stage to title deed delivery on a single platform.",
+        "description": "Construction and real estate sales have their own unique dynamics. Novo CRM solves the entire process from lead stage to title deed delivery on a single platform.",
         "button": "CLICK FOR DETAILED INFORMATION",
         "cards": {
             "crm": {
@@ -120,7 +120,7 @@
             },
             {
                 "question": "How long does the installation process take?",
-                "answer": "NovoxCRM is a cloud-based system, it does not require installation. You can start using it as soon as your account is opened. Training your staff and full adaptation usually takes 1-2 business days."
+                "answer": "Novo CRM is a cloud-based system, it does not require installation. You can start using it as soon as your account is opened. Training your staff and full adaptation usually takes 1-2 business days."
             },
             {
                 "question": "How secure is our data?",
@@ -214,13 +214,13 @@
             "placeholder": "Email",
             "button": "OK"
         },
-        "copyright": "© 2026 NovoxCRM. All rights reserved.",
+        "copyright": "© 2026 Novo CRM. All rights reserved.",
         "tagline1": "Real Estate CRM Software",
         "tagline2": "Construction Project Sales System"
     },
     "PainSection": {
         "title": "Why",
-        "titleHighlight": "NovoxCRM?",
+        "titleHighlight": "Novo CRM?",
         "description": "We solve chronic problems caused by traditional methods and remove obstacles to growth.",
         "cards": {
             "sales": {
@@ -278,7 +278,7 @@
     },
     "PersonaSection": {
         "title": "A Solution Where Everyone Wins",
-        "description": "NovoxCRM offers customized tools for every role in your organization.",
+        "description": "Novo CRM offers customized tools for every role in your organization.",
         "cta": "More Information",
         "personas": {
             "patron": {
@@ -345,8 +345,8 @@
         "loginButton": "Login",
         "brokerLink": "Become a Partner (Broker) →",
         "registerModalTitle": "Create New Account",
-        "registerModalDesc": "Leave your details to join the NovoxCRM world, our team will contact you immediately.",
-        "registerLink": "Empower your company with NovoxCRM",
+        "registerModalDesc": "Leave your details to join the Novo CRM world, our team will contact you immediately.",
+        "registerLink": "Empower your company with Novo CRM",
         "termsAgreement": "By logging in, you agree to our",
         "termsLink": "Terms of Use",
         "privacyLink": "Privacy Policy",
@@ -1101,9 +1101,9 @@
             }
         },
         "apply": {
-            "title": "Start Selling Novox Projects",
+            "title": "Start Selling Novo Projects",
             "subtitle": "Partner with our global projects and enjoy high commissions.",
-            "program": "Novox Partner Program",
+            "program": "Novo Partner Program",
             "formTitle": "Broker Application Form",
             "step1": "Start by verifying your email.",
             "step2": "Enter verification code and your details.",
@@ -1153,7 +1153,7 @@
                 "delivery": "Est. Delivery",
                 "requests": "Active Requests",
                 "activePropertyCount": "Active Properties",
-                "guaranteedByNovoxCrm": "Guaranteed by NovoxCrm"
+                "guaranteedByNovoCrm": "Guaranteed by Novo CRM"
             },
             "buttons": {
                 "makePayment": "Make Payment",
@@ -1198,7 +1198,7 @@
             "budgetLabel": "Estimated Budget",
             "budgetPlaceholder": "100.000 â‚¬ - 250.000 â‚¬",
             "projectLabel": "Interested Project",
-            "projectPlaceholder": "Novox Vadi...",
+            "projectPlaceholder": "Novo Vadi...",
             "noteLabel": "Note (Optional)",
             "notePlaceholder": "Your questions or special requests...",
             "submit": "Send Inquiry",
@@ -2006,7 +2006,7 @@
             "customerNotFound": "Customer not found.",
             "projectNotFound": "Project not found.",
             "unitNotFound": "Unit not found.",
-            "poweredBy": "Powered by NovoxCRM"
+            "poweredBy": "Powered by Novo CRM"
         },
         "stats": {
             "Lead": "Lead",

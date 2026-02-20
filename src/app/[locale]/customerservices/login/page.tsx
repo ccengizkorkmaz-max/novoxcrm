@@ -90,7 +90,7 @@ export default async function CustomerLoginPage({
                         </div>
                         <div className="flex items-center gap-1.5">
                             <Key className="h-3.5 w-3.5" />
-                            NovoxCrm Güvencesiyle
+                            Novo CRM Güvencesiyle
                         </div>
                     </div>
                 </div>

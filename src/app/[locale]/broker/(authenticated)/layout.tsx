@@ -61,7 +61,7 @@ export default async function BrokerLayout(props: {
                 <div className="flex flex-col border-b px-6 py-4">
                     <Link href="/broker" className="flex items-center gap-2 font-bold text-blue-600">
                         <Building2 className="h-6 w-6" />
-                        <span className="text-xl tracking-tight">Novox Broker</span>
+                        <span className="text-xl tracking-tight">Novo Broker</span>
                     </Link>
                     <div className="mt-2 flex items-center justify-between">
                         <div className="text-xs text-muted-foreground truncate max-w-[120px]">
@@ -162,7 +162,7 @@ export default async function BrokerLayout(props: {
                         <SheetContent side="left" className="w-72 p-0">
                             <div className="flex flex-col h-full bg-white">
                                 <div className="p-6 border-b">
-                                    <div className="text-xl font-bold text-blue-600">Novox Broker</div>
+                                    <div className="text-xl font-bold text-blue-600">Novo Broker</div>
                                     <div className="text-xs text-muted-foreground mt-1">{profile?.full_name}</div>
                                 </div>
                                 <nav className="flex-1 p-4 grid gap-2">
@@ -204,7 +204,7 @@ export default async function BrokerLayout(props: {
                             </div>
                         </SheetContent>
                     </Sheet>
-                    <span className="font-bold text-lg">Novox Broker</span>
+                    <span className="font-bold text-lg">Novo Broker</span>
                     <div className="ml-auto flex items-center gap-2">
                         <LanguageSwitcher />
                         <Button size="icon" variant="ghost" className="relative text-slate-600">

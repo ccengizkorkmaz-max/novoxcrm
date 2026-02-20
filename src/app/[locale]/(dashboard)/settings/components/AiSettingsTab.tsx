@@ -201,8 +201,8 @@ export default function AiSettingsTab({ tenant }: AiSettingsTabProps) {
                                     <Input
                                         id="ai_assistant_name"
                                         name="ai_assistant_name"
-                                        defaultValue={tenant.ai_assistant_name || 'Novox AI'}
-                                        placeholder="Örn: Novox AI, Selin, Kerem"
+                                        defaultValue={tenant.ai_assistant_name || 'Novo AI'}
+                                        placeholder="Örn: Novo AI, Selin, Kerem"
                                         className="pl-10"
                                     />
                                 </div>

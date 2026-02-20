@@ -2,8 +2,8 @@ import { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
     return {
-        name: 'NovoxCRM Broker Portal',
-        short_name: 'NovoxBroker',
+        name: 'Novo CRM Broker Portal',
+        short_name: 'Novo Broker',
         description: 'Broker ve İş Ortakları için Lead ve Satış Yönetim Platformu',
         start_url: '/broker',
         display: 'standalone',

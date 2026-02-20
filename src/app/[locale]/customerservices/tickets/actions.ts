@@ -38,7 +38,7 @@ export async function createServiceRequest(formData: FormData) {
         return { error: `Hata: ${error.message}` }
     }
 
-    revalidatePath('/customerservices/service-requests')
+    revalidatePath('/customerservices/tickets')
     return { success: true }
 }
 
@@ -60,7 +60,7 @@ export async function sendRequestMessage(requestId: string, message: string) {
         return { error: `Hata: ${error.message}` }
     }
 
-    revalidatePath(`/customerservices/service-requests/${requestId}`)
+    revalidatePath(`/customerservices/tickets/${requestId}`)
     return { success: true }
 }
 
@@ -79,7 +79,7 @@ export async function updateServiceRequestStatus(requestId: string, status: stri
         return { error: `Hata: ${error.message}` }
     }
 
-    revalidatePath(`/customerservices/service-requests/${requestId}`)
-    revalidatePath('/customerservices/service-requests')
+    revalidatePath(`/customerservices/tickets/${requestId}`)
+    revalidatePath('/customerservices/tickets')
     return { success: true }
 }

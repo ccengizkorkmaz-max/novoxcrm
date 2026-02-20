@@ -6,8 +6,8 @@ import Link from 'next/link'
 import { LeadCaptureModal } from '@/components/marketing/LeadCaptureModal'
 
 export const metadata: Metadata = {
-    title: "Gayrimenkul CRM Yazılımı | Konut Projeleri için Satış Takibi – NovoxCRM",
-    description: "Gayrimenkul firmaları için özel CRM çözümü. Konut projelerinde müşteri, stok ve broker yönetimini NovoxCRM ile dijitalleştirin.",
+    title: "Gayrimenkul CRM Yazılımı | Konut Projeleri için Satış Takibi – Novo CRM",
+    description: "Gayrimenkul firmaları için özel CRM çözümü. Konut projelerinde müşteri, stok ve broker yönetimini Novo CRM ile dijitalleştirin.",
 };
 
 export default function GayrimenkulCRMPage() {
@@ -42,7 +42,7 @@ export default function GayrimenkulCRMPage() {
             <section className="py-24 border-t border-slate-900 relative">
                 <div className="container mx-auto px-4">
                     <div className="text-center mb-16">
-                        <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">Neden NovoxCRM?</h2>
+                        <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">Neden Novo CRM?</h2>
                     </div>
                     <div className="grid lg:grid-cols-3 gap-12">
                         <div className="p-8 rounded-3xl bg-slate-900/50 border border-slate-800 hover:border-blue-500/30 transition-all group">
@@ -97,7 +97,7 @@ export default function GayrimenkulCRMPage() {
                 <div className="p-12 md:p-20 rounded-[40px] bg-gradient-to-br from-blue-900/20 to-slate-900 border border-blue-500/20">
                     <h2 className="text-3xl md:text-5xl font-bold text-white mb-8">Gayrimenkul Satışlarını Artırmaya Hazır Mısınız?</h2>
                     <p className="text-xl text-slate-400 mb-12 max-w-2xl mx-auto">
-                        NovoxCRM ile tanışın, projelerinizi dijital dünyada daha verimli yönetin.
+                        Novo CRM ile tanışın, projelerinizi dijital dünyada daha verimli yönetin.
                     </p>
                     <div className="flex justify-center gap-6">
                         <LeadCaptureModal

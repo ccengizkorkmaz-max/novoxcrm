@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
         const tenantId = project?.tenant_id || allProjects?.[0]?.tenant_id
 
         let assistantSettings = {
-            name: 'Novox AI',
+            name: 'Novo AI',
             personality: 'Kurumsal, kibar ve çözüm odaklı',
             instructions: '',
             gender: 'female'
@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
         const genAI = new GoogleGenerativeAI(apiKey)
         const model = genAI.getGenerativeModel({
             model: "gemini-2.0-flash",
-            systemInstruction: `Sen Novox CRM için çalışan profesyonel bir Kurumsal Gayrimenkul Satış Asistanısın. 
+            systemInstruction: `Sen Novo CRM için çalışan profesyonel bir Kurumsal Gayrimenkul Satış Asistanısın. 
             İsmin ${assistantSettings.name}. Karakterin ve üslubun: ${assistantSettings.personality}.
             
             Görevin, müşterilere portföyümüzdeki tüm konut projeleri hakkında bilgi vermek.

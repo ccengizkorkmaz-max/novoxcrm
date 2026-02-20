@@ -51,7 +51,7 @@ export default async function PortalServiceRequests(props: {
 
             <div className="grid gap-6">
                 {requests?.map((req) => (
-                    <Link key={req.id} href={`/customerservices/service-requests/${req.id}`}>
+                    <Link key={req.id} href={`/customerservices/tickets/${req.id}`}>
                         <Card className="border-none shadow-sm hover:shadow-md transition-shadow cursor-pointer">
                             <CardHeader className="flex flex-row items-start justify-between">
                                 <div className="space-y-1">

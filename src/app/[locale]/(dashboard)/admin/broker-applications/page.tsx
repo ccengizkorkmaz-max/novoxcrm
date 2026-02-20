@@ -287,7 +287,7 @@ export default async function AdminBrokerApplicationsPage(props: {
                                                                 className="flex items-center gap-1 text-[10px] text-blue-600 hover:text-blue-800 mt-1 transition-colors"
                                                             >
                                                                 <ExternalLink className="h-3 w-3" />
-                                                                novoxcrm.com/p/{broker.broker_slug}
+                                                                novocrm.com/p/{broker.broker_slug}
                                                             </a>
                                                         ) : (
                                                             <span className="text-[10px] text-muted-foreground mt-1 inline-block italic">{t('list.noSlug')}</span>

@@ -41,7 +41,7 @@ Bir müşteri adayı (Lead) geldiğinde, Excel'e yazılan bir not genellikle ora
 
 ## 4. Raporlama Karmaşası
 
-Haftalık satış raporu hazırlamak için 3 farklı Excel dosyasını birleştirmek için saatler harcayan ekipler gördük. NovoxCRM gibi dikey bir çözümde; ciro, kalan stok, taksit vadeleri ve danışman performansı **Dashboard** üzerinde canlı olarak akar. Yönetim kurulu sunumları için manuel veri girişi dönemi kapanmıştır.
+Haftalık satış raporu hazırlamak için 3 farklı Excel dosyasını birleştirmek için saatler harcayan ekipler gördük. Novo CRM gibi dikey bir çözümde; ciro, kalan stok, taksit vadeleri ve danışman performansı **Dashboard** üzerinde canlı olarak akar. Yönetim kurulu sunumları için manuel veri girişi dönemi kapanmıştır.
 
 ## 5. Ölçeklenebilirlik Bariyeri
 
@@ -72,7 +72,7 @@ Bir profesyonel gayrimenkul danışmanının (Broker) projenize odaklanması iç
 
 ### 1. Şeffaf Stok Paylaşımı
 
-Broker, müşterisiyle masadayken "şu daire boş mu?" diye sizi aramak zorunda kalıyorsa, o satışı büyük ihtimalle kaybedersiniz. NovoxCRM'in Broker Portalı sayesinde, brokerlar kendi panellerinden anlık boş/dolu durumunu görür, saniyeler içinde müşteriye özel teklif oluşturabilir.
+Broker, müşterisiyle masadayken "şu daire boş mu?" diye sizi aramak zorunda kalıyorsa, o satışı büyük ihtimalle kaybedersiniz. Novo CRM'in Broker Portalı sayesinde, brokerlar kendi panellerinden anlık boş/dolu durumunu görür, saniyeler içinde müşteriye özel teklif oluşturabilir.
 
 ### 2. Modern "Lead Protection" Sistemi
 
@@ -154,7 +154,7 @@ Bir CRM adadır; ancak o ada diğer kıtalara (Tapu sistemleri, Bankalar, SMS se
 
 ## Özet
 
-NovoxCRM'i kurgularken bu 5 ana özelliği temel taşlarımız olarak belirledik. Çünkü biliyoruz ki; gayrimenkulde detaylı stok ve esnek finansal yönetim yoksa o sistem CRM değil, sadece bir adres defteridir.
+Novo CRM'i kurgularken bu 5 ana özelliği temel taşlarımız olarak belirledik. Çünkü biliyoruz ki; gayrimenkulde detaylı stok ve esnek finansal yönetim yoksa o sistem CRM değil, sadece bir adres defteridir.
         `
     },
     {
@@ -173,7 +173,7 @@ Gayrimenkul CRM, konut projeleri üreten ve satan firmaların müşteri, satış
 
 ## Klasik CRM ile Proje Bazlı CRM Farkı
 
-Sıradan bir CRM yazılımı aldığınızda, size "müşteri kartları" sunar. Ancak bir konut projesi yönetiyorsanız, sizin için müşteri kadar **dairenin durumu** da önemlidir. Proje bazlı bir CRM (NovoxCRM gibi), hangi dairenin satıldığını, hangisinin rezerve olduğunu ve hangi şerefiye puanıyla satıldığını bilir.
+Sıradan bir CRM yazılımı aldığınızda, size "müşteri kartları" sunar. Ancak bir konut projesi yönetiyorsanız, sizin için müşteri kadar **dairenin durumu** da önemlidir. Proje bazlı bir CRM (Novo CRM gibi), hangi dairenin satıldığını, hangisinin rezerve olduğunu ve hangi şerefiye puanıyla satıldığını bilir.
 
 ## Konut Projelerinde Karmaşa Neden Artar?
 
@@ -185,7 +185,7 @@ Birden fazla satış ofisi, onlarca bağımsız broker ve yüzlerce müşteri ad
 2. **Merkezi Kontrol:** Satış müdürünün tüm ofisleri tek ekrandan görmesini sağlar.
 3. **Broker Yönetimi:** Dış acentelerin sisteme güvenli ve yetkili dahil edilmesini sağlar.
 
-NovoxCRM olarak biz, bu karmaşayı ortadan kaldıran ve satışı merkeze alan bir yapı sunuyoruz.
+Novo CRM olarak biz, bu karmaşayı ortadan kaldıran ve satışı merkeze alan bir yapı sunuyoruz.
         `
     },
     {
@@ -257,7 +257,7 @@ Müşteriye özel ödeme planlı teklifler saniyeler içinde PDF olarak oluştur
 ## Satış Temsilcisi Performansı
 Dijitalleşme sayesinde hangi danışmanın kaç görüşme yaptığı, kaç teklif verdiği ve kaç satış kapattığı anlık raporlanabilir.
 
-NovoxCRM ile konut satış süreçlerinizi tamamen dijitalleştirerek hata payını sıfıra indirin.
+Novo CRM ile konut satış süreçlerinizi tamamen dijitalleştirerek hata payını sıfıra indirin.
         `
     },
     {
@@ -280,8 +280,8 @@ ERP (Kurumsal Kaynak Planlama), genellikle "içeriye" yani maliyet, hakediş (ş
 ## İnşaat Firmaları Neden Önce CRM Seçmeli?
 İnşaat projelerinde nakit akışını sağlayan şey **satıştır.** Satış ofisinin hızı, müşterinin takibi ve broker ağının yönetimi ERP sistemlerinin genellikle zayıf kaldığı alanlardır. ERP'ler genellikle "ağır" ve kurulumu maliyetli sistemlerdir.
 
-## NovoxCRM Yaklaşımı
-NovoxCRM, bir ERP'nin karmaşıklığına girmeden, ama bir ERP kadar güçlü finansal takip (senet, ödeme planı) sunarak inşaat firmalarının en kritik ihtiyacı olan "satış ve nakit akışı" problemini çözer.
+## Novo CRM Yaklaşımı
+Novo CRM, bir ERP'nin karmaşıklığına girmeden, ama bir ERP kadar güçlü finansal takip (senet, ödeme planı) sunarak inşaat firmalarının en kritik ihtiyacı olan "satış ve nakit akışı" problemini çözer.
 
 Eğer şantiyedeki beton dökümünü değil de, satış ofisindeki daire satışını yönetmek istiyorsanız; cevabınız CRM'dir.
         `
@@ -307,7 +307,7 @@ Konut projelerinin büyük bir kısmı artık dış brokerlar ve gayrimenkul ace
 3. **Şeffaflık:** Brokerlar, gönderdikleri müşterilerin hangi aşamada olduğunu (teklif, kapora, satış) görmek ister.
 
 ## CRM ile Bu Sorunlar Nasıl Çözülür?
-NovoxCRM'in Broker Portalı ile her brokera özel bir giriş paneli verilir. Broker sadece kendi müşterisini görür ama projenin tüm güncel stoklarını anlık izleyebilir.
+Novo CRM'in Broker Portalı ile her brokera özel bir giriş paneli verilir. Broker sadece kendi müşterisini görür ama projenin tüm güncel stoklarını anlık izleyebilir.
 
 Satış tamamlandığında komisyon hesaplaması sistem üzerinden otomatik yapılır, bu da brokerın firmaya olan güvenini ve sadakatini artırır.
         `
@@ -335,7 +335,7 @@ Canlı stok, projedeki her bir ünitenin durumunun (boş, rezerve, opsiyonlu, sa
 - **Şerefiye Yönetimi:** Her dairenin şerefiye puanı ve buna bağlı fiyatı sistemde sabittir; danışman inisiyatifiyle yanlış fiyat verilmesi engellenir.
 - **Interaktif Lejant:** Satış ofisindeki dev ekranlarda, projenin mimari planı üzerinde hangi dairelerin satıldığını renklerle göstermek, alıcıda güven oluşturur.
 
-NovoxCRM, inşaat firmalarına bu profesyonel stok yönetimini en basit ve en hızlı arayüzle sunar.
+Novo CRM, inşaat firmalarına bu profesyonel stok yönetimini en basit ve en hızlı arayüzle sunar.
         `
     },
     {
@@ -361,7 +361,7 @@ Müşterilerin %70'i ilk görüşmede değil, 3. veya 4. takipten sonra karar ve
 ## Otomasyon ve Hız
 Müşteri form doldurduğu anda cebine gelen "Hoş geldiniz" mesajı ve dijital katalog, markanıza olan güveni ilk saniyeden inşa eder. Hız, gayrimenkulde her şeydir.
 
-NovoxCRM ile satış ekibinizin verimliliğini somut verilerle artırın.
+Novo CRM ile satış ekibinizin verimliliğini somut verilerle artırın.
         `
     },
     {
@@ -382,7 +382,7 @@ NovoxCRM ile satış ekibinizin verimliliğini somut verilerle artırın.
 Manuel hazırlanan bir ödeme planında yapılacak tek bir tarih veya tutar hatası, projenin nakit akışında ciddi aksamalara yol açabilir. Kaçan bir taksit veya unutulan bir ara ödeme, firmanın finansal sağlığını bozar.
 
 ## CRM ile Dijital Ödeme Yönetimi
-NovoxCRM'in **Ödeme Planı Sihirbazı**, saniyeler içinde binlerce senaryoyu hatasız hesaplar. Taksitlerin vadesi geldiğinde hem müşteriye hem de finans ekibine otomatik hatırlatmalar gider.
+Novo CRM'in **Ödeme Planı Sihirbazı**, saniyeler içinde binlerce senaryoyu hatasız hesaplar. Taksitlerin vadesi geldiğinde hem müşteriye hem de finans ekibine otomatik hatırlatmalar gider.
 
 ## Finans ve Satış Senkronizasyonu
 Satış ekibinin sattığı dairenin tahsilat durumunu anlık görmesi gerekir. "Müşteri ödemesini yaptı mı?" sorusu için artık muhasebe ile telefon trafiği yapılmasına gerek kalmaz. Her şey CRM üzerinde şeffaftır.
@@ -414,7 +414,7 @@ Yerli bir çözüm, Türkiye'deki inşaat projelerinin yasal süreçlerine, öde
 3. **KVKK Uyumu:** Verilerin Türkiye'deki sunucularda saklanması ve yerel mevzuata tam uyum.
 4. **Hızlı Teknik Destek:** Sektörü bilen, dilinizi konuşan bir ekibe anında ulaşım.
 
-NovoxCRM, Türkiye'nin lider inşaat firmalarının tecrübeleriyle harmanlanmış, yerli ve güçlü bir altyapı sunar.
+Novo CRM, Türkiye'nin lider inşaat firmalarının tecrübeleriyle harmanlanmış, yerli ve güçlü bir altyapı sunar.
         `
     },
     {
@@ -434,11 +434,11 @@ Piyasada Salesforce, HubSpot gibi devlerden yerel butik çözümlere kadar pek �
 ## Genel CRM Çözümleri (Salesforce, HubSpot vb.)
 Bu sistemler çok güçlüdür ancak inşaat sektörüne uyarlamak (customization) aylar sürebilir ve çok maliyetlidir. Genellikle stok takibi ve şerefiye yönetimi için ek yazılımlara ihtiyaç duyarlar.
 
-## Sektörel CRM Çözümleri (NovoxCRM, Produo vb.)
+## Sektörel CRM Çözümleri (Novo CRM, Produo vb.)
 Bu yazılımlar "kutudan çıktığı anda" inşaat projesi yönetmeye hazırdır. İçinde hazır lejant, broker portalı ve ödeme planı sihirbazı ile gelirler.
 
-## NovoxCRM’in Konumlandırması
-NovoxCRM, özellikle konut projelerinde **satış hızına ve operasyonel kolaylığa** odaklanır. Karmaşık ayarlar yerine, satış ofisinin yarım saatte öğrenip kullanmaya başlayacağı bir deneyim sunuyoruz.
+## Novo CRM’in Konumlandırması
+Novo CRM, özellikle konut projelerinde **satış hızına ve operasyonel kolaylığa** odaklanır. Karmaşık ayarlar yerine, satış ofisinin yarım saatte öğrenip kullanmaya başlayacağı bir deneyim sunuyoruz.
 
 Eğer odağınız milyonluk konut projelerini hatasız ve hızlı satmaksa, dikey (sektörel) çözümler maliyet ve zaman açısından her zaman bir adım öndedir.
         `

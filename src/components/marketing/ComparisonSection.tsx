@@ -45,7 +45,7 @@ export function ComparisonSection() {
                         </ul>
                     </div>
 
-                    {/* The New Way (NovoxCRM) */}
+                    {/* The New Way (Novo CRM) */}
                     <div className="bg-green-950/20 border border-green-900/30 rounded-3xl p-8 md:p-12 relative overflow-hidden backdrop-blur-sm shadow-[0_0_50px_rgba(22,163,74,0.15)] ring-1 ring-green-500/20">
                         <div className="absolute top-0 left-0 w-32 h-32 bg-green-600/10 blur-[80px] rounded-full" />
 

@@ -103,7 +103,7 @@ export default async function WikiArticlePage({ params }: { params: Promise<{ sl
                             <div className="flex-1 text-center md:text-left">
                                 <h3 className="text-2xl font-bold text-white mb-4">Dijital Dönüşüme Hazır mısınız?</h3>
                                 <p className="text-slate-400">
-                                    NovoxCRM'in bu makalede bahsedilen süreçleri projenizde nasıl otomatiğe bağladığını bizzat görün.
+                                    Novo CRM'in bu makalede bahsedilen süreçleri projenizde nasıl otomatiğe bağladığını bizzat görün.
                                 </p>
                             </div>
                             <LeadCaptureModal

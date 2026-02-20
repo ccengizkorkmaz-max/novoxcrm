@@ -22,7 +22,7 @@ interface SalesAssistantProps {
 }
 
 export default function SalesAssistant({ project, aiSettings }: SalesAssistantProps) {
-    const assistantName = aiSettings?.name || 'Novox AI'
+    const assistantName = aiSettings?.name || 'Novo AI'
 
     const [messages, setMessages] = useState<Message[]>([
         {

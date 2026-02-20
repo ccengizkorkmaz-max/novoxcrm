@@ -1,11 +1,11 @@
-# 🏗️ NovoxCRM — Kapsamlı Proje Değerlendirmesi (Güncellenmiş)
+# 🏗️ Novo CRM — Kapsamlı Proje Değerlendirmesi (Güncellenmiş)
 ### 📅 10 Şubat 2026 | Son Geliştirmeler Dahil
 
 ---
 
 ## 📋 Genel Bakış
 
-NovoxCRM, Türkiye gayrimenkul sektörüne özel geliştirilmiş, multi-tenant SaaS mimarisinde, modern teknolojilerle (**Next.js 15, React 19, Supabase, TailwindCSS 4**) inşa edilmiş kapsamlı bir CRM platformudur. Proje **64+ veritabanı migration dosyası**, **22 ana dashboard modülü**, **multi-language (i18n)**, **PWA desteği** ve **Supabase Realtime** altyapısıyla oldukça geniş bir kapsama sahiptir.
+Novo CRM, Türkiye gayrimenkul sektörüne özel geliştirilmiş, multi-tenant SaaS mimarisinde, modern teknolojilerle (**Next.js 15, React 19, Supabase, TailwindCSS 4**) inşa edilmiş kapsamlı bir CRM platformudur. Proje **64+ veritabanı migration dosyası**, **22 ana dashboard modülü**, **multi-language (i18n)**, **PWA desteği** ve **Supabase Realtime** altyapısıyla oldukça geniş bir kapsama sahiptir.
 
 > **Önceki değerlendirmeye göre önemli gelişmeler:**
 > - ✅ Aktivite yönetimi tamamen yeniden tasarlandı (Takvim/Kanban/Liste + Outcome tracking)
@@ -70,7 +70,7 @@ NovoxCRM, Türkiye gayrimenkul sektörüne özel geliştirilmiş, multi-tenant S
 
 **Bileşenler (8 adet):** AccountForm, AccountsTable, AgingReportTable, FinanceCharts, StatementView, TransactionForm, ValuablePaperForm, ValuablePapersTable
 
-**Sektör karşılaştırma:** Çoğu gayrimenkul CRM'i finansı dışarıda bırakır, ERP entegrasyonuna yönlendirir. NovoxCRM'in bunu **built-in** sunması önemli bir avantaj. Finans modülü bir önceki değerlendirmeye göre ciddi olgunlaşma göstermiş.
+**Sektör karşılaştırma:** Çoğu gayrimenkul CRM'i finansı dışarıda bırakır, ERP entegrasyonuna yönlendirir. Novo CRM'in bunu **built-in** sunması önemli bir avantaj. Finans modülü bir önceki değerlendirmeye göre ciddi olgunlaşma göstermiş.
 
 ### 3. Envanter & Proje Yönetimi
 
@@ -120,7 +120,7 @@ NovoxCRM, Türkiye gayrimenkul sektörüne özel geliştirilmiş, multi-tenant S
 | Teşvik kampanyaları (ilerleme takibi) | ✅ |
 | Broker döküman yönetimi | ✅ |
 
-**Sektör karşılaştırma:** Bu, NovoxCRM'in **en güçlü farklılaştırıcılarından** biri. Rakiplerin çoğu broker yönetimini ayrı bir sistem olarak sunar. Entegre broker portalı ciddi bir değer. **6 bileşenli zengin bir arayüz.**
+**Sektör karşılaştırma:** Bu, Novo CRM'in **en güçlü farklılaştırıcılarından** biri. Rakiplerin çoğu broker yönetimini ayrı bir sistem olarak sunar. Entegre broker portalı ciddi bir değer. **6 bileşenli zengin bir arayüz.**
 
 ### 6. Lead Entegrasyonları & Gelen Kutusu
 
@@ -179,7 +179,7 @@ NovoxCRM, Türkiye gayrimenkul sektörüne özel geliştirilmiş, multi-tenant S
 | RLS politikaları ile güvenli erişim | ✅ **Yeni** |
 | Bildirim ayarları (NotificationSettingsTab) | ✅ **Yeni** |
 
-**Sektör karşılaştırma:** Gerçek zamanlı bildirim sistemi, SaaS CRM'lerde standart bir beklenti. Bu ekleme, NovoxCRM'i rakiplerle eşit düzeye getiriyor ve profesyonel bir deneyim sunuyor.
+**Sektör karşılaştırma:** Gerçek zamanlı bildirim sistemi, SaaS CRM'lerde standart bir beklenti. Bu ekleme, Novo CRM'i rakiplerle eşit düzeye getiriyor ve profesyonel bir deneyim sunuyor.
 
 ### 10. Raporlama & Analytics
 
@@ -339,7 +339,7 @@ Proje genelinde otomatik test dosyaları gözlemlenmedi.
 
 ## 📊 Sektör Karşılaştırma Matrisi (Güncellenmiş)
 
-| Özellik | NovoxCRM | Apsiyon | Projes CRM | Salesforce | HubSpot |
+| Özellik | Novo CRM | Apsiyon | Projes CRM | Salesforce | HubSpot |
 |---------|----------|---------|------------|------------|---------|
 | Satış Pipeline | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
 | Envanter Yönetimi | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐ | ⭐ |
@@ -377,9 +377,9 @@ Proje genelinde otomatik test dosyaları gözlemlenmedi.
 
 ## 🎯 Sonuç ve Strateji Önerisi
 
-### NovoxCRM'in Konumu
+### Novo CRM'in Konumu
 
-NovoxCRM, Türkiye gayrimenkul sektörüne özel olarak geliştirilmiş, **üst segment** bir CRM çözümüdür. Özellikle **satış pipeline derinliği**, **entegre finans modülü**, **broker ekosistemi** ve artık **gerçek zamanlı bildirimler + kapsamlı aktivite yönetimi** ile sektörde güçlü bir konumdadır.
+Novo CRM, Türkiye gayrimenkul sektörüne özel olarak geliştirilmiş, **üst segment** bir CRM çözümüdür. Özellikle **satış pipeline derinliği**, **entegre finans modülü**, **broker ekosistemi** ve artık **gerçek zamanlı bildirimler + kapsamlı aktivite yönetimi** ile sektörde güçlü bir konumdadır.
 
 Son geliştirmeler (aktivite yeniden tasarımı, bildirim realtime, sözleşme iptal otomasyonu, finans dashboard) platformu **MVP'den ötesine**, **production-ready** bir ürüne taşımıştır.
 
@@ -393,9 +393,9 @@ Son geliştirmeler (aktivite yeniden tasarımı, bildirim realtime, sözleşme i
 
 ### Rakip Avantajı
 
-NovoxCRM'in **en büyük avantajı tek platformda entegre çözüm** sunmasıdır. Rakiplerin çoğu Satış, Finans, Broker yönetimini ayrı ayrı sunar. Bu entegrasyon, veri tutarlılığı ve operasyonel verimlilik açısından büyük bir artıdır.
+Novo CRM'in **en büyük avantajı tek platformda entegre çözüm** sunmasıdır. Rakiplerin çoğu Satış, Finans, Broker yönetimini ayrı ayrı sunar. Bu entegrasyon, veri tutarlılığı ve operasyonel verimlilik açısından büyük bir artıdır.
 
-**Her satış adımında (Lead → Teklif → Pazarlık → Opsiyon → Sözleşme → Ödeme → Teslimat) verinin tek platformda akması**, NovoxCRM'i sektörde benzersiz kılan temel değer önerisidir.
+**Her satış adımında (Lead → Teklif → Pazarlık → Opsiyon → Sözleşme → Ödeme → Teslimat) verinin tek platformda akması**, Novo CRM'i sektörde benzersiz kılan temel değer önerisidir.
 
 ---
 
@@ -417,5 +417,5 @@ NovoxCRM'in **en büyük avantajı tek platformda entegre çözüm** sunmasıdı
 
 ---
 
-*Bu değerlendirme NovoxCRM kod tabanının 10 Şubat 2026 tarihli (21:12) snapshot'ına dayanmaktadır.*
+*Bu değerlendirme Novo CRM kod tabanının 10 Şubat 2026 tarihli (21:12) snapshot'ına dayanmaktadır.*
 *Önceki değerlendirme ile karşılaştırmalı olarak güncellenmiştir.*

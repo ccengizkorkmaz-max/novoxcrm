@@ -29,7 +29,7 @@ export function PainSection() {
     ]
 
     return (
-        <section className="py-24 bg-slate-950 relative overflow-hidden" id="why-novox">
+        <section className="py-24 bg-slate-950 relative overflow-hidden" id="why-novo">
             {/* Background Gradient */}
             <div className="absolute inset-0 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950" />
 

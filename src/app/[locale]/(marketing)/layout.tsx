@@ -3,10 +3,10 @@ import { Footer } from '@/components/marketing/Footer'
 import { Navbar } from '@/components/marketing/Navbar'
 
 export const metadata: Metadata = {
-    metadataBase: new URL('https://novoxcrm.com'),
+    metadataBase: new URL('https://novocrm.com'),
     title: {
-        default: 'NovoxCRM - İnşaat ve Gayrimenkul Proje Satış Yazılımı',
-        template: '%s | NovoxCRM'
+        default: 'Novo CRM - İnşaat ve Gayrimenkul Proje Satış Yazılımı',
+        template: '%s | Novo CRM'
     },
     description: 'Orta ölçekli inşaat firmaları için Proje Satış CRM\'i. Satış ofisi, broker yönetimi ve ödeme planı takibini tek platformda birleştirin.',
     keywords: ['gayrimenkul crm', 'inşaat crm', 'proje satış crm', 'konut satış crm', 'real estate crm turkey', 'broker yönetim sistemi'],
@@ -20,16 +20,16 @@ export const metadata: Metadata = {
     openGraph: {
         type: 'website',
         locale: 'tr_TR',
-        url: 'https://novoxcrm.com',
-        title: 'NovoxCRM - Konut Satışlarını Hızlandırın',
+        url: 'https://novocrm.com',
+        title: 'Novo CRM - Konut Satışlarını Hızlandırın',
         description: 'Excel karmaşasına son verin. Satış, pazarlama ve broker yönetimini dijitalleştirin.',
-        siteName: 'NovoxCRM',
+        siteName: 'Novo CRM',
     },
     twitter: {
         card: 'summary_large_image',
-        title: 'NovoxCRM - Konut Satış CRM',
+        title: 'Novo CRM - Konut Satış CRM',
         description: 'İnşaat firmaları için dijital satış ofisi ve broker yönetim sistemi.',
-        creator: '@novoxcrm',
+        creator: '@novocrm',
     }
 }
 
@@ -48,7 +48,7 @@ export default async function MarketingLayout(props: {
                     __html: JSON.stringify({
                         "@context": "https://schema.org",
                         "@type": "SoftwareApplication",
-                        "name": "NovoxCRM",
+                        "name": "Novo CRM",
                         "operatingSystem": "Web",
                         "applicationCategory": "BusinessApplication",
                         "offers": {

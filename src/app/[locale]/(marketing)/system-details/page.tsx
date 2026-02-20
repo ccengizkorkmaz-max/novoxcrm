@@ -14,7 +14,7 @@ export default function SystemDetailsPage() {
                         Enterprise Infrastructure
                     </div>
                     <h1 className="text-4xl md:text-7xl font-black text-white mb-8 tracking-tight">
-                        Novox <span className="text-blue-500">Architecture</span>
+                        Novo <span className="text-blue-500">Architecture</span>
                     </h1>
                     <p className="text-xl text-slate-400 max-w-3xl mx-auto leading-relaxed">
                         En zorlu kurumsal gereksinimler ve yüksek trafikli operasyonlar için tasarlanmış, esnek ve güvenli teknoloji ekosistemi.
@@ -29,7 +29,7 @@ export default function SystemDetailsPage() {
                                 <Server className="text-blue-500" /> Dağıtım ve Kurulum Esnekliği
                             </h2>
                             <p className="text-slate-400 text-lg">
-                                Veri gizliliği ve güvenlik politikalarınıza en uygun yöntemi seçin. NovoxCRM, hibrit çalışma modellerine tam uyumludur.
+                                Veri gizliliği ve güvenlik politikalarınıza en uygun yöntemi seçin. Novo CRM, hibrit çalışma modellerine tam uyumludur.
                             </p>
 
                             <div className="space-y-4">
@@ -39,7 +39,7 @@ export default function SystemDetailsPage() {
                                             <Globe size={32} />
                                         </div>
                                         <div>
-                                            <h3 className="text-xl font-bold text-white">Novox Secure Cloud</h3>
+                                            <h3 className="text-xl font-bold text-white">Novo Secure Cloud</h3>
                                             <p className="text-blue-400/60 text-sm">Managed SaaS Solution</p>
                                         </div>
                                     </div>

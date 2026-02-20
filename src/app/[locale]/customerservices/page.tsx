@@ -124,7 +124,7 @@ export default async function PortalDashboard(props: {
                     <CardContent>
                         <div className="flex items-center gap-2 text-sm text-slate-500">
                             <Building2 className="h-4 w-4" />
-                            {t('cards.guaranteedByNovoxCrm')}
+                            {t('cards.guaranteedByNovoCrm')}
                         </div>
                     </CardContent>
                 </Card>

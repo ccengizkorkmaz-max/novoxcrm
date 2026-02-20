@@ -95,7 +95,7 @@ export async function GET(req: NextRequest) {
         const genAI = new GoogleGenerativeAI(apiKey)
         const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" })
 
-        const prompt = `Sen NovoxCRM'in Akıllı Satış Asistanısın. Kullanıcının adı: ${profile.full_name}.
+        const prompt = `Sen Novo CRM'in Akıllı Satış Asistanısın. Kullanıcının adı: ${profile.full_name}.
         Aşağıdaki verilere bakarak kullanıcıya bugün için 3 kritik tavsiye ver. Tavsiyeler kısa, motive edici ve aksiyon odaklı olsun.
         
         Veriler:

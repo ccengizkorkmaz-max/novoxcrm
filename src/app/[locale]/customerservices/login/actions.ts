@@ -15,7 +15,7 @@ export async function login(formData: FormData) {
     }
 
     // Special portal virtual email logic
-    const loginEmail = `${username}@portal.novoxcrm.com`
+    const loginEmail = `${username}@portal.novocrm.com`
 
     const { error } = await supabase.auth.signInWithPassword({
         email: loginEmail,

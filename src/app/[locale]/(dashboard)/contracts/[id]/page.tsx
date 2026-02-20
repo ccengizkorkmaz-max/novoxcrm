@@ -45,7 +45,7 @@ export default async function ContractDetailPage(props: {
 
     // Fetch tenant name for PDF
     const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single()
-    let tenantName = 'NovoxCRM'
+    let tenantName = 'Novo CRM'
     if (profile?.tenant_id) {
         const { data: tenant } = await supabase.from('tenants').select('company_name').eq('id', profile.tenant_id).single()
         if (tenant?.company_name) tenantName = tenant.company_name

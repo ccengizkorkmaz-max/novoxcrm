@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { MessageSquare, Clock, ArrowLeft, User, Phone, Mail } from "lucide-react"
 import Link from 'next/link'
-import { MessageForm } from '@/app/[locale]/customerservices/service-requests/components/MessageForm'
+import { MessageForm } from '@/app/[locale]/customerservices/tickets/components/MessageForm'
 import { StatusManager } from '../components/StatusManager'
 import { BackButton } from '@/components/back-button'
 import { getTranslations } from 'next-intl/server'

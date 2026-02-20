@@ -1,6 +1,6 @@
-# NovoxCRM Yedekleme Kılavuzu
+# Novo CRM Yedekleme Kılavuzu
 
-Bu kılavuz, NovoxCRM uygulamasının ve verilerinin güvenliğini sağlamak için yapılması gereken yedekleme işlemlerini içerir.
+Bu kılavuz, Novo CRM uygulamasının ve verilerinin güvenliğini sağlamak için yapılması gereken yedekleme işlemlerini içerir.
 
 ## 1. Kod Tabanı (Source Code) Yedekleme
 
@@ -8,14 +8,14 @@ Uygulama kodunu korumak için en iyi yöntem bir Git servisi (GitHub, GitLab vey
 
 *   **GitHub/GitLab'a Yükleme:**
     ```bash
-    git remote add origin https://github.com/kullanici_adiniz/novoxcrm.git
+    git remote add origin https://github.com/kullanici_adiniz/novocrm.git
     git push -u origin main
     ```
 *   **Düzenli Yedekleme:** Her önemli değişiklikten sonra `git commit` ve `git push` işlemlerini yapmayı unutmayın.
 
 ## 2. Veritabanı (Supabase) Yedekleme
 
-NovoxCRM, veritabanı olarak Supabase (PostgreSQL) kullanmaktadır.
+Novo CRM, veritabanı olarak Supabase (PostgreSQL) kullanmaktadır.
 
 ### A. Otomatik Yedeklemeler (Supabase Paneli)
 *   **Proje Ayarları > Database > Backups** yolunu izleyin.

@@ -310,7 +310,7 @@ export default function PublicInventoryView({ linkData }: PublicInventoryViewPro
             <div className="mt-20 pt-8 border-t border-slate-200 text-center">
                 <div className="flex items-center justify-center gap-2 text-slate-400 font-bold text-xs uppercase tracking-widest mb-2 font-mono">
                     <Circle className="h-2 w-2 fill-emerald-500 text-emerald-500" />
-                    Novox CRM Digital Sales Solution
+                    Novo CRM Digital Sales Solution
                 </div>
                 <p className="text-[10px] text-slate-400 font-medium">Bu katalog gayrimenkul danışmanınız tarafından sizin için özel olarak hazırlanmıştır.</p>
             </div>
