@@ -48,7 +48,7 @@ export default function NotificationSettingsTab({ settings }: NotificationSettin
             const res = await fetch('/api/notifications/scan')
             const data = await res.json()
             if (data.success) {
-                const total = (data.expiringReservations || 0) + (data.overduePayments || 0) + (data.approachingPapers || 0) + (data.staleLeads || 0)
+                const total = (data.expiringReservations || 0) + (data.overduePayments || 0) + (data.approachingPapers || 0) + (data.staleLeads || 0) + (data.newEmails || 0)
                 if (total > 0) {
                     toast.success(`Tarama tamamlandı: ${total} yeni bildirim oluşturuldu.`)
                 } else {

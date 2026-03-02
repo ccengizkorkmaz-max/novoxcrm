@@ -484,7 +484,8 @@
             "inventory": "Stok & Proje Analizi",
             "finance": "Finansal Analiz",
             "efficiency": "Saha & Ekip Verimliliği",
-            "publicLinks": "Katalog & Link Takibi"
+            "publicLinks": "Katalog & Link Takibi",
+            "marketing": "Pazarlama Analitiği"
         },
         "Inbox": {
             "title": "Gelen Kutusu",
@@ -879,6 +880,10 @@
             "activities": {
                 "title": "Saha & Ekip Verimliliği",
                 "description": "Ekip bazlı aktivite sayıları, randevu verimliliği ve performans takibi."
+            },
+            "marketing": {
+                "title": "Pazarlama Analizi",
+                "description": "Form ve reklam kaynaklı lead'lerin pipeline içerisindeki performans ve dönüşümleri."
             }
         }
     },
@@ -1099,6 +1104,11 @@
                 "empty": "Şablon bulunamadı.",
                 "confirmDelete": "Bu şablonu silmek istediğinize emin misiniz?",
                 "month": "Ay"
+            },
+            "messages": {
+                "successCreate": "Şablon başarıyla oluşturuldu.",
+                "successUpdate": "Şablon başarıyla güncellendi.",
+                "successDelete": "Şablon başarıyla silindi."
             }
         },
         "roles": {

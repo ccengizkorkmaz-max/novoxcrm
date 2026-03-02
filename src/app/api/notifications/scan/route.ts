@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { NextResponse } from 'next/server'
 import { createNotification } from '@/lib/notifications/create'
+import { fetchUnreadEmails } from '@/lib/email/fetcher'
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
@@ -13,7 +15,7 @@ export async function GET(request: Request) {
         if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const supabase = await createClient()
+    const supabase = createAdminClient() // Use admin client for system-wide scan
     const results = {
         expiringReservations: 0,
         overduePayments: 0,
@@ -21,6 +23,7 @@ export async function GET(request: Request) {
         approachingDelivery: 0,
         approachingPapers: 0,
         staleLeads: 0,
+        newEmails: 0,
         errors: [] as string[]
     }
 
@@ -213,6 +216,62 @@ export async function GET(request: Request) {
                         link: '/crm'
                     })
                     results.staleLeads++
+                }
+            }
+
+            // 6. NEW: Fetch External Emails from IMAP
+            const { data: emailAccounts } = await supabase
+                .from('tenant_email_accounts')
+                .select('*')
+                .eq('tenant_id', tenantId)
+                .eq('is_active', true)
+
+            console.log(`[Scan] Found ${emailAccounts?.length || 0} active email accounts for tenant ${tenantId}`)
+
+            for (const acc of emailAccounts || []) {
+                try {
+                    console.log(`[Scan] Fetching emails for ${acc.email_address}...`)
+                    const unread = await fetchUnreadEmails({
+                        host: acc.incoming_host,
+                        port: acc.incoming_port,
+                        user: acc.incoming_user || acc.username || acc.email_address,
+                        pass: acc.incoming_password || acc.password,
+                        tls: acc.incoming_encryption === 'SSL' || acc.incoming_encryption === 'TLS'
+                    })
+
+                    console.log(`[Scan] Fetched ${unread.length} unread messages for ${acc.email_address}`)
+
+                    for (const email of unread) {
+                        // Extract basic info
+                        const senderName = email.from.split('<')[0].trim().replace(/"/g, '') || email.from
+                        const senderEmail = email.from.match(/<(.+?)>/)?.[1] || email.from
+
+                        // Create Inbox Item (Manual approval required in UI)
+                        const { error: inboxErr } = await supabase.from('inbox_items').insert({
+                            tenant_id: tenantId,
+                            name: senderName,
+                            email: senderEmail,
+                            message: `**${email.subject}**\n\n${email.text || email.html || ''}`,
+                            source: 'Email',
+                            status: 'pending'
+                        })
+
+                        if (!inboxErr) {
+                            results.newEmails++
+                            // Create a system notification for the new email lead
+                            await createNotification({
+                                tenant_id: tenantId,
+                                type: 'Info',
+                                category: 'CRM',
+                                title: '📧 Yeni E-posta Talebi',
+                                message: `${senderName} isimli müşteriden yeni bir e-posta talebi geldi: ${email.subject}`,
+                                link: '/inbox'
+                            })
+                        }
+                    }
+                } catch (e: any) {
+                    console.error(`Email fetch error for ${acc.email_address}:`, e.message)
+                    results.errors.push(`Email (${acc.email_address}): ${e.message}`)
                 }
             }
         }

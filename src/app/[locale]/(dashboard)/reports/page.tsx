@@ -13,7 +13,8 @@ import {
     Activity,
     Building2,
     CalendarCheck,
-    ArrowRight
+    ArrowRight,
+    Megaphone
 } from "lucide-react"
 import Link from "next/link"
 import { getTranslations } from 'next-intl/server'
@@ -60,6 +61,13 @@ const reportCards = [
         icon: CalendarCheck,
         color: "text-purple-600",
         bgColor: "bg-purple-100"
+    },
+    {
+        id: "marketing",
+        href: "/reports/marketing",
+        icon: Megaphone,
+        color: "text-pink-600",
+        bgColor: "bg-pink-100"
     }
 ]
 

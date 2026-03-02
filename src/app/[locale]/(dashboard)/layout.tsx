@@ -4,13 +4,12 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Building2, LogOut, Menu, Settings } from 'lucide-react'
-import { SidebarNav } from '@/components/dashboard/SidebarNav'
-import { getTranslations } from 'next-intl/server'
+import { NovoxSidebar } from '@/components/dashboard/NovoxSidebar'
+import { getTranslations, getMessages } from 'next-intl/server'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 import { ToastProvider } from '@/components/providers/ToastProvider'
 import NotificationBell from '@/components/notifications/NotificationBell'
 import { NextIntlClientProvider } from 'next-intl'
-import { getMessages } from 'next-intl/server'
 
 export default async function DashboardLayout(props: {
     children: React.ReactNode
@@ -19,6 +18,7 @@ export default async function DashboardLayout(props: {
     const { locale } = await props.params
     const { children } = props
     const t = await getTranslations('Dashboard')
+    const messages = await getMessages()
     const supabase = await createClient()
 
     const {
@@ -43,8 +43,45 @@ export default async function DashboardLayout(props: {
         .single() : { data: null }
 
     const isAuthorizedForSettings = profile?.role === 'admin' || profile?.role === 'owner'
-    const messages = await getMessages()
 
+    const sidebarT = await getTranslations('Sidebar')
+    const sidebarLabels = {
+        overview: sidebarT('overview'),
+        inbox: sidebarT('inbox'),
+        quickCRM: sidebarT('quickCRM'),
+        projects: sidebarT('projects'),
+        inventory: sidebarT('inventory'),
+        customers: sidebarT('customers'),
+        salesTeams: sidebarT('salesTeams'),
+        salesManagement: sidebarT('salesManagement'),
+        options: sidebarT('options'),
+        offers: sidebarT('offers'),
+        contracts: sidebarT('contracts'),
+        deposits: sidebarT('deposits'),
+        commissions: sidebarT('commissions'),
+        activities: sidebarT('activities'),
+        finance: sidebarT('finance'),
+        hr: sidebarT('hr'),
+        serviceRequests: sidebarT('serviceRequests'),
+        broker: {
+            title: sidebarT('broker.title'),
+            management: sidebarT('broker.management'),
+            leads: sidebarT('broker.leads'),
+            campaigns: sidebarT('broker.campaigns'),
+            commission: sidebarT('broker.commission'),
+            finance: sidebarT('broker.finance'),
+            levels: sidebarT('broker.levels'),
+            earnings: sidebarT('broker.earnings')
+        },
+        reports: {
+            title: sidebarT('reports.title'),
+            sales: sidebarT('reports.sales'),
+            inventory: sidebarT('reports.inventory'),
+            finance: sidebarT('reports.finance'),
+            publicLinks: sidebarT('reports.publicLinks'),
+            marketing: sidebarT('reports.marketing')
+        }
+    }
 
     return (
         <NextIntlClientProvider messages={messages} locale={locale}>
@@ -67,7 +104,7 @@ export default async function DashboardLayout(props: {
                         </div>
                     </div>
                     <div className="flex-1 overflow-auto py-2">
-                        <SidebarNav role={profile?.role || 'sales'} />
+                        <NovoxSidebar role={profile?.role || 'sales'} labels={sidebarLabels} />
                     </div>
                     <div className="px-4 py-2">
                         <LanguageSwitcher variant="light" />
@@ -122,7 +159,7 @@ export default async function DashboardLayout(props: {
                                     </div>
                                 </div>
                                 <div className="flex-1 overflow-auto py-2">
-                                    <SidebarNav role={profile?.role || 'sales'} />
+                                    <NovoxSidebar role={profile?.role || 'sales'} labels={sidebarLabels} />
                                 </div>
                                 <div className="px-4 py-2">
                                     <LanguageSwitcher variant="light" />

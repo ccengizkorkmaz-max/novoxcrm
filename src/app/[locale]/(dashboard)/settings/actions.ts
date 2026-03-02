@@ -533,3 +533,167 @@ export async function updateAiAssistantCharacter(formData: FormData) {
     return { success: true }
 }
 
+export async function saveEmailAccount(data: any) {
+    const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id, role')
+        .eq('id', user.id)
+        .single()
+
+    if (!profile?.tenant_id) return { error: 'No tenant found' }
+    if (profile.role !== 'owner' && profile.role !== 'admin') {
+        return { error: 'Yetkisiz işlem.' }
+    }
+
+    // Default other accounts to false if this one is primary
+    if (data.is_default) {
+        await supabase
+            .from('tenant_email_accounts')
+            .update({ is_default: false })
+            .eq('tenant_id', profile.tenant_id)
+    }
+
+    if (data.id) {
+        const { id, ...updates } = data
+        const { error } = await supabase
+            .from('tenant_email_accounts')
+            .update(updates)
+            .eq('id', id)
+            .eq('tenant_id', profile.tenant_id)
+
+        if (error) return { error: error.message }
+    } else {
+        const { error } = await supabase
+            .from('tenant_email_accounts')
+            .insert({ ...data, tenant_id: profile.tenant_id })
+
+        if (error) return { error: error.message }
+    }
+
+    revalidatePath('/settings')
+    return { success: true }
+}
+
+export async function deleteEmailAccount(id: string) {
+    const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id, role')
+        .eq('id', user.id)
+        .single()
+
+    if (profile?.role !== 'owner' && profile?.role !== 'admin') {
+        return { error: 'Yetkisiz işlem.' }
+    }
+
+    const { error } = await supabase
+        .from('tenant_email_accounts')
+        .delete()
+        .eq('id', id)
+        .eq('tenant_id', profile.tenant_id)
+
+    if (error) return { error: 'Silinemedi.' }
+
+    revalidatePath('/settings')
+    return { success: true }
+}
+
+import { sendPoliSms } from '@/lib/sms'
+
+export async function updateSmsSettings(formData: FormData) {
+    const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    // Get tenant_id from profile
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id, role')
+        .eq('id', user.id)
+        .single()
+
+    if (!profile?.tenant_id) return { error: 'No tenant found' }
+    if (profile.role !== 'owner' && profile.role !== 'admin') {
+        return { error: 'Yalnızca yönetici yetkisi olanlar bu ayarları değiştirebilir.' }
+    }
+
+    const updates = {
+        sms_provider: formData.get('sms_provider') as string,
+        sms_api_user: formData.get('sms_api_user') as string,
+        sms_api_password: formData.get('sms_api_password') as string,
+        sms_sender_id: formData.get('sms_sender_id') as string,
+        is_sms_notifications_enabled: formData.get('is_sms_notifications_enabled') === 'on',
+    }
+
+    const { error } = await supabase
+        .from('tenants')
+        .update(updates)
+        .eq('id', profile.tenant_id)
+
+    if (error) {
+        console.error('Update SMS Settings Error:', error)
+        return { error: 'Ayarlar güncellenirken bir hata oluştu: ' + error.message }
+    }
+
+    revalidatePath('/settings')
+    return { success: true }
+}
+
+export async function testSms(phoneNumber?: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('tenant_id, role, full_name')
+        .eq('id', user.id)
+        .single()
+
+    if (profileError) {
+        console.error('testSms Profile Error:', profileError)
+    }
+
+    console.log('testSms called with:', phoneNumber)
+    const targetPhone = phoneNumber
+    console.log('Effective targetPhone:', targetPhone)
+    console.log('Profile found:', !!profile)
+
+    if (!profile) {
+        return { error: 'Profil bilgilerine ulaşılamadı. Lütfen tekrar giriş yapın.' }
+    }
+
+    if (!targetPhone) {
+        return { error: 'Test SMS göndermek için bir telefon numarası belirtilmelidir. (Yazdığınızdan veya profilinizde kayıtlı olduğundan emin olun)' }
+    }
+
+    const { data: tenant } = await supabase
+        .from('tenants')
+        .select('sms_api_user, sms_api_password, sms_sender_id')
+        .eq('id', profile.tenant_id)
+        .single()
+
+    if (!tenant?.sms_api_user || !tenant?.sms_api_password) {
+        return { error: 'Önce API kullanıcı bilgilerini yukarıdaki formdan kaydediniz.' }
+    }
+
+    const result = await sendPoliSms({
+        user: tenant.sms_api_user,
+        pass: tenant.sms_api_password,
+        header: tenant.sms_sender_id || 'NOVOEMLAK',
+        contacts: [targetPhone],
+        message: `NovoCRM Test Mesajı\n\nMerhaba ${profile.full_name}, SMS altyapınız Polidijital ile başarıyla bağlandı!\n\n${new Date().toLocaleString('tr-TR')}`
+    })
+
+    return result
+}

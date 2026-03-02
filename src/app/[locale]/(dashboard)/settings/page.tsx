@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge'
 import { updateTenantProfile } from './actions'
 import { FormImageUpload } from '@/components/ui/form-image-upload'
-import { Building2, Users, FileText, Database, Banknote, Bell, Brain } from 'lucide-react'
+import { Building2, Users, FileText, Database, Banknote, Bell, Brain, Mail, MessageSquare } from 'lucide-react'
 import UserManagementHeader from './components/UserManagementHeader'
 import UserTableActions from './components/UserTableActions'
 import TenantProfileForm from './components/TenantProfileForm'
@@ -22,6 +22,8 @@ import UnitTypesTab from './components/UnitTypesTab'
 import CommissionRulesTab from './components/CommissionRulesTab'
 import NotificationSettingsTab from './components/NotificationSettingsTab'
 import AiSettingsTab from './components/AiSettingsTab'
+import EmailAccountsTab from './components/EmailAccountsTab'
+import SmsSettingsTab from './components/SmsSettingsTab'
 
 
 export default async function SettingsPage() {
@@ -87,6 +89,13 @@ export default async function SettingsPage() {
         .eq('tenant_id', profile.tenant_id)
         .single()
 
+    // Get Email Accounts
+    const { data: emailAccounts } = await supabase
+        .from('tenant_email_accounts')
+        .select('*')
+        .eq('tenant_id', profile.tenant_id)
+        .order('created_at', { ascending: false })
+
     const getRoleLabel = (role: string) => {
         switch (role) {
             case 'admin': return t('users.roles.admin')
@@ -118,6 +127,10 @@ export default async function SettingsPage() {
                         <Users className="w-4 h-4 mr-2" />
                         {t('tabs.users')}
                     </TabsTrigger>
+                    <TabsTrigger value="email" className="flex-1 md:flex-none py-2.5 px-4 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all">
+                        <Mail className="w-4 h-4 mr-2" />
+                        E-posta İşlemleri
+                    </TabsTrigger>
                     <TabsTrigger value="templates" className="flex-1 md:flex-none py-2.5 px-4 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all">
                         <FileText className="w-4 h-4 mr-2" />
                         {t('tabs.templates')}
@@ -137,6 +150,10 @@ export default async function SettingsPage() {
                     <TabsTrigger value="ai" className="flex-1 md:flex-none py-2.5 px-4 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all">
                         <Brain className="w-4 h-4 mr-2" />
                         {t('tabs.ai')}
+                    </TabsTrigger>
+                    <TabsTrigger value="sms" className="flex-1 md:flex-none py-2.5 px-4 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all">
+                        <MessageSquare className="w-4 h-4 mr-2" />
+                        SMS Ayarları
                     </TabsTrigger>
                 </TabsList>
 
@@ -181,6 +198,11 @@ export default async function SettingsPage() {
                     </Card>
                 </TabsContent>
 
+                {/* Email Accounts Tab */}
+                <TabsContent value="email" className="space-y-4">
+                    <EmailAccountsTab accounts={emailAccounts || []} />
+                </TabsContent>
+
                 {/* Templates Tab */}
                 <TabsContent value="templates" className="space-y-4">
                     <PaymentTemplatesTab templates={templates || []} />
@@ -207,6 +229,11 @@ export default async function SettingsPage() {
                 {/* AI Settings Tab */}
                 <TabsContent value="ai" className="space-y-4">
                     <AiSettingsTab tenant={tenant as any} />
+                </TabsContent>
+
+                {/* SMS Settings Tab */}
+                <TabsContent value="sms" className="space-y-4">
+                    <SmsSettingsTab tenant={tenant as any} />
                 </TabsContent>
             </Tabs>
 

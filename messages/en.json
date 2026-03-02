@@ -447,7 +447,8 @@
             "inventory": "Stock & Project Analysis",
             "finance": "Financial Analysis",
             "efficiency": "Field & Team Efficiency",
-            "publicLinks": "Catalog & Link Tracking"
+            "publicLinks": "Catalog & Link Tracking",
+            "marketing": "Marketing Analytics"
         },
         "Inbox": {
             "title": "Inbox",
@@ -823,6 +824,10 @@
             "activities": {
                 "title": "Field & Team Efficiency",
                 "description": "Team-based activity counts, appointment efficiency, and performance tracking."
+            },
+            "marketing": {
+                "title": "Marketing Analytics",
+                "description": "Form and ad sourced lead pipeline performance and conversions."
             }
         }
     },
@@ -1042,6 +1047,11 @@
                 "empty": "No templates found.",
                 "confirmDelete": "Are you sure you want to delete this template?",
                 "month": "Month"
+            },
+            "messages": {
+                "successCreate": "Template created successfully.",
+                "successUpdate": "Template updated successfully.",
+                "successDelete": "Template deleted successfully."
             }
         },
         "roles": {

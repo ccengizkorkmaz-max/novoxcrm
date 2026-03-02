@@ -413,3 +413,95 @@ export async function getActivityAnalytics() {
         teamData
     }
 }
+
+export async function getMarketingAnalytics() {
+    const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    // Fetch sales
+    const { data: sales, error: salesError } = await supabase
+        .from('sales')
+        .select('id, status, description, created_at, customer_id')
+
+    if (salesError || !sales) return { error: 'No sales data' }
+
+    // Fetch customer sources
+    const { data: customers } = await supabase
+        .from('customers')
+        .select('id, source, full_name')
+
+    const sourceMap: Record<string, string> = {}
+    customers?.forEach(c => {
+        sourceMap[c.id] = c.source || 'Bilinmiyor'
+    })
+
+    const statusLabels: Record<string, string> = {
+        'Lead': 'Aday',
+        'Prospect': 'Fırsat',
+        'Reservation': 'Opsiyonlu',
+        'Opsiyon - Kapora Bekleniyor': 'Opsiyon (Kapora Bekleniyor)',
+        'Proposal': 'Teklif Verildi',
+        'Teklif - Kapora Bekleniyor': 'Teklif (Kapora Bekleniyor)',
+        'Negotiation': 'Pazarlık',
+        'Sold': 'Satıldı',
+        'Contract': 'Sözleşme',
+        'Completed': 'Kazanıldı',
+        'Lost': 'Kaybedildi',
+        'Cancelled': 'İptal Edildi',
+        'Transferred': 'Devredildi',
+        'Reserved': 'Rezerve'
+    }
+
+    // Filter leads that are coming from digital marketing (Facebook Ads, Web Form, Email, or has Form in description)
+    const marketingSales = sales.filter(s => {
+        const source = sourceMap[s.customer_id] || ''
+        const desc = s.description || ''
+        return source === 'Facebook Ads' || source === 'WEB Form' || source === 'Email' || desc.includes('Form:')
+    })
+
+    const leadsByForm = marketingSales.reduce((acc: Record<string, any>, sale) => {
+        let sourceName = 'Diğer Kampanyalar/Formlar'
+        const source = sourceMap[sale.customer_id] || ''
+
+        if (sale.description) {
+            const formMatch = sale.description.match(/(?:Form:\s*)([^)\n\|]+)/i)
+            if (formMatch && formMatch[1]) {
+                sourceName = `Form: ${formMatch[1].trim()}`
+            } else if (source === 'WEB Form') {
+                sourceName = 'Web Sitesi İletişim Formu'
+            } else if (source === 'Email') {
+                sourceName = 'Gelen E-posta'
+            }
+        } else if (source === 'WEB Form') {
+            sourceName = 'Web Sitesi İletişim Formu'
+        } else if (source === 'Email') {
+            sourceName = 'Gelen E-posta'
+        }
+
+        if (!acc[sourceName]) {
+            acc[sourceName] = { total: 0, statuses: {} }
+        }
+
+        acc[sourceName].total += 1
+
+        const label = statusLabels[sale.status] || sale.status || 'Diğer'
+        acc[sourceName].statuses[label] = (acc[sourceName].statuses[label] || 0) + 1
+
+        return acc
+    }, {})
+
+    const formData = Object.entries(leadsByForm).map(([formName, data]: [string, any]) => {
+        return {
+            formName,
+            total: data.total,
+            statuses: data.statuses
+        }
+    }).sort((a, b) => b.total - a.total)
+
+    return {
+        totalMarketingLeads: marketingSales.length,
+        formData
+    }
+}

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { sendPoliSms } from '@/lib/sms'
 
 export async function approveInboxItem(
     inboxItemId: string,
@@ -144,6 +145,28 @@ export async function approveInboxItem(
         if (updateError) {
             console.error('Error updating inbox item:', updateError)
             // Sale is already created, so we still return success
+        }
+
+        // 4. Send SMS Notification (Optional)
+        const { data: tenant } = await supabase
+            .from('tenants')
+            .select('*')
+            .eq('id', inboxItem.tenant_id)
+            .single()
+
+        if (tenant?.is_sms_notifications_enabled && finalPhone && tenant.sms_api_user && tenant.sms_api_password) {
+            try {
+                await sendPoliSms({
+                    user: tenant.sms_api_user,
+                    pass: tenant.sms_api_password,
+                    header: tenant.sms_sender_id || 'NOVOEMLAK',
+                    contacts: [finalPhone],
+                    message: `Sayın ${finalName}, talebiniz başarıyla alınmıştır. En kısa sürede sizinle iletişime geçilecektir. Teşekkürler. ${tenant.name || ''}`
+                })
+            } catch (smsError) {
+                console.error('Automatic SMS Error:', smsError)
+                // We don't fail the whole request if SMS fails
+            }
         }
 
         revalidatePath('/[locale]/(dashboard)/inbox')

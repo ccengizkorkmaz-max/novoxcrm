@@ -9,7 +9,7 @@ export default async function InboxPage(props: {
     const supabase = await createClient()
     const t = await getTranslations('Sidebar.Inbox')
 
-    // Fetch pending inbox items
+    // Fetch only pending inbox items
     const { data: inboxItems } = await supabase
         .from('inbox_items')
         .select('*')

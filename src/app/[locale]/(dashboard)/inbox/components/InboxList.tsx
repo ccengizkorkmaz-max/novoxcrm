@@ -13,7 +13,8 @@ import {
     X,
     Phone,
     MessageSquare,
-    Wand2
+    Wand2,
+    RefreshCw
 } from 'lucide-react'
 import { approveInboxItem, rejectInboxItem } from '../actions'
 import { Card, CardContent } from "@/components/ui/card"
@@ -58,10 +59,40 @@ export function InboxList({ initialItems }: InboxListProps) {
     // Real-time updates
     useSupabaseRealtime({ table: 'inbox_items' })
 
+    const [scanning, setScanning] = useState(false)
+
+    // Automatically refresh on mount
+    React.useEffect(() => {
+        handleRefresh(undefined, true)
+    }, [])
+
     // Editable fields
     const [editName, setEditName] = useState('')
     const [editEmail, setEditEmail] = useState('')
     const [editPhone, setEditPhone] = useState('')
+
+    const handleRefresh = async (e?: React.MouseEvent, silent: boolean = false) => {
+        if (e) e.stopPropagation()
+        setScanning(true)
+        try {
+            const res = await fetch('/api/notifications/scan')
+            const data = await res.json()
+            if (data.success) {
+                const total = (data.expiringReservations || 0) + (data.overduePayments || 0) + (data.approachingPapers || 0) + (data.staleLeads || 0) + (data.newEmails || 0)
+                if (total > 0) {
+                    toast.success(`Tarama tamamlandı: ${total} yeni kayıt bulundu.`)
+                } else if (!silent) {
+                    toast.success('Gelen kutusu güncel.')
+                }
+            } else if (!silent) {
+                toast.error('Gelen kutusu güncellenirken hata oluştu.')
+            }
+        } catch {
+            if (!silent) toast.error('Servise ulaşılamadı.')
+        } finally {
+            setScanning(false)
+        }
+    }
 
     const handleViewItem = (item: InboxItem) => {
         setViewingItem(item)
@@ -129,7 +160,19 @@ export function InboxList({ initialItems }: InboxListProps) {
 
     return (
         <>
-            <Card className="overflow-hidden border-slate-200 shadow-sm">
+            <Card className="overflow-hidden border-slate-200 shadow-sm relative">
+                <div className="absolute top-3 right-3 z-10">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleRefresh}
+                        disabled={scanning}
+                        className="h-8 w-8 p-0 rounded-full bg-white/80 backdrop-blur-sm border-slate-200 hover:bg-white hover:border-blue-300 hover:text-blue-600 transition-all shadow-sm"
+                        title="Taramayı Başlat (Yeni Mailler ve Formlar)"
+                    >
+                        <RefreshCw className={`h-4 w-4 ${scanning ? 'animate-spin' : ''}`} />
+                    </Button>
+                </div>
                 <CardContent className="p-0">
                     {initialItems.length === 0 ? (
                         <div className="py-12 flex flex-col items-center justify-center text-muted-foreground bg-slate-50/50">
@@ -155,6 +198,21 @@ export function InboxList({ initialItems }: InboxListProps) {
                                                 <Badge variant="outline" className="text-xs">
                                                     {item.source}
                                                 </Badge>
+                                                {item.status === 'approved' && (
+                                                    <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                                                        Onaylandı
+                                                    </Badge>
+                                                )}
+                                                {item.status === 'rejected' && (
+                                                    <Badge variant="outline" className="text-xs bg-red-50 text-red-700 border-red-200">
+                                                        Reddedildi
+                                                    </Badge>
+                                                )}
+                                                {item.status === 'pending' && (
+                                                    <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">
+                                                        Bekliyor
+                                                    </Badge>
+                                                )}
                                             </div>
                                             <div className="flex items-center gap-3 text-sm text-muted-foreground mb-2">
                                                 {item.email && (
@@ -271,22 +329,38 @@ export function InboxList({ initialItems }: InboxListProps) {
                     )}
 
                     <DialogFooter className="gap-2">
-                        <Button
-                            variant="outline"
-                            onClick={handleReject}
-                            disabled={approving || rejecting}
-                        >
-                            <X className="h-4 w-4 mr-2" />
-                            Reddet
-                        </Button>
-                        <Button
-                            onClick={handleApprove}
-                            disabled={approving || rejecting}
-                            className="bg-green-600 hover:bg-green-700"
-                        >
-                            <Check className="h-4 w-4 mr-2" />
-                            {approving ? 'Onaylanıyor...' : 'CRM\'e Onayla'}
-                        </Button>
+                        {viewingItem?.status === 'pending' ? (
+                            <>
+                                <Button
+                                    variant="outline"
+                                    onClick={handleReject}
+                                    disabled={approving || rejecting}
+                                >
+                                    <X className="h-4 w-4 mr-2" />
+                                    Reddet
+                                </Button>
+                                <Button
+                                    onClick={handleApprove}
+                                    disabled={approving || rejecting}
+                                    className="bg-green-600 hover:bg-green-700"
+                                >
+                                    <Check className="h-4 w-4 mr-2" />
+                                    {approving ? 'Onaylanıyor...' : 'CRM\'e Onayla'}
+                                </Button>
+                            </>
+                        ) : (
+                            <div className="flex items-center gap-2 text-sm">
+                                {viewingItem?.status === 'approved' ? (
+                                    <Badge className="bg-green-100 text-green-700 border-green-200">
+                                        <Check className="h-3 w-3 mr-1" /> Bu kayıt zaten CRM'e aktarılmış
+                                    </Badge>
+                                ) : (
+                                    <Badge className="bg-red-100 text-red-700 border-red-200">
+                                        <X className="h-3 w-3 mr-1" /> Bu kayıt reddedilmiş
+                                    </Badge>
+                                )}
+                            </div>
+                        )}
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
