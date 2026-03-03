@@ -172,10 +172,10 @@ Daima:
         let cleanReply = responseText
             .replace(/\[LEAD_QUALIFIED\]/g, '')
             .replace(/\[HUMAN_REQUIRED\]/g, '')
-            .replace(/"/g, "'")        // Replace double quotes with single quotes
-            .replace(/[\n\r]/g, ' ')   // Replace newlines and carriage returns with spaces
-            .replace(/\t/g, ' ')       // Replace tabs with spaces
-            .replace(/\s\s+/g, ' ')    // Replace multiple spaces with a single space
+            .replace(/\\/g, '/') // Replace backslashes with forward slashes
+            .replace(/"/g, "'")  // Replace double quotes with single quotes
+            .replace(/[\x00-\x1F\x7F-\x9F]/g, ' ') // Strip ALL control characters (including newlines, tabs)
+            .replace(/\s+/g, ' ') // Collapse all whitespace to single spaces
             .trim();
         let leadStatus = 'in_progress';
 
