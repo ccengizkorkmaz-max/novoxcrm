@@ -451,7 +451,8 @@
     },
     "Sidebar": {
         "overview": "Genel Bakış",
-        "inbox": "Gelen Kutusu (Inbox)",
+        "inbox": "Gelen Kutusu",
+        "conversations": "Mesajlaşmalar",
         "quickCRM": "Hızlı CRM (Komuta Merkezi)",
         "projects": "Projeler",
         "inventory": "Envanter Yönetimi",

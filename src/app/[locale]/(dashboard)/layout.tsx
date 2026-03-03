@@ -48,6 +48,7 @@ export default async function DashboardLayout(props: {
     const sidebarLabels = {
         overview: sidebarT('overview'),
         inbox: sidebarT('inbox'),
+        conversations: sidebarT('conversations'),
         quickCRM: sidebarT('quickCRM'),
         projects: sidebarT('projects'),
         inventory: sidebarT('inventory'),

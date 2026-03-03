@@ -88,6 +88,9 @@ export function NovoxSidebar({
             <NavItem href="/inbox" icon={Mail} onClick={onElementClick}>
                 {labels.inbox || 'Inbox'}
             </NavItem>
+            <NavItem href="/conversations" icon={MessageSquare} onClick={onElementClick}>
+                {labels.conversations || 'Conversations'}
+            </NavItem>
             <NavItem href="/quick-crm" icon={Zap} onClick={onElementClick}>
                 {labels.quickCRM || 'Quick CRM'}
             </NavItem>

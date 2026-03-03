@@ -417,6 +417,7 @@
     "Sidebar": {
         "overview": "Overview",
         "inbox": "Inbox",
+        "conversations": "Conversations",
         "projects": "Projects",
         "inventory": "Inventory",
         "customers": "Customers",
