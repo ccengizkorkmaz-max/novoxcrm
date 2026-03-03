@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createAdminClient } from '@/lib/supabase/admin';
+import { revalidatePath } from 'next/cache';
 
 export async function POST(req: NextRequest) {
     try {
@@ -224,6 +225,10 @@ Daima:
                 console.error("Qualification extraction or CRM insertion failed: ", e);
             }
         }
+
+        // Revalidate the conversations pages for real-time-like update
+        revalidatePath('/conversations')
+        revalidatePath(`/conversations/${session.id}`)
 
         return NextResponse.json({
             reply: cleanReply,

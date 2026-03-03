@@ -71,7 +71,7 @@ export default async function ActivitiesPage(props: {
     // 3. Fetch Profiles (Users) for assignment - Role Based
     const { data: currentUserProfile } = await supabase
         .from('profiles')
-        .select('role')
+        .select('role, full_name')
         .eq('id', user.id)
         .single()
 
@@ -82,11 +82,27 @@ export default async function ActivitiesPage(props: {
         .select('id, full_name')
         .order('full_name')
 
+    // If not admin, only show self. 
+    // BUT: Ensure the list is never empty by fallback to current user.
     if (!isAdmin) {
         profilesQuery = profilesQuery.eq('id', user.id)
     }
 
-    const { data: profiles } = await profilesQuery
+    let { data: profiles } = await profilesQuery
+
+    // Fallback: If profiles list is empty for some reason, add the current user manually
+    if (!profiles || profiles.length === 0) {
+        profiles = [{
+            id: user.id,
+            full_name: currentUserProfile?.full_name || user.email?.split('@')[0] || 'Mevcut Kullanıcı'
+        }]
+    }
+
+    // Double check: if any profile has null full_name, use email or fallback
+    profiles = profiles.map(p => ({
+        ...p,
+        full_name: p.full_name || 'İsimsiz Kullanıcı'
+    }))
 
     const t = await getTranslations('Activities')
 
