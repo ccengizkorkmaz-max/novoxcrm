@@ -145,7 +145,11 @@ Daima:
         const isQualified = responseText.includes('[LEAD_QUALIFIED]');
         const isHumanRequired = responseText.includes('[HUMAN_REQUIRED]');
 
-        let cleanReply = responseText.replace('[LEAD_QUALIFIED]', '').replace('[HUMAN_REQUIRED]', '').trim();
+        let cleanReply = responseText
+            .replace('[LEAD_QUALIFIED]', '')
+            .replace('[HUMAN_REQUIRED]', '')
+            .replace(/"/g, "'")  // Replace double quotes with single quotes to avoid JSON issues in Make
+            .trim();
         let leadStatus = 'in_progress';
 
         if (isHumanRequired) {
