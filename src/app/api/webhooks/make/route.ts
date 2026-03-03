@@ -221,6 +221,10 @@ Daima:
 
     } catch (err: any) {
         console.error("AI Messaging Webhook Error: ", err);
-        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+        return NextResponse.json({
+            error: "Internal Server Error",
+            message: err.message,
+            stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+        }, { status: 500 });
     }
 }
