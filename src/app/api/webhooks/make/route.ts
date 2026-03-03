@@ -8,8 +8,16 @@ export async function POST(req: NextRequest) {
         const payload = await req.json();
         const { channel, external_user_id, message } = payload;
 
-        if (!channel || !external_user_id || !message) {
+        if (!channel || !external_user_id) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+        }
+
+        // If message is empty (e.g. sticker, image, audio), acknowledge but skip AI
+        if (!message || message.trim() === '') {
+            return NextResponse.json({
+                reply: 'Mesajınızı aldım, ancak metin içermeyen mesajlara şu an yanıt veremiyorum. Lütfen yazılı mesaj gönderin. 😊',
+                lead_status: 'in_progress'
+            });
         }
 
         const adminSupabase = createAdminClient();
