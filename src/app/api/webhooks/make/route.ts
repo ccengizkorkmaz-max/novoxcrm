@@ -34,7 +34,18 @@ export async function POST(req: NextRequest) {
             .eq('tenant_id', tenantId)
             .order('created_at', { ascending: false })
             .limit(1)
-            .single();
+            .maybeSingle();
+
+        // Session Timeout Logic: If the session is older than 24 hours, we start a new one
+        const SESSION_TIMEOUT = 24 * 60 * 60 * 1000; // 24 hours
+        if (session) {
+            const lastUpdate = new Date(session.updated_at).getTime();
+            const now = new Date().getTime();
+            if (now - lastUpdate > SESSION_TIMEOUT) {
+                // Mark old session as closed/expired could be done here
+                session = null;
+            }
+        }
 
         if (!session) {
             const { data: newSession, error: sessionErr } = await adminSupabase
