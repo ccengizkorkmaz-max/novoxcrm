@@ -64,16 +64,6 @@ export async function POST(req: NextRequest) {
             session = newSession;
         }
 
-        // Check if session already qualified or human required
-        if (session.status === 'qualified' || session.status === 'human_required') {
-            return NextResponse.json({
-                reply: session.status === 'human_required'
-                    ? "Müşteri temsilcilerimiz size en kısa sürede dönüş yapacaktır."
-                    : "Sizinle yakında iletişime geçeceğiz.",
-                lead_status: session.status
-            });
-        }
-
         // Fetch historical messages for the session
         const { data: messages } = await adminSupabase
             .from('messaging_messages')
