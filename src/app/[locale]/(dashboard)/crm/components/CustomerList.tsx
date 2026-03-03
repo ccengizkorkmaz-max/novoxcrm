@@ -86,7 +86,7 @@ export default function CustomerList({
 
     const sortedSources = Object.entries(sourceCounts)
         .sort((a, b) => b[1] - a[1])
-        .slice(0, 3) // Top 3 sources
+        .slice(0, 6) // Updated to show more sources as requested
 
     const handleEditClick = (customer: Customer) => {
         setEditingCustomer(customer)

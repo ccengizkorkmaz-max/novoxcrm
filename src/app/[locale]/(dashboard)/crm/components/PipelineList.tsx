@@ -866,7 +866,10 @@ export default function PipelineList({
                 open={isActivityOpen}
                 onOpenChange={setIsActivityOpen}
                 mode="create"
-                activity={{ customer_id: selectedCustomerForActivity?.id }}
+                activity={{
+                    customer_id: selectedCustomerForActivity?.id,
+                    customers: selectedCustomerForActivity
+                }}
                 customers={customers}
                 profiles={profiles}
             />

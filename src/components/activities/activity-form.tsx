@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Clock, Loader2, CalendarClock } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -106,6 +106,29 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
     const [selectedCustomerId, setSelectedCustomerId] = useState(activity?.customer_id || '')
     const [isProcessingVoice, setIsProcessingVoice] = useState(false)
 
+    useEffect(() => {
+        if (open && activity) {
+            setSummary(activity?.summary || '')
+            setDescription(activity?.description || '')
+            setNotes(activity?.notes || '')
+            setStatus(activity?.status || 'Planned')
+            setSelectedCustomerId(activity?.customer_id || '')
+        }
+    }, [open, activity])
+
+    // Ensure the current customer is in the list even if not in the top 1000
+    const comboboxItems = useMemo(() => {
+        const items = customers?.map((c: any) => ({ value: c.id, label: c.full_name })) || []
+
+        // If we have a selected customer but they aren't in the list, add them
+        if (selectedCustomerId && !items.find(i => i.value === selectedCustomerId)) {
+            const currentCustomerName = activity?.customers?.full_name || activity?.customer?.full_name || 'Seçili Müşteri'
+            items.unshift({ value: selectedCustomerId, label: currentCustomerName })
+        }
+
+        return items
+    }, [customers, selectedCustomerId, activity])
+
     // Derived State
     const isCompleteMode = mode === 'complete' || status === 'Completed'
 
@@ -208,7 +231,7 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
                                     <Label>{t('form.customer')}</Label>
                                     <div className="w-full">
                                         <Combobox
-                                            items={customers?.map((c: any) => ({ value: c.id, label: c.full_name })) || []}
+                                            items={comboboxItems}
                                             value={selectedCustomerId}
                                             onChange={setSelectedCustomerId}
                                             placeholder={t('form.select')}
