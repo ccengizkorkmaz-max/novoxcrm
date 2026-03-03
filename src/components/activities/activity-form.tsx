@@ -1,6 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { Clock, Loader2, CalendarClock } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -20,6 +22,68 @@ import { useTranslations } from 'next-intl'
 import { cn } from '@/lib/utils'
 import { Combobox } from '@/components/ui/combobox'
 import { VoiceInput } from '@/components/ui/voice-input'
+
+function UpcomingActivitiesInfo({ customerId }: { customerId: string }) {
+    const [activities, setActivities] = useState<any[]>([])
+    const [loading, setLoading] = useState(false)
+
+    useEffect(() => {
+        if (!customerId) {
+            setActivities([])
+            return
+        }
+
+        async function fetchRecent() {
+            setLoading(true)
+            const supabase = createClient()
+            const { data } = await supabase
+                .from('activities')
+                .select('id, summary, due_date, status, type')
+                .eq('customer_id', customerId)
+                .in('status', ['Planned', 'In Progress'])
+                .order('due_date', { ascending: true })
+                .limit(3)
+
+            if (data) setActivities(data)
+            setLoading(false)
+        }
+
+        fetchRecent()
+    }, [customerId])
+
+    if (!customerId) return null
+    if (loading) return (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground animate-pulse mt-3 p-3 bg-muted/50 rounded-md border border-dashed">
+            <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" /> Müşteri planları kontrol ediliyor...
+        </div>
+    )
+    if (activities.length === 0) return null
+
+    return (
+        <div className="bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 rounded-md p-3 mt-3 text-sm shadow-sm transition-all animate-in fade-in slide-in-from-top-2">
+            <p className="font-medium text-amber-800 dark:text-amber-400 flex items-center gap-2 mb-2 text-xs">
+                <CalendarClock className="h-4 w-4" />
+                Müşterinin Yaklaşan {activities.length} Planlı Aktivitesi Var
+            </p>
+            <ul className="space-y-2">
+                {activities.map(act => (
+                    <li key={act.id} className="flex flex-col text-amber-900 dark:text-amber-300 bg-white/60 dark:bg-black/20 p-2 rounded-md border border-amber-100 dark:border-amber-900/30 text-xs shadow-sm">
+                        <div className="flex justify-between items-center mb-1">
+                            <span className="font-semibold truncate pr-2" title={act.summary}>{act.summary}</span>
+                            <span className="flex items-center gap-1 whitespace-nowrap text-[10px] bg-amber-100 dark:bg-amber-900/40 px-1.5 py-0.5 rounded text-amber-800 dark:text-amber-200">
+                                <Clock className="h-3 w-3" />
+                                {new Date(act.due_date).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-2 opacity-80 text-[10px] font-medium">
+                            <span className="capitalize">{act.type}</span> &bull; <span>{act.status}</span>
+                        </div>
+                    </li>
+                ))}
+            </ul>
+        </div>
+    )
+}
 
 interface ActivityFormProps {
     open: boolean
@@ -152,6 +216,7 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
                                             emptyText={t('form.noResults') || 'Müşteri bulunamadı.'}
                                             disabled={mode === 'edit' || (mode === 'create' && !!activity?.customer_id)}
                                         />
+                                        <UpcomingActivitiesInfo customerId={selectedCustomerId} />
                                     </div>
                                 </div>
 
