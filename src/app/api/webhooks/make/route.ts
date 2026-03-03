@@ -172,11 +172,16 @@ Daima:
         let cleanReply = responseText
             .replace(/\[LEAD_QUALIFIED\]/g, '')
             .replace(/\[HUMAN_REQUIRED\]/g, '')
-            .replace(/\\/g, '/') // Replace backslashes with forward slashes
-            .replace(/"/g, "'")  // Replace double quotes with single quotes
-            .replace(/[\x00-\x1F\x7F-\x9F]/g, ' ') // Strip ALL control characters (including newlines, tabs)
-            .replace(/\s+/g, ' ') // Collapse all whitespace to single spaces
+            .replace(/\\/g, '/') // Replace backslashes
+            .replace(/"/g, "'")  // Replace double quotes
+            .replace(/[\x00-\x1F\x7F-\x9F\u2028\u2029]/g, ' ') // Strip ALL control chars + UTF-16 separators
+            .replace(/\s+/g, ' ') // Collapse spaces
             .trim();
+
+        // Debug: Log length to see if it correlates with error position
+        console.log(`AI Reply sanitized (len: ${cleanReply.length}): ${cleanReply.substring(0, 50)}...`);
+
+        const finalReply = cleanReply + " [V3]";
         let leadStatus = 'in_progress';
 
         if (isHumanRequired) {
@@ -260,7 +265,7 @@ Daima:
         revalidatePath(`/conversations/${session.id}`)
 
         return NextResponse.json({
-            reply: cleanReply,
+            reply: finalReply,
             lead_status: leadStatus
         });
 
