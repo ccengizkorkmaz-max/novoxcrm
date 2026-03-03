@@ -29,6 +29,7 @@ interface CustomerViewProps {
     customer: any
     activities: any[]
     contracts?: any[]
+    profiles?: any[]
 }
 
 const ACTIVITY_TYPES = [
@@ -49,7 +50,7 @@ const ACTIVITY_TOPICS = [
     { id: 'Collection', label: 'Tahsilat' },
 ]
 
-export function CustomerView({ customer, activities, contracts = [] }: CustomerViewProps) {
+export function CustomerView({ customer, activities, contracts = [], profiles = [] }: CustomerViewProps) {
     const t = useTranslations('Customers')
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
     const [isFiltersOpen, setIsFiltersOpen] = useState(false)
@@ -373,7 +374,7 @@ export function CustomerView({ customer, activities, contracts = [] }: CustomerV
                         </Card>
                     )}
 
-                    <ActivityTimeline activities={filteredActivities} customer={customer} />
+                    <ActivityTimeline activities={filteredActivities} customer={customer} profiles={profiles} />
                 </div>
             </div>
         </div>

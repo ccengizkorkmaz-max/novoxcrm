@@ -44,9 +44,44 @@ export default async function CustomerPage({ params }: CustomerPageProps) {
         .eq('contract_customers.customer_id', id)
         .order('created_at', { ascending: false })
 
+    // Fetch Profiles (Users) for assignment - Same logic as activities page
+    const { data: currentUserProfile } = await supabase
+        .from('profiles')
+        .select('role, full_name')
+        .eq('id', user.id)
+        .single()
+
+    const isAdmin = currentUserProfile?.role === 'admin' || currentUserProfile?.role === 'owner'
+
+    let profilesQuery = supabase
+        .from('profiles')
+        .select('id, full_name')
+        .order('full_name')
+
+    if (!isAdmin) {
+        profilesQuery = profilesQuery.eq('id', user.id)
+    }
+
+    let { data: profiles } = await profilesQuery
+
+    // Fallback: If profiles list is empty or null, add the current user manually
+    if (!profiles || profiles.length === 0) {
+        profiles = [{
+            id: user.id,
+            full_name: currentUserProfile?.full_name || user.email?.split('@')[0] || 'Mevcut Kullanıcı'
+        }]
+    }
+
+    // Ensure full_name is not null
+    profiles = (profiles || []).map(p => ({
+        ...p,
+        full_name: p.full_name || 'İsimsiz Kullanıcı'
+    }))
+
     return <CustomerView
         customer={customer}
         activities={activities || []}
         contracts={contracts || []}
+        profiles={profiles}
     />
 }

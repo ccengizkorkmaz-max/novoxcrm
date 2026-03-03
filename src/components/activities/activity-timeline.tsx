@@ -9,9 +9,10 @@ import { ActivityForm } from './activity-form'
 interface ActivityTimelineProps {
     activities: any[]
     customer: any
+    profiles?: any[]
 }
 
-export function ActivityTimeline({ activities, customer }: ActivityTimelineProps) {
+export function ActivityTimeline({ activities, customer, profiles = [] }: ActivityTimelineProps) {
     const [showCreate, setShowCreate] = useState(false)
     const [visibleCount, setVisibleCount] = useState(5)
 
@@ -76,7 +77,7 @@ export function ActivityTimeline({ activities, customer }: ActivityTimelineProps
                                 </div>
                             )}
 
-                            <ActivityCard activity={activity} />
+                            <ActivityCard activity={activity} profiles={profiles} />
                         </div>
                     )
                 })}
@@ -98,8 +99,9 @@ export function ActivityTimeline({ activities, customer }: ActivityTimelineProps
                 open={showCreate}
                 onOpenChange={setShowCreate}
                 mode="create"
-                activity={{ customer_id: customer.id }} // Pre-select customer
-                customers={[customer]} // Only this customer available in dropdown
+                activity={{ customer_id: customer.id }}
+                customers={[customer]}
+                profiles={profiles}
             />
         </div>
     )
