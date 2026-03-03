@@ -139,8 +139,32 @@ Daima:
         let validHistory = firstUserIndex >= 0 ? chatHistory.slice(firstUserIndex) : chatHistory;
 
         const chat = model.startChat({ history: validHistory });
-        const result = await chat.sendMessage(message);
-        const responseText = result.response.text();
+
+        // Retry logic for Gemini API rate limits (429)
+        let responseText = '';
+        let geminiAttempt = 0;
+        while (geminiAttempt < 2) {
+            try {
+                const result = await chat.sendMessage(message);
+                responseText = result.response.text();
+                break; // success, exit retry loop
+            } catch (geminiErr: any) {
+                geminiAttempt++;
+                const is429 = geminiErr?.message?.includes('429') || geminiErr?.message?.includes('Resource exhausted');
+                if (is429 && geminiAttempt < 2) {
+                    // Wait 2 seconds and retry once
+                    await new Promise(res => setTimeout(res, 2000));
+                } else if (is429) {
+                    // Exhausted retries - return a graceful message instead of crashing
+                    return NextResponse.json({
+                        reply: 'Şu anda yoğun talepler nedeniyle gecikmeli yanıt veriyoruz. Lütfen birkaç saniye sonra tekrar yazınız. 🙏',
+                        lead_status: 'in_progress'
+                    });
+                } else {
+                    throw geminiErr; // Re-throw non-429 errors
+                }
+            }
+        }
 
         const isQualified = responseText.includes('[LEAD_QUALIFIED]');
         const isHumanRequired = responseText.includes('[HUMAN_REQUIRED]');
