@@ -12,8 +12,26 @@ export async function GET() {
 export async function POST(req: Request) {
     try {
         const supabase = createAdminClient()
+        const contentType = req.headers.get('content-type') || ''
 
-        const body = await req.json()
+        let body: any = {}
+
+        if (contentType.includes('application/json')) {
+            body = await req.json()
+        } else if (contentType.includes('multipart/form-data') || contentType.includes('application/x-www-form-urlencoded')) {
+            const formData = await req.formData()
+            formData.forEach((value, key) => {
+                body[key] = value
+            })
+        } else {
+            // Fallback to JSON if unknown
+            try {
+                body = await req.json()
+            } catch (e) {
+                return NextResponse.json({ error: 'Unsupported content type and invalid JSON' }, { status: 400 })
+            }
+        }
+
         console.log('External Lead Incoming Body:', JSON.stringify(body, null, 2))
 
         let {
