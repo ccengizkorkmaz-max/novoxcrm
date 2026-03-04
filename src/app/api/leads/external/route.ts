@@ -38,65 +38,46 @@ export async function POST(req: Request) {
             name,
             email,
             phone,
-            source = 'External',
+            source = body.source || 'External',
             message: bodyMessage,
-            tenant_id,
+            tenant_id = body.tenant_id,
             subject,
             campaign,
             form_name
         } = body
 
-        // Parse customer info from message content if available
-        if (bodyMessage) {
-            // Parse name - look for "Ad Soyad:" prefix
+        // --- ULTRA PERMISSIVE MODE: "Take whatever comes" ---
+        // If we don't have a message or name/email, the user might be sending custom fields.
+        if (!bodyMessage && !name && !email && !phone) {
+            console.log('No standard fields found. Capturing entire body as message.');
+            bodyMessage = JSON.stringify(body, null, 2);
+        }
+
+        // Parse customer info from message content if available (Regex parsing)
+        if (bodyMessage && typeof bodyMessage === 'string') {
             const nameMatch = bodyMessage.match(/Ad\s+Soyad:\s*([^:\n\r]+?)(?=\s*(?:E-posta|Telefon|Konu|Proje|$)|\r|\n)/i)
-            if (nameMatch) {
-                const extractedName = nameMatch[1].trim()
-                // Only override if body name is not empty
-                if (extractedName) name = extractedName
-            }
+            if (nameMatch && !name) name = nameMatch[1].trim()
 
-            // Parse email - look for "E-posta Adresi:" or "E-posta:"
             const emailMatch = bodyMessage.match(/(?:E-posta Adresi|E-posta):\s*([^:\n\r\s]+?)(?=\s*(?:Ad Soyad|Telefon|Konu|Proje|$)|\r|\n)/i)
-            if (emailMatch) {
-                const extractedEmail = emailMatch[1].trim()
-                // Basic email validation check to avoid dummy values
-                if (extractedEmail && extractedEmail.includes('@')) email = extractedEmail
-            }
+            if (emailMatch && !email) email = emailMatch[1].trim()
 
-            // Parse phone - look for "Telefon:"
             const phoneMatch = bodyMessage.match(/Telefon:\s*([^:\n\r\s]+?)(?=\s*(?:Ad Soyad|E-posta|Konu|Proje|$)|\r|\n)/i)
-            if (phoneMatch) {
-                const extractedPhone = phoneMatch[1].trim()
-                if (extractedPhone) phone = extractedPhone
-            }
-
-            // Parse subject
-            const subjectMatch = bodyMessage.match(/Konu:\s*([^:\n\r]+?)(?=\s*(?:Ad Soyad|E-posta|Telefon|Proje|$)|\r|\n)/i)
-            if (subjectMatch) {
-                const extractedSubject = subjectMatch[1].trim()
-                if (extractedSubject) subject = extractedSubject
-            }
-
-            // Parse form_name if not provided but in body
-            if (!form_name) {
-                const projectMatch = bodyMessage.match(/(?:Proje|Form Adı):\s*([^:\n\r]+?)(?=\s*(?:Ad Soyad|E-posta|Telefon|Konu|Campaign|$)|\r|\n)/i)
-                if (projectMatch) form_name = projectMatch[1].trim()
-            }
+            if (phoneMatch && !phone) phone = phoneMatch[1].trim()
         }
 
-        // Validate required fields - Modified to support Raw Email workflow (processing later in CRM)
-        if (!bodyMessage && (!name || (!email && !phone))) {
-            return NextResponse.json({ error: 'Missing required fields (name and email/phone, or a message body)' }, { status: 400 })
-        }
+        // Final fallback for missing fields - capture from any possible top-level keys
+        if (!name) name = body.full_name || body.Ad || body['Ad Soyad'] || body.sender_name || subject || email || 'Yeni Dış Kaynak Adayı'
+        if (!email) email = body.Email || body.eposta || body.sender_email || null
+        if (!phone) phone = body.Phone || body.telefon || null
 
-        // If name is missing (raw email flow), set a default
-        if (!name && bodyMessage) {
-            name = subject || email || 'Yeni E-posta Adayı'
+        // Tenant Protection: Ensure we have a tenant_id
+        if (!tenant_id) {
+            const { data: firstTenant } = await supabase.from('tenants').select('id').limit(1).maybeSingle();
+            tenant_id = firstTenant?.id;
         }
 
         if (!tenant_id) {
-            return NextResponse.json({ error: 'Missing tenant_id in request body. Each tenant must provide their unique workspace ID.' }, { status: 400 })
+            return NextResponse.json({ error: 'System Error: No valid tenant found to assign this lead.' }, { status: 500 })
         }
 
         // --- NEW: Try to link to a Project ---
