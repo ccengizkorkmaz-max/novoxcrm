@@ -178,10 +178,15 @@ Daima:
             .replace(/\s+/g, ' ') // Collapse spaces
             .trim();
 
+        // Facebook Messenger has a strict 2000 character limit per message.
+        if (cleanReply.length > 2000) {
+            cleanReply = cleanReply.substring(0, 1997) + '...';
+        }
+
         // Debug: Log length to see if it correlates with error position
         console.log(`AI Reply sanitized (len: ${cleanReply.length}): ${cleanReply.substring(0, 50)}...`);
 
-        const finalReply = cleanReply + " [V3]";
+        // cleanReply is now fully sanitized
         let leadStatus = 'in_progress';
 
         if (isHumanRequired) {
@@ -265,7 +270,7 @@ Daima:
         revalidatePath(`/conversations/${session.id}`)
 
         return NextResponse.json({
-            reply: finalReply,
+            reply: cleanReply,
             lead_status: leadStatus
         });
 
