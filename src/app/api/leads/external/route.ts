@@ -67,9 +67,14 @@ export async function POST(req: Request) {
             }
         }
 
-        // Validate required fields
-        if (!name || (!email && !phone)) {
-            return NextResponse.json({ error: 'Missing required fields (name and email/phone)' }, { status: 400 })
+        // Validate required fields - Modified to support Raw Email workflow (processing later in CRM)
+        if (!bodyMessage && (!name || (!email && !phone))) {
+            return NextResponse.json({ error: 'Missing required fields (name and email/phone, or a message body)' }, { status: 400 })
+        }
+
+        // If name is missing (raw email flow), set a default
+        if (!name && bodyMessage) {
+            name = subject || email || 'Yeni E-posta Adayı'
         }
 
         if (!tenant_id) {
