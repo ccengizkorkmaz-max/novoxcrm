@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
-import { getWhatsAppLink, MessageTemplates } from '@/lib/whatsapp'
+import { getWhatsAppLink, MessageTemplates, sendWhatsAppMessage } from '@/lib/whatsapp'
 import { Resend } from 'resend'
 import crypto from 'crypto'
 
@@ -746,10 +746,21 @@ export async function updateBrokerLeadStatus(leadId: string, status: string, not
         link_url: `/broker/leads/${leadId}`
     })
 
-    // In a real API integration like Twilio/Meta, we would trigger it here.
-    // For this implementation, we log the message intent.
+    // Fetch broker's phone for WhatsApp notification
+    const { data: brokerProfile } = await supabase
+        .from('profiles')
+        .select('phone')
+        .eq('id', oldLead?.broker_id)
+        .single()
+
     const waMessage = MessageTemplates.statusUpdateForBroker(oldLead?.full_name || '', status)
-    console.log('WhatsApp Notification Queued:', waMessage)
+
+    if (brokerProfile?.phone) {
+        console.log(`WhatsApp Notification Sending to ${brokerProfile.phone}:`, waMessage)
+        await sendWhatsAppMessage(brokerProfile.phone, waMessage)
+    } else {
+        console.log('WhatsApp Notification Skipped: Broker phone not found')
+    }
 
     return { success: true, waMessage: (status === 'Contract Signed' || status === 'Visited') ? waMessage : null }
 }
