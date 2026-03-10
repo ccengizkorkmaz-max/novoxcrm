@@ -33,11 +33,12 @@ export async function GET(req: NextRequest) {
 
 // 2. Gelen Mesajları İşleme (POST)
 export async function POST(req: NextRequest) {
+    console.log('--- WhatsApp Webhook Triggered ---');
     try {
         const body = await req.json();
 
-        // Log for debugging
-        console.log('Incoming WhatsApp Body:', JSON.stringify(body, null, 2));
+        // Log the full body for Vercel logs
+        console.log('Full Incoming Body:', JSON.stringify(body));
 
         // Meta her zaman 'object': 'whatsapp_business_account' gönderir
         if (body.object === 'whatsapp_business_account') {
