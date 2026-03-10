@@ -19,10 +19,10 @@ export default async function ConversationsPage() {
                         <div className="h-10 w-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-200">
                             <MessageSquare className="h-6 w-6 text-white" />
                         </div>
-                        Sanal Asistan Görüşmeleri
+                        Gelen Kutusu & Görüşmeler
                     </h1>
                     <p className="text-slate-500 font-medium">
-                        AI asistanınızın Facebook Messenger üzerinden yürüttüğü canlı görüşmeleri izleyin.
+                        WhatsApp ve Facebook Messenger üzerinden gelen mesajları canlı olarak izleyin.
                     </p>
                 </div>
             </div>
@@ -35,7 +35,7 @@ export default async function ConversationsPage() {
                         </div>
                         <h3 className="text-slate-900 font-bold text-xl">Henüz görüşme yok</h3>
                         <p className="text-slate-500 mt-2 max-w-sm text-center leading-relaxed">
-                            Messenger üzerinden bir mesaj geldiğinde burada canlı olarak belirecektir.
+                            WhatsApp veya Messenger üzerinden bir mesaj geldiğinde burada canlı olarak belirecektir.
                         </p>
                     </CardContent>
                 </Card>
@@ -71,8 +71,8 @@ export default async function ConversationsPage() {
                                                     <span className="font-bold text-slate-900 text-lg group-hover:text-blue-600 transition-colors">
                                                         {session.customers?.full_name || `Kullanıcı #${session.external_user_id.slice(-4)}`}
                                                     </span>
-                                                    <Badge className="bg-blue-50 text-blue-700 hover:bg-blue-50 border-blue-100 text-[10px] uppercase font-bold px-2 py-0">
-                                                        {session.channel === 'facebook_messenger' ? 'Messenger' : session.channel}
+                                                    <Badge className={cn("text-[10px] uppercase font-bold px-2 py-0", session.channel === 'whatsapp' ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-50 border-emerald-100' : 'bg-blue-50 text-blue-700 hover:bg-blue-50 border-blue-100')}>
+                                                        {session.channel === 'facebook_messenger' ? 'Messenger' : session.channel === 'whatsapp' ? 'WhatsApp' : session.channel}
                                                     </Badge>
                                                     {session.status === 'qualified' && (
                                                         <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-green-200 gap-1 font-bold text-[10px] uppercase">
