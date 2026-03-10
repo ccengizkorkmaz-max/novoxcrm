@@ -1,20 +1,20 @@
-import { getSessionMessages, getMessagingSessions } from '../actions'
+import { getSessionMessages, getMessagingSession } from '../actions'
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { MessageSquare, User, Clock, ChevronLeft, Bot, Sparkles, CheckCircle2, Search } from 'lucide-react'
 import { Link } from '@/i18n/routing'
 import { format } from 'date-fns'
 import { tr } from 'date-fns/locale'
+import ConversationReply from './ConversationReply'
 
 export const dynamic = 'force-dynamic'
 
 export default async function ConversationDetailPage(props: { params: Promise<{ id: string }> }) {
     const { id } = await props.params
-    const messages = await getSessionMessages(id)
-
-    // Find sessions to get status (we can optimize this by adding a getSessionById later)
-    const allSessions = await getMessagingSessions()
-    const session = allSessions.find(s => s.id === id)
+    const [messages, session] = await Promise.all([
+        getSessionMessages(id),
+        getMessagingSession(id)
+    ])
 
     if (!session) {
         return <div className="p-8">Görüşme bulunamadı.</div>
@@ -98,6 +98,7 @@ export default async function ConversationDetailPage(props: { params: Promise<{ 
                                 </div>
                             ))}
                         </CardContent>
+                        <ConversationReply />
                     </Card>
                 </div>
 

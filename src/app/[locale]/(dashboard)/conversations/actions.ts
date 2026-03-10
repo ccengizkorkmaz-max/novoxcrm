@@ -31,6 +31,33 @@ export async function getMessagingSessions() {
 }
 
 /**
+ * Fetches a single messaging session with customer data
+ */
+export async function getMessagingSession(id: string) {
+    try {
+        const supabase = await createClient()
+        const { data: session, error } = await supabase
+            .from('messaging_sessions')
+            .select(`
+                *,
+                customers(full_name, phone)
+            `)
+            .eq('id', id)
+            .single()
+
+        if (error) {
+            console.error('Error fetching session:', error)
+            return null
+        }
+
+        return session
+    } catch (error) {
+        console.error('Server error fetching session:', error)
+        return null
+    }
+}
+
+/**
  * Fetches messages for a specific session
  */
 export async function getSessionMessages(sessionId: string) {

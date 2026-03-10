@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
 
                 const payload = {
                     phone: messageData.from, // Kullanıcının telefon numarası
-                    wa_id: contactData.wa_id,
+                    external_user_id: contactData.wa_id, // Make.com generic webhook expects this
                     name: contactData.profile?.name || 'WhatsApp User',
                     message: messageData.text?.body || '', // Sadece metin mesajlarını alıyoruz
                     timestamp: messageData.timestamp,
