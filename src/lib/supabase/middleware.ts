@@ -6,7 +6,7 @@ export async function updateSession(request: NextRequest, response?: NextRespons
     // Crucially, we must preserve the headers/status from the next-intl response if it exists.
     let internalResponse = response || NextResponse.next({
         request: {
-            headers: request.headers,
+            headers: new Headers(request.headers),
         },
     })
 
@@ -31,7 +31,7 @@ export async function updateSession(request: NextRequest, response?: NextRespons
                     )
                     internalResponse = response || NextResponse.next({
                         request: {
-                            headers: request.headers,
+                            headers: new Headers(request.headers),
                         },
                     })
                     cookiesToSet.forEach(({ name, value, options }) =>
