@@ -68,12 +68,18 @@ export async function POST(req: NextRequest) {
                 const MAKE_URL = process.env.MAKE_WHATSAPP_WEBHOOK_URL;
 
                 if (MAKE_URL && payload.message) {
-                    // Yangın ve unut (Fire and forget) - Beklemiyoruz ki Meta timeout'a düşmesin (5sn sınırı var)
-                    fetch(MAKE_URL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    }).catch(err => console.error('Make Forwarding Error:', err));
+                    // Make.com çok hızlı yanıt verir (~50ms). Vercel serverless fonksiyonlarda 
+                    // await kullanılmayan istekleri anında kestiği için mutlaka beklemeliyiz.
+                    try {
+                        await fetch(MAKE_URL, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+                        console.log('✅ Mesaj Make.com adresine başarıyla iletildi.');
+                    } catch (err) {
+                        console.error('❌ Make Forwarding Error:', err);
+                    }
                 }
 
                 // Webhook'un çalıştığını onaylamak için 200 dönmemiz şart (yoksa Meta tekrar tekrar gönderir)
