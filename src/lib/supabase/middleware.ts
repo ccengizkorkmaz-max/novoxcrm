@@ -55,11 +55,7 @@ export async function updateSession(request: NextRequest, response?: NextRespons
         pathWithoutLocale === '/' ||
         pathWithoutLocale === '/sitemap.xml' ||
         pathWithoutLocale === '/robots.txt' ||
-        pathWithoutLocale.startsWith('/payment-plan-calculator') ||
-        pathWithoutLocale.startsWith('/solutions') ||
-        pathWithoutLocale.startsWith('/system-details') ||
-        pathWithoutLocale.startsWith('/wiki') ||
-        pathWithoutLocale.startsWith('/login') ||
+        pathWithoutLocale.startsWith('/api') ||
         pathWithoutLocale.startsWith('/payment-plan-calculator') ||
         pathWithoutLocale.startsWith('/solutions') ||
         pathWithoutLocale.startsWith('/system-details') ||
