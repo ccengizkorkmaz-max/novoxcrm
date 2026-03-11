@@ -1,5 +1,9 @@
 import { getTranslations } from 'next-intl/server'
 import { createClient } from '@/lib/supabase/server'
+
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 import {
     Activity,
     CreditCard,
@@ -87,7 +91,7 @@ export default async function CRMPage(props: {
         supabase.from('payment_plan_templates').select('*').order('name', { ascending: true }),
         supabase.from('customers').select('*, customer_demands(*), contract_customers(id)').order('created_at', { ascending: false }).limit(1000),
         supabase.from('units').select('id, unit_number, projects(id, name)').in('status', ['For Sale', 'Stock']).limit(1000),
-        supabase.from('sales').select('status'),
+        supabase.from('sales').select('status').limit(5000),
         baseQuery.order('created_at', { ascending: false }).range(from, to)
     ])
 

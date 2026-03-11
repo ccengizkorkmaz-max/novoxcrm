@@ -22,6 +22,7 @@ export async function getSalesAnalytics() {
             customer_id,
             profiles:assigned_to(full_name)
         `)
+        .limit(10000)
 
     if (!sales) return { error: 'No data' }
 

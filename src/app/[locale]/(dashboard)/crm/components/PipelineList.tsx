@@ -269,7 +269,10 @@ export default function PipelineList({
                                             case 'Lost': return 'bg-red-50 text-red-700 border-red-200'
                                             case 'Negotiation': return 'bg-amber-100 text-amber-700 border-amber-200'
                                             case 'Proposal': return 'bg-blue-50 text-blue-700 border-blue-200'
+                                            case 'Teklif - Kapora Bekleniyor': return 'bg-blue-50 text-blue-700 border-blue-200'
+                                            case 'Prospect': return 'bg-indigo-50 text-indigo-700 border-indigo-200'
                                             case 'Reservation': return 'bg-purple-100 text-purple-700 border-purple-200'
+                                            case 'Opsiyon - Kapora Bekleniyor': return 'bg-purple-100 text-purple-700 border-purple-200'
                                             default: return 'bg-slate-100 text-slate-700 border-slate-200'
                                         }
                                     }

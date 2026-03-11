@@ -156,6 +156,7 @@ async function getDashboardStats(t: any, locale: string) {
     .from('sales')
     .select('status')
     .eq('tenant_id', tenant_id)
+    .limit(10000)
 
   const activePipelineCount = leads?.filter(l => l.status !== 'Sold' && l.status !== 'Lost' && l.status !== 'Cancelled').length || 0
   const activeProspects = leads?.filter(l => l.status === 'Prospect').length || 0
