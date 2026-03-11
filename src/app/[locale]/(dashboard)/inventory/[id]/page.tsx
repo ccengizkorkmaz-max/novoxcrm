@@ -29,6 +29,11 @@ export default async function UnitDetailPage(props: {
     const { locale, id } = await props.params
     const supabase = await createClient()
 
+    // Get user role
+    const { data: { user } } = await supabase.auth.getUser()
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user?.id).single()
+    const isManager = profile?.role === 'manager' || profile?.role === 'admin' || profile?.role === 'owner'
+
     // Fetch unit with project name
     const { data: unit } = await supabase
         .from('units')
@@ -149,7 +154,9 @@ export default async function UnitDetailPage(props: {
                             Hızlı Satış
                         </Link>
                     </Button>
-                    <DeleteUnitButton unitId={unit.id} projectId={unit.project_id} disabled={isSold} />
+                    {isManager && (
+                        <DeleteUnitButton unitId={unit.id} projectId={unit.project_id} disabled={isSold} />
+                    )}
                 </div>
             </div>
 
@@ -178,7 +185,7 @@ export default async function UnitDetailPage(props: {
                             <Info className="h-4 w-4 text-blue-500" />
                             <h3 className="text-sm font-bold text-slate-700 uppercase tracking-tight">Ünite Detayları & Özellikler</h3>
                         </div>
-                        <UnitEditForm unit={unit} disabled={isSold} />
+                        <UnitEditForm unit={unit} disabled={isSold || !isManager} />
                     </Card>
 
                     {isSold && (
@@ -190,7 +197,9 @@ export default async function UnitDetailPage(props: {
                 </div>
 
                 <div className="xl:col-span-4 space-y-6">
-                    <UnitStatusChanger unitId={unit.id} currentStatus={unit.status} />
+                    {isManager && (
+                        <UnitStatusChanger unitId={unit.id} currentStatus={unit.status} />
+                    )}
 
                     <UnitPriceChart
                         priceHistory={timeline.filter((t: any) => t.type === 'price_change' && t.oldValue && t.newValue)}
@@ -222,7 +231,7 @@ export default async function UnitDetailPage(props: {
 
                             <div className="flex-1 overflow-auto p-4">
                                 <TabsContent value="gallery" className="mt-0">
-                                    <UnitImageGallery unitId={unit.id} projectId={unit.project_id} images={images} disabled={isSold} />
+                                    <UnitImageGallery unitId={unit.id} projectId={unit.project_id} images={images} disabled={isSold || !isManager} />
                                 </TabsContent>
 
                                 <TabsContent value="progress" className="mt-0 space-y-4">

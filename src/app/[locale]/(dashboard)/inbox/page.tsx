@@ -9,6 +9,16 @@ export default async function InboxPage(props: {
     const supabase = await createClient()
     const t = await getTranslations('Sidebar.Inbox')
 
+    // Role-based access control
+    const { data: { user } } = await supabase.auth.getUser()
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user?.id).single()
+    const isManager = profile?.role === 'manager' || profile?.role === 'admin' || profile?.role === 'owner'
+
+    if (!isManager) {
+        const { redirect } = await import('next/navigation')
+        redirect('/')
+    }
+
     // Fetch only pending inbox items
     const { data: inboxItems } = await supabase
         .from('inbox_items')

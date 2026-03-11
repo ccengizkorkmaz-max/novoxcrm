@@ -48,13 +48,15 @@ export default function CustomerList({
     totalRecords = 0,
     initialPage = 1,
     sourceStats = {},
-    profiles = []
+    profiles = [],
+    isManager = false
 }: {
     customers: Customer[],
     totalRecords?: number,
     initialPage?: number,
     sourceStats?: Record<string, number>,
-    profiles?: any[]
+    profiles?: any[],
+    isManager?: boolean
 }) {
     const t = useTranslations('Customers')
     const router = useRouter()
@@ -483,9 +485,11 @@ export default function CustomerList({
                                                 <Button variant="ghost" size="icon" className="h-9 w-9 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl" onClick={() => handleEditClick(c)} title={t('table.edit')}>
                                                     <Pencil className="h-4 w-4" />
                                                 </Button>
-                                                <Button variant="ghost" size="icon" className="h-9 w-9 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl" onClick={() => setCustomerToDelete(c)} title={t('table.delete')}>
-                                                    <Trash className="h-4 w-4" />
-                                                </Button>
+                                                {isManager && (
+                                                    <Button variant="ghost" size="icon" className="h-9 w-9 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl" onClick={() => setCustomerToDelete(c)} title={t('table.delete')}>
+                                                        <Trash className="h-4 w-4" />
+                                                    </Button>
+                                                )}
                                             </div>
                                         </TableCell>
                                     </TableRow>
@@ -570,9 +574,11 @@ export default function CustomerList({
                                         <Pencil className="h-4 w-4 mr-2" /> Düzenle
                                     </Button>
                                 </div>
-                                <Button variant="ghost" size="icon" className="h-10 w-10 text-red-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all active:scale-90" onClick={() => setCustomerToDelete(c)}>
-                                    <Trash className="h-4 w-4" />
-                                </Button>
+                                {isManager && (
+                                    <Button variant="ghost" size="icon" className="h-10 w-10 text-red-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all active:scale-90" onClick={() => setCustomerToDelete(c)}>
+                                        <Trash className="h-4 w-4" />
+                                    </Button>
+                                )}
                             </div>
                         </div>
                     ))

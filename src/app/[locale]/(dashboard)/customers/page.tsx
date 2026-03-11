@@ -53,8 +53,12 @@ export default async function CustomersPage(props: {
     // 4. Fetch Profiles for Activity assignment
     const { data: profiles } = await supabase
         .from('profiles')
-        .select('id, full_name')
+        .select('id, full_name, role')
         .order('full_name')
+
+    const { data: { user } } = await supabase.auth.getUser()
+    const { data: currentProfile } = await supabase.from('profiles').select('role').eq('id', user?.id).single()
+    const isManager = currentProfile?.role === 'manager' || currentProfile?.role === 'admin' || currentProfile?.role === 'owner'
 
     return (
         <div className="flex flex-col gap-6">
@@ -70,6 +74,7 @@ export default async function CustomersPage(props: {
                         initialPage={page}
                         sourceStats={sourceCounts}
                         profiles={profiles || []}
+                        isManager={isManager}
                     />
                 </React.Suspense>
             </div>
