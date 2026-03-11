@@ -86,9 +86,11 @@ export function NovoxSidebar({
             <NavItem href="/" icon={LayoutDashboard} onClick={onElementClick}>
                 {labels.overview || 'Overview'}
             </NavItem>
-            <NavItem href="/inbox" icon={Mail} onClick={onElementClick}>
-                {labels.inbox || 'Inbox'}
-            </NavItem>
+            {isManager && (
+                <NavItem href="/inbox" icon={Mail} onClick={onElementClick}>
+                    {labels.inbox || 'Inbox'}
+                </NavItem>
+            )}
             <NavItem href="/conversations" icon={MessageSquare} onClick={onElementClick}>
                 {labels.conversations || 'Conversations'}
             </NavItem>
