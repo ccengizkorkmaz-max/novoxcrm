@@ -17,7 +17,7 @@ export default async function SalesReportsPage() {
     }
 
     const {
-        totalRevenue, totalSales, activeLeads, conversionRate,
+        totalRevenue, totalSales, activeLeads, activeProspects, conversionRate,
         pieData, monthlyData, teamData, channelData, enrichedSales
     } = data
 
@@ -33,7 +33,7 @@ export default async function SalesReportsPage() {
                 </div>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
                 <AnalyticsMetricCard
                     title="Toplam Ciro"
                     value={`${(totalRevenue / 1000000).toFixed(2)}M ₺`}
@@ -48,17 +48,24 @@ export default async function SalesReportsPage() {
                     color="text-green-600"
                 />
                 <AnalyticsMetricCard
-                    title="Aktif Adaylar"
-                    value={activeLeads.toString()}
-                    description="Pipeline'daki sıcak leadler"
+                    title="Aktif Fırsatlar"
+                    value={activeProspects.toString()}
+                    description="Sıcak fırsatlar (Prospect)"
                     icon={Target}
+                    color="text-indigo-600"
+                />
+                <AnalyticsMetricCard
+                    title="Toplam Havuz"
+                    value={activeLeads.toString()}
+                    description="Pipeline'daki toplam leadler"
+                    icon={Users}
                     color="text-amber-600"
                 />
                 <AnalyticsMetricCard
                     title="Dönüşüm Oranı"
                     value={`%${conversionRate.toFixed(1)}`}
                     description="Lead'den satışa dönüş"
-                    icon={Users}
+                    icon={TrendingUp}
                     color="text-purple-600"
                 />
             </div>

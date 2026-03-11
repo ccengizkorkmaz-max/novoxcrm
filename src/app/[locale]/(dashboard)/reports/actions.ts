@@ -89,8 +89,12 @@ export async function getSalesAnalytics() {
     const teamData = Object.values(teamPerformance).sort((a: any, b: any) => b.revenue - a.revenue)
 
     const totalRevenue = sales.reduce((sum, s) => sum + (Number(s.final_price) || 0), 0)
-    const activeLeads = sales.filter(s => s.status === 'Lead').length
-    const conversionRate = sales.length > 0 ? (sales.filter(s => s.status === 'Sold').length / sales.length) * 100 : 0
+    // activeLeads should include all non-finalized leads (Lead, Prospect, Contacted, Proposal, etc.)
+    const activeLeads = sales.filter(s =>
+        !['Sold', 'Completed', 'Lost', 'Cancelled', 'Transferred'].includes(s.status || '')
+    ).length
+    const activeProspects = sales.filter(s => s.status === 'Prospect').length
+    const conversionRate = sales.length > 0 ? (sales.filter(s => s.status === 'Sold' || s.status === 'Completed').length / sales.length) * 100 : 0
 
     // 5. Channel Distribution (Lead Source)
     // We need to fetch customer sources for this
@@ -123,6 +127,7 @@ export async function getSalesAnalytics() {
         totalRevenue,
         totalSales: sales.length,
         activeLeads,
+        activeProspects,
         conversionRate,
         pieData,
         monthlyData,

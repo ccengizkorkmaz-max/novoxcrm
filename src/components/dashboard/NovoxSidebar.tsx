@@ -75,6 +75,7 @@ export function NovoxSidebar({
     const currentRole = role || 'sales'
 
     const isManager = currentRole === 'manager' || currentRole === 'owner' || currentRole === 'admin'
+    const isSales = isManager || currentRole === 'sales'
     const isOwner = currentRole === 'owner' || currentRole === 'admin'
 
     // Safety check for labels
@@ -110,35 +111,46 @@ export function NovoxSidebar({
                 </NavItem>
             )}
 
-            <NavItem href="/crm" icon={Activity} onClick={onElementClick}>
-                {labels.salesManagement || 'Sales Management'}
-            </NavItem>
-            <NavItem href="/options" icon={Package} onClick={onElementClick}>
-                {labels.options || 'Options'}
-            </NavItem>
-            <NavItem href="/offers" icon={FileText} onClick={onElementClick}>
-                {labels.offers || 'Offers'}
-            </NavItem>
-            <NavItem href="/contracts" icon={FileText} onClick={onElementClick}>
-                {labels.contracts || 'Contracts'}
-            </NavItem>
-            <NavItem href="/finance/deposits" icon={Banknote} onClick={onElementClick}>
-                {labels.deposits || 'Deposits'}
-            </NavItem>
-            <NavItem href="/commissions" icon={Trophy} onClick={onElementClick}>
-                {labels.commissions || 'Commissions'}
-            </NavItem>
-            <NavItem href="/activities" icon={CalendarCheck} onClick={onElementClick}>
-                {labels.activities || 'Activities'}
-            </NavItem>
-            <NavItem href="/finance" icon={Banknote} onClick={onElementClick}>
-                {labels.finance || 'Finance'}
-            </NavItem>
+            {isSales && (
+                <>
+                    <NavItem href="/crm" icon={Activity} onClick={onElementClick}>
+                        {labels.salesManagement || 'Sales Management'}
+                    </NavItem>
+                    <NavItem href="/options" icon={Package} onClick={onElementClick}>
+                        {labels.options || 'Options'}
+                    </NavItem>
+                    <NavItem href="/offers" icon={FileText} onClick={onElementClick}>
+                        {labels.offers || 'Offers'}
+                    </NavItem>
+                    <NavItem href="/contracts" icon={FileText} onClick={onElementClick}>
+                        {labels.contracts || 'Contracts'}
+                    </NavItem>
+                    <NavItem href="/activities" icon={CalendarCheck} onClick={onElementClick}>
+                        {labels.activities || 'Activities'}
+                    </NavItem>
+                </>
+            )}
+
+            {isManager && (
+                <>
+                    <NavItem href="/finance/deposits" icon={Banknote} onClick={onElementClick}>
+                        {labels.deposits || 'Deposits'}
+                    </NavItem>
+                    <NavItem href="/commissions" icon={Trophy} onClick={onElementClick}>
+                        {labels.commissions || 'Commissions'}
+                    </NavItem>
+                    <NavItem href="/finance" icon={Banknote} onClick={onElementClick}>
+                        {labels.finance || 'Finance'}
+                    </NavItem>
+                </>
+            )}
+
             {isOwner && (
                 <NavItem href="/hr" icon={Briefcase} onClick={onElementClick}>
                     {labels.hr || 'HR'}
                 </NavItem>
             )}
+
             <NavItem href="/customer-support" icon={MessageSquare} onClick={onElementClick}>
                 {labels.serviceRequests || 'Service Requests'}
             </NavItem>

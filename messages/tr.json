@@ -440,6 +440,7 @@
         },
         "status": {
             "lead": "Aday",
+            "prospect": "Fırsat",
             "contacted": "İletişim",
             "proposal": "Teklif",
             "negotiation": "Pazarlık",

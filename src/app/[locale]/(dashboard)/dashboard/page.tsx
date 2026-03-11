@@ -19,6 +19,8 @@ async function getDashboardStats(t: any, locale: string) {
     availableUnits: 0,
     totalCustomers: 0,
     activeLeads: 0,
+    activeProspects: 0,
+    activePipeline: 0,
     totalSalesVolume: 0,
     chartData: [],
     leadStatusData: [],
@@ -155,19 +157,22 @@ async function getDashboardStats(t: any, locale: string) {
     .select('status')
     .eq('tenant_id', tenant_id)
 
-  const activeLeads = leads?.filter(l => l.status !== 'Sold' && l.status !== 'Lost' && l.status !== 'Cancelled').length || 0
+  const activePipelineCount = leads?.filter(l => l.status !== 'Sold' && l.status !== 'Lost' && l.status !== 'Cancelled').length || 0
+  const activeProspects = leads?.filter(l => l.status === 'Prospect').length || 0
+  const activeLeadsOnly = leads?.filter(l => l.status === 'Lead').length || 0
 
   // Process chart data for Leads (Pie Chart)
   const leadStatusMap: Record<string, number> = {}
   leads?.forEach(curr => {
-    const translationKey = curr.status === 'Lead' || curr.status === 'Prospect' ? 'lead' :
-      curr.status === 'Contacted' ? 'contacted' :
-        curr.status === 'Proposal' ? 'proposal' :
-          curr.status === 'Negotiation' ? 'negotiation' :
-            curr.status === 'Reservation' ? 'reservation' :
-              curr.status === 'Contract' ? 'contract' :
-                curr.status === 'Completed' || curr.status === 'Sold' ? 'won' :
-                  curr.status === 'Lost' || curr.status === 'Cancelled' ? 'lost' : 'lead';
+    const translationKey = curr.status === 'Prospect' ? 'prospect' :
+      curr.status === 'Lead' ? 'lead' :
+        curr.status === 'Contacted' ? 'contacted' :
+          curr.status === 'Proposal' ? 'proposal' :
+            curr.status === 'Negotiation' ? 'negotiation' :
+              curr.status === 'Reservation' ? 'reservation' :
+                curr.status === 'Contract' ? 'contract' :
+                  curr.status === 'Completed' || curr.status === 'Sold' ? 'won' :
+                    curr.status === 'Lost' || curr.status === 'Cancelled' ? 'lost' : 'lead';
 
     const translation = t(`status.${translationKey}`)
     leadStatusMap[translation] = (leadStatusMap[translation] || 0) + 1
@@ -181,6 +186,7 @@ async function getDashboardStats(t: any, locale: string) {
   // ============== NEW: Sales Funnel ==============
   const funnelStages = [
     { key: 'Lead', label: 'Yeni Lead', color: '#94a3b8' },
+    { key: 'Prospect', label: 'Fırsat', color: '#6366f1' },
     { key: 'Contacted', label: 'İletişime Geçildi', color: '#60a5fa' },
     { key: 'Proposal', label: 'Teklif Verildi', color: '#a78bfa' },
     { key: 'Negotiation', label: 'Müzakere', color: '#f59e0b' },
@@ -192,10 +198,9 @@ async function getDashboardStats(t: any, locale: string) {
   const statusCounts: Record<string, number> = {}
   leads?.forEach(l => {
     // Map variations
-    const mappedStatus = l.status === 'Prospect' ? 'Lead' :
-      l.status === 'Completed' ? 'Sold' :
-        l.status === 'Teklif - Kapora Bekleniyor' ? 'Proposal' :
-          l.status
+    const mappedStatus = l.status === 'Completed' ? 'Sold' :
+      l.status === 'Teklif - Kapora Bekleniyor' ? 'Proposal' :
+        l.status
     statusCounts[mappedStatus] = (statusCounts[mappedStatus] || 0) + 1
   })
 
@@ -296,7 +301,9 @@ async function getDashboardStats(t: any, locale: string) {
     activeProjects: activeProjects || 0,
     availableUnits: availableUnits || 0,
     totalCustomers: totalCustomers || 0,
-    activeLeads,
+    activeLeads: activeLeadsOnly,
+    activeProspects,
+    activePipeline: activePipelineCount,
     totalSalesVolume,
     chartData,
     leadStatusData,
@@ -355,11 +362,11 @@ export default async function DashboardPage(props: {
             <Card className="border-none shadow-sm bg-card/50 backdrop-blur-sm">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">{t('kpi.activeOpportunities')}</CardTitle>
-                <Activity className="h-4 w-4 text-muted-foreground" />
+                <Activity className="h-4 w-4 text-primary" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stats.activeLeads}</div>
-                <p className="text-xs text-muted-foreground">{t('kpi.ongoingNegotiations')}</p>
+                <div className="text-2xl font-bold text-primary">{stats.activeProspects}</div>
+                <p className="text-xs text-muted-foreground">{stats.activeLeads} {t('status.lead')}</p>
               </CardContent>
             </Card>
             <Card className="border-none shadow-sm bg-card/50 backdrop-blur-sm">
