@@ -42,8 +42,6 @@ import { useRouter, useSearchParams } from 'next/navigation'
 // Removed redundant imports
 
 
-
-
 import { useTranslations, useLocale } from 'next-intl'
 import { useSupabaseRealtime } from '@/hooks/useSupabaseRealtime'
 

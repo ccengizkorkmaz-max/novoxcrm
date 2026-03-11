@@ -8,47 +8,30 @@ import { useTranslations } from 'next-intl'
 // ... imports
 
 interface PipelineStatsProps {
-    sales: any[]
+    stats: {
+        Lead: number
+        Prospect: number
+        Reservation: number
+        Proposal: number
+        Negotiation: number
+        Sold: number
+        Completed: number
+        Lost: number
+    }
 }
 
-export function PipelineStats({ sales }: PipelineStatsProps) {
+export function PipelineStats({ stats }: PipelineStatsProps) {
     const t = useTranslations('CRM')
 
-    // Group counts
-    const counts = {
-        Lead: 0,
-        Prospect: 0,
-        Reservation: 0,
-        Proposal: 0,
-        Negotiation: 0,
-        Sold: 0,
-        Completed: 0,
-        Lost: 0
-    }
-
-    if (sales) {
-        sales.forEach(sale => {
-            const s = sale.status
-            if (s === 'Lead') counts.Lead++
-            else if (['Prospect'].includes(s)) counts.Prospect++
-            else if (['Reservation', 'Reserved', 'Opsiyon - Kapora Bekleniyor'].includes(s)) counts.Reservation++
-            else if (['Proposal', 'Teklif - Kapora Bekleniyor'].includes(s)) counts.Proposal++
-            else if (['Negotiation'].includes(s)) counts.Negotiation++
-            else if (['Sold'].includes(s)) counts.Sold++
-            else if (['Completed'].includes(s)) counts.Completed++
-            else if (['Lost'].includes(s)) counts.Lost++
-        })
-    }
-
     const items = [
-        { label: t('stats.Lead'), count: counts.Lead, icon: Users, color: 'text-blue-500', bg: 'bg-blue-50' },
-        { label: t('stats.Prospect'), count: counts.Prospect, icon: Target, color: 'text-indigo-500', bg: 'bg-indigo-50' },
-        { label: t('stats.Reservation'), count: counts.Reservation, icon: Clock, color: 'text-amber-500', bg: 'bg-amber-50' },
-        { label: t('stats.Proposal'), count: counts.Proposal, icon: FileText, color: 'text-cyan-500', bg: 'bg-cyan-50' },
-        { label: t('stats.Negotiation'), count: counts.Negotiation, icon: Handshake, color: 'text-violet-500', bg: 'bg-violet-50' },
-        { label: t('stats.Sold'), count: counts.Sold, icon: CheckCircle2, color: 'text-emerald-500', bg: 'bg-emerald-50' },
-        { label: t('stats.Completed'), count: counts.Completed, icon: Trophy, color: 'text-green-600', bg: 'bg-green-100' },
-        { label: t('stats.Lost'), count: counts.Lost, icon: XCircle, color: 'text-red-500', bg: 'bg-red-50' },
+        { label: t('stats.Lead'), count: stats.Lead, icon: Users, color: 'text-blue-500', bg: 'bg-blue-50' },
+        { label: t('stats.Prospect'), count: stats.Prospect, icon: Target, color: 'text-indigo-500', bg: 'bg-indigo-50' },
+        { label: t('stats.Reservation'), count: stats.Reservation, icon: Clock, color: 'text-amber-500', bg: 'bg-amber-50' },
+        { label: t('stats.Proposal'), count: stats.Proposal, icon: FileText, color: 'text-cyan-500', bg: 'bg-cyan-50' },
+        { label: t('stats.Negotiation'), count: stats.Negotiation, icon: Handshake, color: 'text-violet-500', bg: 'bg-violet-50' },
+        { label: t('stats.Sold'), count: stats.Sold, icon: CheckCircle2, color: 'text-emerald-500', bg: 'bg-emerald-50' },
+        { label: t('stats.Completed'), count: stats.Completed, icon: Trophy, color: 'text-green-600', bg: 'bg-green-100' },
+        { label: t('stats.Lost'), count: stats.Lost, icon: XCircle, color: 'text-red-500', bg: 'bg-red-50' },
     ]
 
     return (

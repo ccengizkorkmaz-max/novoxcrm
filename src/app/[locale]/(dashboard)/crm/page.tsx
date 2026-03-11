@@ -90,22 +90,51 @@ export default async function CRMPage(props: {
     }
 
     // 2. Fetch initial background data in parallel
+    // For Stats, we now use multiple headless count queries to bypass the 1000-record limit
+    const getStatusCount = (status: string | string[]) => {
+        let q = supabase.from('sales').select('*', { count: 'exact', head: true }).neq('status', 'Inbox')
+        if (filterProject) q = q.eq('project_id', filterProject)
+        if (filterRep) q = q.eq('assigned_to', filterRep)
+        if (filterSearch) q = q.or(`full_name.ilike.%${filterSearch}%,phone.ilike.%${filterSearch}%,email.ilike.%${filterSearch}%`, { foreignTable: 'customers' })
+
+        if (Array.isArray(status)) {
+            return q.in('status', status)
+        }
+        return q.eq('status', status)
+    }
+
     const [
         projectsRes,
         profilesRes,
         templatesRes,
         customersRes,
         availableUnitsRes,
-        salesStatsRes,
-        salesListRes
+        salesListRes,
+        // Detailed counts
+        countLead,
+        countProspect,
+        countReservation,
+        countProposal,
+        countNegotiation,
+        countSold,
+        countCompleted,
+        countLost
     ] = await Promise.all([
         supabase.from('projects').select('id, name').order('name'),
         supabase.from('profiles').select('id, full_name').order('full_name'),
         supabase.from('payment_plan_templates').select('*').order('name', { ascending: true }),
         supabase.from('customers').select('*, customer_demands(*), contract_customers(id)').order('created_at', { ascending: false }).limit(1000),
         supabase.from('units').select('id, unit_number, projects(id, name)').in('status', ['For Sale', 'Stock']).limit(1000),
-        statsQuery.limit(10000),
-        baseQuery.order('created_at', { ascending: false }).range(from, to)
+        baseQuery.order('created_at', { ascending: false }).range(from, to),
+        // Counts
+        getStatusCount('Lead'),
+        getStatusCount('Prospect'),
+        getStatusCount(['Reservation', 'Reserved', 'Opsiyon - Kapora Bekleniyor']),
+        getStatusCount(['Proposal', 'Teklif - Kapora Bekleniyor']),
+        getStatusCount('Negotiation'),
+        getStatusCount('Sold'),
+        getStatusCount('Completed'),
+        getStatusCount('Lost')
     ])
 
     const projectsData = projectsRes.data || []
@@ -113,9 +142,19 @@ export default async function CRMPage(props: {
     const templates = templatesRes.data || []
     const customers = customersRes.data || []
     const availableUnits = availableUnitsRes.data || []
-    const salesForStats = salesStatsRes.data || []
     const sales = salesListRes.data || []
     const totalSalesCount = salesListRes.count || 0
+
+    const statsData = {
+        Lead: countLead.count || 0,
+        Prospect: countProspect.count || 0,
+        Reservation: countReservation.count || 0,
+        Proposal: countProposal.count || 0,
+        Negotiation: countNegotiation.count || 0,
+        Sold: countSold.count || 0,
+        Completed: countCompleted.count || 0,
+        Lost: countLost.count || 0
+    }
 
     return (
         <div className="flex flex-col gap-6">
@@ -145,12 +184,12 @@ export default async function CRMPage(props: {
                 </div>
 
                 <div className="hidden lg:block">
-                    <PipelineStats sales={salesForStats || []} />
+                    <PipelineStats stats={statsData} />
                 </div>
             </div>
 
             <div className="lg:hidden px-1">
-                <PipelineStats sales={salesForStats || []} />
+                <PipelineStats stats={statsData} />
             </div>
 
             <React.Suspense fallback={<div className="h-96 w-full bg-gray-100 animate-pulse rounded" />}>

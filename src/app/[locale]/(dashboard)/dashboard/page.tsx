@@ -151,16 +151,36 @@ async function getDashboardStats(t: any, locale: string) {
     lastMonthCount: lastMonthContracts.length
   }
 
-  // 5. Active Leads (Sales not in 'Won' or 'Lost')
-  const { data: leads } = await supabase
-    .from('sales')
-    .select('status')
-    .eq('tenant_id', tenant_id)
-    .limit(10000)
+  // 5. Active Leads (Use headless counts to bypass 1000-row limit)
+  const getDashboardCount = (statusMatch: any) => {
+    let q = supabase.from('sales').select('*', { count: 'exact', head: true })
+    if (typeof statusMatch === 'string') {
+      q = q.eq('status', statusMatch)
+    } else if (Array.isArray(statusMatch)) {
+      q = q.in('status', statusMatch)
+    } else {
+      // For active pipeline (non-finalized)
+      q = q.not('status', 'in', '("Sold","Completed","Lost","Cancelled")')
+    }
+    return q.eq('tenant_id', tenant_id)
+  }
 
-  const activePipelineCount = leads?.filter(l => l.status !== 'Sold' && l.status !== 'Lost' && l.status !== 'Cancelled').length || 0
-  const activeProspects = leads?.filter(l => l.status === 'Prospect').length || 0
-  const activeLeadsOnly = leads?.filter(l => l.status === 'Lead').length || 0
+  const [
+    countActivePipeline,
+    countActiveProspects,
+    countActiveLeadsOnly,
+    allRelevantSales // Still need some for the chart, but we can limit this for the chart specifically
+  ] = await Promise.all([
+    getDashboardCount(null), // Active Pipeline
+    getDashboardCount('Prospect'),
+    getDashboardCount('Lead'),
+    supabase.from('sales').select('status').eq('tenant_id', tenant_id).limit(1000)
+  ])
+
+  const activePipelineCount = countActivePipeline.count || 0
+  const activeProspects = countActiveProspects.count || 0
+  const activeLeadsOnly = countActiveLeadsOnly.count || 0
+  const leads = allRelevantSales.data || []
 
   // Process chart data for Leads (Pie Chart)
   const leadStatusMap: Record<string, number> = {}
