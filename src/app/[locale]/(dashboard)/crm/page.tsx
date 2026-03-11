@@ -76,6 +76,19 @@ export default async function CRMPage(props: {
         isAdmin = profile?.role === 'admin' || profile?.role === 'owner'
     }
 
+    // 1.6 Build Stats Query (reflects filters but ignores pagination)
+    let statsQuery = supabase
+        .from('sales')
+        .select('status')
+        .neq('status', 'Inbox')
+
+    if (filterProject) statsQuery = statsQuery.eq('project_id', filterProject)
+    if (filterRep) statsQuery = statsQuery.eq('assigned_to', filterRep)
+    // We don't filter by filterStatus for stats because we want to see the whole pipeline even if one status is selected in the list
+    if (filterSearch) {
+        statsQuery = statsQuery.or(`full_name.ilike.%${filterSearch}%,phone.ilike.%${filterSearch}%,email.ilike.%${filterSearch}%`, { foreignTable: 'customers' })
+    }
+
     // 2. Fetch initial background data in parallel
     const [
         projectsRes,
@@ -91,7 +104,7 @@ export default async function CRMPage(props: {
         supabase.from('payment_plan_templates').select('*').order('name', { ascending: true }),
         supabase.from('customers').select('*, customer_demands(*), contract_customers(id)').order('created_at', { ascending: false }).limit(1000),
         supabase.from('units').select('id, unit_number, projects(id, name)').in('status', ['For Sale', 'Stock']).limit(1000),
-        supabase.from('sales').select('status').limit(5000),
+        statsQuery.limit(10000),
         baseQuery.order('created_at', { ascending: false }).range(from, to)
     ])
 

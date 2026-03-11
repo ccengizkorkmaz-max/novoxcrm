@@ -264,16 +264,17 @@ export default function PipelineList({
                                     // Dynamic Status Colors
                                     const getStatusColor = (status: string) => {
                                         switch (status) {
-                                            case 'Sold': return 'bg-emerald-100 text-emerald-700 border-emerald-200'
-                                            case 'Completed': return 'bg-emerald-100 text-emerald-700 border-emerald-200'
-                                            case 'Lost': return 'bg-red-50 text-red-700 border-red-200'
-                                            case 'Negotiation': return 'bg-amber-100 text-amber-700 border-amber-200'
-                                            case 'Proposal': return 'bg-blue-50 text-blue-700 border-blue-200'
-                                            case 'Teklif - Kapora Bekleniyor': return 'bg-blue-50 text-blue-700 border-blue-200'
-                                            case 'Prospect': return 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                                            case 'Lead': return 'bg-slate-100 text-slate-700 border-slate-200'
+                                            case 'Prospect': return 'bg-blue-100 text-blue-700 border-blue-200'
                                             case 'Reservation': return 'bg-purple-100 text-purple-700 border-purple-200'
-                                            case 'Opsiyon - Kapora Bekleniyor': return 'bg-purple-100 text-purple-700 border-purple-200'
-                                            default: return 'bg-slate-100 text-slate-700 border-slate-200'
+                                            case 'Opsiyon - Kapora Bekleniyor': return 'bg-amber-100 text-amber-700 border-amber-200'
+                                            case 'Proposal': return 'bg-cyan-100 text-cyan-700 border-cyan-200'
+                                            case 'Teklif - Kapora Bekleniyor': return 'bg-indigo-100 text-indigo-700 border-indigo-200'
+                                            case 'Negotiation': return 'bg-pink-100 text-pink-700 border-pink-200'
+                                            case 'Sold': return 'bg-emerald-100 text-emerald-700 border-emerald-200'
+                                            case 'Completed': return 'bg-green-100 text-green-700 border-green-200'
+                                            case 'Lost': return 'bg-red-100 text-red-700 border-red-200'
+                                            default: return 'bg-slate-50 text-slate-600 border-slate-200'
                                         }
                                     }
 
@@ -345,15 +346,15 @@ export default function PipelineList({
                                                             <SelectValue />
                                                         </SelectTrigger>
                                                         <SelectContent>
-                                                            <SelectItem value="Lead">{t('status.Lead')}</SelectItem>
-                                                            <SelectItem value="Prospect">{t('status.Prospect')}</SelectItem>
-                                                            <SelectItem value="Reservation">{t('status.Reservation')}</SelectItem>
-                                                            <SelectItem value="Opsiyon - Kapora Bekleniyor">{t('status.OptionPending')}</SelectItem>
-                                                            <SelectItem value="Proposal">{t('status.Proposal')}</SelectItem>
-                                                            <SelectItem value="Teklif - Kapora Bekleniyor">{t('status.ProposalPending')}</SelectItem>
-                                                            <SelectItem value="Negotiation">{t('status.Negotiation')}</SelectItem>
-                                                            <SelectItem value="Sold">{t('status.Sold')}</SelectItem>
-                                                            <SelectItem value="Lost">{t('status.Lost')}</SelectItem>
+                                                            <SelectItem value="Lead"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-slate-400" />{t('status.Lead')}</div></SelectItem>
+                                                            <SelectItem value="Prospect"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-blue-500" />{t('status.Prospect')}</div></SelectItem>
+                                                            <SelectItem value="Reservation"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-purple-500" />{t('status.Reservation')}</div></SelectItem>
+                                                            <SelectItem value="Opsiyon - Kapora Bekleniyor"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-amber-500" />{t('status.OptionPending')}</div></SelectItem>
+                                                            <SelectItem value="Proposal"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-cyan-500" />{t('status.Proposal')}</div></SelectItem>
+                                                            <SelectItem value="Teklif - Kapora Bekleniyor"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-indigo-500" />{t('status.ProposalPending')}</div></SelectItem>
+                                                            <SelectItem value="Negotiation"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-pink-500" />{t('status.Negotiation')}</div></SelectItem>
+                                                            <SelectItem value="Sold"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-emerald-500" />{t('status.Sold')}</div></SelectItem>
+                                                            <SelectItem value="Lost"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-red-500" />{t('status.Lost')}</div></SelectItem>
                                                         </SelectContent>
                                                     </Select>
                                                 )}
@@ -560,13 +561,17 @@ export default function PipelineList({
 
                         const getStatusColor = (status: string) => {
                             switch (status) {
-                                case 'Sold': return 'bg-emerald-100 text-emerald-700'
-                                case 'Completed': return 'bg-emerald-100 text-emerald-700'
-                                case 'Lost': return 'bg-red-50 text-red-700'
-                                case 'Negotiation': return 'bg-amber-100 text-amber-700'
-                                case 'Proposal': return 'bg-blue-50 text-blue-700'
+                                case 'Lead': return 'bg-slate-100 text-slate-700'
+                                case 'Prospect': return 'bg-blue-100 text-blue-700'
                                 case 'Reservation': return 'bg-purple-100 text-purple-700'
-                                default: return 'bg-slate-100 text-slate-700'
+                                case 'Opsiyon - Kapora Bekleniyor': return 'bg-amber-100 text-amber-700'
+                                case 'Proposal': return 'bg-cyan-100 text-cyan-700'
+                                case 'Teklif - Kapora Bekleniyor': return 'bg-indigo-100 text-indigo-700'
+                                case 'Negotiation': return 'bg-pink-100 text-pink-700'
+                                case 'Sold': return 'bg-emerald-100 text-emerald-700'
+                                case 'Completed': return 'bg-green-100 text-green-700'
+                                case 'Lost': return 'bg-red-100 text-red-700'
+                                default: return 'bg-slate-50 text-slate-600'
                             }
                         }
 
