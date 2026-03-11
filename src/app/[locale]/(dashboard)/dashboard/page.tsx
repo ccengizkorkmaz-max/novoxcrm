@@ -38,12 +38,14 @@ async function getDashboardStats(t: any, locale: string) {
   // Get user's profile and metadata to ensure strict isolation
   const { data: profile } = await supabase
     .from('profiles')
-    .select('tenant_id')
+    .select('tenant_id, role')
     .eq('id', user.id)
     .single()
 
   const metaTenantId = user.user_metadata?.tenant_id
   let tenant_id = profile?.tenant_id
+
+  const isManager = profile?.role === 'manager' || profile?.role === 'owner' || profile?.role === 'admin'
 
   // SELF-CORRECTION: If profile tenant doesn't match metadata tenant, trust metadata (official)
   if (metaTenantId && metaTenantId !== tenant_id) {
@@ -97,12 +99,17 @@ async function getDashboardStats(t: any, locale: string) {
     .eq('tenant_id', tenant_id)
 
   // 4. Total Sales Volume (Contracts)
-  const { data: contracts } = await supabase
+  let contractsQuery = supabase
     .from('contracts')
     .select('signed_amount, created_at, assigned_to')
     .eq('tenant_id', tenant_id)
     .neq('status', 'Cancelled')
-    .order('created_at', { ascending: true })
+
+  if (!isManager) {
+    contractsQuery = contractsQuery.eq('assigned_to', user.id)
+  }
+
+  const { data: contracts } = await contractsQuery.order('created_at', { ascending: true })
 
   const totalSalesVolume = contracts?.reduce((sum, c) => sum + Number(c.signed_amount), 0) || 0
 
@@ -162,7 +169,16 @@ async function getDashboardStats(t: any, locale: string) {
       // For active pipeline (non-finalized)
       q = q.not('status', 'in', '("Sold","Completed","Lost","Cancelled")')
     }
-    return q.eq('tenant_id', tenant_id)
+    q = q.eq('tenant_id', tenant_id)
+    if (!isManager) {
+      q = q.eq('assigned_to', user.id)
+    }
+    return q
+  }
+
+  let allRelevantQuery = supabase.from('sales').select('status').eq('tenant_id', tenant_id)
+  if (!isManager) {
+    allRelevantQuery = allRelevantQuery.eq('assigned_to', user.id)
   }
 
   const [
@@ -174,7 +190,7 @@ async function getDashboardStats(t: any, locale: string) {
     getDashboardCount(null), // Active Pipeline
     getDashboardCount('Prospect'),
     getDashboardCount('Lead'),
-    supabase.from('sales').select('status').eq('tenant_id', tenant_id).limit(1000)
+    allRelevantQuery.limit(5000)
   ])
 
   const activePipelineCount = countActivePipeline.count || 0

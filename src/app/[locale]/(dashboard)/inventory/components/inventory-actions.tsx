@@ -23,9 +23,10 @@ import { useTranslations } from 'next-intl'
 interface InventoryActionsProps {
     unit: any
     customers: any[]
+    isManager?: boolean
 }
 
-export function InventoryActions({ unit, customers }: InventoryActionsProps) {
+export function InventoryActions({ unit, customers, isManager }: InventoryActionsProps) {
     const t = useTranslations('Inventory.actions')
     const router = useRouter()
     const [showReserveDialog, setShowReserveDialog] = useState(false)
@@ -58,6 +59,10 @@ export function InventoryActions({ unit, customers }: InventoryActionsProps) {
         } catch (error) {
             toast.error('İptal işlemi başarısız')
         }
+    }
+
+    if (!isManager) {
+        return null;
     }
 
     return (

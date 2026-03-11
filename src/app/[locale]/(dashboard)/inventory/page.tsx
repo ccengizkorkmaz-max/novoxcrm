@@ -167,6 +167,11 @@ export default async function InventoryPage(props: {
         query
     ])
 
+    // Get user role
+    const { data: { user } } = await supabase.auth.getUser()
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user?.id).single()
+    const isManager = profile?.role === 'manager' || profile?.role === 'admin' || profile?.role === 'owner'
+
     // Helper maps for DB values to Translation Keys
     const directionMap: Record<string, string> = {
         'Kuzey': 'North',
@@ -295,8 +300,8 @@ export default async function InventoryPage(props: {
 
                     <PublicLinkCreator unitIds={units?.map(u => u.id) || []} unitsCount={units?.length || 0} />
                     <InventoryPdfExport units={units || []} />
-                    <InventoryExport projects={projects || []} />
-                    <NewUnitDialog projects={projects || []} unitTypes={unitTypes || []} />
+                    {isManager && <InventoryExport projects={projects || []} />}
+                    {isManager && <NewUnitDialog projects={projects || []} unitTypes={unitTypes || []} />}
                 </div>
             </div>
 
@@ -318,10 +323,12 @@ export default async function InventoryPage(props: {
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50 p-4 rounded-lg border flex-shrink-0">
                         <div className="flex items-center gap-4">
                             <div className="font-medium text-sm text-slate-700">Filtreleme</div>
-                            <div className="flex items-center gap-2 border-l pl-4">
-                                <BulkStatusUpdate selectedUnits={[]} totalUnits={units?.length || 0} />
-                                <BulkPriceUpdate selectedUnits={[]} totalUnits={units?.length || 0} />
-                            </div>
+                            {isManager && (
+                                <div className="flex items-center gap-2 border-l pl-4">
+                                    <BulkStatusUpdate selectedUnits={[]} totalUnits={units?.length || 0} />
+                                    <BulkPriceUpdate selectedUnits={[]} totalUnits={units?.length || 0} />
+                                </div>
+                            )}
                         </div>
                         <InventoryFilters projects={projects || []} />
                     </div>
@@ -363,7 +370,7 @@ export default async function InventoryPage(props: {
                                     units.map((unit: any) => (
                                         <TableRow key={unit.id} className="hover:bg-muted/30 transition-colors">
                                             <TableCell className="text-left sticky left-0 bg-background/95 backdrop-blur z-20 shadow-[5px_0_5px_-5px_rgba(0,0,0,0.1)]">
-                                                <InventoryActions unit={unit} customers={customers || []} />
+                                                <InventoryActions unit={unit} customers={customers || []} isManager={isManager} />
                                             </TableCell>
                                             <TableCell className="font-medium">{unit.projects?.name}</TableCell>
                                             <TableCell>{unit.block || '-'}</TableCell>
@@ -422,10 +429,12 @@ export default async function InventoryPage(props: {
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50 p-4 rounded-lg border flex-shrink-0">
                         <div className="flex items-center gap-4">
                             <div className="font-medium text-sm text-slate-700">Filtreleme</div>
-                            <div className="flex items-center gap-2 border-l pl-4">
-                                <BulkStatusUpdate selectedUnits={[]} totalUnits={units?.length || 0} />
-                                <BulkPriceUpdate selectedUnits={[]} totalUnits={units?.length || 0} />
-                            </div>
+                            {isManager && (
+                                <div className="flex items-center gap-2 border-l pl-4">
+                                    <BulkStatusUpdate selectedUnits={[]} totalUnits={units?.length || 0} />
+                                    <BulkPriceUpdate selectedUnits={[]} totalUnits={units?.length || 0} />
+                                </div>
+                            )}
                         </div>
                         <InventoryFilters projects={projects || []} />
                     </div>

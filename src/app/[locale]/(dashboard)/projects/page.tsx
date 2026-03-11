@@ -28,12 +28,14 @@ export default async function ProjectsPage(props: {
 
     const { data: { user } } = await supabase.auth.getUser()
 
-    // Get profile to check tenant
+    // Get profile to check tenant and role
     const { data: profile } = await supabase
         .from('profiles')
-        .select('tenant_id')
+        .select('tenant_id, role')
         .eq('id', user?.id)
         .single()
+
+    const isManager = profile?.role === 'manager' || profile?.role === 'admin' || profile?.role === 'owner'
 
     // Get projects for this user's tenant with unit counts
     const { data: projects, error } = await supabase
@@ -57,40 +59,42 @@ export default async function ProjectsPage(props: {
         <div className="flex flex-col gap-6">
             <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
-                <Dialog>
-                    <DialogTrigger asChild>
-                        <Button>
-                            <Plus className="mr-2 h-4 w-4" /> {t('addProject')}
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[425px]">
-                        <DialogHeader>
-                            <DialogTitle>{t('createModal.title')}</DialogTitle>
-                            <DialogDescription>
-                                {t('createModal.description')}
-                            </DialogDescription>
-                        </DialogHeader>
-                        <form action={handleCreateProject}>
-                            <div className="grid gap-4 py-4">
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="name" className="text-right">
-                                        {t('createModal.nameLabel')}
-                                    </Label>
-                                    <Input id="name" name="name" className="col-span-3" required />
+                {isManager && (
+                    <Dialog>
+                        <DialogTrigger asChild>
+                            <Button>
+                                <Plus className="mr-2 h-4 w-4" /> {t('addProject')}
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-[425px]">
+                            <DialogHeader>
+                                <DialogTitle>{t('createModal.title')}</DialogTitle>
+                                <DialogDescription>
+                                    {t('createModal.description')}
+                                </DialogDescription>
+                            </DialogHeader>
+                            <form action={handleCreateProject}>
+                                <div className="grid gap-4 py-4">
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label htmlFor="name" className="text-right">
+                                            {t('createModal.nameLabel')}
+                                        </Label>
+                                        <Input id="name" name="name" className="col-span-3" required />
+                                    </div>
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label htmlFor="city" className="text-right">
+                                            {t('createModal.cityLabel')}
+                                        </Label>
+                                        <Input id="city" name="city" className="col-span-3" />
+                                    </div>
                                 </div>
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="city" className="text-right">
-                                        {t('createModal.cityLabel')}
-                                    </Label>
-                                    <Input id="city" name="city" className="col-span-3" />
-                                </div>
-                            </div>
-                            <DialogFooter>
-                                <Button type="submit">{t('createModal.submit')}</Button>
-                            </DialogFooter>
-                        </form>
-                    </DialogContent>
-                </Dialog>
+                                <DialogFooter>
+                                    <Button type="submit">{t('createModal.submit')}</Button>
+                                </DialogFooter>
+                            </form>
+                        </DialogContent>
+                    </Dialog>
+                )}
             </div>
 
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6">

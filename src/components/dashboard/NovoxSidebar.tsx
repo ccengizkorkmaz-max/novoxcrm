@@ -75,7 +75,7 @@ export function NovoxSidebar({
     const currentRole = role || 'sales'
 
     const isManager = currentRole === 'manager' || currentRole === 'owner' || currentRole === 'admin'
-    const isSales = isManager || currentRole === 'sales'
+    const isSales = isManager || currentRole === 'sales' || currentRole === 'user'
     const isOwner = currentRole === 'owner' || currentRole === 'admin'
 
     // Safety check for labels
