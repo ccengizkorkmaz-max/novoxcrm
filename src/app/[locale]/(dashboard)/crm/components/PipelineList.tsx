@@ -167,6 +167,7 @@ export default function PipelineList({
 
     const handleStatusChange = async (id: string, newStatus: string) => {
         await updateSaleStatus(id, newStatus)
+        router.refresh()
     }
 
     const handleCustomerEdit = (customer: any) => {
