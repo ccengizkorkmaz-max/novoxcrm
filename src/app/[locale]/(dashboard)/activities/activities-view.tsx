@@ -29,6 +29,8 @@ export function ActivitiesView({ initialActivities, customers, profiles, user }:
     const ACTIVITY_TYPES = [
         { id: 'Call', label: t('type.Call') },
         { id: 'Meeting', label: t('type.Meeting') },
+        { id: 'OfficeMeeting', label: t('type.OfficeMeeting') },
+        { id: 'OnlineMeeting', label: t('type.OnlineMeeting') },
         { id: 'Site Visit', label: t('type.Site Visit') },
         { id: 'Email', label: t('type.Email') },
         { id: 'Whatsapp', label: t('type.Whatsapp') },

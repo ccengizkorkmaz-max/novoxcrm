@@ -24,6 +24,7 @@ import NotificationSettingsTab from './components/NotificationSettingsTab'
 import AiSettingsTab from './components/AiSettingsTab'
 import EmailAccountsTab from './components/EmailAccountsTab'
 import SmsSettingsTab from './components/SmsSettingsTab'
+import { FinancialSettingsTab } from './components/FinancialSettingsTab'
 
 
 export default async function SettingsPage() {
@@ -139,6 +140,10 @@ export default async function SettingsPage() {
                         <Database className="w-4 h-4 mr-2" />
                         Tanımlar
                     </TabsTrigger>
+                    <TabsTrigger value="financial" className="flex-1 md:flex-none py-2.5 px-4 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all">
+                        <Banknote className="w-4 h-4 mr-2" />
+                        Finansal
+                    </TabsTrigger>
                     <TabsTrigger value="data" className="flex-1 md:flex-none py-2.5 px-4 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all">
                         <Database className="w-4 h-4 mr-2" />
                         {t('tabs.data')}
@@ -214,6 +219,11 @@ export default async function SettingsPage() {
                         Debug: {unitTypes ? unitTypes.length : 0} types found.
                     </div>
                     <UnitTypesTab unitTypes={unitTypes || []} />
+                </TabsContent>
+
+                {/* Financial Settings Tab */}
+                <TabsContent value="financial" className="space-y-4">
+                    <FinancialSettingsTab tenant={tenant as any} />
                 </TabsContent>
 
                 {/* Data Management Tab */}

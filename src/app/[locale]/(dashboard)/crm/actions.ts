@@ -665,6 +665,21 @@ export async function approveNegotiation(negotiationId: string, depositAmount: n
     }).eq('id', neg.offer_id)
     if (offerPriceError) return { success: false, error: offerPriceError.message }
 
+    // 4. Sync Payment Plan to Sale Table (if present)
+    if (neg.proposed_payment_plan && neg.proposed_payment_plan.payment_items) {
+        try {
+            await createPaymentPlan(
+                neg.offers.sale_id,
+                neg.proposed_payment_plan.payment_items,
+                neg.proposed_price,
+                neg.proposed_currency
+            )
+        } catch (syncError) {
+            console.error('Failed to sync payment plan during negotiation approval:', syncError)
+            // Non-blocking but logged
+        }
+    }
+
     if (depositAmount > 0) {
         // Handle Deposit Pending flow
         const { error: statusError } = await supabase.from('offers').update({ status: 'Teklif - Kapora Bekleniyor' }).eq('id', neg.offer_id)
@@ -1373,16 +1388,35 @@ export async function approveOfferDirectly(offerId: string) {
         }
 
         // 2. Update offer status and details
-        const { error } = await supabase
+        const { data: updatedOffer, error } = await supabase
             .from('offers')
             .update(updateData)
             .eq('id', offerId)
+            .select('sale_id, price, currency')
+            .single()
 
         if (error) throw error
 
-        revalidatePath('/crm')
-        revalidatePath('/crm/offers')
-        return { success: true }
+        // 3. Sync Payment Plan to Sale Table (if present in negotiation)
+        if (updateData.payment_plan && updateData.payment_plan.payment_items && updatedOffer) {
+            try {
+                await createPaymentPlan(
+                    updatedOffer.sale_id,
+                    updateData.payment_plan.payment_items,
+                    updatedOffer.price,
+                    updatedOffer.currency
+                )
+            } catch (syncError) {
+                console.error('Failed to sync payment plan during direct offer approval:', syncError)
+            }
+        }
+
+        // 1416: revalidatePath('/crm')
+        // 1417: revalidatePath('/crm/offers')
+        // 1418: return { success: true }
+        
+        // 4. Finalize the offer (this handles sale status, contract, unit status, and finance)
+        return await finalizeOffer(offerId)
     } catch (error: any) {
         console.error('Approve Offer Error:', error)
         return { error: error.message || 'Teklif onaylanırken bir hata oluştu' }
@@ -1478,5 +1512,23 @@ export async function autoAssignLead(saleId: string) {
 
     revalidatePath('/crm')
     return { success: true, assignedToId: bestMemberId }
+}
+
+export async function getPaymentTemplates() {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return null
+
+    const { data, error } = await supabase
+        .from('payment_plan_templates')
+        .select('*')
+        .order('name', { ascending: true })
+
+    if (error) {
+        console.error('getPaymentTemplates error:', error)
+        return null
+    }
+
+    return data
 }
 

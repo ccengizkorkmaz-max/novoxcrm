@@ -836,7 +836,10 @@
             "approveConfirmAction": "Onayla",
             "depositAmountInfo": "kapora girişi yapılacaktır.",
             "cancel": "Vazgeç",
-            "save": "Kaydet"
+            "save": "Kaydet",
+            "addPlan": "Ödeme Planı Öner",
+            "removePlan": "VAZGEÇ",
+            "startPlan": "OLUŞTUR"
         },
         "messages": {
             "proposalSaved": "Teklif önerisi kaydedildi.",
@@ -1385,6 +1388,8 @@
             "Site Visit": "Ziyaret",
             "Email": "Email",
             "Whatsapp": "Whatsapp",
+            "OnlineMeeting": "Online Toplantı",
+            "OfficeMeeting": "Satış Ofisinde Toplantı",
             "Offer Sent": "Teklif Gönderildi",
             "System": "Sistem"
         },
@@ -2074,7 +2079,9 @@
         "noProjectSaleStartedDesc": "Bu müşteri ve proje için henüz bir görüşme kaydı yok.",
         "activityType": "Aktivite Tipi",
         "activityPhone": "Telefon",
-        "activityMeeting": "Toplantı / Ofis Ziyareti",
+        "activityMeeting": "Toplantı",
+        "activityOnlineMeeting": "Online Toplantı",
+        "activityOfficeMeeting": "Satış Ofisinde Toplantı",
         "activitySummary": "Konu",
         "activitySummaryPlaceholder": "Örn: Proje detayları görüşüldü",
         "activityNotes": "Notlar",

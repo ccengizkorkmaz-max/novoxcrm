@@ -23,10 +23,11 @@ interface PaymentPlanEditorProps {
     currency: string
     templates?: any[]
     onChange: (plan: PaymentPlanItem[]) => void
+    initialPlan?: PaymentPlanItem[]
 }
 
-export function PaymentPlanEditor({ totalAmount, currency, templates = [], onChange }: PaymentPlanEditorProps) {
-    const [plan, setPlan] = useState<PaymentPlanItem[]>([])
+export function PaymentPlanEditor({ totalAmount, currency, templates = [], onChange, initialPlan = [] }: PaymentPlanEditorProps) {
+    const [plan, setPlan] = useState<PaymentPlanItem[]>(initialPlan)
 
     // Generator State
     const [templateId, setTemplateId] = useState('manual')
@@ -40,6 +41,26 @@ export function PaymentPlanEditor({ totalAmount, currency, templates = [], onCha
     const [balloons, setBalloons] = useState<{ id: string, amount: number, month: number }[]>([])
 
     const lastSentPlan = useRef<string>('')
+    const [installmentStartRule, setInstallmentStartRule] = useState<'None' | 'NextMonth15th'>('NextMonth15th')
+
+    useEffect(() => {
+        const loadSettings = async () => {
+            const { createClient: createBrowserClient } = await import('@/lib/supabase/client')
+            const supabase = createBrowserClient()
+            const { data: { user } } = await supabase.auth.getUser()
+            if (user) {
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('tenants(installment_start_rule)')
+                    .eq('id', user.id)
+                    .single()
+                
+                const rule = (profile as any)?.tenants?.installment_start_rule || 'NextMonth15th'
+                setInstallmentStartRule(rule)
+            }
+        }
+        loadSettings()
+    }, [])
 
     // Calculate remaining
     // Calculate remaining (relative to the original totalAmount)
@@ -55,6 +76,25 @@ export function PaymentPlanEditor({ totalAmount, currency, templates = [], onCha
     const [totals, setTotals] = useState({ interest: 0, grandTotal: totalAmount });
 
     const remaining = totals.grandTotal - currentTotal
+
+    useEffect(() => {
+        setTotals(prev => ({ ...prev, grandTotal: totalAmount + prev.interest }));
+    }, [totalAmount]);
+
+    // Initial total calculation for interest-inclusive plans
+    useEffect(() => {
+        if (initialPlan && initialPlan.length > 0) {
+            const planTotal = initialPlan.reduce((sum, item) => sum + (Number(item.amount) || 0), 0)
+            if (planTotal > totalAmount) {
+                const interest = planTotal - totalAmount
+                setTotals({ interest, grandTotal: planTotal })
+                setApplyInterest(true)
+                // Approximate interest rate if possible, or just leave it
+            } else {
+                setTotals({ interest: 0, grandTotal: totalAmount })
+            }
+        }
+    }, [initialPlan, totalAmount])
 
     useEffect(() => {
         const sortedPlan = [...plan].sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())
@@ -88,7 +128,8 @@ export function PaymentPlanEditor({ totalAmount, currency, templates = [], onCha
             interimPayments: template.interim_payment_structure?.map((b: any) => ({
                 month: b.month,
                 amount: (totalAmount * b.rate) / 100
-            })) || []
+            })) || [],
+            installmentStartRule
         });
 
         setPlan(result.items as any)
@@ -105,7 +146,8 @@ export function PaymentPlanEditor({ totalAmount, currency, templates = [], onCha
             installmentCount: installments,
             startDate,
             currency,
-            interimPayments: balloons.map(b => ({ month: b.month, amount: b.amount }))
+            interimPayments: balloons.map(b => ({ month: b.month, amount: b.amount })),
+            installmentStartRule
         });
 
         setPlan(result.items as any)

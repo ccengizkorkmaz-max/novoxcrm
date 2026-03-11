@@ -27,6 +27,10 @@ export async function updateProject(formData: FormData) {
         delivery_date_actual: formData.get('delivery_date_actual') ? new Date(formData.get('delivery_date_actual') as string).toISOString() : null,
         ada_no: formData.get('ada_no') as string,
         parsel_no: formData.get('parsel_no') as string,
+        land_area: formData.get('land_area') ? Number(formData.get('land_area')) : null,
+        distance_to_sea: formData.get('distance_to_sea') ? Number(formData.get('distance_to_sea')) : null,
+        distance_to_forest: formData.get('distance_to_forest') ? Number(formData.get('distance_to_forest')) : null,
+        distance_to_city: formData.get('distance_to_city') ? Number(formData.get('distance_to_city')) : null,
         amenities: amenities, // Stored as JSONB array of strings
         visibility_type: formData.get('visibility_type') as string || 'public',
         min_broker_level_id: formData.get('min_broker_level_id') as string || null

@@ -78,7 +78,36 @@ export function ContractForm({
     const activeReservation = reservations.find(r => r.unit_id === formData.unit_id)
     const activeOffer = offers.find(o => o.unit_id === formData.unit_id)
 
-    const [paymentPlan, setPaymentPlan] = useState<any[]>([])
+    // Normalize payment plan types from DB to Editor format
+    const normalizePlan = (items: any[]) => {
+        if (!Array.isArray(items)) return []
+        return items.map(item => {
+            let type = item.payment_type || item.type || 'Installment'
+            // Map DB space-separated strings to Editor CamelCase
+            if (type === 'Down Payment') type = 'DownPayment'
+            if (type === 'Interim Payment') type = 'Balloon'
+            if (type === 'Final Payment') type = 'DeliveryPayment'
+            // Default mappings if they came in other forms
+            if (type === 'InterimPayment') type = 'Balloon'
+            if (type === 'FinalPayment') type = 'DeliveryPayment'
+            if (type === 'DownPayment') type = 'DownPayment' // redundant but safe
+            
+            return {
+                ...item,
+                payment_type: type,
+                amount: Number(item.amount) || Number(item.total_amount) || 0
+            }
+        })
+    }
+
+    const initialItems = offerData ? (
+        Array.isArray(offerData.payment_plan) ? offerData.payment_plan : 
+        offerData.payment_plan?.payment_items || 
+        offerData.payment_plan?.items || 
+        []
+    ) : []
+
+    const [paymentPlan, setPaymentPlan] = useState<any[]>(normalizePlan(initialItems))
     const [customerSearch, setCustomerSearch] = useState('')
 
     const handlePaymentPlanChange = useCallback((newPlan: any[]) => {
@@ -397,6 +426,7 @@ export function ContractForm({
                             currency={formData.currency}
                             templates={templates}
                             onChange={handlePaymentPlanChange}
+                            initialPlan={paymentPlan}
                         />
 
                         <div className="flex justify-between pt-4 border-t">

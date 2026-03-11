@@ -66,6 +66,8 @@ export function QuickActivityDialog({ customer, unit }: Props) {
                             <option value="Meeting">{t('activityMeeting')}</option>
                             <option value="Whatsapp">Whatsapp</option>
                             <option value="Email">Email</option>
+                            <option value="OnlineMeeting">{t('activityOnlineMeeting')}</option>
+                            <option value="OfficeMeeting">{t('activityOfficeMeeting')}</option>
                         </select>
                     </div>
 

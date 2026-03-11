@@ -404,6 +404,28 @@ export default async function ProjectDetailPage(props: {
                                     </div>
                                 </div>
 
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="land_area">Arsa Metrekaresi (m²)</Label>
+                                        <Input id="land_area" name="land_area" type="number" step="0.01" defaultValue={project.land_area} placeholder="Örn: 5000" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="distance_to_sea">Denize Yakınlık (Metre)</Label>
+                                        <Input id="distance_to_sea" name="distance_to_sea" type="number" defaultValue={project.distance_to_sea} placeholder="Örn: 500" />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="distance_to_forest">Ormana Yakınlık (Metre)</Label>
+                                        <Input id="distance_to_forest" name="distance_to_forest" type="number" defaultValue={project.distance_to_forest} placeholder="Örn: 200" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="distance_to_city">Şehire Yakınlık (Dakika)</Label>
+                                        <Input id="distance_to_city" name="distance_to_city" type="number" defaultValue={project.distance_to_city} placeholder="Örn: 15" />
+                                    </div>
+                                </div>
+
                                 {/* Website */}
                                 <div className="space-y-2">
                                     <Label htmlFor="website_url" className="flex items-center gap-2">

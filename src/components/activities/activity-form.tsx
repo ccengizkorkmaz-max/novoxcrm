@@ -301,6 +301,8 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
                                         >
                                             <option value="Call">{t('type.Call')}</option>
                                             <option value="Meeting">{t('type.Meeting')}</option>
+                                            <option value="OfficeMeeting">{t('type.OfficeMeeting')}</option>
+                                            <option value="OnlineMeeting">{t('type.OnlineMeeting')}</option>
                                             <option value="Site Visit">{t('type.Site Visit')}</option>
                                             <option value="Email">{t('type.Email')}</option>
                                             <option value="Whatsapp">{t('type.Whatsapp')}</option>
@@ -418,6 +420,8 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
                                                 <option value="">{t('form.none')}</option>
                                                 <option value="Call">{t('type.Call')}</option>
                                                 <option value="Meeting">{t('type.Meeting')}</option>
+                                                <option value="OfficeMeeting">{t('type.OfficeMeeting')}</option>
+                                                <option value="OnlineMeeting">{t('type.OnlineMeeting')}</option>
                                                 <option value="Site Visit">{t('type.Site Visit')}</option>
                                                 <option value="Whatsapp">{t('type.Whatsapp')}</option>
                                             </select>

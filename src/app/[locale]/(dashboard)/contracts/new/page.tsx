@@ -37,10 +37,48 @@ export default async function NewContractPage(props: {
     if (searchParams.offerId) {
         const { data } = await supabase
             .from('offers')
-            .select('*, units(*, projects(*)), customers(*)')
+            .select('*, units(*, projects(*)), customers(*), payment_plan')
             .eq('id', searchParams.offerId)
             .single()
         offerData = data
+
+        // Comprehensive Fallback Chain for Payment Plan
+        if (offerData) {
+            const planSnapshot = offerData.payment_plan
+            const hasSnapshot = Array.isArray(planSnapshot) ? planSnapshot.length > 0 : (planSnapshot && Object.keys(planSnapshot).length > 0)
+
+            if (!hasSnapshot) {
+                // 1. Try latest negotiation (Approved first, then any)
+                const { data: negs } = await supabase
+                    .from('offer_negotiations')
+                    .select('proposed_payment_plan, status')
+                    .eq('offer_id', offerData.id)
+                    .order('created_at', { ascending: false })
+                    .limit(5)
+
+                const bestNeg = negs?.find(n => n.status === 'Approved') || negs?.[0]
+                if (bestNeg?.proposed_payment_plan) {
+                    offerData.payment_plan = bestNeg.proposed_payment_plan
+                } else {
+                    // 2. Try Sale's active plan
+                    const { getPaymentPlan } = await import('@/app/[locale]/(dashboard)/crm/actions')
+                    if (offerData.sale_id) {
+                        offerData.payment_plan = await getPaymentPlan(offerData.sale_id)
+                    } else {
+                        // Legacy fallback for offers without sale_id column
+                        const { data: sale } = await supabase
+                            .from('sales')
+                            .select('id')
+                            .eq('unit_id', offerData.unit_id)
+                            .eq('customer_id', offerData.customer_id)
+                            .single()
+                        if (sale) {
+                            offerData.payment_plan = await getPaymentPlan(sale.id)
+                        }
+                    }
+                }
+            }
+        }
     }
 
     // Fetch updates dependencies

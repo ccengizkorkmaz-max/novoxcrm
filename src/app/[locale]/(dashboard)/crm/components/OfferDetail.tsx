@@ -19,7 +19,31 @@ export default function OfferDetail({ offer }: OfferDetailProps) {
     }
 
     return (
-        <div className="space-y-6 max-w-4xl mx-auto p-6 bg-white shadow-lg rounded-lg print:shadow-none print:w-[210mm] print:h-[297mm] print:overflow-hidden print:m-0 print:p-[10mm]">
+        <div className="space-y-6 max-w-4xl mx-auto p-6 bg-white shadow-lg rounded-lg print:shadow-none print:max-w-none print:m-0 print:p-0">
+            <style jsx global>{`
+                @media print {
+                    @page {
+                        size: A4;
+                        margin: 15mm;
+                    }
+                    body {
+                        margin: 0;
+                        padding: 0;
+                        background: white;
+                    }
+                    nav, header, footer, .no-print, .print-hidden {
+                        display: none !important;
+                    }
+                    .print-container {
+                        width: 100% !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        box-shadow: none !important;
+                        border: none !important;
+                    }
+                }
+            `}</style>
+
             <div className="flex justify-between items-center print:hidden">
                 <BackButton variant="outline" />
                 <Button onClick={handlePrint}>
@@ -30,13 +54,25 @@ export default function OfferDetail({ offer }: OfferDetailProps) {
             {/* Header Section */}
             <div className="border-b pb-4 mb-4">
                 <div className="flex justify-between items-start">
-                    <div>
-                        <h1 className="text-3xl font-bold text-gray-900">SATIŞ TEKLİFİ</h1>
-                        <p className="text-gray-500 mt-1">Teklif No: #{offer.id.slice(0, 8)}</p>
+                    <div className="flex gap-4 items-center">
+                        {offer.units?.projects?.image_url && (
+                            <div className="w-16 h-16 rounded-lg overflow-hidden border bg-slate-50 flex-shrink-0">
+                                <img 
+                                    src={offer.units.projects.image_url} 
+                                    alt={offer.units.projects.name} 
+                                    className="w-full h-full object-cover"
+                                />
+                            </div>
+                        )}
+                        <div>
+                            <h1 className="text-3xl font-bold text-gray-900 uppercase">SATIŞ TEKLİFİ</h1>
+                            <p className="text-gray-500 mt-1 font-mono text-xs">NO: #{offer.id.slice(0, 8).toUpperCase()}</p>
+                        </div>
                     </div>
                     <div className="text-right">
-                        <p className="font-semibold text-lg">{new Date(offer.created_at).toLocaleDateString('tr-TR')}</p>
+                        <p className="font-bold text-lg">{new Date(offer.created_at).toLocaleDateString('tr-TR')}</p>
                         <p className="text-sm text-gray-500">Geçerlilik: {new Date(offer.valid_until).toLocaleDateString('tr-TR')}</p>
+                        <p className="text-[10px] font-bold text-blue-600 mt-1 uppercase tracking-tight">Bu teklif 7 gün geçerlidir.</p>
                     </div>
                 </div>
             </div>
@@ -115,9 +151,16 @@ export default function OfferDetail({ offer }: OfferDetailProps) {
                 </div>
             )}
 
+            {/* Validity Note */}
+            <div className="mt-8 p-4 border border-dashed border-slate-200 rounded-lg text-center bg-slate-50/50">
+                <p className="text-sm font-bold text-slate-600 italic">
+                    "Bu teklif verildiği tarihten itibaren 7 gün boyunca geçerlidir."
+                </p>
+            </div>
+
             {/* Footer */}
-            <div className="mt-12 pt-8 border-t text-center text-sm text-gray-500 print:fixed print:bottom-0 print:left-0 print:w-full print:bg-white print:border-t-0">
-                <p>© 2024 CRM Sisteminiz</p>
+            <div className="mt-12 pt-8 border-t text-center text-xs text-gray-400 print:mt-auto print:pt-4">
+                <p>© {new Date().getFullYear()} NovoCRM - Profesyonel Gayrimenkul Yönetimi</p>
             </div>
         </div>
     )

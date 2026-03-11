@@ -17,6 +17,8 @@ interface Props {
     onClose?: () => void
     templates?: any[]
     onSaveSuccess?: () => void
+    onConfirm?: (plan: any[], totals: { interest: number, grandTotal: number }, currency: string) => void
+    confirmButtonText?: string
 }
 
 interface InterimPayment {
@@ -24,7 +26,7 @@ interface InterimPayment {
     amount: number
 }
 
-export default function PaymentPlanCalculator({ saleId, totalAmount = 0, initialCurrency = 'TRY', onClose, templates = [], onSaveSuccess }: Props) {
+export default function PaymentPlanCalculator({ saleId, totalAmount = 0, initialCurrency = 'TRY', onClose, templates = [], onSaveSuccess, onConfirm, confirmButtonText }: Props) {
 
     const [price, setPrice] = useState(totalAmount)
     const [currency, setCurrency] = useState(initialCurrency)
@@ -41,6 +43,7 @@ export default function PaymentPlanCalculator({ saleId, totalAmount = 0, initial
     const [calculating, setCalculating] = useState(false)
     const [displayPrice, setDisplayPrice] = useState('')
     const [localeStr, setLocaleStr] = useState('tr-TR')
+    const [installmentStartRule, setInstallmentStartRule] = useState<'None' | 'NextMonth15th'>('NextMonth15th')
 
     useEffect(() => {
         loadPlan()
@@ -53,10 +56,18 @@ export default function PaymentPlanCalculator({ saleId, totalAmount = 0, initial
             const supabase = createBrowserClient()
             const { data: { user } } = await supabase.auth.getUser()
             if (user) {
-                const { data: profile } = await supabase.from('profiles').select('tenants(country)').eq('id', user.id).single()
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('tenants(country, installment_start_rule)')
+                    .eq('id', user.id)
+                    .single()
+                
                 const country = (profile as any)?.tenants?.country || 'Türkiye'
+                const rule = (profile as any)?.tenants?.installment_start_rule || 'NextMonth15th'
+                
                 const locale = country === 'USA' ? 'en-US' : country === 'UK' ? 'en-GB' : country === 'Germany' ? 'de-DE' : 'tr-TR'
                 setLocaleStr(locale)
+                setInstallmentStartRule(rule)
             }
 
             const existingPlan = await getPaymentPlan(saleId)
@@ -124,7 +135,8 @@ export default function PaymentPlanCalculator({ saleId, totalAmount = 0, initial
             installmentCount: Number(months),
             startDate,
             currency,
-            interimPayments: interims
+            interimPayments: interims,
+            installmentStartRule
         });
 
         if (result.principalAfterDown - interims.reduce((s, i) => s + i.amount, 0) < -0.01) {
@@ -140,6 +152,12 @@ export default function PaymentPlanCalculator({ saleId, totalAmount = 0, initial
 
     const handleSave = async () => {
         if (!plan.length) return
+
+        if (onConfirm) {
+            onConfirm(plan, totals, currency)
+            return
+        }
+
         try {
             const result = await createPaymentPlan(saleId, plan, totals.grandTotal || price, currency)
             if (result?.error) {
@@ -394,7 +412,7 @@ export default function PaymentPlanCalculator({ saleId, totalAmount = 0, initial
                     disabled={plan.length === 0 || loading}
                     className="h-10 px-8 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs uppercase tracking-widest shadow-lg shadow-blue-600/20 transition-all active:scale-95 disabled:opacity-50"
                 >
-                    Planı Kesinleştir ve Kaydet
+                    {confirmButtonText || 'Planı Kesinleştir ve Kaydet'}
                 </Button>
             </div>
         </div>

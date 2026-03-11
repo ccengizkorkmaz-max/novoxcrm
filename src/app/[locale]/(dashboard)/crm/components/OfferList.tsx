@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { FileText, Printer, Trash, Eye, FileSignature } from 'lucide-react'
+import { FileText, Printer, FileSignature, ReceiptText, Calculator } from 'lucide-react'
 import Link from 'next/link'
 import { formatCurrency } from '@/lib/utils'
 import {
@@ -141,9 +141,9 @@ export default function OfferList({ offers }: { offers: Offer[] }) {
                                         <TableCell className="text-right">
                                             <div className="flex justify-end gap-2">
                                                 <Button variant="ghost" size="icon" onClick={() => openPlan(offer)} title={t('actions.viewPlan')}>
-                                                    <Eye className="h-4 w-4" />
+                                                    <ReceiptText className="h-4 w-4 text-blue-600" />
                                                 </Button>
-                                                <Link href={`/offers/${offer.id}`} className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 w-9">
+                                                <Link href={`/offers/${offer.id}`} className="hidden inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 w-9">
                                                     <FileText className="h-4 w-4" />
                                                 </Link>
                                                 <NegotiationDialog
@@ -153,11 +153,11 @@ export default function OfferList({ offers }: { offers: Offer[] }) {
                                                     customerName={offer.customers?.full_name || ''}
                                                     unitInfo={`${offer.units?.projects?.name || ''} - ${offer.units?.unit_number || ''}`}
                                                 />
-                                                <ApproveOfferButton
+                                                {/* <ApproveOfferButton
                                                     offerId={offer.id}
                                                     customerName={offer.customers?.full_name || ''}
                                                     unitInfo={`${offer.units?.projects?.name || ''} - ${offer.units?.unit_number || ''}`}
-                                                />
+                                                /> */}
                                                 {offer.status === 'Accepted' && (
                                                     <Link href={`/contracts/new?offerId=${offer.id}&unitId=${offer.unit_id}&customerId=${offer.customer_id}`}>
                                                         <Button variant="default" size="sm" className="bg-green-600 hover:bg-green-700 text-white">
@@ -184,48 +184,79 @@ export default function OfferList({ offers }: { offers: Offer[] }) {
             </div>
 
             <Dialog open={isPlanOpen} onOpenChange={setIsPlanOpen}>
-                <DialogContent className="max-w-md">
-                    <DialogHeader>
-                        <DialogTitle>{t('dialog.planTitle')}</DialogTitle>
+                <DialogContent className="max-w-xl p-0 overflow-hidden border-none shadow-2xl rounded-3xl">
+                    <DialogHeader className="p-6 bg-slate-50 border-b border-slate-100 italic">
+                        <DialogTitle className="flex items-center gap-3 text-xl font-black text-slate-800 uppercase tracking-tight">
+                            <ReceiptText className="w-6 h-6 text-blue-600" />
+                            {t('dialog.planTitle')}
+                        </DialogTitle>
                     </DialogHeader>
-                    {selectedOffer && selectedOffer.payment_plan?.payment_items ? (
-                        <div className="border rounded-md max-h-[400px] overflow-auto">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>{t('dialog.type')}</TableHead>
-                                        <TableHead>{t('dialog.date')}</TableHead>
-                                        <TableHead className="text-right">{t('dialog.amount')}</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {selectedOffer.payment_plan.payment_items.map((item: any, idx: number) => (
-                                        <TableRow key={idx}>
-                                            <TableCell>
-                                                {item.payment_type === 'Down Payment' ? t('dialog.downPayment') :
-                                                    item.payment_type === 'Installment' ? t('dialog.installment') :
-                                                        item.payment_type === 'Interim Payment' ? t('dialog.interim') : t('dialog.final')}
-                                            </TableCell>
-                                            <TableCell>{new Date(item.due_date).toLocaleDateString('tr-TR')}</TableCell>
-                                            <TableCell className="text-right">
-                                                {formatCurrency(item.amount, selectedOffer.currency)}
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                    <TableRow className="bg-muted/50 font-bold">
-                                        <TableCell colSpan={2}>{t('dialog.total')}</TableCell>
-                                        <TableCell className="text-right">
-                                            {formatCurrency(selectedOffer.price, selectedOffer.currency)}
-                                        </TableCell>
-                                    </TableRow>
-                                </TableBody>
-                            </Table>
-                        </div>
-                    ) : (
-                        <div className="text-center py-8 text-muted-foreground">
-                            {t('dialog.noPlan')}
-                        </div>
-                    )}
+                    <div className="p-6 overflow-hidden">
+                        {(() => {
+                            const latestNeg = selectedOffer ? getLatestNegotiation(selectedOffer) : null
+                            const planToShow = latestNeg?.proposed_payment_plan || selectedOffer?.payment_plan
+                            const currency = selectedOffer?.currency || 'TRY'
+                            const price = latestNeg?.proposed_price || selectedOffer?.price || 0
+
+                            if (!planToShow?.payment_items) {
+                                return (
+                                    <div className="text-center py-12 text-slate-400 font-bold uppercase tracking-widest bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+                                        <Calculator className="w-12 h-12 mx-auto mb-4 opacity-20" />
+                                        {t('dialog.noPlan')}
+                                    </div>
+                                )
+                            }
+
+                            return (
+                                <div className="space-y-4">
+                                    {latestNeg && (
+                                        <div className="p-3 bg-orange-50 border border-orange-100 rounded-xl mb-4">
+                                            <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest mb-1 italic">⚠️ ÖNERİLEN PLAN GÖRÜNTÜLENİYOR</p>
+                                            <p className="text-xs font-bold text-orange-800">Bu plan {new Date(latestNeg.created_at).toLocaleDateString('tr-TR')} tarihli pazarlık önerisidir.</p>
+                                        </div>
+                                    )}
+                                    <div className="border rounded-2xl overflow-hidden bg-white shadow-sm">
+                                        <div className="max-h-[400px] overflow-auto">
+                                            <Table>
+                                                <TableHeader className="bg-slate-50">
+                                                    <TableRow className="hover:bg-transparent">
+                                                        <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t('dialog.type')}</TableHead>
+                                                        <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">{t('dialog.date')}</TableHead>
+                                                        <TableHead className="text-right text-[10px] font-black uppercase tracking-widest text-slate-400 pr-6">{t('dialog.amount')}</TableHead>
+                                                    </TableRow>
+                                                </TableHeader>
+                                                <TableBody>
+                                                    {planToShow.payment_items.map((item: any, idx: number) => (
+                                                        <TableRow key={idx} className="border-slate-50 group hover:bg-slate-50/50 transition-colors">
+                                                            <TableCell className="font-bold text-slate-600 py-3">
+                                                                {item.payment_type === 'Down Payment' ? t('dialog.downPayment') :
+                                                                    item.payment_type === 'Installment' ? t('dialog.installment') :
+                                                                        item.payment_type === 'Interim Payment' ? t('dialog.interim') : t('dialog.final')}
+                                                            </TableCell>
+                                                            <TableCell className="text-center font-bold text-slate-400 text-xs">
+                                                                {new Date(item.due_date).toLocaleDateString('tr-TR')}
+                                                            </TableCell>
+                                                            <TableCell className="text-right font-black text-slate-800 pr-6">
+                                                                {formatCurrency(item.amount, currency)}
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    ))}
+                                                    <TableRow className="bg-slate-900 text-white font-black hover:bg-slate-900 border-none">
+                                                        <TableCell colSpan={2} className="py-4 rounded-bl-2xl uppercase tracking-widest text-xs opacity-70">
+                                                            {t('dialog.total')}
+                                                        </TableCell>
+                                                        <TableCell className="text-right py-4 rounded-br-2xl text-lg font-black pr-6">
+                                                            {formatCurrency(latestNeg ? planToShow.total_amount || price : selectedOffer?.price || 0, currency)}
+                                                        </TableCell>
+                                                    </TableRow>
+                                                </TableBody>
+                                            </Table>
+                                        </div>
+                                    </div>
+                                </div>
+                            )
+                        })()}
+                    </div>
                 </DialogContent>
             </Dialog>
         </div>

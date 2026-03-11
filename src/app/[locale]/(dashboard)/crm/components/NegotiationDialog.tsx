@@ -29,6 +29,10 @@ import { formatCurrency } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { Badge } from "@/components/ui/badge"
+import { calculatePaymentSchedule } from '@/lib/utils/payment-calc'
+import { Calculator, ReceiptText } from 'lucide-react'
+import PaymentPlanCalculator from './PaymentPlanCalculator'
+import { getPaymentTemplates } from '../actions'
 
 interface NegotiationDialogProps {
     offerId: string
@@ -52,16 +56,25 @@ export default function NegotiationDialog({ offerId, currentPrice, currentCurren
     const [error, setError] = useState<string | null>(null)
     const [approvalDeposit, setApprovalDeposit] = useState<number | string>(0)
     const [negToApprove, setNegToApprove] = useState<any>(null)
+    const [showPlanInputs, setShowPlanInputs] = useState(false)
+    const [proposedPlan, setProposedPlan] = useState<any>(null)
+    const [templates, setTemplates] = useState<any[]>([])
     const router = useRouter()
 
     useEffect(() => {
         if (isOpen) {
             loadHistory()
+            loadTemplates()
             const d = new Date()
             d.setDate(d.getDate() + 7)
             setValidityDate(d.toISOString().split('T')[0])
         }
     }, [offerId, isOpen])
+
+    const loadTemplates = async () => {
+        const data = await getPaymentTemplates()
+        if (data) setTemplates(data)
+    }
 
     const loadHistory = async () => {
         setLoading(true)
@@ -89,7 +102,7 @@ export default function NegotiationDialog({ offerId, currentPrice, currentCurren
                 proposed_price: newPrice,
                 proposed_currency: currentCurrency,
                 proposed_valid_until: validityDate,
-                proposed_payment_plan: null,
+                proposed_payment_plan: proposedPlan,
                 source,
                 notes
             })
@@ -196,6 +209,74 @@ export default function NegotiationDialog({ offerId, currentPrice, currentCurren
                                         ))}
                                     </div>
                                 </div>
+                                <div className="space-y-4 sm:col-span-2 p-4 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2 text-blue-600">
+                                            <ReceiptText className="w-5 h-5" />
+                                            <span className="text-sm font-black uppercase tracking-tight">Ödeme Planı Önerisi</span>
+                                        </div>
+                                        <Dialog open={showPlanInputs} onOpenChange={setShowPlanInputs}>
+                                            <DialogTrigger asChild>
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className={`text-[10px] font-black uppercase tracking-widest h-7 px-3 rounded-lg border-blue-200 border ${proposedPlan ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}
+                                                >
+                                                    {proposedPlan ? 'GÜNCELLE' : 'OLUŞTUR'}
+                                                </Button>
+                                            </DialogTrigger>
+                                            <DialogContent className="max-w-xl">
+                                                <DialogHeader>
+                                                    <DialogTitle>Müşteriye Ödeme Planı Öner</DialogTitle>
+                                                </DialogHeader>
+                                                <PaymentPlanCalculator
+                                                    saleId={`negotiation-${offerId}`}
+                                                    totalAmount={newPrice}
+                                                    initialCurrency={currentCurrency}
+                                                    templates={templates}
+                                                    onClose={() => setShowPlanInputs(false)}
+                                                    confirmButtonText="Planı Onayla ve Ekle"
+                                                    onConfirm={(plan, totals, curr) => {
+                                                        setProposedPlan({
+                                                            payment_items: plan,
+                                                            total_amount: totals.grandTotal,
+                                                            installment_count: plan.filter(i => i.payment_type === 'Installment').length
+                                                        })
+                                                        setShowPlanInputs(false)
+                                                    }}
+                                                />
+                                            </DialogContent>
+                                        </Dialog>
+                                    </div>
+
+                                    {proposedPlan && (
+                                        <div className="mt-3 p-3 bg-white rounded-xl border border-emerald-100 animate-in fade-in slide-in-from-top-1">
+                                            <div className="flex justify-between items-center text-[10px] font-bold">
+                                                <span className="text-slate-400 uppercase">Özet:</span>
+                                                <span className="text-emerald-600 uppercase bg-emerald-50 px-2 py-0.5 rounded-full">PLAN HAZIR ✅</span>
+                                            </div>
+                                            <div className="mt-2 grid grid-cols-2 gap-2 text-xs font-black text-slate-800">
+                                                <div className="flex flex-col">
+                                                    <span className="text-[8px] text-slate-400 uppercase tracking-tighter">İşlem Tutarı</span>
+                                                    <span>{formatCurrency(proposedPlan.total_amount, currentCurrency)}</span>
+                                                </div>
+                                                <div className="flex flex-col text-right">
+                                                    <span className="text-[8px] text-slate-400 uppercase tracking-tighter">Vade</span>
+                                                    <span>{proposedPlan.installment_count} Taksit</span>
+                                                </div>
+                                            </div>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => setProposedPlan(null)}
+                                                className="w-full mt-3 h-7 text-[9px] font-bold uppercase text-red-500 hover:bg-red-50 hover:text-red-600"
+                                            >
+                                                Planı Kaldır
+                                            </Button>
+                                        </div>
+                                    )}
+                                </div>
                                 <div className="space-y-2 sm:col-span-2">
                                     <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{t('notes')}</Label>
                                     <Textarea
@@ -267,6 +348,14 @@ export default function NegotiationDialog({ offerId, currentPrice, currentCurren
                                                             {neg.source === 'Sales' ? `${t('salesTeam')}: ${neg.profiles?.full_name || 'Bilinmiyor'}` : t('customerProposal')}
                                                         </span>
                                                     </div>
+                                                    {neg.proposed_payment_plan && (
+                                                        <div className="flex items-center gap-2 mt-1">
+                                                            <Calculator className="h-3 w-3 text-blue-400" />
+                                                            <span className="text-[10px] font-bold text-blue-500 uppercase tracking-tight">
+                                                                {neg.proposed_payment_plan.installment_count || neg.proposed_payment_plan.payment_items?.filter((i: any) => i.payment_type === 'Installment').length || 0} Taksit Önerisi
+                                                            </span>
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 <div className="flex flex-col items-end gap-2">
                                                     <Badge className={`text-[10px] font-black px-2 py-0.5 rounded-lg border-none uppercase tracking-widest ${neg.status === 'Approved' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-100' :

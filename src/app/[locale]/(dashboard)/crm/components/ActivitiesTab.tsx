@@ -61,7 +61,9 @@ export default function ActivitiesTab({ activities, customers }: { activities: a
                         'Meeting': 'Meeting',
                         'Site Visit': 'Visit',
                         'Visit': 'Visit',
-                        'Email': 'Email'
+                        'Email': 'Email',
+                        'Online Meeting': 'OnlineMeeting',
+                        'Office Meeting': 'OfficeMeeting'
                     }
                     if (typeMap[data.type]) setType(typeMap[data.type])
                 }
@@ -138,6 +140,8 @@ export default function ActivitiesTab({ activities, customers }: { activities: a
                                     >
                                         <option value="Phone">Telefon Araması</option>
                                         <option value="Meeting">Toplantı</option>
+                                        <option value="OnlineMeeting">Online Toplantı</option>
+                                        <option value="OfficeMeeting">Satış Ofisinde Toplantı</option>
                                         <option value="Visit">Ziyaret</option>
                                         <option value="Email">Email</option>
                                     </select>

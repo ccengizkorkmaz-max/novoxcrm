@@ -20,6 +20,7 @@ export interface CalcParams {
     startDate: string;
     currency: string;
     interimPayments?: { month: number; amount: number }[];
+    installmentStartRule?: 'None' | 'NextMonth15th';
 }
 
 export interface CalcResult {
@@ -37,9 +38,9 @@ export function calculatePaymentSchedule(params: CalcParams): CalcResult {
         installmentCount,
         startDate,
         currency,
-        interimPayments = []
+        interimPayments = [],
+        installmentStartRule = 'NextMonth15th' // Default to user's requested rule
     } = params;
-
     const items: PaymentScheduleItem[] = [];
     const principalAfterDown = Math.max(0, principal - downPaymentAmount);
 
@@ -67,9 +68,7 @@ export function calculatePaymentSchedule(params: CalcParams): CalcResult {
         currency: currency,
         notes: 'Peşinat'
     });
-
     // Calculate monthly payment including interest portion
-    // Each installment = (PrincipalPortion + InterestPortion)
     const monthlyPayment = installmentCount > 0
         ? (principalForInstallments + totalInterest) / installmentCount
         : 0;
@@ -77,8 +76,16 @@ export function calculatePaymentSchedule(params: CalcParams): CalcResult {
     let currentDate = new Date(startDate);
 
     for (let i = 1; i <= installmentCount; i++) {
-        currentDate = new Date(currentDate);
-        currentDate.setMonth(currentDate.getMonth() + 1);
+        if (i === 1 && installmentStartRule === 'NextMonth15th') {
+            // Rule: 15th of the month following the down payment
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            currentDate.setDate(15);
+        } else {
+            // Standard: Next month same day (or next month if rule already applied)
+            currentDate = new Date(currentDate);
+            currentDate.setMonth(currentDate.getMonth() + 1);
+        }
+        
         const dateStr = currentDate.toISOString().split('T')[0];
 
         // Add Installment

@@ -41,6 +41,42 @@ export async function updateTenantProfile(formData: FormData) {
     return { success: true }
 }
 
+export async function updateFinancialSettings(formData: FormData) {
+    const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    // Get tenant_id from profile
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id, role')
+        .eq('id', user.id)
+        .single()
+
+    if (!profile?.tenant_id) return { error: 'No tenant found' }
+    if (profile.role !== 'owner' && profile.role !== 'admin') {
+        return { error: 'Yetkisiz işlem' }
+    }
+
+    const updates = {
+        installment_start_rule: formData.get('installment_start_rule') as string,
+    }
+
+    const { error } = await supabase
+        .from('tenants')
+        .update(updates)
+        .eq('id', profile.tenant_id)
+
+    if (error) {
+        console.error('Update Financial Settings Error:', error)
+        return { error: 'Finansal ayarlar güncellenirken bir hata oluştu. (Sütun eksik olabilir, lütfen yöneticiye başvurun)' }
+    }
+
+    revalidatePath('/settings')
+    return { success: true }
+}
+
 import { createAdminClient } from '@/lib/supabase/admin'
 
 export async function addUser(formData: FormData) {
