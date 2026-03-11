@@ -471,8 +471,12 @@ export default async function ProjectDetailPage(props: {
                             </div>
                             <div className="flex gap-2 items-center">
                                 <DeleteAllUnitsButton projectId={project.id} onDelete={deleteAllUnits} isAdmin={isAdmin} />
-                                <BatchUnitCreator projectId={project.id} action={batchCreateUnits} unitTypes={unitTypes || []} />
-                                <ExcelImport projectId={project.id} onImport={importUnitsFromExcel} />
+                                {isAdmin && (
+                                    <>
+                                        <BatchUnitCreator projectId={project.id} action={batchCreateUnits} unitTypes={unitTypes || []} />
+                                        <ExcelImport projectId={project.id} onImport={importUnitsFromExcel} />
+                                    </>
+                                )}
                                 <UnitExportButton units={units || []} projectName={project.name} />
                             </div>
                         </CardHeader>
@@ -499,7 +503,7 @@ export default async function ProjectDetailPage(props: {
                                     Projeye ait tüm dokümanları buradan yönetebilirsiniz.
                                 </p>
                             </div>
-                            <DocumentUpload projectId={project.id} onUpload={uploadDocument} />
+                            {isAdmin && <DocumentUpload projectId={project.id} onUpload={uploadDocument} />}
                         </CardHeader>
                         <CardContent>
                             <Table>
@@ -531,11 +535,13 @@ export default async function ProjectDetailPage(props: {
                                                                 <Download className="h-4 w-4" />
                                                             </Button>
                                                         </Link>
-                                                        <form action={handleDeleteDocument.bind(null, doc.id)}>
-                                                            <Button size="sm" variant="destructive" type="submit">
-                                                                <Trash2 className="h-4 w-4" />
-                                                            </Button>
-                                                        </form>
+                                                        {isAdmin && (
+                                                            <form action={handleDeleteDocument.bind(null, doc.id)}>
+                                                                <Button size="sm" variant="destructive" type="submit">
+                                                                    <Trash2 className="h-4 w-4" />
+                                                                </Button>
+                                                            </form>
+                                                        )}
                                                     </div>
                                                 </TableCell>
                                             </TableRow>

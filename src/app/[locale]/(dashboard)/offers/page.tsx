@@ -13,8 +13,12 @@ export default async function OffersPage(props: {
     const searchParams = await props.searchParams
     const query = searchParams.q as string
 
-    await checkOfferExpirations(false) // Check expirations on load, skip reval
     const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user?.id).single()
+    const isManager = profile?.role === 'manager' || profile?.role === 'admin' || profile?.role === 'owner'
+
+    await checkOfferExpirations(false) // Check expirations on load, skip reval
     const t = await getTranslations('Offers')
 
     // Fetch Offers
@@ -22,6 +26,10 @@ export default async function OffersPage(props: {
         .from('offers')
         .select('*, customers(full_name), units(unit_number, projects(name)), offer_negotiations(*), payment_plan')
         .neq('status', 'Closed') // Hide signed/closed offers
+
+    if (!isManager && user) {
+        baseQuery = baseQuery.eq('created_by', user.id)
+    }
 
     if (query) {
         // Search by customer name or unit number

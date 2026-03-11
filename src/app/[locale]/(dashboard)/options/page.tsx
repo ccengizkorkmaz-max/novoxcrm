@@ -9,6 +9,10 @@ export default async function OptionsPage(props: {
     const supabase = await createClient()
     const t = await getTranslations('Options')
 
+    const { data: { user } } = await supabase.auth.getUser()
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user?.id).single()
+    const isManager = profile?.role === 'manager' || profile?.role === 'admin' || profile?.role === 'owner'
+
     // Fetch units with status 'Reserved'
     // We join with projects to get project name
     // We try to join with sales to get customer info (since reserved units usually have a reservation sale)
@@ -20,6 +24,7 @@ export default async function OptionsPage(props: {
             sales(
                 id,
                 status,
+                assigned_to,
                 customers(full_name),
                 reservation_expiry,
                 final_price,
@@ -35,6 +40,12 @@ export default async function OptionsPage(props: {
         .eq('status', 'Reserved')
         .order('created_at', { ascending: false })
 
+    let filteredOptions = options || []
+    if (!isManager && user) {
+        filteredOptions = filteredOptions.filter((opt: any) =>
+            opt.sales && opt.sales.some((sale: any) => sale.assigned_to === user.id)
+        )
+    }
 
     // Fetch Payment Plan Templates
     const { data: templates } = await supabase
@@ -48,7 +59,7 @@ export default async function OptionsPage(props: {
                 <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
             </div>
 
-            <OptionList options={options || []} templates={templates || []} />
+            <OptionList options={filteredOptions} templates={templates || []} />
         </div>
     )
 

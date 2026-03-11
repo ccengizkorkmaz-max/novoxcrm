@@ -13,16 +13,18 @@ export async function getDeposits() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return []
 
-    const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single()
+    const { data: profile } = await supabase.from('profiles').select('tenant_id, role').eq('id', user.id).single()
     if (!profile?.tenant_id) return []
+
+    const isManager = profile?.role === 'manager' || profile?.role === 'admin' || profile?.role === 'owner'
 
     const { data: deposits, error } = await supabase
         .from('deposits')
         .select(`
             *,
             customer:customers(full_name),
-            sale:sales(unit_id, unit:units(unit_number, block)),
-            offer:offers(unit_id, unit:units(unit_number, block))
+            sale:sales(unit_id, assigned_to, unit:units(unit_number, block)),
+            offer:offers(unit_id, created_by, unit:units(unit_number, block))
         `)
         .eq('tenant_id', profile.tenant_id)
         .order('created_at', { ascending: false })
@@ -32,7 +34,17 @@ export async function getDeposits() {
         return []
     }
 
-    return deposits || []
+    let result = deposits || []
+
+    if (!isManager) {
+        result = result.filter(d => {
+            const saleAssignedTo = d.sale?.assigned_to || (Array.isArray(d.sale) && d.sale[0]?.assigned_to)
+            const offerCreatedBy = d.offer?.created_by || (Array.isArray(d.offer) && d.offer[0]?.created_by)
+            return saleAssignedTo === user.id || offerCreatedBy === user.id
+        })
+    }
+
+    return result
 }
 
 /**

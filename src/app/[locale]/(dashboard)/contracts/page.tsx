@@ -25,13 +25,15 @@ export default async function ContractsPage(props: {
 
     const { data: profile } = await supabase
         .from('profiles')
-        .select('tenant_id')
+        .select('tenant_id, role')
         .eq('id', user.id)
         .single()
 
     if (!profile?.tenant_id) {
         return <div>Tenant not found</div>
     }
+
+    const isManager = profile?.role === 'manager' || profile?.role === 'admin' || profile?.role === 'owner'
 
     // Fetch Contracts
     let baseQuery = supabase
@@ -45,6 +47,10 @@ export default async function ContractsPage(props: {
             project: projects(name)
         `)
         .eq('tenant_id', profile.tenant_id)
+
+    if (!isManager) {
+        baseQuery = baseQuery.eq('sales_rep_id', user.id)
+    }
 
     if (query) {
         // Search by contract number (ilike on contracts table)

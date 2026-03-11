@@ -127,6 +127,9 @@ export function NovoxSidebar({
                     <NavItem href="/contracts" icon={FileText} onClick={onElementClick}>
                         {labels.contracts || 'Contracts'}
                     </NavItem>
+                    <NavItem href="/finance/deposits" icon={Banknote} onClick={onElementClick}>
+                        {labels.deposits || 'Deposits'}
+                    </NavItem>
                     <NavItem href="/activities" icon={CalendarCheck} onClick={onElementClick}>
                         {labels.activities || 'Activities'}
                     </NavItem>
@@ -135,9 +138,6 @@ export function NovoxSidebar({
 
             {isManager && (
                 <>
-                    <NavItem href="/finance/deposits" icon={Banknote} onClick={onElementClick}>
-                        {labels.deposits || 'Deposits'}
-                    </NavItem>
                     <NavItem href="/commissions" icon={Trophy} onClick={onElementClick}>
                         {labels.commissions || 'Commissions'}
                     </NavItem>
