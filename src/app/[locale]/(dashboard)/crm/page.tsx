@@ -55,46 +55,65 @@ export default async function CRMPage(props: {
     const from = (page - 1) * itemsPerPage
     const to = from + itemsPerPage - 1
 
-    // 1. Build base sales query for filtered data
+    // 1. Get Current User Role
+    const { data: { user } } = await supabase.auth.getUser()
+    let isAdmin = false
+    let isManager = false
+    if (user) {
+        const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+        isAdmin = profile?.role === 'admin' || profile?.role === 'owner'
+        isManager = isAdmin || profile?.role === 'manager'
+    }
+
+    // 2. Build base sales query for filtered data
     let baseQuery = supabase
         .from('sales')
         .select('*, customers!inner(id, full_name, email, phone, customer_number), units(unit_number, price, currency, projects(id, name)), projects(id, name), profiles(full_name)', { count: 'exact' })
         .neq('status', 'Inbox') // Exclude inbox items (pending approval)
 
+    // Role-based filtering
+    if (!isManager && user) {
+        baseQuery = baseQuery.eq('assigned_to', user.id)
+    } else if (filterRep) {
+        baseQuery = baseQuery.eq('assigned_to', filterRep)
+    }
+
     if (filterProject) baseQuery = baseQuery.eq('project_id', filterProject)
-    if (filterRep) baseQuery = baseQuery.eq('assigned_to', filterRep)
     if (filterStatus) baseQuery = baseQuery.eq('status', filterStatus)
     if (filterSearch) {
         baseQuery = baseQuery.or(`full_name.ilike.%${filterSearch}%,phone.ilike.%${filterSearch}%,email.ilike.%${filterSearch}%`, { foreignTable: 'customers' })
     }
 
-    // 1.5 Get Current User Role
-    const { data: { user } } = await supabase.auth.getUser()
-    let isAdmin = false
-    if (user) {
-        const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-        isAdmin = profile?.role === 'admin' || profile?.role === 'owner'
-    }
-
-    // 1.6 Build Stats Query (reflects filters but ignores pagination)
+    // 3. Build Stats Query (reflects filters but ignores pagination)
     let statsQuery = supabase
         .from('sales')
         .select('status')
         .neq('status', 'Inbox')
 
+    if (!isManager && user) {
+        statsQuery = statsQuery.eq('assigned_to', user.id)
+    } else if (filterRep) {
+        statsQuery = statsQuery.eq('assigned_to', filterRep)
+    }
+
     if (filterProject) statsQuery = statsQuery.eq('project_id', filterProject)
-    if (filterRep) statsQuery = statsQuery.eq('assigned_to', filterRep)
     // We don't filter by filterStatus for stats because we want to see the whole pipeline even if one status is selected in the list
     if (filterSearch) {
         statsQuery = statsQuery.or(`full_name.ilike.%${filterSearch}%,phone.ilike.%${filterSearch}%,email.ilike.%${filterSearch}%`, { foreignTable: 'customers' })
     }
 
-    // 2. Fetch initial background data in parallel
+    // 4. Fetch initial background data in parallel
     // For Stats, we now use multiple headless count queries to bypass the 1000-record limit
     const getStatusCount = (status: string | string[]) => {
         let q = supabase.from('sales').select('*', { count: 'exact', head: true }).neq('status', 'Inbox')
+
+        if (!isManager && user) {
+            q = q.eq('assigned_to', user.id)
+        } else if (filterRep) {
+            q = q.eq('assigned_to', filterRep)
+        }
+
         if (filterProject) q = q.eq('project_id', filterProject)
-        if (filterRep) q = q.eq('assigned_to', filterRep)
         if (filterSearch) q = q.or(`full_name.ilike.%${filterSearch}%,phone.ilike.%${filterSearch}%,email.ilike.%${filterSearch}%`, { foreignTable: 'customers' })
 
         if (Array.isArray(status)) {
