@@ -1,150 +1,204 @@
 
-import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Clock, Calendar, Share2, BookOpen, ChevronRight } from 'lucide-react'
+import { notFound } from 'next/navigation'
+import { ArrowLeft, Clock, Calendar, Tag, Share2, MessageCircle } from 'lucide-react'
 import { wikiArticles } from '@/data/wiki-data'
-import { LeadCaptureModal } from '@/components/marketing/LeadCaptureModal'
-import { Button } from '@/components/ui/button'
+import type { Metadata } from 'next'
 
-export default async function WikiArticlePage({ params }: { params: Promise<{ slug: string }> }) {
+// Tüm slug'ları ve locale'leri Next.js'e bildirerek 404 hatasını önle
+export async function generateStaticParams() {
+    const locales = ['tr', 'en'];
+    return locales.flatMap((locale) =>
+        wikiArticles.map((article) => ({
+            locale,
+            slug: article.slug,
+        }))
+    );
+}
+
+// Her makale için SEO metadata
+export async function generateMetadata(
+    { params }: { params: Promise<{ slug: string; locale: string }> }
+): Promise<Metadata> {
     const { slug } = await params;
+    const article = wikiArticles.find(a => a.slug === slug);
+    if (!article) return {};
+    return {
+        title: `${article.title} | NovoxCRM Bilgi Bankası`,
+        description: article.excerpt,
+        keywords: article.tags?.join(', '),
+        openGraph: {
+            title: article.title,
+            description: article.excerpt,
+            type: 'article',
+            authors: [article.author],
+        },
+    };
+}
+
+// Markdown benzeri içeriği HTML'e dönüştür
+function formatContent(content: string) {
+    if (!content) return '';
+    return content
+        // Tabloları işle — önce satırları convert et
+        .replace(/^\|(.+)\|$/gim, (match) => {
+            const cells = match.split('|').filter(c => c.trim() !== '');
+            return `<tr>${cells.map(c => `<td class="border border-slate-700 px-4 py-2 text-slate-400">${c.trim()}</td>`).join('')}</tr>`;
+        })
+        .replace(/(<tr>[\s\S]*?<\/tr>\n?)+/g, (match) => {
+            return `<table class="w-full border-collapse border border-slate-700 my-8 text-sm">${match}</table>`;
+        })
+        // Başlıklar
+        .replace(/^# (.*$)/gim, '<h1 class="text-3xl font-bold mt-12 mb-6 text-white">$1</h1>')
+        .replace(/^## (.*$)/gim, '<h2 class="text-2xl font-bold mt-10 mb-5 text-white">$1</h2>')
+        .replace(/^### (.*$)/gim, '<h3 class="text-xl font-semibold mt-8 mb-4 text-slate-200">$1</h3>')
+        // Listeler
+        .replace(/^\* (.*$)/gim, '<li class="ml-6 mb-2 list-disc text-slate-400">$1</li>')
+        .replace(/^- (.*$)/gim, '<li class="ml-6 mb-2 list-disc text-slate-400">$1</li>')
+        // Numaralı listeler
+        .replace(/^\d+\. (.*$)/gim, '<li class="ml-6 mb-2 list-decimal text-slate-400">$1</li>')
+        // Bold
+        .replace(/\*\*(.*?)\*\*/gim, '<strong class="text-blue-400 font-semibold">$1</strong>')
+        // İtalik
+        .replace(/\*(.*?)\*/gim, '<em class="text-slate-300">$1</em>')
+        // Linkler
+        .replace(/\[(.*?)\]\((.*?)\)/gim, '<a href="$2" class="text-blue-400 hover:underline">$1</a>')
+        // Paragraflar
+        .replace(/\n\n/gim, '</p><p class="mb-6 text-slate-400 leading-relaxed">');
+}
+
+// Next.js 15: params is a Promise — must be awaited
+export default async function ArticlePage({ params }: { params: Promise<{ slug: string; locale: string }> }) {
+    const { slug, locale } = await params;
+
     const article = wikiArticles.find(a => a.slug === slug);
 
     if (!article) {
         notFound();
     }
 
-    const relatedArticles = wikiArticles
-        .filter(a => a.slug !== article.slug && (a.category === article.category))
-        .slice(0, 2);
+    const relatedArticles = wikiArticles.filter(a =>
+        article.relatedSlugs?.includes(a.slug)
+    ).slice(0, 3);
+
+    // relatedSlugs boşsa aynı kategoriden öneri getir
+    const suggestedArticles = relatedArticles.length > 0
+        ? relatedArticles
+        : wikiArticles.filter(a => a.category === article.category && a.slug !== article.slug).slice(0, 3);
 
     return (
         <div className="bg-slate-950 min-h-screen pt-32 pb-20">
-            <div className="container mx-auto px-4">
-                <div className="max-w-4xl mx-auto">
-                    {/* Breadcrumbs & Back */}
-                    <div className="flex items-center gap-4 mb-12">
-                        <Link href="/wiki" className="flex items-center text-slate-400 hover:text-white transition-colors text-sm font-medium">
-                            <ArrowLeft size={16} className="mr-2" /> Wiki'ye Dön
-                        </Link>
-                        <span className="w-1 h-1 rounded-full bg-slate-700" />
-                        <span className="text-blue-400 text-sm font-medium uppercase tracking-wider">{article.category}</span>
-                    </div>
+            <div className="container mx-auto px-4 max-w-4xl">
+                {/* Back Link */}
+                <Link
+                    href={`/${locale}/wiki`}
+                    className="inline-flex items-center gap-2 text-slate-500 hover:text-blue-400 transition-colors mb-12 group"
+                >
+                    <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
+                    Bilgi Bankası'na Geri Dön
+                </Link>
 
-                    {/* Article Header */}
-                    <header className="mb-12">
-                        <h1 className="text-4xl md:text-5xl font-bold text-white mb-8 leading-tight tracking-tight">
-                            {article.title}
-                        </h1>
-
-                        <div className="flex flex-wrap items-center gap-6 text-slate-500 text-sm py-6 border-y border-slate-900">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-sm">
-                                    {article.author.split(' ').map(n => n[0]).join('')}
-                                </div>
-                                <div>
-                                    <div className="text-slate-200 font-bold leading-none mb-1">{article.author}</div>
-                                    <div className="text-slate-500 text-xs">{article.authorTitle}</div>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <Calendar size={16} />
-                                <span>{article.date}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <Clock size={16} />
-                                <span>{article.readTime} okuma</span>
-                            </div>
-                            <button className="flex items-center gap-2 hover:text-white transition-colors ml-auto">
-                                <Share2 size={16} />
-                                <span>Paylaş</span>
-                            </button>
-                        </div>
-                    </header>
-
-                    {/* Article Content */}
-                    <article className="prose prose-invert prose-blue max-w-none mb-20">
-                        {/* 
-                            Note: In a real app we'd use react-markdown here. 
-                            For this implementation we will map the paragraphs manually to ensure styling.
-                        */}
-                        <div className="article-body space-y-6 text-slate-300 text-[17px] leading-relaxed">
-                            {article.content.trim().split('\n\n').map((para, i) => {
-                                if (para.startsWith('# ')) {
-                                    return <h1 key={i} className="text-2xl font-semibold text-white mt-10 mb-4">{para.replace('# ', '')}</h1>
-                                }
-                                if (para.startsWith('## ')) {
-                                    return <h2 key={i} className="text-xl font-semibold text-white mt-8 mb-3 border-l-2 border-blue-600/50 pl-4">{para.replace('## ', '')}</h2>
-                                }
-                                if (para.startsWith('### ')) {
-                                    return <h3 key={i} className="text-lg font-semibold text-blue-400 mt-6 mb-2">{para.replace('### ', '')}</h3>
-                                }
-                                if (para.includes('1. **') || para.includes('* **')) {
-                                    return (
-                                        <div key={i} className="bg-slate-900/40 p-5 rounded-xl border border-slate-800/50 my-6">
-                                            {para.split('\n').map((line, j) => (
-                                                <div key={j} className="mb-2 flex gap-3 text-base">
-                                                    <span className="text-blue-500/70">•</span>
-                                                    <span dangerouslySetInnerHTML={{ __html: line.replace(/\*\*(.*?)\*\*/g, '<b class="text-white font-semibold">$1</b>').replace(/^\d+\.\s+/, '').replace(/^\*\s+/, '') }} />
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )
-                                }
-                                return <p key={i} className="mb-4" dangerouslySetInnerHTML={{ __html: para.replace(/\*\*(.*?)\*\*/g, '<b class="text-white font-semibold">$1</b>') }} />
-                            })}
-                        </div>
-                    </article>
-
-                    {/* Inline CTA Card */}
-                    <div className="p-8 md:p-12 rounded-3xl bg-gradient-to-br from-blue-900/40 to-slate-900 border border-blue-500/20 mb-20 relative overflow-hidden group">
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/10 blur-[80px] rounded-full group-hover:bg-blue-600/20 transition-all pointer-events-none" />
-                        <div className="relative z-10 flex flex-col md:flex-row items-center gap-8">
-                            <div className="flex-1 text-center md:text-left">
-                                <h3 className="text-2xl font-bold text-white mb-4">Dijital Dönüşüme Hazır mısınız?</h3>
-                                <p className="text-slate-400">
-                                    Novo CRM'in bu makalede bahsedilen süreçleri projenizde nasıl otomatiğe bağladığını bizzat görün.
-                                </p>
-                            </div>
-                            <LeadCaptureModal
-                                title="Modern Satış Danışmanlığı"
-                                description="Geleceğin proje satış ofisini beraber kurgulayalım. Ücretsiz demo için bilgilerinizi bırakın."
-                                resourceName={`Wiki_CTA_${article.slug}`}
-                            >
-                                <Button size="lg" className="bg-white text-blue-900 hover:bg-slate-100 rounded-full font-bold px-8 h-14 shrink-0 transition-transform hover:scale-105">
-                                    HEMEN DEMO İSTEYİN
-                                </Button>
-                            </LeadCaptureModal>
+                {/* Article Header */}
+                <header className="mb-12">
+                    <div className="flex items-center gap-3 mb-6">
+                        <span className="px-3 py-1 rounded-lg bg-blue-500/10 text-blue-400 text-xs font-bold uppercase tracking-wider">
+                            {article.category}
+                        </span>
+                        <div className="w-1 h-1 rounded-full bg-slate-700" />
+                        <div className="flex items-center gap-1.5 text-slate-500 text-xs italic">
+                            <Clock size={14} /> {article.readTime} okuma hızı
                         </div>
                     </div>
 
-                    {/* Footer Nav */}
-                    <div className="flex border-t border-slate-900 pt-12 items-center justify-between">
-                        <div>
-                            {relatedArticles.length > 0 && (
-                                <>
-                                    <h4 className="text-slate-500 text-sm font-medium mb-6 uppercase tracking-widest">İlgili Makaleler</h4>
-                                    <div className="grid sm:grid-cols-2 gap-6">
-                                        {relatedArticles.map(rel => (
-                                            <Link key={rel.slug} href={`/wiki/${rel.slug}`} className="group block">
-                                                <h5 className="text-white font-bold group-hover:text-blue-400 transition-colors line-clamp-2">{rel.title}</h5>
-                                                <div className="flex items-center text-xs text-slate-500 mt-2 font-medium">
-                                                    OKU <ChevronRight size={12} className="ml-1 group-hover:translate-x-1 transition-transform" />
-                                                </div>
-                                            </Link>
-                                        ))}
-                                    </div>
-                                </>
-                            )}
-                        </div>
-                        <div className="hidden md:block">
-                            <div className="w-16 h-16 rounded-full border border-slate-800 flex items-center justify-center text-slate-600">
-                                <BookOpen size={24} />
+                    <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white mb-8 tracking-tight leading-tight">
+                        {article.title}
+                    </h1>
+
+                    <div className="flex flex-wrap items-center justify-between gap-6 py-8 border-y border-slate-800/50">
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-lg text-white font-bold shadow-lg shadow-blue-900/20">
+                                {article.author.split(' ').map(n => n[0]).join('')}
+                            </div>
+                            <div>
+                                <div className="text-slate-200 font-bold">{article.author}</div>
+                                <div className="text-slate-500 text-sm font-medium">{article.authorTitle}</div>
                             </div>
                         </div>
+                        <div className="flex items-center gap-6 text-slate-500 text-sm">
+                            <div className="flex items-center gap-2">
+                                <Calendar size={16} /> {article.date}
+                            </div>
+                            <div className="flex gap-4">
+                                <button className="hover:text-blue-400 transition-colors"><Share2 size={18} /></button>
+                                <button className="hover:text-blue-400 transition-colors"><MessageCircle size={18} /></button>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+
+                {/* Article Content */}
+                <article className="prose prose-invert prose-lg max-w-none mb-20 prose-headings:text-white prose-p:text-slate-400 prose-strong:text-blue-400 prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline prose-li:text-slate-400 prose-code:text-indigo-300">
+                    <div dangerouslySetInnerHTML={{ __html: formatContent(article.content) }} />
+                </article>
+
+                {/* Tags */}
+                {article.tags && (
+                    <div className="flex flex-wrap gap-2 mb-20 py-8 border-t border-slate-800/50">
+                        <span className="text-slate-500 mr-2 flex items-center gap-1.5 text-sm uppercase font-bold tracking-widest">
+                            <Tag size={16} /> Etiketler:
+                        </span>
+                        {article.tags.map(tag => (
+                            <span key={tag} className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 text-xs hover:border-blue-500/30 transition-all cursor-default">
+                                #{tag}
+                            </span>
+                        ))}
+                    </div>
+                )}
+
+                {/* Suggested Articles */}
+                {suggestedArticles.length > 0 && (
+                    <section className="mt-20">
+                        <h2 className="text-2xl font-bold text-white mb-10 flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400">
+                                <Clock size={18} />
+                            </div>
+                            İlginizi Çekebilecek Diğer Yazılar
+                        </h2>
+                        <div className="grid md:grid-cols-2 gap-6">
+                            {suggestedArticles.map(rel => (
+                                <Link
+                                    key={rel.slug}
+                                    href={`/${locale}/wiki/${rel.slug}`}
+                                    className="group p-6 rounded-3xl bg-slate-900/50 border border-slate-800 hover:border-blue-500/20 transition-all"
+                                >
+                                    <span className="text-[10px] font-bold text-blue-400 uppercase tracking-widest block mb-3">{rel.category}</span>
+                                    <h3 className="text-lg font-bold text-white group-hover:text-blue-400 transition-colors mb-2">{rel.title}</h3>
+                                    <p className="text-slate-500 text-sm line-clamp-2">{rel.excerpt}</p>
+                                </Link>
+                            ))}
+                        </div>
+                    </section>
+                )}
+
+                {/* Newsletter Box */}
+                <div className="mt-32 p-10 rounded-[40px] bg-gradient-to-br from-blue-900/20 to-slate-900 border border-blue-500/10 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 blur-[100px] -mr-32 -mt-32" />
+                    <h3 className="text-2xl font-bold text-white mb-4">Bu makale yardımcı oldu mu?</h3>
+                    <p className="text-slate-400 mb-8 max-w-md">
+                        Haftalık gayrimenkul teknoloji bültenimize abone olarak sektördeki son gelişmeleri takip edebilirsiniz.
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-3">
+                        <input
+                            type="email"
+                            placeholder="E-posta adresiniz"
+                            className="flex-1 bg-slate-950 border border-slate-800 rounded-2xl px-5 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                        />
+                        <button className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-2xl font-bold transition-all shadow-lg shadow-blue-900/20">
+                            Abone Ol
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
-    )
+    );
 }

@@ -4,15 +4,20 @@ export interface WikiArticle {
     title: string;
     excerpt: string;
     content: string;
-    category: 'Strateji' | 'Teknoloji' | 'Süreç';
+    category: string;
     author: string;
     authorTitle: string;
     date: string;
     readTime: string;
     image?: string;
+    tags?: string[];
+    relatedSlugs?: string[];
 }
 
+import { generatedArticles } from './wiki-articles-gen';
+
 export const wikiArticles: WikiArticle[] = [
+    ...generatedArticles,
     {
         slug: 'gayrimenkul-satisinda-excel-neden-yetersiz',
         title: 'Gayrimenkul Satışında Excel Neden Artık Yetersiz Kalıyor?',

@@ -25,7 +25,7 @@ export function Navbar() {
     const navLinks = [
         { name: t('solutions_realestate'), href: '/solutions/gayrimenkul-crm' },
         { name: t('solutions_construction'), href: '/solutions/insaat-crm' },
-        { name: t('solutions'), href: '/solutions' },
+        { name: t('wiki'), href: '/wiki' },
         { name: t('pricing'), href: '/#pricing' },
     ]
 

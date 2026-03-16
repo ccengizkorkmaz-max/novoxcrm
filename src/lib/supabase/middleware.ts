@@ -60,6 +60,7 @@ export async function updateSession(request: NextRequest, response?: NextRespons
         pathWithoutLocale.startsWith('/solutions') ||
         pathWithoutLocale.startsWith('/system-details') ||
         pathWithoutLocale.startsWith('/wiki') ||
+        pathWithoutLocale.startsWith('/ebooks') ||
         pathWithoutLocale.startsWith('/login') ||
         pathWithoutLocale.startsWith('/customerservices/login') ||
         pathWithoutLocale.startsWith('/auth') ||
@@ -94,6 +95,7 @@ export async function updateSession(request: NextRequest, response?: NextRespons
             pathWithoutLocale.startsWith('/payment-plan-calculator') ||
             pathWithoutLocale.startsWith('/solutions') ||
             pathWithoutLocale.startsWith('/system-details') ||
+            pathWithoutLocale.startsWith('/ebooks') ||
             pathWithoutLocale.startsWith('/wiki')
 
         // If customer tries to access dashboard or broker portal, redirect to portal
