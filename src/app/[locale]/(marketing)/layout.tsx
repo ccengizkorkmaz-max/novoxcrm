@@ -3,7 +3,7 @@ import { Footer } from '@/components/marketing/Footer'
 import { Navbar } from '@/components/marketing/Navbar'
 
 export const metadata: Metadata = {
-    metadataBase: new URL('https://novocrm.com'),
+    metadataBase: new URL('https://novoxcrm.com'),
     title: {
         default: 'Novo CRM - İnşaat ve Gayrimenkul Proje Satış Yazılımı',
         template: '%s | Novo CRM'
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     openGraph: {
         type: 'website',
         locale: 'tr_TR',
-        url: 'https://novocrm.com',
+        url: 'https://novoxcrm.com',
         title: 'Novo CRM - Konut Satışlarını Hızlandırın',
         description: 'Excel karmaşasına son verin. Satış, pazarlama ve broker yönetimini dijitalleştirin.',
         siteName: 'Novo CRM',

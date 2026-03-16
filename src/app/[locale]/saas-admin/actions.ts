@@ -283,7 +283,7 @@ export async function resetTenantPassword(tenantId: string, newPassword: string)
     const resend = new Resend(process.env.RESEND_API_KEY)
     try {
         await resend.emails.send({
-            from: 'Novo CRM Destek <destek@novocrm.com>',
+            from: 'Novo CRM Destek <destek@novoxcrm.com>',
             to: profile.email,
             subject: 'Novo CRM Hesabınız - Şifre Güncellemesi',
             html: `

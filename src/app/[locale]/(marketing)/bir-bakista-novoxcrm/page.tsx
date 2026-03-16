@@ -130,7 +130,7 @@ export default function GuidePage() {
 
                 {/* Print Footer */}
                 <div className="hidden print:block mt-20 pt-8 border-t border-slate-200 text-center text-xs text-slate-500">
-                    <p>© 2026 Novo CRM. Tüm hakları saklıdır. | www.novocrm.com | info@novocrm.com</p>
+                    <p>© 2026 Novo CRM. Tüm hakları saklıdır. | www.novoxcrm.com | info@novoxcrm.com</p>
                 </div>
             </main>
 

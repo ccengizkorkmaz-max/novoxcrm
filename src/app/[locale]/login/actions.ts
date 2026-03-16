@@ -23,7 +23,7 @@ export async function login(formData: FormData) {
             .single()
 
         if (customer) {
-            loginEmail = `${emailOrUsername.toLowerCase()}@portal.novocrm.com`
+            loginEmail = `${emailOrUsername.toLowerCase()}@portal.novoxcrm.com`
         }
     }
 

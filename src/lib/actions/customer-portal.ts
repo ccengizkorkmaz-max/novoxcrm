@@ -19,7 +19,7 @@ export async function syncPortalAccess(customerId: string, username: string, pas
     if (customerError || !customer) return { error: 'Customer not found' }
 
     // 2. Format virtual email
-    const virtualEmail = `${cleanUsername}@portal.novocrm.com`
+    const virtualEmail = `${cleanUsername}@portal.novoxcrm.com`
 
     // 3. Admin Client
     const { createAdminClient } = await import('@/lib/supabase/admin')
