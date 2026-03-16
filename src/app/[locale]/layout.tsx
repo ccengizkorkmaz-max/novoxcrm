@@ -20,7 +20,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://novocrm.com'),
+  metadataBase: new URL('https://novoxcrm.com'),
   title: "Novo CRM | İnşaat & Gayrimenkul CRM – Konut Projeleri için Satış Yönetimi",
   description: "Novo CRM, inşaat ve gayrimenkul firmaları için özel geliştirilmiş CRM yazılımıdır. Konut projeleri, stok takibi, broker yönetimi ve satış süreçlerini tek platformda yönetin.",
   manifest: '/manifest.json',

@@ -288,7 +288,7 @@ export async function captureMarketingLead(formData: FormData) {
 
     try {
         await resend.emails.send({
-            from: 'Novo CRM Leads <onboarding@novocrm.com>',
+            from: 'Novo CRM Leads <onboarding@novoxcrm.com>',
             to: 'ccengizkorkmaz@gmail.com', // Admin Email
             subject: `New Lead: ${resource}`,
             html: `
@@ -333,7 +333,7 @@ export async function sendVerificationCode(email: string) {
     // 3. Send Email
     try {
         const { error } = await resend.emails.send({
-            from: 'Novo CRM <onboarding@novocrm.com>',
+            from: 'Novo CRM <onboarding@novoxcrm.com>',
             to: email,
             subject: 'Broker Onay Kodu',
             html: `
@@ -508,7 +508,7 @@ export async function processBrokerApplication(applicationId: string, status: 'A
             const resend = new Resend(process.env.RESEND_API_KEY)
 
             // Using verified domain provided by user
-            const fromAddress = 'Novo CRM <noreply@novocrm.com>'
+            const fromAddress = 'Novo CRM <noreply@novoxcrm.com>'
 
             await resend.emails.send({
                 from: fromAddress,
@@ -545,7 +545,7 @@ export async function processBrokerApplication(applicationId: string, status: 'A
             // Send "Approved" Email (No Password)
             const resend = new Resend(process.env.RESEND_API_KEY)
             await resend.emails.send({
-                from: 'Novo CRM <noreply@novocrm.com>',
+                from: 'Novo CRM <noreply@novoxcrm.com>',
                 to: app.email,
                 subject: 'Broker Başvurunuz Onaylandı',
                 html: `
@@ -1669,7 +1669,7 @@ export async function sendBrokerReminderEmail(applicationId: string) {
 
     try {
         await resend.emails.send({
-            from: 'Novo CRM <noreply@novocrm.com>',
+            from: 'Novo CRM <noreply@novoxcrm.com>',
             to: app.email,
             subject: 'Hatırlatma: Hesabınızı Oluşturun - Novo Broker Programı',
             html: `

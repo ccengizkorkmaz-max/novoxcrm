@@ -56,7 +56,7 @@ export function Footer() {
                     <div>
                         <h4 className="text-white font-bold mb-6">{t('contactTitle')}</h4>
                         <ul className="space-y-4 text-sm">
-                            <li>E-posta: info@novocrm.com</li>
+                            <li>E-posta: info@novoxcrm.com</li>
                             <li>Adres: İstanbul, Türkiye</li>
                             <li className="pt-2">
                                 <div className="p-4 rounded-xl bg-slate-900 border border-slate-800">

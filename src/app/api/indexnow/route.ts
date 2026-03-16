@@ -61,12 +61,12 @@ async function handler(request: Request) {
             const batch = urlsToSubmit.slice(i, i + BATCH_SIZE)
 
             const payload = {
-                host: 'novocrm.com',
+                host: 'novoxcrm.com',
                 key: apiKey,
                 // Assuming the key file is hosted at root as [API_KEY].txt or similar
                 // If not, keyLocation is optional if host matches site verified in Bing Webmaster Tools
                 // but recommended. Let's assume standard implementation.
-                keyLocation: `https://novocrm.com/${apiKey}.txt`,
+                keyLocation: `https://novoxcrm.com/${apiKey}.txt`,
                 urlList: batch
             }
 

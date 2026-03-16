@@ -4,7 +4,7 @@ import { wikiArticles } from '@/data/wiki-data'
 import { createClient } from '@/lib/supabase/server'
 
 export async function getSitemapUrls(): Promise<MetadataRoute.Sitemap> {
-    const baseUrl = 'https://novocrm.com' // Using the actual domain
+    const baseUrl = 'https://novoxcrm.com' // Using the actual domain
     const supabase = await createClient()
 
     // 1. Base marketing routes
