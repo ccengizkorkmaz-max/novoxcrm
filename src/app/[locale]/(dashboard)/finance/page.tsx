@@ -121,7 +121,14 @@ export default async function FinancePage(props: {
                                     </div>
                                     <div className="p-3 rounded-lg border border-slate-100 text-center bg-blue-50/50">
                                         <p className="text-[10px] text-blue-600 uppercase font-bold">Aktif Vade</p>
-                                        <p className="text-xl font-black text-blue-700">60 GÜN</p>
+                                        <p className="text-xl font-black text-blue-700">
+                                            {(() => {
+                                                const nearestPaper = papers.filter(p => p.status === 'Portföyde')[0]
+                                                if (!nearestPaper?.due_date) return '-'
+                                                const daysLeft = Math.ceil((new Date(nearestPaper.due_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+                                                return daysLeft > 0 ? `${daysLeft} GÜN` : 'Vadesi Geçti'
+                                            })()}
+                                        </p>
                                     </div>
                                 </div>
                                 <p className="text-[11px] text-muted-foreground italic text-center">
