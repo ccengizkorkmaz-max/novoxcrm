@@ -271,17 +271,22 @@ export async function deleteUser(userId: string) {
     try {
         const adminClient = createAdminClient()
 
-        // 1. Delete from Auth
-        const { error: authError } = await adminClient.auth.admin.deleteUser(userId)
-        if (authError) throw authError
+        // 1. First deactivate and detach profile to break any FK constraints
+        //    (e.g. sales.assigned_to, activities.created_by referencing profiles.id)
+        await adminClient
+            .from('profiles')
+            .update({ is_active: false, tenant_id: null })
+            .eq('id', userId)
 
-        // 2. Delete from Profiles
-        const { error: profError } = await supabase
+        // 2. Try to delete profile row (best effort - may still have FKs from other tables)
+        await adminClient
             .from('profiles')
             .delete()
             .eq('id', userId)
 
-        if (profError) console.error('Profile cleanup error:', profError)
+        // 3. Delete from Supabase Auth (critical step)
+        const { error: authError } = await adminClient.auth.admin.deleteUser(userId)
+        if (authError) throw authError
 
         revalidatePath('/settings')
         return { success: true }
