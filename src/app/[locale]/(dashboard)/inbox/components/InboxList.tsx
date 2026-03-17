@@ -94,11 +94,35 @@ export function InboxList({ initialItems }: InboxListProps) {
         }
     }
 
+    const parseMessageFields = (item: InboxItem) => {
+        const message = item.message || ''
+
+        // Try to parse name from message first
+        const nameMatch = message.match(/Ad\s+Soyad:\s*([^:\n\r]+?)(?=\s*(?:E-posta|Telefon|Konu|Proje|$)|\r|\n)/i)
+        const parsedName = nameMatch ? nameMatch[1].trim() : null
+
+        // Try to parse email from message
+        const emailMatch = message.match(/(?:E-posta Adresi|E-posta):\s*([^:\n\r\s]+?)(?=\s*(?:Ad Soyad|Telefon|Konu|Proje|$)|\r|\n)/i)
+        const parsedEmail = emailMatch ? emailMatch[1].trim() : null
+
+        // Try to parse phone from message
+        const phoneMatch = message.match(/Telefon:\s*([^:\n\r\s]+?)(?=\s*(?:Ad Soyad|E-posta|Konu|Proje|$)|\r|\n)/i)
+        const parsedPhone = phoneMatch ? phoneMatch[1].trim() : null
+
+        return {
+            name: parsedName || item.name || '',
+            email: parsedEmail || item.email || '',
+            phone: parsedPhone || item.phone || '',
+        }
+    }
+
     const handleViewItem = (item: InboxItem) => {
         setViewingItem(item)
-        setEditName(item.name || '')
-        setEditEmail(item.email || '')
-        setEditPhone(item.phone || '')
+        // Auto-parse message fields on open; fallback to DB values if not found
+        const parsed = parseMessageFields(item)
+        setEditName(parsed.name)
+        setEditEmail(parsed.email)
+        setEditPhone(parsed.phone)
     }
 
     const handleParseMessage = () => {
