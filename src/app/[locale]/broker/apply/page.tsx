@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,8 +13,10 @@ import { toast } from 'sonner'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 
-export default function BrokerApplyPage() {
+function BrokerApplyContent() {
     const t = useTranslations('Broker.apply')
+    const searchParams = useSearchParams()
+    const tenantId = searchParams.get('tenant') || ''
     const [loading, setLoading] = useState(false)
     const [verifying, setVerifying] = useState(false)
     const [success, setSuccess] = useState(false)
@@ -110,6 +113,7 @@ export default function BrokerApplyPage() {
                 <CardContent className="p-8">
                     {step === 1 ? (
                         <form onSubmit={handleRequestCode} className="space-y-6">
+                            <input type="hidden" name="tenant_id" value={tenantId} />
                             <div className="space-y-2">
                                 <Label htmlFor="email" className="text-slate-700 font-bold">{t('emailLabel')}</Label>
                                 <div className="relative">
@@ -133,6 +137,7 @@ export default function BrokerApplyPage() {
                     ) : (
                         <form onSubmit={handleSubmit} className="space-y-6">
                             <input type="hidden" name="email" value={email} />
+                            <input type="hidden" name="tenant_id" value={tenantId} />
 
                             <div className="bg-blue-50 p-4 rounded-2xl mb-6 flex items-start gap-3">
                                 <ShieldCheck className="h-5 w-5 text-blue-600 mt-0.5" />
@@ -193,5 +198,17 @@ export default function BrokerApplyPage() {
                 </CardContent>
             </Card>
         </div>
+    )
+}
+
+export default function BrokerApplyPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+            </div>
+        }>
+            <BrokerApplyContent />
+        </Suspense>
     )
 }

@@ -311,7 +311,8 @@ export async function captureMarketingLead(formData: FormData) {
  * Public: Send Verification Code
  */
 export async function sendVerificationCode(email: string) {
-    const supabase = await createClient()
+    // Use admin client to bypass RLS - this is called from a public unauthenticated page
+    const supabaseAdmin = createAdminClient()
     const resend = new Resend(process.env.RESEND_API_KEY)
 
     // 1. Generate 6-digit code
@@ -319,7 +320,7 @@ export async function sendVerificationCode(email: string) {
     const expires_at = new Date(Date.now() + 10 * 60 * 1000).toISOString() // 10 mins
 
     // 2. Store in DB
-    const { error: dbError } = await supabase.from('broker_verification_codes').insert({
+    const { error: dbError } = await supabaseAdmin.from('broker_verification_codes').insert({
         email,
         code,
         expires_at
@@ -365,13 +366,16 @@ export async function sendVerificationCode(email: string) {
  * Public: Submit Broker Application
  */
 export async function submitBrokerApplication(formData: FormData) {
+    // Use admin client to bypass RLS - this is a public unauthenticated form submission
+    const supabaseAdmin = createAdminClient()
+    // Use regular client only for verification code check (public table)
     const supabase = await createClient()
 
     const email = formData.get('email') as string
     const code = formData.get('code') as string
 
     // 1. Verify Code
-    const { data: verif, error: verifError } = await supabase
+    const { data: verif, error: verifError } = await supabaseAdmin
         .from('broker_verification_codes')
         .select('*')
         .eq('email', email)
@@ -382,6 +386,7 @@ export async function submitBrokerApplication(formData: FormData) {
         .maybeSingle()
 
     if (verifError || !verif) {
+        console.error('Verification error:', verifError)
         return { error: 'Doğrulama kodu geçersiz veya süresi dolmuş.' }
     }
 
@@ -391,13 +396,15 @@ export async function submitBrokerApplication(formData: FormData) {
     const phone = formData.get('phone') as string
     const notes = formData.get('notes') as string
 
-    const { error } = await supabase.from('broker_applications').insert({
+    // Insert using admin client to bypass RLS for unauthenticated users
+    const { error } = await supabaseAdmin.from('broker_applications').insert({
         tenant_id: tenant_id || null,
         full_name,
         company_name,
         email,
         phone,
-        notes
+        notes,
+        status: 'Pending'
     })
 
     if (error) {
@@ -405,8 +412,8 @@ export async function submitBrokerApplication(formData: FormData) {
         return { error: 'Başvuru iletilemedi.' }
     }
 
-    // Optional: Clean up code
-    await supabase.from('broker_verification_codes').delete().eq('id', verif.id)
+    // Optional: Clean up verification code
+    await supabaseAdmin.from('broker_verification_codes').delete().eq('id', verif.id)
 
     return { success: true }
 }
