@@ -513,12 +513,10 @@ export async function processBrokerApplication(applicationId: string, status: 'A
 
             // Send Email with Password
             const resend = new Resend(process.env.RESEND_API_KEY)
-
-            // Using verified domain provided by user
-            const fromAddress = 'Novo CRM <noreply@novoxcrm.com>'
+            const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://novoxcrm.com'
 
             await resend.emails.send({
-                from: fromAddress,
+                from: 'Novo CRM <noreply@novoxcrm.com>',
                 to: app.email,
                 subject: 'Broker Başvurunuz Onaylandı - Giriş Bilgileri',
                 html: `
@@ -532,7 +530,7 @@ export async function processBrokerApplication(applicationId: string, status: 'A
                             <p style="margin: 5px 0;">Şifre: <strong>${tempPassword}</strong></p>
                         </div>
                         <p>Giriş yaptıktan sonra şifrenizi değiştirmenizi öneririz.</p>
-                        <a href="${process.env.NEXT_PUBLIC_APP_URL}/login" style="display: inline-block; background-color: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Giriş Yap</a>
+                        <a href="${appUrl}/login" style="display: inline-block; background-color: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Giriş Yap</a>
                     </div>
                 `
             })
@@ -551,6 +549,7 @@ export async function processBrokerApplication(applicationId: string, status: 'A
 
             // Send "Approved" Email (No Password)
             const resend = new Resend(process.env.RESEND_API_KEY)
+            const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://novoxcrm.com'
             await resend.emails.send({
                 from: 'Novo CRM <noreply@novoxcrm.com>',
                 to: app.email,
@@ -560,7 +559,7 @@ export async function processBrokerApplication(applicationId: string, status: 'A
                         <h2 style="color: #4F46E5;">Başvurunuz Onaylandı!</h2>
                         <p>Merhaba <strong>${app.full_name}</strong>,</p>
                         <p>Broker başvurunuz onaylanmıştır. Mevcut hesabınızla giriş yaparak broker panelinize erişebilirsiniz.</p>
-                        <a href="${process.env.NEXT_PUBLIC_APP_URL}/dashboard" style="display: inline-block; background-color: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Panele Git</a>
+                        <a href="${appUrl}/broker" style="display: inline-block; background-color: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Broker Paneline Git</a>
                     </div>
                 `
             })
