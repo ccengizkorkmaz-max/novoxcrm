@@ -49,6 +49,9 @@ export default async function CRMPage(props: {
     const filterRep = params.r as string
     const filterStatus = params.s as string
     const filterSearch = params.q as string
+    const filterCustomer = params.c as string
+    const filterDateFrom = params.df as string
+    const filterDateTo = params.dt as string
 
     const page = Number(searchParams.page) || 1
     const itemsPerPage = 50
@@ -80,6 +83,9 @@ export default async function CRMPage(props: {
 
     if (filterProject) baseQuery = baseQuery.eq('project_id', filterProject)
     if (filterStatus) baseQuery = baseQuery.eq('status', filterStatus)
+    if (filterCustomer) baseQuery = baseQuery.eq('customer_id', filterCustomer)
+    if (filterDateFrom) baseQuery = baseQuery.gte('created_at', filterDateFrom)
+    if (filterDateTo) baseQuery = baseQuery.lte('created_at', filterDateTo + 'T23:59:59')
     if (filterSearch) {
         baseQuery = baseQuery.or(`full_name.ilike.%${filterSearch}%,phone.ilike.%${filterSearch}%,email.ilike.%${filterSearch}%`, { foreignTable: 'customers' })
     }
@@ -97,6 +103,9 @@ export default async function CRMPage(props: {
     }
 
     if (filterProject) statsQuery = statsQuery.eq('project_id', filterProject)
+    if (filterCustomer) statsQuery = statsQuery.eq('customer_id', filterCustomer)
+    if (filterDateFrom) statsQuery = statsQuery.gte('created_at', filterDateFrom)
+    if (filterDateTo) statsQuery = statsQuery.lte('created_at', filterDateTo + 'T23:59:59')
     // We don't filter by filterStatus for stats because we want to see the whole pipeline even if one status is selected in the list
     if (filterSearch) {
         statsQuery = statsQuery.or(`full_name.ilike.%${filterSearch}%,phone.ilike.%${filterSearch}%,email.ilike.%${filterSearch}%`, { foreignTable: 'customers' })
@@ -114,6 +123,9 @@ export default async function CRMPage(props: {
         }
 
         if (filterProject) q = q.eq('project_id', filterProject)
+        if (filterCustomer) q = q.eq('customer_id', filterCustomer)
+        if (filterDateFrom) q = q.gte('created_at', filterDateFrom)
+        if (filterDateTo) q = q.lte('created_at', filterDateTo + 'T23:59:59')
         if (filterSearch) q = q.or(`full_name.ilike.%${filterSearch}%,phone.ilike.%${filterSearch}%,email.ilike.%${filterSearch}%`, { foreignTable: 'customers' })
 
         if (Array.isArray(status)) {
@@ -185,6 +197,7 @@ export default async function CRMPage(props: {
                             <CRMFilterSheet
                                 projects={projectsData || []}
                                 profiles={profilesData || []}
+                                customers={customers || []}
                             />
                         </React.Suspense>
                         <React.Suspense fallback={<div className="h-10 w-64 bg-gray-100 animate-pulse rounded" />}>

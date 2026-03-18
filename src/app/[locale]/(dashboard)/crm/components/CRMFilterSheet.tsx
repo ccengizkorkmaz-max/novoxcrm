@@ -21,16 +21,17 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
-import { Filter, X, Search } from 'lucide-react'
+import { Filter, X, Search, Calendar, User } from 'lucide-react'
 
 import { useTranslations } from 'next-intl'
 
 interface CRMFilterSheetProps {
     projects: any[]
     profiles: any[]
+    customers: any[]
 }
 
-export default function CRMFilterSheet({ projects, profiles }: CRMFilterSheetProps) {
+export default function CRMFilterSheet({ projects, profiles, customers }: CRMFilterSheetProps) {
     const t = useTranslations('CRM.filter')
     const router = useRouter()
     const searchParams = useSearchParams()
@@ -40,8 +41,12 @@ export default function CRMFilterSheet({ projects, profiles }: CRMFilterSheetPro
     const [project, setProject] = useState(searchParams.get('p') || 'all')
     const [rep, setRep] = useState(searchParams.get('r') || 'all')
     const [status, setStatus] = useState(searchParams.get('s') || 'all')
+    const [customer, setCustomer] = useState(searchParams.get('c') || 'all')
+    const [dateFrom, setDateFrom] = useState(searchParams.get('df') || '')
+    const [dateTo, setDateTo] = useState(searchParams.get('dt') || '')
 
     const hasFilters = search || project !== 'all' || rep !== 'all' || status !== 'all'
+        || customer !== 'all' || dateFrom || dateTo
 
     const handleApply = () => {
         const params = new URLSearchParams(searchParams.toString())
@@ -58,6 +63,15 @@ export default function CRMFilterSheet({ projects, profiles }: CRMFilterSheetPro
         if (status !== 'all') params.set('s', status)
         else params.delete('s')
 
+        if (customer !== 'all') params.set('c', customer)
+        else params.delete('c')
+
+        if (dateFrom) params.set('df', dateFrom)
+        else params.delete('df')
+
+        if (dateTo) params.set('dt', dateTo)
+        else params.delete('dt')
+
         router.push(`?${params.toString()}`)
         setOpen(false)
     }
@@ -67,6 +81,9 @@ export default function CRMFilterSheet({ projects, profiles }: CRMFilterSheetPro
         setProject('all')
         setRep('all')
         setStatus('all')
+        setCustomer('all')
+        setDateFrom('')
+        setDateTo('')
         router.push('/crm')
         setOpen(false)
     }
@@ -99,7 +116,7 @@ export default function CRMFilterSheet({ projects, profiles }: CRMFilterSheetPro
                         )}
                     </Button>
                 </SheetTrigger>
-                <SheetContent className="sm:max-w-md px-8">
+                <SheetContent className="sm:max-w-md px-8 overflow-y-auto">
                     <SheetHeader className="pb-4">
                         <SheetTitle className="text-xl">{t('title')}</SheetTitle>
                         <SheetDescription>
@@ -107,7 +124,8 @@ export default function CRMFilterSheet({ projects, profiles }: CRMFilterSheetPro
                         </SheetDescription>
                     </SheetHeader>
 
-                    <div className="grid gap-8 py-8">
+                    <div className="grid gap-6 py-6 pb-28">
+                        {/* Müşteri / Ünite Ara */}
                         <div className="space-y-3">
                             <Label htmlFor="search" className="text-sm font-semibold">{t('search')}</Label>
                             <div className="relative">
@@ -122,6 +140,29 @@ export default function CRMFilterSheet({ projects, profiles }: CRMFilterSheetPro
                             </div>
                         </div>
 
+                        {/* Müşteri Seç */}
+                        <div className="space-y-3">
+                            <Label className="text-sm font-semibold flex items-center gap-2">
+                                <User className="h-4 w-4 text-muted-foreground" />
+                                Müşteri
+                            </Label>
+                            <Select value={customer} onValueChange={setCustomer}>
+                                <SelectTrigger className="h-11">
+                                    <SelectValue placeholder="Tüm Müşteriler" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Tüm Müşteriler</SelectItem>
+                                    {customers.map((c) => (
+                                        <SelectItem key={c.id} value={c.id}>
+                                            {c.full_name}
+                                            {c.phone && <span className="text-muted-foreground text-xs ml-1">· {c.phone}</span>}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {/* Proje */}
                         <div className="space-y-3">
                             <Label className="text-sm font-semibold">{t('project')}</Label>
                             <Select value={project} onValueChange={setProject}>
@@ -137,6 +178,7 @@ export default function CRMFilterSheet({ projects, profiles }: CRMFilterSheetPro
                             </Select>
                         </div>
 
+                        {/* Satış Temsilcisi */}
                         <div className="space-y-3">
                             <Label className="text-sm font-semibold">{t('rep')}</Label>
                             <Select value={rep} onValueChange={setRep}>
@@ -152,6 +194,7 @@ export default function CRMFilterSheet({ projects, profiles }: CRMFilterSheetPro
                             </Select>
                         </div>
 
+                        {/* Durum */}
                         <div className="space-y-3">
                             <Label className="text-sm font-semibold">{t('statusLabel')}</Label>
                             <Select value={status} onValueChange={setStatus}>
@@ -167,6 +210,36 @@ export default function CRMFilterSheet({ projects, profiles }: CRMFilterSheetPro
                                     <SelectItem value="Lost">{t('status.Lost')}</SelectItem>
                                 </SelectContent>
                             </Select>
+                        </div>
+
+                        {/* Tarih Aralığı */}
+                        <div className="space-y-3">
+                            <Label className="text-sm font-semibold flex items-center gap-2">
+                                <Calendar className="h-4 w-4 text-muted-foreground" />
+                                Kayıt Tarihi Aralığı
+                            </Label>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="dateFrom" className="text-xs text-muted-foreground">Başlangıç</Label>
+                                    <Input
+                                        id="dateFrom"
+                                        type="date"
+                                        className="h-11"
+                                        value={dateFrom}
+                                        onChange={(e) => setDateFrom(e.target.value)}
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="dateTo" className="text-xs text-muted-foreground">Bitiş</Label>
+                                    <Input
+                                        id="dateTo"
+                                        type="date"
+                                        className="h-11"
+                                        value={dateTo}
+                                        onChange={(e) => setDateTo(e.target.value)}
+                                    />
+                                </div>
+                            </div>
                         </div>
                     </div>
 
