@@ -271,20 +271,28 @@ export async function deleteUser(userId: string) {
     try {
         const adminClient = createAdminClient()
 
-        // 1. First deactivate and detach profile to break any FK constraints
-        //    (e.g. sales.assigned_to, activities.created_by referencing profiles.id)
+        // 1. NULL out all FK references to this user across public tables
+        await adminClient.from('sales').update({ assigned_to: null }).eq('assigned_to', userId)
+        await adminClient.from('activities').update({ assigned_to: null }).eq('assigned_to', userId)
+
+        // 2. Deactivate profile and remove tenant relation
         await adminClient
             .from('profiles')
             .update({ is_active: false, tenant_id: null })
             .eq('id', userId)
 
-        // 2. Try to delete profile row (best effort - may still have FKs from other tables)
-        await adminClient
+        // 3. Delete profile row
+        const { error: profileDeleteError } = await adminClient
             .from('profiles')
             .delete()
             .eq('id', userId)
 
-        // 3. Delete from Supabase Auth (critical step)
+        if (profileDeleteError) {
+            console.error('Profile delete error (non-fatal):', profileDeleteError.message)
+            // Continue anyway — auth deletion is the critical step
+        }
+
+        // 4. Delete from Supabase Auth
         const { error: authError } = await adminClient.auth.admin.deleteUser(userId)
         if (authError) throw authError
 
