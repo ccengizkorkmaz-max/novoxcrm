@@ -43,8 +43,29 @@ export async function POST(req: Request) {
             tenant_id = body.tenant_id,
             subject,
             campaign,
-            form_name
+            form_name,
+            lead_date  // Facebook'un orijinal lead oluşturma tarihi (ISO string)
         } = body
+
+        // Tarihi parse et — Unix timestamp, ISO string veya herhangi bir format gelebilir
+        function parseLeadDate(val: any): string {
+            if (!val) return new Date().toISOString()
+            // Unix timestamp (saniye cinsinden — Facebook genellikle böyle gönderir)
+            if (typeof val === 'number' || /^\d{9,11}$/.test(String(val))) {
+                return new Date(Number(val) * 1000).toISOString()
+            }
+            // Unix timestamp (milisaniye — JS timestamp)
+            if (/^\d{12,}$/.test(String(val))) {
+                return new Date(Number(val)).toISOString()
+            }
+            // ISO veya standart string — Date.parse deneyelim
+            const parsed = Date.parse(String(val))
+            if (!isNaN(parsed)) return new Date(parsed).toISOString()
+            // Hiçbiri değilse şimdiki zaman
+            console.warn('lead_date parse edilemedi, şimdiki zaman kullanılıyor:', val)
+            return new Date().toISOString()
+        }
+        const recordDate: string = parseLeadDate(lead_date)
 
         // --- ULTRA PERMISSIVE MODE: "Take whatever comes" ---
         // If we don't have a message or name/email, the user might be sending custom fields.
@@ -117,26 +138,42 @@ export async function POST(req: Request) {
             }
         }
 
-        // --- NEW: Conditional Logic ---
-        // Facebook Ads leads are created automatically
+        // --- Conditional Logic ---
+        // Facebook Ads leads are created automatically (idempotent / duplicate-safe)
         // WEB Form leads go to inbox for manual approval
-        if (source === 'Facebook Ads') {
+        const isFacebookAds =
+            source?.toLowerCase().includes('facebook') ||
+            source?.toLowerCase().includes('fb ads') ||
+            source?.toLowerCase() === 'facebook ads'
+
+        if (isFacebookAds) {
             console.log('Automating Facebook Ads lead processing...')
 
-            // 1. Find or create customer
+            // ── 1. Find or create customer (DUPLICATE-SAFE) ─────────────────
             let customerId: string
+            let isNewCustomer = false
 
-            // Check for existing customer
-            const { data: existingCustomer } = await supabase
-                .from('customers')
-                .select('id')
-                .eq('tenant_id', tenant_id)
-                .or(`email.eq.${email},phone.eq.${phone}`)
-                .maybeSingle()
+            // Build OR filter only for non-null values to avoid false matches
+            const orFilters: string[] = []
+            if (phone) orFilters.push(`phone.eq.${phone}`)
+            if (email) orFilters.push(`email.eq.${email}`)
+
+            let existingCustomer: { id: string } | null = null
+
+            if (orFilters.length > 0) {
+                const { data } = await supabase
+                    .from('customers')
+                    .select('id')
+                    .eq('tenant_id', tenant_id)
+                    .or(orFilters.join(','))
+                    .limit(1)
+                    .maybeSingle()
+                existingCustomer = data
+            }
 
             if (existingCustomer) {
                 customerId = existingCustomer.id
-                console.log('Found existing customer:', customerId)
+                console.log('✅ Existing customer found (no duplicate):', customerId)
             } else {
                 // Create new customer
                 const { data: newCustomer, error: customerError } = await supabase
@@ -146,7 +183,8 @@ export async function POST(req: Request) {
                         full_name: name,
                         email: email || null,
                         phone: phone || null,
-                        source: source
+                        source: 'Facebook Ads',
+                        created_at: recordDate
                     })
                     .select('id')
                     .single()
@@ -156,11 +194,37 @@ export async function POST(req: Request) {
                     return NextResponse.json({ error: 'Failed to create customer' }, { status: 500 })
                 }
                 customerId = newCustomer.id
-                console.log('Created new customer for Facebook Ads:', customerId)
+                isNewCustomer = true
+                console.log('🆕 New customer created:', customerId)
             }
 
-            // 2. Create sale record
-            // Link to project if form_name matches (optional logic can be added)
+            // ── 2. Duplicate Lead (sales) check ─────────────────────────────
+            // If a Lead already exists for this customer+project → skip creation
+            const leadCheckQuery = supabase
+                .from('sales')
+                .select('id')
+                .eq('tenant_id', tenant_id)
+                .eq('customer_id', customerId)
+                .eq('status', 'Lead')
+
+            if (projectId) {
+                leadCheckQuery.eq('project_id', projectId)
+            }
+
+            const { data: existingLead } = await leadCheckQuery.limit(1).maybeSingle()
+
+            if (existingLead) {
+                console.log('⚠️ Duplicate lead skipped — already exists:', existingLead.id)
+                revalidatePath('/[locale]/(dashboard)/crm')
+                return NextResponse.json({
+                    success: true,
+                    duplicate: true,
+                    message: 'Lead already exists — skipped to prevent duplicate.',
+                    lead_id: existingLead.id
+                })
+            }
+
+            // ── 3. Create sale (Lead) record ─────────────────────────────────
             const { data: newSale, error: saleError } = await supabase
                 .from('sales')
                 .insert({
@@ -178,13 +242,35 @@ export async function POST(req: Request) {
                 return NextResponse.json({ error: 'Failed to create sale' }, { status: 500 })
             }
 
-            console.log('Facebook Ads lead processed successfully:', newSale.id)
+            // ── 4. Force-set created_at (UPDATE garantili çalışır, INSERT DEFAULT'u override edebilir)
+            if (lead_date) {
+                await supabase
+                    .from('sales')
+                    .update({ created_at: recordDate })
+                    .eq('id', newSale.id)
+
+                // Yeni müşteriyse onun tarihini de güncelle
+                if (isNewCustomer) {
+                    await supabase
+                        .from('customers')
+                        .update({ created_at: recordDate })
+                        .eq('id', customerId)
+                }
+
+                console.log('📅 created_at zorla yazıldı:', recordDate)
+            }
+
+            console.log('✅ Facebook Ads lead created:', newSale.id)
 
             revalidatePath('/[locale]/(dashboard)/crm')
             return NextResponse.json({
                 success: true,
-                message: 'Facebook Ads lead created automatically.',
-                lead_id: newSale.id
+                duplicate: false,
+                message: isNewCustomer
+                    ? 'New customer and lead created.'
+                    : 'Existing customer found — new lead created.',
+                lead_id: newSale.id,
+                recorded_date: recordDate
             })
         }
 
