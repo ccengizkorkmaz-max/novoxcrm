@@ -200,7 +200,8 @@ export async function POST(req: Request) {
 
             // ── 2. Duplicate Lead (sales) check ─────────────────────────────
             // If a Lead already exists for this customer+project → skip creation
-            const leadCheckQuery = supabase
+            // NOTE: must use `let` and reassign — Supabase builder returns new object each time
+            let leadCheckQuery = supabase
                 .from('sales')
                 .select('id')
                 .eq('tenant_id', tenant_id)
@@ -208,7 +209,7 @@ export async function POST(req: Request) {
                 .eq('status', 'Lead')
 
             if (projectId) {
-                leadCheckQuery.eq('project_id', projectId)
+                leadCheckQuery = leadCheckQuery.eq('project_id', projectId)
             }
 
             const { data: existingLead } = await leadCheckQuery.limit(1).maybeSingle()
