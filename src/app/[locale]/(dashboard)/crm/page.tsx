@@ -236,7 +236,7 @@ export default async function CRMPage(props: {
                 </div>
 
                 <div className="hidden lg:block">
-                    <PipelineStats stats={statsData} />
+                    <PipelineStats stats={statsData} projectBreakdown={projectBreakdown} />
                 </div>
             </div>
 
