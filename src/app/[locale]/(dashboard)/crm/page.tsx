@@ -141,7 +141,6 @@ export default async function CRMPage(props: {
         customersRes,
         availableUnitsRes,
         salesListRes,
-        salesForBreakdownRes,
         // Detailed counts
         countLead,
         countProspect,
@@ -158,8 +157,6 @@ export default async function CRMPage(props: {
         supabase.from('customers').select('*, customer_demands(*), contract_customers(id)').order('created_at', { ascending: false }).limit(1000),
         supabase.from('units').select('id, unit_number, projects(id, name)').in('status', ['For Sale', 'Stock']).limit(1000),
         baseQuery.order('created_at', { ascending: false }).range(from, to),
-        // Lightweight project breakdown (only status + project name)
-        supabase.from('sales').select('status, projects(name)').neq('status', 'Inbox').limit(5000),
         // Counts
         getStatusCount('Lead'),
         getStatusCount('Prospect'),
@@ -178,23 +175,6 @@ export default async function CRMPage(props: {
     const availableUnits = availableUnitsRes.data || []
     const sales = salesListRes.data || []
     const totalSalesCount = salesListRes.count || 0
-
-    // Compute project breakdown per status group
-    type ProjectBreakdown = Record<string, Record<string, number>>
-    const projectBreakdown: ProjectBreakdown = {}
-    const statusGroupMap: Record<string, string> = {
-        'Lead': 'Lead', 'Prospect': 'Prospect',
-        'Reservation': 'Reservation', 'Reserved': 'Reservation', 'Opsiyon - Kapora Bekleniyor': 'Reservation',
-        'Proposal': 'Proposal', 'Teklif - Kapora Bekleniyor': 'Proposal',
-        'Negotiation': 'Negotiation', 'Sold': 'Sold', 'Completed': 'Completed', 'Lost': 'Lost'
-    };
-    (salesForBreakdownRes.data || []).forEach((s: any) => {
-        const group = statusGroupMap[s.status]
-        const projName = (s.projects as any)?.name || 'Diğer'
-        if (!group) return
-        if (!projectBreakdown[group]) projectBreakdown[group] = {}
-        projectBreakdown[group][projName] = (projectBreakdown[group][projName] || 0) + 1
-    })
 
     const statsData = {
         Lead: countLead.count || 0,
@@ -236,12 +216,12 @@ export default async function CRMPage(props: {
                 </div>
 
                 <div className="hidden lg:block">
-                    <PipelineStats stats={statsData} projectBreakdown={projectBreakdown} />
+                    <PipelineStats stats={statsData} />
                 </div>
             </div>
 
             <div className="lg:hidden px-1">
-                <PipelineStats stats={statsData} projectBreakdown={projectBreakdown} />
+                <PipelineStats stats={statsData} />
             </div>
 
             <React.Suspense fallback={<div className="h-96 w-full bg-gray-100 animate-pulse rounded" />}>
