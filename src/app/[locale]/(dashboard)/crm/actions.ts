@@ -249,7 +249,7 @@ export async function deleteCustomer(formData: FormData) {
         }
 
         // Delete finance accounts if they have no transactions
-        await supabase.from('finance_accounts').delete().eq('customer_id', id)
+        await supabase.from('financial_accounts').delete().eq('customer_id', id)
     } catch (e) {
         console.error('Cascading delete error:', e)
     }
