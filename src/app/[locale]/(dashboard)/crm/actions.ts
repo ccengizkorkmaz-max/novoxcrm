@@ -229,6 +229,31 @@ export async function deleteCustomer(formData: FormData) {
 
     if (!id) return { error: 'Customer ID required' }
 
+    // First try to safely delete dependent records to avoid constraint errors
+    // Note: If they have transactions or contracts, this might still fail, which is intended protection.
+    try {
+        await supabase.from('activities').delete().eq('customer_id', id)
+        await supabase.from('customer_demands').delete().eq('customer_id', id)
+        
+        // Find sales to delete related offers/negotiations
+        const { data: sales } = await supabase.from('sales').select('id').eq('customer_id', id)
+        if (sales && sales.length > 0) {
+            const saleIds = sales.map(s => s.id)
+            const { data: offers } = await supabase.from('offers').select('id').in('sale_id', saleIds)
+            if (offers && offers.length > 0) {
+                const offerIds = offers.map(o => o.id)
+                await supabase.from('offer_negotiations').delete().in('offer_id', offerIds)
+                await supabase.from('offers').delete().in('id', offerIds)
+            }
+            await supabase.from('sales').delete().in('id', saleIds)
+        }
+
+        // Delete finance accounts if they have no transactions
+        await supabase.from('finance_accounts').delete().eq('customer_id', id)
+    } catch (e) {
+        console.error('Cascading delete error:', e)
+    }
+
     const { error } = await supabase
         .from('customers')
         .delete()
@@ -236,7 +261,11 @@ export async function deleteCustomer(formData: FormData) {
 
     if (error) {
         console.error('Delete Customer Error:', error)
-        return { error: 'Failed to delete customer' }
+        // Check for reference constraints
+        if (error.message.includes('violates foreign key constraint') || error.message.includes('violates check constraint')) {
+             return { error: 'Bu müşteriye ait aktif işlemler (ör. sözleşme, finans işlemi) olduğu için silinemez.' }
+        }
+        return { error: `Müşteri silinemedi: ${error.message}` }
     }
 
     revalidatePath('/crm')

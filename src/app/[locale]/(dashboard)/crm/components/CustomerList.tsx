@@ -108,12 +108,16 @@ export default function CustomerList({
         formData.append('id', customerToDelete.id)
 
         try {
-            await deleteCustomer(formData)
-            toast.success(t('messages.deleted') || 'Müşteri başarıyla silindi')
-            router.refresh()
-            setCustomerToDelete(null)
+            const res = await deleteCustomer(formData)
+            if (res?.error) {
+                toast.error(res.error)
+            } else {
+                toast.success(t('messages.deleted') || 'Müşteri başarıyla silindi')
+                router.refresh()
+                setCustomerToDelete(null)
+            }
         } catch (error) {
-            toast.error('Müşteri silinirken bir hata oluştu.')
+            toast.error('Müşteri silinirken bir sunucu hatası oluştu.')
         } finally {
             setIsPending(false)
         }
