@@ -166,42 +166,38 @@ export default function CustomerList({
     return (
         <div className="space-y-6">
             {/* Mini Dashboard */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card className="rounded-2xl border-none shadow-sm bg-gradient-to-br from-blue-600 to-blue-700 text-white overflow-hidden group">
-                    <CardContent className="p-6 relative">
+            <div className="flex flex-wrap gap-3">
+                <Card className="flex-1 min-w-[140px] rounded-xl border-none shadow-sm bg-gradient-to-br from-blue-600 to-blue-700 text-white overflow-hidden group">
+                    <CardContent className="p-4 relative">
                         <div className="flex justify-between items-start">
-                            <div className="space-y-1">
-                                <p className="text-blue-100 text-xs font-black uppercase tracking-widest">Toplam Kayıt</p>
-                                <h3 className="text-3xl font-black">{totalCount}</h3>
+                            <div className="space-y-0.5">
+                                <p className="text-blue-100 text-[10px] font-black uppercase tracking-widest">Toplam Kayıt</p>
+                                <h3 className="text-xl font-black">{totalCount}</h3>
                             </div>
-                            <div className="h-10 w-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm group-hover:scale-110 transition-transform">
-                                <Users className="h-5 w-5 text-white" />
+                            <div className="h-8 w-8 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm group-hover:scale-110 transition-transform">
+                                <Users className="h-4 w-4 text-white" />
                             </div>
-                        </div>
-                        <div className="mt-4 flex items-center gap-1.5 text-[10px] font-bold text-blue-100/80 bg-white/10 w-fit px-2 py-1 rounded-lg">
-                            <TrendingUp className="h-3 w-3" />
-                            <span>SİSTEMDEKİ TÜM MÜŞTERİLER</span>
                         </div>
                     </CardContent>
                 </Card>
 
                 {sortedSources.map(([source, count], idx) => (
-                    <Card key={source} className="rounded-2xl border-none shadow-sm bg-white overflow-hidden group hover:shadow-md transition-shadow">
-                        <CardContent className="p-6">
+                    <Card key={source} className="flex-1 min-w-[140px] rounded-xl border-none shadow-sm bg-white overflow-hidden group hover:shadow-md transition-shadow">
+                        <CardContent className="p-4">
                             <div className="flex justify-between items-start">
-                                <div className="space-y-1">
-                                    <p className="text-slate-400 text-xs font-bold uppercase tracking-widest truncate max-w-[120px]">{source}</p>
-                                    <h3 className="text-3xl font-black text-slate-900">{count}</h3>
+                                <div className="space-y-0.5">
+                                    <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest truncate max-w-[100px]" title={source}>{source}</p>
+                                    <h3 className="text-xl font-black text-slate-900">{count}</h3>
                                 </div>
                                 <div className={cn(
-                                    "h-10 w-10 rounded-xl flex items-center justify-center transition-transform group-hover:rotate-12",
+                                    "h-8 w-8 rounded-lg flex items-center justify-center transition-transform group-hover:rotate-12",
                                     idx === 0 ? "bg-emerald-50 text-emerald-600" :
                                         idx === 1 ? "bg-amber-50 text-amber-600" : "bg-purple-50 text-purple-600"
                                 )}>
-                                    <Target className="h-5 w-5" />
+                                    <Target className="h-4 w-4" />
                                 </div>
                             </div>
-                            <div className="mt-4 h-1.5 w-full bg-slate-50 rounded-full overflow-hidden">
+                            <div className="mt-3 h-1 w-full bg-slate-50 rounded-full overflow-hidden">
                                 <div
                                     className={cn(
                                         "h-full rounded-full",
@@ -216,7 +212,7 @@ export default function CustomerList({
                 ))}
 
                 {sortedSources.length < 3 && Array.from({ length: 3 - sortedSources.length }).map((_, i) => (
-                    <Card key={`empty-${i}`} className="rounded-2xl border-dashed border-2 border-slate-100 bg-slate-50/50 flex items-center justify-center p-6 text-slate-300">
+                    <Card key={`empty-${i}`} className="flex-1 min-w-[140px] rounded-xl border-dashed border-2 border-slate-100 bg-slate-50/50 flex items-center justify-center p-4 text-slate-300">
                         <p className="text-[10px] font-bold uppercase">Veri Bekleniyor</p>
                     </Card>
                 ))}
@@ -451,51 +447,51 @@ export default function CustomerList({
                             {currentItems && currentItems.length > 0 ? (
                                 currentItems.map((c) => (
                                     <TableRow key={c.id} className="hover:bg-slate-50/50 transition-colors group">
-                                        <TableCell className="py-4">
+                                        <TableCell className="py-2">
                                             <Link href={`/customers/${c.id}`} className="flex items-center gap-3">
-                                                <div className="h-10 w-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xs font-black border border-blue-100 shadow-inner group-hover:scale-110 transition-transform">
+                                                <div className="h-8 w-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-[10px] font-black border border-blue-100 shadow-inner group-hover:scale-110 transition-transform">
                                                     {c.full_name.substring(0, 2).toUpperCase()}
                                                 </div>
                                                 <div className="flex flex-col gap-0.5">
                                                     <div className="flex items-center gap-2">
                                                         {c.customer_number && (
-                                                            <span className="text-[10px] font-black px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded-md border border-blue-100 flex-shrink-0">
+                                                            <span className="text-[9px] font-black px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded-md border border-blue-100 flex-shrink-0">
                                                                 {c.customer_number}
                                                             </span>
                                                         )}
-                                                        <span className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors uppercase tracking-tight">{c.full_name}</span>
+                                                        <span className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors uppercase tracking-tight text-xs">{c.full_name}</span>
                                                     </div>
-                                                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{new Date(c.created_at).toLocaleDateString()}</span>
+                                                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">{new Date(c.created_at).toLocaleDateString()}</span>
                                                 </div>
                                             </Link>
                                         </TableCell>
-                                        <TableCell className="font-bold text-slate-700 text-sm">{c.phone}</TableCell>
-                                        <TableCell className="text-slate-500 text-sm font-medium">{c.email || '-'}</TableCell>
-                                        <TableCell>
-                                            <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-wider bg-slate-50 border-slate-200 text-slate-400 group-hover:bg-white group-hover:border-blue-200 group-hover:text-blue-600 transition-all">
+                                        <TableCell className="font-bold text-slate-700 text-xs">{c.phone}</TableCell>
+                                        <TableCell className="text-slate-500 text-xs font-medium">{c.email || '-'}</TableCell>
+                                        <TableCell className="py-2">
+                                            <Badge variant="outline" className="text-[9px] font-bold uppercase tracking-wider bg-slate-50 border-slate-200 text-slate-400 group-hover:bg-white group-hover:border-blue-200 group-hover:text-blue-600 transition-all">
                                                 {c.source || '-'}
                                             </Badge>
                                         </TableCell>
-                                        <TableCell>
+                                        <TableCell className="py-2">
                                             {c.contract_customers && c.contract_customers.length > 0 ? (
-                                                <Badge className="bg-blue-600 hover:bg-blue-700 text-[10px] font-black px-2 py-0.5 uppercase tracking-wide border-none shadow-sm shadow-blue-100">{t('badges.customer')}</Badge>
+                                                <Badge className="bg-blue-600 hover:bg-blue-700 text-[9px] font-black px-2 py-0.5 uppercase tracking-wide border-none shadow-sm shadow-blue-100">{t('badges.customer')}</Badge>
                                             ) : c.customer_demands && c.customer_demands.length > 0 ? (
-                                                <Badge className="bg-emerald-600 hover:bg-emerald-700 text-[10px] font-black px-2 py-0.5 uppercase tracking-wide border-none shadow-sm shadow-emerald-100">{t('badges.lead')}</Badge>
+                                                <Badge className="bg-emerald-600 hover:bg-emerald-700 text-[9px] font-black px-2 py-0.5 uppercase tracking-wide border-none shadow-sm shadow-emerald-100">{t('badges.lead')}</Badge>
                                             ) : (
-                                                <Badge variant="secondary" className="bg-slate-100 text-slate-500 text-[10px] font-black px-2 py-0.5 uppercase tracking-wide border-none">{t('badges.contact')}</Badge>
+                                                <Badge variant="secondary" className="bg-slate-100 text-slate-500 text-[9px] font-black px-2 py-0.5 uppercase tracking-wide border-none">{t('badges.contact')}</Badge>
                                             )}
                                         </TableCell>
-                                        <TableCell className="text-right py-4">
+                                        <TableCell className="text-right py-2">
                                             <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <Button variant="ghost" size="icon" className="h-9 w-9 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl" onClick={() => handleCreateActivity(c)} title="Aktivite Ekle">
-                                                    <CalendarPlus className="h-4 w-4" />
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg" onClick={() => handleCreateActivity(c)} title="Aktivite Ekle">
+                                                    <CalendarPlus className="h-3.5 w-3.5" />
                                                 </Button>
-                                                <Button variant="ghost" size="icon" className="h-9 w-9 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl" onClick={() => handleEditClick(c)} title={t('table.edit')}>
-                                                    <Pencil className="h-4 w-4" />
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg" onClick={() => handleEditClick(c)} title={t('table.edit')}>
+                                                    <Pencil className="h-3.5 w-3.5" />
                                                 </Button>
                                                 {isManager && (
-                                                    <Button variant="ghost" size="icon" className="h-9 w-9 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl" onClick={() => setCustomerToDelete(c)} title={t('table.delete')}>
-                                                        <Trash className="h-4 w-4" />
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg" onClick={() => setCustomerToDelete(c)} title={t('table.delete')}>
+                                                        <Trash className="h-3.5 w-3.5" />
                                                     </Button>
                                                 )}
                                             </div>
