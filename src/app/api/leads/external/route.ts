@@ -185,8 +185,7 @@ export async function POST(req: Request) {
                         full_name: name,
                         email: email || null,
                         phone: phone || null,
-                        source: 'Facebook Ads',
-                        created_at: recordDate
+                        source: 'Facebook Ads'
                     })
                     .select('id')
                     .single()
@@ -230,15 +229,7 @@ export async function POST(req: Request) {
                     .update({ created_at: recordDate })
                     .eq('id', newSale.id)
 
-                // Yeni müşteriyse onun tarihini de güncelle
-                if (isNewCustomer) {
-                    await supabase
-                        .from('customers')
-                        .update({ created_at: recordDate })
-                        .eq('id', customerId)
-                }
-
-                console.log('📅 created_at zorla yazıldı:', recordDate)
+                console.log('📅 created_at zorla yazıldı (Sadece Sale için):', recordDate)
             }
 
             console.log('✅ Facebook Ads lead created:', newSale.id)
