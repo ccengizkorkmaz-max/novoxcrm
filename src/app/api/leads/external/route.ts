@@ -153,28 +153,53 @@ export async function POST(req: Request) {
             // User request (25 Mar 2026): We completely bypassed duplicate checking. Every incoming lead creates a brand new customer.
             
             let customerId: string
-            let isNewCustomer = true
+            let isNewCustomer = false
 
-            const { data: newCustomer, error: customerError } = await supabase
-                .from('customers')
-                .insert({
-                    tenant_id: tenant_id,
-                    full_name: name,
-                    email: email || null,
-                    phone: phone || null,
-                    source: 'Facebook Ads',
-                    created_at: recordDate
-                })
-                .select('id')
-                .single()
+            // Build OR filter only for non-null values to avoid false matches
+            const orFilters: string[] = []
+            if (phone) orFilters.push(`phone.eq.${phone}`)
+            if (email) orFilters.push(`email.eq.${email}`)
 
-            if (customerError || !newCustomer) {
-                console.error('Error creating customer for Facebook Ads:', customerError)
-                return NextResponse.json({ error: 'Failed to create customer' }, { status: 500 })
+            let existingCustomer: { id: string } | null = null
+
+            if (orFilters.length > 0) {
+                const { data } = await supabase
+                    .from('customers')
+                    .select('id')
+                    .eq('tenant_id', tenant_id)
+                    .or(orFilters.join(','))
+                    .limit(1)
+                    .maybeSingle()
+                existingCustomer = data
             }
-            
-            customerId = newCustomer.id
-            console.log('🆕 New customer created (No dedup):', customerId)
+
+            if (existingCustomer) {
+                customerId = existingCustomer.id
+                console.log('✅ Existing customer found (no duplicate):', customerId)
+            } else {
+                // Create new customer
+                const { data: newCustomer, error: customerError } = await supabase
+                    .from('customers')
+                    .insert({
+                        tenant_id: tenant_id,
+                        full_name: name,
+                        email: email || null,
+                        phone: phone || null,
+                        source: 'Facebook Ads',
+                        created_at: recordDate
+                    })
+                    .select('id')
+                    .single()
+
+                if (customerError || !newCustomer) {
+                    console.error('Error creating customer for Facebook Ads:', customerError)
+                    return NextResponse.json({ error: 'Failed to create customer' }, { status: 500 })
+                }
+                
+                customerId = newCustomer.id
+                isNewCustomer = true
+                console.log('🆕 New customer created:', customerId)
+            }
 
             // ── 2. Duplicate Lead (sales) check ─────────────────────────────
             // We removed the duplicate skip block because historical imports or multiple form submissions
