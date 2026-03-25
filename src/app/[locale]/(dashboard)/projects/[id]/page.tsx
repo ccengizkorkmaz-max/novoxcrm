@@ -94,6 +94,10 @@ export default async function ProjectDetailPage(props: {
     const { data: manualAccess } = accessRes
     const { data: unitTypes } = unitTypesRes
 
+    if (units) {
+        units.sort((a: any, b: any) => String(a.unit_number).localeCompare(String(b.unit_number), undefined, { numeric: true }))
+    }
+
     if (projectError || !project) {
         return (
             <div className="p-8 text-center border border-red-200 bg-red-50 rounded-lg text-red-700">

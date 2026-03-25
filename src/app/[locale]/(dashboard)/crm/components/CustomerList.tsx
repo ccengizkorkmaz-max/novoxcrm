@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from '@/i18n/routing'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
@@ -79,6 +79,27 @@ export default function CustomerList({
 
     const [currentPage, setCurrentPage] = useState(initialPage)
     const itemsPerPage = 50
+
+    // Auto-search after 600ms of typing to hit backend instead of strictly requiring ENTER
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            const url = new URL(window.location.href)
+            if (searchQuery) {
+                if (url.searchParams.get('q') !== searchQuery) {
+                    url.searchParams.set('q', searchQuery)
+                    url.searchParams.delete('page')
+                    window.history.pushState({}, '', url)
+                    router.refresh()
+                }
+            } else if (url.searchParams.has('q')) {
+                url.searchParams.delete('q')
+                window.history.pushState({}, '', url)
+                router.refresh()
+            }
+        }, 600)
+
+        return () => clearTimeout(timer)
+    }, [searchQuery, router])
 
     // Stats Calculation
     const totalCount = totalRecords
@@ -224,7 +245,7 @@ export default function CustomerList({
                 <div className="relative w-full md:w-[350px]">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                     <Input
-                        placeholder="İsim, Tel, E-posta ile ara..."
+                        placeholder="İsim, Tel, E-posta ile tüm kayıtlarda ara..."
                         value={searchQuery}
                         onChange={(e) => {
                             setSearchQuery(e.target.value)

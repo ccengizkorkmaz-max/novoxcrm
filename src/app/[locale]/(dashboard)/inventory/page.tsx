@@ -156,7 +156,7 @@ export default async function InventoryPage(props: {
         agingData,
         velocityData,
         t,
-        { data: units }
+        { data: fetchedUnits }
     ] = await Promise.all([
         supabase.from('projects').select('id, name'),
         supabase.from('customers').select('id, full_name').order('full_name', { ascending: true }),
@@ -166,6 +166,14 @@ export default async function InventoryPage(props: {
         getTranslations('Inventory'),
         query
     ])
+
+    const units = fetchedUnits
+    if (units && sortBy === 'unit_number') {
+        units.sort((a: any, b: any) => {
+            const cmp = String(a.unit_number).localeCompare(String(b.unit_number), undefined, { numeric: true })
+            return sortOrder === 'asc' ? cmp : -cmp
+        })
+    }
 
     // Get user role
     const { data: { user } } = await supabase.auth.getUser()
