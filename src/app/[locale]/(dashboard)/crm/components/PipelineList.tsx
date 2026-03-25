@@ -282,8 +282,8 @@ export default function PipelineList({
                                             key={sale.id}
                                             className={`transition-colors border-b hover:bg-muted/30 ${isCompleted ? 'bg-emerald-50/30' : ''} ${isLost ? 'bg-red-50/20' : ''}`}
                                         >
-                                            <TableCell className="p-4 align-middle border-r border-border/50">
-                                                <div className="flex flex-col gap-1">
+                                            <TableCell className="px-3 py-2 align-middle border-r border-border/50">
+                                                <div className="flex flex-col gap-0.5">
                                                     <div className="flex items-center gap-2">
                                                         <button
                                                             type="button"
@@ -316,12 +316,12 @@ export default function PipelineList({
                                                     )}
                                                 </div>
                                             </TableCell>
-                                            <TableCell className="p-4 align-middle border-r border-border/50">
+                                            <TableCell className="px-3 py-2 align-middle border-r border-border/50">
                                                 <span className="font-medium text-foreground">
                                                     {sale.units?.projects?.name || sale.projects?.name || '-'}
                                                 </span>
                                             </TableCell>
-                                            <TableCell className="p-4 align-middle border-r border-border/50">
+                                            <TableCell className="px-3 py-2 align-middle border-r border-border/50">
                                                 {sale.units ? (
                                                     <span className="text-xs font-mono text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded w-fit">
                                                         NO: {sale.units.unit_number}
@@ -330,7 +330,7 @@ export default function PipelineList({
                                                     <span className="text-muted-foreground">-</span>
                                                 )}
                                             </TableCell>
-                                            <TableCell className="p-4 align-middle border-r border-border/50">
+                                            <TableCell className="px-3 py-2 align-middle border-r border-border/50">
                                                 {isCompleted ? (
                                                     <div className="inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold bg-emerald-100 text-emerald-700 border-emerald-200 gap-1">
                                                         <Sparkles className="w-3 h-3" /> {t('actions.won')}
@@ -358,12 +358,12 @@ export default function PipelineList({
                                                     </Select>
                                                 )}
                                             </TableCell>
-                                            <TableCell className="p-4 align-middle text-muted-foreground font-medium text-sm">
+                                            <TableCell className="px-3 py-2 align-middle text-muted-foreground font-medium text-sm">
                                                 <span suppressHydrationWarning>
                                                     {new Date(sale.created_at).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
                                                 </span>
                                             </TableCell>
-                                            <TableCell className="p-4 align-middle text-right border-r border-border/50">
+                                            <TableCell className="px-3 py-2 align-middle text-right border-r border-border/50">
                                                 {sale.final_price || sale.units?.price ? (
                                                     <span className="font-bold text-foreground font-mono tracking-tight">
                                                         {sale.final_price ?
@@ -375,7 +375,7 @@ export default function PipelineList({
                                                     <span className="text-muted-foreground">-</span>
                                                 )}
                                             </TableCell>
-                                            <TableCell className="p-4 align-middle border-r border-border/50">
+                                            <TableCell className="px-3 py-2 align-middle border-r border-border/50">
                                                 <div className="flex items-center gap-2">
                                                     {sale.profiles?.full_name ? (
                                                         <div className="flex items-center gap-2 text-sm bg-muted/30 pl-1 pr-2 py-1 rounded-full border border-transparent hover:border-border transition-colors group/rep">
@@ -479,7 +479,7 @@ export default function PipelineList({
                                                     )}
                                                 </div>
                                             </TableCell>
-                                            <TableCell className="p-4 align-middle text-right">
+                                            <TableCell className="px-3 py-2 align-middle text-right">
                                                 <div className="flex justify-end gap-1.5 opacity-80 hover:opacity-100 transition-opacity">
                                                     {!isCompleted && (
                                                         <>
