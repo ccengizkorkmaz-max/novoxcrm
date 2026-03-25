@@ -36,6 +36,7 @@ import { createCustomer, updateCustomer, deleteCustomer } from '../actions'
 import CustomerDemands from './CustomerDemands'
 import { CustomerImportDialog } from '@/components/customers/customer-import-dialog'
 import { CustomerEditDialog, type Customer } from './CustomerEditDialog'
+import { MergeDuplicatesDialog } from './MergeDuplicatesDialog'
 import { ActivityForm } from '@/components/activities/activity-form'
 import { toast } from 'sonner'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -64,6 +65,7 @@ export default function CustomerList({
     const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null)
     const [isEditOpen, setIsEditOpen] = useState(false)
     const [isCreateOpen, setIsCreateOpen] = useState(false)
+    const [isMergeOpen, setIsMergeOpen] = useState(false)
     const [isActivityOpen, setIsActivityOpen] = useState(false)
     const [selectedCustomerForActivity, setSelectedCustomerForActivity] = useState<Customer | null>(null)
     const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null)
@@ -242,6 +244,9 @@ export default function CustomerList({
                     />
                 </div>
                 <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
+                    <Button variant="outline" className="shadow-sm border-slate-200 text-red-600 hover:bg-red-50 hover:text-red-700 h-11 px-6 rounded-xl font-bold transition-all active:scale-95 whitespace-nowrap" onClick={() => setIsMergeOpen(true)}>
+                        <Users className="mr-2 h-5 w-5" /> Mükerrerleri Birleştir
+                    </Button>
 
                     <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
                         <DialogTrigger asChild>
@@ -679,6 +684,8 @@ export default function CustomerList({
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            <MergeDuplicatesDialog open={isMergeOpen} onClose={() => setIsMergeOpen(false)} />
         </div>
     )
 }

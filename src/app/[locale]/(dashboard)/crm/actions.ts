@@ -1560,3 +1560,65 @@ export async function getPaymentTemplates() {
     return data
 }
 
+// ----------------------------------------------------
+// DEDUPLICATION TOOL
+// ----------------------------------------------------
+export async function getDuplicateCustomerGroups() {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single()
+
+    const { data: customers } = await supabase
+        .from('customers')
+        .select('*')
+        .eq('tenant_id', profile?.tenant_id)
+        .order('created_at', { ascending: false })
+
+    if (!customers) return { groups: [] }
+
+    const groups: Record<string, any[]> = {}
+    for (const c of customers) {
+        if (!c.full_name || !c.phone) continue
+        const normName = c.full_name.trim().toLowerCase()
+        const normPhone = c.phone.trim().replace(/\s+/g, '')
+        const key = `${normName}|${normPhone}`
+        if (!groups[key]) groups[key] = []
+        groups[key].push(c)
+    }
+
+    const result = Object.values(groups).filter(g => g.length > 1)
+    return { groups: result }
+}
+
+export async function mergeDuplicateGroup(masterId: string, duplicateIds: string[]) {
+    const supabase = await createClient()
+
+    try {
+        for (const dId of duplicateIds) {
+            // Relink foreign keys
+            await supabase.from('sales').update({ customer_id: masterId }).eq('customer_id', dId)
+            await supabase.from('customer_demands').update({ customer_id: masterId }).eq('customer_id', dId)
+            await supabase.from('activities').update({ customer_id: masterId }).eq('customer_id', dId)
+            await supabase.from('contract_customers').update({ customer_id: masterId }).eq('customer_id', dId)
+            // also offers?
+            await supabase.from('offers').update({ customer_id: masterId }).eq('customer_id', dId)
+            
+            // Delete unused duplicate resources (will fail securely if actively used)
+            await supabase.from('financial_accounts').delete().eq('customer_id', dId)
+
+            // Delete the duplicate customer
+            const { error: customerDelError } = await supabase.from('customers').delete().eq('id', dId)
+            if (customerDelError) {
+                console.error("Could not delete duplicate customer:", dId, customerDelError)
+                return { error: 'Aktif işlemleri olan bir mükerrer kayıt silinemedi.' }
+            }
+        }
+        revalidatePath('/[locale]/(dashboard)/crm', 'layout')
+        revalidatePath('/[locale]/(dashboard)/customers', 'layout')
+        return { success: true }
+    } catch (e: any) {
+        return { error: e.message }
+    }
+}
