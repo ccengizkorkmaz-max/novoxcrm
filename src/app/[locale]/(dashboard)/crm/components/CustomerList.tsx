@@ -256,10 +256,14 @@ export default function CustomerList({
                             <form action={async (formData) => {
                                 setIsPending(true)
                                 try {
-                                    await createCustomer(formData)
-                                    toast.success(t('messages.created') || 'Müşteri oluşturuldu')
-                                    setIsCreateOpen(false)
-                                    router.refresh()
+                                    const res = await createCustomer(formData)
+                                    if (res?.error) {
+                                        toast.error(res.error)
+                                    } else {
+                                        toast.success(t('messages.created') || 'Müşteri oluşturuldu')
+                                        setIsCreateOpen(false)
+                                        router.refresh()
+                                    }
                                 } finally {
                                     setIsPending(false)
                                 }

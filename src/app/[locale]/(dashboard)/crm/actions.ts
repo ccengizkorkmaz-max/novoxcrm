@@ -34,7 +34,6 @@ export async function createCustomer(formData: FormData) {
         .from('customers')
         .insert({
             tenant_id: profile?.tenant_id,
-            created_by: user.id,
             full_name,
             phone,
             email,
