@@ -199,31 +199,8 @@ export async function POST(req: Request) {
             }
 
             // ── 2. Duplicate Lead (sales) check ─────────────────────────────
-            // If a Lead already exists for this customer+project → skip creation
-            // NOTE: must use `let` and reassign — Supabase builder returns new object each time
-            let leadCheckQuery = supabase
-                .from('sales')
-                .select('id')
-                .eq('tenant_id', tenant_id)
-                .eq('customer_id', customerId)
-                .eq('status', 'Lead')
-
-            if (projectId) {
-                leadCheckQuery = leadCheckQuery.eq('project_id', projectId)
-            }
-
-            const { data: existingLead } = await leadCheckQuery.limit(1).maybeSingle()
-
-            if (existingLead) {
-                console.log('⚠️ Duplicate lead skipped — already exists:', existingLead.id)
-                revalidatePath('/[locale]/(dashboard)/crm')
-                return NextResponse.json({
-                    success: true,
-                    duplicate: true,
-                    message: 'Lead already exists — skipped to prevent duplicate.',
-                    lead_id: existingLead.id
-                })
-            }
+            // We removed the duplicate skip block because historical imports or multiple form submissions
+            // from the same customer were being wrongly swallowed. All webhooks will now create a lead.
 
             // ── 3. Create sale (Lead) record ─────────────────────────────────
             const { data: newSale, error: saleError } = await supabase
