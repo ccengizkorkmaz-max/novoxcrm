@@ -1190,8 +1190,11 @@ export async function updateBrokerSlug(slug: string) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: 'Unauthorized' }
 
+    // Format and sanitize slug
+    const formattedSlug = slug.toLowerCase().trim()
+
     // Validate slug (alphanumeric and dashes only)
-    if (!/^[a-z0-9-]+$/.test(slug)) {
+    if (!/^[a-z0-9-]+$/.test(formattedSlug)) {
         return { error: 'Slug sadece küçük harf, rakam ve tire içerebilir.' }
     }
 
@@ -1199,7 +1202,7 @@ export async function updateBrokerSlug(slug: string) {
     const supabaseAdmin = createAdminClient()
     const { error } = await supabaseAdmin
         .from('profiles')
-        .update({ broker_slug: slug })
+        .update({ broker_slug: formattedSlug })
         .eq('id', user.id)
 
     if (error) {
@@ -1215,14 +1218,14 @@ export async function updateBrokerSlug(slug: string) {
 
 // ... (previous content)
 export async function getBrokerBySlug(slug: string) {
-    const supabase = await createClient()
-    const { data, error } = await supabase
+    const supabaseAdmin = createAdminClient()
+    const { data, error } = await supabaseAdmin
         .from('profiles')
         .select('id, full_name, tenant_id')
-        .eq('broker_slug', slug)
-        .single()
+        .ilike('broker_slug', slug)
+        .maybeSingle()
 
-    if (error) return null
+    if (error || !data) return null
     return data
 }
 
