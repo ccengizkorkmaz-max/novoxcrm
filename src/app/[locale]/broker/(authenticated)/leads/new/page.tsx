@@ -15,6 +15,12 @@ export default async function NewLeadPage(props: {
         .select('id, name')
         .eq('status', 'Active')
 
+    // Fetch all available units
+    const { data: units } = await supabase
+        .from('units')
+        .select('id, project_id, unit_number, block, floor, type, area_gross, price, currency')
+        .in('status', ['For Sale', 'Available'])
+
     // Fetch unit details if unit_id is provided
     let unit = null
     if (unit_id) {
@@ -29,6 +35,7 @@ export default async function NewLeadPage(props: {
     return (
         <NewLeadForm
             projects={projects || []}
+            allUnits={units || []}
             initialProjectId={project_id}
             initialUnit={unit}
         />

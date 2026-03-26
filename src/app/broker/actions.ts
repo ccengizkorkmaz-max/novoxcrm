@@ -95,10 +95,9 @@ export async function submitBrokerLead(formData: FormData) {
             property_type,
             location_interest,
             project_id: project_id || null,
-            unit_id: unit_id || null,
             preferred_visit_date: preferred_visit_date || null,
             credit_interest,
-            notes,
+            notes: unit_id ? `${notes || ''}\nİlgilenilen Ünite ID: ${unit_id}`.trim() : notes,
             status: 'Submitted'
         })
         .select()

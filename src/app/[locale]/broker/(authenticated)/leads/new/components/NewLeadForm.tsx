@@ -26,16 +26,19 @@ interface Unit {
     area_gross?: number | null
     price?: number | null
     currency?: string | null
+    project_id?: string | null
 }
 
 interface NewLeadFormProps {
     projects: Project[]
+    allUnits?: Unit[]
     initialProjectId?: string
     initialUnit?: Unit | null
 }
 
 export default function NewLeadForm({
     projects,
+    allUnits = [],
     initialProjectId,
     initialUnit
 }: NewLeadFormProps) {
@@ -43,6 +46,16 @@ export default function NewLeadForm({
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>(initialProjectId)
+    const [selectedUnitId, setSelectedUnitId] = useState<string | undefined>(initialUnit?.id)
+
+    // Filter available units by selected project
+    const availableUnits = allUnits.filter(u => u.project_id === selectedProjectId)
+
+    // Handle project change
+    const handleProjectChange = (pid: string) => {
+        setSelectedProjectId(pid)
+        setSelectedUnitId(undefined) // Reset unit when project changes
+    }
 
     async function handleSubmit(formData: FormData) {
         setLoading(true)
@@ -75,8 +88,7 @@ export default function NewLeadForm({
             </div>
 
             <form action={handleSubmit}>
-                {/* Carry unit_id as hidden if it comes from the initial state */}
-                {initialUnit && <input type="hidden" name="unit_id" value={initialUnit.id} />}
+                <input type="hidden" name="unit_id" value={selectedUnitId || ''} />
 
                 <div className="grid gap-6">
                     {/* Kişisel Bilgiler */}
@@ -135,7 +147,7 @@ export default function NewLeadForm({
                                     <Select
                                         name="project_id"
                                         defaultValue={selectedProjectId}
-                                        onValueChange={setSelectedProjectId}
+                                        onValueChange={handleProjectChange}
                                     >
                                         <SelectTrigger className="pl-9 rounded-xl">
                                             <SelectValue placeholder="Proje Seçiniz" />
@@ -149,26 +161,50 @@ export default function NewLeadForm({
                                 </div>
                             </div>
 
-                            {initialUnit && (
+                            <div className="space-y-2">
+                                <Label htmlFor="unit_id">İlgilenilen Ünite (Opsiyonel)</Label>
+                                <Select
+                                    value={selectedUnitId}
+                                    onValueChange={setSelectedUnitId}
+                                    disabled={!selectedProjectId || availableUnits.length === 0}
+                                >
+                                    <SelectTrigger className="rounded-xl">
+                                        <SelectValue placeholder={!selectedProjectId ? 'Önce proje seçiniz' : (availableUnits.length === 0 ? 'Uygun ünite yok' : 'Ünite Seçiniz (İsteğe bağlı)')} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {availableUnits.map(u => (
+                                            <SelectItem key={u.id} value={u.id}>
+                                                {u.unit_number} {u.block ? `(${u.block} Blok)` : ''} - {formatPrice(u.price, u.currency)}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            {selectedUnitId && (
                                 <div className="space-y-2 sm:col-span-2">
-                                    <Label>Seçili Ünite</Label>
+                                    <Label>Seçili Ünite Özeti</Label>
                                     <div className="p-4 bg-blue-50/50 border border-blue-100 rounded-2xl flex items-center justify-between">
                                         <div className="flex items-center gap-4">
                                             <div className="min-w-[40px] px-2 h-10 rounded-xl bg-white border border-blue-100 flex items-center justify-center text-blue-600 font-bold shadow-sm whitespace-nowrap">
-                                                {initialUnit.unit_number}
+                                                {allUnits.find(u => u.id === selectedUnitId)?.unit_number || initialUnit?.unit_number}
                                             </div>
                                             <div>
                                                 <p className="text-sm font-bold text-slate-900">
-                                                    {initialUnit.block && `${initialUnit.block} Blok, `} {initialUnit.floor && `${initialUnit.floor}. Kat, `} {initialUnit.type}
+                                                    {[
+                                                        allUnits.find(u => u.id === selectedUnitId)?.block ? `${allUnits.find(u => u.id === selectedUnitId)?.block} Blok` : null,
+                                                        allUnits.find(u => u.id === selectedUnitId)?.floor ? `${allUnits.find(u => u.id === selectedUnitId)?.floor}. Kat` : null,
+                                                        allUnits.find(u => u.id === selectedUnitId)?.type || initialUnit?.type
+                                                    ].filter(Boolean).join(', ')}
                                                 </p>
                                                 <p className="text-xs text-slate-500">
-                                                    {initialUnit.area_gross ? `${initialUnit.area_gross} m² Brüt` : '-'}
+                                                    {allUnits.find(u => u.id === selectedUnitId)?.area_gross ? `${allUnits.find(u => u.id === selectedUnitId)?.area_gross} m² Brüt` : '-'}
                                                 </p>
                                             </div>
                                         </div>
                                         <div className="text-right">
                                             <p className="text-sm font-black text-blue-700">
-                                                {formatPrice(initialUnit.price, initialUnit.currency)}
+                                                {formatPrice(allUnits.find(u => u.id === selectedUnitId)?.price || initialUnit?.price, allUnits.find(u => u.id === selectedUnitId)?.currency || initialUnit?.currency)}
                                             </p>
                                         </div>
                                     </div>
