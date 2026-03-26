@@ -6,7 +6,7 @@ import { redirect } from 'next/navigation'
 import { syncBrokerLeadFromSale } from '@/app/broker/actions'
 import { ensureFinancialAccount, createTransaction, createValuablePaper } from '../finance/actions'
 import { createNotification } from '@/lib/notifications/create'
-
+import { logSystemAction } from '@/lib/actions/system-logs'
 export async function createCustomer(formData: FormData) {
     const supabase = await createClient()
 
@@ -51,8 +51,27 @@ export async function createCustomer(formData: FormData) {
 
     if (error) {
         console.error('Create Customer Error:', error)
+        
+        // Log Error
+        await logSystemAction({
+            action_type: 'CREATE',
+            entity_type: 'Customer',
+            status: 'Error',
+            message: `Müşteri eklenirken hata oluştu: ${full_name}`,
+            details: error
+        })
+
         return { error: `Müşteri oluşturulamadı: ${error.message}` }
     }
+
+    // Log Success
+    await logSystemAction({
+        action_type: 'CREATE',
+        entity_type: 'Customer',
+        entity_id: data.id,
+        status: 'Success',
+        message: `Yeni müşteri eklendi: ${full_name}`
+    })
 
     // Auto-create financial account (Cari)
     try {
@@ -209,8 +228,24 @@ export async function updateCustomer(formData: FormData) {
 
     if (error) {
         console.error('Update Customer Error:', error)
+        await logSystemAction({
+            action_type: 'UPDATE',
+            entity_type: 'Customer',
+            entity_id: id,
+            status: 'Error',
+            message: `Müşteri güncellenirken hata oluştu: ${full_name}`,
+            details: error
+        })
         return { error: `Güncelleme başarısız: ${error.message}` }
     }
+
+    await logSystemAction({
+        action_type: 'UPDATE',
+        entity_type: 'Customer',
+        entity_id: id,
+        status: 'Success',
+        message: `Müşteri güncellendi: ${full_name}`
+    })
 
     // Sync Portal Access ONLY if BOTH are provided
     if (portal_username && portal_password) {
@@ -263,10 +298,34 @@ export async function deleteCustomer(formData: FormData) {
         console.error('Delete Customer Error:', error)
         // Check for reference constraints
         if (error.message.includes('violates foreign key constraint') || error.message.includes('violates check constraint')) {
-             return { error: 'Bu müşteriye ait aktif işlemler (ör. sözleşme, finans işlemi) olduğu için silinemez.' }
+            await logSystemAction({
+                action_type: 'DELETE',
+                entity_type: 'Customer',
+                entity_id: id,
+                status: 'Warning',
+                message: 'Silme işlemi reddedildi (aktif kayıtlar var).',
+                details: error
+            })
+            return { error: 'Bu müşteriye ait aktif işlemler (ör. sözleşme, finans işlemi) olduğu için silinemez.' }
         }
+        await logSystemAction({
+            action_type: 'DELETE',
+            entity_type: 'Customer',
+            entity_id: id,
+            status: 'Error',
+            message: 'Müşteri silinirken veritabanı hatası.',
+            details: error
+        })
         return { error: `Müşteri silinemedi: ${error.message}` }
     }
+
+    await logSystemAction({
+        action_type: 'DELETE',
+        entity_type: 'Customer',
+        entity_id: id,
+        status: 'Success',
+        message: `Müşteri sistemden silindi (ID: ${id})`
+    })
 
     revalidatePath('/crm')
     return { success: true }

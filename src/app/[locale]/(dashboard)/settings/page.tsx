@@ -25,7 +25,8 @@ import AiSettingsTab from './components/AiSettingsTab'
 import EmailAccountsTab from './components/EmailAccountsTab'
 import SmsSettingsTab from './components/SmsSettingsTab'
 import { FinancialSettingsTab } from './components/FinancialSettingsTab'
-
+import { SystemLogsTab } from './components/SystemLogsTab'
+import { FileWarning } from 'lucide-react'
 
 export default async function SettingsPage() {
     const supabase = await createClient()
@@ -97,6 +98,17 @@ export default async function SettingsPage() {
         .eq('tenant_id', profile.tenant_id)
         .order('created_at', { ascending: false })
 
+    // Get System Logs
+    const { data: systemLogs, error: logsError } = await supabase
+        .from('system_logs')
+        .select('*, profiles(full_name)')
+        .eq('tenant_id', profile.tenant_id)
+        .order('created_at', { ascending: false })
+        .limit(100)
+    
+    // Check if the table exists (42P01 = undefined_table)
+    const hasLogsTableError = logsError?.code === '42P01' || logsError?.code === 'PGRST205'
+
     const getRoleLabel = (role: string) => {
         switch (role) {
             case 'admin': return t('users.roles.admin')
@@ -159,6 +171,10 @@ export default async function SettingsPage() {
                     <TabsTrigger value="sms" className="flex-1 md:flex-none py-2.5 px-4 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all">
                         <MessageSquare className="w-4 h-4 mr-2" />
                         SMS Ayarları
+                    </TabsTrigger>
+                    <TabsTrigger value="logs" className="flex-1 md:flex-none py-2.5 px-4 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all focus:outline-none">
+                        <FileWarning className="w-4 h-4 mr-2" />
+                        İşlem Logları
                     </TabsTrigger>
                 </TabsList>
 
@@ -244,6 +260,14 @@ export default async function SettingsPage() {
                 {/* SMS Settings Tab */}
                 <TabsContent value="sms" className="space-y-4">
                     <SmsSettingsTab tenant={tenant as any} />
+                </TabsContent>
+
+                {/* System Logs Tab */}
+                <TabsContent value="logs" className="space-y-4">
+                    <SystemLogsTab 
+                        initialLogs={systemLogs || []} 
+                        hasError={hasLogsTableError} 
+                    />
                 </TabsContent>
             </Tabs>
 

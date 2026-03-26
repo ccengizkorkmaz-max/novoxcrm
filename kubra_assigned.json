@@ -1,0 +1,542 @@
+[
+  {
+    "id": "3d1db4e7-4129-40ec-bc86-db8ef117332d",
+    "created_at": "2026-03-24T22:18:47+00:00",
+    "customers": {
+      "id": "290f5d67-adb8-426e-912a-4aaa184d95cf",
+      "phone": "+905428945757",
+      "source": "Facebook Ads",
+      "full_name": "Ahmet şahin"
+    }
+  },
+  {
+    "id": "493379c5-8a57-4d86-b0ee-a1994bba04ee",
+    "created_at": "2026-03-24T22:18:47+00:00",
+    "customers": {
+      "id": "290f5d67-adb8-426e-912a-4aaa184d95cf",
+      "phone": "+905428945757",
+      "source": "Facebook Ads",
+      "full_name": "Ahmet şahin"
+    }
+  },
+  {
+    "id": "1860f604-25ab-4d50-bc03-aadb2827aff9",
+    "created_at": "2026-03-24T21:39:20+00:00",
+    "customers": {
+      "id": "dfb2036b-1cf1-47a3-a4c1-b2b647c42bbc",
+      "phone": "+905066229305",
+      "source": "Facebook Ads",
+      "full_name": "Derya DEMİR"
+    }
+  },
+  {
+    "id": "1490f4da-bc39-4b84-951d-5a5c9408ace7",
+    "created_at": "2026-03-24T21:06:25+00:00",
+    "customers": {
+      "id": "b2271c3a-e25a-42c6-8f2b-6b201a5a6887",
+      "phone": "+905303921430",
+      "source": "Facebook Ads",
+      "full_name": "emir Özbek"
+    }
+  },
+  {
+    "id": "a4a44171-1664-4e81-9a00-95402dd7fd79",
+    "created_at": "2026-03-24T20:38:33.060129+00:00",
+    "customers": {
+      "id": "f93c155d-82f0-4f57-97b3-e1529705e3aa",
+      "phone": "05335062186",
+      "source": "Facebook Ads",
+      "full_name": "Yakup Eres"
+    }
+  },
+  {
+    "id": "a8f29f79-3988-4080-a2f5-199609a03136",
+    "created_at": "2026-03-24T19:54:18+00:00",
+    "customers": {
+      "id": "4d1f81bf-b6f7-4a5a-90b2-f6ce7eb30aee",
+      "phone": "+5354224297",
+      "source": "Facebook Ads",
+      "full_name": "Mesut Güler"
+    }
+  },
+  {
+    "id": "5e903ed9-5611-477d-b274-2d4b03fce6c0",
+    "created_at": "2026-03-24T19:48:35.478325+00:00",
+    "customers": {
+      "id": "c9884dcd-ef8a-4249-a098-ea71b7c56f32",
+      "phone": "+905335225050",
+      "source": "Facebook Ads",
+      "full_name": "Mehmet Emin Öztürk"
+    }
+  },
+  {
+    "id": "532e8560-1955-487b-8547-19a598e92849",
+    "created_at": "2026-03-24T19:48:34.202255+00:00",
+    "customers": {
+      "id": "bde82a4b-7b7c-44a8-b4a9-ba0945db0e4d",
+      "phone": "+905536443987",
+      "source": "Facebook Ads",
+      "full_name": "Doğan Aygün"
+    }
+  },
+  {
+    "id": "d23fb6a8-ab28-4f3d-8b9f-81520cf62706",
+    "created_at": "2026-03-24T19:40:27+00:00",
+    "customers": {
+      "id": "9ccd6d23-d48f-4397-a22d-e7ce93dfc5ee",
+      "phone": "+905071653582",
+      "source": "Facebook Ads",
+      "full_name": "Fehmi Erdek"
+    }
+  },
+  {
+    "id": "cacc5583-2292-4eee-862e-953d76f82fa9",
+    "created_at": "2026-03-24T19:34:56+00:00",
+    "customers": {
+      "id": "74614c97-1e45-42f5-886c-dbd9fc120b89",
+      "phone": "+905336573226",
+      "source": "Facebook Ads",
+      "full_name": "Hakan Ugurlu"
+    }
+  },
+  {
+    "id": "98bdad8a-3680-4553-bbda-919e8e8d1fef",
+    "created_at": "2026-03-24T19:29:55+00:00",
+    "customers": {
+      "id": "075afbbd-51f5-42ff-8bed-204bed8c03ae",
+      "phone": "+905055025349",
+      "source": "Facebook Ads",
+      "full_name": "Hanife Saygin"
+    }
+  },
+  {
+    "id": "e291e64e-8e54-48d4-bd15-15b6dcd250d5",
+    "created_at": "2026-03-24T15:08:12.80382+00:00",
+    "customers": {
+      "id": "bd4f68de-b314-4c66-9fc3-4025392b2767",
+      "phone": "+905325981903",
+      "source": "Facebook Ads",
+      "full_name": "Gökhan Okur"
+    }
+  },
+  {
+    "id": "19ae8d1b-f551-4406-8ce2-958a0183eb03",
+    "created_at": "2026-03-24T14:12:57.277919+00:00",
+    "customers": {
+      "id": "8a8dd976-66b9-4abc-8cac-8815ed2549ee",
+      "phone": "ifempty(+905425397754; \"\")",
+      "source": "Facebook Ads",
+      "full_name": "İzmit Antik"
+    }
+  },
+  {
+    "id": "1ac8e826-e268-46ec-ba1c-010b4626a575",
+    "created_at": "2026-03-24T14:12:56.206752+00:00",
+    "customers": {
+      "id": "549506a4-18fe-402f-aad1-cdcfb3edd057",
+      "phone": "ifempty(+905076483006; \"\")",
+      "source": "Facebook Ads",
+      "full_name": "TC Fatih Erkul"
+    }
+  },
+  {
+    "id": "636aaaf7-46a3-49e1-a913-6e01c5c3a716",
+    "created_at": "2026-03-24T14:12:55.21038+00:00",
+    "customers": {
+      "id": "7863143d-5d88-484f-923f-b6185bbdf476",
+      "phone": "ifempty(+905323420183; \"\")",
+      "source": "Facebook Ads",
+      "full_name": "Fatih demir"
+    }
+  },
+  {
+    "id": "dad527bd-05ec-48f0-8db1-8d7b1a44b788",
+    "created_at": "2026-03-24T13:31:08.649393+00:00",
+    "customers": {
+      "id": "e8999625-d332-4c8d-8016-185c4f907cb0",
+      "phone": "+905355942839",
+      "source": "Facebook Ads",
+      "full_name": "meral hacikamiloglu"
+    }
+  },
+  {
+    "id": "214786dd-30f9-4b72-adee-d7e197bf08a5",
+    "created_at": "2026-03-24T13:03:40.005+00:00",
+    "customers": {
+      "id": "6d30252f-6fdd-4dbc-b025-c75b3a6d68fa",
+      "phone": "+905433598778",
+      "source": "Facebook Ads",
+      "full_name": "Cevriye Adıbelli"
+    }
+  },
+  {
+    "id": "db037e3f-da78-4ba3-87d0-f188db2c0598",
+    "created_at": "2026-03-24T12:50:32.589193+00:00",
+    "customers": {
+      "id": "b8bdc4d8-75c3-4c56-95a4-296bd669a8e8",
+      "phone": "905327279177",
+      "source": "Email",
+      "full_name": "Füsun Taşlı"
+    }
+  },
+  {
+    "id": "ba6417e7-9315-4e12-a3cf-106481f0badb",
+    "created_at": "2026-03-24T12:12:13.230385+00:00",
+    "customers": {
+      "id": "c898a2ae-6f83-4633-a742-ba159e97caad",
+      "phone": "+905424780709",
+      "source": "Facebook Ads",
+      "full_name": "Uzm.Dyt.Belemir İnanç Yıldız"
+    }
+  },
+  {
+    "id": "d7abd4bc-60b8-43a9-a4e2-5ec22c36fbc3",
+    "created_at": "2026-03-24T12:12:12.340194+00:00",
+    "customers": {
+      "id": "64809c6c-cf55-472e-a499-47f8df0c96ac",
+      "phone": "+905325930526",
+      "source": "Facebook Ads",
+      "full_name": "Ugur Sayar"
+    }
+  },
+  {
+    "id": "35576b80-7d76-442f-b54f-b11f6d61d1c0",
+    "created_at": "2026-03-24T11:29:44.880872+00:00",
+    "customers": {
+      "id": "d2e6945e-f604-4c60-81bc-b248a0a6d878",
+      "phone": "+905327436616",
+      "source": "Facebook Ads",
+      "full_name": "Emrah Gunbasar"
+    }
+  },
+  {
+    "id": "b5fb1c89-5b46-45b7-a7b3-ec1d92bff0a6",
+    "created_at": "2026-03-24T11:18:42.026649+00:00",
+    "customers": {
+      "id": "08297d56-8034-4dd5-abbf-7df11d3e9c9f",
+      "phone": "+905374979796",
+      "source": "Facebook Ads",
+      "full_name": "Ayfer Darlaz"
+    }
+  },
+  {
+    "id": "9bc21fa1-12f4-4fb9-b827-be0e9b653c63",
+    "created_at": "2026-03-24T10:44:35.633122+00:00",
+    "customers": {
+      "id": "6aea83f5-6e8a-4b2a-a500-da13278b4d4f",
+      "phone": "+905372100420",
+      "source": "Facebook Ads",
+      "full_name": "sociable_35"
+    }
+  },
+  {
+    "id": "32802290-711f-4525-9d71-a221a253571c",
+    "created_at": "2026-03-24T10:44:34.635756+00:00",
+    "customers": {
+      "id": "56c347d5-42af-44c5-99ad-e1868eccf2e0",
+      "phone": "05432920807",
+      "source": "Facebook Ads",
+      "full_name": "Berna"
+    }
+  },
+  {
+    "id": "01559f29-4359-4b62-827a-4cf16da759f7",
+    "created_at": "2026-03-24T10:04:22.538775+00:00",
+    "customers": {
+      "id": "7e589bb9-108f-4670-9fcf-b0cd58535c72",
+      "phone": "+989399054747",
+      "source": "Facebook Ads",
+      "full_name": "vahid rahbar"
+    }
+  },
+  {
+    "id": "4c688ff0-1ea6-4eeb-9d7e-505728dfcd4a",
+    "created_at": "2026-03-24T10:04:20.766434+00:00",
+    "customers": {
+      "id": "de70631c-609b-4404-a27e-c2c94a59ab2f",
+      "phone": "+905322755692",
+      "source": "Facebook Ads",
+      "full_name": "Gülçin Gülmez Yeygel"
+    }
+  },
+  {
+    "id": "ad7492eb-26d2-49d0-a36a-67a0cde12707",
+    "created_at": "2026-03-24T08:22:40.951442+00:00",
+    "customers": {
+      "id": "01cce438-a171-4a61-a057-55e842ba212b",
+      "phone": "+905322940443",
+      "source": "Facebook Ads",
+      "full_name": "Ünsal Kavukcu"
+    }
+  },
+  {
+    "id": "66dabf77-96aa-4a90-9ee7-aa97aa1d734f",
+    "created_at": "2026-03-24T07:54:24.629056+00:00",
+    "customers": {
+      "id": "dd270414-1a8b-4f9e-91db-06227ea7b17d",
+      "phone": "+905063266656",
+      "source": "Facebook Ads",
+      "full_name": "Aslıhan Ocak Yemenici"
+    }
+  },
+  {
+    "id": "fb3727dc-d4b2-4dbd-8ad5-16583d57c5c2",
+    "created_at": "2026-03-24T07:18:33.345801+00:00",
+    "customers": {
+      "id": "10d35cea-d231-42e8-90ce-283ac05f549a",
+      "phone": "+905324159153",
+      "source": "Facebook Ads",
+      "full_name": "Tacettin Pirinc"
+    }
+  },
+  {
+    "id": "8d2546fa-e164-42cf-a1c7-3c38e456f516",
+    "created_at": "2026-03-24T07:04:15.071855+00:00",
+    "customers": {
+      "id": "9a6df7ee-0cd8-49ba-9759-f8d34519e75a",
+      "phone": "+905334794329",
+      "source": "Facebook Ads",
+      "full_name": "Filiz Önal"
+    }
+  },
+  {
+    "id": "d37d2747-b2d0-4c5c-9308-2ba4116b7a9b",
+    "created_at": "2026-03-24T06:54:42.864509+00:00",
+    "customers": {
+      "id": "b163aecb-07fb-4c90-bed7-ed3e5f6d481d",
+      "phone": "+905337605523",
+      "source": "Facebook Ads",
+      "full_name": "Tulay Ertan"
+    }
+  },
+  {
+    "id": "a4388481-59bf-4521-95d2-30990cea2e05",
+    "created_at": "2026-03-24T06:28:30.766235+00:00",
+    "customers": {
+      "id": "9a6df7ee-0cd8-49ba-9759-f8d34519e75a",
+      "phone": "+905334794329",
+      "source": "Facebook Ads",
+      "full_name": "Filiz Önal"
+    }
+  },
+  {
+    "id": "064e922a-ccc5-4a50-a700-e16131c6c29b",
+    "created_at": "2026-03-24T05:47:25+00:00",
+    "customers": {
+      "id": "c393af3f-0bab-474d-abe3-25b76ee9908e",
+      "phone": "+905424267677",
+      "source": "Facebook Ads",
+      "full_name": "Ahmet Yönt"
+    }
+  },
+  {
+    "id": "4e316370-1bf9-4ade-985c-853bfb28dc1f",
+    "created_at": "2026-03-24T05:24:53+00:00",
+    "customers": {
+      "id": "f10cbb4a-7405-46b6-92a6-7e5c5b73f7ca",
+      "phone": "+905414600507",
+      "source": "Facebook Ads",
+      "full_name": "Esra Pamuk Acar"
+    }
+  },
+  {
+    "id": "4a740940-d7fb-4ac3-a4d7-2ff4812c72e1",
+    "created_at": "2026-03-24T05:07:42+00:00",
+    "customers": {
+      "id": "2ab60441-2ce7-40de-83d9-18145a155eeb",
+      "phone": "+905455459958",
+      "source": "Facebook Ads",
+      "full_name": "bülent bulut"
+    }
+  },
+  {
+    "id": "83830797-7fb8-440d-8d48-6dbdbccd4b11",
+    "created_at": "2026-03-24T05:04:12+00:00",
+    "customers": {
+      "id": "fd670ee6-a87f-4cd3-90cc-e6f92acf2676",
+      "phone": "+905425397754",
+      "source": "Facebook Ads",
+      "full_name": "İzmit Antik"
+    }
+  },
+  {
+    "id": "2b6d8769-9a8a-49b8-9d88-b6f0852721df",
+    "created_at": "2026-03-24T04:52:24+00:00",
+    "customers": {
+      "id": "eadb4db5-93c3-4285-b526-b9577a548376",
+      "phone": "+905076483006",
+      "source": "Facebook Ads",
+      "full_name": "TC Fatih Erkul"
+    }
+  },
+  {
+    "id": "746aeb69-ff8f-48fb-9649-11136925c390",
+    "created_at": "2026-03-24T03:52:48+00:00",
+    "customers": {
+      "id": "667779e5-9a25-4845-9763-9b3980775bee",
+      "phone": "+905323420183",
+      "source": "Facebook Ads",
+      "full_name": "Fatih demir"
+    }
+  },
+  {
+    "id": "ad20d99b-1c7b-4c40-913b-d878eca3b197",
+    "created_at": "2026-03-23T23:48:34.617977+00:00",
+    "customers": {
+      "id": "d645bc25-0fbf-4cd4-b280-11b0892d26ec",
+      "phone": "+905345418840",
+      "source": "Facebook Ads",
+      "full_name": "Onan Fidan"
+    }
+  },
+  {
+    "id": "c76f0739-f850-467a-9663-cc66c0ff554b",
+    "created_at": "2026-03-23T22:58:33.416136+00:00",
+    "customers": {
+      "id": "cae135fb-338f-4ca6-a3b4-a2b0d1e581cd",
+      "phone": "+905422939315",
+      "source": "Facebook Ads",
+      "full_name": "cuneyt durusel"
+    }
+  },
+  {
+    "id": "64d490d9-770d-4c74-b2b2-b666692bd1c5",
+    "created_at": "2026-03-23T22:58:32.638+00:00",
+    "customers": {
+      "id": "c0da8fc2-6015-40e7-9ceb-b02201c5362c",
+      "phone": "+15335008086",
+      "source": "Facebook Ads",
+      "full_name": "Pearl Bunch"
+    }
+  },
+  {
+    "id": "1c9ad1ab-8f85-415f-9f5a-e09473070973",
+    "created_at": "2026-03-23T20:38:42.089977+00:00",
+    "customers": {
+      "id": "0637c142-847d-43cc-92a5-0449c3ca987e",
+      "phone": "+905355251716",
+      "source": "Facebook Ads",
+      "full_name": "Ece Guresci"
+    }
+  },
+  {
+    "id": "7c42210f-ef13-4333-ab01-60e1834cb47b",
+    "created_at": "2026-03-23T16:18:33.918314+00:00",
+    "customers": {
+      "id": "bab9710b-82c2-4f0b-bbeb-855f508f7b9d",
+      "phone": "+905372074375",
+      "source": "Facebook Ads",
+      "full_name": "Özlem Çelik"
+    }
+  },
+  {
+    "id": "2233bce8-f849-4632-a290-23cf0d12b439",
+    "created_at": "2026-03-23T16:18:32.569711+00:00",
+    "customers": {
+      "id": "cf0366fc-02a9-4c39-ac2b-08e2c485648d",
+      "phone": "+905526521854",
+      "source": "Facebook Ads",
+      "full_name": "Mesut Aydogan"
+    }
+  },
+  {
+    "id": "d213ef38-91f1-4a21-adbc-92fe08730ae0",
+    "created_at": "2026-03-23T10:32:26.358898+00:00",
+    "customers": {
+      "id": "f34d2a3e-5b46-4acf-b2f8-98e39eb8bb03",
+      "phone": "+905324683431",
+      "source": "Facebook Ads",
+      "full_name": "UgurŞayan"
+    }
+  },
+  {
+    "id": "1b505051-dcfb-446d-9ccb-f72f6b9f4274",
+    "created_at": "2026-03-23T10:24:28.234188+00:00",
+    "customers": {
+      "id": "98b138ba-860a-4427-81d0-07e4fa9f7af4",
+      "phone": "+905324461169",
+      "source": "Facebook Ads",
+      "full_name": "Yavuz Yıldız"
+    }
+  },
+  {
+    "id": "d36deba3-4c85-4d0c-a1ca-a75b05e5998a",
+    "created_at": "2026-03-23T09:48:15.632278+00:00",
+    "customers": {
+      "id": "60bb46e2-bd07-4fb7-90ce-39cb91842642",
+      "phone": "+905307815183",
+      "source": "Facebook Ads",
+      "full_name": "Sezen Keriman Babaoğlu"
+    }
+  },
+  {
+    "id": "9ef6df8e-9813-40c6-bfcf-cc33a50d43d7",
+    "created_at": "2026-03-23T09:06:05.793926+00:00",
+    "customers": {
+      "id": "8242cb27-ef1c-431a-a35b-64f802b03c49",
+      "phone": "+905327279177",
+      "source": "Facebook Ads",
+      "full_name": "Füsun Çil Taşlı"
+    }
+  },
+  {
+    "id": "3ba362b4-3c8a-4bbf-86dd-1bfff7cea37d",
+    "created_at": "2026-03-23T08:15:47.413322+00:00",
+    "customers": {
+      "id": "58468b4e-abb2-4b5c-b1ff-63d5fb0b16c3",
+      "phone": "+905302238851",
+      "source": "Facebook Ads",
+      "full_name": "Emine Hamsi"
+    }
+  },
+  {
+    "id": "055f40ed-09af-42f1-bf0e-db7fbc675602",
+    "created_at": "2026-03-23T07:36:15.19266+00:00",
+    "customers": {
+      "id": "3a15cf7b-ce75-4670-b9a8-7b68ad6e3606",
+      "phone": "+38268349540",
+      "source": "Facebook Ads",
+      "full_name": "Yusuf Akıncı"
+    }
+  },
+  {
+    "id": "1e15af71-0672-4bc9-8715-6dddfb3fb4f3",
+    "created_at": "2026-03-23T01:00:33.876166+00:00",
+    "customers": {
+      "id": "4e3f4909-66f7-43d6-9daa-90721a20dc8f",
+      "phone": "+905317690039",
+      "source": "Facebook Ads",
+      "full_name": "Işıl Kundakçıoğlu"
+    }
+  },
+  {
+    "id": "0c72816e-0a4b-4669-9b35-11fc85095903",
+    "created_at": "2026-03-23T00:16:17.98522+00:00",
+    "customers": {
+      "id": "d8f9b606-d2a4-4186-8deb-eeee467c6d5e",
+      "phone": "+905055246850",
+      "source": "Facebook Ads",
+      "full_name": "Serkan yaman"
+    }
+  },
+  {
+    "id": "67f3aad8-6697-44e8-814c-7d6ee8d70adb",
+    "created_at": "2026-03-22T23:32:16.424187+00:00",
+    "customers": {
+      "id": "7e736cf6-463c-49dd-bcd2-96ca07e6be8d",
+      "phone": "+905322709211",
+      "source": "Facebook Ads",
+      "full_name": "Gürses Azize"
+    }
+  },
+  {
+    "id": "e67a63a0-6b2a-435e-aa76-b7dd033e9400",
+    "created_at": "2026-03-22T08:38:36.513856+00:00",
+    "customers": {
+      "id": "6e48bf0b-23e8-4ecc-a551-b716ec38859f",
+      "phone": "+905055631991",
+      "source": "Facebook",
+      "full_name": "Gönül Sargın"
+    }
+  }
+]
