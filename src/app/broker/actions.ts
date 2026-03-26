@@ -45,6 +45,19 @@ export async function submitBrokerLead(formData: FormData) {
     const credit_interest = formData.get('credit_interest') === 'true'
     const notes = formData.get('notes') as string
 
+    let unitInfoText = ''
+    if (unit_id) {
+        const { data: unitData } = await supabase
+            .from('units')
+            .select('unit_number, block')
+            .eq('id', unit_id)
+            .maybeSingle()
+            
+        if (unitData) {
+            unitInfoText = `\n\nİlgilenilen Ünite: ${unitData.block ? `${unitData.block} Blok, ` : ''}No: ${unitData.unit_number}`
+        }
+    }
+
     if (!phone || !full_name) {
         return { error: 'Ad Soyad ve Telefon alanları zorunludur.' }
     }
@@ -97,7 +110,7 @@ export async function submitBrokerLead(formData: FormData) {
             project_id: project_id || null,
             preferred_visit_date: preferred_visit_date || null,
             credit_interest,
-            notes: unit_id ? `${notes || ''}\nİlgilenilen Ünite ID: ${unit_id}`.trim() : notes,
+            notes: unitInfoText ? `${notes || ''}${unitInfoText}`.trim() : notes,
             status: 'Submitted'
         })
         .select()
