@@ -23,6 +23,17 @@ export default function PublicLeadForm({ brokerId, tenantId, brokerName, project
     const t = useTranslations('PublicLeadForm')
     const [loading, setLoading] = useState(false)
     const [success, setSuccess] = useState(false)
+    const [budgetFormatted, setBudgetFormatted] = useState('')
+
+    const handleBudgetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const rawValue = e.target.value.replace(/\D/g, '')
+        if (!rawValue) {
+            setBudgetFormatted('')
+            return
+        }
+        const formatted = new Intl.NumberFormat('tr-TR').format(Number(rawValue))
+        setBudgetFormatted(formatted)
+    }
 
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault()
@@ -92,10 +103,18 @@ export default function PublicLeadForm({ brokerId, tenantId, brokerName, project
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="budget_max" className="text-slate-700 font-bold">{t('form.budgetLabel')}</Label>
+                        <Label htmlFor="budget_max_display" className="text-slate-700 font-bold">{t('form.budgetLabel')}</Label>
                         <div className="relative">
                             <Wallet className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                            <Input id="budget_max" name="budget_max" type="number" min="0" placeholder="Örn: 250000" className="pl-10 h-11 bg-slate-50 border-slate-200" />
+                            <input type="hidden" name="budget_max" value={budgetFormatted.replace(/\D/g, '')} />
+                            <Input 
+                                id="budget_max_display" 
+                                type="text"
+                                value={budgetFormatted}
+                                onChange={handleBudgetChange}
+                                placeholder="Örn: 250.000" 
+                                className="pl-10 h-11 bg-slate-50 border-slate-200" 
+                            />
                         </div>
                     </div>
 
