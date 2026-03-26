@@ -151,6 +151,7 @@ export async function submitPublicLead(brokerId: string, tenantId: string, formD
     const email = formData.get('email') as string
     const budget_max = formData.get('budget_max') ? Number(formData.get('budget_max')) : null
     const notes = formData.get('notes') as string
+    const project_id = formData.get('project_id') as string
 
     if (!phone || !full_name) {
         return { error: 'Ad Soyad ve Telefon alanları zorunludur.' }
@@ -179,6 +180,7 @@ export async function submitPublicLead(brokerId: string, tenantId: string, formD
             phone,
             email,
             budget_max,
+            project_id: project_id || null,
             notes: notes || 'Web formu üzerinden iletildi.',
             status: 'Submitted'
         })

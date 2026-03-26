@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Building2, CheckCircle2, User, Phone, Wallet, PenTool, Send, Loader2, Link } from 'lucide-react'
 import { submitPublicLead } from '@/app/broker/actions'
 import { toast } from 'sonner'
@@ -15,9 +16,10 @@ interface PublicLeadFormProps {
     brokerId: string
     tenantId: string
     brokerName: string
+    projects?: { id: string, name: string }[]
 }
 
-export default function PublicLeadForm({ brokerId, tenantId, brokerName }: PublicLeadFormProps) {
+export default function PublicLeadForm({ brokerId, tenantId, brokerName, projects = [] }: PublicLeadFormProps) {
     const t = useTranslations('PublicLeadForm')
     const [loading, setLoading] = useState(false)
     const [success, setSuccess] = useState(false)
@@ -90,19 +92,25 @@ export default function PublicLeadForm({ brokerId, tenantId, brokerName }: Publi
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="budget" className="text-slate-700 font-bold">{t('form.budgetLabel')}</Label>
+                        <Label htmlFor="budget_max" className="text-slate-700 font-bold">{t('form.budgetLabel')}</Label>
                         <div className="relative">
                             <Wallet className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                            <Input id="budget" name="budget" placeholder={t('form.budgetPlaceholder')} className="pl-10 h-11 bg-slate-50 border-slate-200" />
+                            <Input id="budget_max" name="budget_max" type="number" min="0" placeholder="Örn: 250000" className="pl-10 h-11 bg-slate-50 border-slate-200" />
                         </div>
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="project_interest" className="text-slate-700 font-bold">{t('form.projectLabel')}</Label>
-                        <div className="relative">
-                            <Building2 className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                            <Input id="project_interest" name="project_interest" placeholder={t('form.projectPlaceholder')} className="pl-10 h-11 bg-slate-50 border-slate-200" />
-                        </div>
+                        <Label htmlFor="project_id" className="text-slate-700 font-bold">{t('form.projectLabel')}</Label>
+                        <Select name="project_id">
+                            <SelectTrigger className="h-11 bg-slate-50 border-slate-200">
+                                <SelectValue placeholder="İlgilendiğiniz Projeyi Seçin" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {projects.map(p => (
+                                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
 
                     <div className="space-y-2">

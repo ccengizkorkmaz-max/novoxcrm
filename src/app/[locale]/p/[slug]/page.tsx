@@ -35,6 +35,15 @@ export default async function PublicPage(props: {
         notFound()
     }
 
+    // Fetch projects for this tenant
+    const { createAdminClient } = await import('@/lib/supabase/admin')
+    const supabaseAdmin = createAdminClient()
+    const { data: projects } = await supabaseAdmin
+        .from('projects')
+        .select('id, name')
+        .eq('status', 'Active')
+        .eq('tenant_id', broker.tenant_id)
+
     return (
         <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 py-12 md:py-20">
             <div className="w-full max-w-lg">
@@ -42,6 +51,7 @@ export default async function PublicPage(props: {
                     brokerId={broker.id}
                     tenantId={broker.tenant_id}
                     brokerName={broker.full_name}
+                    projects={projects || []}
                 />
 
                 <div className="mt-12 text-center">
