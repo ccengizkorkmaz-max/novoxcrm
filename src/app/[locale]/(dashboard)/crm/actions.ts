@@ -9,6 +9,8 @@ import { createNotification } from '@/lib/notifications/create'
 import { logSystemAction } from '@/lib/actions/system-logs'
 export async function createCustomer(formData: FormData) {
     const supabase = await createClient()
+    const { createAdminClient } = await import('@/lib/supabase/admin')
+    const adminSupabase = createAdminClient()
 
     // Get current user tenant
     const { data: { user } } = await supabase.auth.getUser()
@@ -30,7 +32,7 @@ export async function createCustomer(formData: FormData) {
     const portal_username = (formData.get('portal_username') as string)?.trim() || null
     const portal_password = (formData.get('portal_password') as string)?.trim() || null
 
-    const { data, error } = await supabase
+    const { data, error } = await adminSupabase
         .from('customers')
         .insert({
             tenant_id: profile?.tenant_id,
@@ -44,7 +46,8 @@ export async function createCustomer(formData: FormData) {
             city,
             country,
             portal_username,
-            portal_password
+            portal_password,
+            created_by: user.id
         })
         .select()
         .single()
@@ -58,7 +61,13 @@ export async function createCustomer(formData: FormData) {
             entity_type: 'Customer',
             status: 'Error',
             message: `Müşteri eklenirken hata oluştu: ${full_name}`,
-            details: error
+            details: {
+                girilen_isim: full_name,
+                telefon: phone,
+                email: email,
+                kaynak: source,
+                hata_detayi: error.message
+            }
         })
 
         return { error: `Müşteri oluşturulamadı: ${error.message}` }
@@ -70,7 +79,14 @@ export async function createCustomer(formData: FormData) {
         entity_type: 'Customer',
         entity_id: data.id,
         status: 'Success',
-        message: `Yeni müşteri eklendi: ${full_name}`
+        message: `Yeni müşteri eklendi: ${full_name}`,
+        details: {
+            isim: full_name,
+            telefon: phone,
+            email: email,
+            kaynak: source,
+            il_ilçe: city ? `${city} - ${district || ''}` : district
+        }
     })
 
     // Auto-create financial account (Cari)
@@ -157,6 +173,21 @@ export async function createCustomer(formData: FormData) {
                     }
                 }
             }
+        } else {
+            // Auto-create a general note activity to ensure Sales Rep can *see* this customer in their list
+            await adminSupabase.from('activities').insert({
+                tenant_id: profile?.tenant_id,
+                customer_id: data.id,
+                user_id: user.id,
+                owner_id: user.id,
+                type: 'Note',
+                topic: 'Other',
+                summary: 'Müşteri Kaydı',
+                description: `${full_name} sisteme eklendi.`,
+                due_date: new Date().toISOString(),
+                status: 'Completed',
+                priority: 'Medium'
+            })
         }
     }
 
@@ -234,7 +265,12 @@ export async function updateCustomer(formData: FormData) {
             entity_id: id,
             status: 'Error',
             message: `Müşteri güncellenirken hata oluştu: ${full_name}`,
-            details: error
+            details: {
+                yeni_isim: full_name,
+                telefon: phone,
+                email: email,
+                hata_detayi: error.message
+            }
         })
         return { error: `Güncelleme başarısız: ${error.message}` }
     }
@@ -244,7 +280,14 @@ export async function updateCustomer(formData: FormData) {
         entity_type: 'Customer',
         entity_id: id,
         status: 'Success',
-        message: `Müşteri güncellendi: ${full_name}`
+        message: `Müşteri güncellendi: ${full_name}`,
+        details: {
+            isim: full_name,
+            telefon: phone,
+            email: email,
+            kaynak: source,
+            il_ilçe: city ? `${city} - ${district || ''}` : district
+        }
     })
 
     // Sync Portal Access ONLY if BOTH are provided
@@ -263,6 +306,14 @@ export async function deleteCustomer(formData: FormData) {
     const id = formData.get('id') as string
 
     if (!id) return { error: 'Customer ID required' }
+
+    // Fetch the customer's full name before deleting so we can log it
+    const { data: customerData } = await supabase
+        .from('customers')
+        .select('full_name')
+        .eq('id', id)
+        .single()
+    const customerName = customerData?.full_name || id
 
     // First try to safely delete dependent records to avoid constraint errors
     // Note: If they have transactions or contracts, this might still fail, which is intended protection.
@@ -303,8 +354,12 @@ export async function deleteCustomer(formData: FormData) {
                 entity_type: 'Customer',
                 entity_id: id,
                 status: 'Warning',
-                message: 'Silme işlemi reddedildi (aktif kayıtlar var).',
-                details: error
+                message: `Silme işlemi reddedildi (aktif kayıtlar var): ${customerName}`,
+                details: {
+                    musteri_adi: customerName,
+                    hata_kodu: error.code,
+                    hata_detayi: error.message
+                }
             })
             return { error: 'Bu müşteriye ait aktif işlemler (ör. sözleşme, finans işlemi) olduğu için silinemez.' }
         }
@@ -313,8 +368,12 @@ export async function deleteCustomer(formData: FormData) {
             entity_type: 'Customer',
             entity_id: id,
             status: 'Error',
-            message: 'Müşteri silinirken veritabanı hatası.',
-            details: error
+            message: `Müşteri silinirken veritabanı hatası: ${customerName}`,
+            details: {
+                musteri_adi: customerName,
+                hata_kodu: error.code,
+                hata_detayi: error.message
+            }
         })
         return { error: `Müşteri silinemedi: ${error.message}` }
     }
@@ -324,7 +383,11 @@ export async function deleteCustomer(formData: FormData) {
         entity_type: 'Customer',
         entity_id: id,
         status: 'Success',
-        message: `Müşteri sistemden silindi (ID: ${id})`
+        message: `Müşteri sistemden silindi: ${customerName}`,
+        details: {
+            silinen_musteri: customerName,
+            id: id
+        }
     })
 
     revalidatePath('/crm')
