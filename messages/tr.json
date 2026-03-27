@@ -590,7 +590,8 @@
         "deleting": "Siliniyor...",
         "messages": {
             "deleted": "Müşteri başarıyla silindi.",
-            "created": "Müşteri başarıyla oluşturuldu."
+            "created": "Müşteri başarıyla oluşturuldu.",
+            "updated": "Müşteri başarıyla güncellendi."
         },
         "badges": {
             "customer": "Müşteri",
