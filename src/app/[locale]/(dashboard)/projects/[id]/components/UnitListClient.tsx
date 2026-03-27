@@ -10,6 +10,16 @@ import Link from 'next/link'
 import { bulkUpdateUnitStatus, bulkDeleteUnits } from '../actions'
 import { toast } from 'sonner'
 
+const STATUS_MAP: Record<string, string> = {
+    'For Sale': 'Satılık',
+    'Reserved': 'Rezerve',
+    'Sold': 'Satıldı',
+    'Blocked': 'Bloke',
+    'Option': 'Opsiyon',
+    'Rented': 'Kirada',
+    'Delivered': 'Teslim Edildi'
+}
+
 import {
     AlertDialog,
     AlertDialogAction,
@@ -190,9 +200,7 @@ export function UnitListClient({ units, projectId, unitProgress, constructionSta
                                 <TableCell>{unit.type}</TableCell>
                                 <TableCell>
                                     <Badge variant={unit.status === 'For Sale' ? 'default' : unit.status === 'Sold' ? 'destructive' : 'secondary'}>
-                                        {unit.status === 'For Sale' ? 'Satılık' :
-                                            unit.status === 'Reserved' ? 'Rezerve' :
-                                                unit.status === 'Sold' ? 'Satıldı' : unit.status}
+                                        {STATUS_MAP[unit.status] || unit.status}
                                     </Badge>
                                 </TableCell>
                                 <TableCell>
