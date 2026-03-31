@@ -7,7 +7,8 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Input } from '@/components/ui/input'
-import { CheckCircle2, XCircle, AlertCircle, RefreshCw, ServerCrash, Search } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { CheckCircle2, XCircle, AlertCircle, RefreshCw, ServerCrash, Search, Info } from 'lucide-react'
 import { format } from 'date-fns'
 import { tr } from 'date-fns/locale'
 
@@ -25,6 +26,7 @@ type LogEntry = {
 export function SystemLogsTab({ initialLogs, hasError }: { initialLogs: LogEntry[], hasError?: boolean }) {
     const [filter, setFilter] = useState<'All' | 'Success' | 'Error'>('All')
     const [search, setSearch] = useState('')
+    const [selectedLog, setSelectedLog] = useState<LogEntry | null>(null)
 
     const filteredLogs = initialLogs.filter(log => {
         const matchesFilter = filter === 'All' || log.status === filter
@@ -53,6 +55,24 @@ export function SystemLogsTab({ initialLogs, hasError }: { initialLogs: LogEntry
         }
     }
 
+    const getDetailsSummary = (details: any) => {
+        if (!details) return null
+        const ignoredKeys = ['user_name', 'raw_details']
+        const keys = Object.keys(details).filter(k => !ignoredKeys.includes(k) && details[k])
+        if (keys.length === 0) return null
+
+        return (
+            <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
+                {keys.map(k => (
+                     <div key={k} className="text-[10px] bg-slate-100 text-slate-500 px-1.5 md:py-0.5 rounded">
+                        <span className="font-semibold text-slate-700 mr-1">{k}:</span>
+                        {typeof details[k] === 'object' ? JSON.stringify(details[k]) : String(details[k])}
+                    </div>
+                ))}
+            </div>
+        )
+    }
+
     if (hasError) {
         return (
             <Card className="border-red-200 shadow-sm">
@@ -78,7 +98,7 @@ export function SystemLogsTab({ initialLogs, hasError }: { initialLogs: LogEntry
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
                         <CardTitle className="text-lg font-bold text-slate-900">İşlem Logları</CardTitle>
-                        <CardDescription>Sistem üzerindeki başarılı işlemleri ve hataları buradan takip edebilirsiniz.</CardDescription>
+                        <CardDescription>Sistem üzerindeki başarılı işlemleri ve hataları detaylarıyla takip edebilirsiniz.</CardDescription>
                     </div>
                     <div className="flex items-center gap-2">
                         <div className="relative">
@@ -107,11 +127,12 @@ export function SystemLogsTab({ initialLogs, hasError }: { initialLogs: LogEntry
                     <Table>
                         <TableHeader className="bg-white sticky top-0 z-10 shadow-sm">
                             <TableRow className="border-slate-100">
-                                <TableHead className="w-[180px] font-bold text-slate-500 uppercase text-[10px] tracking-wider">Durum</TableHead>
-                                <TableHead className="w-[180px] font-bold text-slate-500 uppercase text-[10px] tracking-wider">Aksiyon</TableHead>
-                                <TableHead className="font-bold text-slate-500 uppercase text-[10px] tracking-wider">Mesaj</TableHead>
-                                <TableHead className="w-[150px] font-bold text-slate-500 uppercase text-[10px] tracking-wider">Kullanıcı</TableHead>
-                                <TableHead className="w-[150px] text-right font-bold text-slate-500 uppercase text-[10px] tracking-wider">Tarih</TableHead>
+                                <TableHead className="w-[120px] font-bold text-slate-500 uppercase text-[10px] tracking-wider">Durum</TableHead>
+                                <TableHead className="w-[140px] font-bold text-slate-500 uppercase text-[10px] tracking-wider">Aksiyon</TableHead>
+                                <TableHead className="font-bold text-slate-500 uppercase text-[10px] tracking-wider">Mesaj & Detay</TableHead>
+                                <TableHead className="w-[140px] font-bold text-slate-500 uppercase text-[10px] tracking-wider">Kullanıcı</TableHead>
+                                <TableHead className="w-[120px] text-right font-bold text-slate-500 uppercase text-[10px] tracking-wider">Tarih</TableHead>
+                                <TableHead className="w-[50px] text-right"></TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -131,10 +152,13 @@ export function SystemLogsTab({ initialLogs, hasError }: { initialLogs: LogEntry
                                             </div>
                                         </TableCell>
                                         <TableCell>
-                                            <span className="text-sm text-slate-600 font-medium">{log.message}</span>
+                                            <div className="flex flex-col">
+                                                <span className="text-sm text-slate-800 font-medium leading-relaxed">{log.message}</span>
+                                                {getDetailsSummary(log.details)}
+                                            </div>
                                         </TableCell>
                                         <TableCell>
-                                            <span className="text-xs text-slate-500 font-medium">
+                                            <span className="text-xs text-slate-500 font-bold bg-slate-100 px-2 py-1 rounded">
                                                 {(Array.isArray(log.profiles) ? log.profiles[0]?.full_name : log.profiles?.full_name) || log.details?.user_name || 'Sistem'}
                                             </span>
                                         </TableCell>
@@ -148,11 +172,16 @@ export function SystemLogsTab({ initialLogs, hasError }: { initialLogs: LogEntry
                                                 </span>
                                             </div>
                                         </TableCell>
+                                        <TableCell className="text-right">
+                                            <Button variant="ghost" size="icon" onClick={() => setSelectedLog(log)} className="h-8 w-8 text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50">
+                                                <Info className="w-4 h-4" />
+                                            </Button>
+                                        </TableCell>
                                     </TableRow>
                                 ))
                             ) : (
                                 <TableRow>
-                                    <TableCell colSpan={5} className="h-32 text-center text-slate-400 font-medium">
+                                    <TableCell colSpan={6} className="h-32 text-center text-slate-400 font-medium">
                                         Seçilen kritere uygun log bulunamadı.
                                     </TableCell>
                                 </TableRow>
@@ -160,6 +189,48 @@ export function SystemLogsTab({ initialLogs, hasError }: { initialLogs: LogEntry
                         </TableBody>
                     </Table>
                 </ScrollArea>
+                
+                {/* Detail Dialog */}
+                <Dialog open={!!selectedLog} onOpenChange={(o) => !o && setSelectedLog(null)}>
+                    <DialogContent className="max-w-2xl">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2">
+                                {selectedLog && getStatusIcon(selectedLog.status)} 
+                                İşlem Detayları
+                            </DialogTitle>
+                            <DialogDescription>
+                                Bu log kaydına ait teknik ve veri detaylarını görüntülüyorsunuz.
+                            </DialogDescription>
+                        </DialogHeader>
+                        
+                        {selectedLog && (
+                            <div className="space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="rounded border p-3">
+                                        <span className="block text-xs font-semibold text-slate-500 mb-1">Aksiyon</span>
+                                        <span className="font-bold">{selectedLog.action_type} - {selectedLog.entity_type}</span>
+                                    </div>
+                                    <div className="rounded border p-3">
+                                        <span className="block text-xs font-semibold text-slate-500 mb-1">Kullanıcı</span>
+                                        <span className="font-bold">{(Array.isArray(selectedLog?.profiles) ? selectedLog?.profiles[0]?.full_name : selectedLog?.profiles?.full_name) || selectedLog?.details?.user_name || 'Sistem'}</span>
+                                    </div>
+                                </div>
+                                <div className="rounded border p-4 bg-slate-50">
+                                    <span className="block text-xs font-semibold text-slate-500 mb-2">Sistem Mesajı</span>
+                                    <span className="font-medium">{selectedLog.message}</span>
+                                </div>
+                                <div className="rounded border overflow-hidden">
+                                    <div className="bg-slate-100 px-4 py-2 border-b text-xs font-bold text-slate-500">EK VERİLER (JSON)</div>
+                                    <ScrollArea className="max-h-64 p-4 bg-slate-900">
+                                        <pre className="text-xs text-green-400 font-mono">
+                                            {JSON.stringify(selectedLog.details || {}, null, 2)}
+                                        </pre>
+                                    </ScrollArea>
+                                </div>
+                            </div>
+                        )}
+                    </DialogContent>
+                </Dialog>
             </CardContent>
         </Card>
     )

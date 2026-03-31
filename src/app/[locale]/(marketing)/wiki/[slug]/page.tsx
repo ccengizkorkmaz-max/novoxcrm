@@ -39,6 +39,7 @@ export async function generateMetadata(
 // Markdown benzeri içeriği HTML'e dönüştür
 function formatContent(content: string) {
     if (!content) return '';
+    let h2Index = 0;
     return content
         // Tabloları işle — önce satırları convert et
         .replace(/^\|(.+)\|$/gim, (match) => {
@@ -50,7 +51,10 @@ function formatContent(content: string) {
         })
         // Başlıklar
         .replace(/^# (.*$)/gim, '<h1 class="text-3xl font-bold mt-12 mb-6 text-white">$1</h1>')
-        .replace(/^## (.*$)/gim, '<h2 class="text-2xl font-bold mt-10 mb-5 text-white">$1</h2>')
+        .replace(/^## (.*$)/gim, (match, p1) => {
+            const id = `heading-${h2Index++}`;
+            return `<h2 id="${id}" class="text-2xl font-bold mt-10 mb-5 text-white scroll-mt-32">${p1}</h2>`;
+        })
         .replace(/^### (.*$)/gim, '<h3 class="text-xl font-semibold mt-8 mb-4 text-slate-200">$1</h3>')
         // Listeler
         .replace(/^\* (.*$)/gim, '<li class="ml-6 mb-2 list-disc text-slate-400">$1</li>')
@@ -86,8 +90,45 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
         ? relatedArticles
         : wikiArticles.filter(a => a.category === article.category && a.slug !== article.slug).slice(0, 3);
 
+    // JSON-LD Schema (Google SEO için kritik)
+    const jsonLd = {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "mainEntityOfPage": {
+            "@type": "WebPage",
+            "id": `https://novoxcrm.com/${locale}/wiki/${article.slug}`
+        },
+        "headline": article.title,
+        "description": article.excerpt,
+        "image": article.image || "https://novoxcrm.com/og-image.jpg",
+        "author": {
+            "@type": "Person",
+            "name": article.author,
+            "jobTitle": article.authorTitle
+        },
+        "publisher": {
+            "@type": "Organization",
+            "name": "NovoxCRM",
+            "logo": {
+                "@type": "ImageObject",
+                "url": "https://novoxcrm.com/logo.png"
+            }
+        },
+        "datePublished": new Date().toISOString() // İdealde article.date parse edilmeli
+    };
+
+    // İçindekiler Tablosu (TOC) Oluşturucu
+    const headings = [...(article.content.matchAll(/^##\s+(.*$)/gm))].map((match, idx) => ({
+        id: `heading-${idx}`,
+        text: match[1]
+    }));
+
     return (
         <div className="bg-slate-950 min-h-screen pt-32 pb-20">
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+            />
             <div className="container mx-auto px-4 max-w-4xl">
                 {/* Back Link */}
                 <Link
@@ -135,6 +176,23 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
                         </div>
                     </div>
                 </header>
+
+                {/* İçindekiler (TOC) - SEO için çok önemli */}
+                {headings.length > 0 && (
+                    <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6 mb-12">
+                        <h3 className="text-lg font-bold text-white mb-4">İçindekiler</h3>
+                        <ul className="space-y-2">
+                            {headings.map((heading) => (
+                                <li key={heading.id}>
+                                    <a href={`#${heading.id}`} className="text-slate-400 hover:text-blue-400 transition-colors text-sm flex items-center gap-2">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500/50" />
+                                        {heading.text}
+                                    </a>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
 
                 {/* Article Content */}
                 <article className="prose prose-invert prose-lg max-w-none mb-20 prose-headings:text-white prose-p:text-slate-400 prose-strong:text-blue-400 prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline prose-li:text-slate-400 prose-code:text-indigo-300">

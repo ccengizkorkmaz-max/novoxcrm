@@ -1,0 +1,6 @@
+{
+  "code": "PGRST204",
+  "details": null,
+  "hint": null,
+  "message": "Could not find the 'unit_id' column of 'broker_leads' in the schema cache"
+}
