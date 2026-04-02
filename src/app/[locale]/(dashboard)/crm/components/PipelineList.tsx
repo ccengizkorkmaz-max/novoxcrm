@@ -424,8 +424,8 @@ export default function PipelineList({
                                                                         size="sm"
                                                                         className="h-7 text-blue-600 hover:text-blue-700 hover:bg-blue-50 text-[11px] px-2 border border-blue-200 dashed bg-blue-50/30"
                                                                         onClick={() => handleAutoAssign(sale.id)}
-                                                                        disabled={isAssigning === sale.id || !sale.units?.projects?.id}
-                                                                        title={!sale.units?.projects?.id ? t('actions.assignError') : t('actions.assignTooltip')}
+                                                                        disabled={isAssigning === sale.id}
+                                                                        title={t('actions.assignTooltip')}
                                                                     >
                                                                         {isAssigning === sale.id ? (
                                                                             t('actions.assigning')

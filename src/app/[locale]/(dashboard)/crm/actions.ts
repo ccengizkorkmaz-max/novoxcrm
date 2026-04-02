@@ -1583,6 +1583,7 @@ export async function autoAssignLead(saleId: string) {
             id,
             tenant_id,
             unit_id,
+            project_id,
             units(project_id)
         `)
         .eq('id', saleId)
@@ -1590,35 +1591,39 @@ export async function autoAssignLead(saleId: string) {
 
     if (saleError || !sale) return { error: 'Satış kaydı bulunamadı' }
 
-    const projectId = (sale.units as any)?.project_id
+    const projectId = (sale.units as any)?.project_id || (sale as any).project_id
 
-    if (!projectId) {
-        return { error: 'Bu işlem için satış kaydının bir ünite veya proje ile eşleşmiş olması gerekir.' }
+    let profileIds: string[] = []
+
+    if (projectId) {
+        const { data: teamAssignments } = await supabase
+            .from('team_project_assignments')
+            .select('team_id')
+            .eq('project_id', projectId)
+
+        if (teamAssignments && teamAssignments.length > 0) {
+            const teamIds = teamAssignments.map(a => a.team_id)
+            const { data: members } = await supabase
+                .from('team_members')
+                .select('profile_id')
+                .in('team_id', teamIds)
+                
+            if (members) {
+                 profileIds = Array.from(new Set(members.map(m => m.profile_id)))
+            }
+        }
     }
 
-    // 2. Find Sales Teams assigned to this project
-    const { data: teamAssignments, error: teamError } = await supabase
-        .from('team_project_assignments')
-        .select('team_id')
-        .eq('project_id', projectId)
-
-    if (teamError || !teamAssignments || teamAssignments.length === 0) {
-        return { error: 'Bu projeye atanmış herhangi bir satış ekibi bulunamadı. Lider paneli -> Ekipler kısmından atama yapmalısınız.' }
+    if (profileIds.length === 0) {
+        const { data: activeReps } = await supabase.from('profiles').select('id')
+        if (activeReps) {
+            profileIds = activeReps.map(r => r.id)
+        }
     }
 
-    const teamIds = teamAssignments.map(a => a.team_id)
-
-    // 3. Get all members of these teams
-    const { data: members, error: memberError } = await supabase
-        .from('team_members')
-        .select('profile_id')
-        .in('team_id', teamIds)
-
-    if (memberError || !members || members.length === 0) {
-        return { error: 'Atanmış ekiplerde üye bulunamadı.' }
+    if (profileIds.length === 0) {
+        return { error: 'Satış temsilcisi bulunamadı.' }
     }
-
-    const profileIds = Array.from(new Set(members.map(m => m.profile_id)))
 
     // 4. Calculate current load for each member (active sales count)
     const { data: loadCounts, error: loadError } = await supabase
@@ -1662,6 +1667,33 @@ export async function autoAssignLead(saleId: string) {
 
     revalidatePath('/crm')
     return { success: true, assignedToId: bestMemberId }
+}
+
+export async function autoAssignAllSales() {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user?.id).single()
+    const isAdmin = profile?.role === 'admin' || profile?.role === 'owner' || profile?.role === 'manager'
+    if (!isAdmin) return { error: 'Bu işlem için yetkiniz yok.' }
+
+    const { data: sales, error } = await supabase
+        .from('sales')
+        .select('id')
+        .is('assigned_to', null)
+        .neq('status', 'Inbox')
+
+    if (error) return { error: error.message }
+    if (!sales || sales.length === 0) return { error: 'Atanmamış açık kayıt bulunmuyor.' }
+
+    let assignedCount = 0
+    for (const s of sales) {
+        const res = await autoAssignLead(s.id)
+        if (res.success) assignedCount++
+    }
+
+    revalidatePath('/crm')
+    return { success: true, count: assignedCount }
 }
 
 export async function getPaymentTemplates() {

@@ -94,8 +94,29 @@ export function InboxList({ initialItems }: InboxListProps) {
         }
     }
 
+    const getDisplayMessage = (msg: string | null) => {
+        if (!msg) return '';
+        try {
+            const parsed = JSON.parse(msg);
+            if (parsed.json) {
+                try {
+                    const innerParsed = JSON.parse(parsed.json);
+                    return innerParsed.message || msg;
+                } catch {
+                    return parsed.message || msg;
+                }
+            }
+            if (typeof parsed === 'object' && parsed !== null) {
+                return parsed.message || parsed.text || msg;
+            }
+            return msg;
+        } catch {
+            return msg;
+        }
+    }
+
     const parseMessageFields = (item: InboxItem) => {
-        const message = item.message || ''
+        const message = getDisplayMessage(item.message)
 
         // Try to parse name from message first
         const nameMatch = message.match(/Ad\s+Soyad:\s*([^:\n\r]+?)(?=\s*(?:E-posta|Telefon|Konu|Proje|$)|\r|\n)/i)
@@ -128,7 +149,7 @@ export function InboxList({ initialItems }: InboxListProps) {
     const handleParseMessage = () => {
         if (!viewingItem) return
 
-        const message = viewingItem.message
+        const message = getDisplayMessage(viewingItem.message)
 
         // Parse name
         const nameMatch = message.match(/Ad\s+Soyad:\s*([^:\n\r]+?)(?=\s*(?:E-posta|Telefon|Konu|Proje|$)|\r|\n)/i)
@@ -253,7 +274,7 @@ export function InboxList({ initialItems }: InboxListProps) {
                                                 )}
                                             </div>
                                             <p className="text-sm text-slate-600 line-clamp-2">
-                                                {item.message}
+                                                {getDisplayMessage(item.message)}
                                             </p>
                                         </div>
                                         <div className="flex items-center gap-2 text-xs text-muted-foreground ml-4">
@@ -330,7 +351,7 @@ export function InboxList({ initialItems }: InboxListProps) {
                                 <div>
                                     <Label>Mesaj</Label>
                                     <Textarea
-                                        value={viewingItem.message}
+                                        value={getDisplayMessage(viewingItem.message)}
                                         readOnly
                                         rows={8}
                                         className="bg-slate-50"

@@ -34,6 +34,7 @@ import NewSaleButton from './components/NewSaleButton'
 import CRMFilterSheet from './components/CRMFilterSheet'
 import CRMSearch from './components/CRMSearch'
 import SalesExportButton from './components/SalesExportButton'
+import BulkAutoAssignButton from './components/BulkAutoAssignButton'
 import React from 'react'
 
 export default async function CRMPage(props: {
@@ -224,6 +225,7 @@ export default async function CRMPage(props: {
                                 dateTo: filterDateTo
                             }}
                         />
+                        {isAdmin && <BulkAutoAssignButton />}
                     </div>
                 </div>
 
