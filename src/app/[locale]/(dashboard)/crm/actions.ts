@@ -1607,15 +1607,24 @@ export async function autoAssignLead(saleId: string) {
                 .from('team_members')
                 .select('profile_id')
                 .in('team_id', teamIds)
-                
             if (members) {
                  profileIds = Array.from(new Set(members.map(m => m.profile_id)))
             }
         }
     }
 
+    if (profileIds.length > 0) {
+        const { data: validatedProfiles } = await supabase.from('profiles').select('id').in('id', profileIds).eq('role', 'sales')
+        if (validatedProfiles) {
+            profileIds = validatedProfiles.map(p => p.id)
+        } else {
+            profileIds = []
+        }
+    }
+
     if (profileIds.length === 0) {
-        const { data: activeReps } = await supabase.from('profiles').select('id')
+        // Fallback: only assign to people whose main job is sales
+        const { data: activeReps } = await supabase.from('profiles').select('id').eq('role', 'sales')
         if (activeReps) {
             profileIds = activeReps.map(r => r.id)
         }
@@ -1685,17 +1694,27 @@ export async function autoAssignAllSales() {
         .select('id')
         .is('assigned_to', null)
         .neq('status', 'Inbox')
+        .limit(300) // Timeout korumasi icin tek seferde max 300 islem
 
     if (error) return { error: error.message }
     if (!sales || sales.length === 0) return { error: 'Atanmamış açık kayıt bulunmuyor.' }
 
     let assignedCount = 0
+    let lastError = null
     for (const s of sales) {
         const res = await autoAssignLead(s.id)
-        if (res.success) assignedCount++
+        if (res.success) {
+            assignedCount++
+        } else {
+            console.error(`AutoAssign failure for ${s.id}:`, res.error)
+            lastError = res.error
+        }
     }
 
     revalidatePath('/crm')
+    if (assignedCount === 0 && lastError) {
+        return { error: 'Atama işlemi başarısız. Sebep: ' + lastError }
+    }
     return { success: true, count: assignedCount }
 }
 
