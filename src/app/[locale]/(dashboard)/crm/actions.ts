@@ -1689,9 +1689,9 @@ export async function autoAssignAllSales() {
     const isAdmin = profile?.role === 'admin' || profile?.role === 'owner' || profile?.role === 'manager'
     if (!isAdmin) return { error: 'Bu işlem için yetkiniz yok.' }
 
-    const { data: sales, error } = await supabase
+    const { data: sales, error, count: remainingCount } = await supabase
         .from('sales')
-        .select('id')
+        .select('id', { count: 'exact' })
         .is('assigned_to', null)
         .neq('status', 'Inbox')
         .limit(50) // Vercel timeout (10s) koruması için düşürdüm
@@ -1715,7 +1715,7 @@ export async function autoAssignAllSales() {
     if (assignedCount === 0 && lastError) {
         return { error: 'Atama işlemi başarısız. Sebep: ' + lastError }
     }
-    return { success: true, count: assignedCount }
+    return { success: true, count: assignedCount, remainingCount: remainingCount || 0 }
 }
 
 export async function getPaymentTemplates() {
