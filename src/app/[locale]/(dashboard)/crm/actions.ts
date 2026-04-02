@@ -1614,7 +1614,7 @@ export async function autoAssignLead(saleId: string) {
     }
 
     if (profileIds.length > 0) {
-        const { data: validatedProfiles } = await supabase.from('profiles').select('id').in('id', profileIds).eq('role', 'sales')
+        const { data: validatedProfiles } = await supabase.from('profiles').select('id').in('id', profileIds).eq('role', 'sales').eq('is_active', true)
         if (validatedProfiles) {
             profileIds = validatedProfiles.map(p => p.id)
         } else {
@@ -1624,7 +1624,7 @@ export async function autoAssignLead(saleId: string) {
 
     if (profileIds.length === 0) {
         // Fallback: only assign to people whose main job is sales
-        const { data: activeReps } = await supabase.from('profiles').select('id').eq('role', 'sales')
+        const { data: activeReps } = await supabase.from('profiles').select('id').eq('role', 'sales').eq('is_active', true)
         if (activeReps) {
             profileIds = activeReps.map(r => r.id)
         }
