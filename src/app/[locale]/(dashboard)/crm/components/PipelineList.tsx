@@ -13,7 +13,7 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Calculator, Sparkles, User, Info, Mail, MessageSquareText, CalendarPlus, Trash, AlertTriangle } from 'lucide-react'
+import { Calculator, Sparkles, User, Info, Mail, MessageSquareText, CalendarPlus, Trash, AlertTriangle, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from 'lucide-react'
 import { updateSaleStatus, autoAssignLead, assignSale } from '../actions'
 import {
     Command,
@@ -743,37 +743,93 @@ export default function PipelineList({
             {
                 totalPages > 1 && (
                     <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 mt-4 shadow-sm">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1">
                             <Button
                                 variant="outline"
-                                size="sm"
-                                className="h-9 px-4 rounded-xl border-slate-200 font-bold text-xs uppercase transition-all hover:bg-slate-50 active:scale-95"
+                                size="icon"
+                                className="h-9 w-9 rounded-xl border-slate-200 hover:bg-slate-50 active:scale-95 text-slate-600"
+                                onClick={() => {
+                                    handlePageChange(1)
+                                    window.scrollTo({ top: 0, behavior: 'smooth' })
+                                }}
+                                disabled={currentPage === 1}
+                                title="İlk Sayfa"
+                            >
+                                <ChevronsLeft className="h-4 w-4" />
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-9 w-9 rounded-xl border-slate-200 hover:bg-slate-50 active:scale-95 text-slate-600"
                                 onClick={() => {
                                     handlePageChange(Math.max(1, currentPage - 1))
                                     window.scrollTo({ top: 0, behavior: 'smooth' })
                                 }}
                                 disabled={currentPage === 1}
+                                title="Önceki"
                             >
-                                Geri
+                                <ChevronLeft className="h-4 w-4" />
                             </Button>
+
+                            {/* Page Selection Dropdown */}
+                            <div className="px-2 hidden sm:block">
+                                <Select 
+                                    value={currentPage.toString()} 
+                                    onValueChange={(val) => {
+                                        handlePageChange(parseInt(val))
+                                        window.scrollTo({ top: 0, behavior: 'smooth' })
+                                    }}
+                                >
+                                    <SelectTrigger className="h-9 w-[100px] rounded-xl border-slate-200 bg-white font-bold text-slate-700 text-xs">
+                                        <SelectValue placeholder="Sayfa..." />
+                                    </SelectTrigger>
+                                    <SelectContent className="max-h-[300px]">
+                                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNumber) => (
+                                            <SelectItem key={pageNumber} value={pageNumber.toString()} className="text-xs font-medium">
+                                                Sayfa {pageNumber}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
                             <Button
                                 variant="outline"
-                                size="sm"
-                                className="h-9 px-4 rounded-xl border-slate-200 font-bold text-xs uppercase transition-all hover:bg-slate-50 active:scale-95"
+                                size="icon"
+                                className="h-9 w-9 rounded-xl border-slate-200 hover:bg-slate-50 active:scale-95 text-slate-600"
                                 onClick={() => {
                                     handlePageChange(Math.min(totalPages, currentPage + 1))
                                     window.scrollTo({ top: 0, behavior: 'smooth' })
                                 }}
                                 disabled={currentPage === totalPages}
+                                title="Sonraki"
                             >
-                                İleri
+                                <ChevronRight className="h-4 w-4" />
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-9 w-9 rounded-xl border-slate-200 hover:bg-slate-50 active:scale-95 text-slate-600"
+                                onClick={() => {
+                                    handlePageChange(totalPages)
+                                    window.scrollTo({ top: 0, behavior: 'smooth' })
+                                }}
+                                disabled={currentPage === totalPages}
+                                title="Son Sayfa"
+                            >
+                                <ChevronsRight className="h-4 w-4" />
                             </Button>
                         </div>
-                        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">
-                            Sayfa <span className="text-blue-600 font-black">{currentPage}</span> / {totalPages}
-                            <span className="mx-2 text-slate-200">|</span>
-                            Görüntülenen: {currentSales.length} / {totalSalesCount}
-                        </p>
+                        <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 mt-2 sm:mt-0">
+                            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest hidden sm:block">
+                                Sayfa <span className="text-blue-600 font-black">{currentPage}</span> / {totalPages}
+                                <span className="mx-2 text-slate-200">|</span>
+                                Görüntülenen: {currentSales.length} / {totalSalesCount}
+                            </p>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block sm:hidden">
+                                {currentPage} / {totalPages} • {currentSales.length}/{totalSalesCount}
+                            </p>
+                        </div>
                     </div>
                 )
             }
