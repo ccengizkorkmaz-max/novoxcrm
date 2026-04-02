@@ -26,7 +26,7 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { cn } from '@/lib/utils'
-import { UserPlus, Pencil, Trash, Mail, Phone, Tag, CalendarPlus, AlertTriangle, Users, Search, ArrowUpDown, ArrowUp, ArrowDown, PieChart, Target, TrendingUp } from 'lucide-react'
+import { UserPlus, Pencil, Trash, Mail, Phone, Tag, CalendarPlus, AlertTriangle, Users, Search, ArrowUpDown, ArrowUp, ArrowDown, PieChart, Target, TrendingUp, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from '@/components/ui/textarea'
@@ -78,6 +78,7 @@ export default function CustomerList({
     })
 
     const [currentPage, setCurrentPage] = useState(initialPage)
+    const [pageInputValue, setPageInputValue] = useState(initialPage.toString())
     const itemsPerPage = 50
 
     // Auto-search after 600ms of typing to hit backend instead of strictly requiring ENTER
@@ -625,31 +626,107 @@ export default function CustomerList({
             {/* Pagination Controls */}
             {totalPages > 1 && (
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200 mt-4 shadow-sm">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
                         <Button
                             variant="outline"
-                            size="sm"
-                            className="h-9 px-4 rounded-xl border-slate-200 font-bold text-xs uppercase transition-all"
-                            onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+                            size="icon"
+                            className="h-9 w-9 rounded-xl border-slate-200 hover:bg-slate-50 active:scale-95 text-slate-600"
+                            onClick={() => {
+                                handlePageChange(1)
+                                window.scrollTo({ top: 0, behavior: 'smooth' })
+                            }}
                             disabled={currentPage === 1}
+                            title="İlk Sayfa"
                         >
-                            Geri
+                            <ChevronsLeft className="h-4 w-4" />
                         </Button>
                         <Button
                             variant="outline"
-                            size="sm"
-                            className="h-9 px-4 rounded-xl border-slate-200 font-bold text-xs uppercase transition-all"
-                            onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
-                            disabled={currentPage === totalPages}
+                            size="icon"
+                            className="h-9 w-9 rounded-xl border-slate-200 hover:bg-slate-50 active:scale-95 text-slate-600"
+                            onClick={() => {
+                                handlePageChange(Math.max(1, currentPage - 1))
+                                window.scrollTo({ top: 0, behavior: 'smooth' })
+                            }}
+                            disabled={currentPage === 1}
+                            title="Önceki"
                         >
-                            İleri
+                            <ChevronLeft className="h-4 w-4" />
+                        </Button>
+
+                        {/* Manual Page Input */}
+                        <div className="hidden sm:flex items-center gap-1">
+                            <Input 
+                                className="h-9 w-16 text-center text-xs font-bold rounded-xl" 
+                                value={pageInputValue}
+                                onChange={(e) => setPageInputValue(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        const page = parseInt(pageInputValue)
+                                        if (!isNaN(page) && page >= 1 && page <= totalPages) {
+                                            handlePageChange(page)
+                                            window.scrollTo({ top: 0, behavior: 'smooth' })
+                                        } else {
+                                            setPageInputValue(currentPage.toString())
+                                        }
+                                    }
+                                }}
+                            />
+                            <Button
+                                variant="secondary"
+                                size="sm"
+                                className="h-9 px-3 rounded-xl border-slate-200 font-bold text-xs bg-slate-100 hover:bg-slate-200 text-slate-700"
+                                onClick={() => {
+                                    const page = parseInt(pageInputValue)
+                                    if (!isNaN(page) && page >= 1 && page <= totalPages) {
+                                        handlePageChange(page)
+                                        window.scrollTo({ top: 0, behavior: 'smooth' })
+                                    } else {
+                                        setPageInputValue(currentPage.toString())
+                                    }
+                                }}
+                            >
+                                Git
+                            </Button>
+                        </div>
+
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-9 w-9 rounded-xl border-slate-200 hover:bg-slate-50 active:scale-95 text-slate-600"
+                            onClick={() => {
+                                handlePageChange(Math.min(totalPages, currentPage + 1))
+                                window.scrollTo({ top: 0, behavior: 'smooth' })
+                            }}
+                            disabled={currentPage === totalPages}
+                            title="Sonraki"
+                        >
+                            <ChevronRight className="h-4 w-4" />
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-9 w-9 rounded-xl border-slate-200 hover:bg-slate-50 active:scale-95 text-slate-600"
+                            onClick={() => {
+                                handlePageChange(totalPages)
+                                window.scrollTo({ top: 0, behavior: 'smooth' })
+                            }}
+                            disabled={currentPage === totalPages}
+                            title="Son Sayfa"
+                        >
+                            <ChevronsRight className="h-4 w-4" />
                         </Button>
                     </div>
-                    <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">
-                        Sayfa <span className="text-blue-600">{currentPage}</span> / {totalPages}
-                        <span className="mx-2 text-slate-200">|</span>
-                        Görüntülenen: {currentItems.length} / {totalRecords}
-                    </p>
+                    <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 mt-2 sm:mt-0">
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest hidden sm:block">
+                            Sayfa <span className="text-blue-600 font-black">{currentPage}</span> / {totalPages}
+                            <span className="mx-2 text-slate-200">|</span>
+                            Görüntülenen: {currentItems.length} / {totalRecords}
+                        </p>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block sm:hidden">
+                            {currentPage} / {totalPages} • {currentItems.length}/{totalRecords}
+                        </p>
+                    </div>
                 </div>
             )}
 
