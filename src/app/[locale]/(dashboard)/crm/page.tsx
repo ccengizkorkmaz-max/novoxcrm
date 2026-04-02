@@ -33,6 +33,7 @@ import PipelineList from './components/PipelineList'
 import NewSaleButton from './components/NewSaleButton'
 import CRMFilterSheet from './components/CRMFilterSheet'
 import CRMSearch from './components/CRMSearch'
+import SalesExportButton from './components/SalesExportButton'
 import React from 'react'
 
 export default async function CRMPage(props: {
@@ -210,6 +211,17 @@ export default async function CRMPage(props: {
                                 openNewSale: params.newSale === 'true',
                                 unitId: params.unitId as string,
                                 projectId: params.projectId as string
+                            }}
+                        />
+                        <SalesExportButton 
+                            filters={{
+                                project: filterProject,
+                                rep: filterRep,
+                                status: filterStatus,
+                                search: filterSearch,
+                                customer: filterCustomer,
+                                dateFrom: filterDateFrom,
+                                dateTo: filterDateTo
                             }}
                         />
                     </div>
