@@ -25,7 +25,7 @@ export default function BulkAutoAssignButton() {
                         if (result.error) {
                             toast.error(result.error)
                         } else {
-                            toast.success(`${result.count} adet kayıt başarıyla atandı.`)
+                            toast.success(`${result.count} kayıt atandı. Tamamlanana kadar devam edebilirsiniz.`)
                         }
                     } catch (error: any) {
                         toast.error(`Beklenmeyen bir hata oluştu: ${error.message || error}`)

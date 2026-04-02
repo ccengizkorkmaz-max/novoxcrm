@@ -1694,7 +1694,7 @@ export async function autoAssignAllSales() {
         .select('id')
         .is('assigned_to', null)
         .neq('status', 'Inbox')
-        .limit(300) // Timeout korumasi icin tek seferde max 300 islem
+        .limit(50) // Vercel timeout (10s) koruması için düşürdüm
 
     if (error) return { error: error.message }
     if (!sales || sales.length === 0) return { error: 'Atanmamış açık kayıt bulunmuyor.' }
