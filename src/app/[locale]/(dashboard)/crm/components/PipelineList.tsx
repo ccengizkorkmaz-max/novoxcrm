@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { formatCurrency, cn } from '@/lib/utils'
+import { Input } from "@/components/ui/input"
 import {
     Select,
     SelectContent,
@@ -79,6 +80,7 @@ export default function PipelineList({
     const [isActivityOpen, setIsActivityOpen] = useState(false)
     const [selectedCustomerForActivity, setSelectedCustomerForActivity] = useState<any | null>(null)
     const [currentPage, setCurrentPage] = useState(initialPage)
+    const [pageInputValue, setPageInputValue] = useState(initialPage.toString())
     const itemsPerPage = 50
     const router = useRouter()
     const searchParams = useSearchParams()
@@ -771,26 +773,40 @@ export default function PipelineList({
                                 <ChevronLeft className="h-4 w-4" />
                             </Button>
 
-                            {/* Page Selection Dropdown */}
-                            <div className="px-2 hidden sm:block">
-                                <Select 
-                                    value={currentPage.toString()} 
-                                    onValueChange={(val) => {
-                                        handlePageChange(parseInt(val))
-                                        window.scrollTo({ top: 0, behavior: 'smooth' })
+                            {/* Manual Page Input */}
+                            <div className="hidden sm:flex items-center gap-1">
+                                <Input 
+                                    className="h-9 w-16 text-center text-xs font-bold rounded-xl" 
+                                    value={pageInputValue}
+                                    onChange={(e) => setPageInputValue(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            const page = parseInt(pageInputValue)
+                                            if (!isNaN(page) && page >= 1 && page <= totalPages) {
+                                                handlePageChange(page)
+                                                window.scrollTo({ top: 0, behavior: 'smooth' })
+                                            } else {
+                                                setPageInputValue(currentPage.toString())
+                                            }
+                                        }
+                                    }}
+                                />
+                                <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    className="h-9 px-3 rounded-xl border-slate-200 font-bold text-xs bg-slate-100 hover:bg-slate-200 text-slate-700"
+                                    onClick={() => {
+                                        const page = parseInt(pageInputValue)
+                                        if (!isNaN(page) && page >= 1 && page <= totalPages) {
+                                            handlePageChange(page)
+                                            window.scrollTo({ top: 0, behavior: 'smooth' })
+                                        } else {
+                                            setPageInputValue(currentPage.toString())
+                                        }
                                     }}
                                 >
-                                    <SelectTrigger className="h-9 w-[100px] rounded-xl border-slate-200 bg-white font-bold text-slate-700 text-xs">
-                                        <SelectValue placeholder="Sayfa..." />
-                                    </SelectTrigger>
-                                    <SelectContent className="max-h-[300px]">
-                                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNumber) => (
-                                            <SelectItem key={pageNumber} value={pageNumber.toString()} className="text-xs font-medium">
-                                                Sayfa {pageNumber}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                    Git
+                                </Button>
                             </div>
 
                             <Button
