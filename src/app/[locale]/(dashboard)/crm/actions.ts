@@ -1630,7 +1630,10 @@ export async function autoAssignLead(saleId: string) {
         .from('sales')
         .select('assigned_to')
         .in('assigned_to', profileIds)
-        .not('status', 'in', '("Sold", "Lost", "Completed", "Contract")')
+        .neq('status', 'Sold')
+        .neq('status', 'Lost')
+        .neq('status', 'Completed')
+        .neq('status', 'Contract')
 
     if (loadError) return { error: 'Yük analizi yapılamadı: ' + loadError.message }
 
@@ -1638,9 +1641,9 @@ export async function autoAssignLead(saleId: string) {
     const counts = profileIds.reduce((acc, id) => {
         acc[id] = 0
         return acc
-    }, {} as Record<string, number>)
+    }, {} as Record<string, number>);
 
-    loadCounts.forEach(s => {
+    (loadCounts || []).forEach((s: any) => {
         if (s.assigned_to) {
             counts[s.assigned_to] = (counts[s.assigned_to] || 0) + 1
         }
