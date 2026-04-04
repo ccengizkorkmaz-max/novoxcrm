@@ -1659,10 +1659,12 @@ export async function autoAssignLead(saleId: string) {
     })
 
     // 5. Pick the member with the minimum load
-    let bestMemberId = profileIds[0]
+    // Shuffle first to break ties fairly (prevents always picking the same person when loads are equal)
+    const shuffledProfileIds = [...profileIds].sort(() => Math.random() - 0.5)
+    let bestMemberId = shuffledProfileIds[0]
     let minLoad = counts[bestMemberId]
 
-    profileIds.forEach(id => {
+    shuffledProfileIds.forEach(id => {
         if (counts[id] < minLoad) {
             minLoad = counts[id]
             bestMemberId = id
