@@ -48,7 +48,9 @@ export default async function CRMPage(props: {
     const params = searchParams
 
     const filterProject = params.p as string
-    const filterRep = params.r as string
+    const filterRepRaw = params.r as string
+    const filterRep = filterRepRaw // kept for backward compat
+    const filterReps = filterRepRaw ? filterRepRaw.split(',').filter(Boolean) : []
     const filterStatus = params.s as string
     const filterSearch = params.q as string
     const filterCustomer = params.c as string
@@ -79,8 +81,12 @@ export default async function CRMPage(props: {
     // Role-based filtering
     if (!isManager && user) {
         baseQuery = baseQuery.eq('assigned_to', user.id)
-    } else if (filterRep) {
-        baseQuery = baseQuery.eq('assigned_to', filterRep)
+    } else if (filterReps.length > 0) {
+        if (filterReps.includes('unassigned')) {
+            baseQuery = baseQuery.is('assigned_to', null)
+        } else {
+            baseQuery = baseQuery.in('assigned_to', filterReps)
+        }
     }
 
     if (filterProject) baseQuery = baseQuery.eq('project_id', filterProject)
@@ -100,8 +106,12 @@ export default async function CRMPage(props: {
 
     if (!isManager && user) {
         statsQuery = statsQuery.eq('assigned_to', user.id)
-    } else if (filterRep) {
-        statsQuery = statsQuery.eq('assigned_to', filterRep)
+    } else if (filterReps.length > 0) {
+        if (filterReps.includes('unassigned')) {
+            statsQuery = statsQuery.is('assigned_to', null)
+        } else {
+            statsQuery = statsQuery.in('assigned_to', filterReps)
+        }
     }
 
     if (filterProject) statsQuery = statsQuery.eq('project_id', filterProject)
@@ -120,8 +130,12 @@ export default async function CRMPage(props: {
 
         if (!isManager && user) {
             q = q.eq('assigned_to', user.id)
-        } else if (filterRep) {
-            q = q.eq('assigned_to', filterRep)
+        } else if (filterReps.length > 0) {
+            if (filterReps.includes('unassigned')) {
+                q = q.is('assigned_to', null)
+            } else {
+                q = q.in('assigned_to', filterReps)
+            }
         }
 
         if (filterProject) q = q.eq('project_id', filterProject)
@@ -154,7 +168,7 @@ export default async function CRMPage(props: {
         countLost
     ] = await Promise.all([
         supabase.from('projects').select('id, name').order('name'),
-        supabase.from('profiles').select('id, full_name').order('full_name'),
+        supabase.from('profiles').select('id, full_name').not('full_name', 'is', null).neq('full_name', '').neq('full_name', '1').order('full_name'),
         supabase.from('payment_plan_templates').select('*').order('name', { ascending: true }),
         supabase.from('customers').select('*, customer_demands(*), contract_customers(id)').order('created_at', { ascending: false }).limit(1000),
         supabase.from('units').select('id, unit_number, projects(id, name)').in('status', ['For Sale', 'Stock']).limit(1000),
