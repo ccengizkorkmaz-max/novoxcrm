@@ -114,7 +114,21 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
                 "url": "https://novoxcrm.com/logo.png"
             }
         },
-        "datePublished": new Date().toISOString() // İdealde article.date parse edilmeli
+        "datePublished": (() => {
+            const months: Record<string, string> = {
+                'Ocak': '01', 'Şubat': '02', 'Mart': '03', 'Nisan': '04',
+                'Mayıs': '05', 'Haziran': '06', 'Temmuz': '07', 'Ağustos': '08',
+                'Eylül': '09', 'Ekim': '10', 'Kasım': '11', 'Aralık': '12',
+            };
+            const parts = article.date.split(' ');
+            if (parts.length === 3) {
+                const day = parts[0].padStart(2, '0');
+                const month = months[parts[1]] || '01';
+                const year = parts[2];
+                return `${year}-${month}-${day}`;
+            }
+            return '2026-01-20';
+        })()
     };
 
     // İçindekiler Tablosu (TOC) Oluşturucu

@@ -30,11 +30,53 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
     };
 }
 
-export default function MarketingPage() {
+export default async function MarketingPage({ params }: { params: Promise<{ locale: string }> }) {
+    const { locale } = await params;
     const t = useTranslations('Marketing_CTA')
+    const faqT = useTranslations('FAQSection')
+
+    // Build FAQ Schema for Google Rich Results & AI Search
+    const faqItems = [0, 1, 2, 3, 4, 5].map((i) => ({
+        "@type": "Question",
+        "name": faqT(`items.${i}.question`),
+        "acceptedAnswer": {
+            "@type": "Answer",
+            "text": faqT(`items.${i}.answer`)
+        }
+    }));
+
+    const faqSchema = {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": faqItems
+    };
+
+    // Organization schema for brand signals
+    const orgSchema = {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "Novo CRM",
+        "url": "https://novoxcrm.com",
+        "logo": "https://novoxcrm.com/icon-512.png",
+        "description": "İnşaat ve gayrimenkul firmaları için özel geliştirilmiş CRM yazılımı. Konut projeleri, stok takibi, broker yönetimi ve satış süreçlerini tek platformda yönetin.",
+        "sameAs": [],
+        "contactPoint": {
+            "@type": "ContactPoint",
+            "contactType": "sales",
+            "availableLanguage": ["Turkish", "English"]
+        }
+    };
 
     return (
         <div className="flex flex-col min-h-screen">
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+            />
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(orgSchema) }}
+            />
             <Hero />
             <TrustSection />
             <ComparisonSection />
