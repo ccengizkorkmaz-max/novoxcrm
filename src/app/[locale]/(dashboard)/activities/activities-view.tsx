@@ -23,6 +23,7 @@ interface ActivitiesViewProps {
 
 export function ActivitiesView({ initialActivities, customers, profiles, user }: ActivitiesViewProps) {
     const t = useTranslations('Activities')
+    const tCrm = useTranslations('CRM')
     const [showCreate, setShowCreate] = useState(false)
     const [showFilters, setShowFilters] = useState(false)
 
@@ -53,11 +54,22 @@ export function ActivitiesView({ initialActivities, customers, profiles, user }:
         { id: 'Cancelled', label: t('status.Cancelled') },
     ]
 
+    const LEAD_STATUSES = [
+        { id: 'Lead', label: tCrm('status.Lead') },
+        { id: 'Prospect', label: tCrm('status.Prospect') },
+        { id: 'Reservation', label: tCrm('status.Reservation') },
+        { id: 'Proposal', label: tCrm('status.Proposal') },
+        { id: 'Negotiation', label: tCrm('status.Negotiation') },
+        { id: 'Sold', label: tCrm('status.Sold') },
+        { id: 'Lost', label: tCrm('status.Lost') },
+    ]
+
     // Filter States
     const [onlyMyActivities, setOnlyMyActivities] = useState(false)
     const [selectedTypes, setSelectedTypes] = useState<string[]>([])
     const [selectedTopics, setSelectedTopics] = useState<string[]>([])
     const [selectedStatuses, setSelectedStatuses] = useState<string[]>([])
+    const [selectedLeadStatuses, setSelectedLeadStatuses] = useState<string[]>([])
     const [selectedPriorities, setSelectedPriorities] = useState<string[]>([])
     const [selectedOwners, setSelectedOwners] = useState<string[]>([])
     const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'week' | 'month'>('all')
@@ -82,6 +94,13 @@ export function ActivitiesView({ initialActivities, customers, profiles, user }:
         // Status Filter
         if (selectedStatuses.length > 0) {
             if (!selectedStatuses.includes(a.status)) return false
+        }
+
+        // Lead Status Filter
+        if (selectedLeadStatuses.length > 0) {
+            const customerSales = a.customers?.sales || []
+            const hasMatchingStatus = customerSales.some((s: any) => selectedLeadStatuses.includes(s.status))
+            if (!hasMatchingStatus) return false
         }
 
         // Priority Filter
@@ -162,6 +181,12 @@ export function ActivitiesView({ initialActivities, customers, profiles, user }:
         )
     }
 
+    const toggleLeadStatus = (id: string) => {
+        setSelectedLeadStatuses(prev =>
+            prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+        )
+    }
+
     const togglePriority = (id: string) => {
         setSelectedPriorities(prev =>
             prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
@@ -189,7 +214,7 @@ export function ActivitiesView({ initialActivities, customers, profiles, user }:
                         >
                             <Filter className="h-4 w-4" />
                             {t('filters.title')}
-                            {(selectedTypes.length > 0 || selectedTopics.length > 0 || selectedStatuses.length > 0 || onlyMyActivities || dateFilter !== 'all' || sortOrder !== 'newest') && (
+                            {(selectedTypes.length > 0 || selectedTopics.length > 0 || selectedStatuses.length > 0 || selectedLeadStatuses.length > 0 || onlyMyActivities || dateFilter !== 'all' || sortOrder !== 'newest') && (
                                 <span className="absolute -top-1 -right-1 flex h-3 w-3">
                                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
                                     <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
@@ -197,7 +222,15 @@ export function ActivitiesView({ initialActivities, customers, profiles, user }:
                             )}
                             {showFilters ? <ChevronUp className="h-3 w-3 text-muted-foreground" /> : <ChevronDown className="h-3 w-3 text-muted-foreground" />}
                         </Button>
-                        {(selectedTypes.length > 0 || selectedTopics.length > 0 || selectedStatuses.length > 0 || onlyMyActivities || dateFilter !== 'all' || sortOrder !== 'newest') && (
+                        <Button
+                            variant={dateFilter === 'today' ? 'secondary' : 'outline'}
+                            size="sm"
+                            onClick={() => setDateFilter('today')}
+                            className="h-9"
+                        >
+                            {t('filters.today')}
+                        </Button>
+                        {(selectedTypes.length > 0 || selectedTopics.length > 0 || selectedStatuses.length > 0 || selectedLeadStatuses.length > 0 || onlyMyActivities || dateFilter !== 'all' || sortOrder !== 'newest') && (
                             <Button
                                 variant="ghost"
                                 size="sm"
@@ -207,6 +240,7 @@ export function ActivitiesView({ initialActivities, customers, profiles, user }:
                                     setSelectedTypes([])
                                     setSelectedTopics([])
                                     setSelectedStatuses([])
+                                    setSelectedLeadStatuses([])
                                     setSelectedPriorities([])
                                     setSelectedOwners([])
                                     setDateFilter('all')
@@ -269,6 +303,21 @@ export function ActivitiesView({ initialActivities, customers, profiles, user }:
                                         onCheckedChange={() => toggleStatus(status.id)}
                                     />
                                     <Label htmlFor={`status-${status.id}`} className="cursor-pointer font-normal text-slate-600">{status.label}</Label>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Row 3b: Lead Statuses */}
+                        <div className="flex flex-wrap items-center gap-y-2 gap-x-6">
+                            <span className="text-xs font-bold uppercase tracking-wider w-24 shrink-0 text-slate-400">{t('filters.leadStatuses')}</span>
+                            {LEAD_STATUSES.map(status => (
+                                <div key={status.id} className="flex items-center space-x-2">
+                                    <Checkbox
+                                        id={`lead-status-${status.id}`}
+                                        checked={selectedLeadStatuses.includes(status.id)}
+                                        onCheckedChange={() => toggleLeadStatus(status.id)}
+                                    />
+                                    <Label htmlFor={`lead-status-${status.id}`} className="cursor-pointer font-normal text-slate-600">{status.label}</Label>
                                 </div>
                             ))}
                         </div>

@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { useTranslations } from 'next-intl'
 import { Link } from '@/i18n/routing'
 import { Hero } from '@/components/marketing/Hero'
 import { TrustSection } from '@/components/marketing/TrustSection'
@@ -32,8 +31,8 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 
 export default async function MarketingPage({ params }: { params: Promise<{ locale: string }> }) {
     const { locale } = await params;
-    const t = useTranslations('Marketing_CTA')
-    const faqT = useTranslations('FAQSection')
+    const t = await getTranslations({ locale, namespace: 'Marketing_CTA' })
+    const faqT = await getTranslations({ locale, namespace: 'FAQSection' })
 
     // Build FAQ Schema for Google Rich Results & AI Search
     const faqItems = [0, 1, 2, 3, 4, 5].map((i) => ({

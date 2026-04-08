@@ -1369,6 +1369,7 @@
             "types": "Tipler",
             "topics": "Konular",
             "statuses": "Durumlar",
+            "leadStatuses": "Lead Durumları",
             "dateRange": "Tarih Aralığı",
             "allDates": "Tümü",
             "today": "Bugün",

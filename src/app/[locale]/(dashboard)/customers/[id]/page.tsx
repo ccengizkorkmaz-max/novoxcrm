@@ -44,6 +44,17 @@ export default async function CustomerPage({ params }: CustomerPageProps) {
         .eq('contract_customers.customer_id', id)
         .order('created_at', { ascending: false })
 
+    // Fetch active sales/leads for this customer
+    const { data: sales } = await supabase
+        .from('sales')
+        .select(`
+            *,
+            unit: units(unit_number, block),
+            project: projects(name)
+        `)
+        .eq('customer_id', id)
+        .order('created_at', { ascending: false })
+
     // Fetch Profiles (Users) for assignment - Same logic as activities page
     const { data: currentUserProfile } = await supabase
         .from('profiles')
@@ -83,5 +94,6 @@ export default async function CustomerPage({ params }: CustomerPageProps) {
         activities={activities || []}
         contracts={contracts || []}
         profiles={profiles}
+        sales={sales || []}
     />
 }

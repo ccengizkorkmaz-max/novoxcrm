@@ -5,6 +5,7 @@ import { enUS, tr } from 'date-fns/locale'
 import { CalendarIcon, Phone, Mail, MessageSquare, Briefcase, FileText, User, MoreHorizontal, Video, Building2 } from 'lucide-react'
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Link } from "@/i18n/routing"
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -124,7 +125,7 @@ export function ActivityCard({ activity, customers, profiles, onComplete }: Acti
                         </DropdownMenu>
                     </div>
 
-                    {/* Body: Summary & Customer */}
+                    {/* Body: Summary, Description & Customer */}
                     <div className="min-w-0">
                         <h4 className={cn(
                             "text-[12px] font-bold text-slate-700 leading-tight mb-1 group-hover:text-blue-700 transition-colors line-clamp-2",
@@ -133,11 +134,18 @@ export function ActivityCard({ activity, customers, profiles, onComplete }: Acti
                         )}>
                             {activity.summary}
                         </h4>
+                        {activity.description && (
+                            <p className="text-[10px] text-slate-500 leading-snug line-clamp-2 mb-1">
+                                {activity.description}
+                            </p>
+                        )}
                         {activity.customers?.full_name && (
-                            <div className="flex items-center gap-1 text-[10px] text-slate-500 font-semibold truncate bg-slate-50/50 rounded px-1 w-fit max-w-full">
-                                <User className="h-2.5 w-2.5 shrink-0" />
-                                <span className="truncate">{activity.customers.full_name}</span>
-                            </div>
+                            <Link href={`/customers/${activity.customer_id}`} onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+                                <div className="flex items-center gap-1 text-[10px] text-slate-500 font-semibold truncate bg-slate-50/50 hover:bg-slate-100 hover:text-blue-600 cursor-pointer rounded px-1 w-fit max-w-full transition-colors">
+                                    <User className="h-2.5 w-2.5 shrink-0" />
+                                    <span className="truncate">{activity.customers.full_name}</span>
+                                </div>
+                            </Link>
                         )}
                     </div>
 

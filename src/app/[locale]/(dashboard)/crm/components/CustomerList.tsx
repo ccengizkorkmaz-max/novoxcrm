@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Link } from '@/i18n/routing'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
@@ -44,20 +44,32 @@ import { useRouter, useSearchParams } from 'next/navigation'
 type SortKey = 'full_name' | 'created_at'
 type SortOrder = 'asc' | 'desc'
 
+type ColumnId = 'name' | 'phone' | 'email' | 'source' | 'status' | 'date' | 'actions'
+
+const DEFAULT_COLUMN_ORDER: ColumnId[] = ['name', 'phone', 'email', 'source', 'status', 'date', 'actions']
+const COLUMN_STORAGE_KEY = 'customer_list_column_order'
+const COLUMN_WIDTHS_KEY = 'customer_list_column_widths'
+
+const DEFAULT_WIDTHS: Record<ColumnId, number> = {
+    name: 250, phone: 150, email: 200, source: 150, status: 120, date: 140, actions: 110
+}
+
 export default function CustomerList({
     customers,
     totalRecords = 0,
     initialPage = 1,
     sourceStats = {},
     profiles = [],
-    isManager = false
+    isManager = false,
+    initialSort = { key: 'created_at' as const, order: 'desc' as const }
 }: {
     customers: Customer[],
     totalRecords?: number,
     initialPage?: number,
     sourceStats?: Record<string, number>,
     profiles?: any[],
-    isManager?: boolean
+    isManager?: boolean,
+    initialSort?: { key: 'full_name' | 'created_at'; order: 'asc' | 'desc' }
 }) {
     const t = useTranslations('Customers')
     const router = useRouter()
@@ -73,13 +85,111 @@ export default function CustomerList({
 
     const [searchQuery, setSearchQuery] = useState('')
     const [sortConfig, setSortConfig] = useState<{ key: SortKey; order: SortOrder }>({
-        key: 'created_at',
-        order: 'desc'
+        key: initialSort.key,
+        order: initialSort.order
     })
 
     const [currentPage, setCurrentPage] = useState(initialPage)
     const [pageInputValue, setPageInputValue] = useState(initialPage.toString())
     const itemsPerPage = 50
+
+    // Column ordering (drag & drop)
+    const [columnOrder, setColumnOrder] = useState<ColumnId[]>(() => {
+        if (typeof window !== 'undefined') {
+            try {
+                const saved = localStorage.getItem(COLUMN_STORAGE_KEY)
+                if (saved) {
+                    const parsed = JSON.parse(saved) as ColumnId[]
+                    // Validate saved order contains all expected columns
+                    if (DEFAULT_COLUMN_ORDER.every(c => parsed.includes(c)) && parsed.length === DEFAULT_COLUMN_ORDER.length) {
+                        return parsed
+                    }
+                }
+            } catch {}
+        }
+        return DEFAULT_COLUMN_ORDER
+    })
+    const dragColRef = useRef<ColumnId | null>(null)
+    const [dragOverCol, setDragOverCol] = useState<ColumnId | null>(null)
+
+    const handleDragStart = useCallback((col: ColumnId) => {
+        dragColRef.current = col
+    }, [])
+
+    const handleDragOver = useCallback((e: React.DragEvent, col: ColumnId) => {
+        e.preventDefault()
+        if (dragColRef.current && dragColRef.current !== col) {
+            setDragOverCol(col)
+        }
+    }, [])
+
+    const handleDrop = useCallback((targetCol: ColumnId) => {
+        const draggedCol = dragColRef.current
+        if (!draggedCol || draggedCol === targetCol) {
+            setDragOverCol(null)
+            return
+        }
+        setColumnOrder(prev => {
+            const next = [...prev]
+            const fromIdx = next.indexOf(draggedCol)
+            const toIdx = next.indexOf(targetCol)
+            next.splice(fromIdx, 1)
+            next.splice(toIdx, 0, draggedCol)
+            try { localStorage.setItem(COLUMN_STORAGE_KEY, JSON.stringify(next)) } catch {}
+            return next
+        })
+        setDragOverCol(null)
+        dragColRef.current = null
+    }, [])
+
+    const handleDragEnd = useCallback(() => {
+        setDragOverCol(null)
+        dragColRef.current = null
+    }, [])
+
+    // Column resizing
+    const [columnWidths, setColumnWidths] = useState<Record<ColumnId, number>>(() => {
+        if (typeof window !== 'undefined') {
+            try {
+                const saved = localStorage.getItem(COLUMN_WIDTHS_KEY)
+                if (saved) {
+                    const parsed = JSON.parse(saved)
+                    // merge with defaults to handle new columns
+                    return { ...DEFAULT_WIDTHS, ...parsed }
+                }
+            } catch {}
+        }
+        return { ...DEFAULT_WIDTHS }
+    })
+
+    const resizeRef = useRef<{ col: ColumnId; startX: number; startW: number } | null>(null)
+
+    const handleResizeMouseDown = useCallback((e: React.MouseEvent, col: ColumnId) => {
+        e.preventDefault()
+        e.stopPropagation()
+        const startX = e.clientX
+        const startW = columnWidths[col]
+        resizeRef.current = { col, startX, startW }
+
+        const onMouseMove = (ev: MouseEvent) => {
+            const delta = ev.clientX - startX
+            const newW = Math.max(60, startW + delta)
+            setColumnWidths(prev => {
+                const next = { ...prev, [col]: newW }
+                try { localStorage.setItem(COLUMN_WIDTHS_KEY, JSON.stringify(next)) } catch {}
+                return next
+            })
+        }
+
+        const onMouseUp = () => {
+            resizeRef.current = null
+            document.removeEventListener('mousemove', onMouseMove)
+            document.removeEventListener('mouseup', onMouseUp)
+        }
+
+        document.addEventListener('mousemove', onMouseMove)
+        document.addEventListener('mouseup', onMouseUp)
+    }, [columnWidths])
 
     // Auto-search after 600ms of typing to hit backend instead of strictly requiring ENTER
     useEffect(() => {
@@ -148,14 +258,19 @@ export default function CustomerList({
     }
 
     const toggleSort = (key: SortKey) => {
-        setSortConfig(current => ({
-            key,
-            order: current.key === key && current.order === 'desc' ? 'asc' : 'desc'
-        }))
+        const newOrder = sortConfig.key === key && sortConfig.order === 'desc' ? 'asc' : 'desc'
+        setSortConfig({ key, order: newOrder })
+        // Push to URL so server re-fetches the entire dataset sorted
+        const params = new URLSearchParams(searchParams.toString())
+        params.set('sort', key)
+        params.set('order', newOrder)
+        params.set('page', '1')
+        router.push(`?${params.toString()}`)
     }
 
-    const filteredAndSortedCustomers = customers
-        .filter(c => {
+    // Data comes pre-sorted from server — just apply local text filter for client-side search
+    const filteredAndSortedCustomers = searchQuery
+        ? customers.filter(c => {
             const query = searchQuery.toLowerCase()
             return (
                 c.full_name?.toLowerCase().includes(query) ||
@@ -164,13 +279,7 @@ export default function CustomerList({
                 c.customer_number?.toLowerCase().includes(query)
             )
         })
-        .sort((a, b) => {
-            const order = sortConfig.order === 'asc' ? 1 : -1
-            if (sortConfig.key === 'full_name') {
-                return (a.full_name || '').localeCompare(b.full_name || '') * order
-            }
-            return (new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) * order
-        })
+        : customers
 
     const totalPages = Math.ceil(totalRecords / itemsPerPage)
     const currentItems = filteredAndSortedCustomers
@@ -189,39 +298,37 @@ export default function CustomerList({
 
     return (
         <div className="space-y-6">
-            {/* Mini Dashboard */}
-            <div className="flex flex-wrap gap-3">
-                <Card className="flex-1 min-w-[140px] rounded-xl border-none shadow-sm bg-gradient-to-br from-blue-600 to-blue-700 text-white overflow-hidden group">
-                    <CardContent className="p-4 relative">
-                        <div className="flex justify-between items-start">
-                            <div className="space-y-0.5">
-                                <p className="text-blue-100 text-[10px] font-black uppercase tracking-widest">Toplam Kayıt</p>
-                                <h3 className="text-xl font-black">{totalCount}</h3>
+            {/* Mini Dashboard — compact */}
+            <div className="flex flex-wrap gap-2">
+                <Card className="flex-1 min-w-[110px] rounded-lg border-none shadow-sm bg-gradient-to-br from-blue-600 to-blue-700 text-white overflow-hidden">
+                    <CardContent className="px-3 py-2">
+                        <div className="flex items-center justify-between gap-2">
+                            <div>
+                                <p className="text-blue-100 text-[9px] font-black uppercase tracking-widest">Toplam</p>
+                                <h3 className="text-base font-black leading-tight">{totalCount}</h3>
                             </div>
-                            <div className="h-8 w-8 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm group-hover:scale-110 transition-transform">
-                                <Users className="h-4 w-4 text-white" />
-                            </div>
+                            <Users className="h-4 w-4 text-white/60 flex-shrink-0" />
                         </div>
                     </CardContent>
                 </Card>
 
                 {sortedSources.map(([source, count], idx) => (
-                    <Card key={source} className="flex-1 min-w-[140px] rounded-xl border-none shadow-sm bg-white overflow-hidden group hover:shadow-md transition-shadow">
-                        <CardContent className="p-4">
-                            <div className="flex justify-between items-start">
-                                <div className="space-y-0.5">
-                                    <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest truncate max-w-[100px]" title={source}>{source}</p>
-                                    <h3 className="text-xl font-black text-slate-900">{count}</h3>
+                    <Card key={source} className="flex-1 min-w-[110px] rounded-lg border-none shadow-sm bg-white overflow-hidden">
+                        <CardContent className="px-3 py-2">
+                            <div className="flex items-center justify-between gap-2">
+                                <div className="min-w-0">
+                                    <p className="text-slate-400 text-[9px] font-bold uppercase tracking-widest truncate" title={source}>{source}</p>
+                                    <h3 className="text-base font-black text-slate-900 leading-tight">{count}</h3>
                                 </div>
                                 <div className={cn(
-                                    "h-8 w-8 rounded-lg flex items-center justify-center transition-transform group-hover:rotate-12",
+                                    "h-5 w-5 rounded flex items-center justify-center flex-shrink-0",
                                     idx === 0 ? "bg-emerald-50 text-emerald-600" :
                                         idx === 1 ? "bg-amber-50 text-amber-600" : "bg-purple-50 text-purple-600"
                                 )}>
-                                    <Target className="h-4 w-4" />
+                                    <Target className="h-3 w-3" />
                                 </div>
                             </div>
-                            <div className="mt-3 h-1 w-full bg-slate-50 rounded-full overflow-hidden">
+                            <div className="mt-1.5 h-0.5 w-full bg-slate-100 rounded-full overflow-hidden">
                                 <div
                                     className={cn(
                                         "h-full rounded-full",
@@ -236,36 +343,14 @@ export default function CustomerList({
                 ))}
 
                 {sortedSources.length < 3 && Array.from({ length: 3 - sortedSources.length }).map((_, i) => (
-                    <Card key={`empty-${i}`} className="flex-1 min-w-[140px] rounded-xl border-dashed border-2 border-slate-100 bg-slate-50/50 flex items-center justify-center p-4 text-slate-300">
-                        <p className="text-[10px] font-bold uppercase">Veri Bekleniyor</p>
+                    <Card key={`empty-${i}`} className="flex-1 min-w-[110px] rounded-lg border-dashed border border-slate-200 bg-slate-50/50 flex items-center justify-center px-3 py-2">
+                        <p className="text-[9px] font-bold uppercase text-slate-300">Veri Bekleniyor</p>
                     </Card>
                 ))}
             </div>
 
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div className="relative w-full md:w-[350px]">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                    <Input
-                        placeholder="İsim, Tel, E-posta ile tüm kayıtlarda ara..."
-                        value={searchQuery}
-                        onChange={(e) => {
-                            setSearchQuery(e.target.value)
-                            setCurrentPage(1)
-                        }}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                                // Sync with URL for server-side persistence
-                                const url = new URL(window.location.href)
-                                if (searchQuery) url.searchParams.set('q', searchQuery)
-                                else url.searchParams.delete('q')
-                                window.history.pushState({}, '', url)
-                                router.refresh()
-                            }
-                        }}
-                        className="pl-10 h-11 bg-white border-slate-200 focus:ring-blue-500 rounded-xl transition-all shadow-sm"
-                    />
-                </div>
-                <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
+            <div className="flex flex-col md:flex-row items-start md:items-center gap-3">
+                <div className="flex items-center gap-2 flex-shrink-0 overflow-x-auto pb-1 md:pb-0">
                     <Button variant="outline" className="shadow-sm border-slate-200 text-red-600 hover:bg-red-50 hover:text-red-700 h-11 px-6 rounded-xl font-bold transition-all active:scale-95 whitespace-nowrap" onClick={() => setIsMergeOpen(true)}>
                         <Users className="mr-2 h-5 w-5" /> Mükerrerleri Birleştir
                     </Button>
@@ -438,96 +523,228 @@ export default function CustomerList({
                         </DialogContent>
                     </Dialog>
                 </div>
+                <div className="relative flex-1 min-w-[220px] max-w-[400px]">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <Input
+                        placeholder="İsim, Tel, E-posta ile tüm kayıtlarda ara..."
+                        value={searchQuery}
+                        onChange={(e) => {
+                            setSearchQuery(e.target.value)
+                            setCurrentPage(1)
+                        }}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                const url = new URL(window.location.href)
+                                if (searchQuery) url.searchParams.set('q', searchQuery)
+                                else url.searchParams.delete('q')
+                                window.history.pushState({}, '', url)
+                                router.refresh()
+                            }
+                        }}
+                        className="pl-10 h-11 bg-white border-slate-200 focus:ring-blue-500 rounded-xl transition-all shadow-sm w-full"
+                    />
+                </div>
             </div>
 
             {/* Desktop Table View */}
             <div className="hidden md:block rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-                <div className="relative w-full overflow-auto max-h-[calc(100vh-350px)]">
+                {/* Column order hint */}
+                <div className="flex items-center gap-1.5 px-4 py-1.5 bg-slate-50/60 border-b border-slate-100">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Sütunları sürükle &amp; bırak ile sırala · Kenarını sürükle genişlet</span>
+                    {columnOrder.join(',') !== DEFAULT_COLUMN_ORDER.join(',') && (
+                        <button
+                            onClick={() => {
+                                setColumnOrder(DEFAULT_COLUMN_ORDER)
+                                try { localStorage.removeItem(COLUMN_STORAGE_KEY) } catch {}
+                            }}
+                            className="text-[10px] font-bold text-blue-500 hover:text-blue-700 underline underline-offset-2 ml-2"
+                        >
+                            Sırala sıfırla
+                        </button>
+                    )}
+                    {JSON.stringify(columnWidths) !== JSON.stringify(DEFAULT_WIDTHS) && (
+                        <button
+                            onClick={() => {
+                                setColumnWidths({ ...DEFAULT_WIDTHS })
+                                try { localStorage.removeItem(COLUMN_WIDTHS_KEY) } catch {}
+                            }}
+                            className="text-[10px] font-bold text-slate-400 hover:text-blue-600 underline underline-offset-2 ml-1"
+                        >
+                            Genişlikleri sıfırla
+                        </button>
+                    )}
+                </div>
+                <div className="relative w-full overflow-auto max-h-[calc(100vh-380px)]">
                     <Table>
                         <TableHeader className="bg-slate-50/80 sticky top-0 z-20">
                             <TableRow>
-                                <TableHead
-                                    className="w-[250px] font-bold text-[11px] uppercase tracking-wider text-slate-400 cursor-pointer hover:text-blue-600 transition-colors"
-                                    onClick={() => toggleSort('full_name')}
-                                >
-                                    <div className="flex items-center">
-                                        ID / {t('table.fullName')}
-                                        <SortIcon columnKey="full_name" />
-                                    </div>
-                                </TableHead>
-                                <TableHead className="w-[150px] font-bold text-[11px] uppercase tracking-wider text-slate-400">{t('table.phone')}</TableHead>
-                                <TableHead className="w-[200px] font-bold text-[11px] uppercase tracking-wider text-slate-400">{t('table.email')}</TableHead>
-                                <TableHead className="w-[150px] font-bold text-[11px] uppercase tracking-wider text-slate-400">{t('table.source')}</TableHead>
-                                <TableHead
-                                    className="w-[150px] font-bold text-[11px] uppercase tracking-wider text-slate-400 cursor-pointer hover:text-blue-600 transition-colors"
-                                    onClick={() => toggleSort('created_at')}
-                                >
-                                    <div className="flex items-center">
-                                        {t('table.status')} / {t('table.date') || 'Tarih'}
-                                        <SortIcon columnKey="created_at" />
-                                    </div>
-                                </TableHead>
-                                <TableHead className="w-[100px] text-right font-bold text-[11px] uppercase tracking-wider text-slate-400">{t('table.actions')}</TableHead>
+                                {columnOrder.map((colId) => {
+                                    const isOver = dragOverCol === colId
+                                    const baseHead = "font-bold text-[11px] uppercase tracking-wider text-slate-400 select-none transition-colors relative overflow-visible"
+                                    const dragHead = "cursor-grab active:cursor-grabbing"
+                                    const overStyle = isOver ? "border-l-2 border-l-blue-500 bg-blue-50/60" : ""
+                                    const w = columnWidths[colId]
+
+                                    const commonProps = {
+                                        draggable: true,
+                                        onDragStart: () => handleDragStart(colId),
+                                        onDragOver: (e: React.DragEvent) => handleDragOver(e, colId),
+                                        onDrop: () => handleDrop(colId),
+                                        onDragEnd: handleDragEnd,
+                                        style: { width: w, minWidth: w, maxWidth: w },
+                                    }
+
+                                    // Resize handle element
+                                    const ResizeHandle = colId !== 'actions' ? (
+                                        <div
+                                            className="absolute right-0 top-0 h-full w-2 cursor-col-resize z-10 flex items-center justify-center group/rh"
+                                            onMouseDown={(e) => handleResizeMouseDown(e, colId)}
+                                            onClick={(e) => e.stopPropagation()}
+                                            onDragStart={(e) => e.preventDefault()}
+                                            draggable={false}
+                                        >
+                                            <div className="h-4 w-px bg-slate-300 group-hover/rh:bg-blue-400 group-hover/rh:w-0.5 transition-all" />
+                                        </div>
+                                    ) : null
+
+                                    if (colId === 'name') return (
+                                        <TableHead key="name" {...commonProps} className={cn(baseHead, dragHead, overStyle, "cursor-pointer hover:text-blue-600")} onClick={() => toggleSort('full_name')}>
+                                            <div className="flex items-center gap-1">
+                                                <span className="opacity-30 text-slate-500">⠿</span>
+                                                ID / {t('table.fullName')}
+                                                <SortIcon columnKey="full_name" />
+                                            </div>
+                                            {ResizeHandle}
+                                        </TableHead>
+                                    )
+                                    if (colId === 'phone') return (
+                                        <TableHead key="phone" {...commonProps} className={cn(baseHead, dragHead, overStyle)}>
+                                            <div className="flex items-center gap-1"><span className="opacity-30">⠿</span>{t('table.phone')}</div>
+                                            {ResizeHandle}
+                                        </TableHead>
+                                    )
+                                    if (colId === 'email') return (
+                                        <TableHead key="email" {...commonProps} className={cn(baseHead, dragHead, overStyle)}>
+                                            <div className="flex items-center gap-1"><span className="opacity-30">⠿</span>{t('table.email')}</div>
+                                            {ResizeHandle}
+                                        </TableHead>
+                                    )
+                                    if (colId === 'source') return (
+                                        <TableHead key="source" {...commonProps} className={cn(baseHead, dragHead, overStyle)}>
+                                            <div className="flex items-center gap-1"><span className="opacity-30">⠿</span>{t('table.source')}</div>
+                                            {ResizeHandle}
+                                        </TableHead>
+                                    )
+                                    if (colId === 'status') return (
+                                        <TableHead key="status" {...commonProps} className={cn(baseHead, dragHead, overStyle)}>
+                                            <div className="flex items-center gap-1"><span className="opacity-30">⠿</span>{t('table.status')}</div>
+                                            {ResizeHandle}
+                                        </TableHead>
+                                    )
+                                    if (colId === 'date') return (
+                                        <TableHead key="date" {...commonProps} className={cn(baseHead, dragHead, overStyle, "cursor-pointer hover:text-blue-600")} onClick={() => toggleSort('created_at')}>
+                                            <div className="flex items-center gap-1">
+                                                <span className="opacity-30">⠿</span>
+                                                {t('table.date') || 'Kayıt Tarihi'}
+                                                <SortIcon columnKey="created_at" />
+                                            </div>
+                                            {ResizeHandle}
+                                        </TableHead>
+                                    )
+                                    if (colId === 'actions') return (
+                                        <TableHead key="actions" className={cn(baseHead, overStyle, "text-right")} style={{ width: columnWidths.actions, minWidth: columnWidths.actions }}>
+                                            {t('table.actions')}
+                                        </TableHead>
+                                    )
+                                    return null
+                                })}
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {currentItems && currentItems.length > 0 ? (
                                 currentItems.map((c) => (
                                     <TableRow key={c.id} className="hover:bg-slate-50/50 transition-colors group">
-                                        <TableCell className="py-2">
-                                            <Link href={`/customers/${c.id}`} className="flex items-center gap-3">
-                                                <div className="h-8 w-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-[10px] font-black border border-blue-100 shadow-inner group-hover:scale-110 transition-transform">
-                                                    {c.full_name.substring(0, 2).toUpperCase()}
-                                                </div>
-                                                <div className="flex flex-col gap-0.5">
-                                                    <div className="flex items-center gap-2">
-                                                        {c.customer_number && (
-                                                            <span className="text-[9px] font-black px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded-md border border-blue-100 flex-shrink-0">
-                                                                {c.customer_number}
-                                                            </span>
-                                                        )}
-                                                        <span className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors uppercase tracking-tight text-xs">{c.full_name}</span>
+                                        {columnOrder.map((colId) => {
+                                            if (colId === 'name') return (
+                                                <TableCell key="name" className="py-2">
+                                                    <Link href={`/customers/${c.id}`} className="flex items-center gap-3">
+                                                        <div className="h-8 w-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-[10px] font-black border border-blue-100 shadow-inner group-hover:scale-110 transition-transform">
+                                                            {c.full_name.substring(0, 2).toUpperCase()}
+                                                        </div>
+                                                        <div className="flex flex-col gap-0.5">
+                                                            <div className="flex items-center gap-2">
+                                                                {c.customer_number && (
+                                                                    <span className="text-[9px] font-black px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded-md border border-blue-100 flex-shrink-0">
+                                                                        {c.customer_number}
+                                                                    </span>
+                                                                )}
+                                                                <span className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors uppercase tracking-tight text-xs">{c.full_name}</span>
+                                                            </div>
+                                                            <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">{new Date(c.created_at).toLocaleDateString()}</span>
+                                                        </div>
+                                                    </Link>
+                                                </TableCell>
+                                            )
+                                            if (colId === 'phone') return (
+                                                <TableCell key="phone" className="font-bold text-slate-700 text-xs">{c.phone}</TableCell>
+                                            )
+                                            if (colId === 'email') return (
+                                                <TableCell key="email" className="text-slate-500 text-xs font-medium">{c.email || '-'}</TableCell>
+                                            )
+                                            if (colId === 'source') return (
+                                                <TableCell key="source" className="py-2">
+                                                    <Badge variant="outline" className="text-[9px] font-bold uppercase tracking-wider bg-slate-50 border-slate-200 text-slate-400 group-hover:bg-white group-hover:border-blue-200 group-hover:text-blue-600 transition-all">
+                                                        {c.source || '-'}
+                                                    </Badge>
+                                                </TableCell>
+                                            )
+                                            if (colId === 'status') return (
+                                                <TableCell key="status" className="py-2">
+                                                    {c.contract_customers && c.contract_customers.length > 0 ? (
+                                                        <Badge className="bg-blue-600 hover:bg-blue-700 text-[9px] font-black px-2 py-0.5 uppercase tracking-wide border-none shadow-sm shadow-blue-100">{t('badges.customer')}</Badge>
+                                                    ) : c.customer_demands && c.customer_demands.length > 0 ? (
+                                                        <Badge className="bg-emerald-600 hover:bg-emerald-700 text-[9px] font-black px-2 py-0.5 uppercase tracking-wide border-none shadow-sm shadow-emerald-100">{t('badges.lead')}</Badge>
+                                                    ) : (
+                                                        <Badge variant="secondary" className="bg-slate-100 text-slate-500 text-[9px] font-black px-2 py-0.5 uppercase tracking-wide border-none">{t('badges.contact')}</Badge>
+                                                    )}
+                                                </TableCell>
+                                            )
+                                            if (colId === 'date') return (
+                                                <TableCell key="date" className="py-2">
+                                                    <div className="flex flex-col gap-0.5">
+                                                        <span className="text-xs font-bold text-slate-700">
+                                                            {new Date(c.created_at).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                                                        </span>
+                                                        <span className="text-[10px] text-slate-400 font-medium">
+                                                            {new Date(c.created_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+                                                        </span>
                                                     </div>
-                                                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">{new Date(c.created_at).toLocaleDateString()}</span>
-                                                </div>
-                                            </Link>
-                                        </TableCell>
-                                        <TableCell className="font-bold text-slate-700 text-xs">{c.phone}</TableCell>
-                                        <TableCell className="text-slate-500 text-xs font-medium">{c.email || '-'}</TableCell>
-                                        <TableCell className="py-2">
-                                            <Badge variant="outline" className="text-[9px] font-bold uppercase tracking-wider bg-slate-50 border-slate-200 text-slate-400 group-hover:bg-white group-hover:border-blue-200 group-hover:text-blue-600 transition-all">
-                                                {c.source || '-'}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell className="py-2">
-                                            {c.contract_customers && c.contract_customers.length > 0 ? (
-                                                <Badge className="bg-blue-600 hover:bg-blue-700 text-[9px] font-black px-2 py-0.5 uppercase tracking-wide border-none shadow-sm shadow-blue-100">{t('badges.customer')}</Badge>
-                                            ) : c.customer_demands && c.customer_demands.length > 0 ? (
-                                                <Badge className="bg-emerald-600 hover:bg-emerald-700 text-[9px] font-black px-2 py-0.5 uppercase tracking-wide border-none shadow-sm shadow-emerald-100">{t('badges.lead')}</Badge>
-                                            ) : (
-                                                <Badge variant="secondary" className="bg-slate-100 text-slate-500 text-[9px] font-black px-2 py-0.5 uppercase tracking-wide border-none">{t('badges.contact')}</Badge>
-                                            )}
-                                        </TableCell>
-                                        <TableCell className="text-right py-2">
-                                            <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg" onClick={() => handleCreateActivity(c)} title="Aktivite Ekle">
-                                                    <CalendarPlus className="h-3.5 w-3.5" />
-                                                </Button>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg" onClick={() => handleEditClick(c)} title={t('table.edit')}>
-                                                    <Pencil className="h-3.5 w-3.5" />
-                                                </Button>
-                                                {isManager && (
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg" onClick={() => setCustomerToDelete(c)} title={t('table.delete')}>
-                                                        <Trash className="h-3.5 w-3.5" />
-                                                    </Button>
-                                                )}
-                                            </div>
-                                        </TableCell>
+                                                </TableCell>
+                                            )
+                                            if (colId === 'actions') return (
+                                                <TableCell key="actions" className="text-right py-2" style={{ width: columnWidths.actions, minWidth: columnWidths.actions }}>
+                                                    <div className="flex justify-end gap-1">
+                                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg" onClick={() => handleCreateActivity(c)} title="Aktivite Ekle">
+                                                            <CalendarPlus className="h-3.5 w-3.5" />
+                                                        </Button>
+                                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg" onClick={() => handleEditClick(c)} title={t('table.edit')}>
+                                                            <Pencil className="h-3.5 w-3.5" />
+                                                        </Button>
+                                                        {isManager && (
+                                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg" onClick={() => setCustomerToDelete(c)} title={t('table.delete')}>
+                                                                <Trash className="h-3.5 w-3.5" />
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                </TableCell>
+                                            )
+                                            return null
+                                        })}
                                     </TableRow>
                                 ))
                             ) : (
                                 <TableRow>
-                                    <TableCell colSpan={6} className="text-center h-48 text-muted-foreground bg-slate-50/30">
+                                    <TableCell colSpan={columnOrder.length} className="text-center h-48 text-muted-foreground bg-slate-50/30">
                                         <div className="flex flex-col items-center gap-2">
                                             <div className="h-12 w-12 rounded-2xl bg-white border border-slate-100 shadow-sm flex items-center justify-center text-slate-300">
                                                 <Users className="w-6 h-6" />

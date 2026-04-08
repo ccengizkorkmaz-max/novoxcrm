@@ -30,6 +30,7 @@ interface CustomerViewProps {
     activities: any[]
     contracts?: any[]
     profiles?: any[]
+    sales?: any[]
 }
 
 const ACTIVITY_TYPES = [
@@ -50,7 +51,7 @@ const ACTIVITY_TOPICS = [
     { id: 'Collection', label: 'Tahsilat' },
 ]
 
-export function CustomerView({ customer, activities, contracts = [], profiles = [] }: CustomerViewProps) {
+export function CustomerView({ customer, activities, contracts = [], profiles = [], sales = [] }: CustomerViewProps) {
     const t = useTranslations('Customers')
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
     const [isFiltersOpen, setIsFiltersOpen] = useState(false)
@@ -365,6 +366,42 @@ export function CustomerView({ customer, activities, contracts = [], profiles = 
                                                 </div>
                                                 <Badge variant="secondary" className="text-[10px] h-5 mt-1">
                                                     {contract.status}
+                                                </Badge>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    {/* Active Sales / Leads Section */}
+                    {sales && sales.length > 0 && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="text-base flex items-center justify-between">
+                                    <span>Aktif Satışlar / Leadler</span>
+                                    <Badge variant="outline">{sales.length}</Badge>
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="space-y-4">
+                                    {sales.map((sale: any) => (
+                                        <div key={sale.id} className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0">
+                                            <div>
+                                                <div className="font-semibold text-sm">
+                                                    {(sale.project?.name || sale.unit?.block) ? `${sale.project?.name || ''} - ${sale.unit?.block || ''} / ${sale.unit?.unit_number || ''}` : 'Belirsiz / Genel Talep'}
+                                                </div>
+                                                <p className="text-xs text-muted-foreground mt-1">
+                                                    Satış Temsilcisi: {sale.profiles?.full_name || 'Atanmamış'}
+                                                </p>
+                                            </div>
+                                            <div className="text-right">
+                                                <div className="font-medium text-sm">
+                                                    {sale.final_price ? new Intl.NumberFormat('tr-TR', { style: 'currency', currency: sale.currency || 'TRY' }).format(sale.final_price) : '-'}
+                                                </div>
+                                                <Badge variant="secondary" className="text-[10px] h-5 mt-1">
+                                                    {sale.status}
                                                 </Badge>
                                             </div>
                                         </div>

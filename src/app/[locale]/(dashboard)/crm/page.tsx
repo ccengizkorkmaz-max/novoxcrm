@@ -33,6 +33,7 @@ import PipelineList from './components/PipelineList'
 import NewSaleButton from './components/NewSaleButton'
 import CRMFilterSheet from './components/CRMFilterSheet'
 import CRMSearch from './components/CRMSearch'
+
 import SalesExportButton from './components/SalesExportButton'
 import BulkAutoAssignButton from './components/BulkAutoAssignButton'
 import React from 'react'
@@ -71,12 +72,16 @@ export default async function CRMPage(props: {
         isAdmin = profile?.role === 'admin' || profile?.role === 'owner'
         isManager = isAdmin || profile?.role === 'manager'
     }
+    // Determine if only today's leads should be shown (query param tl=1)
+    const onlyTodayLeads = params.tl === '1'
 
     // 2. Build base sales query for filtered data
     let baseQuery = supabase
         .from('sales')
         .select('*, customers!inner(id, full_name, email, phone, customer_number), units(unit_number, price, currency, projects(id, name)), projects(id, name), profiles(full_name)', { count: 'exact' })
         .neq('status', 'Inbox') // Exclude inbox items (pending approval)
+        // Apply only-today-leads filter if enabled
+
 
     // Role-based filtering
     if (!isManager && user) {
@@ -218,6 +223,7 @@ export default async function CRMPage(props: {
                         </React.Suspense>
                         <React.Suspense fallback={<div className="h-10 w-64 bg-gray-100 animate-pulse rounded" />}>
                             <CRMSearch />
+
                         </React.Suspense>
                         <NewSaleButton
                             customers={customers || []}

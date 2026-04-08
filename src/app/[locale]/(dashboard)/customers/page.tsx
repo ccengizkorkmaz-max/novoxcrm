@@ -12,6 +12,8 @@ export default async function CustomersPage(props: {
     const t = await getTranslations('Customers')
     const supabase = await createClient()
     const filterSearch = searchParams.q as string
+    const sortKey = (searchParams.sort as string) || 'created_at'
+    const sortOrder = (searchParams.order as string) === 'asc'
 
     // 1. Build Base Query for Customers
     let query = supabase
@@ -29,7 +31,7 @@ export default async function CustomersPage(props: {
 
     // 2. Fetch customers with count and range
     const { data: customers, count, error } = await query
-        .order('created_at', { ascending: false })
+        .order(sortKey as 'full_name' | 'created_at', { ascending: sortOrder })
         .range(from, to)
 
     if (error) {
@@ -75,6 +77,7 @@ export default async function CustomersPage(props: {
                         sourceStats={sourceCounts}
                         profiles={profiles || []}
                         isManager={isManager}
+                        initialSort={{ key: sortKey as 'full_name' | 'created_at', order: sortOrder ? 'asc' : 'desc' }}
                     />
                 </React.Suspense>
             </div>

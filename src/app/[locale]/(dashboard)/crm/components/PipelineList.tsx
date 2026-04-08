@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -46,6 +46,14 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useTranslations, useLocale } from 'next-intl'
 import { useSupabaseRealtime } from '@/hooks/useSupabaseRealtime'
 
+type PipelineColId = 'customer' | 'project' | 'unit' | 'status' | 'date' | 'amount' | 'rep' | 'actions' | 'quickicons'
+const DEFAULT_PIPELINE_COL_ORDER: PipelineColId[] = ['customer', 'project', 'unit', 'status', 'date', 'amount', 'rep', 'actions', 'quickicons']
+const PIPELINE_COL_ORDER_KEY = 'pipeline_list_column_order'
+const PIPELINE_COL_WIDTHS_KEY = 'pipeline_list_column_widths'
+const DEFAULT_PIPELINE_WIDTHS: Record<PipelineColId, number> = {
+    customer: 240, project: 200, unit: 100, status: 160, date: 140, amount: 160, rep: 180, actions: 180, quickicons: 130
+}
+
 export default function PipelineList({
     sales,
     customers,
@@ -89,25 +97,67 @@ export default function PipelineList({
     useSupabaseRealtime({ table: 'sales' })
 
     // Resizable Columns State
-    const [colWidths, setColWidths] = useState<Record<string, number>>({
-        customer: 240,
-        project: 200,
-        unit: 100,
-        status: 160,
-        date: 140,
-        amount: 160,
-        rep: 180,
-        actions: 140
+    const [colWidths, setColWidths] = useState<Record<PipelineColId, number>>(() => {
+        if (typeof window !== 'undefined') {
+            try {
+                const saved = localStorage.getItem(PIPELINE_COL_WIDTHS_KEY)
+                if (saved) return { ...DEFAULT_PIPELINE_WIDTHS, ...JSON.parse(saved) }
+            } catch {}
+        }
+        return { ...DEFAULT_PIPELINE_WIDTHS }
     })
     const resizingRef = useRef<{ key: string, startX: number, startWidth: number } | null>(null)
+
+    // Column ordering
+    const [colOrder, setColOrder] = useState<PipelineColId[]>(() => {
+        if (typeof window !== 'undefined') {
+            try {
+                const saved = localStorage.getItem(PIPELINE_COL_ORDER_KEY)
+                if (saved) {
+                    const parsed = JSON.parse(saved) as PipelineColId[]
+                    if (DEFAULT_PIPELINE_COL_ORDER.every(c => parsed.includes(c)) && parsed.length === DEFAULT_PIPELINE_COL_ORDER.length)
+                        return parsed
+                }
+            } catch {}
+        }
+        return DEFAULT_PIPELINE_COL_ORDER
+    })
+    const dragColRef = useRef<PipelineColId | null>(null)
+    const [dragOverCol, setDragOverCol] = useState<PipelineColId | null>(null)
+
+    const handleColDragStart = useCallback((col: PipelineColId) => { dragColRef.current = col }, [])
+    const handleColDragOver = useCallback((e: React.DragEvent, col: PipelineColId) => {
+        e.preventDefault()
+        if (dragColRef.current && dragColRef.current !== col) setDragOverCol(col)
+    }, [])
+    const handleColDrop = useCallback((targetCol: PipelineColId) => {
+        const from = dragColRef.current
+        if (!from || from === targetCol) { setDragOverCol(null); return }
+        setColOrder(prev => {
+            const next = [...prev]
+            const fi = next.indexOf(from), ti = next.indexOf(targetCol)
+            next.splice(fi, 1)
+            next.splice(ti, 0, from)
+            try { localStorage.setItem(PIPELINE_COL_ORDER_KEY, JSON.stringify(next)) } catch {}
+            return next
+        })
+        setDragOverCol(null)
+        dragColRef.current = null
+    }, [])
+    const handleColDragEnd = useCallback(() => { setDragOverCol(null); dragColRef.current = null }, [])
 
     useEffect(() => {
         const handleMouseMove = (e: MouseEvent) => {
             if (!resizingRef.current) return
             const { key, startX, startWidth } = resizingRef.current
             const diff = e.clientX - startX
-            setColWidths(prev => ({ ...prev, [key]: Math.max(60, startWidth + diff) }))
-            e.preventDefault() // Prevent text selection
+            const newW = Math.max(60, startWidth + diff)
+            setColWidths(prev => {
+                const next = { ...prev, [key]: newW }
+                try { localStorage.setItem(PIPELINE_COL_WIDTHS_KEY, JSON.stringify(next)) } catch {}
+                return next
+            })
+            e.preventDefault()
         }
         const handleMouseUp = () => {
             if (resizingRef.current) {
@@ -127,7 +177,7 @@ export default function PipelineList({
         <div
             className="absolute right-0 top-0 h-full w-1.5 cursor-col-resize hover:bg-primary/50 transition-colors z-20 touch-none active:bg-primary"
             onMouseDown={(e) => {
-                resizingRef.current = { key: id, startX: e.clientX, startWidth: colWidths[id] }
+                resizingRef.current = { key: id, startX: e.clientX, startWidth: colWidths[id as PipelineColId] }
                 document.body.style.cursor = 'col-resize'
                 e.preventDefault()
             }}
@@ -219,41 +269,56 @@ export default function PipelineList({
         <div className="space-y-4">
             {/* Desktop Table View */}
             <div className="hidden md:block relative group">
-                <div className="rounded-xl border bg-card shadow-sm relative w-full overflow-auto lg:max-h-[calc(100vh-250px)] max-w-[calc(100vw-1rem)] lg:max-w-full print:max-h-none print:overflow-visible">
+                {/* Column hint bar */}
+                <div className="flex items-center gap-2 px-4 py-1.5 bg-slate-50/80 border border-border rounded-t-xl border-b-0 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    Sütunları sürükle &amp; bırak ile sırala · Kenarını sürükleyerek genişlet
+                    {colOrder.join(',') !== DEFAULT_PIPELINE_COL_ORDER.join(',') && (
+                        <button onClick={() => { setColOrder(DEFAULT_PIPELINE_COL_ORDER); try { localStorage.removeItem(PIPELINE_COL_ORDER_KEY) } catch {} }} className="text-blue-500 hover:text-blue-700 underline underline-offset-2 ml-2">
+                            Sıral. sıfırla
+                        </button>
+                    )}
+                    {JSON.stringify(colWidths) !== JSON.stringify(DEFAULT_PIPELINE_WIDTHS) && (
+                        <button onClick={() => { setColWidths({ ...DEFAULT_PIPELINE_WIDTHS }); try { localStorage.removeItem(PIPELINE_COL_WIDTHS_KEY) } catch {} }} className="text-slate-400 hover:text-blue-600 underline underline-offset-2 ml-1">
+                            Geniş. sıfırla
+                        </button>
+                    )}
+                </div>
+                <div className="rounded-b-xl border bg-card shadow-sm relative w-full overflow-auto lg:max-h-[calc(100vh-270px)] max-w-[calc(100vw-1rem)] lg:max-w-full print:max-h-none print:overflow-visible">
                     <table className="min-w-[1000px] w-full caption-bottom text-sm border-collapse">
                         <TableHeader className="sticky top-0 z-10 bg-slate-100/95 dark:bg-slate-800/95 backdrop-blur shadow-sm supports-[backdrop-filter]:bg-slate-100/60 font-sans">
                             <TableRow className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
-                                <TableHead className="relative h-12 px-4 text-center align-middle font-medium text-muted-foreground transition-all duration-75 border-r border-gray-300 dark:border-gray-700" style={{ width: colWidths.customer, minWidth: colWidths.customer }}>
-                                    {t('table.customer')}
-                                    <ResizeHandle id="customer" />
-                                </TableHead>
-                                <TableHead className="relative h-12 px-4 text-center align-middle font-medium text-muted-foreground transition-all duration-75 border-r border-gray-300 dark:border-gray-700" style={{ width: colWidths.project, minWidth: colWidths.project }}>
-                                    {t('table.project')}
-                                    <ResizeHandle id="project" />
-                                </TableHead>
-                                <TableHead className="relative h-12 px-4 text-center align-middle font-medium text-muted-foreground transition-all duration-75 border-r border-gray-300 dark:border-gray-700" style={{ width: colWidths.unit, minWidth: colWidths.unit }}>
-                                    {t('table.unit')}
-                                    <ResizeHandle id="unit" />
-                                </TableHead>
-                                <TableHead className="relative h-12 px-4 text-center align-middle font-medium text-muted-foreground transition-all duration-75 border-r border-gray-300 dark:border-gray-700" style={{ width: colWidths.status, minWidth: colWidths.status }}>
-                                    {t('table.status')}
-                                    <ResizeHandle id="status" />
-                                </TableHead>
-                                <TableHead className="relative h-12 px-4 text-center align-middle font-medium text-muted-foreground transition-all duration-75 border-r border-gray-300 dark:border-gray-700" style={{ width: colWidths.date, minWidth: colWidths.date }}>
-                                    {t('table.date')}
-                                    <ResizeHandle id="date" />
-                                </TableHead>
-                                <TableHead className="relative h-12 px-4 text-center align-middle font-medium text-muted-foreground transition-all duration-75 border-r border-gray-300 dark:border-gray-700" style={{ width: colWidths.amount, minWidth: colWidths.amount }}>
-                                    {t('table.amount')}
-                                    <ResizeHandle id="amount" />
-                                </TableHead>
-                                <TableHead className="relative h-12 px-4 text-center align-middle font-medium text-muted-foreground transition-all duration-75 border-r border-gray-300 dark:border-gray-700" style={{ width: colWidths.rep, minWidth: colWidths.rep }}>
-                                    {t('table.rep')}
-                                    <ResizeHandle id="rep" />
-                                </TableHead>
-                                <TableHead className="relative h-12 px-4 text-center align-middle font-medium text-muted-foreground transition-all duration-75 border-r border-gray-300 dark:border-gray-700" style={{ width: colWidths.actions, minWidth: colWidths.actions }}>
-                                    {t('table.actions')}
-                                </TableHead>
+                                {colOrder.map(colId => {
+                                    const isOver = dragOverCol === colId
+                                    const w = colWidths[colId]
+                                    const dragProps = {
+                                        draggable: true,
+                                        onDragStart: () => handleColDragStart(colId),
+                                        onDragOver: (e: React.DragEvent) => handleColDragOver(e, colId),
+                                        onDrop: () => handleColDrop(colId),
+                                        onDragEnd: handleColDragEnd,
+                                    }
+                                    const headCls = cn(
+                                        "relative h-12 px-4 text-center align-middle font-medium text-muted-foreground transition-all duration-75 border-r border-gray-300 dark:border-gray-700 select-none cursor-grab active:cursor-grabbing",
+                                        isOver && "border-l-2 border-l-blue-500 bg-blue-50/60"
+                                    )
+                                    return (
+                                        <TableHead key={colId} {...dragProps} className={headCls} style={{ width: w, minWidth: w }}>
+                                            <div className="flex items-center justify-center gap-1">
+                                                <span className="opacity-25">⠿</span>
+                                                {colId === 'customer' && t('table.customer')}
+                                                {colId === 'project' && t('table.project')}
+                                                {colId === 'unit' && t('table.unit')}
+                                                {colId === 'status' && t('table.status')}
+                                                {colId === 'date' && t('table.date')}
+                                                {colId === 'amount' && t('table.amount')}
+                                                {colId === 'rep' && t('table.rep')}
+                                                {colId === 'actions' && t('table.actions')}
+                                                {colId === 'quickicons' && 'Kısayollar'}
+                                            </div>
+                                            <ResizeHandle id={colId} />
+                                        </TableHead>
+                                    )
+                                })}
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -284,266 +349,196 @@ export default function PipelineList({
                                             key={sale.id}
                                             className={`transition-colors border-b hover:bg-muted/30 ${isCompleted ? 'bg-emerald-50/30' : ''} ${isLost ? 'bg-red-50/20' : ''}`}
                                         >
-                                            <TableCell className="px-3 py-2 align-middle border-r border-border/50">
-                                                <div className="flex flex-col gap-0.5">
-                                                    <div className="flex items-center gap-2">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleCustomerEdit(sale.customers)}
-                                                            className="font-semibold text-foreground text-sm hover:text-blue-600 hover:underline transition-colors text-left"
-                                                        >
-                                                            {sale.customers?.full_name}
-                                                        </button>
-                                                        {sale.source === 'E-Posta' && (
-                                                            <Mail className="h-3 w-3 text-blue-500" />
-                                                        )}
-                                                        {sale.description && (
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                className="h-5 w-5 text-muted-foreground hover:text-blue-600"
-                                                                onClick={() => setViewingLead(sale)}
-                                                                title="Lead Bilgileri"
-                                                            >
-                                                                <Info className="h-3 w-3" />
-                                                            </Button>
-                                                        )}
-                                                    </div>
-                                                    {sale.customers?.customer_number ? (
-                                                        <span className="text-[10px] font-black px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded-md border border-blue-100 flex-shrink-0 w-fit">
-                                                            {sale.customers.customer_number}
-                                                        </span>
-                                                    ) : (
-                                                        <span className="text-xs text-muted-foreground hidden lg:inline-block">ID: {sale.id.slice(0, 8)}...</span>
-                                                    )}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="px-3 py-2 align-middle border-r border-border/50">
-                                                <span className="font-medium text-foreground">
-                                                    {sale.units?.projects?.name || sale.projects?.name || '-'}
-                                                </span>
-                                            </TableCell>
-                                            <TableCell className="px-3 py-2 align-middle border-r border-border/50">
-                                                {sale.units ? (
-                                                    <span className="text-xs font-mono text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded w-fit">
-                                                        NO: {sale.units.unit_number}
-                                                    </span>
-                                                ) : (
-                                                    <span className="text-muted-foreground">-</span>
-                                                )}
-                                            </TableCell>
-                                            <TableCell className="px-3 py-2 align-middle border-r border-border/50">
-                                                {isCompleted ? (
-                                                    <div className="inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold bg-emerald-100 text-emerald-700 border-emerald-200 gap-1">
-                                                        <Sparkles className="w-3 h-3" /> {t('actions.won')}
-                                                    </div>
-                                                ) : (
-                                                    <Select
-                                                        value={sale.status}
-                                                        onValueChange={(val) => handleStatusChange(sale.id, val)}
-                                                        disabled={sale.status === 'Lost'}
-                                                    >
-                                                        <SelectTrigger className={`w-full h-8 border text-xs font-medium ${getStatusColor(sale.status)}`}>
-                                                            <SelectValue />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="Lead"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-slate-400" />{t('status.Lead')}</div></SelectItem>
-                                                            <SelectItem value="Prospect"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-blue-500" />{t('status.Prospect')}</div></SelectItem>
-                                                            <SelectItem value="Reservation"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-purple-500" />{t('status.Reservation')}</div></SelectItem>
-                                                            <SelectItem value="Opsiyon - Kapora Bekleniyor"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-amber-500" />{t('status.OptionPending')}</div></SelectItem>
-                                                            <SelectItem value="Proposal"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-cyan-500" />{t('status.Proposal')}</div></SelectItem>
-                                                            <SelectItem value="Teklif - Kapora Bekleniyor"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-indigo-500" />{t('status.ProposalPending')}</div></SelectItem>
-                                                            <SelectItem value="Negotiation"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-pink-500" />{t('status.Negotiation')}</div></SelectItem>
-                                                            <SelectItem value="Sold"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-emerald-500" />{t('status.Sold')}</div></SelectItem>
-                                                            <SelectItem value="Lost"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-red-500" />{t('status.Lost')}</div></SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                )}
-                                            </TableCell>
-                                            <TableCell className="px-3 py-2 align-middle text-muted-foreground font-medium text-sm">
-                                                <span suppressHydrationWarning>
-                                                    {new Date(sale.created_at).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
-                                                </span>
-                                            </TableCell>
-                                            <TableCell className="px-3 py-2 align-middle text-right border-r border-border/50">
-                                                {sale.final_price || sale.units?.price ? (
-                                                    <span className="font-bold text-foreground font-mono tracking-tight">
-                                                        {sale.final_price ?
-                                                            formatCurrency(sale.final_price, sale.currency || sale.units?.currency)
-                                                            : formatCurrency(sale.units.price, sale.units.currency)
-                                                        }
-                                                    </span>
-                                                ) : (
-                                                    <span className="text-muted-foreground">-</span>
-                                                )}
-                                            </TableCell>
-                                            <TableCell className="px-3 py-2 align-middle border-r border-border/50">
-                                                <div className="flex items-center gap-2">
-                                                    {sale.profiles?.full_name ? (
-                                                        <div className="flex items-center gap-2 text-sm bg-muted/30 pl-1 pr-2 py-1 rounded-full border border-transparent hover:border-border transition-colors group/rep">
-                                                            <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-primary text-[10px] font-bold">
-                                                                {sale.profiles.full_name.substring(0, 2).toUpperCase()}
+                                            {colOrder.map(colId => {
+                                                const cellCls = "px-3 py-2 align-middle border-r border-border/50"
+                                                if (colId === 'customer') return (
+                                                    <TableCell key="customer" className={cellCls}>
+                                                        <div className="flex flex-col gap-0.5">
+                                                            <div className="flex items-center gap-2">
+                                                                <button type="button" onClick={() => handleCustomerEdit(sale.customers)} className="font-semibold text-foreground text-sm hover:text-blue-600 hover:underline transition-colors text-left">
+                                                                    {sale.customers?.full_name}
+                                                                </button>
+                                                                {sale.source === 'E-Posta' && <Mail className="h-3 w-3 text-blue-500" />}
+                                                                {sale.description && (
+                                                                    <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-blue-600" onClick={() => setViewingLead(sale)} title="Lead Bilgileri">
+                                                                        <Info className="h-3 w-3" />
+                                                                    </Button>
+                                                                )}
                                                             </div>
-                                                            <span className="font-medium text-foreground text-xs">{sale.profiles.full_name}</span>
-
-                                                            {isAdmin && (
-                                                                <Popover open={assignPopoverOpen === sale.id} onOpenChange={(open) => setAssignPopoverOpen(open ? sale.id : null)}>
-                                                                    <PopoverTrigger asChild>
-                                                                        <Button variant="ghost" size="icon" className="h-5 w-5 ml-1 text-muted-foreground hover:text-blue-600 opacity-0 group-hover/rep:opacity-100 transition-opacity">
-                                                                            <Pencil className="h-3 w-3" />
-                                                                        </Button>
-                                                                    </PopoverTrigger>
-                                                                    <PopoverContent className="p-0" align="start">
-                                                                        <Command>
-                                                                            <CommandInput placeholder="Temsilci ara..." />
-                                                                            <CommandList>
-                                                                                <CommandEmpty>Temsilci bulunamadı.</CommandEmpty>
-                                                                                <CommandGroup>
-                                                                                    <CommandItem onSelect={() => handleManualAssign(sale.id, null)} className="text-red-600">
-                                                                                        Atamayı Kaldır
-                                                                                    </CommandItem>
-                                                                                    {profiles?.map((profile: any) => (
-                                                                                        <CommandItem
-                                                                                            key={profile.id}
-                                                                                            onSelect={() => handleManualAssign(sale.id, profile.id)}
-                                                                                        >
-                                                                                            {profile.full_name}
-                                                                                        </CommandItem>
-                                                                                    ))}
-                                                                                </CommandGroup>
-                                                                            </CommandList>
-                                                                        </Command>
-                                                                    </PopoverContent>
-                                                                </Popover>
+                                                            {sale.customers?.customer_number ? (
+                                                                <span className="text-[10px] font-black px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded-md border border-blue-100 flex-shrink-0 w-fit">{sale.customers.customer_number}</span>
+                                                            ) : (
+                                                                <span className="text-xs text-muted-foreground hidden lg:inline-block">ID: {sale.id.slice(0, 8)}...</span>
                                                             )}
                                                         </div>
-                                                    ) : (
-                                                        <div className="flex items-center gap-1">
-                                                            {isAdmin ? (
-                                                                <>
-                                                                    <Button
-                                                                        variant="ghost"
-                                                                        size="sm"
-                                                                        className="h-7 text-blue-600 hover:text-blue-700 hover:bg-blue-50 text-[11px] px-2 border border-blue-200 dashed bg-blue-50/30"
-                                                                        onClick={() => handleAutoAssign(sale.id)}
-                                                                        disabled={isAssigning === sale.id}
-                                                                        title={t('actions.assignTooltip')}
-                                                                    >
-                                                                        {isAssigning === sale.id ? (
-                                                                            t('actions.assigning')
-                                                                        ) : (
-                                                                            <>
-                                                                                <Sparkles className="w-3 h-3 mr-1" /> {t('actions.autoAssign')}
-                                                                            </>
-                                                                        )}
-                                                                    </Button>
-                                                                    <Popover open={assignPopoverOpen === sale.id} onOpenChange={(open) => setAssignPopoverOpen(open ? sale.id : null)}>
-                                                                        <PopoverTrigger asChild>
-                                                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-blue-600 border border-transparent hover:border-border rounded-full">
-                                                                                <Pencil className="h-3 w-3" />
-                                                                            </Button>
-                                                                        </PopoverTrigger>
-                                                                        <PopoverContent className="p-0" align="start">
-                                                                            <Command>
-                                                                                <CommandInput placeholder="Temsilci Seç..." />
-                                                                                <CommandList>
-                                                                                    <CommandEmpty>Temsilci bulunamadı.</CommandEmpty>
-                                                                                    <CommandGroup>
-                                                                                        {profiles?.map((profile: any) => (
-                                                                                            <CommandItem
-                                                                                                key={profile.id}
-                                                                                                onSelect={() => handleManualAssign(sale.id, profile.id)}
-                                                                                            >
-                                                                                                {profile.full_name}
-                                                                                            </CommandItem>
-                                                                                        ))}
-                                                                                    </CommandGroup>
-                                                                                </CommandList>
-                                                                            </Command>
-                                                                        </PopoverContent>
-                                                                    </Popover>
-                                                                </>
+                                                    </TableCell>
+                                                )
+                                                if (colId === 'project') return (
+                                                    <TableCell key="project" className={cellCls}>
+                                                        <span className="font-medium text-foreground">{sale.units?.projects?.name || sale.projects?.name || '-'}</span>
+                                                    </TableCell>
+                                                )
+                                                if (colId === 'unit') return (
+                                                    <TableCell key="unit" className={cellCls}>
+                                                        {sale.units ? (
+                                                            <span className="text-xs font-mono text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded w-fit">NO: {sale.units.unit_number}</span>
+                                                        ) : <span className="text-muted-foreground">-</span>}
+                                                    </TableCell>
+                                                )
+                                                if (colId === 'status') return (
+                                                    <TableCell key="status" className={cellCls}>
+                                                        {isCompleted ? (
+                                                            <div className="inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold bg-emerald-100 text-emerald-700 border-emerald-200 gap-1">
+                                                                <Sparkles className="w-3 h-3" /> {t('actions.won')}
+                                                            </div>
+                                                        ) : (
+                                                            <Select value={sale.status} onValueChange={(val) => handleStatusChange(sale.id, val)} disabled={sale.status === 'Lost'}>
+                                                                <SelectTrigger className={`w-full h-8 border text-xs font-medium ${getStatusColor(sale.status)}`}><SelectValue /></SelectTrigger>
+                                                                <SelectContent>
+                                                                    <SelectItem value="Lead"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-slate-400" />{t('status.Lead')}</div></SelectItem>
+                                                                    <SelectItem value="Prospect"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-blue-500" />{t('status.Prospect')}</div></SelectItem>
+                                                                    <SelectItem value="Reservation"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-purple-500" />{t('status.Reservation')}</div></SelectItem>
+                                                                    <SelectItem value="Opsiyon - Kapora Bekleniyor"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-amber-500" />{t('status.OptionPending')}</div></SelectItem>
+                                                                    <SelectItem value="Proposal"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-cyan-500" />{t('status.Proposal')}</div></SelectItem>
+                                                                    <SelectItem value="Teklif - Kapora Bekleniyor"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-indigo-500" />{t('status.ProposalPending')}</div></SelectItem>
+                                                                    <SelectItem value="Negotiation"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-pink-500" />{t('status.Negotiation')}</div></SelectItem>
+                                                                    <SelectItem value="Sold"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-emerald-500" />{t('status.Sold')}</div></SelectItem>
+                                                                    <SelectItem value="Lost"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-red-500" />{t('status.Lost')}</div></SelectItem>
+                                                                </SelectContent>
+                                                            </Select>
+                                                        )}
+                                                    </TableCell>
+                                                )
+                                                if (colId === 'date') return (
+                                                    <TableCell key="date" className="px-3 py-2 align-middle text-muted-foreground font-medium text-sm border-r border-border/50">
+                                                        <span suppressHydrationWarning>
+                                                            {new Date(sale.created_at).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                                        </span>
+                                                    </TableCell>
+                                                )
+                                                if (colId === 'amount') return (
+                                                    <TableCell key="amount" className="px-3 py-2 align-middle text-right border-r border-border/50">
+                                                        {sale.final_price || sale.units?.price ? (
+                                                            <span className="font-bold text-foreground font-mono tracking-tight">
+                                                                {sale.final_price ? formatCurrency(sale.final_price, sale.currency || sale.units?.currency) : formatCurrency(sale.units.price, sale.units.currency)}
+                                                            </span>
+                                                        ) : <span className="text-muted-foreground">-</span>}
+                                                    </TableCell>
+                                                )
+                                                if (colId === 'rep') return (
+                                                    <TableCell key="rep" className={cellCls}>
+                                                        <div className="flex items-center gap-2">
+                                                            {sale.profiles?.full_name ? (
+                                                                <div className="flex items-center gap-2 text-sm bg-muted/30 pl-1 pr-2 py-1 rounded-full border border-transparent hover:border-border transition-colors group/rep">
+                                                                    <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-primary text-[10px] font-bold">{sale.profiles.full_name.substring(0, 2).toUpperCase()}</div>
+                                                                    <span className="font-medium text-foreground text-xs">{sale.profiles.full_name}</span>
+                                                                    {isAdmin && (
+                                                                        <Popover open={assignPopoverOpen === sale.id} onOpenChange={(open) => setAssignPopoverOpen(open ? sale.id : null)}>
+                                                                            <PopoverTrigger asChild>
+                                                                                <Button variant="ghost" size="icon" className="h-5 w-5 ml-1 text-muted-foreground hover:text-blue-600 opacity-0 group-hover/rep:opacity-100 transition-opacity"><Pencil className="h-3 w-3" /></Button>
+                                                                            </PopoverTrigger>
+                                                                            <PopoverContent className="p-0" align="start">
+                                                                                <Command>
+                                                                                    <CommandInput placeholder="Temsilci ara..." />
+                                                                                    <CommandList>
+                                                                                        <CommandEmpty>Temsilci bulunamadı.</CommandEmpty>
+                                                                                        <CommandGroup>
+                                                                                            <CommandItem onSelect={() => handleManualAssign(sale.id, null)} className="text-red-600">Atamayı Kaldır</CommandItem>
+                                                                                            {profiles?.map((profile: any) => (
+                                                                                                <CommandItem key={profile.id} onSelect={() => handleManualAssign(sale.id, profile.id)}>{profile.full_name}</CommandItem>
+                                                                                            ))}
+                                                                                        </CommandGroup>
+                                                                                    </CommandList>
+                                                                                </Command>
+                                                                            </PopoverContent>
+                                                                        </Popover>
+                                                                    )}
+                                                                </div>
                                                             ) : (
-                                                                <Button
-                                                                    variant="outline"
-                                                                    size="sm"
-                                                                    className="h-7 text-blue-600 hover:text-blue-700 hover:bg-blue-50 text-[11px] px-2 border-blue-200"
-                                                                    onClick={async () => {
-                                                                        const { data: { user } } = await (await import('@/lib/supabase/client')).createClient().auth.getUser()
-                                                                        if (user) handleManualAssign(sale.id, user.id)
-                                                                    }}
-                                                                    disabled={isAssigning === sale.id}
-                                                                >
-                                                                    <User className="w-3 h-3 mr-1" /> Üzerine Al
+                                                                <div className="flex items-center gap-1">
+                                                                    {isAdmin ? (
+                                                                        <>
+                                                                            <Button variant="ghost" size="sm" className="h-7 text-blue-600 hover:text-blue-700 hover:bg-blue-50 text-[11px] px-2 border border-blue-200 dashed bg-blue-50/30" onClick={() => handleAutoAssign(sale.id)} disabled={isAssigning === sale.id} title={t('actions.assignTooltip')}>
+                                                                                {isAssigning === sale.id ? t('actions.assigning') : <><Sparkles className="w-3 h-3 mr-1" /> {t('actions.autoAssign')}</>}
+                                                                            </Button>
+                                                                            <Popover open={assignPopoverOpen === sale.id} onOpenChange={(open) => setAssignPopoverOpen(open ? sale.id : null)}>
+                                                                                <PopoverTrigger asChild>
+                                                                                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-blue-600 border border-transparent hover:border-border rounded-full"><Pencil className="h-3 w-3" /></Button>
+                                                                                </PopoverTrigger>
+                                                                                <PopoverContent className="p-0" align="start">
+                                                                                    <Command>
+                                                                                        <CommandInput placeholder="Temsilci Seç..." />
+                                                                                        <CommandList>
+                                                                                            <CommandEmpty>Temsilci bulunamadı.</CommandEmpty>
+                                                                                            <CommandGroup>
+                                                                                                {profiles?.map((profile: any) => (
+                                                                                                    <CommandItem key={profile.id} onSelect={() => handleManualAssign(sale.id, profile.id)}>{profile.full_name}</CommandItem>
+                                                                                                ))}
+                                                                                            </CommandGroup>
+                                                                                        </CommandList>
+                                                                                    </Command>
+                                                                                </PopoverContent>
+                                                                            </Popover>
+                                                                        </>
+                                                                    ) : (
+                                                                        <Button variant="outline" size="sm" className="h-7 text-blue-600 hover:text-blue-700 hover:bg-blue-50 text-[11px] px-2 border-blue-200"
+                                                                            onClick={async () => { const { data: { user } } = await (await import('@/lib/supabase/client')).createClient().auth.getUser(); if (user) handleManualAssign(sale.id, user.id) }}
+                                                                            disabled={isAssigning === sale.id}>
+                                                                            <User className="w-3 h-3 mr-1" /> Üzerine Al
+                                                                        </Button>
+                                                                    )}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </TableCell>
+                                                )
+                                                if (colId === 'actions') return (
+                                                    <TableCell key="actions" className="px-3 py-2 align-middle">
+                                                        <div className="flex items-center gap-1.5">
+                                                            {!isCompleted && (
+                                                                <>
+                                                                    {(['Lead', 'Prospect', 'Reservation', 'Reserved', 'Opsiyon - Kapora Bekleniyor'].includes(sale.status)) && (
+                                                                        <PipelineReservationDialog saleId={sale.id} currentUnitId={sale.unit_id} availableUnits={availableUnits} customerName={sale.customers?.full_name} status={sale.status} expiryDate={sale.reservation_expiry} />
+                                                                    )}
+                                                                    {['Lead', 'Prospect'].includes(sale.status) && (
+                                                                        <MatchUnitDialog saleId={sale.id} currentUnitId={sale.unit_id} availableUnits={availableUnits} customerName={sale.customers?.full_name} />
+                                                                    )}
+                                                                    {sale.status === 'Lost' && !sale.restarted_at && <RestartSaleButton saleId={sale.id} />}
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                    </TableCell>
+                                                )
+                                                if (colId === 'quickicons') return (
+                                                    <TableCell key="quickicons" className="px-2 py-2 align-middle">
+                                                        <div className="flex items-center justify-center gap-1">
+                                                            {!isCompleted && (
+                                                                <>
+                                                                    <AiMatchDialog customerId={sale.customers?.id} customerName={sale.customers?.full_name} />
+                                                                    <Button variant="outline" size="icon" className="h-7 w-7 border-slate-200 hover:bg-slate-50 transition-all active:scale-95" onClick={() => handlePlanClick(sale.id)} title="Ödeme Planı">
+                                                                        <Calculator className="h-3.5 w-3.5 text-muted-foreground" />
+                                                                    </Button>
+                                                                    <Button variant="outline" size="icon" className="h-7 w-7 text-blue-600 border-blue-100 hover:bg-blue-50" onClick={() => handleCreateActivity(sale.customers)} title="Aktivite Ekle">
+                                                                        <CalendarPlus className="h-3.5 w-3.5" />
+                                                                    </Button>
+                                                                </>
+                                                            )}
+                                                            {isAdmin && (
+                                                                <Button variant="ghost" size="icon" className="h-7 w-7 text-red-400 hover:text-red-600 hover:bg-red-50" onClick={() => handleDeleteClick(sale)} title="Sil (Admin)">
+                                                                    <Trash className="h-3.5 w-3.5" />
                                                                 </Button>
                                                             )}
                                                         </div>
-                                                    )}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="px-3 py-2 align-middle text-right">
-                                                <div className="flex justify-end gap-1.5 opacity-80 hover:opacity-100 transition-opacity">
-                                                    {!isCompleted && (
-                                                        <>
-                                                            {(['Lead', 'Prospect', 'Reservation', 'Reserved', 'Opsiyon - Kapora Bekleniyor'].includes(sale.status)) && (
-                                                                <PipelineReservationDialog
-                                                                    saleId={sale.id}
-                                                                    currentUnitId={sale.unit_id}
-                                                                    availableUnits={availableUnits}
-                                                                    customerName={sale.customers?.full_name}
-                                                                    status={sale.status}
-                                                                    expiryDate={sale.reservation_expiry}
-                                                                />
-                                                            )}
-
-                                                            {['Lead', 'Prospect'].includes(sale.status) && (
-                                                                <MatchUnitDialog
-                                                                    saleId={sale.id}
-                                                                    currentUnitId={sale.unit_id}
-                                                                    availableUnits={availableUnits}
-                                                                    customerName={sale.customers?.full_name}
-                                                                />
-                                                            )}
-
-                                                            <AiMatchDialog
-                                                                customerId={sale.customers?.id}
-                                                                customerName={sale.customers?.full_name}
-                                                            />
-
-                                                            <Button variant="outline" size="icon" className="h-8 w-8 border-slate-200 hover:bg-slate-50 transition-all active:scale-95" onClick={() => handlePlanClick(sale.id)} title="Ödeme Planı">
-                                                                <Calculator className="h-4 w-4 text-muted-foreground" />
-                                                            </Button>
-
-
-                                                            <Button variant="outline" size="icon" className="h-8 w-8 text-blue-600 border-blue-100 hover:bg-blue-50" onClick={() => handleCreateActivity(sale.customers)} title="Aktivite Ekle">
-                                                                <CalendarPlus className="h-4 w-4" />
-                                                            </Button>
-
-                                                            {sale.status === 'Lost' && !sale.restarted_at && (
-                                                                <RestartSaleButton saleId={sale.id} />
-                                                            )}
-                                                        </>
-                                                    )}
-
-                                                    {isAdmin && (
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="h-8 w-8 text-red-400 hover:text-red-600 hover:bg-red-50"
-                                                            onClick={() => handleDeleteClick(sale)}
-                                                            title="Sil (Admin)"
-                                                        >
-                                                            <Trash className="h-4 w-4" />
-                                                        </Button>
-                                                    )}
-                                                </div>
-                                            </TableCell>
+                                                    </TableCell>
+                                                )
+                                                return null
+                                            })}
                                         </TableRow>
                                     )
                                 })
                             ) : (
                                 <TableRow>
-                                    <TableCell colSpan={8} className="text-center h-32 text-muted-foreground flex-col items-center justify-center">
+                                    <TableCell colSpan={colOrder.length} className="text-center h-32 text-muted-foreground flex-col items-center justify-center">
                                         <span className="block mb-2">{t('table.empty')}</span>
                                     </TableCell>
                                 </TableRow>

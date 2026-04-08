@@ -49,7 +49,7 @@ export default async function ActivitiesPage(props: {
     while (hasMoreAct) {
         const { data, error } = await supabase
             .from('activities')
-            .select('*, customers(full_name), owner:profiles!activities_owner_id_fkey(full_name)')
+            .select('*, customers(full_name, sales(status)), owner:profiles!activities_owner_id_fkey(full_name)')
             .order('due_date', { ascending: true })
             .order('id', { ascending: true })
             .range(actFrom, actFrom + batchSize - 1)

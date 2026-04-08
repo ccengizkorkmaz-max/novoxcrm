@@ -32,16 +32,16 @@ export function PipelineStats({ stats }: PipelineStatsProps) {
     ]
 
     return (
-        <div className="flex flex-wrap gap-2 mb-4">
+        <div className="flex gap-1 mb-3 overflow-hidden">
             {items.map((item) => (
-                <Card key={item.label} className={`flex-1 min-w-[120px] border-none shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] overflow-hidden ${item.bg}`}>
-                    <CardContent className="p-3 flex items-center justify-between gap-2">
-                        <div className="flex flex-col space-y-0.5">
-                            <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 truncate max-w-[80px]" title={item.label}>{item.label}</span>
-                            <span className={`text-xl font-black ${item.color}`}>{item.count}</span>
+                <Card key={item.label} className={`flex-1 border-none shadow-sm overflow-hidden ${item.bg}`}>
+                    <CardContent className="px-2 py-1.5 flex items-center justify-between gap-1">
+                        <div className="flex flex-col space-y-0 min-w-0">
+                            <span className="text-[8px] font-black uppercase tracking-wider text-slate-500 truncate" title={item.label}>{item.label}</span>
+                            <span className={`text-base font-black leading-tight ${item.color}`}>{item.count}</span>
                         </div>
-                        <div className={`h-7 w-7 rounded-lg bg-white/60 shadow-sm flex items-center justify-center flex-shrink-0`}>
-                            <item.icon className={`h-3.5 w-3.5 ${item.color}`} />
+                        <div className={`h-5 w-5 rounded flex-shrink-0 flex items-center justify-center bg-white/60`}>
+                            <item.icon className={`h-3 w-3 ${item.color}`} />
                         </div>
                     </CardContent>
                 </Card>

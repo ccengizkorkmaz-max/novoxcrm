@@ -5,12 +5,13 @@ import { tr, enUS } from "date-fns/locale"
 import { Activity } from "./activity-card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { Check as CheckClassName, Pencil, ChevronLeft, ChevronRight, X } from "lucide-react"
+import { Check as CheckClassName, Pencil, ChevronLeft, ChevronRight, X, Plus } from "lucide-react"
 import { useState } from "react"
 import { ActivityForm } from "./activity-form"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { useTranslations, useLocale } from "next-intl"
+import { Link } from "@/i18n/routing"
 import { Card } from "@/components/ui/card"
 
 interface ActivityListProps {
@@ -58,6 +59,7 @@ export function ActivityList({ activities, customers, profiles }: ActivityListPr
                             <TableHead className="w-[100px] text-xs font-bold uppercase tracking-wider">{t('table.status')}</TableHead>
                             <TableHead className="w-[110px] text-xs font-bold uppercase tracking-wider">{t('table.typeTopic')}</TableHead>
                             <TableHead className="w-[150px] text-xs font-bold uppercase tracking-wider">{t('table.customer')}</TableHead>
+                            <TableHead className="w-[30px] text-xs font-bold uppercase tracking-wider"></TableHead>
                             <TableHead className="w-[120px] text-xs font-bold uppercase tracking-wider">{t('table.agent')}</TableHead>
                             <TableHead className="text-xs font-bold uppercase tracking-wider">{t('table.summary')}</TableHead>
                             <TableHead className="w-[180px] text-right"></TableHead>
@@ -138,11 +140,24 @@ function ActivityRow({ activity, customers, profiles }: { activity: Activity, cu
             </TableCell>
             <TableCell>
                 <div className="max-w-full truncate">
-                    <span className="text-xs font-bold text-blue-600 hover:underline cursor-pointer">
-                        {activity.customers?.full_name || 'Bilinmiyor'}
-                    </span>
+                    {activity.customer_id ? (
+                        <Link href={`/customers/${activity.customer_id}`}>
+                            <span className="text-xs font-bold text-blue-600 hover:underline cursor-pointer">
+                                {activity.customers?.full_name || 'Bilinmiyor'}
+                            </span>
+                        </Link>
+                    ) : (
+                        <span className="text-xs font-bold text-slate-600">
+                            {activity.customers?.full_name || 'Bilinmiyor'}
+                        </span>
+                    )}
                 </div>
             </TableCell>
+                        <TableCell className="w-[30px] text-center">
+                          <Link href={`/activities/create?customer_id=${activity.customer_id}`} className="text-blue-600 hover:text-blue-700">
+                            <Plus className="h-5 w-5" />
+                          </Link>
+                        </TableCell>
             <TableCell>
                 <div className="max-w-full truncate">
                     <span className="text-[11px] text-slate-600 font-medium">
@@ -155,6 +170,11 @@ function ActivityRow({ activity, customers, profiles }: { activity: Activity, cu
                     <span className="text-xs font-medium text-slate-800 truncate" title={activity.summary}>
                         {activity.summary}
                     </span>
+                    {activity.description && (
+                        <span className="text-[10px] text-slate-500 truncate" title={activity.description}>
+                            {activity.description}
+                        </span>
+                    )}
                     {activity.notes && (
                         <span className="text-[10px] text-slate-400 truncate italic" title={activity.notes}>
                             {activity.notes}

@@ -22,6 +22,7 @@ import { useTranslations } from 'next-intl'
 import { cn } from '@/lib/utils'
 import { Combobox } from '@/components/ui/combobox'
 import { VoiceInput } from '@/components/ui/voice-input'
+import { Link } from '@/i18n/routing'
 
 function UpcomingActivitiesInfo({ customerId }: { customerId: string }) {
     const [activities, setActivities] = useState<any[]>([])
@@ -166,27 +167,28 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
 
     async function handleSubmit(formData: FormData) {
         let result;
-        if (mode === 'create') {
-            // Convert local datetime-local value to ISO UTC string
-            const dueDateStr = formData.get('due_date') as string
-            if (dueDateStr) {
-                const localDate = new Date(dueDateStr)
-                formData.set('due_date', localDate.toISOString())
+
+        // Helper: convert datetime-local string to UTC ISO string
+        const toUTC = (key: string) => {
+            const val = formData.get(key) as string
+            if (val && val.trim() !== '') {
+                formData.set(key, new Date(val).toISOString())
             }
+        }
+
+        if (mode === 'create') {
+            toUTC('due_date')
+            toUTC('reminder_at')
             result = await createActivity(formData)
         } else if (mode === 'edit' && status !== 'Completed') {
-            const dueDateStr = formData.get('due_date') as string
-            if (dueDateStr) {
-                const localDate = new Date(dueDateStr)
-                formData.set('due_date', localDate.toISOString())
-            }
+            toUTC('due_date')
+            toUTC('reminder_at')
+            toUTC('next_action_date')
             formData.append('id', activity.id)
             result = await updateActivity(formData)
         } else if (isCompleteMode) {
-            // This covers both mode === 'complete' AND mode === 'edit' where status became 'Completed'
+            toUTC('next_action_date')
             formData.append('id', activity.id)
-            // If in edit mode, ensure other fields are also captured if needed, 
-            // but outcomeActivity is focused on the completion flow.
             result = await outcomeActivity(formData)
         }
 
@@ -228,7 +230,21 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
                             <>
                                 <input type="hidden" name="customer_id" value={selectedCustomerId} />
                                 <div className="grid gap-2">
-                                    <Label>{t('form.customer')}</Label>
+                                    <div className="flex items-center justify-between">
+                                        <Label>{t('form.customer')}</Label>
+                                        {selectedCustomerId && (
+                                            <Button 
+                                                variant="link" 
+                                                size="sm"
+                                                className="h-auto p-0 text-xs text-blue-600 hover:text-blue-800"
+                                                asChild
+                                            >
+                                                <Link href={`/customers/${selectedCustomerId}`}>
+                                                    Müşteri Profiline Git
+                                                </Link>
+                                            </Button>
+                                        )}
+                                    </div>
                                     <div className="w-full">
                                         <Combobox
                                             items={comboboxItems}
