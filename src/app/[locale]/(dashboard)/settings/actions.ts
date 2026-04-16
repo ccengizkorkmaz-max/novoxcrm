@@ -291,22 +291,41 @@ export async function deleteUser(userId: string, transferToUserId?: string) {
 
         // 1. Transfer or NULL all FK references to this user across public tables
         if (transferToUserId) {
-            // Transfer leads/activities to the selected user
+            // Transfer leads/activities/contracts/offers to the selected user
             await adminClient.from('sales').update({ assigned_to: transferToUserId }).eq('assigned_to', userId)
-            await adminClient.from('activities').update({ assigned_to: transferToUserId }).eq('assigned_to', userId)
+            await adminClient.from('activities').update({ assigned_to: userId === transferToUserId ? userId : transferToUserId }).eq('assigned_to', userId)
+            // also check user_id columns in same tables
+            await adminClient.from('activities').update({ user_id: transferToUserId }).eq('user_id', userId)
+            
+            // Handle contracts
+            await adminClient.from('contracts').update({ sales_rep_id: transferToUserId }).eq('sales_rep_id', userId)
+            await adminClient.from('contracts').update({ created_by: transferToUserId }).eq('created_by', userId)
+
+            // Handle offers and negotiations
+            await adminClient.from('offers').update({ user_id: transferToUserId }).eq('user_id', userId)
+            await adminClient.from('offer_negotiations').update({ proposed_by: transferToUserId }).eq('proposed_by', userId)
         } else {
             // NULL out references
             await adminClient.from('sales').update({ assigned_to: null }).eq('assigned_to', userId)
-            await adminClient.from('activities').update({ assigned_to: null }).eq('assigned_to', userId)
+            await adminClient.from('activities').update({ assigned_to: null, user_id: null }).eq('assigned_to', userId)
+            await adminClient.from('contracts').update({ sales_rep_id: null, created_by: null }).eq('sales_rep_id', userId)
+            await adminClient.from('offers').update({ user_id: null }).eq('user_id', userId)
+            await adminClient.from('offer_negotiations').update({ proposed_by: null }).eq('proposed_by', userId)
         }
 
-        // 2. Deactivate profile and remove tenant relation
+        // 2. Remove from team memberships (Many-to-Many always delete)
+        await adminClient.from('team_members').delete().eq('profile_id', userId)
+        
+        // 3. Handle notifications 
+        await adminClient.from('notifications').delete().eq('user_id', userId)
+
+        // 4. Deactivate profile and remove tenant relation
         await adminClient
             .from('profiles')
             .update({ is_active: false, tenant_id: null })
             .eq('id', userId)
 
-        // 3. Delete profile row
+        // 5. Delete profile row (Now it should succeed as references are handled)
         const { error: profileDeleteError } = await adminClient
             .from('profiles')
             .delete()
@@ -314,10 +333,10 @@ export async function deleteUser(userId: string, transferToUserId?: string) {
 
         if (profileDeleteError) {
             console.error('Profile delete error (non-fatal):', profileDeleteError.message)
-            // Continue anyway — auth deletion is the critical step
+            // Continue to try and delete auth user
         }
 
-        // 4. Delete from Supabase Auth
+        // 6. Delete from Supabase Auth (Critical step)
         const { error: authError } = await adminClient.auth.admin.deleteUser(userId)
         if (authError) throw authError
 
