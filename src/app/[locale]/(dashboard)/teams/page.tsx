@@ -46,6 +46,8 @@ export default async function TeamsPage() {
         .select('id, full_name, email, role')
         .eq('tenant_id', profile.tenant_id)
         .or('is_external.is.null,is_external.eq.false')
+        .eq('is_active', true)
+        .in('role', ['admin', 'owner', 'manager', 'sales'])
 
     // Get all projects for assignment
     const { data: projects } = await supabase

@@ -65,13 +65,15 @@ export default async function CRMPage(props: {
 
     // 1. Get Current User Role
     const { data: { user } } = await supabase.auth.getUser()
-    let isAdmin = false
-    let isManager = false
-    if (user) {
-        const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-        isAdmin = profile?.role === 'admin' || profile?.role === 'owner'
-        isManager = isAdmin || profile?.role === 'manager'
-    }
+    
+    // 1. Get profile
+    const { data: userProfile } = user 
+        ? await supabase.from('profiles').select('role, tenant_id').eq('id', user.id).single()
+        : { data: null }
+
+    const isAdmin = userProfile?.role === 'admin' || userProfile?.role === 'owner'
+    const isManager = isAdmin || userProfile?.role === 'manager'
+    const userTenantId = userProfile?.tenant_id
     // Determine if only today's leads should be shown (query param tl=1)
     const onlyTodayLeads = params.tl === '1'
 
@@ -173,9 +175,22 @@ export default async function CRMPage(props: {
         countLost
     ] = await Promise.all([
         supabase.from('projects').select('id, name').order('name'),
-        supabase.from('profiles').select('id, full_name').not('full_name', 'is', null).neq('full_name', '').neq('full_name', '1').or('is_external.is.null,is_external.eq.false').order('full_name'),
+        supabase.from('profiles')
+            .select('id, full_name')
+            .eq('tenant_id', userTenantId)
+            .not('full_name', 'is', null)
+            .neq('full_name', '')
+            .neq('full_name', '1')
+            .or('is_external.is.null,is_external.eq.false')
+            .eq('is_active', true)
+            .in('role', ['admin', 'owner', 'manager', 'sales'])
+            .order('full_name'),
         supabase.from('payment_plan_templates').select('*').order('name', { ascending: true }),
-        supabase.from('customers').select('*, customer_demands(*), contract_customers(id)').order('created_at', { ascending: false }).limit(1000),
+        supabase.from('customers')
+            .select('*, customer_demands(*), contract_customers(id)')
+            .eq('tenant_id', userTenantId)
+            .order('created_at', { ascending: false })
+            .limit(1000),
         supabase.from('units').select('id, unit_number, projects(id, name)').in('status', ['For Sale', 'Stock']).limit(1000),
         baseQuery.order('created_at', { ascending: false }).range(from, to),
         // Counts
