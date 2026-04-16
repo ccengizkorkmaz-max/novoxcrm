@@ -23,11 +23,19 @@ interface EditUserFormProps {
 export default function EditUserForm({ user, onClose }: EditUserFormProps) {
     const t = useTranslations('Settings')
     const [isPending, setIsPending] = useState(false)
+    const [role, setRole] = useState(user.role)
     const [isExternal, setIsExternal] = useState(user.is_external || false)
+
+    // Automatically set and lock isExternal if role is broker
+    const isBroker = role === 'broker'
+    const actualIsExternal = isBroker ? true : isExternal
 
     return (
         <form action={async (formData) => {
             setIsPending(true)
+            // Inject the calculated external state
+            if (actualIsExternal) formData.set('is_external', 'on')
+            
             const res = await updateUser(user.id, formData)
             setIsPending(false)
 
@@ -53,12 +61,15 @@ export default function EditUserForm({ user, onClose }: EditUserFormProps) {
                     <select
                         id="edit-role"
                         name="role"
-                        defaultValue={user.role}
+                        value={role}
+                        onChange={(e) => setRole(e.target.value)}
                         className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                     >
                         <option value="user">{t('users.roles.userSales')}</option>
+                        <option value="sales">Satış Temsilcisi (Sales)</option>
                         <option value="manager">{t('users.roles.manager')}</option>
                         <option value="admin">{t('users.roles.admin')}</option>
+                        <option value="broker">Dış Broker</option>
                     </select>
                 </div>
                 <div className="space-y-2">
@@ -77,11 +88,12 @@ export default function EditUserForm({ user, onClose }: EditUserFormProps) {
                     <Checkbox
                         id="edit-is-external"
                         name="is_external"
-                        checked={isExternal}
-                        onCheckedChange={(checked) => setIsExternal(checked === true)}
+                        checked={actualIsExternal}
+                        onCheckedChange={(checked) => !isBroker && setIsExternal(checked === true)}
+                        disabled={isBroker}
                     />
                     <div className="space-y-0.5 flex-1">
-                        <Label htmlFor="edit-is-external" className="text-sm font-medium cursor-pointer">
+                        <Label htmlFor="edit-is-external" className={`text-sm font-medium cursor-pointer ${isBroker ? 'opacity-50' : ''}`}>
                             Dış Kaynak
                         </Label>
                         <p className="text-xs text-muted-foreground">

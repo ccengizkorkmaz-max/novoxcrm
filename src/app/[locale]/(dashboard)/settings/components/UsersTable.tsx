@@ -26,6 +26,9 @@ interface UsersTableProps {
 
 export default function UsersTable({ users, currentUserRole }: UsersTableProps) {
     const t = useTranslations('Settings')
+    
+    // Local state to store optimistic updates for 'is_external'
+    const [optimisticExternal, setOptimisticExternal] = useState<Record<string, boolean>>({})
 
     // Only owner/admin can change roles and external flag
     const canManage = currentUserRole === 'owner' || currentUserRole === 'admin'
@@ -40,11 +43,30 @@ export default function UsersTable({ users, currentUserRole }: UsersTableProps) 
     }
 
     const handleExternalToggle = async (userId: string, checked: boolean) => {
-        const res = await toggleUserExternal(userId, checked)
-        if (res?.error) {
-            toast.error(res.error)
-        } else {
-            toast.success(checked ? "Dış kaynak olarak işaretlendi" : "Dış kaynak işareti kaldırıldı")
+        // Optimistically update local UI immediately
+        setOptimisticExternal(prev => ({ ...prev, [userId]: checked }))
+        
+        try {
+            const res = await toggleUserExternal(userId, checked)
+            if (res?.error) {
+                // Revert optimistic update on error
+                setOptimisticExternal(prev => {
+                    const next = { ...prev }
+                    delete next[userId]
+                    return next
+                })
+                toast.error(res.error)
+            } else {
+                // No toast needed for success since UI is instant, but keeping it optional
+            }
+        } catch (error) {
+            // Revert optimistic update on catch
+            setOptimisticExternal(prev => {
+                const next = { ...prev }
+                delete next[userId]
+                return next
+            })
+            toast.error("Bir hata oluştu")
         }
     }
 
@@ -53,7 +75,8 @@ export default function UsersTable({ users, currentUserRole }: UsersTableProps) 
             case 'admin': return t('users.roles.admin')
             case 'owner': return t('users.roles.owner')
             case 'manager': return t('users.roles.manager')
-            case 'sales': return t('users.roles.sales')
+            case 'sales': return "Satış Temsilcisi"
+            case 'broker': return "Dış Broker"
             case 'user': return t('users.roles.user')
             default: return role
         }
@@ -72,60 +95,72 @@ export default function UsersTable({ users, currentUserRole }: UsersTableProps) 
                 </TableRow>
             </TableHeader>
             <TableBody>
-                {users?.map((u) => (
-                    <TableRow key={u.id}>
-                        <TableCell className="font-medium">
-                            <div className="flex items-center gap-2">
-                                {u.full_name}
-                                {u.is_external && (
-                                    <Badge variant="outline" className="text-[10px] py-0 px-1.5 border-orange-300 text-orange-600 bg-orange-50">
-                                        Dış
+                {users?.map((u) => {
+                    // Determine current visual state: use optimistic value if defined, otherwise use original value
+                    const isExternal = optimisticExternal[u.id] !== undefined ? optimisticExternal[u.id] : (u.is_external || false)
+                    
+                    return (
+                        <TableRow key={u.id}>
+                            <TableCell className="font-medium">
+                                <div className="flex items-center gap-2">
+                                    {u.full_name}
+                                    {isExternal && (
+                                        <Badge variant="outline" className="text-[10px] py-0 px-1.5 border-orange-300 text-orange-600 bg-orange-50">
+                                            Dış
+                                        </Badge>
+                                    )}
+                                </div>
+                            </TableCell>
+                            <TableCell>{u.email}</TableCell>
+                            <TableCell className="text-center">
+                                <div className="flex justify-center">
+                                    <Checkbox
+                                        checked={isExternal}
+                                        onCheckedChange={(checked) => handleExternalToggle(u.id, checked === true)}
+                                        disabled={!canManage || u.role === 'broker'} 
+                                    />
+                                </div>
+                            </TableCell>
+                            <TableCell>
+                                {canManage ? (
+                                    <Select
+                                        defaultValue={u.role}
+                                        onValueChange={(val) => {
+                                            handleRoleChange(u.id, val)
+                                            if (val === 'broker') {
+                                                handleExternalToggle(u.id, true)
+                                            }
+                                        }}
+                                    >
+                                        <SelectTrigger className="w-[140px] h-8">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="owner">{t('users.roles.owner')}</SelectItem>
+                                            <SelectItem value="manager">{t('users.roles.manager')}</SelectItem>
+                                            <SelectItem value="sales">Satış Temsilcisi</SelectItem>
+                                            <SelectItem value="broker">Dış Broker</SelectItem>
+                                            <SelectItem value="user">{t('users.roles.user')}</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                ) : (
+                                    <Badge
+                                        variant={u.role === 'admin' || u.role === 'owner' ? 'default' : 'secondary'}
+                                        className="capitalize"
+                                    >
+                                        {getRoleLabel(u.role)}
                                     </Badge>
                                 )}
-                            </div>
-                        </TableCell>
-                        <TableCell>{u.email}</TableCell>
-                        <TableCell className="text-center">
-                            <div className="flex justify-center">
-                                <Checkbox
-                                    checked={u.is_external || false}
-                                    onCheckedChange={(checked) => handleExternalToggle(u.id, checked === true)}
-                                    disabled={!canManage}
-                                />
-                            </div>
-                        </TableCell>
-                        <TableCell>
-                            {canManage ? (
-                                <Select
-                                    defaultValue={u.role}
-                                    onValueChange={(val) => handleRoleChange(u.id, val)}
-                                >
-                                    <SelectTrigger className="w-[140px] h-8">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="owner">{t('users.roles.owner')}</SelectItem>
-                                        <SelectItem value="manager">{t('users.roles.manager')}</SelectItem>
-                                        <SelectItem value="sales">{t('users.roles.sales')}</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            ) : (
-                                <Badge
-                                    variant={u.role === 'admin' || u.role === 'owner' ? 'default' : 'secondary'}
-                                    className="capitalize"
-                                >
-                                    {getRoleLabel(u.role)}
-                                </Badge>
-                            )}
-                        </TableCell>
-                        <TableCell>
-                            {new Date(u.created_at).toLocaleDateString("tr-TR")}
-                        </TableCell>
-                        <TableCell>
-                            <UserTableActions user={u} allUsers={users} />
-                        </TableCell>
-                    </TableRow>
-                ))}
+                            </TableCell>
+                            <TableCell>
+                                {new Date(u.created_at).toLocaleDateString("tr-TR")}
+                            </TableCell>
+                            <TableCell>
+                                <UserTableActions user={u} allUsers={users} />
+                            </TableCell>
+                        </TableRow>
+                    )
+                })}
                 {!users || users.length === 0 && (
                     <TableRow>
                         <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
