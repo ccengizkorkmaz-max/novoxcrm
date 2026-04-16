@@ -8,12 +8,14 @@ import { DialogFooter } from "@/components/ui/dialog"
 import { updateUser } from '../actions'
 import { toast } from 'sonner'
 import { useTranslations } from 'next-intl'
+import { Checkbox } from '@/components/ui/checkbox'
 
 interface EditUserFormProps {
     user: {
         id: string
         full_name: string | null
         role: string
+        is_external?: boolean
     }
     onClose: () => void
 }
@@ -21,6 +23,7 @@ interface EditUserFormProps {
 export default function EditUserForm({ user, onClose }: EditUserFormProps) {
     const t = useTranslations('Settings')
     const [isPending, setIsPending] = useState(false)
+    const [isExternal, setIsExternal] = useState(user.is_external || false)
 
     return (
         <form action={async (formData) => {
@@ -67,6 +70,24 @@ export default function EditUserForm({ user, onClose }: EditUserFormProps) {
                         placeholder={t('users.forms.passwordPlaceholder')}
                         minLength={6}
                     />
+                </div>
+
+                {/* Dış Kaynak Toggle */}
+                <div className="flex items-center gap-3 rounded-lg border p-3 bg-muted/30">
+                    <Checkbox
+                        id="edit-is-external"
+                        name="is_external"
+                        checked={isExternal}
+                        onCheckedChange={(checked) => setIsExternal(checked === true)}
+                    />
+                    <div className="space-y-0.5 flex-1">
+                        <Label htmlFor="edit-is-external" className="text-sm font-medium cursor-pointer">
+                            Dış Kaynak
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                            İşaretlenirse iç satış ekibine dahil olmaz. Otomatik atamalar, filtreler ve listboxlarda görünmez.
+                        </p>
+                    </div>
                 </div>
             </div>
             <DialogFooter>

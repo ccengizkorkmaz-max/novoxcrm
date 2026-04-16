@@ -15,6 +15,7 @@ interface User {
     email: string | null
     role: string
     created_at: string
+    is_external?: boolean
 }
 
 interface UsersTableProps {
@@ -62,7 +63,16 @@ export default function UsersTable({ users, currentUserRole }: UsersTableProps) 
             <TableBody>
                 {users?.map((u) => (
                     <TableRow key={u.id}>
-                        <TableCell className="font-medium">{u.full_name}</TableCell>
+                        <TableCell className="font-medium">
+                            <div className="flex items-center gap-2">
+                                {u.full_name}
+                                {u.is_external && (
+                                    <Badge variant="outline" className="text-[10px] py-0 px-1.5 border-orange-300 text-orange-600 bg-orange-50">
+                                        Dış Kaynak
+                                    </Badge>
+                                )}
+                            </div>
+                        </TableCell>
                         <TableCell>{u.email}</TableCell>
                         <TableCell>
                             {canManageRoles ? (
@@ -94,7 +104,7 @@ export default function UsersTable({ users, currentUserRole }: UsersTableProps) 
                             {new Date(u.created_at).toLocaleDateString("tr-TR")}
                         </TableCell>
                         <TableCell>
-                            <UserTableActions user={u} />
+                            <UserTableActions user={u} allUsers={users} />
                         </TableCell>
                     </TableRow>
                 ))}

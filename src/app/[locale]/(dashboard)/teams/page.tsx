@@ -40,11 +40,12 @@ export default async function TeamsPage() {
         console.error('Teams fetch error:', teamsError)
     }
 
-    // Get all profiles for member assignment
+    // Get all profiles for member assignment (excluding external users)
     const { data: profiles } = await supabase
         .from('profiles')
         .select('id, full_name, email, role')
         .eq('tenant_id', profile.tenant_id)
+        .or('is_external.is.null,is_external.eq.false')
 
     // Get all projects for assignment
     const { data: projects } = await supabase

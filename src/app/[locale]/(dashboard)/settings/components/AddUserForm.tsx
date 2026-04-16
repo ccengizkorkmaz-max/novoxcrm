@@ -51,6 +51,23 @@ export default function AddUserForm({ onClose }: { onClose: () => void }) {
                         <option value="admin">{t('users.roles.admin')}</option>
                     </select>
                 </div>
+
+                <div className="flex items-center gap-2 pt-2">
+                    <input
+                        type="checkbox"
+                        id="add-is-external"
+                        name="is_external"
+                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                    />
+                    <div className="grid gap-1.5 leading-none">
+                        <Label htmlFor="add-is-external" className="text-sm font-medium leading-none cursor-pointer">
+                            Dış Kaynak
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                            İç ekibe dahil edilmez, atamalarda görünmez.
+                        </p>
+                    </div>
+                </div>
             </div>
             <DialogFooter>
                 <Button type="submit" disabled={isPending}>

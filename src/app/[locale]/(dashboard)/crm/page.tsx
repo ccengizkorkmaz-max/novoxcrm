@@ -173,7 +173,7 @@ export default async function CRMPage(props: {
         countLost
     ] = await Promise.all([
         supabase.from('projects').select('id, name').order('name'),
-        supabase.from('profiles').select('id, full_name').not('full_name', 'is', null).neq('full_name', '').neq('full_name', '1').order('full_name'),
+        supabase.from('profiles').select('id, full_name').not('full_name', 'is', null).neq('full_name', '').neq('full_name', '1').or('is_external.is.null,is_external.eq.false').order('full_name'),
         supabase.from('payment_plan_templates').select('*').order('name', { ascending: true }),
         supabase.from('customers').select('*, customer_demands(*), contract_customers(id)').order('created_at', { ascending: false }).limit(1000),
         supabase.from('units').select('id, unit_number, projects(id, name)').in('status', ['For Sale', 'Stock']).limit(1000),

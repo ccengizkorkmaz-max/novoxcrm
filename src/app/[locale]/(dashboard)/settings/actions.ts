@@ -139,13 +139,22 @@ export async function addUser(formData: FormData) {
             user_metadata: {
                 full_name: name,
                 role: role,
-                tenant_id: profile.tenant_id
+                tenant_id: profile.tenant_id,
+                is_external: formData.get('is_external') === 'on'
             }
         })
 
         if (error) {
             console.error('Create User Error:', error)
             return { error: `Kullanıcı oluşturulamadı: ${error.message}` }
+        }
+
+        // Ensure is_external is updated in profiles if the trigger didn't pick it up from metadata
+        if (data.user) {
+            await adminClient
+                .from('profiles')
+                .update({ is_external: formData.get('is_external') === 'on' })
+                .eq('id', data.user.id)
         }
 
         revalidatePath('/settings')
@@ -246,7 +255,16 @@ export async function updatePaymentPlanTemplate(formData: FormData) {
     return { success: true }
 }
 
-export async function deleteUser(userId: string) {
+export async function getLeadCountForUser(userId: string) {
+    const supabase = await createClient()
+    const { count } = await supabase
+        .from('sales')
+        .select('*', { count: 'exact', head: true })
+        .eq('assigned_to', userId)
+    return count || 0
+}
+
+export async function deleteUser(userId: string, transferToUserId?: string) {
     const supabase = await createClient()
 
     const { data: { user } } = await supabase.auth.getUser()
@@ -271,9 +289,16 @@ export async function deleteUser(userId: string) {
     try {
         const adminClient = createAdminClient()
 
-        // 1. NULL out all FK references to this user across public tables
-        await adminClient.from('sales').update({ assigned_to: null }).eq('assigned_to', userId)
-        await adminClient.from('activities').update({ assigned_to: null }).eq('assigned_to', userId)
+        // 1. Transfer or NULL all FK references to this user across public tables
+        if (transferToUserId) {
+            // Transfer leads/activities to the selected user
+            await adminClient.from('sales').update({ assigned_to: transferToUserId }).eq('assigned_to', userId)
+            await adminClient.from('activities').update({ assigned_to: transferToUserId }).eq('assigned_to', userId)
+        } else {
+            // NULL out references
+            await adminClient.from('sales').update({ assigned_to: null }).eq('assigned_to', userId)
+            await adminClient.from('activities').update({ assigned_to: null }).eq('assigned_to', userId)
+        }
 
         // 2. Deactivate profile and remove tenant relation
         await adminClient
@@ -297,6 +322,7 @@ export async function deleteUser(userId: string) {
         if (authError) throw authError
 
         revalidatePath('/settings')
+        revalidatePath('/crm')
         return { success: true }
     } catch (e: any) {
         return { error: 'Silme işlemi başarısız: ' + e.message }
@@ -312,11 +338,12 @@ export async function updateUser(userId: string, formData: FormData) {
     const full_name = formData.get('name') as string
     const role = formData.get('role') as string
     const password = formData.get('password') as string
+    const is_external = formData.get('is_external') === 'on'
 
     // 1. Update Profile
     const { error } = await supabase
         .from('profiles')
-        .update({ full_name, role })
+        .update({ full_name, role, is_external })
         .eq('id', userId)
 
     if (error) {
