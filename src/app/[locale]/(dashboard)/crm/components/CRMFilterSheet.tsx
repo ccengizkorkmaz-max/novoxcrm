@@ -1,12 +1,14 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import {
     Sheet,
     SheetContent,
     SheetHeader,
     SheetTitle,
     SheetDescription,
+    SheetTrigger,
 } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -49,64 +51,122 @@ import {
 } from "@/components/ui/popover"
 
 interface CRMFilterSheetProps {
-    isOpen: boolean
-    onOpenChange: (open: boolean) => void
-    filters: any
-    onFilterChange: (key: string, value: any) => void
-    onApply: () => void
-    onClear: () => void
     projects: any[]
     profiles: any[]
     customers: any[]
 }
 
-export default function CRMFilterSheet({
-    isOpen,
-    onOpenChange,
-    filters,
-    onFilterChange,
-    onApply,
-    onClear,
-    projects,
-    profiles,
-    customers,
-}: CRMFilterSheetProps) {
+export default function CRMFilterSheet({ projects, profiles, customers }: CRMFilterSheetProps) {
+    const router = useRouter()
+    const searchParams = useSearchParams()
+
+    const [open, setOpen] = useState(false)
     const [customerOpen, setCustomerOpen] = useState(false)
     const [repOpen, setRepOpen] = useState(false)
 
-    // Calculate active filter count
+    // Local filter state mapped to URL parameters (for apply and clear)
+    const [search, setSearch] = useState(searchParams.get('q') || '')
+    const [project, setProject] = useState(searchParams.get('p') || 'all')
+    const [status, setStatus] = useState(searchParams.get('s') || 'all')
+    const [customer, setCustomer] = useState(searchParams.get('c') || 'all')
+    const [representative, setRepresentative] = useState(searchParams.get('r') || 'all')
+
+    // Always sync state when params change
+    useEffect(() => {
+        setSearch(searchParams.get('q') || '')
+        setProject(searchParams.get('p') || 'all')
+        setStatus(searchParams.get('s') || 'all')
+        setCustomer(searchParams.get('c') || 'all')
+        setRepresentative(searchParams.get('r') || 'all') // Assuming single representative for combobox
+    }, [searchParams])
+
     const activeFilterCount = useMemo(() => {
         let count = 0
-        if (filters.search) count++
-        if (filters.projectId && filters.projectId !== 'all') count++
-        if (filters.status && filters.status !== 'all') count++
-        if (filters.customerId && filters.customerId !== 'all') count++
-        if (filters.representativeId && filters.representativeId !== 'all') count++
+        if (search) count++
+        if (project && project !== 'all') count++
+        if (status && status !== 'all') count++
+        if (customer && customer !== 'all') count++
+        if (representative && representative !== 'all') count++
         return count
-    }, [filters])
+    }, [search, project, status, customer, representative])
 
     const activeFilterChips = useMemo(() => {
         const chips = []
-        if (filters.projectId && filters.projectId !== 'all') {
-            const project = projects.find(p => p.id === filters.projectId)
-            if (project) chips.push({ key: 'projectId', label: project.name })
+        if (project && project !== 'all') {
+            const p = projects.find(p => p.id === project)
+            if (p) chips.push({ key: 'p', label: p.name, value: 'all' })
         }
-        if (filters.status && filters.status !== 'all') {
-            chips.push({ key: 'status', label: filters.status })
+        if (status && status !== 'all') {
+            chips.push({ key: 's', label: status, value: 'all' })
         }
-        if (filters.representativeId && filters.representativeId !== 'all') {
-            const rep = profiles.find(p => p.id === filters.representativeId)
-            if (rep) chips.push({ key: 'representativeId', label: rep.full_name })
+        if (representative && representative !== 'all') {
+            const repIds = representative.split(',').filter(Boolean)
+            if (repIds.length === 1) {
+                const rep = profiles.find(p => p.id === repIds[0])
+                if (rep) chips.push({ key: 'r', label: rep.full_name, value: 'all' })
+            } else if (repIds.length > 1) {
+                chips.push({ key: 'r', label: `${repIds.length} Temsilci`, value: 'all' })
+            }
         }
-        if (filters.customerId && filters.customerId !== 'all') {
-            const customer = customers.find(c => c.id === filters.customerId)
-            if (customer) chips.push({ key: 'customerId', label: customer.full_name })
+        if (customer && customer !== 'all') {
+            const c = customers.find(c => c.id === customer)
+            if (c) chips.push({ key: 'c', label: c.full_name, value: 'all' })
         }
         return chips
-    }, [filters, projects, profiles, customers])
+    }, [project, status, representative, customer, projects, profiles, customers])
+
+    const handleApply = () => {
+        const params = new URLSearchParams(searchParams.toString())
+
+        if (search) params.set('q', search)
+        else params.delete('q')
+
+        if (project !== 'all') params.set('p', project)
+        else params.delete('p')
+
+        if (status !== 'all') params.set('s', status)
+        else params.delete('s')
+
+        if (customer !== 'all') params.set('c', customer)
+        else params.delete('c')
+
+        if (representative !== 'all') params.set('r', representative)
+        else params.delete('r')
+
+        router.push(`?${params.toString()}`)
+        setOpen(false)
+    }
+
+    const handleClear = () => {
+        setSearch('')
+        setProject('all')
+        setStatus('all')
+        setCustomer('all')
+        setRepresentative('all')
+        router.push(`?`)
+    }
+
+    const updateFilter = (key: string, value: string) => {
+        if (key === 'search') setSearch(value)
+        if (key === 'projectId' || key === 'p') setProject(value)
+        if (key === 'status' || key === 's') setStatus(value)
+        if (key === 'customerId' || key === 'c') setCustomer(value)
+        if (key === 'representativeId' || key === 'r') setRepresentative(value)
+    }
 
     return (
-        <Sheet open={isOpen} onOpenChange={onOpenChange}>
+        <Sheet open={open} onOpenChange={setOpen}>
+            <SheetTrigger asChild>
+                <Button variant="outline" className="h-[42px] px-4 gap-2">
+                    <Filter className="w-4 h-4" />
+                    <span>Filtreler</span>
+                    {activeFilterCount > 0 && (
+                        <Badge variant="default" className="ml-1 h-5 min-w-5 rounded-full px-1 text-[10px] flex items-center justify-center">
+                            {activeFilterCount}
+                        </Badge>
+                    )}
+                </Button>
+            </SheetTrigger>
             <SheetContent className="w-full sm:max-w-md p-0 flex flex-col h-full bg-background border-l shadow-2xl">
                 {/* Header Section */}
                 <div className="p-6 border-b bg-card/50">
@@ -126,7 +186,7 @@ export default function CRMFilterSheet({
                             <Button 
                                 variant="ghost" 
                                 size="sm" 
-                                onClick={onClear}
+                                onClick={handleClear}
                                 className="text-xs h-8 text-muted-foreground hover:text-destructive"
                             >
                                 <X className="w-3 h-3 mr-1" />
@@ -146,7 +206,7 @@ export default function CRMFilterSheet({
                                 >
                                     {chip.label}
                                     <button 
-                                        onClick={() => onFilterChange(chip.key, 'all')}
+                                        onClick={() => updateFilter(chip.key, 'all')}
                                         className="hover:bg-primary/20 rounded-full p-0.5"
                                     >
                                         <X className="w-3 h-3" />
@@ -168,8 +228,8 @@ export default function CRMFilterSheet({
                             </Label>
                             <Input
                                 placeholder="İsim, telefon veya ünite no..."
-                                value={filters.search}
-                                onChange={(e) => onFilterChange('search', e.target.value)}
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
                                 className="h-11 shadow-sm focus-visible:ring-primary"
                             />
                         </div>
@@ -184,8 +244,8 @@ export default function CRMFilterSheet({
                                     Proje
                                 </Label>
                                 <Select
-                                    value={filters.projectId}
-                                    onValueChange={(val) => onFilterChange('projectId', val)}
+                                    value={project}
+                                    onValueChange={(val) => setProject(val)}
                                 >
                                     <SelectTrigger className="h-10">
                                         <SelectValue placeholder="Tüm Projeler" />
@@ -206,8 +266,8 @@ export default function CRMFilterSheet({
                                     Durum
                                 </Label>
                                 <Select
-                                    value={filters.status}
-                                    onValueChange={(val) => onFilterChange('status', val)}
+                                    value={status}
+                                    onValueChange={(val) => setStatus(val)}
                                 >
                                     <SelectTrigger className="h-10">
                                         <SelectValue placeholder="Tüm Durumlar" />
@@ -245,8 +305,8 @@ export default function CRMFilterSheet({
                                         className="w-full h-11 justify-between shadow-sm bg-background font-normal"
                                     >
                                         <span className="truncate">
-                                            {filters.customerId && filters.customerId !== 'all'
-                                                ? customers.find((c) => c.id === filters.customerId)?.full_name
+                                            {customer && customer !== 'all'
+                                                ? customers.find((c) => c.id === customer)?.full_name
                                                 : "Müşteri ara..."}
                                         </span>
                                         <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -261,33 +321,33 @@ export default function CRMFilterSheet({
                                                 <CommandItem
                                                     value="all"
                                                     onSelect={() => {
-                                                        onFilterChange('customerId', 'all')
+                                                        setCustomer('all')
                                                         setCustomerOpen(false)
                                                     }}
                                                     className="cursor-pointer"
                                                 >
-                                                    <Check className={cn("mr-2 h-4 w-4", filters.customerId === 'all' ? "opacity-100" : "opacity-0")} />
+                                                    <Check className={cn("mr-2 h-4 w-4", customer === 'all' ? "opacity-100" : "opacity-0")} />
                                                     Tüm Müşteriler
                                                 </CommandItem>
-                                                {customers.map((customer) => (
+                                                {customers.map((c) => (
                                                     <CommandItem
-                                                        key={customer.id}
-                                                        value={`${customer.full_name} ${customer.phone || ''}`}
+                                                        key={c.id}
+                                                        value={`${c.full_name} ${c.phone || ''}`}
                                                         onSelect={() => {
-                                                            onFilterChange('customerId', customer.id)
+                                                            setCustomer(c.id)
                                                             setCustomerOpen(false)
                                                         }}
                                                         className="cursor-pointer py-3"
                                                     >
                                                         <div className="flex flex-col gap-0.5">
                                                             <div className="flex items-center font-medium">
-                                                                <Check className={cn("mr-2 h-4 w-4", filters.customerId === customer.id ? "opacity-100" : "opacity-0")} />
-                                                                {customer.full_name}
+                                                                <Check className={cn("mr-2 h-4 w-4", customer === c.id ? "opacity-100" : "opacity-0")} />
+                                                                {c.full_name}
                                                             </div>
-                                                            {customer.phone && (
+                                                            {c.phone && (
                                                                 <div className="flex items-center text-[11px] text-muted-foreground ml-6">
                                                                     <Phone className="w-3 h-3 mr-1" />
-                                                                    {customer.phone}
+                                                                    {c.phone}
                                                                 </div>
                                                             )}
                                                         </div>
@@ -315,8 +375,8 @@ export default function CRMFilterSheet({
                                         className="w-full h-11 justify-between shadow-sm bg-background font-normal"
                                     >
                                         <span className="truncate">
-                                            {filters.representativeId && filters.representativeId !== 'all'
-                                                ? profiles.find((p) => p.id === filters.representativeId)?.full_name
+                                            {representative && representative !== 'all'
+                                                ? profiles.find((p) => p.id === representative)?.full_name
                                                 : "Temsilci ara..."}
                                         </span>
                                         <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -331,12 +391,12 @@ export default function CRMFilterSheet({
                                                 <CommandItem 
                                                     value="all"
                                                     onSelect={() => {
-                                                        onFilterChange('representativeId', 'all')
+                                                        setRepresentative('all')
                                                         setRepOpen(false)
                                                     }}
                                                     className="cursor-pointer"
                                                 >
-                                                    <Check className={cn("mr-2 h-4 w-4", filters.representativeId === 'all' ? "opacity-100" : "opacity-0")} />
+                                                    <Check className={cn("mr-2 h-4 w-4", representative === 'all' ? "opacity-100" : "opacity-0")} />
                                                     Tüm Temsilciler
                                                 </CommandItem>
                                                 {profiles.map((profile) => (
@@ -344,12 +404,12 @@ export default function CRMFilterSheet({
                                                         key={profile.id}
                                                         value={profile.full_name || ""}
                                                         onSelect={() => {
-                                                            onFilterChange('representativeId', profile.id)
+                                                            setRepresentative(profile.id)
                                                             setRepOpen(false)
                                                         }}
                                                         className="cursor-pointer"
                                                     >
-                                                        <Check className={cn("mr-2 h-4 w-4", filters.representativeId === profile.id ? "opacity-100" : "opacity-0")} />
+                                                        <Check className={cn("mr-2 h-4 w-4", representative === profile.id ? "opacity-100" : "opacity-0")} />
                                                         {profile.full_name}
                                                     </CommandItem>
                                                 ))}
@@ -365,10 +425,7 @@ export default function CRMFilterSheet({
                 {/* Sticky Footer */}
                 <div className="p-6 border-t bg-card/80 backdrop-blur-md">
                     <Button 
-                        onClick={() => {
-                            onApply()
-                            onOpenChange(false)
-                        }} 
+                        onClick={handleApply} 
                         className="w-full h-12 text-base font-bold shadow-lg transition-all active:scale-[0.98] hover:shadow-primary/20"
                     >
                         Filtreleri Uygula
