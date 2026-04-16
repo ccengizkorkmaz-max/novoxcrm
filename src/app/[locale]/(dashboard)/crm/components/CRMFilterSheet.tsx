@@ -1,470 +1,383 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Checkbox } from '@/components/ui/checkbox'
+import { useState, useMemo } from 'react'
 import {
     Sheet,
     SheetContent,
     SheetHeader,
     SheetTitle,
-    SheetTrigger,
-} from '@/components/ui/sheet'
+    SheetDescription,
+} from "@/components/ui/sheet"
+import { Button } from "@/components/ui/button"
+import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
 import {
     Select,
     SelectContent,
     SelectItem,
     SelectTrigger,
     SelectValue,
-} from '@/components/ui/select'
-import { Filter, X, Search, Calendar, User, Users, ChevronDown, ChevronUp, RotateCcw, CheckCircle2 } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { useTranslations } from 'next-intl'
+} from "@/components/ui/select"
+import { Badge } from "@/components/ui/badge"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Separator } from "@/components/ui/separator"
+import { 
+    X, 
+    Filter, 
+    Search, 
+    User, 
+    Building2, 
+    CheckCircle2, 
+    Users, 
+    ChevronDown, 
+    Check,
+    Phone
+} from "lucide-react"
+import { cn } from "@/lib/utils"
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from "@/components/ui/command"
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover"
 
 interface CRMFilterSheetProps {
+    isOpen: boolean
+    onOpenChange: (open: boolean) => void
+    filters: any
+    onFilterChange: (key: string, value: any) => void
+    onApply: () => void
+    onClear: () => void
     projects: any[]
     profiles: any[]
     customers: any[]
 }
 
-export default function CRMFilterSheet({ projects, profiles, customers }: CRMFilterSheetProps) {
-    const t = useTranslations('CRM.filter')
-    const router = useRouter()
-    const searchParams = useSearchParams()
+export default function CRMFilterSheet({
+    isOpen,
+    onOpenChange,
+    filters,
+    onFilterChange,
+    onApply,
+    onClear,
+    projects,
+    profiles,
+    customers,
+}: CRMFilterSheetProps) {
+    const [customerOpen, setCustomerOpen] = useState(false)
+    const [repOpen, setRepOpen] = useState(false)
 
-    const [open, setOpen] = useState(false)
-    const [search, setSearch] = useState(searchParams.get('q') || '')
-    const [project, setProject] = useState(searchParams.get('p') || 'all')
-    const [selectedReps, setSelectedReps] = useState<string[]>(() => {
-        const r = searchParams.get('r')
-        return r ? r.split(',').filter(Boolean) : []
-    })
-    const [status, setStatus] = useState(searchParams.get('s') || 'all')
-    const [customer, setCustomer] = useState(searchParams.get('c') || 'all')
-    const [dateFrom, setDateFrom] = useState(searchParams.get('df') || '')
-    const [dateTo, setDateTo] = useState(searchParams.get('dt') || '')
-    const [repSearch, setRepSearch] = useState('')
-    const [repSectionOpen, setRepSectionOpen] = useState(false)
-
-    const hasFilters = search || project !== 'all' || selectedReps.length > 0 || status !== 'all'
-        || customer !== 'all' || dateFrom || dateTo
-
-    // Count active filters for badge
+    // Calculate active filter count
     const activeFilterCount = useMemo(() => {
         let count = 0
-        if (search) count++
-        if (project !== 'all') count++
-        if (selectedReps.length > 0) count++
-        if (status !== 'all') count++
-        if (customer !== 'all') count++
-        if (dateFrom || dateTo) count++
+        if (filters.search) count++
+        if (filters.projectId && filters.projectId !== 'all') count++
+        if (filters.status && filters.status !== 'all') count++
+        if (filters.customerId && filters.customerId !== 'all') count++
+        if (filters.representativeId && filters.representativeId !== 'all') count++
         return count
-    }, [search, project, selectedReps, status, customer, dateFrom, dateTo])
+    }, [filters])
 
-    const toggleRep = (id: string) => {
-        setSelectedReps(prev =>
-            prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-        )
-    }
-
-    const filteredProfiles = profiles.filter(p =>
-        p.full_name?.toLowerCase().includes(repSearch.toLowerCase())
-    )
-
-    const handleApply = () => {
-        const params = new URLSearchParams(searchParams.toString())
-
-        if (search) params.set('q', search)
-        else params.delete('q')
-
-        if (project !== 'all') params.set('p', project)
-        else params.delete('p')
-
-        if (selectedReps.length > 0) params.set('r', selectedReps.join(','))
-        else params.delete('r')
-
-        if (status !== 'all') params.set('s', status)
-        else params.delete('s')
-
-        if (customer !== 'all') params.set('c', customer)
-        else params.delete('c')
-
-        if (dateFrom) params.set('df', dateFrom)
-        else params.delete('df')
-
-        if (dateTo) params.set('dt', dateTo)
-        else params.delete('dt')
-
-        router.push(`?${params.toString()}`)
-        setOpen(false)
-    }
-
-    const handleClear = () => {
-        setSearch('')
-        setProject('all')
-        setSelectedReps([])
-        setStatus('all')
-        setCustomer('all')
-        setDateFrom('')
-        setDateTo('')
-        setRepSearch('')
-        router.push('/crm')
-        setOpen(false)
-    }
-
-    const [mounted, setMounted] = useState(false)
-    useEffect(() => {
-        setMounted(true)
-    }, [])
-
-    if (!mounted) {
-        return (
-            <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" className="relative h-9 px-4">
-                    <Filter className="mr-2 h-4 w-4" />
-                    {t('button')}
-                </Button>
-            </div>
-        )
-    }
+    const activeFilterChips = useMemo(() => {
+        const chips = []
+        if (filters.projectId && filters.projectId !== 'all') {
+            const project = projects.find(p => p.id === filters.projectId)
+            if (project) chips.push({ key: 'projectId', label: project.name })
+        }
+        if (filters.status && filters.status !== 'all') {
+            chips.push({ key: 'status', label: filters.status })
+        }
+        if (filters.representativeId && filters.representativeId !== 'all') {
+            const rep = profiles.find(p => p.id === filters.representativeId)
+            if (rep) chips.push({ key: 'representativeId', label: rep.full_name })
+        }
+        if (filters.customerId && filters.customerId !== 'all') {
+            const customer = customers.find(c => c.id === filters.customerId)
+            if (customer) chips.push({ key: 'customerId', label: customer.full_name })
+        }
+        return chips
+    }, [filters, projects, profiles, customers])
 
     return (
-        <div className="flex items-center gap-2">
-            <Sheet open={open} onOpenChange={setOpen}>
-                <SheetTrigger asChild>
-                    <Button variant="outline" size="sm" className="relative h-9 px-4">
-                        <Filter className="mr-2 h-4 w-4" />
-                        {t('button')}
+        <Sheet open={isOpen} onOpenChange={onOpenChange}>
+            <SheetContent className="w-full sm:max-w-md p-0 flex flex-col h-full bg-background border-l shadow-2xl">
+                {/* Header Section */}
+                <div className="p-6 border-b bg-card/50">
+                    <div className="flex items-center justify-between mb-2">
+                        <SheetHeader className="text-left p-0">
+                            <div className="flex items-center gap-2">
+                                <div className="p-2 bg-primary/10 rounded-lg">
+                                    <Filter className="w-5 h-5 text-primary" />
+                                </div>
+                                <SheetTitle className="text-xl font-bold">CRM Filtreleri</SheetTitle>
+                            </div>
+                            <SheetDescription className="text-sm">
+                                Kayıtları daraltmak için kriterleri belirleyin.
+                            </SheetDescription>
+                        </SheetHeader>
                         {activeFilterCount > 0 && (
-                            <Badge className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center text-[10px] bg-blue-600 hover:bg-blue-600 border-2 border-background">
-                                {activeFilterCount}
-                            </Badge>
+                            <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={onClear}
+                                className="text-xs h-8 text-muted-foreground hover:text-destructive"
+                            >
+                                <X className="w-3 h-3 mr-1" />
+                                Temizle
+                            </Button>
                         )}
-                    </Button>
-                </SheetTrigger>
-                <SheetContent className="sm:max-w-md p-0 flex flex-col h-full">
-                    {/* ── FIXED HEADER ── */}
-                    <SheetHeader className="px-5 pt-5 pb-3 border-b bg-background shrink-0">
-                        <div className="flex items-center justify-between">
-                            <SheetTitle className="text-lg">{t('title')}</SheetTitle>
-                            {hasFilters && (
-                                <Badge variant="secondary" className="text-xs gap-1">
-                                    <CheckCircle2 className="h-3 w-3" />
-                                    {activeFilterCount} filtre aktif
+                    </div>
+
+                    {/* Active Filter Chips */}
+                    {activeFilterChips.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                            {activeFilterChips.map(chip => (
+                                <Badge 
+                                    key={chip.key} 
+                                    variant="secondary" 
+                                    className="pl-2 pr-1 py-1 gap-1 border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 transition-colors"
+                                >
+                                    {chip.label}
+                                    <button 
+                                        onClick={() => onFilterChange(chip.key, 'all')}
+                                        className="hover:bg-primary/20 rounded-full p-0.5"
+                                    >
+                                        <X className="w-3 h-3" />
+                                    </button>
                                 </Badge>
-                            )}
+                            ))}
                         </div>
-                        {/* Active filter chips summary */}
-                        {hasFilters && (
-                            <div className="flex flex-wrap gap-1.5 mt-2">
-                                {search && (
-                                    <Badge variant="outline" className="text-xs py-0.5 gap-1 cursor-pointer hover:bg-red-50" onClick={() => setSearch('')}>
-                                        Arama: {search}
-                                        <X className="h-3 w-3" />
-                                    </Badge>
-                                )}
-                                {project !== 'all' && (
-                                    <Badge variant="outline" className="text-xs py-0.5 gap-1 cursor-pointer hover:bg-red-50" onClick={() => setProject('all')}>
-                                        {projects.find(p => p.id === project)?.name || 'Proje'}
-                                        <X className="h-3 w-3" />
-                                    </Badge>
-                                )}
-                                {selectedReps.length > 0 && (
-                                    <Badge variant="outline" className="text-xs py-0.5 gap-1 cursor-pointer hover:bg-red-50" onClick={() => setSelectedReps([])}>
-                                        {selectedReps.length} temsilci
-                                        <X className="h-3 w-3" />
-                                    </Badge>
-                                )}
-                                {status !== 'all' && (
-                                    <Badge variant="outline" className="text-xs py-0.5 gap-1 cursor-pointer hover:bg-red-50" onClick={() => setStatus('all')}>
-                                        Durum: {status}
-                                        <X className="h-3 w-3" />
-                                    </Badge>
-                                )}
-                                {(dateFrom || dateTo) && (
-                                    <Badge variant="outline" className="text-xs py-0.5 gap-1 cursor-pointer hover:bg-red-50" onClick={() => { setDateFrom(''); setDateTo('') }}>
-                                        Tarih
-                                        <X className="h-3 w-3" />
-                                    </Badge>
-                                )}
-                            </div>
-                        )}
-                    </SheetHeader>
+                    )}
+                </div>
 
-                    {/* ── SCROLLABLE CONTENT ── */}
-                    <div className="flex-1 overflow-y-auto px-5 py-4">
-                        <div className="grid gap-5">
-                            {/* Müşteri / Ünite Ara */}
-                            <div className="space-y-1.5">
-                                <Label htmlFor="search" className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t('search')}</Label>
-                                <div className="relative">
-                                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                                    <Input
-                                        id="search"
-                                        placeholder={t('searchPlaceholder')}
-                                        className="pl-9 h-10"
-                                        value={search}
-                                        onChange={(e) => setSearch(e.target.value)}
-                                    />
-                                </div>
-                            </div>
+                {/* Scrollable Body */}
+                <ScrollArea className="flex-1 px-6 py-4">
+                    <div className="space-y-8 pb-10">
+                        {/* Search Input */}
+                        <div className="space-y-3">
+                            <Label className="text-sm font-semibold flex items-center gap-2">
+                                <Search className="w-4 h-4 text-muted-foreground" />
+                                Müşteri / Ünite Ara
+                            </Label>
+                            <Input
+                                placeholder="İsim, telefon veya ünite no..."
+                                value={filters.search}
+                                onChange={(e) => onFilterChange('search', e.target.value)}
+                                className="h-11 shadow-sm focus-visible:ring-primary"
+                            />
+                        </div>
 
-                            {/* Proje & Durum — yan yana */}
-                            <div className="grid grid-cols-2 gap-3">
-                                <div className="space-y-1.5">
-                                    <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t('project')}</Label>
-                                    <Select value={project} onValueChange={setProject}>
-                                        <SelectTrigger className="h-10 text-sm">
-                                            <SelectValue placeholder={t('allProjects')} />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="all">{t('allProjects')}</SelectItem>
-                                            {projects.map((p) => (
-                                                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="space-y-1.5">
-                                    <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t('statusLabel')}</Label>
-                                    <Select value={status} onValueChange={setStatus}>
-                                        <SelectTrigger className="h-10 text-sm">
-                                            <SelectValue placeholder={t('allStatuses')} />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="all">{t('allStatuses')}</SelectItem>
-                                            <SelectItem value="Lead">{t('status.Lead')}</SelectItem>
-                                            <SelectItem value="Prospect">{t('status.Prospect')}</SelectItem>
-                                            <SelectItem value="Reservation">{t('status.Reservation')}</SelectItem>
-                                            <SelectItem value="Sold">{t('status.Sold')}</SelectItem>
-                                            <SelectItem value="Lost">{t('status.Lost')}</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
+                        <Separator className="opacity-50" />
 
-                            {/* Müşteri Seç */}
-                            <div className="space-y-1.5">
-                                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
-                                    <User className="h-3.5 w-3.5" />
-                                    Müşteri
+                        <div className="grid grid-cols-2 gap-4">
+                            {/* Project Filter */}
+                            <div className="space-y-3">
+                                <Label className="text-sm font-semibold flex items-center gap-2">
+                                    <Building2 className="w-4 h-4 text-muted-foreground" />
+                                    Proje
                                 </Label>
-                                <Select value={customer} onValueChange={setCustomer}>
-                                    <SelectTrigger className="h-10 text-sm">
-                                        <SelectValue placeholder="Tüm Müşteriler" />
+                                <Select
+                                    value={filters.projectId}
+                                    onValueChange={(val) => onFilterChange('projectId', val)}
+                                >
+                                    <SelectTrigger className="h-10">
+                                        <SelectValue placeholder="Tüm Projeler" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="all">Tüm Müşteriler</SelectItem>
-                                        {customers.map((c) => (
-                                            <SelectItem key={c.id} value={c.id}>
-                                                {c.full_name}
-                                                {c.phone && <span className="text-muted-foreground text-xs ml-1">· {c.phone}</span>}
-                                            </SelectItem>
+                                        <SelectItem value="all">Tüm Projeler</SelectItem>
+                                        {projects.map((p) => (
+                                            <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
                             </div>
 
-                            {/* Satış Temsilcisi — Collapsible */}
-                            <div className="space-y-1.5">
-                                <button
-                                    type="button"
-                                    className="w-full flex items-center justify-between py-1 group"
-                                    onClick={() => setRepSectionOpen(!repSectionOpen)}
-                                >
-                                    <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5 cursor-pointer">
-                                        <Users className="h-3.5 w-3.5" />
-                                        {t('rep')}
-                                        {selectedReps.length > 0 && (
-                                            <Badge className="ml-1 h-5 px-1.5 text-[10px] bg-blue-600 hover:bg-blue-600">
-                                                {selectedReps.length}
-                                            </Badge>
-                                        )}
-                                    </Label>
-                                    {repSectionOpen
-                                        ? <ChevronUp className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
-                                        : <ChevronDown className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
-                                    }
-                                </button>
-
-                                {/* Selected rep tags — always visible */}
-                                {selectedReps.length > 0 && !repSectionOpen && (
-                                    <div className="flex flex-wrap gap-1">
-                                        {selectedReps.map(id => {
-                                            const label = id === 'unassigned'
-                                                ? '⚠️ Atanmamış'
-                                                : profiles.find(p => p.id === id)?.full_name || id
-                                            return (
-                                                <Badge
-                                                    key={id}
-                                                    variant="outline"
-                                                    className="pl-2 pr-1 py-0.5 text-[11px] flex items-center gap-0.5 cursor-pointer hover:bg-red-50 hover:border-red-300 transition-colors"
-                                                    onClick={() => toggleRep(id)}
-                                                >
-                                                    {label}
-                                                    <X className="h-3 w-3 text-muted-foreground" />
-                                                </Badge>
-                                            )
-                                        })}
-                                    </div>
-                                )}
-
-                                {/* Expandable rep selector */}
-                                {repSectionOpen && (
-                                    <div className="space-y-2 animate-in slide-in-from-top-2 duration-200">
-                                        {/* Selected tags */}
-                                        {selectedReps.length > 0 && (
-                                            <div className="flex flex-wrap gap-1">
-                                                {selectedReps.map(id => {
-                                                    const label = id === 'unassigned'
-                                                        ? '⚠️ Atanmamış'
-                                                        : profiles.find(p => p.id === id)?.full_name || id
-                                                    return (
-                                                        <Badge
-                                                            key={id}
-                                                            variant="outline"
-                                                            className="pl-2 pr-1 py-0.5 text-[11px] flex items-center gap-0.5 cursor-pointer hover:bg-red-50 hover:border-red-300 transition-colors"
-                                                            onClick={() => toggleRep(id)}
-                                                        >
-                                                            {label}
-                                                            <X className="h-3 w-3 text-muted-foreground" />
-                                                        </Badge>
-                                                    )
-                                                })}
-                                                <button
-                                                    className="text-[11px] text-muted-foreground hover:text-red-600 underline underline-offset-2 transition-colors"
-                                                    onClick={() => setSelectedReps([])}
-                                                >
-                                                    Temizle
-                                                </button>
-                                            </div>
-                                        )}
-
-                                        {/* Search */}
-                                        <div className="relative">
-                                            <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
-                                            <Input
-                                                placeholder="Temsilci ara..."
-                                                className="pl-8 h-8 text-sm"
-                                                value={repSearch}
-                                                onChange={(e) => setRepSearch(e.target.value)}
-                                            />
-                                        </div>
-
-                                        {/* Checkbox list */}
-                                        <div className="border rounded-lg overflow-hidden bg-muted/20">
-                                            <ScrollArea className="h-40">
-                                                <div className="p-0.5">
-                                                    {/* Atanmamış */}
-                                                    {!repSearch && (
-                                                        <label
-                                                            className="flex items-center gap-2 px-3 py-1.5 rounded cursor-pointer hover:bg-amber-50 text-sm border-b"
-                                                            onClick={() => toggleRep('unassigned')}
-                                                        >
-                                                            <Checkbox
-                                                                checked={selectedReps.includes('unassigned')}
-                                                                onCheckedChange={() => toggleRep('unassigned')}
-                                                                className="border-amber-400 data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500 h-4 w-4"
-                                                            />
-                                                            <span className="font-medium text-amber-700 text-sm">⚠️ Atanmamış</span>
-                                                        </label>
-                                                    )}
-
-                                                    {filteredProfiles.length === 0 && (
-                                                        <p className="text-center text-xs text-muted-foreground py-3">Sonuç bulunamadı</p>
-                                                    )}
-
-                                                    {filteredProfiles.map(p => (
-                                                        <label
-                                                            key={p.id}
-                                                            className="flex items-center gap-2 px-3 py-1.5 rounded cursor-pointer hover:bg-muted text-sm"
-                                                            onClick={() => toggleRep(p.id)}
-                                                        >
-                                                            <Checkbox
-                                                                checked={selectedReps.includes(p.id)}
-                                                                onCheckedChange={() => toggleRep(p.id)}
-                                                                className="h-4 w-4"
-                                                            />
-                                                            <span className="text-sm">{p.full_name}</span>
-                                                        </label>
-                                                    ))}
-                                                </div>
-                                            </ScrollArea>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Tarih Aralığı */}
-                            <div className="space-y-1.5">
-                                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
-                                    <Calendar className="h-3.5 w-3.5" />
-                                    Kayıt Tarihi
+                            {/* Status Filter */}
+                            <div className="space-y-3">
+                                <Label className="text-sm font-semibold flex items-center gap-2">
+                                    <CheckCircle2 className="w-4 h-4 text-muted-foreground" />
+                                    Durum
                                 </Label>
-                                <div className="grid grid-cols-2 gap-2">
-                                    <div className="space-y-1">
-                                        <Label htmlFor="dateFrom" className="text-[11px] text-muted-foreground">Başlangıç</Label>
-                                        <Input
-                                            id="dateFrom"
-                                            type="date"
-                                            className="h-10 text-sm"
-                                            value={dateFrom}
-                                            onChange={(e) => setDateFrom(e.target.value)}
-                                        />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <Label htmlFor="dateTo" className="text-[11px] text-muted-foreground">Bitiş</Label>
-                                        <Input
-                                            id="dateTo"
-                                            type="date"
-                                            className="h-10 text-sm"
-                                            value={dateTo}
-                                            onChange={(e) => setDateTo(e.target.value)}
-                                        />
-                                    </div>
-                                </div>
+                                <Select
+                                    value={filters.status}
+                                    onValueChange={(val) => onFilterChange('status', val)}
+                                >
+                                    <SelectTrigger className="h-10">
+                                        <SelectValue placeholder="Tüm Durumlar" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">Tüm Durumlar</SelectItem>
+                                        <SelectItem value="Inbox">Yeni Gelen (Inbox)</SelectItem>
+                                        <SelectItem value="Lead">Lead</SelectItem>
+                                        <SelectItem value="Prospect">Fırsat (Prospect)</SelectItem>
+                                        <SelectItem value="Potential">Potansiyel</SelectItem>
+                                        <SelectItem value="Proposal">Teklif Verildi</SelectItem>
+                                        <SelectItem value="Negotiation">Müzakere</SelectItem>
+                                        <SelectItem value="Contract">Sözleşme</SelectItem>
+                                        <SelectItem value="Sold">Satış Tamamlandı</SelectItem>
+                                        <SelectItem value="Lost">Kaybedildi</SelectItem>
+                                    </SelectContent>
+                                </Select>
                             </div>
                         </div>
-                    </div>
 
-                    {/* ── STICKY FOOTER ── */}
-                    <div className="shrink-0 border-t bg-background px-5 py-3 flex items-center gap-2">
-                        <Button
-                            onClick={handleApply}
-                            className="flex-1 h-10 text-sm font-medium"
-                        >
-                            <CheckCircle2 className="mr-1.5 h-4 w-4" />
-                            {t('apply')}
-                        </Button>
-                        {hasFilters && (
-                            <Button
-                                onClick={handleClear}
-                                variant="outline"
-                                className="h-10 px-3 text-sm text-muted-foreground hover:text-red-600 hover:border-red-300"
-                            >
-                                <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
-                                {t('reset')}
-                            </Button>
-                        )}
-                    </div>
-                </SheetContent>
-            </Sheet>
+                        <Separator className="opacity-50" />
 
-            {hasFilters && (
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-9 w-9 text-muted-foreground hover:text-red-600 hover:bg-red-50"
-                    onClick={handleClear}
-                    title={t('reset')}
-                >
-                    <X className="h-4 w-4" />
-                </Button>
-            )}
-        </div>
+                        {/* Customer Filter (Combobox) */}
+                        <div className="space-y-3">
+                            <Label className="text-sm font-semibold flex items-center gap-2">
+                                <User className="w-4 h-4 text-muted-foreground" />
+                                Müşteri Seç
+                            </Label>
+                            <Popover open={customerOpen} onOpenChange={setCustomerOpen}>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        role="combobox"
+                                        aria-expanded={customerOpen}
+                                        className="w-full h-11 justify-between shadow-sm bg-background font-normal"
+                                    >
+                                        <span className="truncate">
+                                            {filters.customerId && filters.customerId !== 'all'
+                                                ? customers.find((c) => c.id === filters.customerId)?.full_name
+                                                : "Müşteri ara..."}
+                                        </span>
+                                        <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                                    <Command className="w-full">
+                                        <CommandInput placeholder="İsim veya telefon yazın..." className="h-11" />
+                                        <CommandList className="max-h-[300px]">
+                                            <CommandEmpty>Müşteri bulunamadı.</CommandEmpty>
+                                            <CommandGroup>
+                                                <CommandItem
+                                                    value="all"
+                                                    onSelect={() => {
+                                                        onFilterChange('customerId', 'all')
+                                                        setCustomerOpen(false)
+                                                    }}
+                                                    className="cursor-pointer"
+                                                >
+                                                    <Check className={cn("mr-2 h-4 w-4", filters.customerId === 'all' ? "opacity-100" : "opacity-0")} />
+                                                    Tüm Müşteriler
+                                                </CommandItem>
+                                                {customers.map((customer) => (
+                                                    <CommandItem
+                                                        key={customer.id}
+                                                        value={`${customer.full_name} ${customer.phone || ''}`}
+                                                        onSelect={() => {
+                                                            onFilterChange('customerId', customer.id)
+                                                            setCustomerOpen(false)
+                                                        }}
+                                                        className="cursor-pointer py-3"
+                                                    >
+                                                        <div className="flex flex-col gap-0.5">
+                                                            <div className="flex items-center font-medium">
+                                                                <Check className={cn("mr-2 h-4 w-4", filters.customerId === customer.id ? "opacity-100" : "opacity-0")} />
+                                                                {customer.full_name}
+                                                            </div>
+                                                            {customer.phone && (
+                                                                <div className="flex items-center text-[11px] text-muted-foreground ml-6">
+                                                                    <Phone className="w-3 h-3 mr-1" />
+                                                                    {customer.phone}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </CommandItem>
+                                                ))}
+                                            </CommandGroup>
+                                        </CommandList>
+                                    </Command>
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+
+                        {/* Representative Filter (Combobox) */}
+                        <div className="space-y-3">
+                            <Label className="text-sm font-semibold flex items-center gap-2">
+                                <Users className="w-4 h-4 text-muted-foreground" />
+                                Satış Temsilcisi
+                            </Label>
+                            <Popover open={repOpen} onOpenChange={setRepOpen}>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        role="combobox"
+                                        aria-expanded={repOpen}
+                                        className="w-full h-11 justify-between shadow-sm bg-background font-normal"
+                                    >
+                                        <span className="truncate">
+                                            {filters.representativeId && filters.representativeId !== 'all'
+                                                ? profiles.find((p) => p.id === filters.representativeId)?.full_name
+                                                : "Temsilci ara..."}
+                                        </span>
+                                        <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                                    <Command className="w-full">
+                                        <CommandInput placeholder="İsim yazın..." className="h-11" />
+                                        <CommandList className="max-h-[300px]">
+                                            <CommandEmpty>Temsilci bulunamadı.</CommandEmpty>
+                                            <CommandGroup>
+                                                <CommandItem 
+                                                    value="all"
+                                                    onSelect={() => {
+                                                        onFilterChange('representativeId', 'all')
+                                                        setRepOpen(false)
+                                                    }}
+                                                    className="cursor-pointer"
+                                                >
+                                                    <Check className={cn("mr-2 h-4 w-4", filters.representativeId === 'all' ? "opacity-100" : "opacity-0")} />
+                                                    Tüm Temsilciler
+                                                </CommandItem>
+                                                {profiles.map((profile) => (
+                                                    <CommandItem
+                                                        key={profile.id}
+                                                        value={profile.full_name || ""}
+                                                        onSelect={() => {
+                                                            onFilterChange('representativeId', profile.id)
+                                                            setRepOpen(false)
+                                                        }}
+                                                        className="cursor-pointer"
+                                                    >
+                                                        <Check className={cn("mr-2 h-4 w-4", filters.representativeId === profile.id ? "opacity-100" : "opacity-0")} />
+                                                        {profile.full_name}
+                                                    </CommandItem>
+                                                ))}
+                                            </CommandGroup>
+                                        </CommandList>
+                                    </Command>
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+                    </div>
+                </ScrollArea>
+
+                {/* Sticky Footer */}
+                <div className="p-6 border-t bg-card/80 backdrop-blur-md">
+                    <Button 
+                        onClick={() => {
+                            onApply()
+                            onOpenChange(false)
+                        }} 
+                        className="w-full h-12 text-base font-bold shadow-lg transition-all active:scale-[0.98] hover:shadow-primary/20"
+                    >
+                        Filtreleri Uygula
+                    </Button>
+                    <p className="text-[10px] text-center text-muted-foreground mt-3">
+                        {activeFilterCount} aktif filtre kriteri seçili
+                    </p>
+                </div>
+            </SheetContent>
+        </Sheet>
     )
 }
