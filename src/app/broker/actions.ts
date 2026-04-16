@@ -486,7 +486,10 @@ export async function processBrokerApplication(applicationId: string, status: 'A
                 email: app.email,
                 password: tempPassword,
                 email_confirm: true,
-                user_metadata: { full_name: app.full_name }
+                user_metadata: { 
+                    full_name: app.full_name,
+                    is_external: true
+                }
             })
 
             if (createError) {
@@ -507,7 +510,8 @@ export async function processBrokerApplication(applicationId: string, status: 'A
                     role: 'broker',
                     tenant_id: targetTenantId,
                     full_name: app.full_name,
-                    is_active: true
+                    is_active: true,
+                    is_external: true
                 })
                 .eq('id', newUser.user.id) // Profile ID = User ID
 
@@ -521,7 +525,8 @@ export async function processBrokerApplication(applicationId: string, status: 'A
                     role: 'broker',
                     tenant_id: app.tenant_id,
                     full_name: app.full_name,
-                    is_active: true
+                    is_active: true,
+                    is_external: true
                 })
             }
 
@@ -555,7 +560,8 @@ export async function processBrokerApplication(applicationId: string, status: 'A
                 .from('profiles')
                 .update({
                     role: 'broker',
-                    tenant_id: targetTenantId
+                    tenant_id: targetTenantId,
+                    is_external: true
                 })
                 .eq('id', existingAuthUser.id)
 
