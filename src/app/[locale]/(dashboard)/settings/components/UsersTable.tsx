@@ -5,8 +5,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge'
 import { useTranslations } from 'next-intl'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from 'sonner'
-import { updateUserRole } from '../actions'
+import { updateUserRole, toggleUserExternal } from '../actions'
 import UserTableActions from './UserTableActions'
 
 interface User {
@@ -26,8 +27,8 @@ interface UsersTableProps {
 export default function UsersTable({ users, currentUserRole }: UsersTableProps) {
     const t = useTranslations('Settings')
 
-    // Only owner can change roles for now
-    const canManageRoles = currentUserRole === 'owner' || currentUserRole === 'admin'
+    // Only owner/admin can change roles and external flag
+    const canManage = currentUserRole === 'owner' || currentUserRole === 'admin'
 
     const handleRoleChange = async (userId: string, newRole: string) => {
         const promise = updateUserRole(userId, newRole)
@@ -36,6 +37,15 @@ export default function UsersTable({ users, currentUserRole }: UsersTableProps) 
             success: t('users.roles.updateSuccess'),
             error: (err) => err?.message || t('users.roles.updateError')
         })
+    }
+
+    const handleExternalToggle = async (userId: string, checked: boolean) => {
+        const res = await toggleUserExternal(userId, checked)
+        if (res?.error) {
+            toast.error(res.error)
+        } else {
+            toast.success(checked ? "Dış kaynak olarak işaretlendi" : "Dış kaynak işareti kaldırıldı")
+        }
     }
 
     const getRoleLabel = (role: string) => {
@@ -55,6 +65,7 @@ export default function UsersTable({ users, currentUserRole }: UsersTableProps) 
                 <TableRow>
                     <TableHead>{t('users.table.name')}</TableHead>
                     <TableHead>{t('users.table.email')}</TableHead>
+                    <TableHead className="text-center">Dış Kaynak</TableHead>
                     <TableHead>{t('users.table.role')}</TableHead>
                     <TableHead>{t('users.table.date')}</TableHead>
                     <TableHead className="w-[50px]"></TableHead>
@@ -68,19 +79,26 @@ export default function UsersTable({ users, currentUserRole }: UsersTableProps) 
                                 {u.full_name}
                                 {u.is_external && (
                                     <Badge variant="outline" className="text-[10px] py-0 px-1.5 border-orange-300 text-orange-600 bg-orange-50">
-                                        Dış Kaynak
+                                        Dış
                                     </Badge>
                                 )}
                             </div>
                         </TableCell>
                         <TableCell>{u.email}</TableCell>
+                        <TableCell className="text-center">
+                            <div className="flex justify-center">
+                                <Checkbox
+                                    checked={u.is_external || false}
+                                    onCheckedChange={(checked) => handleExternalToggle(u.id, checked === true)}
+                                    disabled={!canManage}
+                                />
+                            </div>
+                        </TableCell>
                         <TableCell>
-                            {canManageRoles ? (
+                            {canManage ? (
                                 <Select
                                     defaultValue={u.role}
                                     onValueChange={(val) => handleRoleChange(u.id, val)}
-                                // Prevent changing own role for safety in UI (backend also protects)
-                                // Assuming we don't have currentUserId here easily without prop, but backend handles it.
                                 >
                                     <SelectTrigger className="w-[140px] h-8">
                                         <SelectValue />
@@ -110,7 +128,7 @@ export default function UsersTable({ users, currentUserRole }: UsersTableProps) 
                 ))}
                 {!users || users.length === 0 && (
                     <TableRow>
-                        <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">
+                        <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
                             {t('users.table.empty')}
                         </TableCell>
                     </TableRow>

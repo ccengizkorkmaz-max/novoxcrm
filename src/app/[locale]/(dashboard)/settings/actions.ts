@@ -792,3 +792,28 @@ export async function testSms(phoneNumber?: string) {
 
     return result
 }
+
+export async function toggleUserExternal(userId: string, isExternal: boolean) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    // Check permissions (Admin/Owner)
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+    if (!profile || !['owner', 'admin'].includes(profile.role)) {
+        return { error: 'Bu işlem için yetkiniz yok.' }
+    }
+
+    const { error } = await supabase
+        .from('profiles')
+        .update({ is_external: isExternal })
+        .eq('id', userId)
+
+    if (error) {
+        return { error: 'Güncelleme başarısız: ' + error.message }
+    }
+
+    revalidatePath('/settings')
+    revalidatePath('/crm')
+    return { success: true }
+}
