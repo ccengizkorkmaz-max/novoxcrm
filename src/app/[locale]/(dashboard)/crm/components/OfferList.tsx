@@ -184,7 +184,7 @@ export default function OfferList({ offers, userRole }: { offers: Offer[], userR
                                                         </Button>
                                                     </Link>
                                                 )}
-                                                {userRole === 'admin' && (
+                                                {(userRole === 'admin' || userRole === 'owner') && (
                                                     <Button variant="ghost" size="icon" onClick={() => handleDelete(offer.id)} title="Sil" className="hover:bg-red-50">
                                                         <Trash2 className="h-4 w-4 text-red-600" />
                                                     </Button>

@@ -41,12 +41,26 @@ export default async function CustomersPage(props: {
     const allCustomers = customers || []
     const totalCount = count || 0
 
-    // 3. Fetch all sources for stats (lighter query)
-    const { data: allSources } = await supabase
-        .from('customers')
-        .select('source')
+    // 3. Fetch ALL sources for stats (paginate to avoid 1000-row limit)
+    let allSources: { source: string | null }[] = []
+    const batchSize = 1000
+    let offset = 0
+    let hasMore = true
+    while (hasMore) {
+        const { data: batch } = await supabase
+            .from('customers')
+            .select('source')
+            .range(offset, offset + batchSize - 1)
+        if (batch && batch.length > 0) {
+            allSources = allSources.concat(batch)
+            offset += batchSize
+            if (batch.length < batchSize) hasMore = false
+        } else {
+            hasMore = false
+        }
+    }
 
-    const sourceCounts = (allSources || []).reduce((acc: Record<string, number>, c) => {
+    const sourceCounts = allSources.reduce((acc: Record<string, number>, c) => {
         const src = c.source || 'Belirtilmemiş'
         acc[src] = (acc[src] || 0) + 1
         return acc
