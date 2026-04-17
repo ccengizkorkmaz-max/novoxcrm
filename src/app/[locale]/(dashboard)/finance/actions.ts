@@ -223,6 +223,25 @@ export async function cancelDeposit(depositId: string) {
 }
 
 /**
+ * Permanently deletes a deposit (Admin only).
+ */
+export async function deleteDeposit(depositId: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    const { error } = await supabase
+        .from('deposits')
+        .delete()
+        .eq('id', depositId)
+
+    if (error) return { error: error.message }
+
+    revalidatePath('/finance/deposits')
+    return { success: true }
+}
+
+/**
  * Fetches all financial accounts with their current balances.
  */
 export async function getFinancialAccounts() {

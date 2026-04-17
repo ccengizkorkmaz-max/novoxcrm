@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { FileText, Printer, FileSignature, ReceiptText, Calculator } from 'lucide-react'
+import { FileText, Printer, FileSignature, ReceiptText, Calculator, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { formatCurrency } from '@/lib/utils'
 import {
@@ -18,6 +18,7 @@ import {
 
 import NegotiationDialog from './NegotiationDialog'
 import ApproveOfferButton from './ApproveOfferButton'
+import { deleteOffer } from '@/app/[locale]/(dashboard)/offers/actions'
 import { toast } from 'sonner'
 
 
@@ -39,7 +40,7 @@ interface Offer {
 
 import { useTranslations } from 'next-intl'
 
-export default function OfferList({ offers }: { offers: Offer[] }) {
+export default function OfferList({ offers, userRole }: { offers: Offer[], userRole?: string }) {
     const t = useTranslations('Offers')
     const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null)
     const [isPlanOpen, setIsPlanOpen] = useState(false)
@@ -55,6 +56,23 @@ export default function OfferList({ offers }: { offers: Offer[] }) {
     // Placeholder for delete or print actions
     const handlePrint = (id: string) => {
         toast.info('PDF yazdırma özelliği yakında eklenecek.')
+    }
+
+    const handleDelete = async (id: string) => {
+        if (!window.confirm("Teklifi silmek istediğinize emin misiniz?")) return
+        
+        try {
+            const formData = new FormData()
+            formData.append('id', id)
+            const result = await deleteOffer(formData)
+            if (result?.error) {
+                toast.error(result.error)
+            } else {
+                toast.success("Teklif başarıyla silindi.")
+            }
+        } catch (error) {
+            toast.error("Teklif silinirken bir hata oluştu.")
+        }
     }
 
     const openPlan = (offer: Offer) => {
@@ -165,6 +183,11 @@ export default function OfferList({ offers }: { offers: Offer[] }) {
                                                             {t('actions.startContract')}
                                                         </Button>
                                                     </Link>
+                                                )}
+                                                {userRole === 'admin' && (
+                                                    <Button variant="ghost" size="icon" onClick={() => handleDelete(offer.id)} title="Sil" className="hover:bg-red-50">
+                                                        <Trash2 className="h-4 w-4 text-red-600" />
+                                                    </Button>
                                                 )}
                                                 <Button variant="ghost" size="icon" onClick={() => handlePrint(offer.id)} title={t('actions.print')} className="hidden">
                                                     <Printer className="h-4 w-4" />

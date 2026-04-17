@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { getDeposits, confirmDeposit, cancelDeposit, confirmRefund } from '../actions'
+import { getDeposits, confirmDeposit, cancelDeposit, confirmRefund, deleteDeposit } from '../actions'
 import {
     Table,
     TableBody,
@@ -15,9 +15,10 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
-import { CheckCircle2, Clock, XCircle, Search } from 'lucide-react'
+import { CheckCircle2, Clock, XCircle, Search, Trash2 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { useTranslations, useLocale } from 'next-intl'
+import { createClient } from '@/lib/supabase/client'
 
 export default function DepositsPage() {
     const t = useTranslations('Deposits')
@@ -25,8 +26,18 @@ export default function DepositsPage() {
     const [deposits, setDeposits] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [search, setSearch] = useState('')
+    const [isAdmin, setIsAdmin] = useState(false)
 
     useEffect(() => {
+        const checkRole = async () => {
+            const supabase = createClient()
+            const { data: { user } } = await supabase.auth.getUser()
+            if (user) {
+                const { data } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+                setIsAdmin(data?.role === 'admin')
+            }
+        }
+        checkRole()
         loadDeposits()
     }, [])
 
@@ -67,6 +78,18 @@ export default function DepositsPage() {
         const result = await cancelDeposit(id)
         if (result.success) {
             toast.success(t('messages.cancelled'))
+            loadDeposits()
+        } else {
+            toast.error(result.error)
+        }
+    }
+
+    async function handleDelete(id: string) {
+        if (!confirm(t('confirm.delete') || "Kaydı kalıcı olarak silmek istediğinize emin misiniz?")) return
+
+        const result = await deleteDeposit(id)
+        if (result.success) {
+            toast.success(t('messages.deleted') || "Kayıt başarıyla silindi.")
             loadDeposits()
         } else {
             toast.error(result.error)
@@ -170,6 +193,18 @@ export default function DepositsPage() {
                                         {format(new Date(d.created_at), 'dd.MM.yyyy HH:mm')}
                                     </TableCell>
                                     <TableCell className="text-right">
+                                        <div className="flex justify-end gap-2 items-center">
+                                            {isAdmin && (
+                                                <Button
+                                                    size="icon"
+                                                    variant="ghost"
+                                                    className="text-red-600 hover:text-red-700 hover:bg-red-50 h-8 w-8"
+                                                    onClick={() => handleDelete(d.id)}
+                                                    title={t('actions.delete') || "Sil"}
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            )}
                                         {d.status === 'Pending' && (
                                             <div className="flex justify-end gap-2">
                                                 <Button
@@ -200,6 +235,7 @@ export default function DepositsPage() {
                                                 </Button>
                                             </div>
                                         )}
+                                        </div>
                                         {d.status === 'Paid' && (
                                             <span className="text-xs text-muted-foreground italic">
                                                 {format(new Date(d.paid_at), 'dd.MM.yyyy HH:mm')} {t('info.approvedAt')}

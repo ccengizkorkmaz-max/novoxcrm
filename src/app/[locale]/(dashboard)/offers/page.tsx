@@ -46,7 +46,7 @@ export default async function OffersPage(props: {
                 <GeneralSearch namespace="Offers" placeholderKey="table.search" />
             </div>
 
-            <OfferList offers={offers || []} />
+            <OfferList offers={offers || []} userRole={profile?.role} />
         </div>
     )
 }
