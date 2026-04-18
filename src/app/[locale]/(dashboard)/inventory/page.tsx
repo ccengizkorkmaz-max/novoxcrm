@@ -210,8 +210,23 @@ export default async function InventoryPage(props: {
         'Blocked': 'Blocked',
         'Option': 'Option',
         'Rented': 'Rented',
-        'Delivered': 'Delivered'
+        'Delivered': 'Delivered',
+        'STOKTA': 'ForSale',
+        'KAPORA ALINDI': 'Reserved',
+        'SATILDI': 'Sold'
     }
+
+    const getStatusColor = (status: string) => {
+        const s = String(status).toLowerCase();
+        if (s.includes('sold') || s.includes('satıldı')) return 'bg-rose-600 border-rose-600 text-white hover:bg-rose-700';
+        if (s.includes('reserved') || s.includes('rezerve') || s.includes('kapora')) return 'bg-amber-500 border-amber-500 text-white hover:bg-amber-600';
+        if (s.includes('sale') || s.includes('satılık') || s.includes('stokta')) return 'bg-emerald-600 border-emerald-600 text-white hover:bg-emerald-700';
+        if (s.includes('block') || s.includes('bloke')) return 'bg-slate-600 border-slate-600 text-white hover:bg-slate-700';
+        if (s.includes('option') || s.includes('opsiyon')) return 'bg-violet-600 border-violet-600 text-white hover:bg-violet-700';
+        if (s.includes('rent') || s.includes('kira')) return 'bg-cyan-600 border-cyan-600 text-white hover:bg-cyan-700';
+        if (s.includes('deliver') || s.includes('teslim')) return 'bg-green-800 border-green-800 text-white hover:bg-green-900';
+        return 'bg-slate-400 border-slate-400 text-white';
+    };
 
     const heatingMap: Record<string, string> = {
         'Kombi': 'Combi',
@@ -385,13 +400,7 @@ export default async function InventoryPage(props: {
                                             <TableCell className="font-mono font-bold">{unit.unit_number}</TableCell>
                                             <TableCell>
                                                 <div className="flex flex-col gap-1">
-                                                    <Badge variant={unit.status === 'Sold' ? 'destructive' : unit.status === 'Reserved' ? 'secondary' : 'default'} className={cn("text-[10px] px-2 py-0",
-                                                        unit.status === 'For Sale' ? 'bg-green-600' : '',
-                                                        unit.status === 'Blocked' ? 'bg-slate-600' : '',
-                                                        unit.status === 'Option' ? 'bg-violet-600' : '',
-                                                        unit.status === 'Rented' ? 'bg-cyan-600' : '',
-                                                        unit.status === 'Delivered' ? 'bg-green-800' : ''
-                                                    )}>
+                                                    <Badge variant="outline" className={cn("text-[10.5px] px-2.5 py-0.5 border-transparent font-bold", getStatusColor(unit.status))}>
                                                         {statusMap[unit.status] ? t(`status.${statusMap[unit.status]}`) : unit.status}
                                                     </Badge>
                                                     {unit.is_legacy && (

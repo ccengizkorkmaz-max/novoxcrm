@@ -198,7 +198,7 @@ export default async function UnitDetailPage(props: {
 
                 <div className="xl:col-span-4 space-y-6">
                     {isManager && (
-                        <UnitStatusChanger unitId={unit.id} currentStatus={unit.status} />
+                        <UnitStatusChanger unitId={unit.id} currentStatus={unit.status} isLegacy={unit.is_legacy} />
                     )}
 
                     <UnitPriceChart

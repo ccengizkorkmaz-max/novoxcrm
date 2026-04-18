@@ -13,6 +13,7 @@ import { updateUnitStatusExtended } from '../../actions'
 interface UnitStatusChangerProps {
     unitId: string
     currentStatus: string
+    isLegacy?: boolean
 }
 
 const STATUSES = [
@@ -28,7 +29,7 @@ const STATUSES = [
     { value: 'Delivered', label: 'Teslim Edildi', color: 'bg-green-800', description: 'Satış + teslim tamamlandı' },
 ]
 
-export function UnitStatusChanger({ unitId, currentStatus }: UnitStatusChangerProps) {
+export function UnitStatusChanger({ unitId, currentStatus, isLegacy }: UnitStatusChangerProps) {
     const [changing, setChanging] = useState(false)
     const [reason, setReason] = useState('')
     const [showOptions, setShowOptions] = useState(false)
@@ -51,12 +52,23 @@ export function UnitStatusChanger({ unitId, currentStatus }: UnitStatusChangerPr
         }
     }
 
-    const availableStatuses = STATUSES.filter(s =>
-        s.value !== currentStatus &&
-        s.value !== 'Sold' &&
-        s.value !== 'Satıldı' &&
-        !['Satılık', 'Rezerve', 'Satıldı'].includes(s.value) // Drop-down'da İngilizce anahtar kelimeleri tutalım (DB uyumu için)
-    ).filter((v, i, a) => a.findIndex(t => t.label === v.label) === i) // Tekrar eden labelleri temizle
+    const availableStatuses = STATUSES.filter(s => {
+        if (s.value === currentStatus) return false;
+        
+        // Sold statüsüne sadece legacy kayıtlar için izin ver
+        if (!isLegacy && (s.value === 'Sold' || s.value === 'Satıldı')) {
+            return false;
+        }
+        
+        // Drop-down'da Türkçe eski anahtar kelimeleri gizle (arayüz temizliği için)
+        if (['Satılık', 'Rezerve', 'Satıldı'].includes(s.value)) {
+            // Sadece legacy olduğu için 'Satıldı'yı göstermemiz gerekiyorsa ona izin verelim
+            if (isLegacy && s.value === 'Satıldı') return true;
+            return false;
+        }
+        
+        return true;
+    }).filter((v, i, a) => a.findIndex(t => t.label === v.label) === i) // Tekrar eden labelleri temizle
 
     return (
         <Card className="overflow-hidden border-slate-200 shadow-sm">
