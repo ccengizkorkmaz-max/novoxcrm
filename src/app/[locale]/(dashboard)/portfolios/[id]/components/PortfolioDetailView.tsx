@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { SellerReportWidget } from './SellerReportWidget'
 import { PortfolioImageGallery } from './PortfolioImageGallery'
+import { DocumentManager } from '@/components/documents/DocumentManager'
 
 interface Props {
     portfolio: any
@@ -358,6 +359,13 @@ export function PortfolioDetailView({ portfolio, agent, transactions, activities
 
                     {/* Seller Report */}
                     <SellerReportWidget portfolio={p} />
+
+                    {/* Document Management */}
+                    <DocumentManager
+                        entityType="portfolio"
+                        entityId={p.id}
+                        documents={p.documents || []}
+                    />
 
                     {/* Meta */}
                     <Card className="border shadow-sm">

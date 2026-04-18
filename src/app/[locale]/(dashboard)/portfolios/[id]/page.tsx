@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
 import { PortfolioDetailView } from './components/PortfolioDetailView'
 import { AiMatchWidget } from './components/AiMatchWidget'
+import { getDocuments } from '../../documents/actions'
 
 export default async function PortfolioDetailPage(props: {
     params: Promise<{ id: string; locale: string }>
@@ -47,10 +48,14 @@ export default async function PortfolioDetailPage(props: {
         .eq('id', user.id)
         .single()
 
+    // Get documents
+    const documents = await getDocuments('portfolio', id)
+    const portfolioWithDocs = { ...portfolio, documents }
+
     return (
         <div className="space-y-6">
             <PortfolioDetailView
-                portfolio={portfolio}
+                portfolio={portfolioWithDocs}
                 agent={agent}
                 transactions={transactions || []}
                 activities={activities || []}
