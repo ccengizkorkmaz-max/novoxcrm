@@ -135,6 +135,11 @@ export function NovoxSidebar({
                             Raporlar
                         </NavItem>
                     )}
+                    {isManager && (
+                        <NavItem href="/commission-plans" icon={Banknote} onClick={onElementClick}>
+                            Komisyon Planları
+                        </NavItem>
+                    )}
                 </>
             )}
 
