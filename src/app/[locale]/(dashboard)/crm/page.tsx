@@ -74,6 +74,13 @@ export default async function CRMPage(props: {
     const isAdmin = userProfile?.role === 'admin' || userProfile?.role === 'owner'
     const isManager = isAdmin || userProfile?.role === 'manager'
     const userTenantId = userProfile?.tenant_id
+
+    // Detect tenant type for broker/developer mode
+    const { data: tenantData } = userTenantId
+        ? await supabase.from('tenants').select('tenant_type').eq('id', userTenantId).single()
+        : { data: null }
+    const tenantType = (tenantData as any)?.tenant_type || 'developer'
+    const isBroker = tenantType === 'broker'
     // Determine if only today's leads should be shown (query param tl=1)
     const onlyTodayLeads = params.tl === '1'
 
@@ -265,12 +272,12 @@ export default async function CRMPage(props: {
                 </div>
 
                 <div className="hidden lg:block">
-                    <PipelineStats stats={statsData} />
+                    <PipelineStats stats={statsData} tenantType={tenantType} />
                 </div>
             </div>
 
             <div className="lg:hidden px-1">
-                <PipelineStats stats={statsData} />
+                <PipelineStats stats={statsData} tenantType={tenantType} />
             </div>
 
             <React.Suspense fallback={<div className="h-96 w-full bg-gray-100 animate-pulse rounded" />}>
@@ -284,6 +291,7 @@ export default async function CRMPage(props: {
                     totalSalesCount={totalSalesCount}
                     initialPage={page}
                     isAdmin={isAdmin}
+                    tenantType={tenantType}
                 />
             </React.Suspense>
         </div>

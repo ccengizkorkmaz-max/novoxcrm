@@ -63,7 +63,8 @@ export default function PipelineList({
     initialPage = 1,
     isAdmin = false,
     profiles = [],
-    projects = []
+    projects = [],
+    tenantType = 'developer'
 }: {
     sales: any[],
     customers: any[],
@@ -73,10 +74,30 @@ export default function PipelineList({
     initialPage?: number,
     isAdmin?: boolean,
     profiles?: any[],
-    projects?: any[]
+    projects?: any[],
+    tenantType?: string
 }) {
     const t = useTranslations('CRM')
     const locale = useLocale()
+    const isBroker = tenantType === 'broker'
+
+    // Broker status label mapping
+    const brokerStatusLabel = (status: string): string => {
+        const map: Record<string, string> = {
+            'Lead': 'Yeni Talep',
+            'Prospect': 'İletişim',
+            'Reservation': 'Gösterim',
+            'Opsiyon - Kapora Bekleniyor': 'Gösterim',
+            'Proposal': 'Teklif',
+            'Teklif - Kapora Bekleniyor': 'Teklif',
+            'Negotiation': 'Pazarlık',
+            'Sold': 'Sözleşme',
+            'Completed': 'Kapandı',
+            'Lost': 'Kaybedildi'
+        }
+        return map[status] || status
+    }
+
     const [selectedSaleId, setSelectedSaleId] = useState<string | null>(null)
     const [isPlanOpen, setIsPlanOpen] = useState(false)
 
@@ -306,12 +327,12 @@ export default function PipelineList({
                                             <div className="flex items-center justify-center gap-1">
                                                 <span className="opacity-25">⠿</span>
                                                 {colId === 'customer' && t('table.customer')}
-                                                {colId === 'project' && t('table.project')}
-                                                {colId === 'unit' && t('table.unit')}
-                                                {colId === 'status' && t('table.status')}
+                                                {colId === 'project' && !isBroker && t('table.project')}
+                                                {colId === 'unit' && !isBroker && t('table.unit')}
+                                                {colId === 'status' && (isBroker ? 'Aşama' : t('table.status'))}
                                                 {colId === 'date' && t('table.date')}
                                                 {colId === 'amount' && t('table.amount')}
-                                                {colId === 'rep' && t('table.rep')}
+                                                {colId === 'rep' && (isBroker ? 'Danışman' : t('table.rep'))}
                                                 {colId === 'actions' && t('table.actions')}
                                                 {colId === 'quickicons' && 'Kısayollar'}
                                             </div>
@@ -373,18 +394,22 @@ export default function PipelineList({
                                                         </div>
                                                     </TableCell>
                                                 )
-                                                if (colId === 'project') return (
+                                                if (colId === 'project') {
+                                                    if (isBroker) return null
+                                                    return (
                                                     <TableCell key="project" className={cellCls}>
                                                         <span className="font-medium text-foreground">{sale.units?.projects?.name || sale.projects?.name || '-'}</span>
                                                     </TableCell>
-                                                )
-                                                if (colId === 'unit') return (
+                                                )}
+                                                if (colId === 'unit') {
+                                                    if (isBroker) return null
+                                                    return (
                                                     <TableCell key="unit" className={cellCls}>
                                                         {sale.units ? (
                                                             <span className="text-xs font-mono text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded w-fit">NO: {sale.units.unit_number}</span>
                                                         ) : <span className="text-muted-foreground">-</span>}
                                                     </TableCell>
-                                                )
+                                                )}
                                                 if (colId === 'status') return (
                                                     <TableCell key="status" className={cellCls}>
                                                         {isCompleted ? (
@@ -395,15 +420,29 @@ export default function PipelineList({
                                                             <Select value={sale.status} onValueChange={(val) => handleStatusChange(sale.id, val)} disabled={sale.status === 'Lost'}>
                                                                 <SelectTrigger className={`w-full h-8 border text-xs font-medium ${getStatusColor(sale.status)}`}><SelectValue /></SelectTrigger>
                                                                 <SelectContent>
-                                                                    <SelectItem value="Lead"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-slate-400" />{t('status.Lead')}</div></SelectItem>
-                                                                    <SelectItem value="Prospect"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-blue-500" />{t('status.Prospect')}</div></SelectItem>
-                                                                    <SelectItem value="Reservation"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-purple-500" />{t('status.Reservation')}</div></SelectItem>
-                                                                    <SelectItem value="Opsiyon - Kapora Bekleniyor"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-amber-500" />{t('status.OptionPending')}</div></SelectItem>
-                                                                    <SelectItem value="Proposal"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-cyan-500" />{t('status.Proposal')}</div></SelectItem>
-                                                                    <SelectItem value="Teklif - Kapora Bekleniyor"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-indigo-500" />{t('status.ProposalPending')}</div></SelectItem>
-                                                                    <SelectItem value="Negotiation"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-pink-500" />{t('status.Negotiation')}</div></SelectItem>
-                                                                    <SelectItem value="Sold"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-emerald-500" />{t('status.Sold')}</div></SelectItem>
-                                                                    <SelectItem value="Lost"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-red-500" />{t('status.Lost')}</div></SelectItem>
+                                                                    {isBroker ? (
+                                                                        <>
+                                                                            <SelectItem value="Lead"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-slate-400" />Yeni Talep</div></SelectItem>
+                                                                            <SelectItem value="Prospect"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-blue-500" />İletişim</div></SelectItem>
+                                                                            <SelectItem value="Reservation"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-purple-500" />Gösterim</div></SelectItem>
+                                                                            <SelectItem value="Proposal"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-cyan-500" />Teklif</div></SelectItem>
+                                                                            <SelectItem value="Negotiation"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-pink-500" />Pazarlık</div></SelectItem>
+                                                                            <SelectItem value="Sold"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-emerald-500" />Sözleşme</div></SelectItem>
+                                                                            <SelectItem value="Lost"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-red-500" />Kaybedildi</div></SelectItem>
+                                                                        </>
+                                                                    ) : (
+                                                                        <>
+                                                                            <SelectItem value="Lead"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-slate-400" />{t('status.Lead')}</div></SelectItem>
+                                                                            <SelectItem value="Prospect"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-blue-500" />{t('status.Prospect')}</div></SelectItem>
+                                                                            <SelectItem value="Reservation"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-purple-500" />{t('status.Reservation')}</div></SelectItem>
+                                                                            <SelectItem value="Opsiyon - Kapora Bekleniyor"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-amber-500" />{t('status.OptionPending')}</div></SelectItem>
+                                                                            <SelectItem value="Proposal"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-cyan-500" />{t('status.Proposal')}</div></SelectItem>
+                                                                            <SelectItem value="Teklif - Kapora Bekleniyor"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-indigo-500" />{t('status.ProposalPending')}</div></SelectItem>
+                                                                            <SelectItem value="Negotiation"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-pink-500" />{t('status.Negotiation')}</div></SelectItem>
+                                                                            <SelectItem value="Sold"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-emerald-500" />{t('status.Sold')}</div></SelectItem>
+                                                                            <SelectItem value="Lost"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-red-500" />{t('status.Lost')}</div></SelectItem>
+                                                                        </>
+                                                                    )}
                                                                 </SelectContent>
                                                             </Select>
                                                         )}
@@ -598,7 +637,14 @@ export default function PipelineList({
                                         "px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider",
                                         getStatusColor(sale.status)
                                     )}>
-                                        {isCompleted ? t('actions.won') : (t(`status.${sale.status}`) || sale.status)}
+                                        {isCompleted ? t('actions.won') : (isBroker ? brokerStatusLabel(sale.status) : (() => {
+                                            const statusKeyMap: Record<string, string> = {
+                                                'Opsiyon - Kapora Bekleniyor': 'OptionPending',
+                                                'Teklif - Kapora Bekleniyor': 'ProposalPending',
+                                            }
+                                            const key = statusKeyMap[sale.status] || sale.status
+                                            return t(`status.${key}`) || sale.status
+                                        })())}
                                     </div>
                                 </div>
 

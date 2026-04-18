@@ -1,7 +1,7 @@
 'use client'
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Users, Target, Clock, FileText, Handshake, CheckCircle2, Trophy, XCircle } from "lucide-react"
+import { Users, Target, Clock, FileText, Handshake, CheckCircle2, Trophy, XCircle, Phone, Eye, Send, FileSignature } from "lucide-react"
 import { useTranslations } from 'next-intl'
 
 interface PipelineStatsProps {
@@ -15,12 +15,14 @@ interface PipelineStatsProps {
         Completed: number
         Lost: number
     }
+    tenantType?: string
 }
 
-export function PipelineStats({ stats }: PipelineStatsProps) {
+export function PipelineStats({ stats, tenantType = 'developer' }: PipelineStatsProps) {
     const t = useTranslations('CRM')
+    const isBroker = tenantType === 'broker'
 
-    const items = [
+    const devItems = [
         { label: t('stats.Lead'),        count: stats.Lead,        icon: Users,        color: 'text-blue-500',    bg: 'bg-blue-50' },
         { label: t('stats.Prospect'),    count: stats.Prospect,    icon: Target,       color: 'text-indigo-500',  bg: 'bg-indigo-50' },
         { label: t('stats.Reservation'), count: stats.Reservation, icon: Clock,        color: 'text-amber-500',   bg: 'bg-amber-50' },
@@ -30,6 +32,22 @@ export function PipelineStats({ stats }: PipelineStatsProps) {
         { label: t('stats.Completed'),   count: stats.Completed,   icon: Trophy,       color: 'text-green-600',   bg: 'bg-green-100' },
         { label: t('stats.Lost'),        count: stats.Lost,        icon: XCircle,      color: 'text-red-500',     bg: 'bg-red-50' },
     ]
+
+    // Broker pipeline: maps to the same DB statuses but with different labels
+    // Lead → Yeni Talep, Prospect → İletişim, Reservation → Gösterim,
+    // Proposal → Teklif, Negotiation → Pazarlık, Sold → Sözleşme, Completed → Kapandı
+    const brokerItems = [
+        { label: 'Yeni Talep',   count: stats.Lead,        icon: Users,          color: 'text-blue-500',    bg: 'bg-blue-50' },
+        { label: 'İletişim',     count: stats.Prospect,    icon: Phone,          color: 'text-indigo-500',  bg: 'bg-indigo-50' },
+        { label: 'Gösterim',     count: stats.Reservation, icon: Eye,            color: 'text-amber-500',   bg: 'bg-amber-50' },
+        { label: 'Teklif',       count: stats.Proposal,    icon: Send,           color: 'text-cyan-500',    bg: 'bg-cyan-50' },
+        { label: 'Pazarlık',     count: stats.Negotiation, icon: Handshake,      color: 'text-violet-500',  bg: 'bg-violet-50' },
+        { label: 'Sözleşme',     count: stats.Sold,        icon: FileSignature,  color: 'text-emerald-500', bg: 'bg-emerald-50' },
+        { label: 'Kapandı',      count: stats.Completed,   icon: Trophy,         color: 'text-green-600',   bg: 'bg-green-100' },
+        { label: 'Kaybedildi',   count: stats.Lost,        icon: XCircle,        color: 'text-red-500',     bg: 'bg-red-50' },
+    ]
+
+    const items = isBroker ? brokerItems : devItems
 
     return (
         <div className="flex gap-1 mb-3 overflow-hidden">
