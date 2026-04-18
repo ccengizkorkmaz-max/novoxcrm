@@ -140,6 +140,11 @@ export function NovoxSidebar({
                             Komisyon Planları
                         </NavItem>
                     )}
+                    {isManager && (
+                        <NavItem href="/marketing" icon={Mail} onClick={onElementClick}>
+                            Pazarlama
+                        </NavItem>
+                    )}
                 </>
             )}
 
