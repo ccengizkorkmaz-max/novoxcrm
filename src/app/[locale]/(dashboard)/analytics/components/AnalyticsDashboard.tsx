@@ -2,13 +2,15 @@
 
 import { useState, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
+import { exportToExcel, exportToPDF, generateReportHTML } from '@/lib/report-export'
 import {
     TrendingUp, TrendingDown, Users, Target, MapPin, Clock,
     BarChart3, PieChart, Activity, ChevronDown, ArrowUpRight,
     ArrowDownRight, Filter, Calendar, DollarSign, Percent,
-    Zap, Eye, Award
+    Zap, Eye, Award, Download, FileText, FileSpreadsheet
 } from 'lucide-react'
 
 interface AnalyticsDashboardProps {
@@ -303,7 +305,7 @@ export function AnalyticsDashboard({ sales, transactions, portfolios, agents, ac
 
     return (
         <div className="space-y-6">
-            {/* Period Selector */}
+            {/* Period Selector + Export Buttons */}
             <div className="flex items-center gap-2 flex-wrap">
                 {PERIOD_OPTIONS.map(p => (
                     <button
@@ -319,7 +321,56 @@ export function AnalyticsDashboard({ sales, transactions, portfolios, agents, ac
                         {p.label}
                     </button>
                 ))}
+                <div className="flex-1" />
+                <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-xs gap-1.5 text-emerald-600 border-emerald-200 hover:bg-emerald-50"
+                    onClick={() => {
+                        // Agent Performance → Excel
+                        const rows = agentPerformance.map(a => ({
+                            'Danışman': a.full_name,
+                            'Lead': a.totalLeads,
+                            'Kazanılan': a.wonDeals,
+                            'Kayıp': a.lostDeals,
+                            'Dönüşüm %': a.conversionRate,
+                            'GCI (₺)': a.gci,
+                            'Hacim (₺)': a.volume,
+                            'Aktif Portföy': a.activePortfolios,
+                            'Ort. Kapanış (gün)': a.avgCloseTime,
+                            'Aktivite': a.activityCount,
+                        }))
+                        exportToExcel(rows, `novocrm_rapor_${new Date().toISOString().slice(0,10)}`)
+                    }}
+                >
+                    <FileSpreadsheet className="h-3.5 w-3.5" /> Excel
+                </Button>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-xs gap-1.5 text-red-600 border-red-200 hover:bg-red-50"
+                    onClick={() => {
+                        const html = generateReportHTML({
+                            kpis,
+                            funnel,
+                            sourceAnalysis,
+                            agentPerformance,
+                            monthlyTrend,
+                            portfolioAnalytics,
+                            period,
+                        })
+                        // Write to hidden div then trigger PDF
+                        const el = document.getElementById('report-print-content')
+                        if (el) el.innerHTML = html
+                        exportToPDF('report-print-content', 'Raporlar ve Analitik')
+                    }}
+                >
+                    <FileText className="h-3.5 w-3.5" /> PDF
+                </Button>
             </div>
+
+            {/* Hidden print content */}
+            <div id="report-print-content" className="hidden" />
 
             {/* KPI Row */}
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
