@@ -6,6 +6,7 @@ import { formatCurrency } from '@/lib/utils'
 import { DashboardGeneralStats } from '@/components/dashboard-general-stats'
 import { getTranslations } from 'next-intl/server'
 import { AiInsightWidget } from '@/components/dashboard/AiInsightWidget'
+import { BrokerDashboardWidget } from '@/components/dashboard/BrokerDashboardWidget'
 
 // Force dynamic rendering and disable caching to ensure fresh data
 export const dynamic = 'force-dynamic'
@@ -367,6 +368,93 @@ export default async function DashboardPage(props: {
 }) {
   const { locale } = await props.params
   const t = await getTranslations('Dashboard')
+
+  // Check tenant type for conditional dashboard
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  let tenantType = 'developer'
+  if (user) {
+    const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single()
+    if (profile?.tenant_id) {
+      const { data: tenant } = await supabase.from('tenants').select('tenant_type').eq('id', profile.tenant_id).single()
+      tenantType = (tenant as any)?.tenant_type || 'developer'
+    }
+  }
+
+  // Broker Dashboard
+  if (tenantType === 'broker') {
+    // Fetch broker-specific stats
+    const { data: bPortfolios } = await supabase.from('portfolios').select('status, authorization_end')
+    const { data: bLeads } = await supabase.from('customers').select('id, created_at, assigned_to')
+    const { data: bTransactions } = await supabase.from('agent_transactions').select('gross_commission, office_share, listing_agent_id, listing_agent_share, buyer_agent_id, buyer_agent_share, status, transaction_date, sale_price')
+    const { data: bAgents } = await supabase.from('profiles').select('id, full_name').eq('tenant_id', (await supabase.from('profiles').select('tenant_id').eq('id', user!.id).single()).data?.tenant_id || '').in('role', ['sales', 'manager', 'admin', 'owner'])
+
+    const now = new Date()
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+    const todayStart = new Date(); todayStart.setHours(0,0,0,0)
+
+    const pStats = {
+      total: bPortfolios?.length || 0,
+      active: bPortfolios?.filter(p => p.status === 'active').length || 0,
+      sold: bPortfolios?.filter(p => p.status === 'sold').length || 0,
+      rented: bPortfolios?.filter(p => p.status === 'rented').length || 0,
+      expiringCount: bPortfolios?.filter(p => {
+        if (!p.authorization_end) return false
+        const daysLeft = Math.ceil((new Date(p.authorization_end).getTime() - now.getTime()) / 86400000)
+        return daysLeft >= 0 && daysLeft <= 30
+      }).length || 0,
+    }
+
+    const lStats = {
+      unassigned: bLeads?.filter(l => !l.assigned_to).length || 0,
+      totalToday: bLeads?.filter(l => new Date(l.created_at) >= todayStart).length || 0,
+    }
+
+    const approvedTx = bTransactions?.filter(t => ['approved', 'paid'].includes(t.status)) || []
+    const monthlyTx = approvedTx.filter(t => new Date(t.transaction_date) >= monthStart)
+    const rStats = {
+      totalGCI: approvedTx.reduce((s, t) => s + (t.gross_commission || 0), 0),
+      monthlyGCI: monthlyTx.reduce((s, t) => s + (t.gross_commission || 0), 0),
+      pendingPayments: (bTransactions?.filter(t => t.status === 'pending') || []).reduce((s, t) => s + (t.gross_commission || 0), 0),
+    }
+
+    // Top agents by earnings this month
+    const agentEarnings: Record<string, { earnings: number; deals: number }> = {}
+    monthlyTx.forEach(tx => {
+      if (tx.listing_agent_id) {
+        if (!agentEarnings[tx.listing_agent_id]) agentEarnings[tx.listing_agent_id] = { earnings: 0, deals: 0 }
+        agentEarnings[tx.listing_agent_id].earnings += (tx.listing_agent_share || 0)
+        agentEarnings[tx.listing_agent_id].deals++
+      }
+      if (tx.buyer_agent_id && tx.buyer_agent_id !== tx.listing_agent_id) {
+        if (!agentEarnings[tx.buyer_agent_id]) agentEarnings[tx.buyer_agent_id] = { earnings: 0, deals: 0 }
+        agentEarnings[tx.buyer_agent_id].earnings += (tx.buyer_agent_share || 0)
+        agentEarnings[tx.buyer_agent_id].deals++
+      }
+    })
+
+    const topAgents = Object.entries(agentEarnings)
+      .map(([id, data]) => ({ name: bAgents?.find(a => a.id === id)?.full_name || 'Bilinmeyen', ...data }))
+      .sort((a, b) => b.earnings - a.earnings)
+      .slice(0, 5)
+
+    return (
+      <div className="flex flex-col gap-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">{t('overview')}</h1>
+          <p className="text-muted-foreground text-sm mt-1">Acente kontrol paneli</p>
+        </div>
+        <BrokerDashboardWidget
+          portfolioStats={pStats}
+          leadStats={lStats}
+          revenueStats={rStats}
+          topAgents={topAgents}
+        />
+      </div>
+    )
+  }
+
+  // Developer Dashboard (existing)
   const stats = await getDashboardStats(t, locale)
 
   return (
