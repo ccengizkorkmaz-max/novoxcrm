@@ -438,6 +438,26 @@ export default async function DashboardPage(props: {
       .sort((a, b) => b.earnings - a.earnings)
       .slice(0, 5)
 
+    // Pipeline / Sales stats
+    const { data: bSales } = await supabase.from('sales').select('status, created_at, source, description')
+    const pipelineStats = {
+      lead: bSales?.filter(s => s.status === 'Lead').length || 0,
+      prospect: bSales?.filter(s => s.status === 'Prospect').length || 0,
+      showing: bSales?.filter(s => s.status === 'Showing').length || 0,
+      proposal: bSales?.filter(s => ['Proposal', 'Teklif - Kapora Bekleniyor'].includes(s.status)).length || 0,
+      negotiation: bSales?.filter(s => s.status === 'Negotiation').length || 0,
+      contract: bSales?.filter(s => ['Sold', 'Completed', 'Contract'].includes(s.status)).length || 0,
+      lost: bSales?.filter(s => s.status === 'Lost').length || 0,
+      totalActive: bSales?.filter(s => !['Lost', 'Sold', 'Completed'].includes(s.status)).length || 0,
+    }
+
+    // Recent activities (last 5)
+    const { data: recentActivities } = await supabase
+      .from('activities')
+      .select('id, type, summary, created_at, customers(full_name)')
+      .order('created_at', { ascending: false })
+      .limit(5)
+
     return (
       <div className="flex flex-col gap-6">
         <div>
@@ -449,6 +469,8 @@ export default async function DashboardPage(props: {
           leadStats={lStats}
           revenueStats={rStats}
           topAgents={topAgents}
+          pipelineStats={pipelineStats}
+          recentActivities={recentActivities || []}
         />
       </div>
     )
