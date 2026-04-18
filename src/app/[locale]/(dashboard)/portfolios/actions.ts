@@ -29,30 +29,33 @@ export async function createPortfolio(formData: FormData) {
     
     if (!profile?.tenant_id) throw new Error('No tenant')
     
+    const title = (formData.get('title') as string || '').trim()
+    if (!title) throw new Error('Portföy başlığı zorunludur')
+    
     const portfolio = {
         tenant_id: profile.tenant_id,
         agent_id: user.id,
-        title: formData.get('title') as string,
-        listing_type: formData.get('listing_type') as string || 'sale',
-        property_type: formData.get('property_type') as string || 'apartment',
-        city: formData.get('city') as string || null,
-        district: formData.get('district') as string || null,
-        neighborhood: formData.get('neighborhood') as string || null,
-        address: formData.get('address') as string || null,
-        room_count: formData.get('room_count') as string || null,
+        title,
+        listing_type: (formData.get('listing_type') as string) || 'sale',
+        property_type: (formData.get('property_type') as string) || 'apartment',
+        city: (formData.get('city') as string)?.trim() || null,
+        district: (formData.get('district') as string)?.trim() || null,
+        neighborhood: (formData.get('neighborhood') as string)?.trim() || null,
+        address: (formData.get('address') as string)?.trim() || null,
+        room_count: (formData.get('room_count') as string)?.trim() || null,
         floor_number: formData.get('floor_number') ? Number(formData.get('floor_number')) : null,
         total_floors: formData.get('total_floors') ? Number(formData.get('total_floors')) : null,
         building_age: formData.get('building_age') ? Number(formData.get('building_age')) : null,
         area_gross: formData.get('area_gross') ? Number(formData.get('area_gross')) : null,
         area_net: formData.get('area_net') ? Number(formData.get('area_net')) : null,
         price: formData.get('price') ? Number(formData.get('price')) : null,
-        currency: formData.get('currency') as string || 'TRY',
-        owner_name: formData.get('owner_name') as string || null,
-        owner_phone: formData.get('owner_phone') as string || null,
-        description: formData.get('description') as string || null,
-        authorization_type: formData.get('authorization_type') as string || 'exclusive',
-        authorization_start: formData.get('authorization_start') as string || null,
-        authorization_end: formData.get('authorization_end') as string || null,
+        currency: (formData.get('currency') as string) || 'TRY',
+        owner_name: (formData.get('owner_name') as string)?.trim() || null,
+        owner_phone: (formData.get('owner_phone') as string)?.trim() || null,
+        description: (formData.get('description') as string)?.trim() || null,
+        authorization_type: (formData.get('authorization_type') as string) || 'exclusive',
+        authorization_start: (formData.get('authorization_start') as string)?.trim() || null,
+        authorization_end: (formData.get('authorization_end') as string)?.trim() || null,
     }
     
     const { data, error } = await supabase
@@ -61,7 +64,10 @@ export async function createPortfolio(formData: FormData) {
         .select()
         .single()
     
-    if (error) throw error
+    if (error) {
+        console.error('Portfolio create error:', error)
+        throw new Error(error.message || 'Portföy oluşturulamadı')
+    }
     
     revalidatePath('/portfolios')
     return data

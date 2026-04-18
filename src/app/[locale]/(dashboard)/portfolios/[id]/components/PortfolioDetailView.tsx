@@ -15,6 +15,7 @@ import {
     Edit, ExternalLink, Share2, CheckCircle, Clock
 } from 'lucide-react'
 import { SellerReportWidget } from './SellerReportWidget'
+import { PortfolioImageGallery } from './PortfolioImageGallery'
 
 interface Props {
     portfolio: any
@@ -112,35 +113,8 @@ export function PortfolioDetailView({ portfolio, agent, transactions, activities
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Left Column - Main Info */}
                 <div className="lg:col-span-2 space-y-6">
-                    {/* Image Gallery */}
-                    <Card className="overflow-hidden border shadow-sm">
-                        <div className="relative h-72 bg-gradient-to-br from-slate-100 to-slate-200">
-                            {coverImage ? (
-                                <img src={coverImage.url} alt={p.title} className="w-full h-full object-cover" />
-                            ) : (
-                                <div className="flex items-center justify-center h-full">
-                                    <Building2 className="h-20 w-20 text-slate-300" />
-                                </div>
-                            )}
-                            <div className="absolute bottom-3 right-3 bg-slate-900/85 backdrop-blur text-white px-4 py-2 rounded-xl">
-                                <span className="text-lg font-black">{formatCurrency(p.price, p.currency)}</span>
-                            </div>
-                            {images.length > 1 && (
-                                <div className="absolute bottom-3 left-3">
-                                    <Badge className="bg-white/80 backdrop-blur text-slate-700 text-[10px]">
-                                        {images.length} görsel
-                                    </Badge>
-                                </div>
-                            )}
-                        </div>
-                        {images.length > 1 && (
-                            <div className="flex gap-1 p-2 overflow-x-auto">
-                                {images.slice(0, 6).map((img: any, i: number) => (
-                                    <img key={img.id} src={img.url} alt="" className="h-16 w-20 object-cover rounded-lg flex-shrink-0 border hover:opacity-80 cursor-pointer" />
-                                ))}
-                            </div>
-                        )}
-                    </Card>
+                    {/* Image Gallery with Upload */}
+                    <PortfolioImageGallery portfolioId={p.id} images={p.portfolio_images || []} />
 
                     {/* Details Grid */}
                     <Card className="border shadow-sm">
