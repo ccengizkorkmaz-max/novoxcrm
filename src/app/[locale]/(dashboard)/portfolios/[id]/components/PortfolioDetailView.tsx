@@ -14,6 +14,7 @@ import {
     User, Phone, Mail, Calendar, Eye, MessageSquare, Banknote,
     Edit, ExternalLink, Share2, CheckCircle, Clock
 } from 'lucide-react'
+import { SellerReportWidget } from './SellerReportWidget'
 
 interface Props {
     portfolio: any
@@ -316,6 +317,9 @@ export function PortfolioDetailView({ portfolio, agent, transactions, activities
                             </CardContent>
                         </Card>
                     )}
+
+                    {/* Seller Report */}
+                    <SellerReportWidget portfolio={p} />
 
                     {/* Meta */}
                     <Card className="border shadow-sm">

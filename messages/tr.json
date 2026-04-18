@@ -481,6 +481,13 @@
             "levels": "Seviye Yönetimi",
             "earnings": "Broker Kazançları"
         },
+        "brokerMenu": {
+            "portfolios": "Portföyler",
+            "leadPool": "Talep Havuzu",
+            "agentTransactions": "Hak Edişler",
+            "leaderboard": "Sıralama",
+            "webhooks": "Entegrasyonlar"
+        },
         "reports": {
             "title": "Raporlar",
             "sales": "Satış Performansı",

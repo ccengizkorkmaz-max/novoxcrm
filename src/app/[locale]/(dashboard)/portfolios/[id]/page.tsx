@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
 import { PortfolioDetailView } from './components/PortfolioDetailView'
+import { AiMatchWidget } from './components/AiMatchWidget'
 
 export default async function PortfolioDetailPage(props: {
     params: Promise<{ id: string; locale: string }>
@@ -47,12 +48,18 @@ export default async function PortfolioDetailPage(props: {
         .single()
 
     return (
-        <PortfolioDetailView
-            portfolio={portfolio}
-            agent={agent}
-            transactions={transactions || []}
-            activities={activities || []}
-            userRole={profile?.role || 'sales'}
-        />
+        <div className="space-y-6">
+            <PortfolioDetailView
+                portfolio={portfolio}
+                agent={agent}
+                transactions={transactions || []}
+                activities={activities || []}
+                userRole={profile?.role || 'sales'}
+            />
+            {/* AI Matching - Portföy detayının altında */}
+            <div className="max-w-5xl mx-auto w-full">
+                <AiMatchWidget portfolioId={id} />
+            </div>
+        </div>
     )
 }

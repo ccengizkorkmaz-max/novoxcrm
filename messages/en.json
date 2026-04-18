@@ -442,6 +442,13 @@
             "levels": "Level Management",
             "earnings": "Broker Earnings"
         },
+        "brokerMenu": {
+            "portfolios": "Portfolios",
+            "leadPool": "Lead Pool",
+            "agentTransactions": "Commissions",
+            "leaderboard": "Leaderboard",
+            "webhooks": "Integrations"
+        },
         "reports": {
             "title": "Reports",
             "sales": "Sales Performance",

@@ -123,11 +123,11 @@ export function NovoxSidebar({
             {isBroker && (
                 <>
                     <NavItem href="/portfolios" icon={MapPin} onClick={onElementClick}>
-                        Portföyler
+                        {labels.brokerMenu?.portfolios || 'Portföyler'}
                     </NavItem>
                     {isManager && (
                         <NavItem href="/lead-pool" icon={Target} onClick={onElementClick}>
-                            Talep Havuzu
+                            {labels.brokerMenu?.leadPool || 'Talep Havuzu'}
                         </NavItem>
                     )}
                 </>
@@ -168,14 +168,13 @@ export function NovoxSidebar({
                         </>
                     )}
 
-                    {/* Broker'a özel satış işlemleri */}
                     {isBroker && (
                         <>
                             <NavItem href="/agent-transactions" icon={UserCheck} onClick={onElementClick}>
-                                Hak Edişler
+                                {labels.brokerMenu?.agentTransactions || 'Hak Edişler'}
                             </NavItem>
                             <NavItem href="/leaderboard" icon={Medal} onClick={onElementClick}>
-                                Sıralama
+                                {labels.brokerMenu?.leaderboard || 'Sıralama'}
                             </NavItem>
                         </>
                     )}
@@ -202,6 +201,12 @@ export function NovoxSidebar({
             {isOwner && (
                 <NavItem href="/hr" icon={Briefcase} onClick={onElementClick}>
                     {labels.hr || 'HR'}
+                </NavItem>
+            )}
+
+            {isBroker && isOwner && (
+                <NavItem href="/integrations" icon={Zap} onClick={onElementClick}>
+                    {labels.brokerMenu?.webhooks || 'Entegrasyonlar'}
                 </NavItem>
             )}
 
