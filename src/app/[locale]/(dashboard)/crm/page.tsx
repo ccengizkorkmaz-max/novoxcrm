@@ -235,10 +235,10 @@ export default async function CRMPage(props: {
             <div className="sticky top-0 z-30 bg-background/95 backdrop-blur pb-2 pt-1 border-b mb-2">
                 <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-4 px-1">
-                        <h1 className="text-xl md:text-2xl font-bold tracking-tight whitespace-nowrap">{t('title')}</h1>
+                        <h1 className="text-xl md:text-2xl font-bold tracking-tight whitespace-nowrap">{isBroker ? 'İşlem Yönetimi' : t('title')}</h1>
                         <React.Suspense fallback={<div className="h-9 w-24 bg-gray-100 animate-pulse rounded" />}>
                             <CRMFilterSheet
-                                projects={projectsData || []}
+                                projects={isBroker ? [] : (projectsData || [])}
                                 profiles={profilesData || []}
                                 customers={customers || []}
                             />
@@ -255,6 +255,7 @@ export default async function CRMPage(props: {
                                 unitId: params.unitId as string,
                                 projectId: params.projectId as string
                             }}
+                            tenantType={tenantType}
                         />
                         <SalesExportButton 
                             filters={{
@@ -267,7 +268,7 @@ export default async function CRMPage(props: {
                                 dateTo: filterDateTo
                             }}
                         />
-                        {isAdmin && <BulkAutoAssignButton />}
+                        {!isBroker && isAdmin && <BulkAutoAssignButton />}
                     </div>
                 </div>
 

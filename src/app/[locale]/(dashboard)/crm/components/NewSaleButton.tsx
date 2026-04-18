@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
 import {
     Dialog,
     DialogContent,
@@ -20,6 +21,7 @@ interface NewSaleButtonProps {
     customers: any[]
     availableUnits: any[]
     initialState?: { openNewSale: boolean, unitId?: string, projectId?: string }
+    tenantType?: string
 }
 
 import { useTranslations } from 'next-intl'
@@ -27,9 +29,11 @@ import { useTranslations } from 'next-intl'
 export default function NewSaleButton({
     customers,
     availableUnits,
-    initialState
+    initialState,
+    tenantType = 'developer'
 }: NewSaleButtonProps) {
     const t = useTranslations('CRM.newSale')
+    const isBroker = tenantType === 'broker'
     const [isCreateOpen, setIsCreateOpen] = useState(initialState?.openNewSale || false)
     const [selectedCustomerIdForSale, setSelectedCustomerIdForSale] = useState("")
     const [selectedProjectIdForSale, setSelectedProjectIdForSale] = useState(initialState?.projectId || "")
@@ -67,7 +71,7 @@ export default function NewSaleButton({
 
     if (!mounted) {
         return (
-            <Button variant="default"><Plus className="mr-2 h-4 w-4" /> {t('button')}</Button>
+            <Button variant="default"><Plus className="mr-2 h-4 w-4" /> {isBroker ? 'Yeni Talep' : t('button')}</Button>
         )
     }
 
@@ -75,28 +79,25 @@ export default function NewSaleButton({
         <Dialog open={isCreateOpen} onOpenChange={(open) => {
             setIsCreateOpen(open)
             if (!open) {
-                // Reset form on close if needed, but keeping state might be better for UX
-                // Actually, let's reset to ensure clean slate unless specific UX requested
                 setSelectedCustomerIdForSale("")
                 if (!initialState?.projectId) setSelectedProjectIdForSale("")
                 if (!initialState?.unitId) setSelectedUnitIdForSale("")
             }
         }}>
             <DialogTrigger asChild>
-                <Button><Plus className="mr-2 h-4 w-4" /> {t('button')}</Button>
+                <Button><Plus className="mr-2 h-4 w-4" /> {isBroker ? 'Yeni Talep' : t('button')}</Button>
             </DialogTrigger>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>{t('title')}</DialogTitle>
+                    <DialogTitle>{isBroker ? 'Yeni Müşteri Talebi' : t('title')}</DialogTitle>
                 </DialogHeader>
                 <form action={async (formData) => {
                     const result = await createSale(formData)
                     if (result.error) {
                         toast.error(result.error)
                     } else {
-                        toast.success(t('createdSuccess'))
+                        toast.success(isBroker ? 'Talep oluşturuldu!' : t('createdSuccess'))
                         setIsCreateOpen(false)
-                        // Reset form state
                         setSelectedCustomerIdForSale("")
                         setSelectedProjectIdForSale("")
                         setSelectedUnitIdForSale("")
@@ -116,44 +117,85 @@ export default function NewSaleButton({
                             <input type="hidden" name="customer_id" value={selectedCustomerIdForSale} />
                         </div>
 
-                        <div className="grid gap-2">
-                            <Label>{t('project')}</Label>
-                            <Combobox
-                                items={projects}
-                                value={selectedProjectIdForSale}
-                                onChange={(val) => {
-                                    setSelectedProjectIdForSale(val)
-                                    setSelectedUnitIdForSale("")
-                                }}
-                                placeholder={t('selectProject')}
-                                searchPlaceholder={t('searchProject')}
-                                emptyText={t('projectNotFound')}
-                            />
-                            <input type="hidden" name="project_id" value={selectedProjectIdForSale} />
-                        </div>
+                        {isBroker ? (
+                            <>
+                                <div className="grid gap-2">
+                                    <Label>Talep Notu</Label>
+                                    <textarea
+                                        name="description"
+                                        rows={3}
+                                        placeholder="Müşterinin aradığı özellikleri yazın... (örn: Beşiktaş'ta 3+1, deniz manzaralı, 5M TL bütçe)"
+                                        className="w-full px-3 py-2 rounded-lg border text-sm resize-none"
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="grid gap-2">
+                                        <Label className="text-xs">Bütçe (opsiyonel)</Label>
+                                        <Input name="budget" type="number" placeholder="5000000" />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label className="text-xs">Kaynak</Label>
+                                        <select name="source" className="h-10 px-3 rounded-lg border text-sm bg-white w-full">
+                                            <option value="">Belirtilmemiş</option>
+                                            <option value="Referans">Referans</option>
+                                            <option value="Web Sitesi">Web Sitesi</option>
+                                            <option value="Sahibinden">Sahibinden</option>
+                                            <option value="Hepsiemlak">Hepsiemlak</option>
+                                            <option value="Sosyal Medya">Sosyal Medya</option>
+                                            <option value="Tabela">Tabela</option>
+                                            <option value="Telefon">Telefon</option>
+                                            <option value="Yürüyüş">Yürüyüş (Walk-in)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <div className="grid gap-2">
+                                    <Label>{t('project')}</Label>
+                                    <Combobox
+                                        items={projects}
+                                        value={selectedProjectIdForSale}
+                                        onChange={(val) => {
+                                            setSelectedProjectIdForSale(val)
+                                            setSelectedUnitIdForSale("")
+                                        }}
+                                        placeholder={t('selectProject')}
+                                        searchPlaceholder={t('searchProject')}
+                                        emptyText={t('projectNotFound')}
+                                    />
+                                    <input type="hidden" name="project_id" value={selectedProjectIdForSale} />
+                                </div>
 
-                        <div className="grid gap-2">
-                            <Label>{t('unit')}</Label>
-                            <Combobox
-                                items={filteredUnits}
-                                value={selectedUnitIdForSale}
-                                onChange={setSelectedUnitIdForSale}
-                                placeholder={selectedProjectIdForSale ? t('selectUnit') : t('selectProjectFirst')}
-                                searchPlaceholder={t('searchUnit')}
-                                emptyText={t('unitNotFound')}
-                                disabled={!selectedProjectIdForSale}
-                            />
-                            <input type="hidden" name="unit_id" value={selectedUnitIdForSale} />
-                        </div>
+                                <div className="grid gap-2">
+                                    <Label>{t('unit')}</Label>
+                                    <Combobox
+                                        items={filteredUnits}
+                                        value={selectedUnitIdForSale}
+                                        onChange={setSelectedUnitIdForSale}
+                                        placeholder={selectedProjectIdForSale ? t('selectUnit') : t('selectProjectFirst')}
+                                        searchPlaceholder={t('searchUnit')}
+                                        emptyText={t('unitNotFound')}
+                                        disabled={!selectedProjectIdForSale}
+                                    />
+                                    <input type="hidden" name="unit_id" value={selectedUnitIdForSale} />
+                                </div>
 
-                        {selectedUnitIdForSale && (
-                            <p className="text-xs text-muted-foreground italic">
-                                {t('note')}
-                            </p>
+                                {selectedUnitIdForSale && (
+                                    <p className="text-xs text-muted-foreground italic">
+                                        {t('note')}
+                                    </p>
+                                )}
+                            </>
                         )}
                     </div>
                     <DialogFooter>
-                        <Button type="submit" disabled={!selectedCustomerIdForSale || (!selectedUnitIdForSale && !selectedProjectIdForSale)}>{t('create')}</Button>
+                        <Button
+                            type="submit"
+                            disabled={!selectedCustomerIdForSale || (!isBroker && !selectedUnitIdForSale && !selectedProjectIdForSale)}
+                        >
+                            {isBroker ? 'Talep Oluştur' : t('create')}
+                        </Button>
                     </DialogFooter>
                 </form>
             </DialogContent>

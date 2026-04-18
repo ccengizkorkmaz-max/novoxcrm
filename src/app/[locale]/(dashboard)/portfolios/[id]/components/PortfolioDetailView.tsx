@@ -141,6 +141,70 @@ export function PortfolioDetailView({ portfolio, agent, transactions, activities
                         </CardContent>
                     </Card>
 
+                    {/* Amenities / Features */}
+                    {p.features && Object.keys(p.features).length > 0 && (
+                        <Card className="border shadow-sm">
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-sm font-bold">Özellikler</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="flex flex-wrap gap-2">
+                                    {(() => {
+                                        const FEATURE_LABELS: Record<string, { label: string; emoji: string }> = {
+                                            balcony: { label: 'Balkon', emoji: '🏗️' },
+                                            elevator: { label: 'Asansör', emoji: '🛗' },
+                                            parking_indoor: { label: 'Kapalı Otopark', emoji: '🅿️' },
+                                            parking_outdoor: { label: 'Açık Otopark', emoji: '🚗' },
+                                            security: { label: 'Güvenlik', emoji: '🔒' },
+                                            pool: { label: 'Yüzme Havuzu', emoji: '🏊' },
+                                            gym: { label: 'Spor Salonu', emoji: '🏋️' },
+                                            generator: { label: 'Jeneratör', emoji: '⚡' },
+                                            terrace: { label: 'Teras', emoji: '☀️' },
+                                            garden: { label: 'Bahçe', emoji: '🌳' },
+                                            sea_view: { label: 'Deniz Manzarası', emoji: '🌊' },
+                                            city_view: { label: 'Şehir Manzarası', emoji: '🏙️' },
+                                            furnished: { label: 'Eşyalı', emoji: '🪑' },
+                                            air_conditioning: { label: 'Klima', emoji: '❄️' },
+                                            fireplace: { label: 'Şömine', emoji: '🔥' },
+                                            storage: { label: 'Depo / Kiler', emoji: '📦' },
+                                            smart_home: { label: 'Akıllı Ev', emoji: '🤖' },
+                                            fiber_internet: { label: 'Fiber İnternet', emoji: '🌐' },
+                                            satellite: { label: 'Uydu / Kablo TV', emoji: '📡' },
+                                            disabled_access: { label: 'Engelli Erişimi', emoji: '♿' },
+                                        }
+                                        const HEATING_LABELS: Record<string, string> = {
+                                            central: 'Merkezi Sistem', combi: 'Kombi', floor: 'Yerden Isıtma',
+                                            stove: 'Soba', ac: 'Klima', none: 'Yok'
+                                        }
+                                        const features = p.features as Record<string, any>
+                                        const items: JSX.Element[] = []
+                                        
+                                        if (features.heating && features.heating !== 'none') {
+                                            items.push(
+                                                <span key="heating" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-orange-50 border border-orange-200 text-xs font-medium text-orange-700">
+                                                    🔥 {HEATING_LABELS[features.heating] || features.heating}
+                                                </span>
+                                            )
+                                        }
+                                        
+                                        Object.entries(features).forEach(([key, val]) => {
+                                            if (key === 'heating' || !val) return
+                                            const info = FEATURE_LABELS[key]
+                                            if (info) {
+                                                items.push(
+                                                    <span key={key} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-xs font-medium text-emerald-700">
+                                                        {info.emoji} {info.label}
+                                                    </span>
+                                                )
+                                            }
+                                        })
+                                        return items
+                                    })()}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
+
                     {/* Description */}
                     {p.description && (
                         <Card className="border shadow-sm">

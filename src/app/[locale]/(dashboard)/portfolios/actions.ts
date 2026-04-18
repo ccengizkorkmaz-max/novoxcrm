@@ -56,6 +56,12 @@ export async function createPortfolio(formData: FormData) {
         authorization_type: (formData.get('authorization_type') as string) || 'exclusive',
         authorization_start: (formData.get('authorization_start') as string)?.trim() || null,
         authorization_end: (formData.get('authorization_end') as string)?.trim() || null,
+        features: (() => {
+            try {
+                const raw = formData.get('features') as string
+                return raw ? JSON.parse(raw) : {}
+            } catch { return {} }
+        })(),
     }
     
     const { data, error } = await supabase

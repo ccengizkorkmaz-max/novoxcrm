@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { createPortfolio } from '../actions'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
-import { Building2, Home, TreePine, Store, Landmark, MapPin, User, Banknote, FileText } from 'lucide-react'
+import { Building2, Home, TreePine, Store, Landmark, MapPin, User, Banknote, FileText, Sparkles } from 'lucide-react'
 
 interface NewPortfolioDialogProps {
     open: boolean
@@ -22,6 +22,31 @@ export function NewPortfolioDialog({ open, onOpenChange }: NewPortfolioDialogPro
     const router = useRouter()
     const [loading, setLoading] = useState(false)
     const [activeTab, setActiveTab] = useState('basic')
+    const [selectedFeatures, setSelectedFeatures] = useState<Record<string, boolean>>({})
+    const [heatingType, setHeatingType] = useState('central')
+
+    const AMENITIES = [
+        { key: 'balcony', label: 'Balkon', emoji: '🏗️' },
+        { key: 'elevator', label: 'Asansör', emoji: '🛗' },
+        { key: 'parking_indoor', label: 'Kapalı Otopark', emoji: '🅿️' },
+        { key: 'parking_outdoor', label: 'Açık Otopark', emoji: '🚗' },
+        { key: 'security', label: 'Güvenlik', emoji: '🔒' },
+        { key: 'pool', label: 'Yüzme Havuzu', emoji: '🏊' },
+        { key: 'gym', label: 'Spor Salonu', emoji: '🏋️' },
+        { key: 'generator', label: 'Jeneratör', emoji: '⚡' },
+        { key: 'terrace', label: 'Teras', emoji: '☀️' },
+        { key: 'garden', label: 'Bahçe', emoji: '🌳' },
+        { key: 'sea_view', label: 'Deniz Manzarası', emoji: '🌊' },
+        { key: 'city_view', label: 'Şehir Manzarası', emoji: '🏙️' },
+        { key: 'furnished', label: 'Eşyalı', emoji: '🪑' },
+        { key: 'air_conditioning', label: 'Klima', emoji: '❄️' },
+        { key: 'fireplace', label: 'Şömine', emoji: '🔥' },
+        { key: 'storage', label: 'Depo / Kiler', emoji: '📦' },
+        { key: 'smart_home', label: 'Akıllı Ev', emoji: '🤖' },
+        { key: 'fiber_internet', label: 'Fiber İnternet', emoji: '🌐' },
+        { key: 'satellite', label: 'Uydu / Kablo TV', emoji: '📡' },
+        { key: 'disabled_access', label: 'Engelli Erişimi', emoji: '♿' },
+    ]
 
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault()
@@ -29,9 +54,15 @@ export function NewPortfolioDialog({ open, onOpenChange }: NewPortfolioDialogPro
 
         try {
             const formData = new FormData(e.currentTarget)
+            // Inject features as JSON
+            const features = { ...selectedFeatures, heating: heatingType }
+            formData.set('features', JSON.stringify(features))
             await createPortfolio(formData)
             toast.success('Portföy başarıyla oluşturuldu!')
             onOpenChange(false)
+            setSelectedFeatures({})
+            setHeatingType('central')
+            setActiveTab('basic')
             router.refresh()
         } catch (err: any) {
             toast.error(err.message || 'Portföy oluşturulamadı')
@@ -63,12 +94,15 @@ export function NewPortfolioDialog({ open, onOpenChange }: NewPortfolioDialogPro
 
                 <form onSubmit={handleSubmit}>
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                        <TabsList className="grid w-full grid-cols-4 mb-4">
+                        <TabsList className="grid w-full grid-cols-5 mb-4">
                             <TabsTrigger value="basic" className="text-xs gap-1.5">
                                 <Home className="h-3.5 w-3.5" /> Temel
                             </TabsTrigger>
                             <TabsTrigger value="location" className="text-xs gap-1.5">
                                 <MapPin className="h-3.5 w-3.5" /> Konum
+                            </TabsTrigger>
+                            <TabsTrigger value="features" className="text-xs gap-1.5">
+                                <Sparkles className="h-3.5 w-3.5" /> Özellikler
                             </TabsTrigger>
                             <TabsTrigger value="owner" className="text-xs gap-1.5">
                                 <User className="h-3.5 w-3.5" /> Ev Sahibi
@@ -176,7 +210,51 @@ export function NewPortfolioDialog({ open, onOpenChange }: NewPortfolioDialogPro
                             </div>
                         </TabsContent>
 
-                        {/* TAB 3: EV SAHİBİ */}
+                        {/* TAB 3: ÖZELLİKLER (AMENITIES) */}
+                        <TabsContent value="features" className="space-y-4">
+                            <div className="grid gap-2">
+                                <Label className="text-xs font-bold">Isıtma Türü</Label>
+                                <select
+                                    value={heatingType}
+                                    onChange={(e) => setHeatingType(e.target.value)}
+                                    className="h-10 px-3 rounded-lg border text-sm bg-white w-full"
+                                >
+                                    <option value="central">Merkezi Sistem</option>
+                                    <option value="combi">Kombi (Bireysel)</option>
+                                    <option value="floor">Yerden Isıtma</option>
+                                    <option value="stove">Soba</option>
+                                    <option value="ac">Klima (Isıtma/Soğutma)</option>
+                                    <option value="none">Isıtma Yok</option>
+                                </select>
+                            </div>
+                            <div className="grid gap-2">
+                                <Label className="text-xs font-bold">Mülk Özellikleri</Label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {AMENITIES.map((a) => (
+                                        <label
+                                            key={a.key}
+                                            className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg border cursor-pointer transition-all text-sm ${
+                                                selectedFeatures[a.key]
+                                                    ? 'bg-emerald-50 border-emerald-300 text-emerald-800 font-medium'
+                                                    : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-600'
+                                            }`}
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                checked={!!selectedFeatures[a.key]}
+                                                onChange={(e) => setSelectedFeatures(prev => ({ ...prev, [a.key]: e.target.checked }))}
+                                                className="sr-only"
+                                            />
+                                            <span className="text-base">{a.emoji}</span>
+                                            <span className="text-xs">{a.label}</span>
+                                            {selectedFeatures[a.key] && <span className="ml-auto text-emerald-600">✓</span>}
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+                        </TabsContent>
+
+                        {/* TAB 4: EV SAHİBİ */}
                         <TabsContent value="owner" className="space-y-4">
                             <div className="grid gap-2">
                                 <Label htmlFor="owner_name" className="text-xs font-bold">Ev Sahibi Adı</Label>
@@ -229,7 +307,7 @@ export function NewPortfolioDialog({ open, onOpenChange }: NewPortfolioDialogPro
                         <div className="flex gap-2">
                             {activeTab !== 'basic' && (
                                 <Button type="button" variant="outline" onClick={() => {
-                                    const tabs = ['basic', 'location', 'owner', 'details']
+                                    const tabs = ['basic', 'location', 'features', 'owner', 'details']
                                     const idx = tabs.indexOf(activeTab)
                                     if (idx > 0) setActiveTab(tabs[idx - 1])
                                 }}>
@@ -238,7 +316,7 @@ export function NewPortfolioDialog({ open, onOpenChange }: NewPortfolioDialogPro
                             )}
                             {activeTab !== 'details' ? (
                                 <Button type="button" onClick={() => {
-                                    const tabs = ['basic', 'location', 'owner', 'details']
+                                    const tabs = ['basic', 'location', 'features', 'owner', 'details']
                                     const idx = tabs.indexOf(activeTab)
                                     if (idx < tabs.length - 1) setActiveTab(tabs[idx + 1])
                                 }}>
