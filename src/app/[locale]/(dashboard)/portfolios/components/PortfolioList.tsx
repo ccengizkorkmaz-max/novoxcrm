@@ -273,6 +273,33 @@ export function PortfolioList({ portfolios, userRole }: PortfolioListProps) {
                                         <MapPin className="h-3 w-3 flex-shrink-0" />
                                         <span className="truncate">{[p.neighborhood, p.district, p.city].filter(Boolean).join(', ') || 'Konum belirtilmemiş'}</span>
                                     </div>
+                                    {/* Feature tags */}
+                                    {p.features && Object.keys(p.features).filter(k => k !== 'heating' && p.features[k]).length > 0 && (
+                                        <div className="flex flex-wrap gap-1 pt-1">
+                                            {(() => {
+                                                const FEAT_EMOJI: Record<string, string> = {
+                                                    balcony: '🏗️', elevator: '🛗', parking_indoor: '🅿️', parking_outdoor: '🚗',
+                                                    security: '🔒', pool: '🏊', gym: '🏋️', sea_view: '🌊', city_view: '🏙️',
+                                                    furnished: '🪑', air_conditioning: '❄️', garden: '🌳', terrace: '☀️',
+                                                    generator: '⚡', fireplace: '🔥', smart_home: '🤖',
+                                                }
+                                                const FEAT_LABEL: Record<string, string> = {
+                                                    balcony: 'Balkon', elevator: 'Asansör', parking_indoor: 'Otopark', parking_outdoor: 'Otopark',
+                                                    security: 'Güvenlik', pool: 'Havuz', gym: 'Spor', sea_view: 'Deniz', city_view: 'Şehir Mnz.',
+                                                    furnished: 'Eşyalı', air_conditioning: 'Klima', garden: 'Bahçe', terrace: 'Teras',
+                                                    generator: 'Jeneratör', fireplace: 'Şömine', smart_home: 'Akıllı Ev',
+                                                }
+                                                return Object.entries(p.features)
+                                                    .filter(([k, v]) => k !== 'heating' && v && FEAT_EMOJI[k])
+                                                    .slice(0, 4)
+                                                    .map(([k]) => (
+                                                        <span key={k} className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-slate-100 text-[9px] text-slate-600">
+                                                            {FEAT_EMOJI[k]} {FEAT_LABEL[k]}
+                                                        </span>
+                                                    ))
+                                            })()}
+                                        </div>
+                                    )}
                                     <div className="flex items-center justify-between pt-2 border-t">
                                         <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
                                             <span className="flex items-center gap-1">

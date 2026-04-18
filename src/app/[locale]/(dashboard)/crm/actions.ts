@@ -402,22 +402,31 @@ export async function createSale(formData: FormData) {
     const customer_id = formData.get('customer_id') as string
     const unit_id = formData.get('unit_id') as string
     const project_id = formData.get('project_id') as string
+    const description = (formData.get('description') as string)?.trim() || null
+    const source = (formData.get('source') as string)?.trim() || null
+    const budget = formData.get('budget') ? Number(formData.get('budget')) : null
 
     if (!customer_id) return { error: 'Missing customer' }
 
     const { data: customer } = await supabase.from('customers').select('source').eq('id', customer_id).single()
-    const lead_origin = mapSourceToCategory(customer?.source || null)
+    const lead_origin = mapSourceToCategory(source || customer?.source || null)
 
-    // Start a sales process - if unit is matched, it's a Prospect
-    const { data: newSaleData, error } = await supabase.from('sales').insert({
+    // Build insert payload
+    const salePayload: any = {
         tenant_id: profile?.tenant_id,
         customer_id,
         unit_id: unit_id || null,
         project_id: project_id || null,
         assigned_to: null,
         status: unit_id ? 'Prospect' : 'Lead',
-        lead_origin // Set calculated origin
-    }).select().single()
+        lead_origin,
+    }
+
+    // Broker-specific: add description and source
+    if (description) salePayload.description = description
+    if (source) salePayload.source = source
+
+    const { data: newSaleData, error } = await supabase.from('sales').insert(salePayload).select().single()
 
     if (error) {
         console.error('Create Sale Error:', error)
@@ -638,9 +647,6 @@ export async function updateSaleStatus(id: string, status: string) {
 
     revalidatePath('/crm')
     revalidatePath('/offers')
-
-    // Broker Sync
-    await syncBrokerLeadFromSale(id, status)
 
     // Broker Sync
     await syncBrokerLeadFromSale(id, status)

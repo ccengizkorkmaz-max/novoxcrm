@@ -391,6 +391,11 @@ export default function PipelineList({
                                                             ) : (
                                                                 <span className="text-xs text-muted-foreground hidden lg:inline-block">ID: {sale.id.slice(0, 8)}...</span>
                                                             )}
+                                                            {isBroker && sale.description && (
+                                                                <p className="text-[10px] text-muted-foreground truncate max-w-[200px]" title={sale.description}>
+                                                                    💬 {sale.description}
+                                                                </p>
+                                                            )}
                                                         </div>
                                                     </TableCell>
                                                 )
