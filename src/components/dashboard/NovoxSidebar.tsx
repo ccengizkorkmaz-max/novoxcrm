@@ -27,7 +27,8 @@ import {
     MapPin,
     Target,
     UserCheck,
-    Medal
+    Medal,
+    Globe
 } from 'lucide-react'
 import {
     Accordion,
@@ -143,6 +144,11 @@ export function NovoxSidebar({
                     {isManager && (
                         <NavItem href="/marketing" icon={Mail} onClick={onElementClick}>
                             Pazarlama
+                        </NavItem>
+                    )}
+                    {isManager && (
+                        <NavItem href="/portal-integrations" icon={Globe} onClick={onElementClick}>
+                            Portallar
                         </NavItem>
                     )}
                 </>
