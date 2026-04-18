@@ -23,7 +23,11 @@ import {
     Clock,
     Gift,
     Settings2,
-    ChevronDown
+    ChevronDown,
+    MapPin,
+    Target,
+    UserCheck,
+    Medal
 } from 'lucide-react'
 import {
     Accordion,
@@ -66,17 +70,22 @@ function NavItem({ href, icon: Icon, children, onClick, isSubItem }: NavItemProp
 export function NovoxSidebar({
     role = 'sales',
     onElementClick,
-    labels
+    labels,
+    tenantType = 'developer'
 }: {
     role?: string | null,
     onElementClick?: () => void,
-    labels: any
+    labels: any,
+    tenantType?: string
 }) {
     const currentRole = role || 'sales'
 
     const isManager = currentRole === 'manager' || currentRole === 'owner' || currentRole === 'admin'
     const isSales = isManager || currentRole === 'sales' || currentRole === 'user'
     const isOwner = currentRole === 'owner' || currentRole === 'admin'
+
+    const isDeveloper = tenantType === 'developer'
+    const isBroker = tenantType === 'broker'
 
     // Safety check for labels
     if (!labels) return null;
@@ -97,12 +106,34 @@ export function NovoxSidebar({
             <NavItem href="/quick-crm" icon={Zap} onClick={onElementClick}>
                 {labels.quickCRM || 'Quick CRM'}
             </NavItem>
-            <NavItem href="/projects" icon={Building2} onClick={onElementClick}>
-                {labels.projects || 'Projects'}
-            </NavItem>
-            <NavItem href="/inventory" icon={Home} onClick={onElementClick}>
-                {labels.inventory || 'Inventory'}
-            </NavItem>
+
+            {/* ======== DEVELOPER (MÜTEAHHİT) MENÜSÜ ======== */}
+            {isDeveloper && (
+                <>
+                    <NavItem href="/projects" icon={Building2} onClick={onElementClick}>
+                        {labels.projects || 'Projects'}
+                    </NavItem>
+                    <NavItem href="/inventory" icon={Home} onClick={onElementClick}>
+                        {labels.inventory || 'Inventory'}
+                    </NavItem>
+                </>
+            )}
+
+            {/* ======== BROKER (ACENTE) MENÜSÜ ======== */}
+            {isBroker && (
+                <>
+                    <NavItem href="/portfolios" icon={MapPin} onClick={onElementClick}>
+                        Portföyler
+                    </NavItem>
+                    {isManager && (
+                        <NavItem href="/lead-pool" icon={Target} onClick={onElementClick}>
+                            Talep Havuzu
+                        </NavItem>
+                    )}
+                </>
+            )}
+
+            {/* ======== ORTAK MENÜ ÖĞELERİ ======== */}
             <NavItem href="/customers" icon={Users} onClick={onElementClick}>
                 {labels.customers || 'Customers'}
             </NavItem>
@@ -118,18 +149,37 @@ export function NovoxSidebar({
                     <NavItem href="/crm" icon={Activity} onClick={onElementClick}>
                         {labels.salesManagement || 'Sales Management'}
                     </NavItem>
-                    <NavItem href="/options" icon={Package} onClick={onElementClick}>
-                        {labels.options || 'Options'}
-                    </NavItem>
-                    <NavItem href="/offers" icon={FileText} onClick={onElementClick}>
-                        {labels.offers || 'Offers'}
-                    </NavItem>
-                    <NavItem href="/contracts" icon={FileText} onClick={onElementClick}>
-                        {labels.contracts || 'Contracts'}
-                    </NavItem>
-                    <NavItem href="/finance/deposits" icon={Banknote} onClick={onElementClick}>
-                        {labels.deposits || 'Deposits'}
-                    </NavItem>
+
+                    {/* Developer'a özel satış adımları */}
+                    {isDeveloper && (
+                        <>
+                            <NavItem href="/options" icon={Package} onClick={onElementClick}>
+                                {labels.options || 'Options'}
+                            </NavItem>
+                            <NavItem href="/offers" icon={FileText} onClick={onElementClick}>
+                                {labels.offers || 'Offers'}
+                            </NavItem>
+                            <NavItem href="/contracts" icon={FileText} onClick={onElementClick}>
+                                {labels.contracts || 'Contracts'}
+                            </NavItem>
+                            <NavItem href="/finance/deposits" icon={Banknote} onClick={onElementClick}>
+                                {labels.deposits || 'Deposits'}
+                            </NavItem>
+                        </>
+                    )}
+
+                    {/* Broker'a özel satış işlemleri */}
+                    {isBroker && (
+                        <>
+                            <NavItem href="/agent-transactions" icon={UserCheck} onClick={onElementClick}>
+                                Hak Edişler
+                            </NavItem>
+                            <NavItem href="/leaderboard" icon={Medal} onClick={onElementClick}>
+                                Sıralama
+                            </NavItem>
+                        </>
+                    )}
+
                     <NavItem href="/activities" icon={CalendarCheck} onClick={onElementClick}>
                         {labels.activities || 'Activities'}
                     </NavItem>
@@ -138,9 +188,11 @@ export function NovoxSidebar({
 
             {isManager && (
                 <>
-                    <NavItem href="/commissions" icon={Trophy} onClick={onElementClick}>
-                        {labels.commissions || 'Commissions'}
-                    </NavItem>
+                    {isDeveloper && (
+                        <NavItem href="/commissions" icon={Trophy} onClick={onElementClick}>
+                            {labels.commissions || 'Commissions'}
+                        </NavItem>
+                    )}
                     <NavItem href="/finance" icon={Banknote} onClick={onElementClick}>
                         {labels.finance || 'Finance'}
                     </NavItem>
@@ -159,35 +211,37 @@ export function NovoxSidebar({
 
             {isManager && (
                 <Accordion type="multiple" className="w-full border-none">
-                    {/* B2B Broker Management Section */}
-                    <AccordionItem value="broker" className="border-none">
-                        <AccordionTrigger className="px-3 py-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg hover:no-underline [&[data-state=open]]:text-white font-medium justify-start text-[13px] gap-3">
-                            <Users className="h-4 w-4" />
-                            <span>{labels.broker?.title || 'Broker Management'}</span>
-                        </AccordionTrigger>
-                        <AccordionContent className="pt-1 pb-2 pl-4 grid gap-0.5">
-                            <NavItem href="/admin/broker-applications" icon={Clock} onClick={onElementClick} isSubItem>
-                                {labels.broker?.management || 'Management'}
-                            </NavItem>
-                            <NavItem href="/admin/broker-leads" icon={Users} onClick={onElementClick} isSubItem>
-                                {labels.broker?.leads || 'Leads'}
-                            </NavItem>
-                            <NavItem href="/admin/broker-leads/campaigns" icon={Gift} onClick={onElementClick} isSubItem>
-                                {labels.broker?.campaigns || 'Campaigns'}
-                            </NavItem>
-                            {isOwner && (
-                                <NavItem href="/admin/broker-leads/commission-settings" icon={Settings2} onClick={onElementClick} isSubItem>
-                                    {labels.broker?.commission || 'Commission Settings'}
+                    {/* B2B Broker Management Section - sadece Developer'lara göster */}
+                    {isDeveloper && (
+                        <AccordionItem value="broker" className="border-none">
+                            <AccordionTrigger className="px-3 py-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg hover:no-underline [&[data-state=open]]:text-white font-medium justify-start text-[13px] gap-3">
+                                <Users className="h-4 w-4" />
+                                <span>{labels.broker?.title || 'Broker Management'}</span>
+                            </AccordionTrigger>
+                            <AccordionContent className="pt-1 pb-2 pl-4 grid gap-0.5">
+                                <NavItem href="/admin/broker-applications" icon={Clock} onClick={onElementClick} isSubItem>
+                                    {labels.broker?.management || 'Management'}
                                 </NavItem>
-                            )}
-                            <NavItem href="/admin/broker-finances" icon={Banknote} onClick={onElementClick} isSubItem>
-                                {labels.broker?.finance || 'Finance'}
-                            </NavItem>
-                            <NavItem href="/admin/broker-leads/levels" icon={Trophy} onClick={onElementClick} isSubItem>
-                                {labels.broker?.levels || 'Levels'}
-                            </NavItem>
-                        </AccordionContent>
-                    </AccordionItem>
+                                <NavItem href="/admin/broker-leads" icon={Users} onClick={onElementClick} isSubItem>
+                                    {labels.broker?.leads || 'Leads'}
+                                </NavItem>
+                                <NavItem href="/admin/broker-leads/campaigns" icon={Gift} onClick={onElementClick} isSubItem>
+                                    {labels.broker?.campaigns || 'Campaigns'}
+                                </NavItem>
+                                {isOwner && (
+                                    <NavItem href="/admin/broker-leads/commission-settings" icon={Settings2} onClick={onElementClick} isSubItem>
+                                        {labels.broker?.commission || 'Commission Settings'}
+                                    </NavItem>
+                                )}
+                                <NavItem href="/admin/broker-finances" icon={Banknote} onClick={onElementClick} isSubItem>
+                                    {labels.broker?.finance || 'Finance'}
+                                </NavItem>
+                                <NavItem href="/admin/broker-leads/levels" icon={Trophy} onClick={onElementClick} isSubItem>
+                                    {labels.broker?.levels || 'Levels'}
+                                </NavItem>
+                            </AccordionContent>
+                        </AccordionItem>
+                    )}
 
                     {/* Reports Section */}
                     <AccordionItem value="reports" className="border-none">
@@ -199,15 +253,19 @@ export function NovoxSidebar({
                             <NavItem href="/reports/sales" icon={Activity} onClick={onElementClick} isSubItem>
                                 {labels.reports?.sales || 'Sales Performance'}
                             </NavItem>
-                            <NavItem href="/reports/inventory" icon={Building2} onClick={onElementClick} isSubItem>
-                                {labels.reports?.inventory || 'Inventory & Project'}
-                            </NavItem>
+                            {isDeveloper && (
+                                <NavItem href="/reports/inventory" icon={Building2} onClick={onElementClick} isSubItem>
+                                    {labels.reports?.inventory || 'Inventory & Project'}
+                                </NavItem>
+                            )}
                             <NavItem href="/reports/finance" icon={Banknote} onClick={onElementClick} isSubItem>
                                 {labels.reports?.finance || 'Financial Analysis'}
                             </NavItem>
-                            <NavItem href="/admin/broker-leads/reports" icon={BarChart3} onClick={onElementClick} isSubItem>
-                                {labels.broker?.earnings || 'Broker Earnings'}
-                            </NavItem>
+                            {isDeveloper && (
+                                <NavItem href="/admin/broker-leads/reports" icon={BarChart3} onClick={onElementClick} isSubItem>
+                                    {labels.broker?.earnings || 'Broker Earnings'}
+                                </NavItem>
+                            )}
                             <NavItem href="/reports/public-links" icon={Building2} onClick={onElementClick} isSubItem>
                                 {labels.reports?.publicLinks || 'Public Links'}
                             </NavItem>
@@ -221,3 +279,4 @@ export function NovoxSidebar({
         </nav>
     )
 }
+

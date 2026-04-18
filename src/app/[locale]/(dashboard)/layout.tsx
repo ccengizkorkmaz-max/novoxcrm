@@ -38,9 +38,11 @@ export default async function DashboardLayout(props: {
 
     const { data: tenant } = profile?.tenant_id ? await supabase
         .from('tenants')
-        .select('name')
+        .select('name, tenant_type')
         .eq('id', profile.tenant_id)
         .single() : { data: null }
+
+    const tenantType = (tenant as any)?.tenant_type || 'developer'
 
     const isAuthorizedForSettings = profile?.role === 'admin' || profile?.role === 'owner'
 
@@ -105,7 +107,7 @@ export default async function DashboardLayout(props: {
                         </div>
                     </div>
                     <div className="flex-1 overflow-auto py-2">
-                        <NovoxSidebar role={profile?.role || 'sales'} labels={sidebarLabels} />
+                        <NovoxSidebar role={profile?.role || 'sales'} labels={sidebarLabels} tenantType={tenantType} />
                     </div>
                     <div className="px-4 py-2">
                         <LanguageSwitcher variant="light" />
@@ -160,7 +162,7 @@ export default async function DashboardLayout(props: {
                                     </div>
                                 </div>
                                 <div className="flex-1 overflow-auto py-2">
-                                    <NovoxSidebar role={profile?.role || 'sales'} labels={sidebarLabels} />
+                                    <NovoxSidebar role={profile?.role || 'sales'} labels={sidebarLabels} tenantType={tenantType} />
                                 </div>
                                 <div className="px-4 py-2">
                                     <LanguageSwitcher variant="light" />
