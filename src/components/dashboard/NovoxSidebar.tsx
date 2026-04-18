@@ -151,6 +151,12 @@ export function NovoxSidebar({
                             Portallar
                         </NavItem>
                     )}
+                    <NavItem href="/agent-website" icon={UserCheck} onClick={onElementClick}>
+                        Web Sitem
+                    </NavItem>
+                    <NavItem href="/training" icon={Trophy} onClick={onElementClick}>
+                        Eğitimler
+                    </NavItem>
                 </>
             )}
 
