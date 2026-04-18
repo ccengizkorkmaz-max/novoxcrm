@@ -308,7 +308,7 @@ export default function PipelineList({
                     <table className="min-w-[1000px] w-full caption-bottom text-sm border-collapse">
                         <TableHeader className="sticky top-0 z-10 bg-slate-100/95 dark:bg-slate-800/95 backdrop-blur shadow-sm supports-[backdrop-filter]:bg-slate-100/60 font-sans">
                             <TableRow className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
-                                {colOrder.map(colId => {
+                                {colOrder.filter(colId => !(isBroker && (colId === 'project' || colId === 'unit'))).map(colId => {
                                     const isOver = dragOverCol === colId
                                     const w = colWidths[colId]
                                     const dragProps = {
@@ -327,8 +327,8 @@ export default function PipelineList({
                                             <div className="flex items-center justify-center gap-1">
                                                 <span className="opacity-25">⠿</span>
                                                 {colId === 'customer' && t('table.customer')}
-                                                {colId === 'project' && !isBroker && t('table.project')}
-                                                {colId === 'unit' && !isBroker && t('table.unit')}
+                                                {colId === 'project' && t('table.project')}
+                                                {colId === 'unit' && t('table.unit')}
                                                 {colId === 'status' && (isBroker ? 'Aşama' : t('table.status'))}
                                                 {colId === 'date' && t('table.date')}
                                                 {colId === 'amount' && t('table.amount')}
@@ -370,7 +370,7 @@ export default function PipelineList({
                                             key={sale.id}
                                             className={`transition-colors border-b hover:bg-muted/30 ${isCompleted ? 'bg-emerald-50/30' : ''} ${isLost ? 'bg-red-50/20' : ''}`}
                                         >
-                                            {colOrder.map(colId => {
+                                            {colOrder.filter(colId => !(isBroker && (colId === 'project' || colId === 'unit'))).map(colId => {
                                                 const cellCls = "px-3 py-2 align-middle border-r border-border/50"
                                                 if (colId === 'customer') return (
                                                     <TableCell key="customer" className={cellCls}>
@@ -536,10 +536,10 @@ export default function PipelineList({
                                                         <div className="flex items-center gap-1.5">
                                                             {!isCompleted && (
                                                                 <>
-                                                                    {(['Lead', 'Prospect', 'Reservation', 'Reserved', 'Opsiyon - Kapora Bekleniyor'].includes(sale.status)) && (
+                                                                    {!isBroker && (['Lead', 'Prospect', 'Reservation', 'Reserved', 'Opsiyon - Kapora Bekleniyor'].includes(sale.status)) && (
                                                                         <PipelineReservationDialog saleId={sale.id} currentUnitId={sale.unit_id} availableUnits={availableUnits} customerName={sale.customers?.full_name} status={sale.status} expiryDate={sale.reservation_expiry} />
                                                                     )}
-                                                                    {['Lead', 'Prospect'].includes(sale.status) && (
+                                                                    {!isBroker && ['Lead', 'Prospect'].includes(sale.status) && (
                                                                         <MatchUnitDialog saleId={sale.id} currentUnitId={sale.unit_id} availableUnits={availableUnits} customerName={sale.customers?.full_name} />
                                                                     )}
                                                                     {sale.status === 'Lost' && !sale.restarted_at && <RestartSaleButton saleId={sale.id} />}
@@ -662,18 +662,22 @@ export default function PipelineList({
                                 )}
 
                                 <div className="grid grid-cols-1 gap-y-3 text-xs">
-                                    <div className="flex flex-col gap-1">
-                                        <span className="text-muted-foreground text-[10px] uppercase font-bold tracking-tight">{t('table.project')}</span>
-                                        <span className="font-medium truncate">{sale.units?.projects?.name || sale.projects?.name || '-'}</span>
-                                    </div>
-                                    <div className="flex flex-col gap-1">
-                                        <span className="text-muted-foreground text-[10px] uppercase font-bold tracking-tight">{t('table.unit')}</span>
-                                        <span className="font-medium">
-                                            {sale.units ? (
-                                                <Badge variant="outline" className="h-5 text-[10px] font-mono py-0">{sale.units.unit_number}</Badge>
-                                            ) : '-'}
-                                        </span>
-                                    </div>
+                                    {!isBroker && (
+                                        <div className="flex flex-col gap-1">
+                                            <span className="text-muted-foreground text-[10px] uppercase font-bold tracking-tight">{t('table.project')}</span>
+                                            <span className="font-medium truncate">{sale.units?.projects?.name || sale.projects?.name || '-'}</span>
+                                        </div>
+                                    )}
+                                    {!isBroker && (
+                                        <div className="flex flex-col gap-1">
+                                            <span className="text-muted-foreground text-[10px] uppercase font-bold tracking-tight">{t('table.unit')}</span>
+                                            <span className="font-medium">
+                                                {sale.units ? (
+                                                    <Badge variant="outline" className="h-5 text-[10px] font-mono py-0">{sale.units.unit_number}</Badge>
+                                                ) : '-'}
+                                            </span>
+                                        </div>
+                                    )}
                                     <div className="flex flex-col gap-1">
                                         <span className="text-muted-foreground text-[10px] uppercase font-bold tracking-tight">{t('table.rep')}</span>
                                         <div className="flex items-center gap-1.5">
@@ -729,7 +733,7 @@ export default function PipelineList({
                                                     <Button variant="outline" size="icon" className="h-8 w-8 text-blue-600 border-blue-100" onClick={() => handleCreateActivity(sale.customers)}>
                                                         <CalendarPlus className="h-3.5 w-3.5" />
                                                     </Button>
-                                                    {(['Lead', 'Prospect', 'Reservation', 'Reserved', 'Opsiyon - Kapora Bekleniyor'].includes(sale.status)) && (
+                                                    {!isBroker && (['Lead', 'Prospect', 'Reservation', 'Reserved', 'Opsiyon - Kapora Bekleniyor'].includes(sale.status)) && (
                                                         <PipelineReservationDialog
                                                             saleId={sale.id}
                                                             currentUnitId={sale.unit_id}
@@ -739,7 +743,7 @@ export default function PipelineList({
                                                             expiryDate={sale.reservation_expiry}
                                                         />
                                                     )}
-                                                    {['Lead', 'Prospect'].includes(sale.status) && (
+                                                    {!isBroker && ['Lead', 'Prospect'].includes(sale.status) && (
                                                         <MatchUnitDialog
                                                             saleId={sale.id}
                                                             currentUnitId={sale.unit_id}
