@@ -130,6 +130,11 @@ export function NovoxSidebar({
                             {labels.brokerMenu?.leadPool || 'Talep Havuzu'}
                         </NavItem>
                     )}
+                    {isManager && (
+                        <NavItem href="/analytics" icon={BarChart3} onClick={onElementClick}>
+                            Raporlar
+                        </NavItem>
+                    )}
                 </>
             )}
 
