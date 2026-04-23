@@ -102,8 +102,14 @@ export async function POST(req: NextRequest) {
             .eq('tenant_id', tenantId)
             .eq('status', 'Active');
 
-        // 3. Prepare AI Interaction
-        const apiKey = process.env.GEMINI_API_KEY;
+        // 3. Prepare AI Interaction - Get API key from tenant DB first, env var as fallback
+        const { data: tenantAiSettings } = await adminSupabase
+            .from('tenants')
+            .select('gemini_api_key')
+            .eq('id', tenantId)
+            .maybeSingle();
+        
+        const apiKey = tenantAiSettings?.gemini_api_key || process.env.GEMINI_API_KEY;
         if (!apiKey) {
             return NextResponse.json({ error: 'Gemini API key missing' }, { status: 500 });
         }

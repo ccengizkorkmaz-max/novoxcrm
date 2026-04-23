@@ -6,12 +6,6 @@ export async function POST(req: NextRequest) {
     try {
         const { message, project, history } = await req.json()
 
-        // 1. Get API Key
-        const apiKey = process.env.GEMINI_API_KEY
-        if (!apiKey) {
-            return NextResponse.json({ error: 'AI Key missing' }, { status: 500 })
-        }
-
         // 2. Fetch all active projects for global context using Admin client
         const adminSupabase = createAdminClient()
         const { data: allProjects } = await adminSupabase
@@ -30,14 +24,21 @@ export async function POST(req: NextRequest) {
             gender: 'female'
         }
 
+        // 1. Get API Key from tenant DB (primary) or env var (fallback)
+        let apiKey = process.env.GEMINI_API_KEY
+        
         if (tenantId) {
             const { data: tenant } = await adminSupabase
                 .from('tenants')
-                .select('ai_assistant_name, ai_assistant_personality, ai_assistant_instructions, ai_assistant_gender')
+                .select('ai_assistant_name, ai_assistant_personality, ai_assistant_instructions, ai_assistant_gender, gemini_api_key')
                 .eq('id', tenantId)
                 .maybeSingle()
 
             if (tenant) {
+                // Use tenant's own API key if available
+                if (tenant.gemini_api_key) {
+                    apiKey = tenant.gemini_api_key
+                }
                 assistantSettings = {
                     name: tenant.ai_assistant_name || assistantSettings.name,
                     personality: tenant.ai_assistant_personality || assistantSettings.personality,
@@ -45,6 +46,10 @@ export async function POST(req: NextRequest) {
                     gender: tenant.ai_assistant_gender || assistantSettings.gender
                 }
             }
+        }
+
+        if (!apiKey) {
+            return NextResponse.json({ error: 'AI Key missing' }, { status: 500 })
         }
 
         const genAI = new GoogleGenerativeAI(apiKey)
