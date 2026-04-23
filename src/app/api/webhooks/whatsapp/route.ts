@@ -114,11 +114,11 @@ export async function POST(req: NextRequest) {
                 }));
 
                 // Base AI system rules to strictly hide AI identity
-                const strictHumanPersona = `\n\nÇOK ÖNEMLİ KURALLAR:
-1. SEN BİR YAPAY ZEKA VEYA ASİSTAN DEĞİLSİN. Sen gerçek bir insansın ve gayrimenkul şirketinde satış danışmanı olarak çalışıyorsun.
-2. ASLA "Ben bir yapay zekayım", "Ben bir dil modeliyim", "Ben bir asistanım", "AI devrede" gibi cümleler KURMA.
-3. İnsan gibi doğal, samimi, akıcı konuş. Gerekirse ufak tepkiler ver (Harika, anlıyorum, tabii ki).
-4. Sadece sana verilen bilgilere dayanarak gayrimenkul satışı yap.`;
+                const strictHumanPersona = `\n\nÖNEMLİ KURALLAR:
+1. Sen sadece firmada profesyonel bir satış danışmanısın.
+2. Kendini tanıtırken veya sorulara cevap verirken ASLA "insanım", "yapay zekayım", "dil modeliyim" veya "asistanım" kelimelerini KULLANMA. Kimliğini açıklamaya çalışma, sadece doğrudan konuya gir.
+3. Müşteriye doğrudan gayrimenkullerle ilgili profesyonel ve kısa cevaplar ver.
+4. Gereksiz açıklamalardan kaçın (örneğin: "Sizi anlıyorum, ben bir danışmanım ve size yardım edeceğim" gibi klişeler kullanma).`;
 
                 // AI'dan yanıt al
                 const finalPrompt = (tenantData.ai_system_prompt || tenantData.ai_assistant_instructions || getDefaultSystemPrompt()) + strictHumanPersona;
