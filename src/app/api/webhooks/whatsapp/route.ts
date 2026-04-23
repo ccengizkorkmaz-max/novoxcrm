@@ -238,6 +238,13 @@ function parseIncomingPayload(body: any): IncomingPayload | null {
     // Facebook Messenger
     if (body.object === 'page') {
         const msgData = body.entry?.[0]?.messaging?.[0];
+
+        // Skip echo messages (our own outgoing messages reflected back)
+        if (msgData?.message?.is_echo) {
+            console.log('📤 Echo mesajı atlandı (kendi gönderdiğimiz mesaj)');
+            return null;
+        }
+
         if (msgData?.message?.text) {
             return {
                 channel: 'messenger',
