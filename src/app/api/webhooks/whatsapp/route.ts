@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
         }
 
         // ── 4. Gelen Mesajı Kaydet ─────────────────────────────────────
-        await supabase.from('whatsapp_messages').insert({
+        const { error: msgInsertError } = await supabase.from('whatsapp_messages').insert({
             conversation_id: conversationId,
             tenant_id: tenantId,
             wa_message_id: payload.message_id,
@@ -83,6 +83,12 @@ export async function POST(req: NextRequest) {
             status: 'received',
             role: 'user',
         });
+
+        if (msgInsertError) {
+            console.error('❌ Mesaj kaydedilemedi:', JSON.stringify(msgInsertError));
+        } else {
+            console.log('✅ Mesaj kaydedildi:', payload.message.substring(0, 30));
+        }
 
         // ── 5. AI Chatbot Motoru ───────────────────────────────────────
         if (aiEnabled && tenantData.ai_api_key) {
