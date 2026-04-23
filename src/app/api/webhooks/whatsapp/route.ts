@@ -422,17 +422,56 @@ async function callGemini(
 ): Promise<string | null> {
     const { GoogleGenerativeAI } = await import('@google/generative-ai');
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
-        model: modelName,
-        systemInstruction: systemPrompt,
-    });
+    
+    // Model fallback list if 404 occurs
+    const modelOptions = [
+        modelName, 
+        `${modelName}-latest`, 
+        'gemini-1.5-flash', 
+        'gemini-1.5-flash-latest', 
+        'gemini-pro' // Legacy fallback
+    ];
+    
+    // Remove duplicates
+    const uniqueModels = [...new Set(modelOptions)];
+    
+    let lastError = null;
+    
+    for (const currentModel of uniqueModels) {
+        try {
+            console.log(`[AI] Attempting Gemini model: ${currentModel}`);
+            const isLegacy = currentModel === 'gemini-pro';
+            
+            // Legacy models (gemini-pro) don't support systemInstruction in v1beta via SDK easily
+            const modelConfig = isLegacy ? { model: currentModel } : { 
+                model: currentModel, 
+                systemInstruction: systemPrompt 
+            };
+            
+            const model = genAI.getGenerativeModel(modelConfig);
 
-    const chat = model.startChat({ history: chatHistory.slice(0, -1) }); // Son mesaj hariç geçmiş
-    const lastMessage = chatHistory[chatHistory.length - 1]?.parts?.[0]?.text || '';
-    const result = await chat.sendMessage(lastMessage);
-    const text = result.response.text();
-
-    return text || null;
+            const chat = model.startChat({ history: chatHistory.slice(0, -1) }); // Son mesaj hariç geçmiş
+            const lastMessage = chatHistory[chatHistory.length - 1]?.parts?.[0]?.text || '';
+            const result = await chat.sendMessage(lastMessage);
+            const text = result.response.text();
+            
+            console.log(`[AI] Successfully generated response using ${currentModel}`);
+            return text || null;
+            
+        } catch (error: any) {
+            console.warn(`[AI] Model ${currentModel} failed:`, error.message);
+            lastError = error;
+            // If it's a 404, we continue to the next fallback. Otherwise, break.
+            if (error.message?.includes('404') || error.message?.includes('not found') || error.message?.includes('not supported')) {
+                continue;
+            } else {
+                break; // E.g., API Key invalid, Rate limit, etc.
+            }
+        }
+    }
+    
+    console.error(`[AI] All Gemini models failed. Last error:`, lastError);
+    throw lastError;
 }
 
 /**
