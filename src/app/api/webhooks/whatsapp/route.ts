@@ -227,7 +227,7 @@ export async function POST(req: NextRequest) {
  * Model adı tenant'ta tanımlıysa onu kullanır, yoksa default kullanır.
  */
 function resolveAiProvider(tenant: any): { provider: string; apiKey: string; model: string } | null {
-    const geminiModel = tenant.gemini_model || 'gemini-2.0-flash';
+    const geminiModel = tenant.gemini_model || 'gemini-2.5-flash';
     const openaiModel = tenant.openai_model || 'gpt-4o-mini';
 
     // 1. Gemini aktif ve key varsa
