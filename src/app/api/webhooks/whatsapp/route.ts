@@ -404,7 +404,7 @@ async function generateAIReply(
         if (provider === 'openai') {
             return await callOpenAI(apiKey, systemPrompt, chatHistory, modelName || 'gpt-4o-mini');
         }
-        return await callGemini(apiKey, systemPrompt, chatHistory, modelName || 'gemini-3-flash');
+        return await callGemini(apiKey, systemPrompt, chatHistory, modelName || 'gemini-2.5-flash');
     } catch (error) {
         console.error(`${provider} API Error:`, error);
         return null;
@@ -418,7 +418,7 @@ async function callGemini(
     apiKey: string,
     systemPrompt: string,
     chatHistory: { role: string; parts: { text: string }[] }[],
-    modelName: string = 'gemini-3-flash'
+    modelName: string = 'gemini-2.5-flash'
 ): Promise<string | null> {
     const { GoogleGenerativeAI } = await import('@google/generative-ai');
     const genAI = new GoogleGenerativeAI(apiKey);
@@ -426,9 +426,8 @@ async function callGemini(
     // Model fallback list if 404 occurs
     const modelOptions = [
         modelName, 
-        'gemini-3-flash', 
-        'gemini-3.1-flash-lite', 
-        'gemini-3.1-flash-live'
+        'gemini-2.5-flash', 
+        'gemini-2.5-pro'
     ];
     
     // Remove duplicates

@@ -93,7 +93,7 @@ export async function GET(req: NextRequest) {
 
         // --- Gemini Prompting ---
         const genAI = new GoogleGenerativeAI(apiKey)
-        const geminiModel = tenant?.gemini_model || "gemini-3-flash"
+        const geminiModel = tenant?.gemini_model || "gemini-2.5-flash"
         const model = genAI.getGenerativeModel({ model: geminiModel })
 
         const prompt = `Sen Novo CRM'in Akıllı Satış Asistanısın. Kullanıcının adı: ${profile.full_name}.

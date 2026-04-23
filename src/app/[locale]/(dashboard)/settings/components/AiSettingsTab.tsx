@@ -181,22 +181,21 @@ export default function AiSettingsTab({ tenant }: AiSettingsTabProps) {
                                             const input = document.getElementById('gemini_model_input') as HTMLInputElement;
                                             if (input) input.value = val;
                                         }}
-                                        defaultValue={tenant.gemini_model || 'gemini-3-flash'}
+                                        defaultValue={tenant.gemini_model || 'gemini-2.5-flash'}
                                     >
                                         <SelectTrigger className="w-full bg-white">
                                             <SelectValue placeholder="Model Seçin" />
                                         </SelectTrigger>
                                         <SelectContent position="popper">
-                                            <SelectItem value="gemini-3-flash">Gemini 3 Flash (Güncel, Çok Hızlı)</SelectItem>
-                                            <SelectItem value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite (Hafif ve Tasarruflu)</SelectItem>
-                                            <SelectItem value="gemini-3.1-flash-live">Gemini 3.1 Flash Live (Gerçek Zamanlı/Audio)</SelectItem>
+                                            <SelectItem value="gemini-2.5-flash">Gemini 2.5 Flash (Güncel, Hızlı)</SelectItem>
+                                            <SelectItem value="gemini-2.5-pro">Gemini 2.5 Pro (Çok Daha Zeki, Pahalı)</SelectItem>
                                         </SelectContent>
                                     </Select>
                                     <input
                                         type="hidden"
                                         id="gemini_model_input"
                                         name="gemini_model"
-                                        defaultValue={tenant.gemini_model || 'gemini-3-flash'}
+                                        defaultValue={tenant.gemini_model || 'gemini-2.5-flash'}
                                     />
                                 </div>
                             </div>
