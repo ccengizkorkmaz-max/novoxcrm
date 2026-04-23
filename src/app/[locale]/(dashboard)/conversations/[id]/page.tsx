@@ -47,11 +47,11 @@ export default async function ConversationDetailPage(props: { params: Promise<{ 
                         <div className="flex items-center gap-2 mt-0.5">
                             <Badge className={cn(
                                 "text-[10px] uppercase font-black px-2 py-0 border-none shadow-sm",
-                                "bg-emerald-50 text-emerald-700"
+                                session.channel === 'messenger' ? "bg-blue-50 text-blue-700" : "bg-emerald-50 text-emerald-700"
                             )}>
-                                WHATSAPP
+                                {session.channel === 'messenger' ? 'MESSENGER' : 'WHATSAPP'}
                             </Badge>
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">TEL: {session.phone_number}</span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">ID: {session.phone_number}</span>
                         </div>
                     </div>
                 </div>
