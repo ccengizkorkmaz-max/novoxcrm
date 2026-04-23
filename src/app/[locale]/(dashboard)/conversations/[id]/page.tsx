@@ -1,6 +1,6 @@
 import { getSessionMessages, getMessagingSession } from '../actions'
 import { Badge } from "@/components/ui/badge"
-import { MessageSquare, User, Bot, Sparkles, Search } from 'lucide-react'
+import { MessageSquare, User, Bot, Sparkles, Activity, CalendarCheck } from 'lucide-react'
 import { Link } from '@/i18n/routing'
 import { format } from 'date-fns'
 import { tr } from 'date-fns/locale'
@@ -111,43 +111,80 @@ export default async function ConversationDetailPage(props: { params: Promise<{ 
                 </div>
 
                 {/* Info Sidebar */}
-                <div className="hidden xl:block w-80 border-l border-slate-200 bg-white overflow-y-auto custom-scrollbar p-6 space-y-8 shadow-[inset_4px_0_12px_rgba(0,0,0,0.01)] border-t border-t-slate-50">
-                    <section>
-                        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Müşteri Dosyası</h3>
-                        {session.customers ? (
-                            <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100 shadow-sm transition-all hover:bg-slate-100/50">
-                                <div className="font-black text-slate-900 text-base mb-1 tracking-tight">{session.customers.full_name}</div>
-                                <div className="text-blue-600 font-bold text-xs mb-4">{session.customers.phone}</div>
-                                <Link
-                                    href={`/customers/${session.customer_id}`}
-                                    className="w-full h-11 flex items-center justify-center rounded-xl bg-slate-900 text-[10px] font-black text-white uppercase tracking-[0.2em] shadow-lg shadow-slate-200 transition-all hover:bg-slate-800 active:scale-95"
-                                >
-                                    DETAYLARI GÖR
-                                </Link>
+                <div className="hidden xl:block w-72 border-l border-slate-200 bg-white overflow-y-auto custom-scrollbar p-4 space-y-4">
+                    {/* Customer Card */}
+                    {session.customers ? (
+                        <Link
+                            href={`/customers/${session.customer_id}`}
+                            className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100 hover:bg-slate-100 transition-all group"
+                        >
+                            <div className="h-10 w-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-black text-sm shrink-0">
+                                {session.customers.full_name?.charAt(0)?.toUpperCase() || '?'}
                             </div>
-                        ) : (
-                            <div className="bg-slate-50/50 rounded-2xl p-8 border border-dashed border-slate-200 text-center">
-                                <Search className="h-10 w-10 text-slate-200 mx-auto mb-3" />
-                                <p className="text-[10px] font-black text-slate-400 leading-relaxed uppercase tracking-widest">
-                                    Kimlik Doğrulanıyor...
-                                </p>
+                            <div className="min-w-0">
+                                <div className="font-bold text-sm text-slate-900 truncate">{session.customers.full_name}</div>
+                                <div className="text-[11px] text-blue-600 font-medium">{session.customers.phone}</div>
                             </div>
-                        )}
-                    </section>
+                        </Link>
+                    ) : (
+                        <div className="p-3 rounded-xl bg-amber-50/50 border border-amber-100 text-center">
+                            <p className="text-[11px] font-semibold text-amber-700 mb-2">Müşteri eşleşmedi</p>
+                            <Link
+                                href="/customers?new=true"
+                                className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-100 px-3 py-1.5 rounded-lg hover:bg-amber-200 transition-all uppercase tracking-wider"
+                            >
+                                + CRM'e Ekle
+                            </Link>
+                        </div>
+                    )}
 
-                    <section className="bg-slate-50/30 rounded-2xl p-4 border border-slate-100/50">
-                        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">İstatistikler</h3>
-                        <div className="space-y-4">
-                            <div className="flex justify-between items-center bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
-                                <span className="text-[10px] text-slate-400 font-bold uppercase">Durum</span>
-                                <Badge className="bg-blue-50 text-blue-700 border-none font-black text-[10px] uppercase">{session.ai_enabled ? 'AI AKTİF' : 'YÖNETİMDE'}</Badge>
-                            </div>
-                            <div className="flex justify-between items-center bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
-                                <span className="text-[10px] text-slate-400 font-bold uppercase">Mesajlar</span>
-                                <span className="font-black text-slate-900 text-xs">{messages.length} ADET</span>
+                    {/* Compact Info Grid */}
+                    <div className="grid grid-cols-2 gap-2">
+                        <div className="bg-slate-50 rounded-lg p-2.5 text-center">
+                            <div className="text-[10px] text-slate-400 font-bold uppercase">Kanal</div>
+                            <div className={cn(
+                                "text-xs font-black mt-0.5",
+                                session.channel === 'messenger' ? "text-blue-600" : "text-emerald-600"
+                            )}>
+                                {session.channel === 'messenger' ? 'Messenger' : 'WhatsApp'}
                             </div>
                         </div>
-                    </section>
+                        <div className="bg-slate-50 rounded-lg p-2.5 text-center">
+                            <div className="text-[10px] text-slate-400 font-bold uppercase">Mesaj</div>
+                            <div className="text-xs font-black text-slate-900 mt-0.5">{messages.length}</div>
+                        </div>
+                        <div className="bg-slate-50 rounded-lg p-2.5 text-center">
+                            <div className="text-[10px] text-slate-400 font-bold uppercase">Başlangıç</div>
+                            <div className="text-[11px] font-bold text-slate-700 mt-0.5">
+                                {format(new Date(session.created_at), 'dd MMM', { locale: tr })}
+                            </div>
+                        </div>
+                        <div className="bg-slate-50 rounded-lg p-2.5 text-center">
+                            <div className="text-[10px] text-slate-400 font-bold uppercase">Son Mesaj</div>
+                            <div className="text-[11px] font-bold text-slate-700 mt-0.5">
+                                {format(new Date(session.last_message_at), 'HH:mm', { locale: tr })}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Notes / Quick Actions */}
+                    <div className="space-y-2">
+                        <div className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Hızlı İşlemler</div>
+                        <Link
+                            href={`/crm?phone=${session.phone_number}`}
+                            className="flex items-center gap-2 p-2.5 rounded-lg bg-slate-50 hover:bg-slate-100 transition-all text-[11px] font-semibold text-slate-600"
+                        >
+                            <Activity className="h-3.5 w-3.5" />
+                            CRM'de Ara
+                        </Link>
+                        <Link
+                            href={`/activities?source=conversation&ref=${id}`}
+                            className="flex items-center gap-2 p-2.5 rounded-lg bg-slate-50 hover:bg-slate-100 transition-all text-[11px] font-semibold text-slate-600"
+                        >
+                            <CalendarCheck className="h-3.5 w-3.5" />
+                            Aktivite Oluştur
+                        </Link>
+                    </div>
                 </div>
             </div>
         </div>
