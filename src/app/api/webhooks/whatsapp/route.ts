@@ -118,7 +118,8 @@ export async function POST(req: NextRequest) {
                     resolvedAi.provider,
                     resolvedAi.apiKey,
                     tenantData.ai_system_prompt || tenantData.ai_assistant_instructions || getDefaultSystemPrompt(),
-                    chatHistory
+                    chatHistory,
+                    resolvedAi.model
                 );
 
                 if (aiReply) {
@@ -213,28 +214,32 @@ export async function POST(req: NextRequest) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * Tenant ayarlarından aktif AI provider ve API key'i dinamik olarak çözer.
- * Öncelik: 1) Gemini (aktifse) 2) OpenAI (aktifse) 3) Eski ai_api_key fallback
+ * Tenant ayarlarından aktif AI provider, model ve API key'i dinamik olarak çözer.
+ * Model adı tenant'ta tanımlıysa onu kullanır, yoksa default kullanır.
  */
-function resolveAiProvider(tenant: any): { provider: string; apiKey: string } | null {
+function resolveAiProvider(tenant: any): { provider: string; apiKey: string; model: string } | null {
+    const geminiModel = tenant.gemini_model || 'gemini-2.0-flash';
+    const openaiModel = tenant.openai_model || 'gpt-4o-mini';
+
     // 1. Gemini aktif ve key varsa
     if (tenant.is_gemini_enabled && tenant.gemini_api_key) {
-        return { provider: 'gemini', apiKey: tenant.gemini_api_key };
+        return { provider: 'gemini', apiKey: tenant.gemini_api_key, model: geminiModel };
     }
     // 2. OpenAI aktif ve key varsa
     if (tenant.is_openai_enabled && tenant.openai_api_key) {
-        return { provider: 'openai', apiKey: tenant.openai_api_key };
+        return { provider: 'openai', apiKey: tenant.openai_api_key, model: openaiModel };
     }
     // 3. Eski ai_api_key fallback
     if (tenant.ai_api_key) {
-        return { provider: tenant.ai_provider || 'gemini', apiKey: tenant.ai_api_key };
+        const p = tenant.ai_provider || 'gemini';
+        return { provider: p, apiKey: tenant.ai_api_key, model: p === 'openai' ? openaiModel : geminiModel };
     }
     // 4. Key var ama toggle açık değilse yine kullan
     if (tenant.gemini_api_key) {
-        return { provider: 'gemini', apiKey: tenant.gemini_api_key };
+        return { provider: 'gemini', apiKey: tenant.gemini_api_key, model: geminiModel };
     }
     if (tenant.openai_api_key) {
-        return { provider: 'openai', apiKey: tenant.openai_api_key };
+        return { provider: 'openai', apiKey: tenant.openai_api_key, model: openaiModel };
     }
     return null;
 }
@@ -307,7 +312,7 @@ function parseIncomingPayload(body: any): IncomingPayload | null {
  * WhatsApp → wa_phone_number_id, Messenger → fb_page_id
  */
 async function findTenant(supabase: any, phoneNumberId: string, channel?: string) {
-    const selectFields = 'id, ai_provider, ai_api_key, ai_system_prompt, ai_assistant_instructions, wa_phone_number_id, wa_access_token, fb_page_id, gemini_api_key, openai_api_key, is_gemini_enabled, is_openai_enabled, name';
+    const selectFields = 'id, ai_provider, ai_api_key, ai_system_prompt, ai_assistant_instructions, wa_phone_number_id, wa_access_token, fb_page_id, gemini_api_key, openai_api_key, is_gemini_enabled, is_openai_enabled, gemini_model, openai_model, name';
 
     // Messenger ise önce fb_page_id ile dene
     if (channel === 'messenger') {
@@ -392,17 +397,16 @@ async function generateAIReply(
     provider: string,
     apiKey: string,
     systemPrompt: string,
-    chatHistory: { role: string; parts: { text: string }[] }[]
+    chatHistory: { role: string; parts: { text: string }[] }[],
+    modelName?: string
 ): Promise<string | null> {
     try {
         if (provider === 'openai') {
-            return await callOpenAI(apiKey, systemPrompt, chatHistory);
-        } else {
-            // Default: Gemini
-            return await callGemini(apiKey, systemPrompt, chatHistory);
+            return await callOpenAI(apiKey, systemPrompt, chatHistory, modelName || 'gpt-4o-mini');
         }
+        return await callGemini(apiKey, systemPrompt, chatHistory, modelName || 'gemini-1.5-flash');
     } catch (error) {
-        console.error(`AI (${provider}) Error:`, error);
+        console.error(`${provider} API Error:`, error);
         return null;
     }
 }
@@ -413,12 +417,13 @@ async function generateAIReply(
 async function callGemini(
     apiKey: string,
     systemPrompt: string,
-    chatHistory: { role: string; parts: { text: string }[] }[]
+    chatHistory: { role: string; parts: { text: string }[] }[],
+    modelName: string = 'gemini-1.5-flash'
 ): Promise<string | null> {
     const { GoogleGenerativeAI } = await import('@google/generative-ai');
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
-        model: 'gemini-1.5-flash',
+        model: modelName,
         systemInstruction: systemPrompt,
     });
 
@@ -436,7 +441,8 @@ async function callGemini(
 async function callOpenAI(
     apiKey: string,
     systemPrompt: string,
-    chatHistory: { role: string; parts: { text: string }[] }[]
+    chatHistory: { role: string; parts: { text: string }[] }[],
+    modelName: string = 'gpt-4o-mini'
 ): Promise<string | null> {
     const messages = [
         { role: 'system', content: systemPrompt },
@@ -453,7 +459,7 @@ async function callOpenAI(
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-            model: 'gpt-4o-mini',
+            model: modelName,
             messages,
             max_tokens: 500,
             temperature: 0.7,
