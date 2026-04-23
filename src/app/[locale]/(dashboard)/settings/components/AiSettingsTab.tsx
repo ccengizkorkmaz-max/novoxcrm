@@ -6,11 +6,11 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
-import { Brain, Sparkles, AlertCircle, Info, ToggleLeft, ToggleRight } from 'lucide-react'
+import { Brain, Sparkles, AlertCircle, Info, ToggleLeft, ToggleRight, Phone, Facebook } from 'lucide-react'
 import { toast } from 'sonner'
 import { updateAiSettings, updateAiAssistantCharacter } from '../actions'
 import { useTranslations } from 'next-intl'
-import { MessageSquare, User, HelpCircle, Save } from 'lucide-react'
+import { MessageSquare, User, HelpCircle, Save, Link2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
@@ -27,6 +27,10 @@ interface AiSettingsTabProps {
         ai_assistant_personality?: string | null
         ai_assistant_gender?: string | null
         ai_assistant_instructions?: string | null
+        // Messaging integration fields
+        wa_phone_number_id?: string | null
+        wa_access_token?: string | null
+        fb_page_id?: string | null
     }
 }
 
@@ -146,6 +150,66 @@ export default function AiSettingsTab({ tenant }: AiSettingsTabProps) {
                             </div>
                         </div>
                     </div>
+
+                        {/* Messaging Integration Section */}
+                        <div className="p-4 rounded-xl border bg-slate-50/50 space-y-4">
+                            <div className="flex items-center gap-2 mb-2">
+                                <Link2 className="h-4 w-4 text-indigo-600" />
+                                <Label className="text-base font-semibold">Mesajlaşma Entegrasyonları</Label>
+                            </div>
+                            <p className="text-xs text-muted-foreground -mt-2">WhatsApp ve Facebook Messenger kanallarını bağlamak için aşağıdaki bilgileri girin.</p>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="wa_phone_number_id" className="text-xs text-slate-500 flex items-center gap-1">
+                                        <Phone className="h-3 w-3" /> WhatsApp Phone Number ID
+                                    </Label>
+                                    <Input
+                                        id="wa_phone_number_id"
+                                        name="wa_phone_number_id"
+                                        defaultValue={tenant.wa_phone_number_id || ''}
+                                        placeholder="Örn: 123456789012345"
+                                        className="bg-white font-mono text-sm"
+                                    />
+                                    <p className="text-[10px] text-muted-foreground">Meta Developer → WhatsApp → API Setup → Phone number ID</p>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="fb_page_id" className="text-xs text-slate-500 flex items-center gap-1">
+                                        <Facebook className="h-3 w-3" /> Facebook Page ID
+                                    </Label>
+                                    <Input
+                                        id="fb_page_id"
+                                        name="fb_page_id"
+                                        defaultValue={tenant.fb_page_id || ''}
+                                        placeholder="Örn: 26239326952374846"
+                                        className="bg-white font-mono text-sm"
+                                    />
+                                    <p className="text-[10px] text-muted-foreground">Facebook Sayfanızın ID'si (Messenger webhook için)</p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <Label htmlFor="wa_access_token" className="text-xs text-slate-500">WhatsApp / Messenger Access Token</Label>
+                                    {tenant.wa_access_token && (
+                                        <span className="text-[10px] font-mono bg-white border px-2 py-0.5 rounded text-slate-500">
+                                            {maskKey(tenant.wa_access_token)}
+                                        </span>
+                                    )}
+                                </div>
+                                <Input
+                                    id="wa_access_token"
+                                    name="wa_access_token"
+                                    type="password"
+                                    defaultValue={tenant.wa_access_token || ''}
+                                    placeholder="EAAG..."
+                                    className="bg-white"
+                                    autoComplete="off"
+                                />
+                                <p className="text-[10px] text-muted-foreground">Meta Developer → App Dashboard → Permanent Page Access Token</p>
+                            </div>
+                        </div>
 
                     <div className="p-4 rounded-lg bg-blue-50 border border-blue-100 flex gap-3">
                         <Info className="h-5 w-5 text-blue-600 shrink-0" />

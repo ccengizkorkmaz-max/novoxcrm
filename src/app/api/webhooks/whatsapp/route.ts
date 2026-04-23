@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
         const supabase = createAdminClient();
 
         // ── 2. Tenant Eşleştir ─────────────────────────────────────────
-        const tenantData = await findTenant(supabase, payload.phoneNumberId);
+        const tenantData = await findTenant(supabase, payload.phoneNumberId, payload.channel);
         if (!tenantData) {
             console.error('❌ Tenant bulunamadı, mesaj atılıyor.');
             return NextResponse.json({ status: 'no_tenant' }, { status: 200 });
@@ -248,22 +248,34 @@ function parseIncomingPayload(body: any): IncomingPayload | null {
 }
 
 /**
- * Tenant'ı PhoneNumberId ile eşleştirir, bulamazsa ilk tenant'a fallback yapar.
+ * Tenant'ı kanal türüne göre eşleştirir.
+ * WhatsApp → wa_phone_number_id, Messenger → fb_page_id
  */
-async function findTenant(supabase: any, phoneNumberId: string) {
-    // Önce tam eşleşme dene
+async function findTenant(supabase: any, phoneNumberId: string, channel?: string) {
+    const selectFields = 'id, ai_provider, ai_api_key, ai_system_prompt, wa_phone_number_id, wa_access_token, fb_page_id';
+
+    // Messenger ise önce fb_page_id ile dene
+    if (channel === 'messenger') {
+        const { data } = await supabase
+            .from('tenants')
+            .select(selectFields)
+            .eq('fb_page_id', phoneNumberId)
+            .single();
+        if (data) return data;
+    }
+
+    // WhatsApp veya fallback: wa_phone_number_id ile dene
     const { data } = await supabase
         .from('tenants')
-        .select('id, ai_provider, ai_api_key, ai_system_prompt, wa_phone_number_id, wa_access_token')
+        .select(selectFields)
         .eq('wa_phone_number_id', phoneNumberId)
         .single();
-
     if (data) return data;
 
-    // Fallback: global .env kullanılıyordur, ilk tenant'ı al
+    // Son fallback: ilk tenant'ı al (tek-tenant kurulumlar için)
     const { data: fallback } = await supabase
         .from('tenants')
-        .select('id, ai_provider, ai_api_key, ai_system_prompt, wa_phone_number_id, wa_access_token')
+        .select(selectFields)
         .limit(1)
         .single();
 

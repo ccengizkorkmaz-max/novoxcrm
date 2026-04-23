@@ -564,12 +564,21 @@ export async function updateAiSettings(formData: FormData) {
         return { error: 'Yalnızca yönetici yetkisi olanlar bu ayarları değiştirebilir.' }
     }
 
-    const updates = {
+    const updates: Record<string, any> = {
         openai_api_key: formData.get('openai_api_key') as string,
         gemini_api_key: formData.get('gemini_api_key') as string,
         is_openai_enabled: formData.get('is_openai_enabled') === 'on',
         is_gemini_enabled: formData.get('is_gemini_enabled') === 'on',
     }
+
+    // Messaging integration fields (only update if provided)
+    const waPhoneNumberId = formData.get('wa_phone_number_id') as string
+    const fbPageId = formData.get('fb_page_id') as string
+    const waAccessToken = formData.get('wa_access_token') as string
+
+    if (waPhoneNumberId !== null) updates.wa_phone_number_id = waPhoneNumberId || null
+    if (fbPageId !== null) updates.fb_page_id = fbPageId || null
+    if (waAccessToken !== null) updates.wa_access_token = waAccessToken || null
 
     const { error } = await supabase
         .from('tenants')
