@@ -577,37 +577,43 @@ async function getTenantCrmContext(supabase: any, tenantId: string): Promise<str
     try {
         const { data: projects } = await supabase
             .from('projects')
-            .select('id, title, city, status')
+            .select('id, name, city, district, address, amenities, phase_count')
             .eq('tenant_id', tenantId)
             .eq('status', 'Active')
-            .limit(5);
+            .limit(10);
 
         const { data: units } = await supabase
             .from('units')
-            .select('project_id, type, price')
+            .select('project_id, type, price, status')
             .eq('tenant_id', tenantId)
-            .in('status', ['Available', 'Müsait'])
-            .limit(50);
+            .in('status', ['Available', 'Müsait', 'Reserved'])
+            .limit(100);
 
         if (!projects || projects.length === 0) return '\n\n--- CRM ENVANTER BİLGİSİ ---\nŞu an aktif proje yok.';
 
         let context = '\n\n--- CRM ENVANTER BİLGİSİ (BU BİLGİLERİ MÜŞTERİYE SATIŞ YAPMAK İÇİN KULLAN) ---\n';
         for (const p of projects) {
-            context += `Proje Adı: ${p.title} (Şehir: ${p.city})\n`;
+            context += `\nProje Adı: ${p.name} (Şehir: ${p.city}${p.district ? ', İlçe: ' + p.district : ''})\n`;
+            if (p.amenities && p.amenities.length > 0) {
+                context += `  Sosyal Olanaklar: ${p.amenities.join(', ')}\n`;
+            }
             const projUnits = (units || []).filter((u: any) => u.project_id === p.id);
             if (projUnits.length > 0) {
                 context += `  Müsait Daire Tipleri ve Fiyatlar:\n`;
-                const typeGroups: Record<string, number> = {};
+                const typeGroups: Record<string, { min: number; count: number }> = {};
                 projUnits.forEach((u: any) => {
-                    if (!typeGroups[u.type] || u.price < typeGroups[u.type]) {
-                        typeGroups[u.type] = u.price;
+                    if (!typeGroups[u.type]) {
+                        typeGroups[u.type] = { min: u.price, count: 1 };
+                    } else {
+                        typeGroups[u.type].count++;
+                        if (u.price < typeGroups[u.type].min) typeGroups[u.type].min = u.price;
                     }
                 });
-                for (const [type, price] of Object.entries(typeGroups)) {
-                    context += `    - ${type}: ${price} TL'den başlıyor\n`;
+                for (const [type, info] of Object.entries(typeGroups)) {
+                    context += `    - ${type}: ${info.min > 0 ? info.min.toLocaleString('tr-TR') + ' TL\'den başlıyor' : 'Fiyat sorulmalı'} (${info.count} adet müsait)\n`;
                 }
             } else {
-                context += `  Müsait daire yok.\n`;
+                context += `  Şu an müsait daire yok, yeni etap açılacak.\n`;
             }
         }
         context += '------------------------------------------------\n';
