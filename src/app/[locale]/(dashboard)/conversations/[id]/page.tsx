@@ -6,6 +6,7 @@ import { format } from 'date-fns'
 import { tr } from 'date-fns/locale'
 import ConversationReply from './ConversationReply'
 import AiToggle from './AiToggle'
+import AutoScroll from './AutoScroll'
 import { cn } from "@/lib/utils"
 
 export const dynamic = 'force-dynamic'
@@ -103,6 +104,7 @@ export default async function ConversationDetailPage(props: { params: Promise<{ 
                                 </div>
                             ))
                         )}
+                        <AutoScroll deps={messages.length} />
                     </div>
 
                     <div className="p-4 border-t border-slate-100 bg-white/50 backdrop-blur-sm sticky bottom-0">
