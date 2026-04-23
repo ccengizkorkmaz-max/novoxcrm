@@ -126,7 +126,7 @@ Daima:
 - Asla müşteriye uzun destanlar yazma (telefon ekranında okuyacaklar).
 - Bilmediğin konularda "bilmiyorum" de.`;
 
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash", systemInstruction: systemPrompt });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash", systemInstruction: systemPrompt });
 
         // Build history in the format required by Gemini
         const chatHistory = history.map(h => ({
@@ -211,7 +211,7 @@ Daima:
         // 4. Contact and Pipeline Lead creation
         if (isQualified && !session.customer_id) {
             try {
-                const extractionModel = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+                const extractionModel = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
                 const fullContext = history.map(h => `${h.role}: ${h.content}`).join('\n') + `\nuser: ${message}`;
 
                 const extractionResult = await extractionModel.generateContent(`

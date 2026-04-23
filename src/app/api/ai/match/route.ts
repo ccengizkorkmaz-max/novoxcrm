@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
         if (!apiKey) return NextResponse.json({ error: 'AI key missing' }, { status: 503 })
 
         const genAI = new GoogleGenerativeAI(apiKey)
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" })
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" })
 
         const prompt = `Sen bir Gayrimenkul Yatırım uzmanısın. Aşağıdaki müşteri talepleri ile elimizdeki boş daireleri karşılaştır.
         Müşteri için en uygun 3 daireyi seç ve nedenlerini açıkla.

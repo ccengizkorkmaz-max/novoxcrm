@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
         if (finalGeminiKey && isGeminiEnabled) {
             try {
                 const genAI = new GoogleGenerativeAI(finalGeminiKey)
-                const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+                const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
                 const buffer = Buffer.from(await file.arrayBuffer());
                 const base64Audio = buffer.toString('base64');
