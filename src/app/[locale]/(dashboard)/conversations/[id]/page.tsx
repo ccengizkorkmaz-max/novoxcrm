@@ -34,7 +34,7 @@ export default async function ConversationDetailPage(props: { params: Promise<{ 
 
     return (
         <div className="flex flex-col h-full bg-[#f8fafc]">
-            <MessagePoller intervalMs={5000} />
+            <MessagePoller conversationId={id} />
             {/* Header */}
             <div className="flex items-center justify-between bg-white/80 backdrop-blur-md p-4 border-b border-slate-200 sticky top-0 z-10">
                 <div className="flex items-center gap-4">
