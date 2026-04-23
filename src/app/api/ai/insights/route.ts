@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
         // Fetch AI keys from tenant settings
         const { data: tenant } = await supabase
             .from('tenants')
-            .select('gemini_api_key, is_gemini_enabled')
+            .select('gemini_api_key, is_gemini_enabled, gemini_model')
             .eq('id', profile.tenant_id)
             .single()
 
@@ -93,7 +93,8 @@ export async function GET(req: NextRequest) {
 
         // --- Gemini Prompting ---
         const genAI = new GoogleGenerativeAI(apiKey)
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" })
+        const geminiModel = tenant?.gemini_model || "gemini-1.5-flash"
+        const model = genAI.getGenerativeModel({ model: geminiModel })
 
         const prompt = `Sen Novo CRM'in Akıllı Satış Asistanısın. Kullanıcının adı: ${profile.full_name}.
         Aşağıdaki verilere bakarak kullanıcıya bugün için 3 kritik tavsiye ver. Tavsiyeler kısa, motive edici ve aksiyon odaklı olsun.

@@ -567,6 +567,8 @@ export async function updateAiSettings(formData: FormData) {
     const updates: Record<string, any> = {
         openai_api_key: formData.get('openai_api_key') as string,
         gemini_api_key: formData.get('gemini_api_key') as string,
+        gemini_model: formData.get('gemini_model') as string || 'gemini-1.5-flash',
+        openai_model: formData.get('openai_model') as string || 'gpt-4o-mini',
         is_openai_enabled: formData.get('is_openai_enabled') === 'on',
         is_gemini_enabled: formData.get('is_gemini_enabled') === 'on',
     }

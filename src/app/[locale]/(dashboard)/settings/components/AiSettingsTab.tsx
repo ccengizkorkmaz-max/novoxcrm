@@ -22,6 +22,8 @@ interface AiSettingsTabProps {
         gemini_api_key?: string | null
         is_openai_enabled?: boolean
         is_gemini_enabled?: boolean
+        gemini_model?: string | null
+        openai_model?: string | null
         // New assistant fields
         ai_assistant_name?: string | null
         ai_assistant_personality?: string | null
@@ -110,6 +112,31 @@ export default function AiSettingsTab({ tenant }: AiSettingsTabProps) {
                                     className="bg-white"
                                     autoComplete="off"
                                 />
+                                <div className="space-y-2">
+                                    <Label htmlFor="openai_model" className="text-xs text-slate-500">Kullanılacak Model</Label>
+                                    <Select
+                                        onValueChange={(val) => {
+                                            const input = document.getElementById('openai_model_input') as HTMLInputElement;
+                                            if (input) input.value = val;
+                                        }}
+                                        defaultValue={tenant.openai_model || 'gpt-4o-mini'}
+                                    >
+                                        <SelectTrigger className="w-full bg-white">
+                                            <SelectValue placeholder="Model Seçin" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="gpt-4o-mini">GPT-4o Mini (Hızlı ve Ucuz)</SelectItem>
+                                            <SelectItem value="gpt-4o">GPT-4o (En Zeki, Yüksek Maliyet)</SelectItem>
+                                            <SelectItem value="gpt-4-turbo">GPT-4 Turbo (Gelişmiş)</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <input
+                                        type="hidden"
+                                        id="openai_model_input"
+                                        name="openai_model"
+                                        defaultValue={tenant.openai_model || 'gpt-4o-mini'}
+                                    />
+                                </div>
                             </div>
                         </div>
 
@@ -147,6 +174,31 @@ export default function AiSettingsTab({ tenant }: AiSettingsTabProps) {
                                     className="bg-white"
                                     autoComplete="off"
                                 />
+                                <div className="space-y-2 mt-4">
+                                    <Label htmlFor="gemini_model" className="text-xs text-slate-500">Kullanılacak Model</Label>
+                                    <Select
+                                        onValueChange={(val) => {
+                                            const input = document.getElementById('gemini_model_input') as HTMLInputElement;
+                                            if (input) input.value = val;
+                                        }}
+                                        defaultValue={tenant.gemini_model || 'gemini-1.5-flash'}
+                                    >
+                                        <SelectTrigger className="w-full bg-white">
+                                            <SelectValue placeholder="Model Seçin" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="gemini-1.5-flash">Gemini 1.5 Flash (Çok Hızlı, Default)</SelectItem>
+                                            <SelectItem value="gemini-1.5-pro">Gemini 1.5 Pro (En Zeki, Karmaşık Analiz)</SelectItem>
+                                            <SelectItem value="gemini-2.0-flash">Gemini 2.0 Flash (Yeni Nesil, Yetki Gerekebilir)</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <input
+                                        type="hidden"
+                                        id="gemini_model_input"
+                                        name="gemini_model"
+                                        defaultValue={tenant.gemini_model || 'gemini-1.5-flash'}
+                                    />
+                                </div>
                             </div>
                         </div>
                     </div>
