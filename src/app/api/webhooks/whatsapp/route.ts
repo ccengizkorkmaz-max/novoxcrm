@@ -53,6 +53,7 @@ export async function POST(req: NextRequest) {
         const supabase = createAdminClient();
 
         // ── 2. Tenant Eşleştir ─────────────────────────────────────────
+        console.log(`🔍 Tenant aranıyor: phoneNumberId=${payload.phoneNumberId}, channel=${payload.channel}`);
         const tenantData = await findTenant(supabase, payload.phoneNumberId, payload.channel);
         if (!tenantData) {
             console.error('❌ Tenant bulunamadı, mesaj atılıyor.');
@@ -60,6 +61,7 @@ export async function POST(req: NextRequest) {
         }
 
         const tenantId = tenantData.id;
+        console.log(`✅ Tenant eşleşti: ${tenantId} (fb_page_id: ${tenantData.fb_page_id})`);
         const normalizedPhone = payload.phone.replace(/\D/g, '');
 
         // ── 3. Sohbeti Bul veya Oluştur ────────────────────────────────
