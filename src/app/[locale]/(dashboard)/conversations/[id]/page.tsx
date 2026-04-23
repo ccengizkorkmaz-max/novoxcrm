@@ -6,8 +6,7 @@ import { format } from 'date-fns'
 import { tr } from 'date-fns/locale'
 import ConversationReply from './ConversationReply'
 import AiToggle from './AiToggle'
-import AutoScroll from './AutoScroll'
-import MessagePoller from './MessagePoller'
+import RealtimeMessages from './RealtimeMessages'
 import { cn } from "@/lib/utils"
 
 export const dynamic = 'force-dynamic'
@@ -34,7 +33,6 @@ export default async function ConversationDetailPage(props: { params: Promise<{ 
 
     return (
         <div className="flex flex-col h-full bg-[#f8fafc]">
-            <MessagePoller conversationId={id} />
             {/* Header */}
             <div className="flex items-center justify-between bg-white/80 backdrop-blur-md p-4 border-b border-slate-200 sticky top-0 z-10">
                 <div className="flex items-center gap-4">
@@ -66,48 +64,12 @@ export default async function ConversationDetailPage(props: { params: Promise<{ 
             <div className="flex-1 flex overflow-hidden lg:max-h-[calc(100vh-140px)]">
                 {/* Chat Area */}
                 <div className="flex-1 flex flex-col min-w-0 bg-white">
-                    <div className="flex-1 p-6 space-y-6 overflow-y-auto custom-scrollbar bg-slate-50/20">
-                        {messages.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center h-full opacity-10">
-                                <MessageSquare className="h-24 w-24 mb-4" />
-                                <span className="font-black text-2xl uppercase tracking-[0.2em]">Henüz Mesaj Yok</span>
-                            </div>
-                        ) : (
-                            messages.map((msg) => (
-                                <div
-                                    key={msg.id}
-                                    className={cn(
-                                        "flex gap-3",
-                                        msg.role === 'assistant' ? "flex-row" : "flex-row-reverse"
-                                    )}
-                                >
-                                    <div className={cn(
-                                        "h-9 w-9 rounded-xl flex items-center justify-center shrink-0 border shadow-sm transition-transform hover:scale-110",
-                                        msg.role === 'assistant' ? "bg-white border-slate-200 text-blue-600" : "bg-blue-600 border-blue-500 text-white shadow-blue-200"
-                                    )}>
-                                        {msg.role === 'assistant' ? <Bot className="h-5 w-5" /> : <User className="h-5 w-5" />}
-                                    </div>
-                                    <div className={cn(
-                                        "flex flex-col gap-1.5 max-w-[80%]",
-                                        msg.role === 'assistant' ? "items-start" : "items-end"
-                                    )}>
-                                        <div className={cn(
-                                            "rounded-2xl px-5 py-3 text-[14px] font-medium leading-relaxed shadow-sm",
-                                            msg.role === 'assistant'
-                                                ? "bg-white border border-slate-100 text-slate-800 rounded-tl-none"
-                                                : "bg-[#0084ff] text-white rounded-tr-none shadow-blue-50"
-                                        )}>
-                                            {msg.content}
-                                        </div>
-                                        <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest px-1">
-                                            {format(new Date(msg.created_at), 'HH:mm', { locale: tr })}
-                                        </div>
-                                    </div>
-                                </div>
-                            ))
-                        )}
-                        <AutoScroll deps={messages.length} />
-                    </div>
+                    <RealtimeMessages 
+                        initialMessages={messages} 
+                        conversationId={id} 
+                        customerName={session.customers?.full_name || ''} 
+                        tenantId={session.tenant_id}
+                    />
 
                     <div className="p-4 border-t border-slate-100 bg-white/50 backdrop-blur-sm sticky bottom-0">
                         <ConversationReply />
