@@ -5,6 +5,7 @@ import { Link } from '@/i18n/routing'
 import { format } from 'date-fns'
 import { tr } from 'date-fns/locale'
 import ConversationReply from './ConversationReply'
+import AiToggle from './AiToggle'
 import { cn } from "@/lib/utils"
 
 export const dynamic = 'force-dynamic'
@@ -56,14 +57,7 @@ export default async function ConversationDetailPage(props: { params: Promise<{ 
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                    {session.ai_enabled && (
-                        <Badge className="bg-blue-50 text-blue-700 border border-blue-100 py-1 font-black text-[10px] uppercase tracking-wider shadow-sm">
-                            <Sparkles className="h-3 w-3 mr-1" />
-                            AI AKTİF
-                        </Badge>
-                    )}
-                </div>
+                <AiToggle sessionId={id} initialAiEnabled={session.ai_enabled ?? true} />
             </div>
 
             <div className="flex-1 flex overflow-hidden lg:max-h-[calc(100vh-140px)]">
