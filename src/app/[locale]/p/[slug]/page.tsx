@@ -1,4 +1,5 @@
-import { getAgentPublicProfile } from '../../(dashboard)/agent-website/actions'
+import { unstable_noStore as noStore } from 'next/cache'
+import { getAgentPublicProfile } from './actions'
 import { notFound } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
@@ -16,12 +17,29 @@ const PROPERTY_TYPE_LABELS: Record<string, string> = {
 }
 
 export default async function AgentPublicPage(props: { params: Promise<{ slug: string }> }) {
+    noStore()
     const { slug } = await props.params
     const data = await getAgentPublicProfile(slug)
 
-    if (!data) notFound()
+    if (!data) {
+        return (
+            <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+                <div className="text-center max-w-md p-8">
+                    <div className="text-6xl mb-4">🏠</div>
+                    <h1 className="text-2xl font-black text-slate-900 mb-2">Profil Bulunamadı</h1>
+                    <p className="text-sm text-muted-foreground mb-4">
+                        <strong>/p/{slug}</strong> adresinde yayınlanmış bir danışman profili bulunamadı.
+                    </p>
+                    <p className="text-xs text-slate-400">
+                        Danışmanın profilini yayınlamış ve URL adresini doğru girdiğinizden emin olun.
+                    </p>
+                </div>
+            </div>
+        )
+    }
 
-    const { agent, portfolios, stats } = data
+    const { agent: _agent, portfolios, stats } = data
+    const agent = _agent as any
 
     return (
         <div className="min-h-screen bg-slate-50">
@@ -170,7 +188,7 @@ export default async function AgentPublicPage(props: { params: Promise<{ slug: s
                                             <div className="flex items-center gap-3 text-[10px] text-slate-500">
                                                 {p.room_count && <span>🛏 {p.room_count}</span>}
                                                 {p.area_net && <span>📐 {p.area_net}m²</span>}
-                                                {p.floor && <span>🏢 {p.floor}. kat</span>}
+                                                {p.floor_number && <span>🏢 {p.floor_number}. kat</span>}
                                             </div>
                                         </CardContent>
                                     </Card>

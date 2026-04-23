@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 
 /**
- * Fetches all messaging sessions for the tenant
+ * Fetches all WhatsApp messaging sessions for the tenant
  */
 export async function getMessagingSessions() {
     try {
@@ -11,12 +11,12 @@ export async function getMessagingSessions() {
 
         // Get all sessions with their latest message
         const { data: sessions, error } = await supabase
-            .from('messaging_sessions')
+            .from('whatsapp_conversations')
             .select(`
                 *,
                 customers(full_name, phone)
             `)
-            .order('updated_at', { ascending: false })
+            .order('last_message_at', { ascending: false })
 
         if (error) {
             console.error('Error fetching messaging sessions:', error)
@@ -31,13 +31,13 @@ export async function getMessagingSessions() {
 }
 
 /**
- * Fetches a single messaging session with customer data
+ * Fetches a single WhatsApp session with customer data
  */
 export async function getMessagingSession(id: string) {
     try {
         const supabase = await createClient()
         const { data: session, error } = await supabase
-            .from('messaging_sessions')
+            .from('whatsapp_conversations')
             .select(`
                 *,
                 customers(full_name, phone)
@@ -58,15 +58,15 @@ export async function getMessagingSession(id: string) {
 }
 
 /**
- * Fetches messages for a specific session
+ * Fetches messages for a specific WhatsApp session
  */
 export async function getSessionMessages(sessionId: string) {
     try {
         const supabase = await createClient()
         const { data: messages, error } = await supabase
-            .from('messaging_messages')
+            .from('whatsapp_messages')
             .select('*')
-            .eq('session_id', sessionId)
+            .eq('conversation_id', sessionId)
             .order('created_at', { ascending: true })
 
         if (error) {

@@ -24,12 +24,12 @@ export function getWhatsAppLink(phone: string, message: string) {
  * Note: Free-form messages can only be sent if there is an active 24h window.
  * Otherwise, Template messages must be used.
  */
-export async function sendWhatsAppMessage(to: string, message: string) {
-    const PHONE_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
-    const ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN;
+export async function sendWhatsAppMessage(to: string, message: string, phoneId?: string, accessToken?: string) {
+    const PHONE_ID = phoneId || process.env.WHATSAPP_PHONE_NUMBER_ID;
+    const ACCESS_TOKEN = accessToken || process.env.WHATSAPP_ACCESS_TOKEN;
 
     if (!PHONE_ID || !ACCESS_TOKEN) {
-        console.error('WhatsApp API credentials missing in .env.local');
+        console.error('WhatsApp API credentials missing');
         return { success: false, error: 'Credentials missing' };
     }
 
@@ -81,5 +81,95 @@ export const MessageTemplates = {
     shareDocument: (projectName: string, docName: string, url: string) =>
         `📄 *${projectName} - ${docName}*\n\n` +
         `Proje ile ilgili dökümanı aşağıdaki linkten indirebilirsiniz:\n\n${url}`
+}
+
+/**
+ * Sends a WhatsApp Template Message via Meta Cloud API
+ * Required for business-initiated messages outside the 24-hour window.
+ * Templates must be pre-approved in Meta Business Manager.
+ */
+export async function sendWhatsAppTemplate(
+    to: string,
+    templateName: string,
+    parameters: string[],
+    language: string = 'tr'
+) {
+    const PHONE_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
+    const ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN;
+
+    if (!PHONE_ID || !ACCESS_TOKEN) {
+        return { success: false, error: 'WhatsApp API credentials missing' };
+    }
+
+    const cleanPhone = normalizePhone(to);
+
+    // Build template components with parameters
+    const components: any[] = [];
+    if (parameters.length > 0) {
+        components.push({
+            type: 'body',
+            parameters: parameters.map(p => ({
+                type: 'text',
+                text: p,
+            })),
+        });
+    }
+
+    try {
+        const response = await fetch(`https://graph.facebook.com/v18.0/${PHONE_ID}/messages`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${ACCESS_TOKEN}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                messaging_product: 'whatsapp',
+                recipient_type: 'individual',
+                to: cleanPhone,
+                type: 'template',
+                template: {
+                    name: templateName,
+                    language: { code: language },
+                    components,
+                },
+            }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            console.error('WhatsApp Template Send Error:', data);
+            return { success: false, error: data.error?.message || 'Template API Error', data };
+        }
+
+        return { success: true, data };
+    } catch (error) {
+        console.error('WhatsApp Template Fetch Error:', error);
+        return { success: false, error: 'Network or Fetch Error' };
+    }
+}
+
+/** Outreach-specific message templates */
+export const OutreachTemplates = {
+    leadFollowUp: (name: string, project: string) =>
+        `Merhaba ${name} 👋\n\n` +
+        `*${project}* projemize gösterdiğiniz ilgi için teşekkür ederiz.\n\n` +
+        `Size özel fırsatlarımız hakkında bilgi almak ister misiniz? ` +
+        `Detaylı bilgi için "BİLGİ" yazabilirsiniz.`,
+
+    missedCallFollowUp: (name: string) =>
+        `Merhaba ${name},\n\n` +
+        `Az önce sizi aradık ancak ulaşamadık. 📞\n\n` +
+        `Müsait olduğunuzda bize dönüş yapabilirsiniz veya uygun saatinizi yazabilirsiniz.`,
+
+    coldLeadReengagement: (name: string, project: string) =>
+        `Merhaba ${name} 🏠\n\n` +
+        `*${project}* projesinde son birkaç ünite kaldı!\n\n` +
+        `Detaylı bilgi ve özel fiyat için "BİLGİ" yazın.`,
+
+    appointmentReminder: (name: string, date: string) =>
+        `Sayın ${name},\n\n` +
+        `📅 *${date}* tarihindeki randevunuzu hatırlatmak isteriz.\n\n` +
+        `Onay için *EVET*, değişiklik için *DEĞİŞTİR* yazınız.`,
 }
 

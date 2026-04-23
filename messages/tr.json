@@ -521,12 +521,30 @@
         "status": {
             "Active": "Satışa AÇIK",
             "Planned": "Planlanıyor",
-            "Completed": "KAPALI"
+            "Completed": "KAPALI",
+            "Archived": "Arşivlendi"
         },
         "card": {
             "details": "Detaylar",
             "location": "Belirtilmemiş",
             "statusLabel": "Durum"
+        },
+        "archive": {
+            "button": "Arşivle",
+            "restore": "Arşivden Çıkar",
+            "confirmTitle": "Projeyi Arşivle",
+            "confirmDesc": "Bu proje arşive taşınacak ve proje listesinden gizlenecektir. Projeye bağlı hiçbir veri silinmeyecektir. İstediğiniz zaman geri alabilirsiniz.",
+            "confirmAction": "Evet, Arşivle",
+            "restoreConfirmTitle": "Projeyi Geri Al",
+            "restoreConfirmDesc": "Bu proje arşivden çıkarılarak aktif projeler listesine geri eklenecektir.",
+            "restoreConfirmAction": "Evet, Geri Al",
+            "cancel": "Vazgeç",
+            "success": "Proje başarıyla arşivlendi.",
+            "restoreSuccess": "Proje başarıyla geri alındı.",
+            "error": "İşlem sırasında bir hata oluştu.",
+            "showArchived": "Arşivlenmiş Projeleri Göster",
+            "hideArchived": "Arşivlenmiş Projeleri Gizle",
+            "archivedCount": "{count} arşivlenmiş proje"
         },
         "empty": {
             "title": "Henüz hiç proje bulunmuyor.",

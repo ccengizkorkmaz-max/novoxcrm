@@ -51,8 +51,8 @@ export async function uploadDocument(formData: FormData) {
     if (uploadError) {
         console.error('Document upload error:', uploadError)
         // Try with admin client
-        const { createClient: createAdmin } = await import('@/lib/supabase/admin')
-        const adminSupabase = createAdmin()
+        const { createAdminClient } = await import('@/lib/supabase/admin')
+        const adminSupabase = createAdminClient()
         const { error: adminUploadError } = await adminSupabase.storage
             .from('documents')
             .upload(storagePath, buffer, {

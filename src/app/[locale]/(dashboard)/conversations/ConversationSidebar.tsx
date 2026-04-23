@@ -69,13 +69,10 @@ export default function ConversationSidebar({ sessions }: ConversationSidebarPro
                                     "h-12 w-12 rounded-xl flex items-center justify-center shrink-0 border transition-all duration-300 shadow-sm font-black",
                                     isActive
                                         ? "bg-white/10 border-white/20 text-white"
-                                        : session.status === 'qualified' ? "bg-green-50 border-green-100 text-green-600" :
-                                            session.status === 'human_required' ? "bg-amber-50 border-amber-100 text-amber-600" :
-                                                "bg-blue-50 border-blue-100 text-blue-600"
+                                        : session.ai_enabled ? "bg-blue-50 border-blue-100 text-blue-600" :
+                                                "bg-amber-50 border-amber-100 text-amber-600"
                                 )}>
-                                    {session.status === 'qualified' ? <CheckCircle2 className="h-6 w-6" /> :
-                                        session.status === 'human_required' ? <AlertCircle className="h-6 w-6" /> :
-                                            <User className="h-6 w-6" />}
+                                    {session.ai_enabled ? <MessageSquare className="h-6 w-6" /> : <User className="h-6 w-6" />}
                                 </div>
 
                                 <div className="flex-1 min-w-0 pr-2 text-left">
@@ -84,29 +81,29 @@ export default function ConversationSidebar({ sessions }: ConversationSidebarPro
                                             "font-black text-[13px] truncate tracking-tight",
                                             isActive ? "text-white" : "text-slate-900"
                                         )}>
-                                            {session.customers?.full_name || `Kullanıcı #${session.external_user_id.slice(-4)}`}
+                                            {session.customers?.full_name || `+${session.phone_number}`}
                                         </span>
                                         {!isActive && (
                                             <Badge className={cn(
                                                 "text-[9px] px-1.5 py-0 min-w-max uppercase font-black tracking-widest border-none",
-                                                session.channel === 'whatsapp' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'
+                                                session.ai_enabled ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'
                                             )}>
-                                                {session.channel === 'whatsapp' ? 'WA' : 'FB'}
+                                                {session.ai_enabled ? 'AI' : 'İNSAN'}
                                             </Badge>
                                         )}
                                     </div>
                                     <div className={cn(
-                                        "text-[10px] font-bold truncate opacity-50 uppercase tracking-widest",
+                                        "text-[10px] font-bold truncate opacity-50 tracking-widest",
                                         isActive ? "text-blue-100" : "text-slate-500"
                                     )}>
-                                        PSID: {session.external_user_id.slice(0, 10)}...
+                                        {session.last_message_preview || 'Mesaj yok'}
                                     </div>
                                     <div className={cn(
                                         "flex items-center gap-1.5 mt-2 text-[10px] font-black uppercase tracking-[0.05em]",
                                         isActive ? "text-blue-100/70" : "text-slate-400"
                                     )}>
                                         <Clock className="h-3 w-3" />
-                                        {formatDistanceToNow(new Date(session.updated_at), { addSuffix: true, locale: tr })}
+                                        {formatDistanceToNow(new Date(session.last_message_at), { addSuffix: true, locale: tr })}
                                     </div>
                                 </div>
 

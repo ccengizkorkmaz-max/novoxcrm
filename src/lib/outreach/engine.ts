@@ -1,0 +1,775 @@
+'use server'
+
+import { createAdminClient } from '@/lib/supabase/admin'
+import { makeOutboundCall } from '@/lib/vapi'
+import { sendWhatsAppTemplate, sendWhatsAppMessage } from '@/lib/whatsapp'
+import { sendPoliSms, normalizePhone } from '@/lib/sms'
+
+// ─── Types ───────────────────────────────────────────────────
+
+export interface StepConfig {
+    // AI Call
+    script_id?: string
+    script_prompt?: string
+    first_message?: string
+    max_duration_seconds?: number
+    retry?: { enabled: boolean; interval_minutes: number; max_attempts: number }
+    time_window?: { start: string; end: string }
+    // WhatsApp
+    template_name?: string
+    template_params?: string[]
+    free_text?: string
+    // SMS
+    sms_template_key?: string
+    custom_message?: string
+    // Wait
+    duration_value?: number
+    duration_unit?: 'minutes' | 'hours' | 'days'
+    specific_datetime?: string
+    // Status Update
+    new_status?: string
+    add_tag?: string
+    assign_to?: string
+    add_note?: string
+    // Notify
+    notify_user_id?: string
+    notify_message?: string
+}
+
+// ─── Engine: Process Due Executions ──────────────────────────
+
+/**
+ * Main cron entry point — finds all executions whose next_action_at has passed
+ * and processes the current step for each.
+ */
+export async function processOutreachQueue() {
+    const supabase = createAdminClient()
+    const now = new Date().toISOString()
+
+    // Find executions that are due
+    const { data: dueExecutions, error } = await supabase
+        .from('outreach_executions')
+        .select(`
+            *,
+            outreach_workflows!inner(
+                working_hours_start, working_hours_end, working_days, timezone, is_active
+            ),
+            customers(id, full_name, phone, email),
+            sales(id, status, project_id, unit_id)
+        `)
+        .in('status', ['active', 'waiting'])
+        .lte('next_action_at', now)
+        .limit(100)
+
+    if (error || !dueExecutions?.length) {
+        console.log(`[Outreach] No due executions. Error: ${error?.message || 'none'}`)
+        return { processed: 0 }
+    }
+
+    let processed = 0
+
+    for (const execution of dueExecutions) {
+        // Check workflow still active
+        if (!execution.outreach_workflows?.is_active) {
+            await supabase.from('outreach_executions')
+                .update({ status: 'paused', paused_at: now })
+                .eq('id', execution.id)
+            continue
+        }
+
+        // Check working hours
+        if (!isWithinWorkingHours(execution.outreach_workflows)) {
+            // Reschedule to next working hour
+            const nextWindow = getNextWorkingTime(execution.outreach_workflows)
+            await supabase.from('outreach_executions')
+                .update({ next_action_at: nextWindow })
+                .eq('id', execution.id)
+            continue
+        }
+
+        // Check opt-out
+        const phone = execution.customers?.phone
+        if (phone) {
+            const { data: optout } = await supabase
+                .from('outreach_optouts')
+                .select('id')
+                .eq('phone', normalizePhone(phone))
+                .in('channel', ['all'])
+                .limit(1)
+
+            if (optout?.length) {
+                await supabase.from('outreach_executions')
+                    .update({ status: 'opted_out', completed_at: now })
+                    .eq('id', execution.id)
+                continue
+            }
+        }
+
+        // Get current step
+        const { data: step } = await supabase
+            .from('outreach_steps')
+            .select('*')
+            .eq('workflow_id', execution.workflow_id)
+            .eq('step_order', execution.current_step_order)
+            .eq('is_active', true)
+            .single()
+
+        if (!step) {
+            // No more steps → mark completed
+            await supabase.from('outreach_executions')
+                .update({ status: 'completed', completed_at: now })
+                .eq('id', execution.id)
+            continue
+        }
+
+        // Execute the step
+        try {
+            await executeStep(execution, step)
+            processed++
+        } catch (err: any) {
+            console.error(`[Outreach] Step execution error for ${execution.id}:`, err.message)
+            // Log the error but continue with other executions
+            await supabase.from('outreach_step_logs').insert({
+                execution_id: execution.id,
+                step_id: step.id,
+                channel: step.action_type,
+                status: 'failed',
+                error_message: err.message,
+            })
+        }
+    }
+
+    return { processed }
+}
+
+// ─── Step Executor ───────────────────────────────────────────
+
+async function executeStep(execution: any, step: any) {
+    const supabase = createAdminClient()
+    const config: StepConfig = step.config || {}
+    const customer = execution.customers
+    const phone = customer?.phone
+
+    switch (step.action_type) {
+        case 'ai_call':
+            await executeAiCall(execution, step, config, phone, customer)
+            break
+        case 'whatsapp':
+            await executeWhatsApp(execution, step, config, phone, customer)
+            break
+        case 'sms':
+            await executeSms(execution, step, config, phone, customer)
+            break
+        case 'wait':
+            await executeWait(execution, step, config)
+            break
+        case 'status_update':
+            await executeStatusUpdate(execution, step, config)
+            break
+        case 'notify':
+            await executeNotify(execution, step, config)
+            break
+        default:
+            await advanceToNextStep(execution, step, 'success')
+    }
+}
+
+// ─── Channel Executors ───────────────────────────────────────
+
+async function executeAiCall(execution: any, step: any, config: StepConfig, phone: string, customer: any) {
+    const supabase = createAdminClient()
+
+    if (!phone) {
+        await logAndAdvance(execution, step, 'skipped', 'ai_call', 'No phone number')
+        return
+    }
+
+    // Check channel-specific opt-out
+    const { data: optout } = await supabase
+        .from('outreach_optouts')
+        .select('id')
+        .eq('phone', normalizePhone(phone))
+        .in('channel', ['ai_call', 'all'])
+        .limit(1)
+
+    if (optout?.length) {
+        await logAndAdvance(execution, step, 'opted_out', 'ai_call')
+        return
+    }
+
+    const result = await makeOutboundCall({
+        phoneNumber: phone,
+        assistantId: config.script_id || undefined,
+        metadata: {
+            execution_id: execution.id,
+            sale_id: execution.sale_id,
+            customer_id: execution.customer_id,
+            customer_name: customer?.full_name,
+            tenant_id: execution.tenant_id,
+        },
+    })
+
+    // Log the attempt
+    await supabase.from('outreach_step_logs').insert({
+        execution_id: execution.id,
+        step_id: step.id,
+        attempt_number: (execution.current_retry_count || 0) + 1,
+        channel: 'ai_call',
+        status: result.success ? 'sent' : 'failed',
+        external_id: result.callId,
+        error_message: result.error,
+    })
+
+    if (result.success) {
+        // Call initiated — wait for webhook to report result
+        // Set execution to 'waiting' state
+        await supabase.from('outreach_executions')
+            .update({
+                status: 'waiting',
+                current_step_id: step.id,
+                metadata: {
+                    ...execution.metadata,
+                    pending_call_id: result.callId,
+                },
+            })
+            .eq('id', execution.id)
+    } else {
+        // Call failed — check retry logic
+        await handleRetryOrAdvance(execution, step, config, 'no_answer')
+    }
+}
+
+async function executeWhatsApp(execution: any, step: any, config: StepConfig, phone: string, customer: any) {
+    const supabase = createAdminClient()
+
+    if (!phone) {
+        await logAndAdvance(execution, step, 'skipped', 'whatsapp', 'No phone number')
+        return
+    }
+
+    let result: { success: boolean; error?: string; data?: any }
+    let messageContent: string = ''
+
+    if (config.template_name) {
+        // Send template message (for messages outside 24h window)
+        const params = (config.template_params || []).map(p =>
+            p.replace('{customer_name}', customer?.full_name || '')
+                .replace('{project_name}', execution.metadata?.project_name || '')
+        )
+        result = await sendWhatsAppTemplate(phone, config.template_name, params)
+        messageContent = `Template: ${config.template_name} [${params.join(', ')}]`
+    } else if (config.free_text) {
+        // Send free-text message (only works within 24h window)
+        const text = config.free_text
+            .replace('{customer_name}', customer?.full_name || '')
+            .replace('{project_name}', execution.metadata?.project_name || '')
+        result = await sendWhatsAppMessage(phone, text)
+        messageContent = text
+    } else {
+        await logAndAdvance(execution, step, 'skipped', 'whatsapp', 'No template or text configured')
+        return
+    }
+
+    await supabase.from('outreach_step_logs').insert({
+        execution_id: execution.id,
+        step_id: step.id,
+        channel: 'whatsapp',
+        status: result.success ? 'sent' : 'failed',
+        message_content: messageContent,
+        template_name: config.template_name,
+        error_message: result.error,
+        external_id: result.data?.messages?.[0]?.id,
+    })
+
+    if (result.success) {
+        await advanceToNextStep(execution, step, 'success')
+    } else {
+        await handleRetryOrAdvance(execution, step, config, 'failure')
+    }
+}
+
+async function executeSms(execution: any, step: any, config: StepConfig, phone: string, customer: any) {
+    const supabase = createAdminClient()
+
+    if (!phone) {
+        await logAndAdvance(execution, step, 'skipped', 'sms', 'No phone number')
+        return
+    }
+
+    const message = (config.custom_message || SMS_TEMPLATES[config.sms_template_key || 'default'] || '')
+        .replace('{customer_name}', customer?.full_name || 'Sayın Müşterimiz')
+        .replace('{project_name}', execution.metadata?.project_name || '')
+
+    if (!message) {
+        await logAndAdvance(execution, step, 'skipped', 'sms', 'No message configured')
+        return
+    }
+
+    // Get tenant's SMS credentials
+    const { data: tenant } = await supabase
+        .from('tenants')
+        .select('sms_api_user, sms_api_password, sms_sender_id')
+        .eq('id', execution.tenant_id)
+        .single()
+
+    const smsUser = tenant?.sms_api_user || process.env.POLI_SMS_USER
+    const smsPass = tenant?.sms_api_password || process.env.POLI_SMS_PASS
+
+    if (!smsUser || !smsPass) {
+        await logAndAdvance(execution, step, 'skipped', 'sms', 'Tenant SMS credentials missing')
+        return
+    }
+
+    const result = await sendPoliSms({
+        user: smsUser,
+        pass: smsPass,
+        message,
+        contacts: [phone],
+        header: tenant?.sms_sender_id || process.env.POLI_SMS_HEADER || 'NOVOEMLAK',
+    })
+
+    await supabase.from('outreach_step_logs').insert({
+        execution_id: execution.id,
+        step_id: step.id,
+        channel: 'sms',
+        status: result.success ? 'sent' : 'failed',
+        message_content: message,
+        error_message: result.error,
+        external_id: result.messageId,
+    })
+
+    await advanceToNextStep(execution, step, result.success ? 'success' : 'failure')
+}
+
+async function executeWait(execution: any, step: any, config: StepConfig) {
+    const supabase = createAdminClient()
+
+    let nextActionAt: Date
+
+    if (config.specific_datetime) {
+        nextActionAt = new Date(config.specific_datetime)
+    } else {
+        const value = config.duration_value || 1
+        const unit = config.duration_unit || 'hours'
+        nextActionAt = new Date()
+
+        switch (unit) {
+            case 'minutes': nextActionAt.setMinutes(nextActionAt.getMinutes() + value); break
+            case 'hours': nextActionAt.setHours(nextActionAt.getHours() + value); break
+            case 'days': nextActionAt.setDate(nextActionAt.getDate() + value); break
+        }
+    }
+
+    // Move to next step but schedule it for later
+    const nextOrder = step.step_order + 1
+    const { data: nextStep } = await supabase
+        .from('outreach_steps')
+        .select('id')
+        .eq('workflow_id', execution.workflow_id)
+        .eq('step_order', nextOrder)
+        .single()
+
+    await supabase.from('outreach_executions')
+        .update({
+            current_step_order: nextOrder,
+            current_step_id: nextStep?.id || null,
+            next_action_at: nextActionAt.toISOString(),
+            status: 'active',
+        })
+        .eq('id', execution.id)
+
+    await supabase.from('outreach_step_logs').insert({
+        execution_id: execution.id,
+        step_id: step.id,
+        channel: 'wait',
+        status: 'sent',
+        message_content: `Waiting until ${nextActionAt.toISOString()}`,
+    })
+}
+
+async function executeStatusUpdate(execution: any, step: any, config: StepConfig) {
+    const supabase = createAdminClient()
+
+    if (config.new_status && execution.sale_id) {
+        await supabase.from('sales')
+            .update({ status: config.new_status })
+            .eq('id', execution.sale_id)
+    }
+
+    if (config.add_note && execution.customer_id) {
+        await supabase.from('activities').insert({
+            tenant_id: execution.tenant_id,
+            customer_id: execution.customer_id,
+            user_id: execution.metadata?.created_by || null,
+            owner_id: execution.metadata?.created_by || null,
+            type: 'Note',
+            topic: 'Sales',
+            summary: 'Outreach Otomasyon Notu',
+            description: config.add_note,
+            due_date: new Date().toISOString(),
+            status: 'Completed',
+            priority: 'Medium',
+        })
+    }
+
+    await logAndAdvance(execution, step, 'sent', 'status_update')
+}
+
+async function executeNotify(execution: any, step: any, config: StepConfig) {
+    const supabase = createAdminClient()
+    const { createNotification } = await import('@/lib/notifications/create')
+
+    await createNotification({
+        tenant_id: execution.tenant_id,
+        user_id: config.notify_user_id || undefined,
+        type: 'Info',
+        category: 'CRM',
+        title: '📢 Outreach Bildirim',
+        message: (config.notify_message || 'Outreach workflow adımı tamamlandı.')
+            .replace('{customer_name}', execution.customers?.full_name || ''),
+        link: '/crm',
+    })
+
+    await logAndAdvance(execution, step, 'sent', 'notify')
+}
+
+// ─── Retry & Advance Logic ──────────────────────────────────
+
+async function handleRetryOrAdvance(execution: any, step: any, config: StepConfig, outcome: string) {
+    const supabase = createAdminClient()
+    const retry = config.retry
+
+    if (retry?.enabled && (execution.current_retry_count || 0) < (retry.max_attempts || 3)) {
+        // Schedule retry
+        const retryAt = new Date()
+        retryAt.setMinutes(retryAt.getMinutes() + (retry.interval_minutes || 15))
+
+        await supabase.from('outreach_executions')
+            .update({
+                current_retry_count: (execution.current_retry_count || 0) + 1,
+                next_action_at: retryAt.toISOString(),
+                status: 'active',
+            })
+            .eq('id', execution.id)
+    } else {
+        // Max retries reached or no retry → advance
+        await advanceToNextStep(execution, step, outcome)
+    }
+}
+
+async function advanceToNextStep(execution: any, step: any, outcome: string) {
+    const supabase = createAdminClient()
+
+    // Determine next action based on outcome
+    const nextAction = outcome === 'success' ? step.on_success
+        : outcome === 'no_answer' ? step.on_no_answer
+        : outcome === 'busy' ? step.on_busy
+        : step.on_failure
+
+    if (nextAction === 'stop') {
+        await supabase.from('outreach_executions')
+            .update({ status: 'stopped', completed_at: new Date().toISOString() })
+            .eq('id', execution.id)
+        return
+    }
+
+    const nextOrder = step.step_order + 1
+    const { data: nextStep } = await supabase
+        .from('outreach_steps')
+        .select('id')
+        .eq('workflow_id', execution.workflow_id)
+        .eq('step_order', nextOrder)
+        .single()
+
+    if (!nextStep) {
+        // No more steps
+        await supabase.from('outreach_executions')
+            .update({ status: 'completed', completed_at: new Date().toISOString() })
+            .eq('id', execution.id)
+        return
+    }
+
+    await supabase.from('outreach_executions')
+        .update({
+            current_step_order: nextOrder,
+            current_step_id: nextStep.id,
+            current_retry_count: 0,
+            next_action_at: new Date().toISOString(), // Execute immediately (or wait step will adjust)
+            status: 'active',
+        })
+        .eq('id', execution.id)
+}
+
+async function logAndAdvance(execution: any, step: any, status: string, channel: string, error?: string) {
+    const supabase = createAdminClient()
+
+    await supabase.from('outreach_step_logs').insert({
+        execution_id: execution.id,
+        step_id: step.id,
+        channel,
+        status,
+        error_message: error,
+    })
+
+    await advanceToNextStep(execution, step, status === 'sent' ? 'success' : 'failure')
+}
+
+// ─── Vapi Webhook Handler ────────────────────────────────────
+
+/**
+ * Called by the Vapi webhook when a call ends.
+ * Updates the execution log and advances the workflow.
+ */
+export async function handleVapiCallResult(callData: {
+    callId: string
+    status: string
+    endedReason?: string
+    transcript?: string
+    summary?: string
+    recordingUrl?: string
+    duration?: number
+    cost?: number
+    analysis?: any
+    metadata?: Record<string, any>
+}) {
+    const supabase = createAdminClient()
+    const executionId = callData.metadata?.execution_id
+
+    if (!executionId) {
+        console.warn('[Outreach] Vapi webhook without execution_id in metadata')
+        return
+    }
+
+    // Determine call outcome
+    let outcome: string = 'no_answer'
+    let logStatus: string = 'no_answer'
+
+    if (callData.endedReason === 'customer-ended-call' || callData.endedReason === 'assistant-ended-call') {
+        if (callData.duration && callData.duration > 15) {
+            outcome = 'success'
+            logStatus = 'answered'
+        }
+    } else if (callData.endedReason === 'customer-did-not-answer') {
+        outcome = 'no_answer'
+        logStatus = 'no_answer'
+    } else if (callData.endedReason === 'customer-busy') {
+        outcome = 'busy'
+        logStatus = 'busy'
+    }
+
+    // Check AI analysis for interest
+    const interested = callData.analysis?.structuredData?.interested
+    if (interested === true) {
+        outcome = 'success'
+        logStatus = 'converted'
+    }
+
+    // Update the step log
+    await supabase.from('outreach_step_logs')
+        .update({
+            status: logStatus,
+            call_duration_seconds: callData.duration,
+            call_transcript: callData.transcript,
+            call_recording_url: callData.recordingUrl,
+            call_summary: callData.summary,
+            call_outcome: outcome,
+            cost_amount: callData.cost,
+            completed_at: new Date().toISOString(),
+        })
+        .eq('execution_id', executionId)
+        .eq('external_id', callData.callId)
+
+    // Get execution and step
+    const { data: execution } = await supabase
+        .from('outreach_executions')
+        .select('*, outreach_steps(*)')
+        .eq('id', executionId)
+        .single()
+
+    if (!execution) return
+
+    const step = execution.outreach_steps || execution.current_step_id
+    const stepData = await supabase.from('outreach_steps')
+        .select('*')
+        .eq('id', execution.current_step_id)
+        .single()
+
+    if (logStatus === 'converted') {
+        await supabase.from('outreach_executions')
+            .update({ status: 'converted', completed_at: new Date().toISOString() })
+            .eq('id', executionId)
+
+        // Update lead status to Prospect (Fırsat)
+        if (execution.sale_id) {
+            await supabase.from('sales')
+                .update({ status: 'Prospect' })
+                .eq('id', execution.sale_id)
+        }
+
+        // Create activity in CRM
+        await supabase.from('activities').insert({
+            tenant_id: execution.tenant_id,
+            customer_id: execution.customer_id,
+            type: 'Call',
+            topic: 'Sales',
+            summary: 'AI Arama - Müşteri İlgilendi (Fırsata Dönüştü)',
+            description: callData.summary || callData.transcript?.substring(0, 500),
+            due_date: new Date().toISOString(),
+            status: 'Completed',
+            priority: 'High',
+        })
+    } else if (stepData?.data) {
+        await handleRetryOrAdvance(execution, stepData.data, stepData.data.config || {}, outcome)
+    }
+}
+
+// ─── Audience / Segment Resolver ─────────────────────────────
+
+/**
+ * Resolves a segment's filters into actual lead/sale IDs
+ */
+export async function resolveSegment(segmentId: string): Promise<string[]> {
+    const supabase = createAdminClient()
+
+    const { data: segment } = await supabase
+        .from('outreach_segments')
+        .select('*')
+        .eq('id', segmentId)
+        .single()
+
+    if (!segment) return []
+
+    const filters = segment.filters as any
+    let query = supabase
+        .from('sales')
+        .select('id, customer_id, customers!inner(phone)')
+        .neq('status', 'Inbox')
+
+    // Apply filters
+    if (filters.statuses?.length) query = query.in('status', filters.statuses)
+    if (filters.project_id) query = query.eq('project_id', filters.project_id)
+    if (filters.assigned_to) query = query.eq('assigned_to', filters.assigned_to)
+    if (filters.unassigned) query = query.is('assigned_to', null)
+    if (filters.date_from) query = query.gte('created_at', filters.date_from)
+    if (filters.date_to) query = query.lte('created_at', filters.date_to + 'T23:59:59')
+    if (filters.days_inactive) {
+        const cutoff = new Date()
+        cutoff.setDate(cutoff.getDate() - filters.days_inactive)
+        query = query.lte('updated_at', cutoff.toISOString())
+    }
+
+    const { data: sales } = await query.limit(500)
+    return sales?.map(s => s.id) || []
+}
+
+/**
+ * Start a workflow for a list of sale IDs
+ */
+export async function startWorkflowForLeads(workflowId: string, saleIds: string[], tenantId: string) {
+    const supabase = createAdminClient()
+
+    // Get first step
+    const { data: firstStep } = await supabase
+        .from('outreach_steps')
+        .select('id')
+        .eq('workflow_id', workflowId)
+        .eq('step_order', 1)
+        .single()
+
+    if (!firstStep) throw new Error('Workflow has no steps')
+
+    // Get sale details
+    const { data: sales } = await supabase
+        .from('sales')
+        .select('id, customer_id')
+        .in('id', saleIds)
+
+    if (!sales?.length) return { started: 0 }
+
+    // Check for existing active executions
+    const { data: existing } = await supabase
+        .from('outreach_executions')
+        .select('sale_id')
+        .eq('workflow_id', workflowId)
+        .in('status', ['active', 'waiting'])
+        .in('sale_id', saleIds)
+
+    const existingIds = new Set(existing?.map(e => e.sale_id) || [])
+    const newSales = sales.filter(s => !existingIds.has(s.id))
+
+    if (!newSales.length) return { started: 0, skipped: existingIds.size }
+
+    // Create executions
+    const executions = newSales.map(sale => ({
+        tenant_id: tenantId,
+        workflow_id: workflowId,
+        sale_id: sale.id,
+        customer_id: sale.customer_id,
+        current_step_id: firstStep.id,
+        current_step_order: 1,
+        status: 'active',
+        next_action_at: new Date().toISOString(),
+    }))
+
+    const { error } = await supabase.from('outreach_executions').insert(executions)
+    if (error) throw error
+
+    // Update workflow stats
+    await supabase.from('outreach_workflows')
+        .update({ total_executions: (await supabase.from('outreach_executions').select('id', { count: 'exact', head: true }).eq('workflow_id', workflowId)).count || 0 })
+        .eq('id', workflowId)
+
+    return { started: newSales.length, skipped: existingIds.size }
+}
+
+// ─── Helpers ─────────────────────────────────────────────────
+
+function isWithinWorkingHours(workflow: any): boolean {
+    const now = new Date()
+    const hours = now.getHours()
+    const minutes = now.getMinutes()
+    const currentMinutes = hours * 60 + minutes
+    const dayOfWeek = now.getDay() || 7 // 1=Mon...7=Sun
+
+    const [startH, startM] = (workflow.working_hours_start || '09:00').split(':').map(Number)
+    const [endH, endM] = (workflow.working_hours_end || '19:00').split(':').map(Number)
+    const startMinutes = startH * 60 + startM
+    const endMinutes = endH * 60 + endM
+
+    const workingDays: number[] = workflow.working_days || [1, 2, 3, 4, 5]
+
+    return workingDays.includes(dayOfWeek) && currentMinutes >= startMinutes && currentMinutes <= endMinutes
+}
+
+function getNextWorkingTime(workflow: any): string {
+    const now = new Date()
+    const [startH, startM] = (workflow.working_hours_start || '09:00').split(':').map(Number)
+    const workingDays: number[] = workflow.working_days || [1, 2, 3, 4, 5]
+
+    // Try next hours today or tomorrow
+    const candidate = new Date(now)
+    candidate.setHours(startH, startM, 0, 0)
+
+    if (candidate <= now) {
+        candidate.setDate(candidate.getDate() + 1)
+    }
+
+    // Skip non-working days
+    let attempts = 0
+    while (!workingDays.includes(candidate.getDay() || 7) && attempts < 7) {
+        candidate.setDate(candidate.getDate() + 1)
+        attempts++
+    }
+
+    return candidate.toISOString()
+}
+
+// ─── SMS Templates ───────────────────────────────────────────
+
+const SMS_TEMPLATES: Record<string, string> = {
+    default: 'Sayın {customer_name}, Novo Emlak\'tan arıyorduk. Detaylı bilgi için: 0850 XXX XX XX',
+    coldLeadReminder: 'Sayın {customer_name}, {project_name} projesinde sınırlı sayıda ünite kalmıştır. Bilgi: 0850 XXX XX XX - Novo Emlak',
+    appointmentOffer: 'Sayın {customer_name}, ücretsiz danışmanlık randevunuzu oluşturmak ister misiniz? Yanıt: RANDEVU - Novo Emlak',
+    lastChance: 'Sayın {customer_name}, {project_name} projesinde kampanya son gün! Detay: 0850 XXX XX XX - Novo Emlak',
+    missedCall: 'Sayın {customer_name}, sizi aradık ancak ulaşamadık. Bize dönmek için: 0850 XXX XX XX - Novo Emlak',
+}

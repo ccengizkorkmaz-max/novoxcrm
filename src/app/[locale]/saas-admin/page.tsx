@@ -32,6 +32,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Switch } from "@/components/ui/switch"
 import { Users, Building2, AlertTriangle, CheckCircle, XCircle, Search, Mail, Phone, Trash2, CreditCard } from "lucide-react"
 import { getAllTenants, updateTenantSubscription, updateTenantStatus, provisionTenant, getSaasLeads, deleteSaasLead, resetTenantPassword, updateTenantAdminInfo, getGlobalStats } from './actions'
 import { useEffect } from 'react'
@@ -56,6 +57,8 @@ export default function SaasAdminPage() {
     const [newPass, setNewPass] = useState('')
     const [adminName, setAdminName] = useState('')
     const [adminEmail, setAdminEmail] = useState('')
+    const [hasBroker, setHasBroker] = useState(false)
+    const [hasOutreach, setHasOutreach] = useState(false)
     const [dialogOpen, setDialogOpen] = useState(false)
     const [globalStats, setGlobalStats] = useState<any>(null)
 
@@ -91,12 +94,13 @@ export default function SaasAdminPage() {
     async function handleSaveLimits() {
         if (!selectedTenant) return
 
-        // 1. Update subscription data
         const subRes = await updateTenantSubscription(selectedTenant.id, {
             user_limit: limit,
             subscription_end_date: endDate,
             plan_type: plan,
-            subscription_status: status
+            subscription_status: status,
+            has_broker_module: hasBroker,
+            has_outreach_module: hasOutreach
         })
 
         if (subRes.error) {
@@ -443,6 +447,8 @@ export default function SaasAdminPage() {
                                                             setStatus(tenant.subscription_status)
                                                             setAdminName(tenant.owner_name)
                                                             setAdminEmail(tenant.owner_email)
+                                                            setHasBroker(tenant.has_broker_module || false)
+                                                            setHasOutreach(tenant.has_outreach_module || false)
                                                             setNewPass('')
                                                             setDialogOpen(true)
                                                         } else {
@@ -534,6 +540,23 @@ export default function SaasAdminPage() {
                                                                             value={endDate}
                                                                             onChange={(e) => setEndDate(e.target.value)}
                                                                         />
+                                                                    </div>
+                                                                </div>
+
+                                                                <div className="flex flex-col gap-2">
+                                                                    <div className="flex items-center justify-between bg-slate-50 p-3 rounded-lg border border-slate-100">
+                                                                        <div className="space-y-0.5">
+                                                                            <Label className="text-sm font-semibold">B2B Broker Modülü</Label>
+                                                                            <p className="text-[10px] text-muted-foreground">Müteahhitin alt acenteleri yönetebileceği ekstra lisanslı modül.</p>
+                                                                        </div>
+                                                                        <Switch checked={hasBroker} onCheckedChange={setHasBroker} />
+                                                                    </div>
+                                                                    <div className="flex items-center justify-between bg-slate-50 p-3 rounded-lg border border-slate-100">
+                                                                        <div className="space-y-0.5">
+                                                                            <Label className="text-sm font-semibold">AI Outreach Modülü</Label>
+                                                                            <p className="text-[10px] text-muted-foreground">Vapi.ai ile otomatik arama ve akıllı takip sistemi.</p>
+                                                                        </div>
+                                                                        <Switch checked={hasOutreach} onCheckedChange={setHasOutreach} />
                                                                     </div>
                                                                 </div>
 

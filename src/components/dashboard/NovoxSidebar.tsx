@@ -28,7 +28,9 @@ import {
     Target,
     UserCheck,
     Medal,
-    Globe
+    Globe,
+    Phone,
+    MessageCircle
 } from 'lucide-react'
 import {
     Accordion,
@@ -72,12 +74,16 @@ export function NovoxSidebar({
     role = 'sales',
     onElementClick,
     labels,
-    tenantType = 'developer'
+    tenantType = 'developer',
+    hasBrokerModule = false,
+    hasOutreachModule = false
 }: {
     role?: string | null,
     onElementClick?: () => void,
     labels: any,
-    tenantType?: string
+    tenantType?: string,
+    hasBrokerModule?: boolean,
+    hasOutreachModule?: boolean
 }) {
     const currentRole = role || 'sales'
 
@@ -110,14 +116,22 @@ export function NovoxSidebar({
 
             {/* ======== DEVELOPER (MÜTEAHHİT) MENÜSÜ ======== */}
             {isDeveloper && (
-                <>
-                    <NavItem href="/projects" icon={Building2} onClick={onElementClick}>
-                        {labels.projects || 'Projects'}
-                    </NavItem>
-                    <NavItem href="/inventory" icon={Home} onClick={onElementClick}>
-                        {labels.inventory || 'Inventory'}
-                    </NavItem>
-                </>
+                <Accordion type="multiple" className="w-full border-none">
+                    <AccordionItem value="project_module" className="border-none">
+                        <AccordionTrigger className="px-3 py-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg hover:no-underline [&[data-state=open]]:text-white font-medium justify-start text-[13px] gap-3">
+                            <Building2 className="h-4 w-4" />
+                            <span>Proje & Envanter</span>
+                        </AccordionTrigger>
+                        <AccordionContent className="pt-1 pb-2 pl-4 grid gap-0.5">
+                            <NavItem href="/projects" icon={Building2} onClick={onElementClick} isSubItem>
+                                {labels.projects || 'Projects'}
+                            </NavItem>
+                            <NavItem href="/inventory" icon={Home} onClick={onElementClick} isSubItem>
+                                {labels.inventory || 'Inventory'}
+                            </NavItem>
+                        </AccordionContent>
+                    </AccordionItem>
+                </Accordion>
             )}
 
             {/* ======== BROKER (ACENTE) MENÜSÜ ======== */}
@@ -161,40 +175,55 @@ export function NovoxSidebar({
             )}
 
             {/* ======== ORTAK MENÜ ÖĞELERİ ======== */}
-            <NavItem href="/customers" icon={Users} onClick={onElementClick}>
-                {labels.customers || 'Customers'}
-            </NavItem>
+            
+            <Accordion type="multiple" className="w-full border-none">
+                <AccordionItem value="crm_module" className="border-none">
+                    <AccordionTrigger className="px-3 py-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg hover:no-underline [&[data-state=open]]:text-white font-medium justify-start text-[13px] gap-3">
+                        <Activity className="h-4 w-4" />
+                        <span>CRM</span>
+                    </AccordionTrigger>
+                    <AccordionContent className="pt-1 pb-2 pl-4 grid gap-0.5">
+                        <NavItem href="/customers" icon={Users} onClick={onElementClick} isSubItem>
+                            {labels.customers || 'Customers'}
+                        </NavItem>
 
-            {isManager && (
-                <NavItem href="/teams" icon={Users} onClick={onElementClick}>
-                    {labels.salesTeams || 'Sales Teams'}
-                </NavItem>
-            )}
+                        {isManager && (
+                            <NavItem href="/teams" icon={Users} onClick={onElementClick} isSubItem>
+                                {labels.salesTeams || 'Sales Teams'}
+                            </NavItem>
+                        )}
+
+                        {isSales && (
+                            <>
+                                <NavItem href="/crm" icon={Activity} onClick={onElementClick} isSubItem>
+                                    {labels.salesManagement || 'Sales Management'}
+                                </NavItem>
+
+                                {/* Developer'a özel satış adımları */}
+                                {isDeveloper && (
+                                    <>
+                                        <NavItem href="/options" icon={Package} onClick={onElementClick} isSubItem>
+                                            {labels.options || 'Options'}
+                                        </NavItem>
+                                        <NavItem href="/offers" icon={FileText} onClick={onElementClick} isSubItem>
+                                            {labels.offers || 'Offers'}
+                                        </NavItem>
+                                        <NavItem href="/contracts" icon={FileText} onClick={onElementClick} isSubItem>
+                                            {labels.contracts || 'Contracts'}
+                                        </NavItem>
+                                        <NavItem href="/finance/deposits" icon={Banknote} onClick={onElementClick} isSubItem>
+                                            {labels.deposits || 'Deposits'}
+                                        </NavItem>
+                                    </>
+                                )}
+                            </>
+                        )}
+                    </AccordionContent>
+                </AccordionItem>
+            </Accordion>
 
             {isSales && (
                 <>
-                    <NavItem href="/crm" icon={Activity} onClick={onElementClick}>
-                        {labels.salesManagement || 'Sales Management'}
-                    </NavItem>
-
-                    {/* Developer'a özel satış adımları */}
-                    {isDeveloper && (
-                        <>
-                            <NavItem href="/options" icon={Package} onClick={onElementClick}>
-                                {labels.options || 'Options'}
-                            </NavItem>
-                            <NavItem href="/offers" icon={FileText} onClick={onElementClick}>
-                                {labels.offers || 'Offers'}
-                            </NavItem>
-                            <NavItem href="/contracts" icon={FileText} onClick={onElementClick}>
-                                {labels.contracts || 'Contracts'}
-                            </NavItem>
-                            <NavItem href="/finance/deposits" icon={Banknote} onClick={onElementClick}>
-                                {labels.deposits || 'Deposits'}
-                            </NavItem>
-                        </>
-                    )}
-
                     {isBroker && (
                         <>
                             <NavItem href="/agent-transactions" icon={UserCheck} onClick={onElementClick}>
@@ -209,6 +238,16 @@ export function NovoxSidebar({
                     <NavItem href="/activities" icon={CalendarCheck} onClick={onElementClick}>
                         {labels.activities || 'Activities'}
                     </NavItem>
+                    {isManager && hasOutreachModule && (
+                        <>
+                            <NavItem href="/outreach" icon={Phone} onClick={onElementClick}>
+                                {labels.outreach || 'Outreach'}
+                            </NavItem>
+                            <NavItem href="/inbox" icon={MessageCircle} onClick={onElementClick}>
+                                {labels.inbox || 'Inbox'}
+                            </NavItem>
+                        </>
+                    )}
                 </>
             )}
 
@@ -243,8 +282,8 @@ export function NovoxSidebar({
 
             {isManager && (
                 <Accordion type="multiple" className="w-full border-none">
-                    {/* B2B Broker Management Section - sadece Developer'lara göster */}
-                    {isDeveloper && (
+                    {/* B2B Broker Management Section - Sadece lisanslı olanlara göster */}
+                    {hasBrokerModule && (
                         <AccordionItem value="broker" className="border-none">
                             <AccordionTrigger className="px-3 py-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg hover:no-underline [&[data-state=open]]:text-white font-medium justify-start text-[13px] gap-3">
                                 <Users className="h-4 w-4" />
@@ -293,7 +332,7 @@ export function NovoxSidebar({
                             <NavItem href="/reports/finance" icon={Banknote} onClick={onElementClick} isSubItem>
                                 {labels.reports?.finance || 'Financial Analysis'}
                             </NavItem>
-                            {isDeveloper && (
+                            {hasBrokerModule && (
                                 <NavItem href="/admin/broker-leads/reports" icon={BarChart3} onClick={onElementClick} isSubItem>
                                     {labels.broker?.earnings || 'Broker Earnings'}
                                 </NavItem>

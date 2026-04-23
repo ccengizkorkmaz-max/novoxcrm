@@ -42,25 +42,25 @@ export default async function ConversationDetailPage(props: { params: Promise<{ 
                     </div>
                     <div>
                         <h1 className="text-lg font-black text-slate-900 leading-tight tracking-tight">
-                            {session.customers?.full_name || `Kullanıcı #${id.slice(-4)}`}
+                            {session.customers?.full_name || `+${session.phone_number}`}
                         </h1>
                         <div className="flex items-center gap-2 mt-0.5">
                             <Badge className={cn(
                                 "text-[10px] uppercase font-black px-2 py-0 border-none shadow-sm",
-                                session.channel === 'whatsapp' ? 'bg-emerald-50 text-emerald-700' : 'bg-blue-50 text-blue-700'
+                                "bg-emerald-50 text-emerald-700"
                             )}>
-                                {session.channel}
+                                WHATSAPP
                             </Badge>
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">ID: {session.external_user_id}</span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">TEL: {session.phone_number}</span>
                         </div>
                     </div>
                 </div>
 
                 <div className="flex items-center gap-3">
-                    {session.status === 'qualified' && (
-                        <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-100 py-1 font-black text-[10px] uppercase tracking-wider shadow-sm">
+                    {session.ai_enabled && (
+                        <Badge className="bg-blue-50 text-blue-700 border border-blue-100 py-1 font-black text-[10px] uppercase tracking-wider shadow-sm">
                             <Sparkles className="h-3 w-3 mr-1" />
-                            Potansiyel
+                            AI AKTİF
                         </Badge>
                     )}
                 </div>
@@ -146,7 +146,7 @@ export default async function ConversationDetailPage(props: { params: Promise<{ 
                         <div className="space-y-4">
                             <div className="flex justify-between items-center bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
                                 <span className="text-[10px] text-slate-400 font-bold uppercase">Durum</span>
-                                <Badge className="bg-blue-50 text-blue-700 border-none font-black text-[10px] uppercase">{session.status}</Badge>
+                                <Badge className="bg-blue-50 text-blue-700 border-none font-black text-[10px] uppercase">{session.ai_enabled ? 'AI AKTİF' : 'YÖNETİMDE'}</Badge>
                             </div>
                             <div className="flex justify-between items-center bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
                                 <span className="text-[10px] text-slate-400 font-bold uppercase">Mesajlar</span>

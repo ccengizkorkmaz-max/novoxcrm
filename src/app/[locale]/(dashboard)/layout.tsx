@@ -38,11 +38,13 @@ export default async function DashboardLayout(props: {
 
     const { data: tenant } = profile?.tenant_id ? await supabase
         .from('tenants')
-        .select('name, tenant_type')
+        .select('name, tenant_type, has_broker_module, has_outreach_module')
         .eq('id', profile.tenant_id)
         .single() : { data: null }
 
     const tenantType = (tenant as any)?.tenant_type || 'developer'
+    const hasBrokerModule = (tenant as any)?.has_broker_module || false
+    const hasOutreachModule = (tenant as any)?.has_outreach_module || false
 
     const isAuthorizedForSettings = profile?.role === 'admin' || profile?.role === 'owner'
 
@@ -107,7 +109,7 @@ export default async function DashboardLayout(props: {
                         </div>
                     </div>
                     <div className="flex-1 overflow-auto py-2">
-                        <NovoxSidebar role={profile?.role || 'sales'} labels={sidebarLabels} tenantType={tenantType} />
+                        <NovoxSidebar role={profile?.role || 'sales'} labels={sidebarLabels} tenantType={tenantType} hasBrokerModule={hasBrokerModule} hasOutreachModule={hasOutreachModule} />
                     </div>
                     <div className="px-4 py-2">
                         <LanguageSwitcher variant="light" />
@@ -162,7 +164,7 @@ export default async function DashboardLayout(props: {
                                     </div>
                                 </div>
                                 <div className="flex-1 overflow-auto py-2">
-                                    <NovoxSidebar role={profile?.role || 'sales'} labels={sidebarLabels} tenantType={tenantType} />
+                                    <NovoxSidebar role={profile?.role || 'sales'} labels={sidebarLabels} tenantType={tenantType} hasBrokerModule={hasBrokerModule} hasOutreachModule={hasOutreachModule} />
                                 </div>
                                 <div className="px-4 py-2">
                                     <LanguageSwitcher variant="light" />

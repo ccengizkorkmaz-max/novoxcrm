@@ -483,12 +483,30 @@
         "status": {
             "Active": "OPEN for Sales",
             "Planned": "Planned",
-            "Completed": "CLOSED"
+            "Completed": "CLOSED",
+            "Archived": "Archived"
         },
         "card": {
             "details": "Details",
             "location": "Not specified",
             "statusLabel": "Status"
+        },
+        "archive": {
+            "button": "Archive",
+            "restore": "Restore",
+            "confirmTitle": "Archive Project",
+            "confirmDesc": "This project will be moved to archive and hidden from the project list. No data linked to this project will be deleted. You can restore it anytime.",
+            "confirmAction": "Yes, Archive",
+            "restoreConfirmTitle": "Restore Project",
+            "restoreConfirmDesc": "This project will be restored from archive and added back to the active projects list.",
+            "restoreConfirmAction": "Yes, Restore",
+            "cancel": "Cancel",
+            "success": "Project archived successfully.",
+            "restoreSuccess": "Project restored successfully.",
+            "error": "An error occurred during the operation.",
+            "showArchived": "Show Archived Projects",
+            "hideArchived": "Hide Archived Projects",
+            "archivedCount": "{count} archived project(s)"
         },
         "empty": {
             "title": "No projects found yet.",

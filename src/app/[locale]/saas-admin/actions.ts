@@ -132,7 +132,9 @@ export async function updateTenantSubscription(
         user_limit?: number,
         subscription_end_date?: string,
         plan_type?: string,
-        subscription_status?: string
+        subscription_status?: string,
+        has_broker_module?: boolean,
+        has_outreach_module?: boolean
     }
 ) {
     const isAdmin = await checkSuperAdmin()

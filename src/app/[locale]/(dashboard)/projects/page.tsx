@@ -14,14 +14,19 @@ import {
 } from "@/components/ui/dialog"
 import { Link } from '@/i18n/routing'
 import { createProject } from './actions'
-import { Plus, MapPin, Building2 } from 'lucide-react'
+import { Plus, MapPin, Building2, Archive } from 'lucide-react'
 import Image from 'next/image'
 import { getTranslations } from 'next-intl/server'
+import { ArchiveProjectButton } from './ArchiveProjectButton'
+import { ArchiveToggle } from './ArchiveToggle'
 
 export default async function ProjectsPage(props: {
     params: Promise<{ locale: string }>
+    searchParams: Promise<{ showArchived?: string }>
 }) {
     const { locale } = await props.params
+    const searchParams = await props.searchParams
+    const showArchived = searchParams?.showArchived === 'true'
     const t = await getTranslations('Projects')
     const tc = await getTranslations('Common')
     const supabase = await createClient()
@@ -43,12 +48,10 @@ export default async function ProjectsPage(props: {
         .select('*, units(status)')
         .order('created_at', { ascending: false })
 
-    console.log('Projects Page - Debug:', {
-        userId: user?.id,
-        tenantId: profile?.tenant_id,
-        projectsCount: projects?.length,
-        error
-    })
+    // Separate active and archived projects
+    const activeProjects = projects?.filter((p: any) => p.status !== 'Archived') || []
+    const archivedProjects = projects?.filter((p: any) => p.status === 'Archived') || []
+    const displayProjects = showArchived ? projects : activeProjects
 
     async function handleCreateProject(formData: FormData) {
         'use server'
@@ -58,7 +61,12 @@ export default async function ProjectsPage(props: {
     return (
         <div className="flex flex-col gap-6">
             <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
+                <div className="flex items-center gap-4">
+                    <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
+                    {isManager && (
+                        <ArchiveToggle archivedCount={archivedProjects.length} />
+                    )}
+                </div>
                 {isManager && (
                     <Dialog>
                         <DialogTrigger asChild>
@@ -108,27 +116,47 @@ export default async function ProjectsPage(props: {
                         <p className="font-medium">{t('error.tenant')}</p>
                         <p className="text-sm">{t('error.tenantDesc')}</p>
                     </div>
-                ) : projects && projects.length > 0 ? (
-                    projects.map((project: any) => {
+                ) : displayProjects && displayProjects.length > 0 ? (
+                    displayProjects.map((project: any) => {
                         const units = project.units || []
                         const totalUnits = units.length
                         const soldUnits = units.filter((u: any) => u.status === 'Sold').length
                         const remainingUnits = units.filter((u: any) => u.status === 'For Sale' || u.status === 'Stock').length
+                        const isArchivedProject = project.status === 'Archived'
 
                         return (
-                            <Card key={project.id} className="overflow-hidden group hover:shadow-lg transition-all duration-300 border-slate-200">
+                            <Card key={project.id} className={`overflow-hidden group hover:shadow-lg transition-all duration-300 border-slate-200 relative ${
+                                isArchivedProject ? 'opacity-60 border-amber-300 bg-amber-50/30' : ''
+                            }`}>
+                                {/* Archive/Restore button - only for admin users */}
+                                {isManager && (
+                                    <ArchiveProjectButton
+                                        projectId={project.id}
+                                        projectName={project.name}
+                                        isArchived={isArchivedProject}
+                                    />
+                                )}
+
+                                {/* Archived badge */}
+                                {isArchivedProject && (
+                                    <div className="absolute top-2 left-2 z-10 flex items-center gap-1 bg-amber-500 text-white text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider">
+                                        <Archive className="h-3 w-3" />
+                                        {t('status.Archived')}
+                                    </div>
+                                )}
+
                                 {project.image_url ? (
                                     <div className="relative h-56 w-full bg-muted/50">
                                         <Image
                                             src={project.image_url}
                                             alt={project.name}
                                             fill
-                                            className="object-contain transition-all group-hover:scale-105"
+                                            className={`object-contain transition-all group-hover:scale-105 ${isArchivedProject ? 'grayscale' : ''}`}
                                         />
                                     </div>
                                 ) : (
-                                    <div className="h-56 w-full bg-slate-100 flex items-center justify-center border-b border-slate-100">
-                                        <Building2 className="h-16 w-16 text-slate-300" />
+                                    <div className={`h-56 w-full flex items-center justify-center border-b ${isArchivedProject ? 'bg-amber-50 border-amber-100' : 'bg-slate-100 border-slate-100'}`}>
+                                        <Building2 className={`h-16 w-16 ${isArchivedProject ? 'text-amber-300' : 'text-slate-300'}`} />
                                     </div>
                                 )}
                                 <CardHeader className="pb-3">

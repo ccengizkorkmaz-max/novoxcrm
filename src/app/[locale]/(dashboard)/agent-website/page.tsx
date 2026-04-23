@@ -9,7 +9,7 @@ export default async function AgentWebsitePage() {
 
     const { data: profile } = await supabase
         .from('profiles')
-        .select('id, full_name, role, phone, email, avatar_url, agent_bio, agent_title, agent_slug, agent_social_links, agent_specializations, agent_service_areas, agent_certifications, agent_years_experience, agent_is_public, agent_cover_url')
+        .select('id, full_name, role, email, agent_bio, agent_title, agent_slug, agent_social_links, agent_specializations, agent_service_areas, agent_certifications, agent_years_experience, agent_is_public, agent_cover_url')
         .eq('id', user.id)
         .single()
 

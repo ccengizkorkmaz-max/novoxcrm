@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -178,7 +178,7 @@ export function PortfolioDetailView({ portfolio, agent, transactions, activities
                                             stove: 'Soba', ac: 'Klima', none: 'Yok'
                                         }
                                         const features = p.features as Record<string, any>
-                                        const items: JSX.Element[] = []
+                                        const items: React.ReactElement[] = []
                                         
                                         if (features.heating && features.heating !== 'none') {
                                             items.push(

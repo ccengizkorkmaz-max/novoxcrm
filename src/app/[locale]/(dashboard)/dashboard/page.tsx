@@ -470,7 +470,7 @@ export default async function DashboardPage(props: {
           revenueStats={rStats}
           topAgents={topAgents}
           pipelineStats={pipelineStats}
-          recentActivities={recentActivities || []}
+          recentActivities={(recentActivities || []) as any[]}
         />
       </div>
     )

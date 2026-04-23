@@ -46,3 +46,69 @@ export async function createProject(formData: FormData) {
     revalidatePath('/projects')
     return { success: true }
 }
+
+export async function archiveProject(projectId: string) {
+    const supabase = await createClient()
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+        redirect('/login')
+    }
+
+    // Check admin role
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id, role')
+        .eq('id', user.id)
+        .single()
+
+    if (!profile || !['admin', 'owner', 'manager'].includes(profile.role)) {
+        return { error: 'Unauthorized: Only administrators can archive projects.' }
+    }
+
+    const { error } = await supabase
+        .from('projects')
+        .update({ status: 'Archived' })
+        .eq('id', projectId)
+
+    if (error) {
+        console.error('Archive Project Error:', error)
+        return { error: 'Failed to archive project' }
+    }
+
+    revalidatePath('/projects')
+    return { success: true }
+}
+
+export async function restoreProject(projectId: string) {
+    const supabase = await createClient()
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+        redirect('/login')
+    }
+
+    // Check admin role
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id, role')
+        .eq('id', user.id)
+        .single()
+
+    if (!profile || !['admin', 'owner', 'manager'].includes(profile.role)) {
+        return { error: 'Unauthorized: Only administrators can restore projects.' }
+    }
+
+    const { error } = await supabase
+        .from('projects')
+        .update({ status: 'Active' })
+        .eq('id', projectId)
+
+    if (error) {
+        console.error('Restore Project Error:', error)
+        return { error: 'Failed to restore project' }
+    }
+
+    revalidatePath('/projects')
+    return { success: true }
+}
