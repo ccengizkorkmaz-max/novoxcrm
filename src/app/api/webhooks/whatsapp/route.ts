@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
 
         // ── 3. Sohbeti Bul veya Oluştur ────────────────────────────────
         const { conversationId, aiEnabled } = await findOrCreateConversation(
-            supabase, tenantId, normalizedPhone, payload.message
+            supabase, tenantId, normalizedPhone, payload.message, payload.channel
         );
 
         if (!conversationId) {
@@ -286,7 +286,7 @@ async function findTenant(supabase: any, phoneNumberId: string, channel?: string
  * Telefon numarasına göre sohbet bul veya yeni oluştur
  */
 async function findOrCreateConversation(
-    supabase: any, tenantId: string, phone: string, messagePreview: string
+    supabase: any, tenantId: string, phone: string, messagePreview: string, channel: string = 'whatsapp'
 ) {
     const { data: existing } = await supabase
         .from('whatsapp_conversations')
@@ -300,6 +300,7 @@ async function findOrCreateConversation(
             last_message_at: new Date().toISOString(),
             last_message_preview: messagePreview.substring(0, 50),
             unread_count: 1,
+            channel, // Ensure channel is always up-to-date
         }).eq('id', existing.id);
 
         return { conversationId: existing.id, aiEnabled: existing.ai_enabled };
@@ -312,6 +313,7 @@ async function findOrCreateConversation(
         last_message_preview: messagePreview.substring(0, 50),
         unread_count: 1,
         ai_enabled: true,
+        channel,
     }).select('id').single();
 
     return { conversationId: newConv?.id || null, aiEnabled: true };
