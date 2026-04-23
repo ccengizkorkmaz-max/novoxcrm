@@ -27,11 +27,22 @@ export async function POST(req: NextRequest) {
         // 1. Get API Key from tenant DB (primary) or env var (fallback)
         let apiKey = process.env.GEMINI_API_KEY
         
-        if (tenantId) {
+        // Always try to get tenant - even if no project context, get the first tenant
+        let resolvedTenantId = tenantId
+        if (!resolvedTenantId) {
+            const { data: firstTenant } = await adminSupabase
+                .from('tenants')
+                .select('id')
+                .limit(1)
+                .maybeSingle()
+            resolvedTenantId = firstTenant?.id
+        }
+
+        if (resolvedTenantId) {
             const { data: tenant } = await adminSupabase
                 .from('tenants')
                 .select('ai_assistant_name, ai_assistant_personality, ai_assistant_instructions, ai_assistant_gender, gemini_api_key')
-                .eq('id', tenantId)
+                .eq('id', resolvedTenantId)
                 .maybeSingle()
 
             if (tenant) {
