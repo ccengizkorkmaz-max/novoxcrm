@@ -124,7 +124,7 @@ export default function AiSettingsTab({ tenant }: AiSettingsTabProps) {
                                         <SelectTrigger className="w-full bg-white">
                                             <SelectValue placeholder="Model Seçin" />
                                         </SelectTrigger>
-                                        <SelectContent>
+                                        <SelectContent position="popper">
                                             <SelectItem value="gpt-4o-mini">GPT-4o Mini (Hızlı ve Ucuz)</SelectItem>
                                             <SelectItem value="gpt-4o">GPT-4o (En Zeki, Yüksek Maliyet)</SelectItem>
                                             <SelectItem value="gpt-4-turbo">GPT-4 Turbo (Gelişmiş)</SelectItem>
@@ -186,7 +186,7 @@ export default function AiSettingsTab({ tenant }: AiSettingsTabProps) {
                                         <SelectTrigger className="w-full bg-white">
                                             <SelectValue placeholder="Model Seçin" />
                                         </SelectTrigger>
-                                        <SelectContent>
+                                        <SelectContent position="popper">
                                             <SelectItem value="gemini-1.5-flash">Gemini 1.5 Flash (Çok Hızlı, Default)</SelectItem>
                                             <SelectItem value="gemini-1.5-pro">Gemini 1.5 Pro (En Zeki, Karmaşık Analiz)</SelectItem>
                                             <SelectItem value="gemini-2.0-flash">Gemini 2.0 Flash (Yeni Nesil, Yetki Gerekebilir)</SelectItem>
@@ -336,7 +336,7 @@ export default function AiSettingsTab({ tenant }: AiSettingsTabProps) {
                                     <SelectTrigger className="w-full">
                                         <SelectValue placeholder="Seçiniz" />
                                     </SelectTrigger>
-                                    <SelectContent>
+                                    <SelectContent position="popper">
                                         <SelectItem value="female">Kadın Sesi (Daha yumuşak ve nazik)</SelectItem>
                                         <SelectItem value="male">Erkek Sesi (Daha ciddi ve güven veren)</SelectItem>
                                     </SelectContent>
