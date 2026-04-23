@@ -113,17 +113,26 @@ export async function POST(req: NextRequest) {
                     parts: [{ text: m.content }],
                 }));
 
-                // Base AI system rules to strictly hide AI identity
+                // Get CRM context to feed to AI
+                const crmContext = await getTenantCrmContext(supabase, tenantId);
+
+                // Base AI system rules to strictly hide AI identity and qualify leads
                 const strictHumanPersona = `\n\nÖNEMLİ KURALLAR:
-1. Sen sadece firmada profesyonel bir satış danışmanısın.
+1. Sen sadece Novo CRM firmasında profesyonel bir satış danışmanısın.
 2. Kendini tanıtırken veya sorulara cevap verirken ASLA "insanım", "yapay zekayım", "dil modeliyim" veya "asistanım" kelimelerini KULLANMA. Kimliğini açıklamaya çalışma, sadece doğrudan konuya gir.
-3. Müşteriye doğrudan gayrimenkullerle ilgili profesyonel ve kısa cevaplar ver.
-4. Gereksiz açıklamalardan kaçın (örneğin: "Sizi anlıyorum, ben bir danışmanım ve size yardım edeceğim" gibi klişeler kullanma).`;
+3. Müşteriye doğrudan aşağıda sana verilen 'CRM ENVANTER BİLGİSİ'ne dayanarak bütçesi veya bölge tercihlerine göre gerçek projelerden örnekler ver. Sadece elindeki projeleri sat.
+4. LEAD KALİFİKASYONU: Sohbet sırasında çok doğal ve nazik bir şekilde müşterinin adını, soyadını, aradığı daire tipini, bütçesini ve asıl amacını/acı noktasını (yatırım mı, oturum mu vb.) öğrenmeye çalış.
+
+GİZLİ SİSTEM KOMUTLARI (BU KOMUTLARI SADECE ŞARTLAR SAĞLANDIĞINDA YANITININ EN SONUNA EKLERSİN, KULLANICI GÖRMEZ):
+- Eğer müşterinin Adını, Soyadını ve Telefon Numarasını (Eğer telefon numarasını daha önce verdiyse veya sistem biliyorsa tekrar sorma) net olarak öğrendiysen ve müşteri ilgilendiğini belli ettiyse, yanıtının EN SONUNA şu formatta bir JSON ekle:
+[LEAD_DATA: {"first_name": "Ad", "last_name": "Soyad", "phone": "Telefon Numarası", "notes": "Müşterinin bütçesi ve ilgilendiği şeyler"}]
+- Eğer müşteri "Hemen satın almak istiyorum", "Acil daire arıyorum", "Bugün kaparo verebilirim" gibi yüksek satın alma sinyali (HOT LEAD) verirse, yanıtının EN SONUNA şunu ekle:
+[HOT_LEAD]`;
 
                 // AI'dan yanıt al
-                const finalPrompt = (tenantData.ai_system_prompt || tenantData.ai_assistant_instructions || getDefaultSystemPrompt()) + strictHumanPersona;
+                const finalPrompt = (tenantData.ai_system_prompt || tenantData.ai_assistant_instructions || getDefaultSystemPrompt()) + crmContext + strictHumanPersona;
 
-                const aiReply = await generateAIReply(
+                let aiReply = await generateAIReply(
                     resolvedAi.provider,
                     resolvedAi.apiKey,
                     finalPrompt,
@@ -132,6 +141,51 @@ export async function POST(req: NextRequest) {
                 );
 
                 if (aiReply) {
+                    // GİZLİ KOMUTLARI İŞLE VE METİNDEN TEMİZLE
+                    let isHotLead = false;
+                    if (aiReply.includes('[HOT_LEAD]')) {
+                        isHotLead = true;
+                        aiReply = aiReply.replace('[HOT_LEAD]', '').trim();
+                        
+                        // Yüksek öncelikli bildirim/aktivite oluştur
+                        await supabase.from('activities').insert({
+                            tenant_id: tenantId,
+                            type: 'Call',
+                            topic: 'Sales',
+                            summary: '🔥 ACİL SATIŞ (HOT LEAD)',
+                            description: `Novo AI bir satış kapatmak üzere! Müşteri hemen satın almak istiyor. Telefon: ${normalizedPhone}`,
+                            status: 'Pending',
+                            priority: 'High',
+                        });
+                        console.log('🔥 HOT LEAD DETECTED AND ALERT CREATED');
+                    }
+
+                    const leadMatch = aiReply.match(/\[LEAD_DATA:\s*(\{.*?\})\s*\]/);
+                    if (leadMatch) {
+                        try {
+                            const leadData = JSON.parse(leadMatch[1]);
+                            aiReply = aiReply.replace(leadMatch[0], '').trim();
+                            
+                            // CRM'de müşteri oluştur veya güncelle
+                            const { data: existingCust } = await supabase.from('customers').select('id').eq('phone', normalizedPhone).single();
+                            if (!existingCust) {
+                                await supabase.from('customers').insert({
+                                    tenant_id: tenantId,
+                                    first_name: leadData.first_name,
+                                    last_name: leadData.last_name || 'Bilinmiyor',
+                                    phone: normalizedPhone,
+                                    email: '',
+                                    type: 'Lead',
+                                    status: 'New',
+                                    source: payload.channel,
+                                });
+                                console.log(`✅ YENİ LEAD OLUŞTURULDU: ${leadData.first_name} ${leadData.last_name}`);
+                            }
+                        } catch (e) {
+                            console.error('Lead data parse error:', e);
+                        }
+                    }
+
                     const accessToken = tenantData.wa_access_token;
                     let sendSuccess = false;
 
@@ -514,4 +568,52 @@ async function callOpenAI(
 
     const data = await response.json();
     return data.choices?.[0]?.message?.content || null;
+}
+
+/**
+ * Veritabanından projeler ve müsait üniteler hakkında context çeker.
+ */
+async function getTenantCrmContext(supabase: any, tenantId: string): Promise<string> {
+    try {
+        const { data: projects } = await supabase
+            .from('projects')
+            .select('id, title, city, status')
+            .eq('tenant_id', tenantId)
+            .eq('status', 'Active')
+            .limit(5);
+
+        const { data: units } = await supabase
+            .from('units')
+            .select('project_id, type, price')
+            .eq('tenant_id', tenantId)
+            .in('status', ['Available', 'Müsait'])
+            .limit(50);
+
+        if (!projects || projects.length === 0) return '\n\n--- CRM ENVANTER BİLGİSİ ---\nŞu an aktif proje yok.';
+
+        let context = '\n\n--- CRM ENVANTER BİLGİSİ (BU BİLGİLERİ MÜŞTERİYE SATIŞ YAPMAK İÇİN KULLAN) ---\n';
+        for (const p of projects) {
+            context += `Proje Adı: ${p.title} (Şehir: ${p.city})\n`;
+            const projUnits = (units || []).filter((u: any) => u.project_id === p.id);
+            if (projUnits.length > 0) {
+                context += `  Müsait Daire Tipleri ve Fiyatlar:\n`;
+                const typeGroups: Record<string, number> = {};
+                projUnits.forEach((u: any) => {
+                    if (!typeGroups[u.type] || u.price < typeGroups[u.type]) {
+                        typeGroups[u.type] = u.price;
+                    }
+                });
+                for (const [type, price] of Object.entries(typeGroups)) {
+                    context += `    - ${type}: ${price} TL'den başlıyor\n`;
+                }
+            } else {
+                context += `  Müsait daire yok.\n`;
+            }
+        }
+        context += '------------------------------------------------\n';
+        return context;
+    } catch (e) {
+        console.error('Error fetching CRM context:', e);
+        return '';
+    }
 }
