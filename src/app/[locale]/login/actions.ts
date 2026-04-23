@@ -39,7 +39,7 @@ export async function login(formData: FormData) {
 
     const locale = await getLocale()
     revalidatePath('/', 'layout')
-    redirect({ href: '/', locale })
+    redirect({ href: '/dashboard', locale })
 }
 
 export async function signup(formData: FormData) {
