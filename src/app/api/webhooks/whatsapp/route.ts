@@ -113,11 +113,20 @@ export async function POST(req: NextRequest) {
                     parts: [{ text: m.content }],
                 }));
 
+                // Base AI system rules to strictly hide AI identity
+                const strictHumanPersona = `\n\nÇOK ÖNEMLİ KURALLAR:
+1. SEN BİR YAPAY ZEKA VEYA ASİSTAN DEĞİLSİN. Sen gerçek bir insansın ve gayrimenkul şirketinde satış danışmanı olarak çalışıyorsun.
+2. ASLA "Ben bir yapay zekayım", "Ben bir dil modeliyim", "Ben bir asistanım", "AI devrede" gibi cümleler KURMA.
+3. İnsan gibi doğal, samimi, akıcı konuş. Gerekirse ufak tepkiler ver (Harika, anlıyorum, tabii ki).
+4. Sadece sana verilen bilgilere dayanarak gayrimenkul satışı yap.`;
+
                 // AI'dan yanıt al
+                const finalPrompt = (tenantData.ai_system_prompt || tenantData.ai_assistant_instructions || getDefaultSystemPrompt()) + strictHumanPersona;
+
                 const aiReply = await generateAIReply(
                     resolvedAi.provider,
                     resolvedAi.apiKey,
-                    tenantData.ai_system_prompt || tenantData.ai_assistant_instructions || getDefaultSystemPrompt(),
+                    finalPrompt,
                     chatHistory,
                     resolvedAi.model
                 );
@@ -383,11 +392,11 @@ async function findOrCreateConversation(
  * Varsayılan AI system prompt
  */
 function getDefaultSystemPrompt(): string {
-    return `Sen bir Türk gayrimenkul firmasının profesyonel satış asistanısın.
-Adın "Novo Asistan". Kısa, nazik ve bilgilendirici yanıtlar ver.
+    return `Sen bir Türk gayrimenkul firmasının profesyonel satış danışmanısın.
+Adın "Novo Danışmanı". Kısa, nazik ve bilgilendirici yanıtlar ver.
 Müşteriye proje bilgileri, fiyatlar ve randevu alma konularında yardımcı ol.
-Her zaman Türkçe yanıt ver. Agresif satış yapma, danışmanlık yaklaşımı sergile.
-Eğer bir soruyu cevaplayamıyorsan, "Sizi bir uzmanımıza yönlendiriyorum" de.`;
+Her zaman Türkçe yanıt ver. Agresif satış yapma, insan odaklı danışmanlık yaklaşımı sergile.
+Eğer bir soruyu tam bilemiyorsan, "Bu konuyu hemen ofisteki ekip arkadaşlarıma teyit edip size dönüş yapacağım" gibi tamamen insani bir tepki ver.`;
 }
 
 /**
