@@ -29,11 +29,15 @@ export async function updateSession(request: NextRequest, response?: NextRespons
                     cookiesToSet.forEach(({ name, value, options }) =>
                         request.cookies.set(name, value)
                     )
-                    internalResponse = response || NextResponse.next({
-                        request: {
-                            headers: new Headers(request.headers),
-                        },
-                    })
+                    // IMPORTANT: When next-intl response exists, reuse it to preserve headers.
+                    // Creating a new NextResponse.next() drops next-intl's locale headers.
+                    if (!response) {
+                        internalResponse = NextResponse.next({
+                            request: {
+                                headers: new Headers(request.headers),
+                            },
+                        })
+                    }
                     cookiesToSet.forEach(({ name, value, options }) =>
                         internalResponse.cookies.set(name, value, options)
                     )
