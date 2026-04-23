@@ -93,9 +93,12 @@ export async function POST(req: NextRequest) {
         }
 
         // ── 5. AI Chatbot Motoru ───────────────────────────────────────
-        if (aiEnabled && tenantData.ai_api_key) {
+        // Dinamik AI provider ve key çözümleme
+        const resolvedAi = resolveAiProvider(tenantData);
+
+        if (aiEnabled && resolvedAi) {
             try {
-                console.log(`🤖 AI aktif, yanıt üretiliyor (${tenantData.ai_provider || 'gemini'})...`);
+                console.log(`🤖 AI aktif, yanıt üretiliyor (${resolvedAi.provider})...`);
 
                 // Son 20 mesajı context olarak çek
                 const { data: history } = await supabase
@@ -112,45 +115,55 @@ export async function POST(req: NextRequest) {
 
                 // AI'dan yanıt al
                 const aiReply = await generateAIReply(
-                    tenantData.ai_provider || 'gemini',
-                    tenantData.ai_api_key,
-                    tenantData.ai_system_prompt || getDefaultSystemPrompt(),
+                    resolvedAi.provider,
+                    resolvedAi.apiKey,
+                    tenantData.ai_system_prompt || tenantData.ai_assistant_instructions || getDefaultSystemPrompt(),
                     chatHistory
                 );
 
                 if (aiReply) {
-                    // WhatsApp Cloud API ile gönder
-                    const phoneId = tenantData.wa_phone_number_id || process.env.WHATSAPP_PHONE_NUMBER_ID;
-                    const accessToken = tenantData.wa_access_token || process.env.WHATSAPP_ACCESS_TOKEN;
+                    const accessToken = tenantData.wa_access_token;
+                    let sendSuccess = false;
 
-                    if (phoneId && accessToken) {
-                        const sendResult = await sendWhatsAppMessage(normalizedPhone, aiReply, phoneId, accessToken);
-
-                        // AI yanıtını DB'ye kaydet
-                        await supabase.from('whatsapp_messages').insert({
-                            conversation_id: conversationId,
-                            tenant_id: tenantId,
-                            wa_message_id: sendResult.data?.messages?.[0]?.id || null,
-                            direction: 'outbound',
-                            sender_type: 'bot',
-                            content: aiReply,
-                            status: sendResult.success ? 'sent' : 'failed',
-                            role: 'assistant',
+                    if (payload.channel === 'messenger' && accessToken) {
+                        // Messenger: Facebook Graph API
+                        const res = await fetch(`https://graph.facebook.com/v19.0/me/messages?access_token=${accessToken}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ recipient: { id: normalizedPhone }, message: { text: aiReply } }),
                         });
-
-                        // Conversation güncelle
-                        await supabase.from('whatsapp_conversations').update({
-                            last_message_at: new Date().toISOString(),
-                            last_message_preview: aiReply.substring(0, 50),
-                        }).eq('id', conversationId);
-
-                        console.log(`✅ AI yanıtı gönderildi: "${aiReply.substring(0, 80)}..."`);
+                        sendSuccess = res.ok;
+                    } else if (tenantData.wa_phone_number_id && accessToken) {
+                        // WhatsApp Cloud API
+                        const sendResult = await sendWhatsAppMessage(normalizedPhone, aiReply, tenantData.wa_phone_number_id, accessToken);
+                        sendSuccess = sendResult.success;
                     }
+
+                    // AI yanıtını DB'ye kaydet
+                    await supabase.from('whatsapp_messages').insert({
+                        conversation_id: conversationId,
+                        tenant_id: tenantId,
+                        direction: 'outbound',
+                        sender_type: 'bot',
+                        content: aiReply,
+                        status: sendSuccess ? 'sent' : 'failed',
+                        role: 'assistant',
+                    });
+
+                    // Conversation güncelle
+                    await supabase.from('whatsapp_conversations').update({
+                        last_message_at: new Date().toISOString(),
+                        last_message_preview: aiReply.substring(0, 50),
+                    }).eq('id', conversationId);
+
+                    console.log(`✅ AI yanıtı gönderildi: "${aiReply.substring(0, 80)}..."`);
                 }
             } catch (aiError) {
                 console.error('🔥 AI Chatbot Error:', aiError);
                 // AI hatası mesaj kaydını engellemez, devam et
             }
+        } else if (aiEnabled && !resolvedAi) {
+            console.log('⚠️ AI aktif ama API key tanımlı değil — yanıt üretilmedi.');
         }
 
         // ── 6. Outreach Yanıt Algılama ─────────────────────────────────
@@ -198,6 +211,33 @@ export async function POST(req: NextRequest) {
 // ═══════════════════════════════════════════════════════════════════════════
 // YARDIMCI FONKSİYONLAR
 // ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Tenant ayarlarından aktif AI provider ve API key'i dinamik olarak çözer.
+ * Öncelik: 1) Gemini (aktifse) 2) OpenAI (aktifse) 3) Eski ai_api_key fallback
+ */
+function resolveAiProvider(tenant: any): { provider: string; apiKey: string } | null {
+    // 1. Gemini aktif ve key varsa
+    if (tenant.is_gemini_enabled && tenant.gemini_api_key) {
+        return { provider: 'gemini', apiKey: tenant.gemini_api_key };
+    }
+    // 2. OpenAI aktif ve key varsa
+    if (tenant.is_openai_enabled && tenant.openai_api_key) {
+        return { provider: 'openai', apiKey: tenant.openai_api_key };
+    }
+    // 3. Eski ai_api_key fallback
+    if (tenant.ai_api_key) {
+        return { provider: tenant.ai_provider || 'gemini', apiKey: tenant.ai_api_key };
+    }
+    // 4. Key var ama toggle açık değilse yine kullan
+    if (tenant.gemini_api_key) {
+        return { provider: 'gemini', apiKey: tenant.gemini_api_key };
+    }
+    if (tenant.openai_api_key) {
+        return { provider: 'openai', apiKey: tenant.openai_api_key };
+    }
+    return null;
+}
 
 interface IncomingPayload {
     channel: 'whatsapp' | 'messenger';
@@ -267,7 +307,7 @@ function parseIncomingPayload(body: any): IncomingPayload | null {
  * WhatsApp → wa_phone_number_id, Messenger → fb_page_id
  */
 async function findTenant(supabase: any, phoneNumberId: string, channel?: string) {
-    const selectFields = 'id, ai_provider, ai_api_key, ai_system_prompt, wa_phone_number_id, wa_access_token, fb_page_id';
+    const selectFields = 'id, ai_provider, ai_api_key, ai_system_prompt, ai_assistant_instructions, wa_phone_number_id, wa_access_token, fb_page_id, gemini_api_key, openai_api_key, is_gemini_enabled, is_openai_enabled, name';
 
     // Messenger ise önce fb_page_id ile dene
     if (channel === 'messenger') {
