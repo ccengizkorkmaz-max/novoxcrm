@@ -54,7 +54,7 @@ export default function RealtimeMessages({
     }, [conversationId])
 
     return (
-        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 custom-scrollbar bg-[url('/img/chat-bg.png')] bg-repeat opacity-95">
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-3 custom-scrollbar bg-[#efeae2] dark:bg-[#0b141a] bg-[url('/img/chat-bg.png')] bg-repeat opacity-95">
             {messages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-slate-400 space-y-4">
                     <div className="h-16 w-16 rounded-2xl bg-white shadow-sm flex items-center justify-center">
@@ -67,46 +67,30 @@ export default function RealtimeMessages({
                     <div
                         key={msg.id}
                         className={cn(
-                            "flex max-w-[80%] items-end gap-2",
-                            msg.direction === 'outbound' ? "ml-auto flex-row-reverse" : ""
+                            "flex w-full",
+                            msg.direction === 'outbound' ? "justify-end" : "justify-start"
                         )}
                     >
-                        {/* Avatar */}
-                        <div className={cn(
-                            "h-8 w-8 shrink-0 rounded-full flex items-center justify-center shadow-sm",
-                            msg.direction === 'outbound'
-                                ? "bg-blue-600 text-white"
-                                : "bg-white border border-slate-200 text-slate-600"
-                        )}>
-                            {msg.sender_type === 'bot' ? (
-                                <Bot className="h-4 w-4" />
-                            ) : msg.direction === 'outbound' ? (
-                                <User className="h-4 w-4" />
-                            ) : (
-                                <span className="text-xs font-bold uppercase">
-                                    {customerName ? customerName.charAt(0) : '?'}
-                                </span>
-                            )}
-                        </div>
-
                         {/* Bubble */}
-                        <div className={cn(
-                            "flex flex-col",
-                            msg.direction === 'outbound' ? "items-end" : "items-start"
-                        )}>
-                            <div
-                                className={cn(
-                                    "px-4 py-3 shadow-sm relative group",
-                                    msg.direction === 'outbound'
-                                        ? "bg-blue-600 text-white rounded-2xl rounded-tr-sm"
-                                        : "bg-white border border-slate-100 text-slate-700 rounded-2xl rounded-tl-sm"
+                        <div
+                            className={cn(
+                                "relative max-w-[85%] md:max-w-[75%] px-3 py-1.5 shadow-sm",
+                                msg.direction === 'outbound'
+                                    ? "bg-[#d9fdd3] dark:bg-[#005c4b] text-[#111b21] dark:text-white rounded-lg rounded-tr-none"
+                                    : "bg-white dark:bg-[#202c33] text-[#111b21] dark:text-white rounded-lg rounded-tl-none"
+                            )}
+                        >
+                            <p className="text-[14.5px] leading-relaxed whitespace-pre-wrap pb-3 pr-8">{msg.content}</p>
+                            
+                            {/* Timestamp */}
+                            <div className="absolute bottom-1 right-2 flex items-center gap-1">
+                                {msg.sender_type === 'bot' && (
+                                    <Bot className="h-3 w-3 text-slate-400 dark:text-slate-300" />
                                 )}
-                            >
-                                <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                                    {format(new Date(msg.created_at), 'HH:mm', { locale: tr })}
+                                </span>
                             </div>
-                            <span className="text-[10px] text-slate-400 font-medium mt-1 px-1">
-                                {format(new Date(msg.created_at), 'HH:mm', { locale: tr })}
-                            </span>
                         </div>
                     </div>
                 ))
