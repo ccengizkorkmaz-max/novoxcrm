@@ -14,13 +14,13 @@ export function TrustSection() {
         },
         {
             icon: Building2,
-            value: "50+",
+            value: "35+",
             label: t('projects'),
             color: "text-indigo-400"
         },
         {
             icon: Users,
-            value: "1.000+",
+            value: "5.000+",
             label: t('professionals'),
             color: "text-purple-400"
         },

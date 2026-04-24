@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Link } from '@/i18n/routing'
 import { Hero } from '@/components/marketing/Hero'
 import { TrustSection } from '@/components/marketing/TrustSection'
+import { PlatformPowerSection } from '@/components/marketing/PlatformPowerSection'
+import { OutreachShowcase } from '@/components/marketing/OutreachShowcase'
 import { ComparisonSection } from '@/components/marketing/ComparisonSection'
 import { AiFeaturesSection } from '@/components/marketing/AiFeaturesSection'
 import { PainSection } from '@/components/marketing/PainSection'
@@ -78,7 +80,9 @@ export default async function MarketingPage({ params }: { params: Promise<{ loca
             />
             <Hero />
             <TrustSection />
+            <PlatformPowerSection />
             <ComparisonSection />
+            <OutreachShowcase />
             <AiFeaturesSection />
             <PainSection />
             <CRMLifecycle />

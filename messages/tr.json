@@ -4,7 +4,7 @@
         "description": "Novo CRM, inşaat ve gayrimenkul firmaları için özel geliştirilmiş CRM yazılımıdır."
     },
     "Hero": {
-        "badge": "İnşaat ve Gayrimenkul Sektörü İçin Özel CRM",
+        "badge": "35+ Modül • 5 AI Motor • 4 Kanal",
         "title1": "Dijital Pazarlamadan",
         "title2": "Satış Ofisine",
         "titleHighlight": "Tam Saha Hakimiyet",
@@ -83,10 +83,10 @@
             "title": "Novo CRM Yöntemi",
             "items": [
                 "Müşteri geçmişi ve notları tek ekranda",
-                "AI Co-Pilot ile her sabah proaktif iş planı",
+                "AI Co-Pilot + Outreach ile proaktif otomasyon",
                 "Sesli not ile saniyeler içinde veri girişi",
                 "AI destekli akıllı mülk eşleştirmesi",
-                "Gecikmiş ödeme ve eksik evrak AI uyarıları",
+                "AI sesli arama, WhatsApp ve SMS ile 7/24 takip",
                 "%100 Gerçek zamanlı stok ve finans kontrolü"
             ]
         }
@@ -2560,5 +2560,70 @@
         "badge": "KAPSAMLI REHBER",
         "title": "Bir Bakışta Novo CRM",
         "description": "Novo CRM hakkında bilmeniz gereken her şey tek sayfada."
+    },
+    "PlatformPower": {
+        "badge": "Platform Gücü",
+        "title": "Sadece bir CRM değil.",
+        "titleHighlight": "Eksiksiz Satış Platformu.",
+        "description": "Novo CRM, inşaat ve gayrimenkul sektörü için tasarlanmış en kapsamlı dijital satış platformudur. AI destekli sesli arama, WhatsApp otomasyonu ve broker ağı yönetimi ile sektörde benzersiz bir konumdadır.",
+        "stats": {
+            "modules": "Entegre Modül",
+            "modulesDesc": "CRM, Finans, HR, Outreach, Brokerage...",
+            "aiEngines": "AI Motor",
+            "aiEnginesDesc": "Chat, Match, Voice, TTS, Insights",
+            "channels": "İletişim Kanalı",
+            "channelsDesc": "AI Call, WhatsApp, SMS, E-posta",
+            "seoPages": "Aktif Sayfa",
+            "seoPagesDesc": "SEO optimize, çok dilli platform"
+        },
+        "channelsTitle": "Tüm İletişim Kanalları Tek Platformda",
+        "channelsDesc": "Müşterilerinize tercih ettikleri kanaldan ulaşın — hepsi AI destekli.",
+        "channelNames": {
+            "aiCall": "AI Sesli Arama",
+            "whatsapp": "WhatsApp",
+            "sms": "SMS",
+            "email": "E-posta"
+        },
+        "allAiPowered": "Tüm kanallar AI ile güçlendirilmiştir"
+    },
+    "OutreachShowcase": {
+        "badge": "Outreach Otomasyon",
+        "title": "Müşteriye ulaşmak için",
+        "titleHighlight": "tek bir tıklama yeterli.",
+        "description": "Satış ekibiniz müşteri peşinde koşmasın. AI asistanlarınız otomatik olarak arasın, WhatsApp mesajı göndersin, SMS ile hatırlatsın. Siz sadece ilgilenen müşteriyle ilgilenin.",
+        "steps": {
+            "segment": {
+                "title": "Hedef Kitle",
+                "desc": "Dinamik filtrelerle segment oluştur"
+            },
+            "aiCall": {
+                "title": "AI Arama",
+                "desc": "Yapay zeka otomatik arasın"
+            },
+            "whatsapp": {
+                "title": "WhatsApp",
+                "desc": "Template mesaj gönder"
+            },
+            "sms": {
+                "title": "SMS",
+                "desc": "Kısa mesaj ile hatırlat"
+            },
+            "wait": {
+                "title": "Bekle",
+                "desc": "Akıllı zamanlama ile bekle"
+            },
+            "convert": {
+                "title": "Dönüştür",
+                "desc": "İlgilenen müşteriyi yakala"
+            }
+        },
+        "features": {
+            "workflow": "Sürükle-bırak akış tasarımı",
+            "aiVoice": "Türkçe AI sesli asistan",
+            "schedule": "Çalışma saati kontrolü",
+            "retry": "Akıllı yeniden deneme",
+            "branch": "Koşullu dallanma",
+            "realtime": "Anlık sonuç takibi"
+        }
     }
 }

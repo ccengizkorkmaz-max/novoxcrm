@@ -4,7 +4,7 @@
         "description": "Novo CRM is a CRM software specifically developed for construction and real estate companies."
     },
     "Hero": {
-        "badge": "Custom CRM for Construction and Real Estate Industry",
+        "badge": "35+ Modules • 5 AI Engines • 4 Channels",
         "title1": "From Digital Marketing",
         "title2": "to the Sales Office",
         "titleHighlight": "Full Field Mastery",
@@ -58,10 +58,10 @@
             "title": "Novo CRM Method",
             "items": [
                 "Customer history and notes on one screen",
-                "Fully integrated team and authorization",
+                "AI Co-Pilot + Outreach proactive automation",
                 "Automatic progress and bonus system",
                 "Late interest and maturity difference engine",
-                "100% Real-time stock control"
+                "AI voice calls, WhatsApp and SMS 24/7 follow-up"
             ]
         }
     },
@@ -2558,5 +2558,70 @@
         "badge": "COMPREHENSIVE GUIDE",
         "title": "Novo CRM at a Glance",
         "description": "Everything you need to know about Novo CRM in one page."
+    },
+    "PlatformPower": {
+        "badge": "Platform Power",
+        "title": "Not just a CRM.",
+        "titleHighlight": "A Complete Sales Platform.",
+        "description": "Novo CRM is the most comprehensive digital sales platform designed for the construction and real estate industry. Uniquely positioned with AI-powered voice calls, WhatsApp automation, and broker network management.",
+        "stats": {
+            "modules": "Integrated Modules",
+            "modulesDesc": "CRM, Finance, HR, Outreach, Brokerage...",
+            "aiEngines": "AI Engines",
+            "aiEnginesDesc": "Chat, Match, Voice, TTS, Insights",
+            "channels": "Communication Channels",
+            "channelsDesc": "AI Call, WhatsApp, SMS, Email",
+            "seoPages": "Active Pages",
+            "seoPagesDesc": "SEO optimized, multilingual platform"
+        },
+        "channelsTitle": "All Channels in One Platform",
+        "channelsDesc": "Reach your customers through their preferred channel — all AI-powered.",
+        "channelNames": {
+            "aiCall": "AI Voice Call",
+            "whatsapp": "WhatsApp",
+            "sms": "SMS",
+            "email": "Email"
+        },
+        "allAiPowered": "All channels are powered by AI"
+    },
+    "OutreachShowcase": {
+        "badge": "Outreach Automation",
+        "title": "One click to reach",
+        "titleHighlight": "every customer.",
+        "description": "Your sales team should not chase leads. Let AI assistants auto-call, send WhatsApp messages, and SMS reminders. You only deal with interested prospects.",
+        "steps": {
+            "segment": {
+                "title": "Audience",
+                "desc": "Create segments with dynamic filters"
+            },
+            "aiCall": {
+                "title": "AI Call",
+                "desc": "Let AI make the call"
+            },
+            "whatsapp": {
+                "title": "WhatsApp",
+                "desc": "Send template messages"
+            },
+            "sms": {
+                "title": "SMS",
+                "desc": "Remind via text message"
+            },
+            "wait": {
+                "title": "Wait",
+                "desc": "Smart scheduling and delays"
+            },
+            "convert": {
+                "title": "Convert",
+                "desc": "Capture interested leads"
+            }
+        },
+        "features": {
+            "workflow": "Drag-and-drop flow builder",
+            "aiVoice": "Turkish AI voice assistant",
+            "schedule": "Working hours control",
+            "retry": "Smart retry logic",
+            "branch": "Conditional branching",
+            "realtime": "Real-time tracking"
+        }
     }
 }
