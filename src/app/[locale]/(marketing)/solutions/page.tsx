@@ -14,9 +14,9 @@ export default function SolutionsPage() {
                     Gayrimenkul CEO'ları İçin Stratejik Çözümler
                 </div>
                 <h1 className="text-4xl md:text-7xl font-bold mb-8 text-white tracking-tight leading-tight">
-                    Satış Ekibiniz Uyurken Bile <br />
+                    Satış Ofisiniz Artık <br />
                     <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">
-                        AI Satıyor.
+                        7/24 Çalışıyor.
                     </span>
                 </h1>
                 <p className="text-xl text-slate-400 max-w-3xl mx-auto leading-relaxed mb-12">

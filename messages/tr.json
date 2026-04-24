@@ -5,9 +5,9 @@
     },
     "Hero": {
         "badge": "35+ Modül • 5 AI Motor • 4 Kanal",
-        "title1": "Satış Ekibiniz",
-        "title2": "Uyurken Bile",
-        "titleHighlight": "AI Satıyor.",
+        "title1": "Satış Ofisiniz Artık",
+        "title2": "",
+        "titleHighlight": "7/24 Çalışıyor.",
         "description": "Pazarlama bütçenizi verimli kullanın, müşteri kazanma araçlarını güçlendirin. Novo CRM; konut satışından stok takibine, broker ağ yönetiminden finansal raporlamaya kadar inşaat projelerinin tüm dinamiklerini tek merkezden yönetmek ve satış hacminizi artırmak için tasarlandı.",
         "ctaPrimary": "Hemen Dijitalleşin",
         "ctaSecondary": "Sistem Detaylarını İncele",
@@ -93,8 +93,8 @@
     },
     "SolutionSection": {
         "badge": "Bütünleşik Mimari",
-        "title": "Satış Ekibiniz Uyurken Bile",
-        "titleHighlight": "AI Satıyor.",
+        "title": "Satış Ofisiniz Artık",
+        "titleHighlight": "7/24 Çalışıyor.",
         "description": "Yapay zeka müşterilerinizi arar, WhatsApp ile takip eder, ilgileneni size yönlendirir. Siz sadece kapanışa odaklanın.",
         "button": "DETAYLI BİLGİ İÇİN TIKLAYIN",
         "cards": {

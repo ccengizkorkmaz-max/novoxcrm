@@ -5,9 +5,9 @@
     },
     "Hero": {
         "badge": "35+ Modules • 5 AI Engines • 4 Channels",
-        "title1": "While Your Sales Team",
-        "title2": "Sleeps,",
-        "titleHighlight": "AI Keeps Selling.",
+        "title1": "Your Sales Office",
+        "title2": "",
+        "titleHighlight": "Never Closes.",
         "description": "Use your marketing budget efficiently, strengthen customer acquisition tools. Novo CRM is designed to manage all dynamics of construction projects from a single center, from housing sales to stock tracking, broker network management to financial reporting, and to increase your sales volume.",
         "ctaPrimary": "Digitize Now",
         "ctaSecondary": "Examine System Details",
@@ -67,8 +67,8 @@
     },
     "SolutionSection": {
         "badge": "Integrated Architecture",
-        "title": "While Your Sales Team Sleeps,",
-        "titleHighlight": "AI Keeps Selling.",
+        "title": "Your Sales Office",
+        "titleHighlight": "Never Closes.",
         "description": "AI calls your customers, follows up via WhatsApp, and routes interested leads to you. You just focus on closing deals.",
         "button": "CLICK FOR DETAILED INFORMATION",
         "cards": {

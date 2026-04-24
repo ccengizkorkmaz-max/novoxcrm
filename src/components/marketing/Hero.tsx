@@ -1,13 +1,15 @@
 import { Button } from '@/components/ui/button'
 import { ChevronRight, Sparkles } from 'lucide-react'
 import { LeadCaptureModal } from '@/components/marketing/LeadCaptureModal'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 import { Link } from '@/i18n/routing'
+import { AnimatedHeroHeadline } from '@/components/marketing/AnimatedHeroHeadline'
 
 import { HeroCarousel } from '@/components/marketing/HeroCarousel'
 
 export function Hero() {
     const t = useTranslations('Hero')
+    const locale = useLocale()
 
     return (
         <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 overflow-hidden bg-slate-950">
@@ -33,12 +35,7 @@ export function Hero() {
                 </div>
 
                 {/* Headline */}
-                <h1 className="text-4xl md:text-6xl lg:text-7xl font-black tracking-tight text-white mb-8 leading-[1.1]">
-                    {t('title1')} <br className="hidden md:block" />
-                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-emerald-400 to-blue-500 drop-shadow-[0_0_25px_rgba(52,211,153,0.3)]">
-                        {t('titleHighlight')}
-                    </span>
-                </h1>
+                <AnimatedHeroHeadline locale={locale} />
 
                 {/* Subheadline */}
                 <p className="max-w-4xl mx-auto text-xl text-slate-400 mb-10 leading-relaxed">

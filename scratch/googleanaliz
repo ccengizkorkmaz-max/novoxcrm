@@ -1,0 +1,397 @@
+24 Nis 2026 08:36:47 tarihinden başlayan rapor
+https://www.novoxcrm.com/
+Geçerli bir URL girin
+
+
+smartphone
+Mobil
+
+computer
+Masaüstü
+
+Gerçek kullanıcılarınızın nelerle karşılaştığını görün
+Veri Yok
+
+Performans sorunlarını teşhis edin
+94
+Performans
+78
+Erişilebilirlik
+100
+En İyi Uygulamalar
+92
+SEO
+94
+FCP
++10
+LCP
++24
+TBT
++25
+CLS
++25
+SI
++10
+Performans
+Değerler tahminidir ve değişiklik gösterebilir. Performance skorunun hesaplanması , doğrudan bu metriklerle yapılır.Hesap makinesini göster.
+0–49
+50–89
+90–100
+Final Screenshot
+
+Metrikler
+Görünümü genişlet
+First Contentful Paint
+0,4 sn.
+Largest Contentful Paint
+0,9 sn.
+Total Blocking Time
+180 ms.
+Cumulative Layout Shift
+0.018
+Speed Index
+1,0 sn.
+Captured at 24 Nis 2026 08:36 GMT+3
+Emülasyonlu Masaüstü with Lighthouse 13.0.1
+Tek sayfalık oturum
+İlk sayfa yükleme
+Özel kısıtlamalar
+Using HeadlessChromium 146.0.7680.177 with lr
+Ağaç grafiği göster
+Screenshot
+Screenshot
+Screenshot
+Screenshot
+Screenshot
+Screenshot
+Screenshot
+Screenshot
+Şunlarla alakalı denetimleri göster:
+
+All
+
+FCP
+
+LCP
+
+TBT
+
+CLS
+Analizler
+Eski JavaScript Tahmini tasarruf: 14 KiB
+Polyfill'ler ve dönüşümler, daha eski tarayıcıların yeni JavaScript özelliklerini kullanmasını sağlar. Ancak, çoğu modern tarayıcılar için gerekli değildir. Daha eski tarayıcıları desteklemeniz gerekmediğinden eminseniz JavaScript derleme işleminizi Baseline özelliklerini çevirecek şekilde değiştirmeyi düşünün. Çoğu sitenin neden ES6+ kodunu çevirmeden dağıtabildiğini öğreninLCPFCPPuanlanmamış
+URL
+Boşa harcanan bayt miktarı
+novoxcrm.com 1. taraf
+13,8 KiB
+…chunks/961311cbebbffb6d.js(www.novoxcrm.com)
+13,8 KiB
+…chunks/961311cbebbffb6d.js:1:5124(www.novoxcrm.com)
+Array.prototype.at
+…chunks/961311cbebbffb6d.js:1:4512(www.novoxcrm.com)
+Array.prototype.flat
+…chunks/961311cbebbffb6d.js:1:4625(www.novoxcrm.com)
+Array.prototype.flatMap
+…chunks/961311cbebbffb6d.js:1:5001(www.novoxcrm.com)
+Object.fromEntries
+…chunks/961311cbebbffb6d.js:1:5259(www.novoxcrm.com)
+Object.hasOwn
+…chunks/961311cbebbffb6d.js:1:4254(www.novoxcrm.com)
+String.prototype.trimEnd
+…chunks/961311cbebbffb6d.js:1:4169(www.novoxcrm.com)
+String.prototype.trimStart
+Oluşturma engelleme istekleri Tahmini tasarruf: 90 ms.
+İstekler sayfanın ilk oluşturma işlemini engelliyor. Bu durum, LCP'yi geciktirebilir. Erteleme veya satır içine yerleştirme, bu ağ isteklerini kritik yoldan uzaklaştırabilir.LCPFCPPuanlanmamış
+URL
+Aktarım Boyutu
+Süre
+novoxcrm.com 1. taraf
+32,6 KiB	200 msn
+…chunks/4afd9f9ee68af3d0.css(www.novoxcrm.com)
+30,9 KiB
+200 msn
+…chunks/2473c16c0c2f6b5f.css(www.novoxcrm.com)
+1,7 KiB
+Zorunlu yeniden düzenleme
+DOM durumunda yapılan bir değişiklik nedeniyle stiller geçersiz kılındıktan sonra JavaScript, geometrik özellikler (ör. offsetWidth) sorguladığında zorunlu yeniden düzenleme gerçekleşir. Bu durum, performansın düşmesine neden olabilir. Zorunlu yeniden düzenlemeler ve olası çözümleri hakkında daha fazla bilgi edinin.Puanlanmamış
+En çok zaman alan işlev çağrısı
+Toplam yeniden düzenleme süresi
+…chunks/961311cbebbffb6d.js:2:7117(www.novoxcrm.com)
+18 msn
+Kaynak
+Toplam yeniden düzenleme süresi
+[ilişkilendirilmemiş]
+85 msn
+…chunks/8ee18a276a3d8c98.js:1:42714(www.novoxcrm.com)
+8 msn
+…chunks/a7ff92a8ef07afda.js:1:2263(www.novoxcrm.com)
+9 msn
+…chunks/08fa918b97e01b18.js:1:12402(www.novoxcrm.com)
+1 msn
+LCP istek keşfi
+LCP resmini HTML'den anında bulunabilir hale getirerek ve geç yüklemeden kaçınarak LCP'yi optimize edinLCPPuanlanmamış
+geç yükleme uygulanmadı
+fetchpriority=high uygulanmalıdır
+İstek, ilk dokümanda bulunabilir
+AI Akıllı Eşleşme
+<img src="/images/crm akıllı eşleşme.png" alt="AI Akıllı Eşleşme" class="w-full h-full object-contain bg-slate-950/50 opacity-90 transition-all dur…">
+Ağ bağımlılık ağacı
+Sayfaların daha kolay yüklenmesi için zincir uzunluğunu azaltarak, kaynakların indirme boyutunu küçülterek veya gereksiz kaynakların indirilmesini erteleyerek kritik istek zinciri oluşturmaktan kaçının.LCPPuanlanmamış
+Maksimum kritik yol gecikmesi: 1.001 msn
+İlk Gezinme
+https://www.novoxcrm.com - 536 msn, 47,71 KiB
+…chunks/2473c16c0c2f6b5f.css(www.novoxcrm.com) - 546 msn, 1,66 KiB
+…media/7178b3e590c64307-s.b97b3418.woff2(www.novoxcrm.com) - 999 msn, 15,91 KiB
+…media/caa3a2e1cccd8315-s.p.853070df.woff2(www.novoxcrm.com) - 853 msn, 28,69 KiB
+…media/bbc41e54d2fcbd21-s.799d8ef8.woff2(www.novoxcrm.com) - 1.001 msn, 13,70 KiB
+…media/797e433ab948586e-s.p.dbea232f.woff2(www.novoxcrm.com) - 851 msn, 31,53 KiB
+…cloudflare-static/email-decode.min.js(www.novoxcrm.com) - 546 msn, 1,21 KiB
+…chunks/4afd9f9ee68af3d0.css(www.novoxcrm.com) - 562 msn, 30,92 KiB
+Önceden bağlanmış kaynaklar
+Önceden bağlanma ipuçları, sayfa yüklenirken tarayıcının gerekli bağlantıları önceden kurmasına yardımcı olarak ilgili kaynağa yapılacak ilk istekte zaman kazandırır. Sayfanın önceden bağlantı kurduğu kaynaklar aşağıda verilmiştir.
+hiçbir kaynak önceden bağlanmadı
+Önceden bağlanma adayları
+En önemli kaynaklarınıza önceden bağlanma ipuçları ekleyin ancak 4'ten az ipucu kullanmaya çalışın.
+Ön bağlantı için uygun ek kaynak bulunmamaktadır
+Verimli önbellek sürelerini kullanın Tahmini tasarruf: 1 KiB
+Uzun önbellek ömrü, sayfanızın tekrar ziyaret edilmesi sürecini hızlandırabilir. Daha fazla bilgi edinin.LCPFCPPuanlanmamış
+İstek
+TTL'yi Önbelleğe Alma
+Aktarım Boyutu
+novoxcrm.com 1. taraf
+1 KiB
+…cloudflare-static/email-decode.min.js(www.novoxcrm.com)
+47d 44sn
+1 KiB
+Resim yayınlamayı kolaylaştırın Tahmini tasarruf: 154 KiB
+Resimlerin indirme süresini kısaltmak, sayfanın algılanan yükleme süresini ve LCP'yi daha iyi hale getirebilir. Resim boyutunu optimize etme hakkında daha fazla bilgi edinin.LCPFCPPuanlanmamış
+URL
+Kaynak Boyutu
+Tahmini Tasarruf
+novoxcrm.com 1. taraf
+214,9 KiB	153,6 KiB
+AI Akıllı Eşleşme
+<img src="/images/crm akıllı eşleşme.png" alt="AI Akıllı Eşleşme" class="w-full h-full object-contain bg-slate-950/50 opacity-90 transition-all dur…">
+/images/crm%20ak%C4%B1ll%C4%B1%20e%C5%9Fle%C5%9Fme.png(www.novoxcrm.com)
+214,9 KiB
+153,6 KiB
+Bu resim dosyası, görüntülenen boyutlarına (908x486) göre olması gerekenden (1700x910) daha büyük. Resim indirme boyutunu küçültmek için duyarlı resimler kullanın.
+153,6 KiB
+Düzen kayması sorununun nedenleri
+DOM boyutunu optimize edin
+LCP dökümü
+3. taraflar
+Bu analizler Chrome Geliştirici Araçları Performans Paneli'nde de mevcuttur. Daha ayrıntılı bilgi görüntülemek için izleme kaydı oluşturun.
+Teşhis
+Kullanılmayan JavaScript'i azaltın Tahmini tasarruf: 115 KiB
+Ağ etkinliğinin kullandığı bayt sayısını azaltılmaları gerekene kadar kullanılmayan JavaScript'i azaltıp komut dosyalarını erteleyin. Kullanılmayan JavaScript'i nasıl azaltacağınızı öğrenin.LCPFCPPuanlanmamış
+URL
+Aktarım Boyutu
+Tahmini Tasarruf
+Google Tag Manager tag-manager 
+152,3 KiB	63,3 KiB
+/gtag/js?id=G-FB3G9V25SP(www.googletagmanager.com)
+152,3 KiB
+63,3 KiB
+novoxcrm.com 1. taraf
+109,1 KiB	51,2 KiB
+…chunks/961311cbebbffb6d.js(www.novoxcrm.com)
+69,5 KiB
+28,1 KiB
+…chunks/7d6cbedebf070345.js(www.novoxcrm.com)
+39,6 KiB
+23,1 KiB
+Uzun ana ileti dizisi görevlerinden kaçının 8 uzun görev bulundu
+Kullanıcı Zamanlaması işaretleri ve ölçüleri 5 kullanıcı zamanlaması
+Birleştirilmemiş animasyonlardan kaçının Animasyonlu 1 öğe bulundu
+Uygulamanızın performansı hakkında daha fazla bilgi. Bu sayılar Performan skoruna doğrudan etki etmezler.
+Başarılı denetimler (12)
+Göster
+78
+Erişilebilirlik
+Bu kontroller, web uygulamanızın erişilebilirliğini iyileştirme fırsatlarını öne çıkarır. Otomatik algılama, sorunların yalnızca bir alt kümesini algılayabilir ve web uygulamanızın erişilebilirliğini garanti etmez. Bu nedenle, manuel test yapmanız da önerilir.
+Adlar ve etiketler
+Düğmelerin erişilebilir adları yok
+Düğmelerin erişilebilir özellikli adı olmadığında ekran okuyucular bu düğmeyi yalnızca "düğme" olarak okur. Bu da, ekran okuyuculardan yararlanan kullanıcılar için yararlı olmaz. Düğmeleri nasıl daha erişilebilir yapabileceğinizi öğrenin.
+Başarısız Öğeler
+div.container > div.relative > div.relative > button.absolute
+<button class="absolute left-4 top-1/2 -translate-y-1/2 z-30 h-10 w-10 md:h-12 md:w-12 ro…">
+div.container > div.relative > div.relative > button.absolute
+<button class="absolute right-4 top-1/2 -translate-y-1/2 z-30 h-10 w-10 md:h-12 md:w-12 r…">
+div.relative > div.relative > div.absolute > button.h-1.5
+<button class="h-1.5 transition-all duration-500 rounded-full w-8 bg-blue-500">
+div.relative > div.relative > div.absolute > button.h-1.5
+<button class="h-1.5 transition-all duration-500 rounded-full w-2 bg-slate-700">
+div.relative > div.relative > div.absolute > button.h-1.5
+<button class="h-1.5 transition-all duration-500 rounded-full w-2 bg-slate-700">
+div.relative > div.relative > div.absolute > button.h-1.5
+<button class="h-1.5 transition-all duration-500 rounded-full w-2 bg-slate-700">
+Bağlantıların ayırt edilebilir adları yok
+Bu fırsatlar, uygulamanızdaki kontrollerin anlamının iyileştirilmesine olanak tanır. Bu durum, ekran okuyucu gibi yardımcı teknolojilerin kullanıcılarına daha iyi bir deneyim sunulmasını sağlayabilir.
+En iyi uygulamalar
+[user-scalable="no"], <meta name="viewport"> öğesinde kullanılmış veya [maximum-scale] özelliği 5'ten küçük.
+Yakınlaştırmanın devre dışı bırakılması, az gören ve bir web sayfasının içeriğini düzgün bir şekilde görebilmek için ekran büyütme özelliğinden yararlanan kullanıcılar için sorun teşkil eder. Görüntü alanı meta etiketi hakkında daha fazla bilgi edinin.
+Başarısız Öğeler
+head > meta
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, …">
+Dokunma hedefleri, yeterli boyut veya boşluğa sahip değil.
+Yeterli boyut ve boşluğa sahip dokunma hedefleri, küçük kontrol düğmelerini kullanmakta sorun yaşayan kullanıcıların hedefleri etkinleştirmesine yardımcı olur. Dokunma hedefleri hakkında daha fazla bilgi edinin.
+Başarısız Öğeler
+div.relative > div.relative > div.absolute > button.h-1.5
+<button class="h-1.5 transition-all duration-500 rounded-full w-2 bg-slate-700">
+div.relative > div.relative > div.absolute > button.h-1.5
+<button class="h-1.5 transition-all duration-500 rounded-full w-2 bg-slate-700">
+div.relative > div.relative > div.absolute > button.h-1.5
+<button class="h-1.5 transition-all duration-500 rounded-full w-2 bg-slate-700">
+div.relative > div.relative > div.absolute > button.h-1.5
+<button class="h-1.5 transition-all duration-500 rounded-full w-2 bg-slate-700">
+div.relative > div.relative > div.absolute > button.h-1.5
+<button class="h-1.5 transition-all duration-500 rounded-full w-2 bg-slate-700">
+div.relative > div.relative > div.absolute > button.h-1.5
+<button class="h-1.5 transition-all duration-500 rounded-full w-2 bg-slate-700">
+div.relative > div.relative > div.absolute > button.h-1.5
+<button class="h-1.5 transition-all duration-500 rounded-full w-2 bg-slate-700">
+Bu öğeler, erişilebilirlikle ilgili yaygın en iyi uygulamaları öne çıkarır.
+Kontrast
+Arka plan ve ön plan renkleri yeterli kontrast oranına sahip değil.
+Birçok kullanıcı, düşük kontrastlı metni okumakta zorlanır veya okuyamaz. Yeterli renk kontrastını nasıl sağlayacağınızı öğrenin.
+Başarısız Öğeler
+SEKTÖRÜN ÖNCÜLERİ TARAFINDAN GÜVENLE KULLANILIYOR
+<p class="text-center text-slate-500 text-sm font-medium mb-8 uppercase tracking-wid…">
+SEKTÖRÜN ÖNCÜLERİ TARAFINDAN GÜVENLE KULLANILIYOR 10 Milyar ₺+ Yönetilen Portf…
+<section class="py-12 bg-slate-950 border-y border-slate-900 relative z-20">
+VIP YAPI
+<span class="text-xl font-bold font-serif text-slate-400">
+SEKTÖRÜN ÖNCÜLERİ TARAFINDAN GÜVENLE KULLANILIYOR 10 Milyar ₺+ Yönetilen Portf…
+<section class="py-12 bg-slate-950 border-y border-slate-900 relative z-20">
+MODERN İNŞAAT
+<span class="text-xl font-bold font-mono text-slate-400">
+SEKTÖRÜN ÖNCÜLERİ TARAFINDAN GÜVENLE KULLANILIYOR 10 Milyar ₺+ Yönetilen Portf…
+<section class="py-12 bg-slate-950 border-y border-slate-900 relative z-20">
+GOLD PROJE
+<span class="text-xl font-bold text-slate-400">
+SEKTÖRÜN ÖNCÜLERİ TARAFINDAN GÜVENLE KULLANILIYOR 10 Milyar ₺+ Yönetilen Portf…
+<section class="py-12 bg-slate-950 border-y border-slate-900 relative z-20">
+ELİT GYO
+<span class="text-xl font-bold font-sans text-slate-400 hidden md:inline">
+SEKTÖRÜN ÖNCÜLERİ TARAFINDAN GÜVENLE KULLANILIYOR 10 Milyar ₺+ Yönetilen Portf…
+<section class="py-12 bg-slate-950 border-y border-slate-900 relative z-20">
+DETAYLI BİLGİ İÇİN TIKLAYIN
+<a class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm fo…" href="/solutions">
+Tüm müşteri görüşmeleri tek ekranda
+<div class="flex items-center text-sm text-slate-500">
+CRM & Satış Yönetimi Tüm müşteri görüşmeleri tek ekranda Otomatik hatırlatmalar…
+<div class="p-6 rounded-2xl bg-slate-900/50 border border-slate-800 hover:border-slate…">
+✨ Bütünleşik Mimari Parça Parça Değil, Tam Entegre Çözüm İnşaat ve gayrimenkul…
+<section class="py-24 bg-slate-950 relative" id="solutions">
+Otomatik hatırlatmalar ve takip
+<div class="flex items-center text-sm text-slate-500">
+CRM & Satış Yönetimi Tüm müşteri görüşmeleri tek ekranda Otomatik hatırlatmalar…
+<div class="p-6 rounded-2xl bg-slate-900/50 border border-slate-800 hover:border-slate…">
+✨ Bütünleşik Mimari Parça Parça Değil, Tam Entegre Çözüm İnşaat ve gayrimenkul…
+<section class="py-24 bg-slate-950 relative" id="solutions">
+Facebook Lead Ads entegrasyonu
+<div class="flex items-center text-sm text-slate-500">
+Otomatik Lead Yakalama Facebook Lead Ads entegrasyonu Webform & E-posta otomasy…
+<div class="p-6 rounded-2xl bg-slate-900/50 border border-slate-800 hover:border-slate…">
+✨ Bütünleşik Mimari Parça Parça Değil, Tam Entegre Çözüm İnşaat ve gayrimenkul…
+<section class="py-24 bg-slate-950 relative" id="solutions">
+Webform & E-posta otomasyonu
+<div class="flex items-center text-sm text-slate-500">
+Otomatik Lead Yakalama Facebook Lead Ads entegrasyonu Webform & E-posta otomasy…
+<div class="p-6 rounded-2xl bg-slate-900/50 border border-slate-800 hover:border-slate…">
+✨ Bütünleşik Mimari Parça Parça Değil, Tam Entegre Çözüm İnşaat ve gayrimenkul…
+<section class="py-24 bg-slate-950 relative" id="solutions">
+Brokerlar için özel mobil uyumlu panel
+<div class="flex items-center text-sm text-slate-500">
+Broker Portalı Brokerlar için özel mobil uyumlu panel Anlık stok ve fiyat liste…
+<div class="p-6 rounded-2xl bg-slate-900/50 border border-slate-800 hover:border-slate…">
+✨ Bütünleşik Mimari Parça Parça Değil, Tam Entegre Çözüm İnşaat ve gayrimenkul…
+<section class="py-24 bg-slate-950 relative" id="solutions">
+Anlık stok ve fiyat listesi paylaşımı
+<div class="flex items-center text-sm text-slate-500">
+Broker Portalı Brokerlar için özel mobil uyumlu panel Anlık stok ve fiyat liste…
+<div class="p-6 rounded-2xl bg-slate-900/50 border border-slate-800 hover:border-slate…">
+✨ Bütünleşik Mimari Parça Parça Değil, Tam Entegre Çözüm İnşaat ve gayrimenkul…
+<section class="py-24 bg-slate-950 relative" id="solutions">
+Esnek ödeme planı oluşturucu
+<div class="flex items-center text-sm text-slate-500">
+Finans & Ödeme Planı Esnek ödeme planı oluşturucu Senet, ara ödeme takibi
+<div class="p-6 rounded-2xl bg-slate-900/50 border border-slate-800 hover:border-slate…">
+✨ Bütünleşik Mimari Parça Parça Değil, Tam Entegre Çözüm İnşaat ve gayrimenkul…
+<section class="py-24 bg-slate-950 relative" id="solutions">
+Senet, ara ödeme takibi
+<div class="flex items-center text-sm text-slate-500">
+Finans & Ödeme Planı Esnek ödeme planı oluşturucu Senet, ara ödeme takibi
+<div class="p-6 rounded-2xl bg-slate-900/50 border border-slate-800 hover:border-slate…">
+✨ Bütünleşik Mimari Parça Parça Değil, Tam Entegre Çözüm İnşaat ve gayrimenkul…
+<section class="py-24 bg-slate-950 relative" id="solutions">
+Satış Müdürü
+<button class="flex items-center gap-2 px-6 py-3 rounded-full text-sm font-medium transit…">
+Herkese Kazandıran Çözüm Novo CRM organizasyonunuzdaki her rol için özelleştir…
+<section class="py-24 bg-slate-950">
+Broker Yöneticisi
+<button class="flex items-center gap-2 px-6 py-3 rounded-full text-sm font-medium transit…">
+Herkese Kazandıran Çözüm Novo CRM organizasyonunuzdaki her rol için özelleştir…
+<section class="py-24 bg-slate-950">
+Daha Fazla Bilgi
+<a class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md…" href="/solutions">
+/ay
+<span class="text-slate-500 ml-1">
+Basic Küçük ölçekli projeler ve butik satış ofisleri için. ₺2.900 /ay Envante…
+<div class="relative flex flex-col p-8 rounded-3xl border transition-all duration-300 …">
+Şeffaf Fiyatlandırma Gizli maliyet yok. İhtiyacınıza uygun paketi seçin, hemen…
+<section class="py-32 bg-slate-950 relative" id="pricing">
+/ay
+<span class="text-slate-500 ml-1">
+En Popüler Pro Büyüyen ekipler ve aktif satış ofisleri için. ₺5.900 /ay Her ş…
+<div class="relative flex flex-col p-8 rounded-3xl border transition-all duration-300 …">
+Şeffaf Fiyatlandırma Gizli maliyet yok. İhtiyacınıza uygun paketi seçin, hemen…
+<section class="py-32 bg-slate-950 relative" id="pricing">
+HABERDAR OLUN
+<p class="text-xs text-slate-500 mb-2 font-medium">
+HABERDAR OLUN OK
+<div class="p-4 rounded-xl bg-slate-900 border border-slate-800">
+Bu fırsatlar, içeriğinizin daha rahat okunmasına olanak tanır.
+Gezinme
+Başlık öğeleri sırayla azalan düzende sıralı değil
+Düzey atlamayan gerektiği gibi sıralanmış başlıklar sayfanın anlamsal yapısını iletir. Böylece, yardımcı teknolojiler kullanılırken gezinmeyi ve anlaşılmayı kolaylaştırır. Başlık sıralaması hakkında daha fazla bilgi edinin.
+Başarısız Öğeler
+AI Akıllı Eşleşme
+<h4 class="text-white font-bold mb-1">
+Kontak
+<h4 class="font-bold text-white">
+Çözümler
+<h4 class="text-white font-bold mb-6">
+Bu fırsatlar, uygulamanızda klavyeyle gezinmeyi kolaylaştırır.
+Manuel olarak kontrol edilecek ek öğeler (10)
+Göster
+Bu öğeler, otomatik test aracının kapsamında yer almayan alanları ele alır. Erişilebilirlik incelemesi gerçekleştirme hakkında daha fazla bilgiyi rehberimizde bulabilirsiniz.
+Başarılı denetimler (20)
+Göster
+Geçerli değil (34)
+Göster
+100
+En İyi Uygulamalar
+Politika Değerlendirme
+XSS saldırıları karşısında CSP'nin etkinliğini sınayın
+Güçlü bir HSTS politikası kullanın
+COOP ile uygun kaynak izolasyonunu sağlayın
+XFO veya CSP ile clickjacking'i azaltma
+Trusted Types ile DOM tabanlı XSS'yi azaltın
+Başarılı denetimler (13)
+Göster
+Geçerli değil (2)
+Göster
+92
+SEO
+Bu kontroller, sayfanızın temel arama motoru optimizasyonu tavsiyesine uymasını sağlar. Burada Lighthouse'un puan vermediği ve Önemli Web Verileri'ndeki performansınız da dahil arama sıralamanızı etkileyebilecek birçok ek faktör vardır. Google Arama'nın Temel Özellikleri hakkında daha fazla bilgi edinin.
+İçerik En İyi Uygulamaları
+Doküman geçerli bir rel=canonical değeri içermiyorBaşka bir `hreflang` konumuna (https://www.novoxcrm.com/) yönlendiriyor
+Standart bağlantılar, arama sonuçlarında hangi URL'nin gösterileceğini belirtir. Standart bağlantılar hakkında daha fazla bilgi edinin.
+Tarayıcıların uygulamanızın içeriğini daha iyi anlamasını sağlayacak şekilde HTML kodunuzu biçimlendirin.
+Manuel olarak kontrol edilecek ek öğeler (1)
+Göster
+SEO ile ilgili diğer en iyi uygulamaları kontrol etmek için sitenizde bu ek doğrulayıcıları çalıştırın.
+Başarılı denetimler (9)
+Göster
