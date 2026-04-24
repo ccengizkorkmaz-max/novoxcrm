@@ -147,3 +147,38 @@ export async function markAllNotificationsAsRead() {
     revalidatePath('/')
     return { success: true }
 }
+
+/**
+ * Deletes ALL notifications for the current tenant.
+ * Only admin/owner can perform this action.
+ */
+export async function deleteAllNotifications() {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id, role')
+        .eq('id', user.id)
+        .single()
+
+    if (!profile?.tenant_id) return { error: 'Tenant not found' }
+    if (profile.role !== 'owner' && profile.role !== 'admin') {
+        return { error: 'Bu işlemi sadece yönetici yapabilir.' }
+    }
+
+    const { error } = await supabase
+        .from('system_notifications')
+        .delete()
+        .eq('tenant_id', profile.tenant_id)
+
+    if (error) {
+        console.error('Delete all notifications error:', error)
+        return { error: error.message }
+    }
+
+    revalidatePath('/notifications')
+    revalidatePath('/')
+    return { success: true }
+}

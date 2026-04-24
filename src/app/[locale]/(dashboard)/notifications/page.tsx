@@ -7,6 +7,7 @@ import { tr } from 'date-fns/locale'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { NotificationFilters } from './notification-filters'
+import { DeleteAllNotificationsButton } from './delete-all-button'
 
 // Category config
 const categoryConfig: Record<string, { icon: string; color: string; bg: string; label: string }> = {
@@ -55,6 +56,14 @@ export default async function NotificationsPage(props: {
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) redirect('/login')
+
+    // Check user role for delete-all permission
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+    const isAdminOrOwner = profile?.role === 'admin' || profile?.role === 'owner'
 
     let notifications = await getSystemNotifications()
 
@@ -105,6 +114,9 @@ export default async function NotificationsPage(props: {
                     <h1 className="text-2xl font-bold tracking-tight">🔔 Bildirimler</h1>
                     <p className="text-muted-foreground text-sm">Sistem tarafından oluşturulan tüm uyarı ve hatırlatmalar</p>
                 </div>
+                {isAdminOrOwner && notifications.length > 0 && (
+                    <DeleteAllNotificationsButton />
+                )}
             </div>
 
             {/* Stats Cards */}
@@ -240,7 +252,7 @@ export default async function NotificationsPage(props: {
                                                             {/* Link */}
                                                             {n.link && (
                                                                 <Link
-                                                                    href={n.link}
+                                                                    href={n.link.startsWith('/finance/reports') ? '/finance' : n.link}
                                                                     className="inline-flex items-center gap-1 text-[10px] text-blue-600 hover:text-blue-800 hover:underline ml-auto font-medium"
                                                                 >
                                                                     Detayları Gör <ExternalLink className="h-2.5 w-2.5" />

@@ -104,7 +104,9 @@ export default function NotificationBell() {
 
         if (link) {
             setOpen(false)
-            router.push(link)
+            // Fix known broken links from legacy notifications
+            const sanitizedLink = link.startsWith('/finance/reports') ? '/finance' : link
+            router.push(sanitizedLink)
         }
     }
 

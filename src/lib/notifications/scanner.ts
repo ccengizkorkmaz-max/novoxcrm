@@ -66,7 +66,7 @@ export async function scanForNotifications(): Promise<ScanResult> {
                     category: 'Finance',
                     title: 'Gecikmiş Ödeme',
                     message: `${customer.full_name} isimli müşterinin ${new Date(item.due_date).toLocaleDateString('tr-TR')} vadeli ödemesi gecikmiştir.`,
-                    link: `/finance/reports`
+                    link: `/finance`
                 })
                 result.notificationsCreated++
 
