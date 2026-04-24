@@ -151,6 +151,7 @@ export async function markAllNotificationsAsRead() {
 /**
  * Deletes ALL notifications for the current tenant.
  * Only admin/owner can perform this action.
+ * Uses admin client to bypass RLS for delete operations.
  */
 export async function deleteAllNotifications() {
     const supabase = await createClient()
@@ -168,7 +169,11 @@ export async function deleteAllNotifications() {
         return { error: 'Bu işlemi sadece yönetici yapabilir.' }
     }
 
-    const { error } = await supabase
+    // Use admin client to bypass RLS for delete
+    const { createAdminClient } = await import('@/lib/supabase/admin')
+    const adminSupabase = createAdminClient()
+
+    const { error, count } = await adminSupabase
         .from('system_notifications')
         .delete()
         .eq('tenant_id', profile.tenant_id)
@@ -177,6 +182,8 @@ export async function deleteAllNotifications() {
         console.error('Delete all notifications error:', error)
         return { error: error.message }
     }
+
+    console.log(`🗑️ Deleted ${count ?? 'all'} notifications for tenant ${profile.tenant_id}`)
 
     revalidatePath('/notifications')
     revalidatePath('/')

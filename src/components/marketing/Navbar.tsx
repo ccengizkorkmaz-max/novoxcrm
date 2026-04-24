@@ -84,6 +84,7 @@ export function Navbar() {
                     <button
                         className="text-white p-2"
                         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                        aria-label={isMobileMenuOpen ? 'Menüyü kapat' : 'Menüyü aç'}
                     >
                         {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
                     </button>

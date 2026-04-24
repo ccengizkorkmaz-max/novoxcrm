@@ -53,8 +53,6 @@ export const viewport = {
   themeColor: "#020617", // Dark background for PWA
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
   viewportFit: "cover", // For notch phones
 };
 

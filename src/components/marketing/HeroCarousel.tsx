@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, ChevronRight, Brain, Target, Mic, BarChart3, Sparkles, LayoutGrid, FileText, Settings2 } from 'lucide-react'
+import Image from 'next/image'
 
 const slides = [
     {
@@ -118,10 +119,13 @@ export function HeroCarousel() {
                             }}
                             className="absolute inset-0"
                         >
-                            <img
+                            <Image
                                 src={slides[currentIndex].image}
-                                alt={slides[currentIndex].title}
-                                className="w-full h-full object-contain bg-slate-950/50 opacity-90 transition-all duration-700"
+                                alt={`Novo CRM - ${slides[currentIndex].title}: ${slides[currentIndex].description}`}
+                                fill
+                                className="object-contain bg-slate-950/50 opacity-90 transition-all duration-700"
+                                priority={currentIndex === 0}
+                                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 1152px"
                             />
                         </motion.div>
                     </AnimatePresence>
@@ -147,12 +151,14 @@ export function HeroCarousel() {
                 {/* Navigation Buttons */}
                 <button
                     onClick={handlePrev}
+                    aria-label="Önceki slayta git"
                     className="absolute left-4 top-1/2 -translate-y-1/2 z-30 h-10 w-10 md:h-12 md:w-12 rounded-full bg-slate-900/50 border border-slate-700 text-white flex items-center justify-center hover:bg-blue-600 transition-all opacity-0 group-hover:opacity-100 -translate-x-4 group-hover:translate-x-0"
                 >
                     <ChevronLeft size={24} />
                 </button>
                 <button
                     onClick={handleNext}
+                    aria-label="Sonraki slayta git"
                     className="absolute right-4 top-1/2 -translate-y-1/2 z-30 h-10 w-10 md:h-12 md:w-12 rounded-full bg-slate-900/50 border border-slate-700 text-white flex items-center justify-center hover:bg-blue-600 transition-all opacity-0 group-hover:opacity-100 translate-x-4 group-hover:translate-x-0"
                 >
                     <ChevronRight size={24} />
@@ -164,6 +170,7 @@ export function HeroCarousel() {
                         <button
                             key={idx}
                             onClick={() => setCurrentIndex(idx)}
+                            aria-label={`Slayt ${idx + 1}: ${slides[idx].title}`}
                             className={`h-1.5 transition-all duration-500 rounded-full ${currentIndex === idx ? 'w-8 bg-blue-500' : 'w-2 bg-slate-700'
                                 }`}
                         />

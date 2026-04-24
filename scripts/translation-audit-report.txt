@@ -1,0 +1,10 @@
+=== TRANSLATION AUDIT REPORT ===
+
+📊 Summary:
+  EN keys total: 1847
+  TR keys total: 1847
+  Code references missing in EN: 0
+  Code references missing in TR: 0
+  Keys in TR but NOT in EN: 0
+  Keys in EN but NOT in TR: 0
+
