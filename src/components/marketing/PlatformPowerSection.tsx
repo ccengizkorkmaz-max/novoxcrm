@@ -4,7 +4,7 @@ import { motion, useInView } from 'framer-motion'
 import { useRef, useState, useEffect } from 'react'
 import {
     Brain, Phone, MessageSquare, Mail, BarChart3, Shield, Zap,
-    Building2, Users, Layers, Sparkles, Globe, Bot
+    Building2, Users, Layers, Sparkles, Globe, Bot, Clock
 } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 
@@ -64,11 +64,12 @@ export function PlatformPowerSection() {
             glow: 'shadow-emerald-500/30',
         },
         {
-            value: 97,
+            value: 0,
             suffix: '',
+            displayText: '7/24',
             label: t('stats.seoPages'),
             sublabel: t('stats.seoPagesDesc'),
-            icon: Globe,
+            icon: Clock,
             gradient: 'from-orange-500 to-red-500',
             glow: 'shadow-orange-500/30',
         },
@@ -135,7 +136,7 @@ export function PlatformPowerSection() {
                             </div>
 
                             <div className="text-4xl md:text-5xl font-black text-white mb-2 tracking-tight">
-                                <AnimatedCounter target={stat.value} suffix={stat.suffix} />
+                                {stat.displayText || <AnimatedCounter target={stat.value} suffix={stat.suffix} />}
                             </div>
                             <div className="text-sm font-bold text-white mb-1">{stat.label}</div>
                             <div className="text-xs text-slate-500">{stat.sublabel}</div>
