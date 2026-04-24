@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge'
 import { updateTenantProfile } from './actions'
 import { FormImageUpload } from '@/components/ui/form-image-upload'
-import { Building2, Users, FileText, Database, Banknote, Bell, Brain, Mail, MessageSquare } from 'lucide-react'
+import { Building2, Users, FileText, Database, Banknote, Bell, Brain, Mail, MessageSquare, Globe } from 'lucide-react'
 import UserManagementHeader from './components/UserManagementHeader'
 import UserTableActions from './components/UserTableActions'
 import TenantProfileForm from './components/TenantProfileForm'
@@ -26,6 +26,7 @@ import EmailAccountsTab from './components/EmailAccountsTab'
 import SmsSettingsTab from './components/SmsSettingsTab'
 import { FinancialSettingsTab } from './components/FinancialSettingsTab'
 import { SystemLogsTab } from './components/SystemLogsTab'
+import SeoSettingsTab from './components/SeoSettingsTab'
 import { FileWarning } from 'lucide-react'
 
 export default async function SettingsPage() {
@@ -172,6 +173,10 @@ export default async function SettingsPage() {
                         <MessageSquare className="w-4 h-4 mr-2" />
                         SMS Ayarları
                     </TabsTrigger>
+                    <TabsTrigger value="seo" className="flex-1 md:flex-none py-2.5 px-4 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all">
+                        <Globe className="w-4 h-4 mr-2" />
+                        SEO
+                    </TabsTrigger>
                     <TabsTrigger value="logs" className="flex-1 md:flex-none py-2.5 px-4 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all focus:outline-none">
                         <FileWarning className="w-4 h-4 mr-2" />
                         İşlem Logları
@@ -260,6 +265,11 @@ export default async function SettingsPage() {
                 {/* SMS Settings Tab */}
                 <TabsContent value="sms" className="space-y-4">
                     <SmsSettingsTab tenant={tenant as any} />
+                </TabsContent>
+
+                {/* SEO Settings Tab */}
+                <TabsContent value="seo" className="space-y-4">
+                    <SeoSettingsTab />
                 </TabsContent>
 
                 {/* System Logs Tab */}
