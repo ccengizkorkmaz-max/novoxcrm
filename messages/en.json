@@ -152,50 +152,85 @@
     },
     "PricingSection": {
         "title": "Transparent Pricing",
-        "description": "No hidden costs. Choose the package that suits your needs, start immediately.",
+        "description": "No hidden costs. Try free for 14 days, no credit card required.",
         "popularTag": "Most Popular",
+        "monthly": "Monthly",
+        "yearly": "Yearly",
+        "yearlySave": "Save 17%",
+        "perUser": "per user",
+        "bottomNote": "All plans include a 14-day free trial. Cancel anytime. Prices exclude VAT.",
         "plans": {
-            "basic": {
-                "name": "Basic",
-                "price": "₺2.900",
+            "starter": {
+                "name": "Starter",
+                "price": "$29",
+                "yearlyPrice": "$24",
                 "period": "/mo",
-                "description": "For small-scale projects and boutique sales offices.",
+                "description": "Essential CRM for small real estate offices and boutique sales teams.",
                 "features": [
-                    "Stock Management",
-                    "Customer Cards",
-                    "Sales Operations",
-                    "Simple Reporting",
-                    "Up to 5 Users"
+                    "CRM & Sales Pipeline",
+                    "Project & Inventory Management (2 projects)",
+                    "Customer Cards & Activities",
+                    "Offers & Contract Creation",
+                    "Basic Dashboard & Reports",
+                    "Up to 5 Users",
+                    "Email Notifications"
                 ],
-                "cta": "Get Started"
+                "cta": "Start Free Trial"
             },
-            "pro": {
-                "name": "Pro",
-                "price": "₺5.900",
+            "professional": {
+                "name": "Professional",
+                "price": "$59",
+                "yearlyPrice": "$49",
                 "period": "/mo",
-                "description": "For growing teams and active sales offices.",
+                "description": "AI-powered sales, WhatsApp and finance management for growing teams.",
                 "features": [
-                    "Everything (Basic)",
-                    "Broker Portal",
-                    "Payment Plan Wizard",
-                    "Digital Contract Management",
-                    "Advanced Reporting",
-                    "Up to 20 Users"
+                    "Everything in Starter",
+                    "AI Sales Co-Pilot",
+                    "Smart Property Matching (AI)",
+                    "WhatsApp Integration",
+                    "SMS Messaging",
+                    "Finance & HR Module",
+                    "Unlimited Projects",
+                    "Advanced Reports",
+                    "500 AI Credits/Month"
                 ],
-                "cta": "Try for Free"
+                "cta": "Start Free Trial"
+            },
+            "business": {
+                "name": "Business",
+                "price": "$99",
+                "yearlyPrice": "$79",
+                "period": "/mo",
+                "description": "Full power with AI voice calls, outreach automation and broker management.",
+                "features": [
+                    "Everything in Professional",
+                    "Outreach Automation Engine",
+                    "AI Voice Calls (Vapi)",
+                    "WhatsApp Outreach",
+                    "Broker Network Management",
+                    "Commission Plans",
+                    "Lead Pool & Leaderboard",
+                    "2,000 AI Credits/Month",
+                    "Priority Support"
+                ],
+                "cta": "Start Free Trial"
             },
             "enterprise": {
                 "name": "Enterprise",
-                "price": "Custom Offer",
+                "price": "Custom",
+                "yearlyPrice": "Custom",
                 "period": "",
-                "description": "For multi-project and large organizations.",
+                "description": "Custom solution for holding companies, multi-brand and 50+ users.",
                 "features": [
-                    "Everything in Pro",
-                    "Mobile App (iOS/Android)",
-                    "API Access",
-                    "ERP Integrations",
-                    "Private Server (On-Premise)",
-                    "Unlimited Users"
+                    "Everything in Business",
+                    "White-Label (Your Brand)",
+                    "Custom AI Model Training",
+                    "ERP & API Integrations",
+                    "SLA Guarantee (99.9%)",
+                    "Unlimited AI Credits",
+                    "Dedicated Server Option",
+                    "Unlimited Users",
+                    "Dedicated Account Manager"
                 ],
                 "cta": "Contact Us"
             }

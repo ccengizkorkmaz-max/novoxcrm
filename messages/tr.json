@@ -178,50 +178,85 @@
     },
     "PricingSection": {
         "title": "Şeffaf Fiyatlandırma",
-        "description": "Gizli maliyet yok. İhtiyacınıza uygun paketi seçin, hemen başlayın.",
+        "description": "Gizli maliyet yok. 14 gün ücretsiz deneyin, kredi kartı gerekmez.",
         "popularTag": "En Popüler",
+        "monthly": "Aylık",
+        "yearly": "Yıllık",
+        "yearlySave": "%17 Tasarruf",
+        "perUser": "kullanıcı başına",
+        "bottomNote": "Tüm planlar 14 gün ücretsiz deneme içerir. İstediğiniz zaman iptal edebilirsiniz. Fiyatlara KDV dahil değildir.",
         "plans": {
-            "basic": {
-                "name": "Basic",
-                "price": "₺2.900",
+            "starter": {
+                "name": "Starter",
+                "price": "₺999",
+                "yearlyPrice": "₺829",
                 "period": "/ay",
-                "description": "Küçük ölçekli projeler ve butik satış ofisleri için.",
+                "description": "Küçük emlak ofisleri ve butik satış ekipleri için temel CRM.",
                 "features": [
-                    "Envanter Yönetimi",
-                    "Müşteri Kartları",
-                    "Temel AI Asistanı",
-                    "Satış İşlemleri",
-                    "5 Kullanıcıya Kadar"
+                    "CRM & Satış Pipeline",
+                    "Proje & Envanter Yönetimi (2 proje)",
+                    "Müşteri Kartları & Aktiviteler",
+                    "Teklif & Sözleşme Oluşturma",
+                    "Temel Dashboard & Raporlar",
+                    "5 Kullanıcıya Kadar",
+                    "E-posta Bildirimleri"
                 ],
-                "cta": "Başlayın"
+                "cta": "Ücretsiz Deneyin"
             },
-            "pro": {
-                "name": "Pro",
-                "price": "₺5.900",
+            "professional": {
+                "name": "Professional",
+                "price": "₺1.999",
+                "yearlyPrice": "₺1.659",
                 "period": "/ay",
-                "description": "Büyüyen ekipler ve aktif satış ofisleri için.",
+                "description": "AI destekli satış, WhatsApp ve finans yönetimi ile büyüyen ekipler için.",
                 "features": [
-                    "Her şey (Basic)",
-                    "AI Satış Co-Pilot (Tam Sürüm)",
-                    "Sesli Not ile Veri Girişi",
-                    "Akıllı Mülk Eşleme",
-                    "Broker Portalı",
-                    "20 Kullanıcıya Kadar"
+                    "Starter dahil her şey",
+                    "AI Satış Co-Pilot",
+                    "Akıllı Mülk Eşleştirme (AI)",
+                    "WhatsApp Entegrasyonu",
+                    "SMS Gönderimi",
+                    "Finans & HR Modülü",
+                    "Sınırsız Proje",
+                    "Gelişmiş Raporlar",
+                    "500 AI Kredi/Ay"
+                ],
+                "cta": "Ücretsiz Deneyin"
+            },
+            "business": {
+                "name": "Business",
+                "price": "₺3.499",
+                "yearlyPrice": "₺2.799",
+                "period": "/ay",
+                "description": "AI sesli arama, outreach otomasyonu ve broker ağı yönetimi ile tam güç.",
+                "features": [
+                    "Professional dahil her şey",
+                    "Outreach Otomasyon Motoru",
+                    "AI Sesli Arama (Vapi)",
+                    "WhatsApp Outreach",
+                    "Broker Ağı Yönetimi",
+                    "Komisyon Planları",
+                    "Lead Pool & Leaderboard",
+                    "2.000 AI Kredi/Ay",
+                    "Öncelikli Destek"
                 ],
                 "cta": "Ücretsiz Deneyin"
             },
             "enterprise": {
                 "name": "Enterprise",
                 "price": "Özel Teklif",
+                "yearlyPrice": "Özel Teklif",
                 "period": "",
-                "description": "Çoklu proje ve büyük organizasyonlar için.",
+                "description": "Holding yapıları, çoklu marka ve 50+ kullanıcı için özel çözüm.",
                 "features": [
-                    "Her şey (Pro)",
-                    "Özelleştirilmiş AI Modelleri",
-                    "Finansal & Operasyonel AI Denetçi",
+                    "Business dahil her şey",
+                    "White-Label (Kendi Markanız)",
+                    "Özel AI Model Eğitimi",
                     "ERP & API Entegrasyonları",
+                    "SLA Garantisi (%99.9)",
+                    "Sınırsız AI Kredi",
                     "Özel Sunucu Seçeneği",
-                    "Sınırsız Kullanıcı"
+                    "Sınırsız Kullanıcı",
+                    "Dedicated Account Manager"
                 ],
                 "cta": "İletişime Geçin"
             }
