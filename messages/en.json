@@ -26,6 +26,7 @@
         "solutions_realestate": "Real Estate CRM",
         "solutions_construction": "Construction CRM",
         "solutions": "Solutions",
+        "wiki": "Knowledge Base",
         "pricing": "Pricing",
         "login": "Login",
         "start": "Get Started",
@@ -105,6 +106,15 @@
                     "Stock aging reports",
                     "Revenue projection",
                     "Marketing ROI analysis"
+                ]
+            },
+            "leads": {
+                "title": "Automatic Lead Capture",
+                "features": [
+                    "Facebook Lead Ads integration",
+                    "Webform & Email automation",
+                    "In the sales funnel within seconds",
+                    "Zero data loss guarantee"
                 ]
             }
         }
@@ -411,7 +421,8 @@
             "reservation": "Reservation",
             "contract": "Contract",
             "won": "Won",
-            "lost": "Lost"
+            "lost": "Lost",
+            "prospect": "Prospect"
         }
     },
     "Sidebar": {
@@ -468,7 +479,8 @@
             "viewMessage": "View Message",
             "messageDetails": "Message Details"
         },
-        "quickCRM": "Quick CRM (Command Center)"
+        "quickCRM": "Quick CRM (Command Center)",
+        "settings": "Settings"
     },
     "Projects": {
         "title": "Projects",
@@ -526,7 +538,8 @@
             "title": "Create Customer Card",
             "submit": "Save",
             "update": "Update",
-            "updateSuccess": "Customer information successfully updated."
+            "updateSuccess": "Customer information successfully updated.",
+            "submitting": "Saving..."
         },
         "tabs": {
             "details": "General Info",
@@ -593,7 +606,11 @@
             "Living": "Living",
             "Investment": "Investment",
             "Holiday": "Holiday"
-        }
+        },
+        "deleteConfirmTitle": "Delete Customer",
+        "deleteConfirmAction": "Yes, Delete",
+        "cancel": "Cancel",
+        "deleting": "Deleting..."
     },
     "Inventory": {
         "title": "Inventory Management",
@@ -745,6 +762,10 @@
             "City": "City",
             "Pool": "Pool",
             "Park": "Park"
+        },
+        "types": {
+            "Villa": "Villa",
+            "Commercial": "Commercial"
         }
     },
     "Offers": {
@@ -757,7 +778,8 @@
             "status": "Status",
             "validity": "Valid Until",
             "actions": "Actions",
-            "empty": "No offers created yet."
+            "empty": "No offers created yet.",
+            "search": "Search offers..."
         },
         "status": {
             "received": "Offer Received",
@@ -809,7 +831,18 @@
             "approveContract": "Approve & Contract",
             "approveTitle": "Are You Sure You Want to Approve This Offer?",
             "approveDesc": "Customer: {customer}\nUnit: {unit}",
-            "approveWarning": "This action will update the offer status to 'Accepted' immediately."
+            "approveWarning": "This action will update the offer status to 'Accepted' immediately.",
+            "records": "Records",
+            "savingProposal": "Saving proposal...",
+            "approveConfirmTitle": "Approve Offer",
+            "approving": "Approving...",
+            "approveConfirmAction": "Yes, Approve",
+            "depositAmountInfo": "Deposit Amount",
+            "cancel": "Cancel",
+            "save": "Save",
+            "addPlan": "Add Payment Plan",
+            "removePlan": "Remove",
+            "startPlan": "Start Payment Plan"
         },
         "messages": {
             "proposalSaved": "Proposal saved.",
@@ -922,17 +955,20 @@
         "actions": {
             "cancel": "Cancel",
             "approve": "Approve Payment",
-            "approveRefund": "Approve Refund"
+            "approveRefund": "Approve Refund",
+            "delete": "Delete"
         },
         "confirm": {
             "approvePayment": "Do you confirm the payment receipt? This will automatically update the related sale/offer status.",
             "approveRefund": "Do you confirm the refund? This will completely cancel the option/offer.",
-            "cancel": "Are you sure you want to cancel the deposit?"
+            "cancel": "Are you sure you want to cancel the deposit?",
+            "delete": "Are you sure you want to delete this deposit?"
         },
         "messages": {
             "approved": "Payment approved",
             "refunded": "Refund approved and process cancelled",
-            "cancelled": "Process cancelled"
+            "cancelled": "Process cancelled",
+            "deleted": "Deposit deleted successfully."
         },
         "info": {
             "approvedAt": "approved at",
@@ -976,7 +1012,8 @@
             "profile": "Company Profile",
             "users": "Users",
             "templates": "Payment Templates",
-            "data": "Data Management"
+            "data": "Data Management",
+            "ai": "AI Settings"
         },
         "profile": {
             "title": "Company Information",
@@ -1067,7 +1104,10 @@
                 "month": "Month",
                 "rate": "Rate %",
                 "create": "Create",
-                "update": "Update"
+                "update": "Update",
+                "updating": "Updating...",
+                "creating": "Creating...",
+                "deleteTitle": "Delete Template"
             },
             "table": {
                 "name": "Template Name",
@@ -1100,9 +1140,54 @@
                 "manageSettings": "Company Settings",
                 "deleteData": "Delete Data (Customer/Sale)",
                 "createSales": "Create Sales",
-                "viewReports": "View Reports"
+                "viewReports": "View Reports",
+                "categories": {
+                    "general": "General",
+                    "crm": "CRM",
+                    "inventory": "Inventory",
+                    "management": "Management"
+                },
+                "viewDashboard": "View Dashboard",
+                "viewSales": "View Sales",
+                "editSales": "Edit Sales",
+                "assignLeads": "Assign Leads",
+                "claimLeads": "Claim Leads",
+                "viewInventory": "View Inventory",
+                "editPrices": "Edit Prices",
+                "viewHR": "View HR",
+                "exportExcel": "Export to Excel",
+                "descriptions": {
+                    "viewDashboard": {
+                        "allowed": "Can view all dashboard data",
+                        "partial": "Can view limited dashboard data"
+                    },
+                    "viewSales": {
+                        "allowed": "Can view all sales data",
+                        "partial": "Can view only own sales"
+                    },
+                    "editSales": {
+                        "allowed": "Can edit all sales",
+                        "partial": "Can edit only own sales"
+                    },
+                    "assignLeads": {
+                        "allowed": "Can assign leads to team members",
+                        "denied": "Cannot assign leads"
+                    },
+                    "claimLeads": {
+                        "allowed": "Can claim unassigned leads"
+                    },
+                    "viewInventory": {
+                        "allowed": "Can view all inventory"
+                    },
+                    "manageSettings": {
+                        "allowed": "Can manage system settings"
+                    }
+                }
             }
-        }
+        },
+        "cancel": "Cancel",
+        "deleting": "Deleting...",
+        "deleteConfirmAction": "Yes, Delete"
     },
     "Broker": {
         "dashboard": {
@@ -1168,6 +1253,12 @@
             },
             "success": {
                 "title": "Application Received!",
+                "codeSent": "Verification code sent to your email.",
+                "success": "Your application has been successfully submitted.",
+                "message": "Your application has been received. We will contact you soon.",
+                "back": "Back to Home"
+            },
+            "messages": {
                 "codeSent": "Verification code sent to your email.",
                 "success": "Your application has been successfully submitted."
             }
@@ -1263,7 +1354,9 @@
             "status": "Status",
             "actions": "Actions",
             "search": "Search Contract No or Customer...",
-            "details": "Details"
+            "details": "Details",
+            "empty": "No contracts found.",
+            "noResults": "No results found."
         },
         "stats": {
             "totalSales": "Total Sales Amount",
@@ -1276,7 +1369,17 @@
             "Signed": "Signed",
             "Active": "Active",
             "Completed": "Completed",
-            "Cancelled": "Cancelled"
+            "Cancelled": "Cancelled",
+            "contractNo": "Contract No",
+            "date": "Date",
+            "customer": "Customer",
+            "projectUnit": "Project / Unit",
+            "amount": "Amount",
+            "status": "Status",
+            "actions": "Actions",
+            "details": "Details",
+            "noResults": "No results found.",
+            "empty": "No contracts found."
         }
     },
     "Activities": {
@@ -1297,11 +1400,13 @@
             "thisMonth": "This Month",
             "sortBy": "Sort By",
             "newest": "Newest",
-            "oldest": "Oldest"
+            "oldest": "Oldest",
+            "leadStatuses": "Lead Statuses"
         },
         "tabs": {
             "kanban": "Boards",
-            "list": "List"
+            "list": "List",
+            "calendar": "Calendar"
         },
         "type": {
             "Call": "Call",
@@ -1311,7 +1416,9 @@
             "Email": "Email",
             "Whatsapp": "Whatsapp",
             "Offer Sent": "Offer Sent",
-            "System": "System"
+            "System": "System",
+            "OnlineMeeting": "Online Meeting",
+            "OfficeMeeting": "Office Meeting"
         },
         "topic": {
             "General": "General",
@@ -1320,13 +1427,16 @@
             "Contract": "Contract Process",
             "Support": "Support / Request",
             "After Sales": "After Sales",
-            "Collection": "Collection"
+            "Collection": "Collection",
+            "Project Interest": "Project Interest"
         },
         "status": {
             "Pending": "Pending",
             "In Progress": "In Progress",
             "Completed": "Completed",
-            "Cancelled": "Cancelled"
+            "Cancelled": "Cancelled",
+            "Planned": "Planned",
+            "Overdue": "Overdue"
         },
         "kanban": {
             "overdue": "Overdue",
@@ -1378,11 +1488,22 @@
                 "No Answer": "No Answer",
                 "Busy": "Busy",
                 "Follow Up Required": "Follow Up Required"
-            }
+            },
+            "search": "Search...",
+            "noResults": "No results found.",
+            "owner": "Owner",
+            "selectOwner": "Select Owner",
+            "priority": "Priority",
+            "priorityLow": "Low",
+            "priorityMedium": "Medium",
+            "priorityHigh": "High",
+            "priorityUrgent": "Urgent",
+            "reminder": "Reminder"
         },
         "actions": {
             "complete": "Complete",
-            "edit": "Edit"
+            "edit": "Edit",
+            "delete": "Delete"
         }
     },
     "Teams": {
@@ -1444,7 +1565,8 @@
             "assign": "Assign",
             "current": "Assigned Projects",
             "noProjects": "No projects assigned yet."
-        }
+        },
+        "deleting": "Deleting..."
     },
     "BrokerLeads": {
         "title": "My Customers",
@@ -1696,7 +1818,8 @@
             "confirmDelete": "Are you sure you want to delete this tier?",
             "successAdd": "Tier added.",
             "successDelete": "Tier deleted.",
-            "errorDelete": "Could not be deleted."
+            "errorDelete": "Could not be deleted.",
+            "deleteConfirmTitle": "Delete Tier"
         },
         "unitRules": {
             "title": "Unit Based Commission Rules",
@@ -1718,7 +1841,8 @@
             "errorDelete": "Could not be deleted.",
             "errors": {
                 "required": "Please enter unit type and rate."
-            }
+            },
+            "deleteConfirmTitle": "Delete Unit Rule"
         },
         "paymentStages": {
             "Contract Signed": "Contract Signed",
@@ -1728,7 +1852,11 @@
         "terms": {
             "Net": "Net",
             "Brut": "Gross"
-        }
+        },
+        "rateValue": "Rate Value",
+        "cancel": "Cancel",
+        "deleting": "Deleting...",
+        "deleteConfirmAction": "Yes, Delete"
     },
     "BrokerLevels": {
         "title": "Broker Level Settings",
@@ -1762,7 +1890,11 @@
             "createSuccess": "Level created",
             "deleteSuccess": "Level deleted",
             "confirmDelete": "Are you sure you want to delete this level?"
-        }
+        },
+        "deleteConfirmTitle": "Delete Level",
+        "cancel": "Cancel",
+        "deleting": "Deleting...",
+        "deleteConfirmAction": "Yes, Delete"
     },
     "BrokerFinances": {
         "title": "Financial Management",
@@ -1774,7 +1906,9 @@
             "activeBrokers": "Active Broker Count",
             "toPay": "Pending Payment",
             "activeProcesses": "Active Processes",
-            "salesAndIncentives": "Sales and Incentives"
+            "salesAndIncentives": "Sales and Incentives",
+            "countPaymentRecords": "Payment Records",
+            "activeCount": "Active Count"
         },
         "table": {
             "title": "Broker-Based Balances",
@@ -1796,7 +1930,8 @@
             "status": {
                 "Paid": "Paid",
                 "Eligible": "Eligible",
-                "Approved": "Approved"
+                "Approved": "Approved",
+                "Standart": "Standard"
             },
             "noRecords": "No records found."
         },
@@ -1998,7 +2133,9 @@
         "customerUnit": "Customer / Unit",
         "confirmOption": "Confirm Option",
         "defaultExpiryHint": "Defaulted to 3 days.",
-        "projectOnlyActivity": "Project-based Activity"
+        "projectOnlyActivity": "Project-based Activity",
+        "activityOnlineMeeting": "Online Meeting",
+        "activityOfficeMeeting": "Office Meeting"
     },
     "CRM": {
         "title": "CRM & Sales Management",
@@ -2047,7 +2184,8 @@
             "customerNotFound": "Customer not found.",
             "projectNotFound": "Project not found.",
             "unitNotFound": "Unit not found.",
-            "poweredBy": "Powered by Novo CRM"
+            "poweredBy": "Powered by Novo CRM",
+            "createdSuccess": "Sale created successfully."
         },
         "stats": {
             "Lead": "Lead",
@@ -2080,7 +2218,8 @@
             "paymentPlan": "Calculate Payment Plan",
             "paymentPlanTitle": "Calculate Payment Plan",
             "won": "Won",
-            "assigned": "Assigned successfully"
+            "assigned": "Assigned successfully",
+            "leadDetails": "Lead Details"
         },
         "status": {
             "Lead": "Lead",
@@ -2144,6 +2283,9 @@
             "buttonConfirm": "Confirm Option",
             "statusPending": "Deposit Pending",
             "cancel": "Cancel"
+        },
+        "filters": {
+            "onlyTodayLeads": "Show Today's Leads Only"
         }
     },
     "Finance": {
@@ -2224,5 +2366,197 @@
             "paid": "Paid",
             "pending": "Pending"
         }
+    },
+    "AiFeaturesSection": {
+        "badge": "NEXT-GEN INTELLIGENCE",
+        "title": "More Than a Digital",
+        "titleHighlight": "Sales Assistant",
+        "description": "Novo CRM doesn't just store data; it analyzes it, detects risks, and delivers custom strategies to your sales team every morning.",
+        "features": {
+            "copilot": {
+                "title": "AI Co-Pilot & Daily Briefing",
+                "desc": "An intelligence that greets you every morning. It tracks overdue payments, untouched hot leads, and low-stock projects on your behalf."
+            },
+            "voice": {
+                "title": "Voice-to-Data",
+                "desc": "Forget the keyboard. Leave a voice recording after a customer meeting, and the AI will parse all the details and convert them into a CRM record in seconds."
+            },
+            "match": {
+                "title": "Smart Property Matching & Sales Pitch",
+                "desc": "Which of your thousands of units is the best fit for this customer? AI finds it, explains why, and prepares a personalized pitch to convince the customer."
+            },
+            "audit": {
+                "title": "Operational Financial Guardian",
+                "desc": "Overdue installments or missing contract documents... AI detects risks before they grow and proactively alerts the team."
+            }
+        }
+    },
+    "Campaigns": {
+        "title": "Incentive & Bonus Campaigns",
+        "description": "Manage active and future campaigns to boost broker performance.",
+        "newCampaign": "Create New Campaign",
+        "activeCampaigns": "Active Campaigns",
+        "totalDistributed": "Total Distributed",
+        "pastPassive": "Past / Passive",
+        "tabs": {
+            "active": "Active Campaigns",
+            "passive": "Past / Passive"
+        },
+        "pastCampaigns": {
+            "title": "Past Campaigns",
+            "description": "Expired or terminated campaigns."
+        },
+        "table": {
+            "name": "Campaign Name",
+            "project": "Project",
+            "typeTarget": "Type / Target",
+            "bonusValue": "Bonus Value",
+            "dateRange": "Date Range",
+            "status": "Status",
+            "actions": "Actions",
+            "allProjects": "All Projects",
+            "empty": "No campaigns found in this list."
+        },
+        "types": {
+            "Visits": "Visit",
+            "Volume": "Volume",
+            "Unit Sales": "Unit Sales",
+            "Special": "Special Bonus"
+        },
+        "labels": {
+            "target": "Target"
+        },
+        "form": {
+            "title": "New Incentive Campaign",
+            "description": "Start a new reward or bonus program to motivate brokers.",
+            "basicInfo": "Basic Information",
+            "name": "Campaign Name *",
+            "namePlaceholder": "Ex: Spring Launch Special Bonus",
+            "terms": "Description / Terms",
+            "termsPlaceholder": "Enter campaign details and participation terms...",
+            "project": "Valid Project",
+            "type": "Campaign Type",
+            "select": "Select",
+            "targetReward": "Target and Reward",
+            "bonusAmount": "Bonus Amount *",
+            "targetCount": "Target Count (Optional)",
+            "targetCountPlaceholder": "Ex: 3 sales",
+            "startDate": "Start Date",
+            "endDate": "End Date",
+            "cancel": "Cancel",
+            "submit": "Publish Campaign",
+            "errors": {
+                "required": "Please fill in the required fields."
+            },
+            "success": "Campaign created successfully.",
+            "editTitle": "Edit Campaign",
+            "editDesc": "Update the details of the {name} campaign.",
+            "update": "Update",
+            "updateSuccess": "Campaign updated."
+        },
+        "status": {
+            "active": "Active",
+            "passive": "Passive"
+        },
+        "actions": {
+            "confirmEnd": "Are you sure you want to end this campaign?",
+            "successEnd": "Campaign ended.",
+            "menuTitle": "Actions",
+            "edit": "Edit",
+            "end": "End Campaign",
+            "endConfirmTitle": "End Campaign",
+            "ending": "Ending...",
+            "endConfirmAction": "Yes, End Campaign"
+        },
+        "cancel": "Cancel",
+        "allProjects": "All Projects"
+    },
+    "HR": {
+        "title": "HR (Personnel Management)",
+        "description": "Company personnel, personal files and asset management.",
+        "newEmployee": "Add New Employee",
+        "stats": {
+            "total": "Total Personnel",
+            "active": "Active Employees",
+            "passive": "Inactive/Resigned"
+        },
+        "table": {
+            "name": "Full Name",
+            "department": "Department",
+            "role": "Title",
+            "status": "Status",
+            "actions": {
+                "title": "Actions",
+                "edit": "Edit"
+            },
+            "sicilNo": "Registry No",
+            "phone": "Phone",
+            "empty": "No personnel records found."
+        },
+        "form": {
+            "personalInfo": "Personal Information",
+            "jobInfo": "Job Information",
+            "firstName": "First Name",
+            "lastName": "Last Name",
+            "email": "Email",
+            "phone": "Phone",
+            "sicilNo": "Registry/ID No",
+            "department": "Department",
+            "role": "Title",
+            "region": "Region/Branch",
+            "hireDate": "Hire Date",
+            "salary": "Salary",
+            "manager": "Manager",
+            "crmUser": "CRM User Mapping",
+            "active": "Active",
+            "passive": "Inactive",
+            "save": "Save Employee",
+            "saveDocument": "Save Document",
+            "cancel": "Cancel",
+            "selectManager": "Select Manager...",
+            "selectUser": "Select CRM User...",
+            "uploadPhoto": "Upload Photo",
+            "addDocument": "Add Document",
+            "documentName": "Document Name",
+            "file": "File",
+            "noDocuments": "No documents added yet.",
+            "assetsLabel": "Assigned Assets (Delivered)",
+            "status": "Status",
+            "currency": "Currency",
+            "terminationDate": "Termination Date",
+            "photo": "Employee Photo",
+            "changePhoto": "Change Photo",
+            "selectPhoto": "Select Photo",
+            "uploading": "Uploading..."
+        },
+        "assets": {
+            "laptop": "Laptop",
+            "car": "Vehicle",
+            "phone": "Phone & Line",
+            "peripherals": "Laptop bag + mouse"
+        },
+        "messages": {
+            "successCreate": "Employee record created successfully.",
+            "successUpdate": "Employee information updated.",
+            "successDelete": "Employee record deleted.",
+            "confirmDelete": "Are you sure you want to delete this employee? This action cannot be undone.",
+            "error": "An error occurred."
+        },
+        "tabs": {
+            "personal": "Personal Information",
+            "assets": "Assigned Assets",
+            "documents": "Documents"
+        },
+        "searchPlaceholder": "Search personnel...",
+        "noEmployees": "No personnel records found.",
+        "addFirst": "Start by adding the first employee.",
+        "status": "Status"
+    },
+    "Guide": {
+        "backToHome": "Back to Home",
+        "downloadPDF": "Download PDF",
+        "badge": "COMPREHENSIVE GUIDE",
+        "title": "Novo CRM at a Glance",
+        "description": "Everything you need to know about Novo CRM in one page."
     }
 }

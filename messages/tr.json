@@ -564,7 +564,8 @@
             "title": "Müşteri Kartı Oluştur",
             "submit": "Kaydet",
             "update": "Güncelle",
-            "updateSuccess": "Müşteri bilgileri başarıyla güncellendi."
+            "updateSuccess": "Müşteri bilgileri başarıyla güncellendi.",
+            "submitting": "Kaydediliyor..."
         },
         "tabs": {
             "details": "Genel Bilgiler",
@@ -611,7 +612,7 @@
         },
         "deleteConfirmTitle": "Müşteriyi Sil",
         "deleteConfirmAction": "Evet, Sil",
-        "cancel": "Vazgeç",
+        "cancel": "İptal",
         "deleting": "Siliniyor...",
         "messages": {
             "deleted": "Müşteri başarıyla silindi.",
@@ -738,7 +739,8 @@
             "Blocked": "Bloke",
             "Option": "Opsiyon",
             "Rented": "Kirada",
-            "Delivered": "Teslim Edildi"
+            "Delivered": "Teslim Edildi",
+            "Stock": "Stok"
         },
         "types": {
             "Villa": "Villa",
@@ -802,7 +804,7 @@
             "status": "Durum",
             "validity": "Geçerlilik",
             "actions": "İşlemler",
-            "search": "Tekliflerde ara...",
+            "search": "Teklif ara...",
             "empty": "Henüz bir teklif oluşturulmamış."
         },
         "status": {
@@ -856,17 +858,17 @@
             "approveTitle": "Teklifi Onaylamak İstediğinize Emin Misiniz?",
             "approveDesc": "Müşteri: {customer}\nÜnite: {unit}",
             "approveWarning": "Bu işlem teklifi doğrudan 'Kabul Edildi' durumuna getirecektir.",
-            "records": "KAYIT",
-            "savingProposal": "Kaydediliyor...",
+            "records": "Kayıtlar",
+            "savingProposal": "Teklif kaydediliyor...",
             "approveConfirmTitle": "Teklifi Onayla",
             "approving": "Onaylanıyor...",
-            "approveConfirmAction": "Onayla",
-            "depositAmountInfo": "kapora girişi yapılacaktır.",
-            "cancel": "Vazgeç",
+            "approveConfirmAction": "Evet, Onayla",
+            "depositAmountInfo": "Kapora Tutarı",
+            "cancel": "İptal",
             "save": "Kaydet",
-            "addPlan": "Ödeme Planı Öner",
-            "removePlan": "VAZGEÇ",
-            "startPlan": "OLUŞTUR"
+            "addPlan": "Ödeme Planı Ekle",
+            "removePlan": "Kaldır",
+            "startPlan": "Ödeme Planı Başlat"
         },
         "messages": {
             "proposalSaved": "Teklif önerisi kaydedildi.",
@@ -979,17 +981,20 @@
         "actions": {
             "cancel": "İptal",
             "approve": "Ödeme Onayı",
-            "approveRefund": "İadeyi Onayla"
+            "approveRefund": "İadeyi Onayla",
+            "delete": "Sil"
         },
         "confirm": {
             "approvePayment": "Ödemenin alındığını onaylıyor musunuz? Bu işlem ilgili satış/teklif durumunu otomatik güncelleyecektir.",
             "approveRefund": "İadenin yapıldığını onaylıyor musunuz? Bu işlem opsiyonu/teklifi tamamen iptal edecektir.",
-            "cancel": "Kaporayı iptal etmek istediğinize emin misiniz?"
+            "cancel": "Kaporayı iptal etmek istediğinize emin misiniz?",
+            "delete": "Bu kaporayı silmek istediğinize emin misiniz?"
         },
         "messages": {
             "approved": "Ödeme onaylandı",
             "refunded": "İade onaylandı ve işlem iptal edildi",
-            "cancelled": "İşlem iptal edildi"
+            "cancelled": "İşlem iptal edildi",
+            "deleted": "Kapora başarıyla silindi."
         },
         "info": {
             "approvedAt": "onaylandı",
@@ -1034,7 +1039,7 @@
             "users": "Kullanıcılar",
             "templates": "Ödeme Şablonları",
             "data": "Veri Yönetimi",
-            "ai": "AI Modülü"
+            "ai": "AI Ayarları"
         },
         "profile": {
             "title": "Firma Bilgileri",
@@ -1125,7 +1130,10 @@
                 "month": "Ay",
                 "rate": "Oran %",
                 "create": "Oluştur",
-                "update": "Güncelle"
+                "update": "Güncelle",
+                "updating": "Güncelleniyor...",
+                "creating": "Oluşturuluyor...",
+                "deleteTitle": "Şablonu Sil"
             },
             "table": {
                 "name": "Şablon Adı",
@@ -1154,53 +1162,58 @@
             },
             "permissions": {
                 "categories": {
-                    "general": "Genel Sayfa Erişimi",
-                    "crm": "CRM ve Satış İşlemleri",
-                    "inventory": "Envanter ve Proje",
-                    "management": "Yönetimsel Yetkiler"
+                    "general": "Genel",
+                    "crm": "CRM",
+                    "inventory": "Envanter",
+                    "management": "Yönetim"
                 },
-                "viewDashboard": "Genel Bakış (Dashboard)",
-                "viewSales": "Satış / CRM Listesi",
-                "editSales": "Satış Kaydı Düzenleme",
-                "assignLeads": "Talepleri (Lead) Atama",
-                "claimLeads": "Boştaki Talebi Üzerine Alma",
-                "viewInventory": "Stok ve Envanter İzleme",
-                "editPrices": "Fiyat ve Birim Güncelleme",
+                "viewDashboard": "Dashboard Görüntüle",
+                "viewSales": "Satışları Görüntüle",
+                "editSales": "Satışları Düzenle",
+                "assignLeads": "Lead Ata",
+                "claimLeads": "Lead Sahiplen",
+                "viewInventory": "Envanteri Görüntüle",
+                "editPrices": "Fiyat Düzenle",
                 "viewReports": "Gelişmiş Raporlama",
-                "viewHR": "İK ve Personel Listesi",
+                "viewHR": "İK Görüntüle",
                 "manageUsers": "Kullanıcı ve Rol Yönetimi",
                 "manageSettings": "Sistem ve Şirket Ayarları",
-                "exportExcel": "Toplu Veri Aktarımı (Excel)",
+                "exportExcel": "Excel'e Aktar",
                 "deleteData": "Kritik Veri Silme",
                 "descriptions": {
                     "viewDashboard": {
-                        "allowed": "Tüm şirket verilerini ve özet grafikleri görür.",
-                        "partial": "Sadece kendisine ait satış performansını görür."
+                        "allowed": "Tüm dashboard verilerini görebilir",
+                        "partial": "Sınırlı dashboard verilerini görebilir"
                     },
                     "viewSales": {
-                        "allowed": "Tüm satış ekibinin fırsatlarını ve müşteri listesini görür.",
-                        "partial": "Sadece kendisine atanan lead'leri ve müşterileri görür."
+                        "allowed": "Tüm satış verilerini görebilir",
+                        "partial": "Yalnızca kendi satışlarını görebilir"
                     },
                     "editSales": {
-                        "allowed": "Herkesin kaydını düzenleyebilir.",
-                        "partial": "Sadece kendi müşteri kayıtlarını düzenleyebilir."
+                        "allowed": "Tüm satışları düzenleyebilir",
+                        "partial": "Yalnızca kendi satışlarını düzenleyebilir"
                     },
                     "assignLeads": {
-                        "allowed": "Gelen lead'leri istediği satış temsilcisine atayabilir.",
-                        "denied": "Başkasına lead ataması yapamaz."
+                        "allowed": "Ekip üyelerine lead atayabilir",
+                        "denied": "Lead atayamaz"
                     },
                     "claimLeads": {
-                        "allowed": "Boştaki (sahipsiz) lead'leri tek tıkla kendi üzerine alabilir."
+                        "allowed": "Atanmamış lead'leri sahiplenebilir"
                     },
                     "viewInventory": {
-                        "allowed": "Tüm proje stok durumunu, fiyatları ve müsaitlikleri anlık görür."
+                        "allowed": "Tüm envanteri görebilir"
                     },
                     "manageSettings": {
-                        "allowed": "Şirket profili, kullanıcılar ve komisyon ayarlarını yönetir."
+                        "allowed": "Sistem ayarlarını yönetebilir"
                     }
-                }
+                },
+                "viewAllSales": "Tüm Satışları Görüntüle",
+                "createSales": "Satış Oluştur"
             }
-        }
+        },
+        "cancel": "İptal",
+        "deleting": "Siliniyor...",
+        "deleteConfirmAction": "Evet, Sil"
     },
     "Broker": {
         "dashboard": {
@@ -1266,12 +1279,14 @@
             },
             "success": {
                 "title": "Başvurunuz Alındı!",
-                "message": "E-postanız doğrulandı ve başvurunuz başarıyla kaydedildi. Ekiplerimiz en kısa sürede sizinle iletişime geçecektir.",
-                "back": "Giriş Sayfasına Dön"
+                "message": "Başvurunuz alındı. En kısa sürede sizinle iletişime geçeceğiz.",
+                "back": "Ana Sayfaya Dön",
+                "codeSent": "Doğrulama kodu e-postanıza gönderildi.",
+                "success": "Başvurunuz başarıyla gönderildi."
             },
             "messages": {
                 "codeSent": "Doğrulama kodu e-postanıza gönderildi.",
-                "success": "Başvurunuz başarıyla iletildi."
+                "success": "Başvurunuz başarıyla gönderildi."
             }
         }
     },
@@ -1366,8 +1381,8 @@
             "actions": "İşlemler",
             "search": "Sözleşme No veya Müşteri ara...",
             "details": "Detay",
-            "empty": "Henüz bir sözleşme oluşturulmamış.",
-            "noResults": "Aranan kriterlere uygun sözleşme bulunamadı."
+            "empty": "Sözleşme bulunamadı.",
+            "noResults": "Sonuç bulunamadı."
         },
         "stats": {
             "totalSales": "Toplam Satış Bedeli",
@@ -1380,7 +1395,17 @@
             "Signed": "İmzalandı",
             "Active": "Aktif",
             "Completed": "Tamamlandı",
-            "Cancelled": "İptal"
+            "Cancelled": "İptal",
+            "contractNo": "Sözleşme No",
+            "date": "Tarih",
+            "customer": "Müşteri",
+            "projectUnit": "Proje / Ünite",
+            "amount": "Tutar",
+            "status": "Durum",
+            "actions": "İşlemler",
+            "details": "Detaylar",
+            "noResults": "Sonuç bulunamadı.",
+            "empty": "Sözleşme bulunamadı."
         }
     },
     "Activities": {
@@ -1394,7 +1419,7 @@
             "types": "Tipler",
             "topics": "Konular",
             "statuses": "Durumlar",
-            "leadStatuses": "Lead Durumları",
+            "leadStatuses": "Aday Durumları",
             "dateRange": "Tarih Aralığı",
             "allDates": "Tümü",
             "today": "Bugün",
@@ -1417,7 +1442,7 @@
             "Email": "Email",
             "Whatsapp": "Whatsapp",
             "OnlineMeeting": "Online Toplantı",
-            "OfficeMeeting": "Satış Ofisinde Toplantı",
+            "OfficeMeeting": "Ofis Toplantısı",
             "Offer Sent": "Teklif Gönderildi",
             "System": "Sistem"
         },
@@ -1462,8 +1487,8 @@
             "empty": "Görüntülenecek aktivite bulunamadı."
         },
         "form": {
-            "search": "Müşteri Ara...",
-            "noResults": "Müşteri bulunamadı.",
+            "search": "Ara...",
+            "noResults": "Sonuç bulunamadı.",
             "createTitle": "Yeni Aktivite Oluştur",
             "editTitle": "Aktiviteyi Düzenle",
             "completeTitle": "Aktiviteyi Tamamla",
@@ -1497,14 +1522,14 @@
                 "updated": "Aktivite güncellendi",
                 "completed": "Aktivite tamamlandı"
             },
-            "owner": "Atanan Kişi",
-            "selectOwner": "Ata...",
+            "owner": "Sorumlu",
+            "selectOwner": "Sorumlu Seçin",
             "priority": "Öncelik",
             "priorityLow": "Düşük",
             "priorityMedium": "Orta",
             "priorityHigh": "Yüksek",
             "priorityUrgent": "Acil",
-            "reminder": "Hatırlatıcı"
+            "reminder": "Hatırlatma"
         }
     },
     "Teams": {
@@ -1566,7 +1591,8 @@
             "assign": "Ata",
             "current": "Atanmış Projeler",
             "noProjects": "Atanmış proje yok."
-        }
+        },
+        "deleting": "Siliniyor..."
     },
     "BrokerLeads": {
         "title": "Müşterilerim",
@@ -1684,8 +1710,13 @@
             "successEnd": "Kampanya sonlandırıldı.",
             "menuTitle": "İşlemler",
             "edit": "Düzenle",
-            "end": "Kampanyayı Bitir"
-        }
+            "end": "Kampanyayı Bitir",
+            "endConfirmTitle": "Kampanyayı Sonlandır",
+            "ending": "Sonlandırılıyor...",
+            "endConfirmAction": "Evet, Sonlandır"
+        },
+        "cancel": "İptal",
+        "allProjects": "Tüm Projeler"
     },
     "CommissionSettings": {
         "title": "Komisyon Ayarları",
@@ -1818,7 +1849,8 @@
             "confirmDelete": "Bu kademeyi silmek istediğinize emin misiniz?",
             "successAdd": "Kademe eklendi.",
             "successDelete": "Kademe silindi.",
-            "errorDelete": "Silinemedi."
+            "errorDelete": "Silinemedi.",
+            "deleteConfirmTitle": "Kademeyi Sil"
         },
         "unitRules": {
             "title": "Ünite Bazlı Komisyon Kuralları",
@@ -1840,7 +1872,8 @@
             "errorDelete": "Silinemedi.",
             "errors": {
                 "required": "Lütfen ünite tipi ve oran giriniz."
-            }
+            },
+            "deleteConfirmTitle": "Ünite Kuralını Sil"
         },
         "paymentStages": {
             "Contract Signed": "Sözleşme İmzalandığında",
@@ -1850,7 +1883,11 @@
         "terms": {
             "Net": "Net",
             "Brut": "Brüt"
-        }
+        },
+        "rateValue": "Oran Değeri",
+        "cancel": "İptal",
+        "deleting": "Siliniyor...",
+        "deleteConfirmAction": "Evet, Sil"
     },
     "BrokerLevels": {
         "title": "Broker Seviye Ayarları",
@@ -1884,7 +1921,11 @@
             "createSuccess": "Seviye oluşturuldu",
             "deleteSuccess": "Seviye silindi",
             "confirmDelete": "Bu seviyeyi silmek istediğinize emin misiniz?"
-        }
+        },
+        "deleteConfirmTitle": "Seviyeyi Sil",
+        "cancel": "İptal",
+        "deleting": "Siliniyor...",
+        "deleteConfirmAction": "Evet, Sil"
     },
     "BrokerFinances": {
         "title": "Finansal Yönetim",
@@ -1896,7 +1937,9 @@
             "activeBrokers": "Aktif Broker Sayısı",
             "toPay": "Ödenmesi Beklenen",
             "activeProcesses": "Aktif Süreçler",
-            "salesAndIncentives": "Satış ve Teşvik"
+            "salesAndIncentives": "Satış ve Teşvik",
+            "countPaymentRecords": "Ödeme Kayıtları",
+            "activeCount": "Aktif Sayısı"
         },
         "table": {
             "title": "Broker Bazlı Bakiyeler",
@@ -1918,7 +1961,8 @@
             "status": {
                 "Paid": "Ödendi",
                 "Eligible": "Hakedildi",
-                "Approved": "Onaylandı"
+                "Approved": "Onaylandı",
+                "Standart": "Standart"
             },
             "noRecords": "Kayıt bulunamadı."
         },
@@ -2109,7 +2153,7 @@
         "activityPhone": "Telefon",
         "activityMeeting": "Toplantı",
         "activityOnlineMeeting": "Online Toplantı",
-        "activityOfficeMeeting": "Satış Ofisinde Toplantı",
+        "activityOfficeMeeting": "Ofis Toplantısı",
         "activitySummary": "Konu",
         "activitySummaryPlaceholder": "Örn: Proje detayları görüşüldü",
         "activityNotes": "Notlar",
@@ -2172,7 +2216,7 @@
             "projectNotFound": "Proje bulunamadı.",
             "unitNotFound": "Ünite bulunamadı.",
             "poweredBy": "Novo CRM tarafından desteklenmektedir",
-            "createdSuccess": "Fırsat başarıyla oluşturuldu"
+            "createdSuccess": "Satış başarıyla oluşturuldu."
         },
         "stats": {
             "Lead": "Lead",
@@ -2270,6 +2314,9 @@
             "buttonConfirm": "Opsiyonu Onayla",
             "statusPending": "Kapora Bekleniyor",
             "cancel": "Vazgeç"
+        },
+        "filters": {
+            "onlyTodayLeads": "Sadece Bugünkü Lead'ler"
         }
     },
     "HR": {
@@ -2431,5 +2478,87 @@
             "paid": "Ödendi",
             "pending": "Bekliyor"
         }
+    },
+    "BrokerCampaigns": {
+        "title": "Teşvik ve Bonus Kampanyaları",
+        "description": "Broker performansını artırmak için aktif ve gelecek kampanyaları yönetin.",
+        "newCampaign": "Yeni Kampanya Oluştur",
+        "activeCampaigns": "Aktif Kampanyalar",
+        "totalDistributed": "Toplam Dağıtılan",
+        "pastPassive": "Geçmiş / Pasif",
+        "tabs": {
+            "active": "Aktif Kampanyalar",
+            "passive": "Geçmiş / Pasif"
+        },
+        "pastCampaigns": {
+            "title": "Geçmiş Kampanyalar",
+            "description": "Süresi dolmuş veya sonlandırılmış kampanyalar."
+        },
+        "table": {
+            "name": "Kampanya Adı",
+            "project": "Proje",
+            "typeTarget": "Tür / Hedef",
+            "bonusValue": "Bonus Değeri",
+            "dateRange": "Tarih Aralığı",
+            "status": "Durum",
+            "actions": "İşlemler",
+            "allProjects": "Tüm Projeler",
+            "empty": "Bu listede kampanya bulunamadı."
+        },
+        "types": {
+            "Visits": "Ziyaret",
+            "Volume": "Hacim",
+            "Unit Sales": "Ünite Satışı",
+            "Special": "Özel Bonus"
+        },
+        "labels": {
+            "target": "Hedef"
+        },
+        "form": {
+            "title": "Yeni Teşvik Kampanyası",
+            "description": "Brokerleri motive etmek için yeni bir ödül veya bonus programı başlatın.",
+            "basicInfo": "Temel Bilgiler",
+            "name": "Kampanya Adı *",
+            "namePlaceholder": "Örn: Bahar Lansmanı Özel Bonus",
+            "terms": "Açıklama / Koşullar",
+            "termsPlaceholder": "Kampanya detaylarını ve katılım koşullarını girin...",
+            "project": "Geçerli Proje",
+            "type": "Kampanya Türü",
+            "select": "Seçiniz",
+            "targetReward": "Hedef ve Ödül",
+            "bonusAmount": "Bonus Tutarı *",
+            "targetCount": "Hedef Sayısı (Opsiyonel)",
+            "targetCountPlaceholder": "Örn: 3 satış",
+            "startDate": "Başlangıç Tarihi",
+            "endDate": "Bitiş Tarihi",
+            "cancel": "İptal",
+            "submit": "Kampanyayı Yayınla",
+            "errors": {
+                "required": "Lütfen gerekli alanları doldurun."
+            },
+            "success": "Kampanya başarıyla oluşturuldu.",
+            "editTitle": "Kampanyayı Düzenle",
+            "editDesc": "{name} kampanyasının detaylarını güncelleyin.",
+            "update": "Güncelle",
+            "updateSuccess": "Kampanya güncellendi."
+        },
+        "status": {
+            "active": "Aktif",
+            "passive": "Pasif"
+        },
+        "actions": {
+            "confirmEnd": "Bu kampanyayı sonlandırmak istediğinize emin misiniz?",
+            "successEnd": "Kampanya sonlandırıldı.",
+            "menuTitle": "İşlemler",
+            "edit": "Düzenle",
+            "end": "Kampanyayı Sonlandır"
+        }
+    },
+    "Guide": {
+        "backToHome": "Ana Sayfaya Dön",
+        "downloadPDF": "PDF İndir",
+        "badge": "KAPSAMLI REHBER",
+        "title": "Bir Bakışta Novo CRM",
+        "description": "Novo CRM hakkında bilmeniz gereken her şey tek sayfada."
     }
 }

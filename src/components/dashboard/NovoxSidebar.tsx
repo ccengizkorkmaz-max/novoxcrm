@@ -239,14 +239,9 @@ export function NovoxSidebar({
                         {labels.activities || 'Activities'}
                     </NavItem>
                     {isManager && hasOutreachModule && (
-                        <>
-                            <NavItem href="/outreach" icon={Phone} onClick={onElementClick}>
-                                {labels.outreach || 'Outreach'}
-                            </NavItem>
-                            <NavItem href="/inbox" icon={MessageCircle} onClick={onElementClick}>
-                                {labels.inbox || 'Inbox'}
-                            </NavItem>
-                        </>
+                        <NavItem href="/outreach" icon={Phone} onClick={onElementClick}>
+                            {labels.outreach || 'Outreach'}
+                        </NavItem>
                     )}
                 </>
             )}
