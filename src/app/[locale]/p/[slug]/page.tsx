@@ -6,6 +6,39 @@ import {
     Phone, Mail, MapPin, Instagram, Linkedin, Youtube, Globe,
     Home, Building2, Award, Briefcase, Calendar, ExternalLink, MessageCircle, Star, Shield
 } from 'lucide-react'
+import type { Metadata } from 'next'
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+    const { slug } = await params
+    const data = await getAgentPublicProfile(slug)
+
+    if (!data) {
+        return { title: 'Profil Bulunamadı' }
+    }
+
+    const { agent, portfolios, stats } = data
+    const title = `${agent.name} | ${agent.title || 'Gayrimenkul Danışmanı'}`
+    const description = agent.bio
+        || `${agent.name} - ${agent.title || 'Gayrimenkul Danışmanı'}. ${portfolios.length} aktif ilan, ${stats.totalDeals} tamamlanan satış. Hemen iletişime geçin.`
+
+    return {
+        title,
+        description,
+        openGraph: {
+            title,
+            description,
+            type: 'profile',
+            ...(agent.photo ? { images: [{ url: agent.photo, width: 400, height: 400, alt: agent.name }] } : {}),
+            url: `https://www.novoxcrm.com/p/${slug}`,
+        },
+        twitter: {
+            card: 'summary',
+            title,
+            description,
+            ...(agent.photo ? { images: [agent.photo] } : {}),
+        },
+    }
+}
 
 function formatCurrency(amount: number, currency: string = 'TRY') {
     return new Intl.NumberFormat('tr-TR', { style: 'currency', currency, maximumFractionDigits: 0 }).format(amount)
