@@ -38,9 +38,9 @@ export function SharingTools({ brokerName, brokerSlug, brokerPhone, brokerEmail,
     }
 
     // Pre-built messages — editable by broker
-    const defaultProfileMsg = `Merhaba,\n\nBen *${brokerName}*, gayrimenkul danışmanınız.\n\nAktif portföyüm ve iletişim bilgilerim için aşağıdaki profil sayfamı ziyaret edebilirsiniz.\n\n${profileUrl}`
+    const defaultProfileMsg = `Merhaba,\n\nBen ${brokerName}, gayrimenkul danışmanınız.\n\nAktif portföyüm ve iletişim bilgilerim için profil sayfamı ziyaret edebilirsiniz:\n${profileUrl}`
 
-    const defaultLeadMsg = `Merhaba,\n\nGayrimenkul yatırımı veya ev arayışınızda size profesyonel destek sunmak isterim.\n\nBilgilerinizi aşağıdaki sayfamdaki iletişim formundan iletebilirsiniz, en kısa sürede dönüş yapacağım.\n\n*${brokerName}*${brokerPhone ? `\nTel: ${brokerPhone}` : ''}\n\n${profileUrl}`
+    const defaultLeadMsg = `Merhaba,\n\nGayrimenkul yatırımı veya ev arayışınızda size profesyonel destek sunmak isterim.\n\nAşağıdaki sayfamdaki iletişim formundan bilgilerinizi iletebilirsiniz, en kısa sürede dönüş yapacağım.\n\n${brokerName}${brokerPhone ? `\nTel: ${brokerPhone}` : ''}\n\n${profileUrl}`
 
     const [profileMsg, setProfileMsg] = useState(defaultProfileMsg)
     const [leadMsg, setLeadMsg] = useState(defaultLeadMsg)
@@ -151,7 +151,7 @@ export function SharingTools({ brokerName, brokerSlug, brokerPhone, brokerEmail,
                     </h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {projects.map((project) => {
-                            const projectMsg = `*${project.name}*\n${project.district}, ${project.city}\n\nBu proje hakkında detaylı bilgi almak ve güncel stok durumunu incelemek için iletişime geçebilirsiniz.\n\n*${brokerName}*${brokerPhone ? `\nTel: ${brokerPhone}` : ''}\n\n${profileUrl}`
+                            const projectMsg = `${project.name}\n${project.district}, ${project.city}\n\nBu proje hakkında detaylı bilgi almak ve güncel stok durumunu incelemek için iletişime geçebilirsiniz.\n\n${brokerName}${brokerPhone ? `\nTel: ${brokerPhone}` : ''}\n\n${profileUrl}`
 
                             return (
                                 <div key={project.id} className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
