@@ -98,41 +98,30 @@ export default async function AgentPublicPage(props: { params: Promise<{ slug: s
                         <div className="text-center md:text-left flex-1">
                             <h1 className="text-3xl md:text-4xl font-black text-white tracking-tight">{agent.name}</h1>
                             <p className="text-blue-300 font-medium mt-1 text-lg">{agent.title || 'Gayrimenkul Danışmanı'}</p>
-                            
-                            {/* Contact icons */}
-                            <div className="flex items-center gap-3 mt-5 justify-center md:justify-start">
-                                {agent.phone && (
-                                    <a href={`tel:${agent.phone}`} className="h-11 w-11 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10 flex items-center justify-center hover:bg-emerald-500/20 hover:border-emerald-400/30 transition-all group" title="Ara">
-                                        <Phone className="h-5 w-5 text-slate-300 group-hover:text-emerald-400 transition-colors" />
-                                    </a>
-                                )}
+                            {/* Contact Info */}
+                            <div className="flex flex-col gap-1.5 mt-4 text-sm justify-center md:justify-start">
                                 {agent.email && (
-                                    <a href={`mailto:${agent.email}`} className="h-11 w-11 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10 flex items-center justify-center hover:bg-blue-500/20 hover:border-blue-400/30 transition-all group" title="E-posta">
-                                        <Mail className="h-5 w-5 text-slate-300 group-hover:text-blue-400 transition-colors" />
+                                    <a href={`mailto:${agent.email}`} className="flex items-center gap-2 text-slate-300 hover:text-blue-400 transition-colors">
+                                        <Mail className="h-4 w-4 flex-shrink-0" /> {agent.email}
                                     </a>
                                 )}
                                 {agent.phone && (
-                                    <a href={`https://wa.me/${agent.phone.replace(/[\s\-\(\)]/g, '')}`} target="_blank" className="h-11 w-11 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10 flex items-center justify-center hover:bg-green-500/20 hover:border-green-400/30 transition-all group" title="WhatsApp">
-                                        <MessageCircle className="h-5 w-5 text-slate-300 group-hover:text-green-400 transition-colors" />
-                                    </a>
-                                )}
-                                {(agent.social as any)?.instagram && (
-                                    <a href={`https://instagram.com/${(agent.social as any).instagram.replace('@', '')}`} target="_blank" className="h-11 w-11 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10 flex items-center justify-center hover:bg-pink-500/20 hover:border-pink-400/30 transition-all group">
-                                        <Instagram className="h-5 w-5 text-slate-300 group-hover:text-pink-400 transition-colors" />
+                                    <a href={`tel:${agent.phone}`} className="flex items-center gap-2 text-slate-300 hover:text-emerald-400 transition-colors">
+                                        <Phone className="h-4 w-4 flex-shrink-0" /> {agent.phone}
                                     </a>
                                 )}
                             </div>
 
-                            {/* Contact Info Text */}
-                            <div className="flex flex-col sm:flex-row items-center md:items-start gap-x-5 gap-y-1 mt-4 text-sm text-slate-300">
+                            {/* Social Icons */}
+                            <div className="flex items-center gap-3 mt-4 justify-center md:justify-start">
                                 {agent.phone && (
-                                    <a href={`tel:${agent.phone}`} className="flex items-center gap-1.5 hover:text-emerald-400 transition-colors">
-                                        <Phone className="h-3.5 w-3.5" /> {agent.phone}
+                                    <a href={`https://wa.me/${agent.phone.replace(/[\s\-\(\)]/g, '')}`} target="_blank" className="h-10 w-10 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10 flex items-center justify-center hover:bg-green-500/20 hover:border-green-400/30 transition-all group" title="WhatsApp">
+                                        <MessageCircle className="h-4.5 w-4.5 text-slate-300 group-hover:text-green-400 transition-colors" />
                                     </a>
                                 )}
-                                {agent.email && (
-                                    <a href={`mailto:${agent.email}`} className="flex items-center gap-1.5 hover:text-blue-400 transition-colors">
-                                        <Mail className="h-3.5 w-3.5" /> {agent.email}
+                                {(agent.social as any)?.instagram && (
+                                    <a href={`https://instagram.com/${(agent.social as any).instagram.replace('@', '')}`} target="_blank" className="h-10 w-10 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10 flex items-center justify-center hover:bg-pink-500/20 hover:border-pink-400/30 transition-all group">
+                                        <Instagram className="h-4.5 w-4.5 text-slate-300 group-hover:text-pink-400 transition-colors" />
                                     </a>
                                 )}
                             </div>
