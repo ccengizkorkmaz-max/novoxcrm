@@ -549,7 +549,7 @@ export async function processBrokerApplication(applicationId: string, status: 'A
                             <p style="margin: 5px 0;">Şifre: <strong>${tempPassword}</strong></p>
                         </div>
                         <p>Giriş yaptıktan sonra şifrenizi değiştirmenizi öneririz.</p>
-                        <a href="${appUrl}/login" style="display: inline-block; background-color: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Giriş Yap</a>
+                        <a href="${appUrl}/broker/login" style="display: inline-block; background-color: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Broker Paneline Giriş Yap</a>
                     </div>
                 `
             })
@@ -579,7 +579,7 @@ export async function processBrokerApplication(applicationId: string, status: 'A
                         <h2 style="color: #4F46E5;">Başvurunuz Onaylandı!</h2>
                         <p>Merhaba <strong>${app.full_name}</strong>,</p>
                         <p>Broker başvurunuz onaylanmıştır. Mevcut hesabınızla giriş yaparak broker panelinize erişebilirsiniz.</p>
-                        <a href="${appUrl}/broker" style="display: inline-block; background-color: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Broker Paneline Git</a>
+                        <a href="${appUrl}/broker/login" style="display: inline-block; background-color: #4F46E5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Broker Paneline Giriş Yap</a>
                     </div>
                 `
             })
@@ -1709,7 +1709,7 @@ export async function sendBrokerReminderEmail(applicationId: string) {
                     <p>Sistemi kullanmaya başlamak ve portföylerinize erişmek için lütfen aşağıdaki butona tıklayarak kaydınızı tamamlayın.</p>
                     
                     <div style="margin: 30px 0;">
-                        <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://www.novoxcrm.com'}/login?email=${encodeURIComponent(app.email)}" style="display: inline-block; background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Hesabımı Oluştur</a>
+                        <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://www.novoxcrm.com'}/broker/login?email=${encodeURIComponent(app.email)}" style="display: inline-block; background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Hesabıma Giriş Yap</a>
                     </div>
 
                     <p style="color: #6b7280; font-size: 14px;">Eğer bir sorun yaşıyorsanız lütfen bizimle iletişime geçin.</p>

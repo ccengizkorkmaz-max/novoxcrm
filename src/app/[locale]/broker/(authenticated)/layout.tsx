@@ -37,7 +37,7 @@ export default async function BrokerLayout(props: {
     const supabase = await createClient()
 
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) redirect('/login')
+    if (!user) redirect('/broker/login')
 
     const { data: profile } = await supabase
         .from('profiles')
@@ -60,7 +60,7 @@ export default async function BrokerLayout(props: {
         'use server'
         const supabase = await createClient()
         await supabase.auth.signOut()
-        redirect('/login')
+        redirect('/broker/login')
     }
 
     const initials = profile?.full_name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() || '?'
