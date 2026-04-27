@@ -70,12 +70,14 @@ export async function updateSession(request: NextRequest, response?: NextRespons
         pathWithoutLocale.startsWith('/auth') ||
         pathWithoutLocale.startsWith('/p/') ||
         pathWithoutLocale.startsWith('/ai') ||
-        pathWithoutLocale.startsWith('/broker/apply')
+        pathWithoutLocale.startsWith('/broker/apply') ||
+        pathWithoutLocale.startsWith('/broker/login')
 
     if (!user && !isPublicRoute) {
         const isPortalRoute = pathWithoutLocale.startsWith('/customerservices')
+        const isBrokerRoute = pathWithoutLocale.startsWith('/broker')
         const url = request.nextUrl.clone()
-        const targetPath = isPortalRoute ? '/customerservices/login' : '/login'
+        const targetPath = isPortalRoute ? '/customerservices/login' : isBrokerRoute ? '/broker/login' : '/login'
         // Prepend locale if present
         const localeMatch = pathname.match(/^\/(tr|en)(\/|$)/)
         const localePrefix = localeMatch ? `/${localeMatch[1]}` : ''
