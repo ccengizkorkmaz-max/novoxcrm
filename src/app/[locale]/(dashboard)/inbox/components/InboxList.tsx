@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
+import { useRouter } from 'next/navigation'
 import { useSupabaseRealtime } from '@/hooks/useSupabaseRealtime'
 import toast from 'react-hot-toast'
 import {
@@ -52,6 +53,7 @@ interface InboxListProps {
 export function InboxList({ initialItems }: InboxListProps) {
     const t = useTranslations('Sidebar.Inbox')
     const locale = useLocale()
+    const router = useRouter()
     const [viewingItem, setViewingItem] = useState<InboxItem | null>(null)
     const [approving, setApproving] = useState(false)
     const [rejecting, setRejecting] = useState(false)
@@ -81,6 +83,7 @@ export function InboxList({ initialItems }: InboxListProps) {
                 const total = (data.expiringReservations || 0) + (data.overduePayments || 0) + (data.approachingPapers || 0) + (data.staleLeads || 0) + (data.newEmails || 0)
                 if (total > 0) {
                     toast.success(`Tarama tamamlandı: ${total} yeni kayıt bulundu.`)
+                    router.refresh() // Reload server data to show new items
                 } else if (!silent) {
                     toast.success('Gelen kutusu güncel.')
                 }

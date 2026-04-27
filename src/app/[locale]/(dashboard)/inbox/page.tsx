@@ -19,12 +19,12 @@ export default async function InboxPage(props: {
         redirect('/')
     }
 
-    // Fetch only pending inbox items
+    // Fetch inbox items (all statuses)
     const { data: inboxItems } = await supabase
         .from('inbox_items')
         .select('*')
-        .eq('status', 'pending')
         .order('created_at', { ascending: false })
+        .limit(50)
 
     return (
         <div className="flex flex-col gap-6">
