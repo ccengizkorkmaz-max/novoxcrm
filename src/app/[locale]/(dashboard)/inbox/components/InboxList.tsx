@@ -130,7 +130,7 @@ export function InboxList({ initialItems }: InboxListProps) {
         const parsedEmail = emailMatch ? emailMatch[1].trim() : null
 
         // Try to parse phone from message
-        const phoneMatch = message.match(/Telefon:\s*([^:\n\r\s]+?)(?=\s*(?:Ad Soyad|E-posta|Konu|Proje|$)|\r|\n)/i)
+    const phoneMatch = message.match(/Telefon:\s*([\d\s\+\-\(\)\.]+?)(?=\s*(?:Ad\s+Soyad|E-posta|Konu|Proje|Mesaj|$)|\r|\n)/i)
         const parsedPhone = phoneMatch ? phoneMatch[1].trim() : null
 
         return {
@@ -163,7 +163,7 @@ export function InboxList({ initialItems }: InboxListProps) {
         if (emailMatch) setEditEmail(emailMatch[1].trim())
 
         // Parse phone
-        const phoneMatch = message.match(/Telefon:\s*([^:\n\r\s]+?)(?=\s*(?:Ad Soyad|E-posta|Konu|Proje|$)|\r|\n)/i)
+        const phoneMatch = message.match(/Telefon:\s*([\d\s\+\-\(\)\.]+?)(?=\s*(?:Ad\s+Soyad|E-posta|Konu|Proje|Mesaj|$)|\r|\n)/i)
         if (phoneMatch) setEditPhone(phoneMatch[1].trim())
 
         toast.success('Bilgiler mesajdan ayıklandı')
@@ -181,7 +181,11 @@ export function InboxList({ initialItems }: InboxListProps) {
         setApproving(false)
 
         if (result.success) {
-            toast.success('Lead CRM\'e başarıyla eklendi!')
+            if (result.was_duplicate) {
+                toast.success('Mevcut müşteri kaydına eklendi (çift kayıt önlendi)')
+            } else {
+                toast.success('Lead CRM\'e başarıyla eklendi!')
+            }
             setViewingItem(null)
         } else {
             toast.error(result.error || 'Bilinmeyen hata')
