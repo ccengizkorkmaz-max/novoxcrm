@@ -9,7 +9,7 @@ import { getTranslations } from 'next-intl/server'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 
 export default async function LoginPage(props: {
-    searchParams: Promise<{ message: string, error: string }>
+    searchParams: Promise<{ message: string, error: string, email: string }>
 }) {
     const params = await props.searchParams
     const t = await getTranslations('Auth')
@@ -92,6 +92,7 @@ export default async function LoginPage(props: {
                                 type="text"
                                 placeholder={t('emailPlaceholder')}
                                 required
+                                defaultValue={params?.email || ''}
                                 className="h-11 border-gray-200 focus:border-blue-500 transition-colors"
                             />
                         </div>

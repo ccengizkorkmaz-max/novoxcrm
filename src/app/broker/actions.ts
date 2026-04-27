@@ -1709,7 +1709,7 @@ export async function sendBrokerReminderEmail(applicationId: string) {
                     <p>Sistemi kullanmaya başlamak ve portföylerinize erişmek için lütfen aşağıdaki butona tıklayarak kaydınızı tamamlayın.</p>
                     
                     <div style="margin: 30px 0;">
-                        <a href="${process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : 'https://www.novoxcrm.com'}/signup?email=${encodeURIComponent(app.email)}" style="display: inline-block; background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Hesabımı Oluştur</a>
+                        <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://www.novoxcrm.com'}/login?email=${encodeURIComponent(app.email)}" style="display: inline-block; background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Hesabımı Oluştur</a>
                     </div>
 
                     <p style="color: #6b7280; font-size: 14px;">Eğer bir sorun yaşıyorsanız lütfen bizimle iletişime geçin.</p>
