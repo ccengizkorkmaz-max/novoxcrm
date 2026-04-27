@@ -13,7 +13,7 @@ export default async function ActivitiesPage(props: {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) redirect('/login')
 
-    // 3. Fetch Profiles (Users) for assignment - Role Based (moved up for parallel fetching)
+    // Get current user profile first (needed for role-based logic)
     const { data: currentUserProfile } = await supabase
         .from('profiles')
         .select('role, full_name, tenant_id')
@@ -22,23 +22,46 @@ export default async function ActivitiesPage(props: {
 
     const isAdmin = currentUserProfile?.role === 'admin' || currentUserProfile?.role === 'owner'
 
-    // Run all queries in parallel for maximum speed
-    const [customersResult, activitiesResult, profilesResult, t] = await Promise.all([
-        // 1. Fetch Customers (limited to essential fields only)
-        supabase
-            .from('customers')
-            .select('id, full_name')
-            .order('full_name', { ascending: true })
-            .limit(5000),
+    // Batch fetch helper — Supabase limits rows per query (default 1000)
+    async function fetchAll(query: any) {
+        const batchSize = 1000
+        let allData: any[] = []
+        let from = 0
+        let hasMore = true
+        while (hasMore) {
+            const { data, error } = await query.range(from, from + batchSize - 1)
+            if (error || !data || data.length === 0) {
+                hasMore = false
+            } else {
+                allData = allData.concat(data)
+                from += batchSize
+                if (data.length < batchSize) hasMore = false
+            }
+        }
+        return allData
+    }
 
-        // 2. Fetch Activities
-        supabase
-            .from('activities')
-            .select('*, customers(full_name, sales(status)), owner:profiles!activities_owner_id_fkey(full_name)')
-            .order('due_date', { ascending: true })
-            .limit(5000),
+    // Run queries in parallel for speed
+    const [customers, activities, profilesResult, t] = await Promise.all([
+        // 1. Customers
+        fetchAll(
+            supabase
+                .from('customers')
+                .select('id, full_name')
+                .order('full_name', { ascending: true })
+                .order('id', { ascending: true })
+        ),
 
-        // 3. Profiles for filter dropdown — exclude brokers AND inactive users AND null names
+        // 2. Activities — all records via batching
+        fetchAll(
+            supabase
+                .from('activities')
+                .select('*, customers(full_name, sales(status)), owner:profiles!activities_owner_id_fkey(full_name)')
+                .order('due_date', { ascending: true })
+                .order('id', { ascending: true })
+        ),
+
+        // 3. Profiles for filter dropdown
         (async () => {
             let query = supabase
                 .from('profiles')
@@ -46,32 +69,28 @@ export default async function ActivitiesPage(props: {
                 .neq('role', 'broker')
                 .not('full_name', 'is', null)
                 .neq('full_name', '')
-                .eq('is_active', true)
                 .order('full_name')
 
             if (!isAdmin) {
                 query = query.eq('id', user.id)
             }
-            return query
+
+            const { data } = await query
+            return data || []
         })(),
 
         // 4. Translations
         getTranslations('Activities'),
     ])
 
-    const customers = customersResult.data || []
-    const activities = activitiesResult.data || []
-    let profiles = profilesResult.data || []
-
-    // Filter out any profile that has a numeric-only or suspicious name (like "1")
-    profiles = profiles.filter(p => {
+    // Filter out suspicious profile names (like "1")
+    let profiles = profilesResult.filter((p: any) => {
         if (!p.full_name) return false
-        // Remove entries that are just numbers
         if (/^\d+$/.test(p.full_name.trim())) return false
         return true
     })
 
-    // Fallback: If profiles list is empty, add the current user manually
+    // Fallback: If profiles list is empty, add current user
     if (profiles.length === 0) {
         profiles = [{
             id: user.id,
