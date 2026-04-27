@@ -10,22 +10,44 @@ export default async function TenantSupportListing(props: {
 }) {
     const { locale } = await props.params
     const supabase = await createClient()
-    const t = await getTranslations('ServiceRequests')
-    const { data: { user } } = await supabase.auth.getUser()
 
-    // Get staff profile
+    // Parallel: auth + translations
+    const [{ data: { user } }, t] = await Promise.all([
+        supabase.auth.getUser(),
+        getTranslations('ServiceRequests'),
+    ])
+
+    if (!user) return <div>Unauthorized</div>
+
+    // Get profile
     const { data: profile } = await supabase
         .from('profiles')
         .select('tenant_id')
-        .eq('id', user?.id)
+        .eq('id', user.id)
         .single()
 
-    // Get all requests for this tenant
+    if (!profile?.tenant_id) {
+        return (
+            <div className="space-y-6">
+                <div>
+                    <h1 className="text-2xl font-bold tracking-tight text-slate-900">{t('title')}</h1>
+                    <p className="text-slate-500">{t('subtitle')}</p>
+                </div>
+                <div className="h-64 flex flex-col items-center justify-center bg-white rounded-2xl border border-dashed text-slate-400">
+                    <MessageSquare className="h-12 w-12 mb-2 opacity-20" />
+                    <p>{t('empty.title')}</p>
+                </div>
+            </div>
+        )
+    }
+
+    // Fetch requests
     const { data: requests } = await supabase
         .from('service_requests')
-        .select('*, customers(full_name)')
-        .eq('tenant_id', profile?.tenant_id)
+        .select('id, title, description, status, created_at, customers(full_name)')
+        .eq('tenant_id', profile.tenant_id)
         .order('created_at', { ascending: false })
+        .limit(200)
 
     const getStatusLabel = (status: string) => {
         switch (status) {
