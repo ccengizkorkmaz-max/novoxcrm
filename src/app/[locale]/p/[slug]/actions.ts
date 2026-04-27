@@ -4,13 +4,15 @@ import { createAdminClient } from '@/lib/supabase/admin'
 
 export async function getAgentPublicProfile(slug: string) {
     const supabase = createAdminClient()
+    const normalizedSlug = slug.toLowerCase().trim()
     
+    // Search both agent_slug and broker_slug columns (broker dashboard writes to broker_slug)
     const { data: agent } = await supabase
         .from('profiles')
-        .select('id, full_name, role, email, agent_bio, agent_title, agent_slug, agent_social_links, agent_specializations, agent_service_areas, agent_certifications, agent_years_experience, agent_is_public, agent_cover_url')
-        .eq('agent_slug', slug)
-        .eq('agent_is_public', true)
-        .single()
+        .select('id, full_name, role, email, agent_bio, agent_title, agent_slug, broker_slug, agent_social_links, agent_specializations, agent_service_areas, agent_certifications, agent_years_experience, agent_is_public, agent_cover_url')
+        .or(`agent_slug.ilike.${normalizedSlug},broker_slug.ilike.${normalizedSlug}`)
+        .limit(1)
+        .maybeSingle()
 
     if (!agent) return null
 
