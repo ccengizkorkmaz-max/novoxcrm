@@ -122,21 +122,17 @@ export default async function AgentPublicPage(props: { params: Promise<{ slug: s
                                 )}
                             </div>
 
-                            {/* Stats */}
-                            <div className="flex items-center gap-4 mt-6 justify-center md:justify-start">
-                                <div className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm">
-                                    <p className="text-xl font-black text-white">{portfolios.length}</p>
-                                    <p className="text-[10px] text-slate-400 font-medium">Aktif İlan</p>
-                                </div>
-                                <div className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm">
-                                    <p className="text-xl font-black text-emerald-400">{stats.totalDeals}</p>
-                                    <p className="text-[10px] text-slate-400 font-medium">Tamamlanan</p>
-                                </div>
-                                {(agent.yearsExperience || 0) > 0 && (
-                                    <div className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm">
-                                        <p className="text-xl font-black text-violet-400">{agent.yearsExperience}</p>
-                                        <p className="text-[10px] text-slate-400 font-medium">Yıl Deneyim</p>
-                                    </div>
+                            {/* Contact Info Text */}
+                            <div className="flex flex-col sm:flex-row items-center md:items-start gap-x-5 gap-y-1 mt-4 text-sm text-slate-300">
+                                {agent.phone && (
+                                    <a href={`tel:${agent.phone}`} className="flex items-center gap-1.5 hover:text-emerald-400 transition-colors">
+                                        <Phone className="h-3.5 w-3.5" /> {agent.phone}
+                                    </a>
+                                )}
+                                {agent.email && (
+                                    <a href={`mailto:${agent.email}`} className="flex items-center gap-1.5 hover:text-blue-400 transition-colors">
+                                        <Mail className="h-3.5 w-3.5" /> {agent.email}
+                                    </a>
                                 )}
                             </div>
                         </div>
@@ -185,30 +181,84 @@ export default async function AgentPublicPage(props: { params: Promise<{ slug: s
                     </div>
                 )}
 
-                {/* Projects */}
+                {/* Projects & Available Units */}
                 {projects.length > 0 && (
                     <div>
                         <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-                            <Building2 className="h-5 w-5 text-blue-500" /> Projeler
+                            <Building2 className="h-5 w-5 text-blue-500" /> Projeler & Satışta Olan Üniteler
                         </h2>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div className="space-y-6">
                             {projects.map((p: any) => (
-                                <div key={p.id} className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden hover:shadow-lg transition-all group">
-                                    <div className="relative h-40 bg-gradient-to-br from-blue-100 to-violet-100">
-                                        {p.cover_image_url ? (
-                                            <img src={p.cover_image_url} alt={p.name} className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                                        ) : (
-                                            <div className="h-full flex items-center justify-center">
-                                                <Building2 className="h-12 w-12 text-blue-300" />
+                                <div key={p.id} className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                                    {/* Project Header */}
+                                    <div className="flex items-start gap-4 p-5 border-b border-slate-50">
+                                        <div className="h-20 w-28 rounded-xl bg-gradient-to-br from-blue-100 to-violet-100 overflow-hidden flex-shrink-0">
+                                            {p.image_url ? (
+                                                <img src={p.image_url} alt={p.name} className="h-full w-full object-cover" />
+                                            ) : (
+                                                <div className="h-full flex items-center justify-center">
+                                                    <Building2 className="h-8 w-8 text-blue-300" />
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <h3 className="font-bold text-base text-slate-900">{p.name}</h3>
+                                            <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
+                                                <MapPin className="h-3 w-3" /> {p.district}{p.district && p.city ? ', ' : ''}{p.city}
+                                            </p>
+                                            {p.description && (
+                                                <p className="text-xs text-slate-400 mt-1.5 line-clamp-2">{p.description}</p>
+                                            )}
+                                            <div className="flex items-center gap-3 mt-2">
+                                                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                                                    {p.units?.length || 0} Satışta Ünite
+                                                </span>
                                             </div>
-                                        )}
+                                        </div>
                                     </div>
-                                    <div className="p-4">
-                                        <h3 className="font-bold text-sm text-slate-900">{p.name}</h3>
-                                        <p className="text-xs text-slate-500 flex items-center gap-1 mt-1">
-                                            <MapPin className="h-3 w-3" /> {p.district}, {p.city}
-                                        </p>
-                                    </div>
+
+                                    {/* Units Table */}
+                                    {p.units && p.units.length > 0 ? (
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-left">
+                                                <thead>
+                                                    <tr className="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                                        <th className="px-5 py-2.5">No</th>
+                                                        <th className="px-5 py-2.5">Tip</th>
+                                                        <th className="px-5 py-2.5">Oda</th>
+                                                        <th className="px-5 py-2.5">m²</th>
+                                                        <th className="px-5 py-2.5">Kat</th>
+                                                        <th className="px-5 py-2.5 text-right">Fiyat</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {p.units.slice(0, 10).map((unit: any) => (
+                                                        <tr key={unit.id} className="border-t border-slate-50 hover:bg-blue-50/30 transition-colors">
+                                                            <td className="px-5 py-3 text-xs font-semibold text-slate-700">{unit.unit_number}</td>
+                                                            <td className="px-5 py-3 text-xs text-slate-500">{unit.unit_type || '-'}</td>
+                                                            <td className="px-5 py-3 text-xs text-slate-500">{unit.rooms || '-'}</td>
+                                                            <td className="px-5 py-3 text-xs text-slate-500">{unit.net_area ? `${unit.net_area}` : unit.gross_area ? `${unit.gross_area}` : '-'}</td>
+                                                            <td className="px-5 py-3 text-xs text-slate-500">{unit.floor || '-'}</td>
+                                                            <td className="px-5 py-3 text-xs font-bold text-blue-600 text-right">
+                                                                {unit.price ? formatCurrency(unit.price, unit.currency || 'TRY') : 'Sorunuz'}
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                            {p.units.length > 10 && (
+                                                <div className="px-5 py-3 bg-slate-50 text-center">
+                                                    <p className="text-[11px] text-slate-400 font-medium">
+                                                        +{p.units.length - 10} adet daha satışta ünite mevcut. Detaylı bilgi için iletişime geçin.
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div className="px-5 py-6 text-center">
+                                            <p className="text-xs text-slate-400">Bu projede şu an satışta ünite bulunmuyor.</p>
+                                        </div>
+                                    )}
                                 </div>
                             ))}
                         </div>
