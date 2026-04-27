@@ -34,36 +34,15 @@ export async function getAgentPublicProfile(slug: string) {
     const totalDeals = transactions?.length || 0
     const totalVolume = transactions?.reduce((s, t) => s + (t.sale_price || 0), 0) || 0
 
-    // Get broker's assigned projects
-    const { data: brokerProjects } = await supabase
-        .from('broker_projects')
-        .select('project_id')
-        .eq('broker_id', agent.id)
-
-    // Also get projects with manual access
+    // Get projects with manual broker access
     const { data: manualAccess } = await supabase
         .from('project_broker_access')
         .select('project_id')
         .eq('broker_id', agent.id)
 
-    // Combine assigned + manual project IDs
-    const assignedIds = [
-        ...(brokerProjects?.map(bp => bp.project_id) || []),
-        ...(manualAccess?.map(ma => ma.project_id) || [])
-    ]
-    const uniqueIds = [...new Set(assignedIds)]
+    const assignedIds = manualAccess?.map(ma => ma.project_id) || []
 
-    // Fetch all accessible projects: assigned ones + public ones from same tenant
-    let projectsQuery = supabase
-        .from('projects')
-        .select('id, name, city, district, status, image_url, description')
-        .eq('status', 'Active')
-        .eq('tenant_id', agent.tenant_id)
-
-    // Get public projects + assigned projects
-    let allProjects: any[] = []
-
-    // Public projects
+    // Get public projects from same tenant
     const { data: publicProjects } = await supabase
         .from('projects')
         .select('id, name, city, district, status, image_url, description')
@@ -71,12 +50,12 @@ export async function getAgentPublicProfile(slug: string) {
         .eq('tenant_id', agent.tenant_id)
         .eq('visibility_type', 'public')
 
-    allProjects = publicProjects || []
+    let allProjects: any[] = publicProjects || []
 
-    // Add assigned projects that aren't already public
-    if (uniqueIds.length > 0) {
+    // Add manually assigned projects that aren't already public
+    if (assignedIds.length > 0) {
         const publicIds = allProjects.map(p => p.id)
-        const missingIds = uniqueIds.filter(id => !publicIds.includes(id))
+        const missingIds = assignedIds.filter(id => !publicIds.includes(id))
         if (missingIds.length > 0) {
             const { data: assignedProjects } = await supabase
                 .from('projects')
@@ -87,7 +66,7 @@ export async function getAgentPublicProfile(slug: string) {
         }
     }
 
-    // Fetch available units for these projects
+    // Fetch units that are for sale
     const projectIds = allProjects.map(p => p.id)
     let units: any[] = []
     if (projectIds.length > 0) {
@@ -95,7 +74,7 @@ export async function getAgentPublicProfile(slug: string) {
             .from('units')
             .select('id, unit_number, unit_type, rooms, net_area, gross_area, floor, price, currency, status, project_id')
             .in('project_id', projectIds)
-            .eq('status', 'Available')
+            .eq('status', 'For Sale')
             .order('price', { ascending: true })
         units = availableUnits || []
     }
