@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Building2, MapPin, ChevronRight } from 'lucide-react'
+import { Building2, MapPin, X, Send, Loader2 } from 'lucide-react'
+import { submitContactForm } from './actions'
 
 interface Unit {
     id: string
@@ -26,16 +27,66 @@ interface Project {
     units: Unit[]
 }
 
+interface BrokerInfo {
+    id: string
+    email: string
+    name: string
+    tenantId: string
+}
+
 function formatCurrency(amount: number, currency: string = 'TRY') {
     return new Intl.NumberFormat('tr-TR', { style: 'currency', currency, maximumFractionDigits: 0 }).format(amount)
 }
 
-export function ProjectTabs({ projects }: { projects: Project[] }) {
+export function ProjectTabs({ projects, broker }: { projects: Project[]; broker: BrokerInfo }) {
     const [activeTab, setActiveTab] = useState(projects[0]?.id || '')
+    const [selectedUnit, setSelectedUnit] = useState<{ unit: Unit; project: Project } | null>(null)
+    const [formState, setFormState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
+    const [errorMsg, setErrorMsg] = useState('')
 
     if (projects.length === 0) return null
 
     const activeProject = projects.find(p => p.id === activeTab) || projects[0]
+
+    async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+        e.preventDefault()
+        if (!selectedUnit) return
+        setFormState('loading')
+
+        const form = e.currentTarget
+        const formData = new FormData(form)
+        formData.set('broker_id', broker.id)
+        formData.set('broker_email', broker.email)
+        formData.set('broker_name', broker.name)
+        formData.set('tenant_id', broker.tenantId)
+        formData.set('subject', `Ünite Bilgi Talebi: ${selectedUnit.project.name} - ${selectedUnit.unit.unit_number}`)
+
+        // Auto-generate message with unit details
+        const unitInfo = [
+            `Proje: ${selectedUnit.project.name}`,
+            `Ünite No: ${selectedUnit.unit.unit_number}`,
+            selectedUnit.unit.type ? `Tip: ${selectedUnit.unit.type}` : null,
+            selectedUnit.unit.unit_category ? `Kategori: ${selectedUnit.unit.unit_category}` : null,
+            selectedUnit.unit.area_net ? `Alan: ${selectedUnit.unit.area_net} m²` : null,
+            selectedUnit.unit.floor ? `Kat: ${selectedUnit.unit.floor}` : null,
+            selectedUnit.unit.price ? `Fiyat: ${formatCurrency(selectedUnit.unit.price, selectedUnit.unit.currency || 'TRY')}` : null,
+        ].filter(Boolean).join('\n')
+
+        const userMessage = formData.get('message') as string
+        formData.set('message', `${unitInfo}\n\n---\nMüşteri Notu:\n${userMessage || 'Bilgi almak istiyorum.'}`)
+
+        const result = await submitContactForm(formData)
+        if (result.success) {
+            setFormState('success')
+            setTimeout(() => {
+                setSelectedUnit(null)
+                setFormState('idle')
+            }, 2000)
+        } else {
+            setFormState('error')
+            setErrorMsg(result.error || 'Bir hata oluştu.')
+        }
+    }
 
     return (
         <div>
@@ -113,10 +164,11 @@ export function ProjectTabs({ projects }: { projects: Project[] }) {
                                         <tr className="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                                             <th className="px-5 py-2.5">No</th>
                                             <th className="px-5 py-2.5">Tip</th>
-                                            <th className="px-5 py-2.5">Oda</th>
+                                            <th className="px-5 py-2.5">Kategori</th>
                                             <th className="px-5 py-2.5">m²</th>
                                             <th className="px-5 py-2.5">Kat</th>
                                             <th className="px-5 py-2.5 text-right">Fiyat</th>
+                                            <th className="px-5 py-2.5 text-center"></th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -129,6 +181,14 @@ export function ProjectTabs({ projects }: { projects: Project[] }) {
                                                 <td className="px-5 py-3 text-xs text-slate-500">{unit.floor || '-'}</td>
                                                 <td className="px-5 py-3 text-xs font-bold text-blue-600 text-right">
                                                     {unit.price ? formatCurrency(unit.price, unit.currency || 'TRY') : 'Sorunuz'}
+                                                </td>
+                                                <td className="px-3 py-3 text-center">
+                                                    <button
+                                                        onClick={() => { setSelectedUnit({ unit, project: activeProject }); setFormState('idle') }}
+                                                        className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-[10px] font-bold hover:bg-blue-700 transition-colors whitespace-nowrap"
+                                                    >
+                                                        Bilgi İste
+                                                    </button>
                                                 </td>
                                             </tr>
                                         ))}
@@ -144,6 +204,82 @@ export function ProjectTabs({ projects }: { projects: Project[] }) {
                     </div>
                 )}
             </div>
+
+            {/* Unit Info Request Modal */}
+            {selectedUnit && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setSelectedUnit(null)}>
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                        {/* Modal Header */}
+                        <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 flex items-center justify-between">
+                            <div>
+                                <h3 className="text-white font-bold text-sm">Ünite Bilgi Talebi</h3>
+                                <p className="text-blue-200 text-xs mt-0.5">
+                                    {selectedUnit.project.name} — {selectedUnit.unit.unit_number}
+                                </p>
+                            </div>
+                            <button onClick={() => setSelectedUnit(null)} className="h-8 w-8 rounded-lg bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors">
+                                <X className="h-4 w-4 text-white" />
+                            </button>
+                        </div>
+
+                        {/* Unit Summary */}
+                        <div className="px-6 py-3 bg-blue-50 border-b border-blue-100 flex flex-wrap gap-x-4 gap-y-1 text-xs text-blue-700">
+                            {selectedUnit.unit.type && <span>Tip: <strong>{selectedUnit.unit.type}</strong></span>}
+                            {selectedUnit.unit.unit_category && <span>Kategori: <strong>{selectedUnit.unit.unit_category}</strong></span>}
+                            {selectedUnit.unit.area_net && <span>Alan: <strong>{selectedUnit.unit.area_net} m²</strong></span>}
+                            {selectedUnit.unit.floor && <span>Kat: <strong>{selectedUnit.unit.floor}</strong></span>}
+                            {selectedUnit.unit.price && <span>Fiyat: <strong>{formatCurrency(selectedUnit.unit.price, selectedUnit.unit.currency || 'TRY')}</strong></span>}
+                        </div>
+
+                        {formState === 'success' ? (
+                            <div className="px-6 py-12 text-center">
+                                <div className="h-14 w-14 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-3">
+                                    <Send className="h-6 w-6 text-emerald-600" />
+                                </div>
+                                <h4 className="text-base font-bold text-slate-900">Talebiniz İletildi!</h4>
+                                <p className="text-sm text-slate-500 mt-1">En kısa sürede dönüş yapılacaktır.</p>
+                            </div>
+                        ) : (
+                            <form onSubmit={handleSubmit} className="px-6 py-5 space-y-3">
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Ad Soyad *</label>
+                                        <input name="sender_name" required className="mt-1 w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100" placeholder="Adınız Soyadınız" />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Telefon *</label>
+                                        <input name="sender_phone" required type="tel" className="mt-1 w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100" placeholder="05XX XXX XX XX" />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">E-posta</label>
+                                    <input name="sender_email" type="email" className="mt-1 w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100" placeholder="email@ornek.com" />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Mesajınız</label>
+                                    <textarea name="message" rows={3} className="mt-1 w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 resize-none" placeholder="Bu ünite hakkında bilgi almak istiyorum..." />
+                                </div>
+
+                                {formState === 'error' && (
+                                    <p className="text-xs text-red-500 font-medium">{errorMsg}</p>
+                                )}
+
+                                <button
+                                    type="submit"
+                                    disabled={formState === 'loading'}
+                                    className="w-full h-11 rounded-xl bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                                >
+                                    {formState === 'loading' ? (
+                                        <><Loader2 className="h-4 w-4 animate-spin" /> Gönderiliyor...</>
+                                    ) : (
+                                        <><Send className="h-4 w-4" /> Bilgi Talebi Gönder</>
+                                    )}
+                                </button>
+                            </form>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

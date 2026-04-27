@@ -173,7 +173,10 @@ export default async function AgentPublicPage(props: { params: Promise<{ slug: s
 
                 {/* Projects & Available Units */}
                 {projects.length > 0 && (
-                    <ProjectTabs projects={projects} />
+                    <ProjectTabs
+                        projects={projects}
+                        broker={{ id: agent.id, email: agent.email, name: agent.name, tenantId: agent.tenantId }}
+                    />
                 )}
 
                 {/* Portfolio Grid */}
