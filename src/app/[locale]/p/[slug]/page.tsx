@@ -16,10 +16,10 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
         return { title: 'Profil Bulunamadı' }
     }
 
-    const { agent, portfolios, stats } = data
+    const { agent } = data
     const title = `${agent.name} | ${agent.title || 'Gayrimenkul Danışmanı'}`
     const description = agent.bio
-        || `${agent.name} - ${agent.title || 'Gayrimenkul Danışmanı'}. ${portfolios.length} aktif ilan, ${stats.totalDeals} tamamlanan satış. Hemen iletişime geçin.`
+        || `${agent.name} - ${agent.title || 'Gayrimenkul Danışmanı'}. Portföy, projeler ve iletişim bilgileri için profil sayfasını ziyaret edin.`
 
     return {
         title,
