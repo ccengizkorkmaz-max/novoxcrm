@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NovoCRM — Outreach Otomasyon Modülü</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#fff;color:#242424;line-height:1.6;font-size:14px}
+.page{max-width:820px;margin:0 auto;padding:48px 40px 80px}
+.cover{border-bottom:1px solid #e0e0e0;padding-bottom:32px;margin-bottom:40px}
+.cover .badge{display:inline-block;background:#0078d4;color:#fff;font-size:11px;font-weight:600;padding:3px 10px;border-radius:2px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px}
+.cover h1{font-size:28px;font-weight:600;color:#242424;margin-bottom:4px}
+.cover p{font-size:14px;color:#616161}
+h1{font-size:24px;font-weight:600;color:#242424;margin-bottom:8px}
+h2{font-size:20px;font-weight:600;color:#242424;margin-top:40px;margin-bottom:14px;padding-bottom:6px;border-bottom:1px solid #e0e0e0}
+h3{font-size:16px;font-weight:600;color:#242424;margin-top:28px;margin-bottom:10px}
+h4{font-size:14px;font-weight:600;color:#0078d4;margin-top:20px;margin-bottom:6px}
+p{margin-bottom:10px;color:#424242}
+strong{color:#242424;font-weight:600}
+em{color:#616161;font-style:italic}
+a{color:#0078d4;text-decoration:none}
+a:hover{text-decoration:underline}
+ul,ol{margin-bottom:12px;padding-left:20px}
+li{margin-bottom:4px;color:#424242}
+hr{border:none;border-top:1px solid #e0e0e0;margin:28px 0}
+blockquote{background:#f5f5f5;border-left:3px solid #0078d4;padding:12px 16px;margin:16px 0;border-radius:0 4px 4px 0}
+blockquote p{color:#424242;margin:0}
+blockquote strong{color:#0078d4}
+code{background:#f5f5f5;color:#d13438;padding:1px 5px;border-radius:3px;font-size:12px;font-family:'Cascadia Code','Consolas',monospace}
+pre{background:#fafafa;border:1px solid #e0e0e0;border-radius:4px;padding:16px;overflow-x:auto;margin:12px 0}
+pre code{background:none;color:#424242;padding:0;font-size:12px}
+table{width:100%;border-collapse:collapse;margin:14px 0;font-size:13px}
+thead{background:#fafafa}
+th{padding:8px 12px;text-align:left;font-weight:600;color:#242424;border:1px solid #e0e0e0}
+td{padding:8px 12px;border:1px solid #e0e0e0;color:#424242}
+tr:nth-child(even) td{background:#fafafa}
+@media print{
+  .page{padding:24px 20px}
+  pre{page-break-inside:avoid}
+  h2,h3{page-break-after:avoid}
+}
+</style>
+</head>
+<body>
+<div class="page">
+<div class="cover">
+<div class="badge">Teklif Dokümanı</div>
+<h1>NovoCRM — Outreach Otomasyon Modülü</h1>
+<p>Teknik ve Pazarlama Dokümanı &middot; Nisan 2026</p>
+</div>
+<h1>NovoCRM — Outreach Otomasyon Modülü</h1>
+<h2>Teknik ve Pazarlama Dokümanı</h2>
+<hr>
+<h2>1. Genel Bakış</h2>
+<p>NovoCRM Outreach Modülü, gayrimenkul satış ekiplerinin soğuyan lead&#39;leri otomatik olarak tekrar aktif hale getirmesini sağlayan <strong>çok kanallı, yapay zekâ destekli bir otomasyon platformudur</strong>. Sistem; AI telefon aramaları, WhatsApp Business mesajları ve SMS kanallarını tek bir workflow içinde birleştirerek, insan müdahalesine gerek kalmadan lead takibini 7/24 operasyonel hale getirir.</p>
+<blockquote>
+<p><strong>Tek Cümleyle:</strong> Satış temsilcisi müsait olmadığında bile, yapay zekâ lead&#39;lerinizle konuşmaya devam eder.</p>
+</blockquote>
+<hr>
+<h2>2. Modül Mimarisi</h2>
+<pre><code>┌──────────────────────────────────────────────────────────────┐
+│                    OUTREACH DASHBOARD                        │
+│  ┌──────────┐  ┌──────────────┐  ┌──────────────────────┐   │
+│  │ Workflow  │  │  AI Script   │  │  Segment (Hedef       │   │
+│  │ Builder   │  │  Manager     │  │  Kitle) Builder       │   │
+│  └─────┬────┘  └──────┬───────┘  └──────────┬───────────┘   │
+│        │               │                     │               │
+│        └───────────────┴─────────────────────┘               │
+│                          │                                   │
+└──────────────────────────┼───────────────────────────────────┘
+                           │
+              ┌────────────▼────────────┐
+              │    OUTREACH ENGINE      │
+              │  (Cron-Based Queue)     │
+              │                         │
+              │  ┌───┐ ┌───┐ ┌───┐     │
+              │  │AI │→│WA │→│SMS│     │
+              │  │Call│ │msg│ │   │     │
+              │  └───┘ └───┘ └───┘     │
+              └────────────┬────────────┘
+                           │
+         ┌─────────────────┼─────────────────┐
+         ▼                 ▼                 ▼
+   ┌──────────┐     ┌──────────┐     ┌──────────┐
+   │  Vapi.ai │     │ WhatsApp │     │ Polidijital│
+   │  Voice AI│     │ Cloud API│     │  SMS API   │
+   └──────────┘     └──────────┘     └──────────┘
+</code></pre>
+<h3>Veritabanı Tabloları</h3>
+<table>
+<thead>
+<tr>
+<th>Tablo</th>
+<th>Açıklama</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>outreach_workflows</code></td>
+<td>Workflow tanımları (ad, zamanlama, hedef segment, limitleri)</td>
+</tr>
+<tr>
+<td><code>outreach_steps</code></td>
+<td>Her workflow&#39;un adım sırası (AI arama → bekle → WhatsApp → SMS vb.)</td>
+</tr>
+<tr>
+<td><code>outreach_segments</code></td>
+<td>Hedef kitle filtreleri (statü, proje, atanmamış lead&#39;ler vb.)</td>
+</tr>
+<tr>
+<td><code>outreach_scripts</code></td>
+<td>AI telefon asistanı için konuşma senaryoları (system prompt&#39;lar)</td>
+</tr>
+<tr>
+<td><code>outreach_executions</code></td>
+<td>Aktif/tamamlanmış otomasyon çalışmaları (per-lead tracking)</td>
+</tr>
+<tr>
+<td><code>outreach_step_logs</code></td>
+<td>Her adımın sonucu: başarılı/başarısız, transcript, maliyet vb.</td>
+</tr>
+<tr>
+<td><code>outreach_optouts</code></td>
+<td>İletişim reddi (opt-out) kayıtları — yasal uyumluluk</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>3. Özellikler (Feature Matrix)</h2>
+<h3>3.1 Workflow Builder (Sürükle-Bırak Adım Tasarımcısı)</h3>
+<p>Kullanıcılar görsel arayüz üzerinden çok adımlı senaryolar oluşturabilir:</p>
+<table>
+<thead>
+<tr>
+<th>Adım Tipi</th>
+<th>İkon</th>
+<th>Açıklama</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>AI Telefon Araması</strong></td>
+<td>📞</td>
+<td>Vapi.ai üzerinden yapay zekâ ile otomatik sesli arama</td>
+</tr>
+<tr>
+<td><strong>WhatsApp Mesajı</strong></td>
+<td>💬</td>
+<td>Meta Cloud API ile şablon veya serbest mesaj gönderimi</td>
+</tr>
+<tr>
+<td><strong>SMS Gönder</strong></td>
+<td>📧</td>
+<td>Polidijital API üzerinden toplu SMS</td>
+</tr>
+<tr>
+<td><strong>Bekle</strong></td>
+<td>⏰</td>
+<td>Dakika / saat / gün bazlı bekleme süresi</td>
+</tr>
+<tr>
+<td><strong>Durum Güncelle</strong></td>
+<td>⚙️</td>
+<td>Lead statüsünü otomatik değiştirme (ör. Lead → Prospect)</td>
+</tr>
+<tr>
+<td><strong>Bildirim Gönder</strong></td>
+<td>⚡</td>
+<td>Satış temsilcisine CRM içi bildirim</td>
+</tr>
+</tbody></table>
+<p><strong>Örnek Workflow:</strong></p>
+<pre><code>1. AI Telefon Araması (max 3 deneme, 15dk aralıkla)
+       ↓ (müşteri ilgilendi)
+2. WhatsApp: Proje broşürü gönder
+       ↓ (2 saat bekle)
+3. SMS: Randevu teklifi
+       ↓ (başarılı)
+4. Durum Güncelle: Lead → Prospect
+5. Bildirim: Satış temsilcisine haber ver
+</code></pre>
+<h3>3.2 AI Telefon Aramaları (Vapi.ai Entegrasyonu)</h3>
+<ul>
+<li><strong>Doğal Dil Konuşma:</strong> GPT-4o tabanlı AI asistan, Türkçe konuşma desteği</li>
+<li><strong>ElevenLabs TTS:</strong> Gerçekçi Türkçe ses sentezi</li>
+<li><strong>Özelleştirilebilir Senaryolar:</strong> 4 hazır şablon + sınırsız özel script<ul>
+<li>Standart Soğuk Arama</li>
+<li>İkinci Deneme Araması</li>
+<li>Kampanya Bildirimi</li>
+<li>Kayıp Lead Geri Kazanımı</li>
+</ul>
+</li>
+<li><strong>Otomatik Tekrar Deneme:</strong> Cevapsız aramalarda konfigüre edilebilir retry (max deneme &amp; aralık)</li>
+<li><strong>Arama Kaydı:</strong> Transcript, özet, süre, maliyet otomatik loglanır</li>
+<li><strong>İlgi Analizi:</strong> AI, müşteri ilgisini değerlendirir → ilgi varsa lead otomatik &quot;Prospect&quot;a yükselir</li>
+<li><strong>Webhook Entegrasyonu:</strong> Arama sonuçları gerçek zamanlı olarak CRM&#39;e yansır</li>
+</ul>
+<h3>3.3 WhatsApp Business Cloud API</h3>
+<ul>
+<li><strong>Template Mesajlar:</strong> Meta onaylı şablonlarla 24 saat dışı iletişim</li>
+<li><strong>Serbest Mesaj:</strong> 24 saat penceresi içinde özelleştirilmiş mesajlar</li>
+<li><strong>Dinamik Değişkenler:</strong> <code>{customer_name}</code>, <code>{project_name}</code> otomatik doldurma</li>
+<li><strong>Hazır Şablonlar:</strong><ul>
+<li>Lead Takip Mesajı</li>
+<li>Cevapsız Arama Bildirimi</li>
+<li>Soğuyan Lead Yeniden Aktivasyon</li>
+<li>Randevu Hatırlatması</li>
+</ul>
+</li>
+</ul>
+<h3>3.4 SMS Entegrasyonu (Polidijital)</h3>
+<ul>
+<li><strong>Toplu SMS:</strong> Polidijital API üzerinden Türk GSM operatörlerine gönderim</li>
+<li><strong>Hazır Şablonlar:</strong><ul>
+<li>Soğuyan Lead Hatırlatma</li>
+<li>Randevu Teklifi</li>
+<li>Son Fırsat Kampanyası</li>
+<li>Cevapsız Arama Mesajı</li>
+</ul>
+</li>
+<li><strong>Özel Mesaj:</strong> Değişkenli serbest metin desteği</li>
+<li><strong>Tenant Bazlı Kimlik:</strong> Her firma kendi SMS gönderici adını kullanabilir</li>
+</ul>
+<h3>3.5 Akıllı Segment Oluşturucu</h3>
+<p>Lead&#39;leri filtreleyerek hedef kitle oluşturma:</p>
+<table>
+<thead>
+<tr>
+<th>Filtre</th>
+<th>Açıklama</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Durum</td>
+<td>Lead, Prospect, Potential, Lost filtreleme</td>
+</tr>
+<tr>
+<td>Proje</td>
+<td>Belirli bir projedeki müşteriler</td>
+</tr>
+<tr>
+<td>Atanma</td>
+<td>Atanmamış veya belirli temsilciye atanmış</td>
+</tr>
+<tr>
+<td>Tarih</td>
+<td>Kayıt tarih aralığı</td>
+</tr>
+<tr>
+<td>Hareketsizlik</td>
+<td>X gündür güncellenmeyen lead&#39;ler</td>
+</tr>
+</tbody></table>
+<p><strong>Önizleme:</strong> Segment oluşturulurken eşleşen lead sayısı ve ilk 10 kayıt anlık gösterilir.</p>
+<h3>3.6 Zamanlama ve Kontrol</h3>
+<ul>
+<li><strong>Çalışma Saatleri:</strong> Aramaların yapılacağı saat aralığı (ör. 09:00–19:00)</li>
+<li><strong>Çalışma Günleri:</strong> Haftanın hangi günleri aktif (Pzt-Cum, Pzt-Cmt vb.)</li>
+<li><strong>Günlük Limit:</strong> Maximum günlük lead işleme sayısı</li>
+<li><strong>Otomatik Tespit:</strong> &quot;X gündür hareketsiz&quot; lead&#39;leri otomatik yakala ve workflow&#39;a dahil et</li>
+<li><strong>Mesai Dışı Otomatik Erteleme:</strong> Mesai saatleri dışına denk gelen aksiyonlar otomatik olarak sonraki iş gününe planlanır</li>
+</ul>
+<h3>3.7 Opt-Out (İletişim Reddi) Yönetimi</h3>
+<ul>
+<li>Müşteri bazlı kanal reddi (tüm kanallar veya sadece belirli kanal)</li>
+<li>Opt-out listesindeki müşteriler otomatik olarak workflow&#39;dan çıkarılır</li>
+<li>KVKK ve ticari iletişim mevzuatına uyumluluk</li>
+</ul>
+<hr>
+<h2>4. Teknik Altyapı</h2>
+<h3>4.1 Engine (Motor) Çalışma Prensibi</h3>
+<pre><code>CRON JOB (her 5-10dk)
+    │
+    ▼
+processOutreachQueue()
+    │
+    ├─ next_action_at ≤ şu an olan execution&#39;ları bul
+    ├─ Workflow aktif mi? → Değilse duraklat
+    ├─ Mesai saatleri içinde mi? → Değilse ertele
+    ├─ Opt-out kontrolü → Reddettiyse atla
+    ├─ Mevcut adımı al (step_order)
+    └─ Adımı çalıştır:
+        ├─ ai_call → Vapi.ai API çağrısı → webhook ile sonuç bekle
+        ├─ whatsapp → Meta Cloud API → template/serbest mesaj
+        ├─ sms → Polidijital API → SMS gönder
+        ├─ wait → Sonraki adıma zamanlama ayarla
+        ├─ status_update → Lead statüsü güncelle + not ekle
+        └─ notify → CRM bildirimi oluştur
+</code></pre>
+<h3>4.2 Retry (Tekrar Deneme) Mekanizması</h3>
+<pre><code>Arama başarısız veya cevaplanmadı
+    │
+    ├─ Retry aktif mi? → Evet
+    │   ├─ Max deneme aşıldı mı? → Hayır → X dakika sonra tekrar dene
+    │   └─ Max deneme aşıldı → Sonraki adıma geç
+    └─ Retry kapalı → Sonraki adıma geç
+</code></pre>
+<h3>4.3 Koşullu Dallanma (Outcome-Based Routing)</h3>
+<p>Her adımda 4 farklı sonuç için farklı akışlar tanımlanabilir:</p>
+<table>
+<thead>
+<tr>
+<th>Sonuç</th>
+<th>Varsayılan Aksiyon</th>
+<th>Açıklama</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>success</code></td>
+<td>Sonraki adım</td>
+<td>Arama cevaplanıp ilgi gösterildi</td>
+</tr>
+<tr>
+<td><code>no_answer</code></td>
+<td>Retry veya sonraki adım</td>
+<td>Müşteri cevaplamadı</td>
+</tr>
+<tr>
+<td><code>busy</code></td>
+<td>Retry</td>
+<td>Müşteri meşgul</td>
+</tr>
+<tr>
+<td><code>failure</code></td>
+<td>Sonraki adım</td>
+<td>Teknik hata (numara yok vb.)</td>
+</tr>
+</tbody></table>
+<h3>4.4 Entegrasyon Detayları</h3>
+<table>
+<thead>
+<tr>
+<th>Servis</th>
+<th>Protokol</th>
+<th>Kimlik Bilgisi</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Vapi.ai</strong></td>
+<td>REST API + Webhook</td>
+<td><code>VAPI_API_KEY</code>, <code>VAPI_PHONE_NUMBER_ID</code></td>
+</tr>
+<tr>
+<td><strong>WhatsApp</strong></td>
+<td>Meta Cloud API v18.0</td>
+<td><code>WHATSAPP_PHONE_NUMBER_ID</code>, <code>WHATSAPP_ACCESS_TOKEN</code></td>
+</tr>
+<tr>
+<td><strong>Polidijital SMS</strong></td>
+<td>REST API (XML response)</td>
+<td>Tenant bazlı <code>sms_api_user</code>, <code>sms_api_password</code></td>
+</tr>
+<tr>
+<td><strong>ElevenLabs</strong></td>
+<td>Vapi üzerinden</td>
+<td>Vapi config&#39;de tanımlı</td>
+</tr>
+</tbody></table>
+<h3>4.5 Webhook Akışı (AI Arama Sonuçları)</h3>
+<pre><code>Vapi.ai → /api/webhooks/vapi (POST)
+    │
+    ▼
+handleVapiCallResult()
+    │
+    ├─ Arama süresi &gt; 15sn → &quot;success&quot; (cevaplandı)
+    ├─ AI analizi: interested=true → &quot;converted&quot; (fırsata dönüştü)
+    │   ├─ Lead statüsü → Prospect
+    │   └─ CRM&#39;e aktivite notu ekle
+    ├─ customer-did-not-answer → &quot;no_answer&quot;
+    └─ customer-busy → &quot;busy&quot;
+</code></pre>
+<hr>
+<h2>5. Pazarlama Perspektifi</h2>
+<h3>5.1 Değer Önerisi</h3>
+<blockquote>
+<p><strong>&quot;Satış ofisiniz artık 7/24 çalışıyor.&quot;</strong></p>
+</blockquote>
+<p>Geleneksel CRM&#39;lerde soğuyan lead&#39;ler manuel takip gerektirir — bu da zaman, insan kaynağı ve dikkat gerektirir. NovoCRM Outreach ile:</p>
+<ul>
+<li>✅ <strong>%100 Lead Kapsama:</strong> Hiçbir lead &quot;unutulmaz&quot; — otomatik takip her zaman çalışır</li>
+<li>✅ <strong>7/24 Operasyon:</strong> Mesai saatlerini siz belirleyin, sistem o saatlerde otomatik çalışır</li>
+<li>✅ <strong>3x Kanal Gücü:</strong> Telefon + WhatsApp + SMS birlikte çalışarak dönüşüm şansını artırır</li>
+<li>✅ <strong>Sıfır Ek Personel:</strong> AI asistanı, satış temsilcisi yerine ilk aramayı yapar</li>
+<li>✅ <strong>Ölçeklenebilir:</strong> Günlük 50, 100 veya 500 lead — sistem otomatik yönetir</li>
+</ul>
+<h3>5.2 Kullanım Senaryoları</h3>
+<h4>Senaryo 1: Soğuyan Lead Geri Kazanımı</h4>
+<p><em>&quot;3 gündür güncellenmemiş Lead statüsündeki müşterileri otomatik ara, ilgileneni temsilciye bağla.&quot;</em></p>
+<p><strong>Beklenen ROI:</strong> Soğuyan lead&#39;lerin %15-25&#39;i tekrar aktifleşir.</p>
+<h4>Senaryo 2: Yeni Proje Lansmanı</h4>
+<p><em>&quot;Belirli bir projede Prospect statüsündeki tüm müşterilere WhatsApp ile broşür gönder, 2 saat sonra aramalar başlasın.&quot;</em></p>
+<p><strong>Beklenen ROI:</strong> Lansman ilk haftasında %40 daha fazla geri dönüş.</p>
+<h4>Senaryo 3: Cevapsız Arama Takibi</h4>
+<p><em>&quot;AI arama cevaplanmazsa → SMS gönder → 1 gün bekle → WhatsApp mesajı → Cevaplanmazsa &#39;Lost&#39; yap.&quot;</em></p>
+<p><strong>Beklenen ROI:</strong> Ulaşılamayan müşterilerin %30&#39;u alternatif kanallardan geri döner.</p>
+<h4>Senaryo 4: Randevu Hatırlatma</h4>
+<p><em>&quot;Randevu günü sabah WhatsApp ile hatırlatma gönder, onay gelirse not ekle.&quot;</em></p>
+<p><strong>Beklenen ROI:</strong> Randevu iptal/no-show oranı %60 düşer.</p>
+<h3>5.3 Rekabet Avantajları</h3>
+<table>
+<thead>
+<tr>
+<th>Özellik</th>
+<th>NovoCRM</th>
+<th>Genel CRM&#39;ler</th>
+<th>Özel Otomasyon Araçları</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>AI Telefon Araması</td>
+<td>✅ Yerleşik</td>
+<td>❌</td>
+<td>Kısmen (ayrı abonelik)</td>
+</tr>
+<tr>
+<td>WhatsApp Business API</td>
+<td>✅ Yerleşik</td>
+<td>❌</td>
+<td>Kısmen</td>
+</tr>
+<tr>
+<td>SMS Entegrasyonu</td>
+<td>✅ Yerleşik</td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Görsel Workflow Builder</td>
+<td>✅</td>
+<td>❌</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>CRM Entegrasyonu</td>
+<td>✅ Native</td>
+<td>N/A</td>
+<td>API gerekir</td>
+</tr>
+<tr>
+<td>Lead Statü Otomasyonu</td>
+<td>✅</td>
+<td>❌</td>
+<td>Kısmen</td>
+</tr>
+<tr>
+<td>Türkçe AI Konuşma</td>
+<td>✅</td>
+<td>❌</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>Opt-out / KVKK Uyumu</td>
+<td>✅</td>
+<td>❌</td>
+<td>Kısmen</td>
+</tr>
+<tr>
+<td>Tekil Platform</td>
+<td>✅ Hepsi bir arada</td>
+<td>Parçalı</td>
+<td>Parçalı</td>
+</tr>
+</tbody></table>
+<h3>5.4 Fiyatlandırma Etkisi</h3>
+<p>Outreach modülü, NovoCRM&#39;in premium katmanında yer alır ve aşağıdaki değer bileşenlerini içerir:</p>
+<ul>
+<li><strong>AI Arama Maliyeti:</strong> Vapi.ai per-minute bazlı (ortalama ~$0.10/dk)</li>
+<li><strong>WhatsApp:</strong> Meta ücretsiz (conversation-based pricing, ilk 1000/ay bedava)</li>
+<li><strong>SMS:</strong> Polidijital per-SMS bazlı (Türkiye içi ~₺0.05-0.10/SMS)</li>
+<li><strong>Platform Ücreti:</strong> NovoCRM aboneliğine dahil — ek yazılım maliyeti yok</li>
+</ul>
+<hr>
+<h2>6. Dashboard ve Raporlama</h2>
+<p>Outreach Dashboard aşağıdaki metrikleri gerçek zamanlı gösterir:</p>
+<table>
+<thead>
+<tr>
+<th>Metrik</th>
+<th>Açıklama</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Aktif Outreach</strong></td>
+<td>Şu anda çalışan/bekleyen otomasyon sayısı</td>
+</tr>
+<tr>
+<td><strong>AI Arama</strong></td>
+<td>Toplam yapılan AI araması</td>
+</tr>
+<tr>
+<td><strong>WhatsApp</strong></td>
+<td>Toplam gönderilen WhatsApp mesajı</td>
+</tr>
+<tr>
+<td><strong>Dönüşüm</strong></td>
+<td>Prospect&#39;a yükselen lead sayısı</td>
+</tr>
+</tbody></table>
+<p><strong>Son Aktivite</strong> sekmesinde her adımın detayı: müşteri adı, kanal, durum (cevaplanmadı/ilgilendi/hata), süre ve mesaj içeriği anlık takip edilir.</p>
+<hr>
+<h2>7. Kurulum ve Konfigürasyon</h2>
+<h3>Gerekli Ortam Değişkenleri</h3>
+<pre><code class="language-env"># Vapi.ai (AI Telefon)
+VAPI_API_KEY=...
+VAPI_PHONE_NUMBER_ID=...
+VAPI_ASSISTANT_ID=...
+
+# WhatsApp Business (Meta Cloud API)
+WHATSAPP_PHONE_NUMBER_ID=...
+WHATSAPP_ACCESS_TOKEN=...
+
+# SMS (Polidijital) — Tenant bazlı veya global
+POLI_SMS_USER=...
+POLI_SMS_PASS=...
+POLI_SMS_HEADER=FIRMAADI
+
+# Cron Job Güvenliği
+OUTREACH_CRON_SECRET=...
+</code></pre>
+<h3>Cron Job Kurulumu</h3>
+<p>Outreach engine&#39;in çalışması için 5-10 dakikada bir çağrılması gereken endpoint:</p>
+<pre><code>GET /api/cron/outreach
+Authorization: Bearer {OUTREACH_CRON_SECRET}
+</code></pre>
+<p><strong>Önerilen servisler:</strong> Vercel Cron, UptimeRobot, cron-job.org veya Supabase pg_cron.</p>
+<hr>
+<h2>8. Dosya Yapısı</h2>
+<pre><code>src/
+├── lib/
+│   ├── outreach/
+│   │   └── engine.ts          ← Ana otomasyon motoru (776 satır)
+│   ├── vapi.ts                ← Vapi.ai entegrasyon katmanı (343 satır)
+│   ├── whatsapp.ts            ← WhatsApp Cloud API (176 satır)
+│   └── sms.ts                 ← Polidijital SMS entegrasyonu
+├── app/
+│   ├── [locale]/(dashboard)/outreach/
+│   │   ├── page.tsx           ← Outreach ana sayfa (SSR data fetching)
+│   │   ├── actions.ts         ← Server actions (373 satır)
+│   │   └── components/
+│   │       ├── OutreachDashboard.tsx  ← Dashboard + istatistikler
+│   │       ├── WorkflowBuilder.tsx    ← Workflow adım tasarımcısı
+│   │       └── ScriptManager.tsx      ← AI script CRUD
+│   └── api/
+│       ├── cron/outreach/route.ts     ← Cron endpoint
+│       └── webhooks/vapi/route.ts     ← Vapi webhook handler
+</code></pre>
+<hr>
+<p><em>Bu doküman NovoCRM Outreach Modülü v1.0 için hazırlanmıştır.</em>
+<em>Son güncelleme: Nisan 2026</em></p>
+
+</div>
+</body>
+</html>

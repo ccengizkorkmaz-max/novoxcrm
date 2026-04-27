@@ -13,7 +13,10 @@ import {
     Library,
     Building2,
     BadgeTurkishLira,
-    ChevronRight
+    ChevronRight,
+    UserCircle,
+    MessageSquare,
+    Share2
 } from 'lucide-react'
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import LanguageSwitcher from '@/components/LanguageSwitcher'
@@ -26,6 +29,9 @@ const NAV_ITEMS = [
     { href: '/broker/commissions', label: 'Kazançlarım', icon: BadgeTurkishLira },
     { href: '/broker/commission-plans', label: 'Komisyon Planları', icon: TrendingUp },
     { href: '/broker/documents', label: 'Satış Materyalleri', icon: Library },
+    { href: '/broker/messages', label: 'Mesajlarım', icon: MessageSquare },
+    { href: '/broker/profile', label: 'Profilim', icon: UserCircle },
+    { href: '/broker/tools', label: 'Paylaşım Araçları', icon: Share2 },
 ]
 
 export default async function BrokerLayout(props: {
