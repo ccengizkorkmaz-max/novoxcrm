@@ -141,7 +141,7 @@ export default async function AgentPublicPage(props: { params: Promise<{ slug: s
                 </div>
             </div>
 
-            <div className="max-w-5xl mx-auto px-4 -mt-6 pb-12 space-y-8 relative z-20">
+            <div className="max-w-5xl mx-auto px-4 pt-8 pb-12 space-y-8 relative z-20">
                 {/* Bio + Specializations */}
                 {(agent.bio || (agent.specializations as any)?.length > 0 || (agent.serviceAreas as any)?.length > 0) && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
