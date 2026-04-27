@@ -19,12 +19,21 @@ export default async function InboxPage(props: {
         redirect('/')
     }
 
-    // Fetch inbox items (all statuses)
-    const { data: inboxItems } = await supabase
+    // Fetch pending items
+    const { data: pendingItems } = await supabase
         .from('inbox_items')
         .select('*')
+        .eq('status', 'pending')
         .order('created_at', { ascending: false })
-        .limit(50)
+        .limit(100)
+
+    // Fetch archived items (approved + rejected)
+    const { data: archivedItems } = await supabase
+        .from('inbox_items')
+        .select('*')
+        .in('status', ['approved', 'rejected'])
+        .order('created_at', { ascending: false })
+        .limit(100)
 
     return (
         <div className="flex flex-col gap-6">
@@ -35,7 +44,10 @@ export default async function InboxPage(props: {
                 </div>
             </div>
 
-            <InboxList initialItems={inboxItems || []} />
+            <InboxList 
+                initialItems={pendingItems || []} 
+                archivedItems={archivedItems || []} 
+            />
         </div>
     )
 }

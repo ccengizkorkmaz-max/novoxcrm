@@ -15,9 +15,13 @@ import {
     Phone,
     MessageSquare,
     Wand2,
-    RefreshCw
+    RefreshCw,
+    Archive,
+    Trash2,
+    CheckSquare,
+    Square
 } from 'lucide-react'
-import { approveInboxItem, rejectInboxItem } from '../actions'
+import { approveInboxItem, rejectInboxItem, deleteArchivedItems, deleteAllArchivedItems } from '../actions'
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -48,15 +52,22 @@ interface InboxItem {
 
 interface InboxListProps {
     initialItems: InboxItem[]
+    archivedItems?: InboxItem[]
 }
 
-export function InboxList({ initialItems }: InboxListProps) {
+type Tab = 'pending' | 'archive'
+
+export function InboxList({ initialItems, archivedItems = [] }: InboxListProps) {
     const t = useTranslations('Sidebar.Inbox')
     const locale = useLocale()
     const router = useRouter()
+    const [activeTab, setActiveTab] = useState<Tab>('pending')
     const [viewingItem, setViewingItem] = useState<InboxItem | null>(null)
     const [approving, setApproving] = useState(false)
     const [rejecting, setRejecting] = useState(false)
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+    const [deleting, setDeleting] = useState(false)
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState<'selected' | 'all' | null>(null)
 
     // Real-time updates
     useSupabaseRealtime({ table: 'inbox_items' })
@@ -83,7 +94,7 @@ export function InboxList({ initialItems }: InboxListProps) {
                 const total = (data.expiringReservations || 0) + (data.overduePayments || 0) + (data.approachingPapers || 0) + (data.staleLeads || 0) + (data.newEmails || 0)
                 if (total > 0) {
                     toast.success(`Tarama tamamlandı: ${total} yeni kayıt bulundu.`)
-                    router.refresh() // Reload server data to show new items
+                    router.refresh()
                 } else if (!silent) {
                     toast.success('Gelen kutusu güncel.')
                 }
@@ -121,16 +132,13 @@ export function InboxList({ initialItems }: InboxListProps) {
     const parseMessageFields = (item: InboxItem) => {
         const message = getDisplayMessage(item.message)
 
-        // Try to parse name from message first
         const nameMatch = message.match(/Ad\s+Soyad:\s*([^:\n\r]+?)(?=\s*(?:E-posta|Telefon|Konu|Proje|$)|\r|\n)/i)
         const parsedName = nameMatch ? nameMatch[1].trim() : null
 
-        // Try to parse email from message
         const emailMatch = message.match(/(?:E-posta Adresi|E-posta):\s*([^:\n\r\s]+?)(?=\s*(?:Ad Soyad|Telefon|Konu|Proje|$)|\r|\n)/i)
         const parsedEmail = emailMatch ? emailMatch[1].trim() : null
 
-        // Try to parse phone from message
-    const phoneMatch = message.match(/Telefon:\s*([\d\s\+\-\(\)\.]+?)(?=\s*(?:Ad\s+Soyad|E-posta|Konu|Proje|Mesaj|$)|\r|\n)/i)
+        const phoneMatch = message.match(/Telefon:\s*([\d\s\+\-\(\)\.]+?)(?=\s*(?:Ad\s+Soyad|E-posta|Konu|Proje|Mesaj|$)|\r|\n)/i)
         const parsedPhone = phoneMatch ? phoneMatch[1].trim() : null
 
         return {
@@ -142,7 +150,6 @@ export function InboxList({ initialItems }: InboxListProps) {
 
     const handleViewItem = (item: InboxItem) => {
         setViewingItem(item)
-        // Auto-parse message fields on open; fallback to DB values if not found
         const parsed = parseMessageFields(item)
         setEditName(parsed.name)
         setEditEmail(parsed.email)
@@ -154,15 +161,12 @@ export function InboxList({ initialItems }: InboxListProps) {
 
         const message = getDisplayMessage(viewingItem.message)
 
-        // Parse name
         const nameMatch = message.match(/Ad\s+Soyad:\s*([^:\n\r]+?)(?=\s*(?:E-posta|Telefon|Konu|Proje|$)|\r|\n)/i)
         if (nameMatch) setEditName(nameMatch[1].trim())
 
-        // Parse email
         const emailMatch = message.match(/(?:E-posta Adresi|E-posta):\s*([^:\n\r\s]+?)(?=\s*(?:Ad Soyad|Telefon|Konu|Proje|$)|\r|\n)/i)
         if (emailMatch) setEditEmail(emailMatch[1].trim())
 
-        // Parse phone
         const phoneMatch = message.match(/Telefon:\s*([\d\s\+\-\(\)\.]+?)(?=\s*(?:Ad\s+Soyad|E-posta|Konu|Proje|Mesaj|$)|\r|\n)/i)
         if (phoneMatch) setEditPhone(phoneMatch[1].trim())
 
@@ -187,6 +191,7 @@ export function InboxList({ initialItems }: InboxListProps) {
                 toast.success('Lead CRM\'e başarıyla eklendi!')
             }
             setViewingItem(null)
+            router.refresh()
         } else {
             toast.error(result.error || 'Bilinmeyen hata')
         }
@@ -195,9 +200,6 @@ export function InboxList({ initialItems }: InboxListProps) {
     const handleReject = async () => {
         if (!viewingItem) return
 
-        // Toast will show confirmation via UI, for now proceed directly
-        // TODO: Add proper confirmation dialog later
-
         setRejecting(true)
         const result = await rejectInboxItem(viewingItem.id)
         setRejecting(false)
@@ -205,84 +207,228 @@ export function InboxList({ initialItems }: InboxListProps) {
         if (result.success) {
             toast.success('Kayıt reddedildi')
             setViewingItem(null)
+            router.refresh()
         } else {
             toast.error(result.error || 'Bilinmeyen hata')
         }
     }
 
+    // Archive selection
+    const toggleSelect = (id: string) => {
+        setSelectedIds(prev => {
+            const next = new Set(prev)
+            if (next.has(id)) next.delete(id)
+            else next.add(id)
+            return next
+        })
+    }
+
+    const toggleSelectAll = () => {
+        if (selectedIds.size === archivedItems.length) {
+            setSelectedIds(new Set())
+        } else {
+            setSelectedIds(new Set(archivedItems.map(i => i.id)))
+        }
+    }
+
+    const handleDeleteSelected = async () => {
+        if (selectedIds.size === 0) return
+        setDeleting(true)
+        const result = await deleteArchivedItems(Array.from(selectedIds))
+        setDeleting(false)
+        setShowDeleteConfirm(null)
+        if (result.success) {
+            toast.success(`${result.deleted} kayıt kalıcı olarak silindi.`)
+            setSelectedIds(new Set())
+            router.refresh()
+        } else {
+            toast.error(result.error || 'Silme işlemi başarısız.')
+        }
+    }
+
+    const handleDeleteAll = async () => {
+        setDeleting(true)
+        const result = await deleteAllArchivedItems()
+        setDeleting(false)
+        setShowDeleteConfirm(null)
+        if (result.success) {
+            toast.success(`${result.deleted} kayıt kalıcı olarak silindi.`)
+            setSelectedIds(new Set())
+            router.refresh()
+        } else {
+            toast.error(result.error || 'Silme işlemi başarısız.')
+        }
+    }
+
+    const currentItems = activeTab === 'pending' ? initialItems : archivedItems
+
+    const renderStatusBadge = (status: string) => {
+        if (status === 'approved') return <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">Onaylandı</Badge>
+        if (status === 'rejected') return <Badge variant="outline" className="text-xs bg-red-50 text-red-700 border-red-200">Reddedildi</Badge>
+        if (status === 'pending') return <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">Bekliyor</Badge>
+        return null
+    }
+
     return (
         <>
-            <Card className="overflow-hidden border-slate-200 shadow-sm relative">
-                <div className="absolute top-3 right-3 z-10">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleRefresh}
-                        disabled={scanning}
-                        className="h-8 w-8 p-0 rounded-full bg-white/80 backdrop-blur-sm border-slate-200 hover:bg-white hover:border-blue-300 hover:text-blue-600 transition-all shadow-sm"
-                        title="Taramayı Başlat (Yeni Mailler ve Formlar)"
-                    >
-                        <RefreshCw className={`h-4 w-4 ${scanning ? 'animate-spin' : ''}`} />
-                    </Button>
+            {/* Tab Bar */}
+            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg w-fit">
+                <button
+                    onClick={() => { setActiveTab('pending'); setSelectedIds(new Set()) }}
+                    className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-all ${
+                        activeTab === 'pending'
+                            ? 'bg-white text-slate-900 shadow-sm'
+                            : 'text-slate-500 hover:text-slate-700'
+                    }`}
+                >
+                    <Mail className="h-4 w-4" />
+                    Bekleyen
+                    {initialItems.length > 0 && (
+                        <span className="bg-amber-100 text-amber-700 text-xs font-bold px-1.5 py-0.5 rounded-full">
+                            {initialItems.length}
+                        </span>
+                    )}
+                </button>
+                <button
+                    onClick={() => setActiveTab('archive')}
+                    className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-all ${
+                        activeTab === 'archive'
+                            ? 'bg-white text-slate-900 shadow-sm'
+                            : 'text-slate-500 hover:text-slate-700'
+                    }`}
+                >
+                    <Archive className="h-4 w-4" />
+                    Arşiv
+                    {archivedItems.length > 0 && (
+                        <span className="bg-slate-200 text-slate-600 text-xs font-bold px-1.5 py-0.5 rounded-full">
+                            {archivedItems.length}
+                        </span>
+                    )}
+                </button>
+            </div>
+
+            {/* Archive toolbar */}
+            {activeTab === 'archive' && archivedItems.length > 0 && (
+                <div className="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5">
+                    <div className="flex items-center gap-3">
+                        <button onClick={toggleSelectAll} className="flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900 transition-colors">
+                            {selectedIds.size === archivedItems.length ? (
+                                <CheckSquare className="h-4 w-4 text-blue-600" />
+                            ) : (
+                                <Square className="h-4 w-4" />
+                            )}
+                            {selectedIds.size > 0 ? `${selectedIds.size} seçili` : 'Tümünü seç'}
+                        </button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        {selectedIds.size > 0 && (
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setShowDeleteConfirm('selected')}
+                                className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 gap-1.5"
+                            >
+                                <Trash2 className="h-3.5 w-3.5" />
+                                Seçilenleri Sil ({selectedIds.size})
+                            </Button>
+                        )}
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setShowDeleteConfirm('all')}
+                            className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 gap-1.5"
+                        >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            Tümünü Sil
+                        </Button>
+                    </div>
                 </div>
+            )}
+
+            <Card className="overflow-hidden border-slate-200 shadow-sm relative">
+                {activeTab === 'pending' && (
+                    <div className="absolute top-3 right-3 z-10">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleRefresh}
+                            disabled={scanning}
+                            className="h-8 w-8 p-0 rounded-full bg-white/80 backdrop-blur-sm border-slate-200 hover:bg-white hover:border-blue-300 hover:text-blue-600 transition-all shadow-sm"
+                            title="Taramayı Başlat (Yeni Mailler ve Formlar)"
+                        >
+                            <RefreshCw className={`h-4 w-4 ${scanning ? 'animate-spin' : ''}`} />
+                        </Button>
+                    </div>
+                )}
                 <CardContent className="p-0">
-                    {initialItems.length === 0 ? (
+                    {currentItems.length === 0 ? (
                         <div className="py-12 flex flex-col items-center justify-center text-muted-foreground bg-slate-50/50">
-                            <Mail className="h-10 w-10 mb-3 opacity-20" />
-                            <p>Inbox boş</p>
-                            <p className="text-sm text-muted-foreground mt-2">
-                                Web formdan gelen lead'ler burada görünecek
-                            </p>
+                            {activeTab === 'pending' ? (
+                                <>
+                                    <Mail className="h-10 w-10 mb-3 opacity-20" />
+                                    <p>Inbox boş</p>
+                                    <p className="text-sm text-muted-foreground mt-2">
+                                        Web formdan gelen lead'ler burada görünecek
+                                    </p>
+                                </>
+                            ) : (
+                                <>
+                                    <Archive className="h-10 w-10 mb-3 opacity-20" />
+                                    <p>Arşiv boş</p>
+                                    <p className="text-sm text-muted-foreground mt-2">
+                                        Onaylanan ve reddedilen kayıtlar burada görünecek
+                                    </p>
+                                </>
+                            )}
                         </div>
                     ) : (
                         <div className="divide-y divide-slate-100">
-                            {initialItems.map((item) => (
+                            {currentItems.map((item) => (
                                 <div
                                     key={item.id}
-                                    className="p-4 hover:bg-slate-50/50 transition-colors cursor-pointer"
-                                    onClick={() => handleViewItem(item)}
+                                    className={`p-4 hover:bg-slate-50/50 transition-colors cursor-pointer ${
+                                        selectedIds.has(item.id) ? 'bg-blue-50/50' : ''
+                                    }`}
+                                    onClick={() => activeTab === 'archive' ? toggleSelect(item.id) : handleViewItem(item)}
                                 >
                                     <div className="flex items-start justify-between">
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <User className="h-4 w-4 text-slate-500" />
-                                                <span className="font-medium">{item.name}</span>
-                                                <Badge variant="outline" className="text-xs">
-                                                    {item.source}
-                                                </Badge>
-                                                {item.status === 'approved' && (
-                                                    <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
-                                                        Onaylandı
+                                        <div className="flex items-start gap-3 flex-1">
+                                            {activeTab === 'archive' && (
+                                                <div className="mt-0.5">
+                                                    {selectedIds.has(item.id) ? (
+                                                        <CheckSquare className="h-4 w-4 text-blue-600" />
+                                                    ) : (
+                                                        <Square className="h-4 w-4 text-slate-300" />
+                                                    )}
+                                                </div>
+                                            )}
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <User className="h-4 w-4 text-slate-500" />
+                                                    <span className="font-medium">{item.name}</span>
+                                                    <Badge variant="outline" className="text-xs">
+                                                        {item.source}
                                                     </Badge>
-                                                )}
-                                                {item.status === 'rejected' && (
-                                                    <Badge variant="outline" className="text-xs bg-red-50 text-red-700 border-red-200">
-                                                        Reddedildi
-                                                    </Badge>
-                                                )}
-                                                {item.status === 'pending' && (
-                                                    <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">
-                                                        Bekliyor
-                                                    </Badge>
-                                                )}
+                                                    {renderStatusBadge(item.status)}
+                                                </div>
+                                                <div className="flex items-center gap-3 text-sm text-muted-foreground mb-2">
+                                                    {item.email && (
+                                                        <span className="flex items-center gap-1">
+                                                            <Mail className="h-3 w-3" />
+                                                            {item.email}
+                                                        </span>
+                                                    )}
+                                                    {item.phone && (
+                                                        <span className="flex items-center gap-1">
+                                                            <Phone className="h-3 w-3" />
+                                                            {item.phone}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <p className="text-sm text-slate-600 line-clamp-2">
+                                                    {getDisplayMessage(item.message)}
+                                                </p>
                                             </div>
-                                            <div className="flex items-center gap-3 text-sm text-muted-foreground mb-2">
-                                                {item.email && (
-                                                    <span className="flex items-center gap-1">
-                                                        <Mail className="h-3 w-3" />
-                                                        {item.email}
-                                                    </span>
-                                                )}
-                                                {item.phone && (
-                                                    <span className="flex items-center gap-1">
-                                                        <Phone className="h-3 w-3" />
-                                                        {item.phone}
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <p className="text-sm text-slate-600 line-clamp-2">
-                                                {getDisplayMessage(item.message)}
-                                            </p>
                                         </div>
                                         <div className="flex items-center gap-2 text-xs text-muted-foreground ml-4">
                                             <Clock className="h-3 w-3" />
@@ -300,7 +446,7 @@ export function InboxList({ initialItems }: InboxListProps) {
                 </CardContent>
             </Card>
 
-            {/* Detail Dialog */}
+            {/* Detail Dialog (only for pending items) */}
             <Dialog open={!!viewingItem} onOpenChange={() => setViewingItem(null)}>
                 <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
@@ -309,7 +455,6 @@ export function InboxList({ initialItems }: InboxListProps) {
 
                     {viewingItem && (
                         <div className="space-y-4">
-                            {/* Editable Fields */}
                             <div className="grid gap-4">
                                 <div>
                                     <div className="flex items-center justify-between gap-2">
@@ -413,6 +558,36 @@ export function InboxList({ initialItems }: InboxListProps) {
                                 )}
                             </div>
                         )}
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Delete Confirmation Dialog */}
+            <Dialog open={!!showDeleteConfirm} onOpenChange={() => setShowDeleteConfirm(null)}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-red-600">
+                            <Trash2 className="h-5 w-5" />
+                            Kalıcı Silme Onayı
+                        </DialogTitle>
+                    </DialogHeader>
+                    <p className="text-sm text-slate-600">
+                        {showDeleteConfirm === 'all'
+                            ? `Arşivdeki tüm kayıtlar (${archivedItems.length} adet) kalıcı olarak silinecek. Bu işlem geri alınamaz.`
+                            : `Seçili ${selectedIds.size} kayıt kalıcı olarak silinecek. Bu işlem geri alınamaz.`
+                        }
+                    </p>
+                    <DialogFooter className="gap-2">
+                        <Button variant="outline" onClick={() => setShowDeleteConfirm(null)} disabled={deleting}>
+                            Vazgeç
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={showDeleteConfirm === 'all' ? handleDeleteAll : handleDeleteSelected}
+                            disabled={deleting}
+                        >
+                            {deleting ? 'Siliniyor...' : 'Evet, Kalıcı Olarak Sil'}
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

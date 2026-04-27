@@ -394,3 +394,63 @@ export async function rejectInboxItem(inboxItemId: string) {
         return { success: false, error: error.message || 'Unknown error' }
     }
 }
+
+export async function deleteArchivedItems(itemIds: string[]) {
+    try {
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+
+        if (!user) {
+            return { success: false, error: 'Unauthorized' }
+        }
+
+        const { error } = await supabase
+            .from('inbox_items')
+            .delete()
+            .in('id', itemIds)
+            .in('status', ['approved', 'rejected'])
+
+        if (error) {
+            console.error('Error deleting archived items:', error)
+            return { success: false, error: error.message }
+        }
+
+        revalidatePath('/[locale]/(dashboard)/inbox')
+        return { success: true, deleted: itemIds.length }
+    } catch (error: any) {
+        console.error('Server error deleting archived items:', error)
+        return { success: false, error: error.message || 'Unknown error' }
+    }
+}
+
+export async function deleteAllArchivedItems() {
+    try {
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+
+        if (!user) {
+            return { success: false, error: 'Unauthorized' }
+        }
+
+        // Get user's tenant
+        const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single()
+        if (!profile) return { success: false, error: 'Profile not found' }
+
+        const { error, count } = await supabase
+            .from('inbox_items')
+            .delete({ count: 'exact' })
+            .eq('tenant_id', profile.tenant_id)
+            .in('status', ['approved', 'rejected'])
+
+        if (error) {
+            console.error('Error deleting all archived items:', error)
+            return { success: false, error: error.message }
+        }
+
+        revalidatePath('/[locale]/(dashboard)/inbox')
+        return { success: true, deleted: count }
+    } catch (error: any) {
+        console.error('Server error deleting all archived items:', error)
+        return { success: false, error: error.message || 'Unknown error' }
+    }
+}
