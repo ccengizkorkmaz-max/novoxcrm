@@ -91,12 +91,12 @@ export function InboxList({ initialItems, archivedItems = [] }: InboxListProps) 
             const res = await fetch('/api/notifications/scan')
             const data = await res.json()
             if (data.success) {
-                const total = (data.expiringReservations || 0) + (data.overduePayments || 0) + (data.approachingPapers || 0) + (data.staleLeads || 0) + (data.newEmails || 0)
-                if (total > 0) {
-                    toast.success(`Tarama tamamlandı: ${total} yeni kayıt bulundu.`)
+                const newEmails = data.newEmails || 0
+                if (newEmails > 0) {
+                    toast.success(`${newEmails} yeni e-posta gelen kutusuna eklendi.`)
                     router.refresh()
                 } else if (!silent) {
-                    toast.success('Gelen kutusu güncel.')
+                    toast.success('Gelen kutusu güncel, yeni e-posta yok.')
                 }
             } else if (!silent) {
                 toast.error('Gelen kutusu güncellenirken hata oluştu.')
