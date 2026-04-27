@@ -37,10 +37,13 @@ export function SharingTools({ brokerName, brokerSlug, brokerPhone, brokerEmail,
         window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank')
     }
 
-    // Pre-built messages — link at end for clean OG preview
-    const profileShareMsg = `Merhaba,\n\nBen *${brokerName}*, gayrimenkul danışmanınız.\n\nAktif portföyüm ve iletişim bilgilerim için aşağıdaki profil sayfamı ziyaret edebilirsiniz.\n\n${profileUrl}`
+    // Pre-built messages — editable by broker
+    const defaultProfileMsg = `Merhaba,\n\nBen *${brokerName}*, gayrimenkul danışmanınız.\n\nAktif portföyüm ve iletişim bilgilerim için aşağıdaki profil sayfamı ziyaret edebilirsiniz.\n\n${profileUrl}`
 
-    const leadFormMsg = `Merhaba,\n\nGayrimenkul yatırımı veya ev arayışınızda size profesyonel destek sunmak isterim.\n\nBilgilerinizi aşağıdaki sayfamdaki iletişim formundan iletebilirsiniz, en kısa sürede dönüş yapacağım.\n\n*${brokerName}*${brokerPhone ? `\nTel: ${brokerPhone}` : ''}\n\n${profileUrl}`
+    const defaultLeadMsg = `Merhaba,\n\nGayrimenkul yatırımı veya ev arayışınızda size profesyonel destek sunmak isterim.\n\nBilgilerinizi aşağıdaki sayfamdaki iletişim formundan iletebilirsiniz, en kısa sürede dönüş yapacağım.\n\n*${brokerName}*${brokerPhone ? `\nTel: ${brokerPhone}` : ''}\n\n${profileUrl}`
+
+    const [profileMsg, setProfileMsg] = useState(defaultProfileMsg)
+    const [leadMsg, setLeadMsg] = useState(defaultLeadMsg)
 
     return (
         <div className="space-y-6">
@@ -73,24 +76,32 @@ export function SharingTools({ brokerName, brokerSlug, brokerPhone, brokerEmail,
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Profile Share */}
                 <div className="bg-white rounded-2xl border border-slate-200 p-6">
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="h-10 w-10 rounded-xl bg-green-50 flex items-center justify-center">
-                            <MessageCircle className="h-5 w-5 text-green-600" />
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-xl bg-green-50 flex items-center justify-center">
+                                <MessageCircle className="h-5 w-5 text-green-600" />
+                            </div>
+                            <div>
+                                <h3 className="text-sm font-bold text-slate-900">Profil Tanıtım Mesajı</h3>
+                                <p className="text-xs text-slate-500">WhatsApp'tan kendinizi tanıtın</p>
+                            </div>
                         </div>
-                        <div>
-                            <h3 className="text-sm font-bold text-slate-900">Profil Tanıtım Mesajı</h3>
-                            <p className="text-xs text-slate-500">WhatsApp'tan kendinizi tanıtın</p>
-                        </div>
+                        <button onClick={() => setProfileMsg(defaultProfileMsg)} className="text-[10px] text-slate-400 hover:text-blue-600 transition-colors" title="Varsayılana sıfırla">
+                            Sıfırla
+                        </button>
                     </div>
-                    <div className="bg-slate-50 rounded-xl p-4 mb-4">
-                        <p className="text-xs text-slate-600 whitespace-pre-line leading-relaxed">{profileShareMsg}</p>
-                    </div>
+                    <textarea
+                        value={profileMsg}
+                        onChange={(e) => setProfileMsg(e.target.value)}
+                        rows={6}
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-700 leading-relaxed focus:outline-none focus:border-blue-400 focus:bg-white resize-none mb-4"
+                    />
                     <div className="flex gap-2">
-                        <button onClick={() => copyToClipboard(profileShareMsg, 'profile-msg')} className="flex-1 h-10 rounded-xl bg-slate-100 flex items-center justify-center gap-2 text-xs font-medium text-slate-600 hover:bg-slate-200 transition-colors">
+                        <button onClick={() => copyToClipboard(profileMsg, 'profile-msg')} className="flex-1 h-10 rounded-xl bg-slate-100 flex items-center justify-center gap-2 text-xs font-medium text-slate-600 hover:bg-slate-200 transition-colors">
                             {copiedId === 'profile-msg' ? <Check className="h-3.5 w-3.5 text-green-600" /> : <Copy className="h-3.5 w-3.5" />}
                             Kopyala
                         </button>
-                        <button onClick={() => shareViaWhatsApp(profileShareMsg)} className="flex-1 h-10 rounded-xl bg-green-600 flex items-center justify-center gap-2 text-xs font-bold text-white hover:bg-green-700 transition-colors">
+                        <button onClick={() => shareViaWhatsApp(profileMsg)} className="flex-1 h-10 rounded-xl bg-green-600 flex items-center justify-center gap-2 text-xs font-bold text-white hover:bg-green-700 transition-colors">
                             <MessageCircle className="h-3.5 w-3.5" />
                             WhatsApp'la Paylaş
                         </button>
@@ -99,24 +110,32 @@ export function SharingTools({ brokerName, brokerSlug, brokerPhone, brokerEmail,
 
                 {/* Lead Collection */}
                 <div className="bg-white rounded-2xl border border-slate-200 p-6">
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="h-10 w-10 rounded-xl bg-violet-50 flex items-center justify-center">
-                            <User className="h-5 w-5 text-violet-600" />
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-xl bg-violet-50 flex items-center justify-center">
+                                <User className="h-5 w-5 text-violet-600" />
+                            </div>
+                            <div>
+                                <h3 className="text-sm font-bold text-slate-900">Lead Toplama Mesajı</h3>
+                                <p className="text-xs text-slate-500">Potansiyel müşterilerinize gönderin</p>
+                            </div>
                         </div>
-                        <div>
-                            <h3 className="text-sm font-bold text-slate-900">Lead Toplama Mesajı</h3>
-                            <p className="text-xs text-slate-500">Potansiyel müşterilerinize gönderin</p>
-                        </div>
+                        <button onClick={() => setLeadMsg(defaultLeadMsg)} className="text-[10px] text-slate-400 hover:text-blue-600 transition-colors" title="Varsayılana sıfırla">
+                            Sıfırla
+                        </button>
                     </div>
-                    <div className="bg-slate-50 rounded-xl p-4 mb-4">
-                        <p className="text-xs text-slate-600 whitespace-pre-line leading-relaxed">{leadFormMsg}</p>
-                    </div>
+                    <textarea
+                        value={leadMsg}
+                        onChange={(e) => setLeadMsg(e.target.value)}
+                        rows={6}
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-700 leading-relaxed focus:outline-none focus:border-blue-400 focus:bg-white resize-none mb-4"
+                    />
                     <div className="flex gap-2">
-                        <button onClick={() => copyToClipboard(leadFormMsg, 'lead-msg')} className="flex-1 h-10 rounded-xl bg-slate-100 flex items-center justify-center gap-2 text-xs font-medium text-slate-600 hover:bg-slate-200 transition-colors">
+                        <button onClick={() => copyToClipboard(leadMsg, 'lead-msg')} className="flex-1 h-10 rounded-xl bg-slate-100 flex items-center justify-center gap-2 text-xs font-medium text-slate-600 hover:bg-slate-200 transition-colors">
                             {copiedId === 'lead-msg' ? <Check className="h-3.5 w-3.5 text-green-600" /> : <Copy className="h-3.5 w-3.5" />}
                             Kopyala
                         </button>
-                        <button onClick={() => shareViaWhatsApp(leadFormMsg)} className="flex-1 h-10 rounded-xl bg-green-600 flex items-center justify-center gap-2 text-xs font-bold text-white hover:bg-green-700 transition-colors">
+                        <button onClick={() => shareViaWhatsApp(leadMsg)} className="flex-1 h-10 rounded-xl bg-green-600 flex items-center justify-center gap-2 text-xs font-bold text-white hover:bg-green-700 transition-colors">
                             <MessageCircle className="h-3.5 w-3.5" />
                             WhatsApp'la Paylaş
                         </button>
