@@ -139,6 +139,7 @@ export function ProfileEditor({ profile }: { profile: ProfileData }) {
                     </div>
                     <p className="text-sm font-bold text-slate-900 mt-4">{form.full_name}</p>
                     <p className="text-xs text-slate-500">{form.agent_title || 'Gayrimenkul Danışmanı'}</p>
+                    <p className="text-[10px] text-slate-400 mt-2 leading-relaxed">📸 Profil fotoğrafınız paylaşımlı sayfanızda ve kartvizit kartınızda görünür. Profesyonel bir fotoğraf güven oluşturur.</p>
                 </div>
 
                 {/* Profile Link */}
@@ -153,6 +154,7 @@ export function ProfileEditor({ profile }: { profile: ProfileData }) {
                                 placeholder="isim-soyisim"
                                 className="w-full h-10 px-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-blue-400"
                             />
+                            <p className="text-[10px] text-slate-400 mt-1.5 leading-relaxed">💡 Bu link müşterilerinize WhatsApp'tan paylaşabileceğiniz kişisel sayfanızdır. Gelen iletişim talepleri <strong>Mesajlarım</strong>'a düşer.</p>
                         </div>
                         {profileUrl && (
                             <div className="bg-slate-50 rounded-xl p-3">
@@ -193,6 +195,7 @@ export function ProfileEditor({ profile }: { profile: ProfileData }) {
                                 placeholder="+90 555 123 45 67"
                                 className="w-full h-11 px-4 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-50"
                             />
+                            <p className="text-[10px] text-slate-400 mt-1">📞 Paylaşım sayfanızda "Ara" ve "WhatsApp" butonları bu numarayla oluşturulur.</p>
                         </div>
                     </div>
                     <div>
@@ -207,10 +210,11 @@ export function ProfileEditor({ profile }: { profile: ProfileData }) {
                         <label className="block text-xs font-semibold text-slate-600 mb-1.5">Unvan</label>
                         <input
                             value={form.agent_title}
-                            onChange={(e) => setForm(prev => ({ ...prev, agent_title: e.target.value }))}
+                            onChange={(e) => setForm(prev => ({ ...prev, agent_title: e.target.value }))}  
                             placeholder="Gayrimenkul Danışmanı"
                             className="w-full h-11 px-4 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-50"
                         />
+                        <p className="text-[10px] text-slate-400 mt-1">🏷️ Profil sayfanızda adınızın altında görünür. Örn: "Kıdemli Gayrimenkul Danışmanı"</p>
                     </div>
                     <div>
                         <label className="block text-xs font-semibold text-slate-600 mb-1.5">Hakkımda</label>
@@ -221,6 +225,7 @@ export function ProfileEditor({ profile }: { profile: ProfileData }) {
                             placeholder="Kendinizi tanıtın..."
                             className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-50 resize-none"
                         />
+                        <p className="text-[10px] text-slate-400 mt-1">✍️ Deneyiminizi ve uzmanlık alanlarınızı kısaca anlatın. Bu metin profil sayfanızda "Hakkımda" bölümünde görünecektir.</p>
                     </div>
 
                     <div className="pt-2">

@@ -76,6 +76,9 @@ export default function BrokerSlugManager({ initialSlug }: { initialSlug: string
                             {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : "Kaydet"}
                         </Button>
                     </div>
+                    <p className="text-[10px] text-slate-400 leading-relaxed">
+                        💡 Bu link, müşterilerinize WhatsApp veya sosyal medyadan paylaşabileceğiniz kişisel profil sayfanızdır. İletişim bilgileriniz, portföyünüz ve iletişim formunuz bu sayfada görünür.
+                    </p>
                 </div>
 
                 {initialSlug ? (
