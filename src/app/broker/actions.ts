@@ -1208,6 +1208,19 @@ export async function updateBrokerSlug(slug: string) {
 
     // Use Admin Client to bypass RLS for this specific update
     const supabaseAdmin = createAdminClient()
+
+    // Check slug uniqueness
+    const { data: existing } = await supabaseAdmin
+        .from('profiles')
+        .select('id')
+        .or(`broker_slug.ilike.${formattedSlug},agent_slug.ilike.${formattedSlug}`)
+        .neq('id', user.id)
+        .limit(1)
+
+    if (existing && existing.length > 0) {
+        return { error: 'Bu kullanıcı adı zaten başka bir broker tarafından kullanılıyor.' }
+    }
+
     const { error } = await supabaseAdmin
         .from('profiles')
         .update({ broker_slug: formattedSlug })

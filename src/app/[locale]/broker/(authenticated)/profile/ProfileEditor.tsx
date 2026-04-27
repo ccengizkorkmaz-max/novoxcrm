@@ -77,6 +77,23 @@ export function ProfileEditor({ profile }: { profile: ProfileData }) {
 
     const handleSave = async () => {
         setSaving(true)
+
+        // Check slug uniqueness
+        if (form.broker_slug) {
+            const { data: existing } = await supabase
+                .from('profiles')
+                .select('id')
+                .or(`broker_slug.ilike.${form.broker_slug},agent_slug.ilike.${form.broker_slug}`)
+                .neq('id', profile.id)
+                .limit(1)
+
+            if (existing && existing.length > 0) {
+                toast.error('Bu profil linki başka bir kullanıcı tarafından kullanılıyor. Lütfen farklı bir isim seçin.')
+                setSaving(false)
+                return
+            }
+        }
+
         const { error } = await supabase
             .from('profiles')
             .update({
@@ -90,7 +107,11 @@ export function ProfileEditor({ profile }: { profile: ProfileData }) {
             .eq('id', profile.id)
 
         if (error) {
-            toast.error('Kayıt başarısız: ' + error.message)
+            if (error.code === '23505') {
+                toast.error('Bu profil linki zaten alınmış. Lütfen farklı bir isim seçin.')
+            } else {
+                toast.error('Kayıt başarısız: ' + error.message)
+            }
         } else {
             toast.success('Profil bilgileri kaydedildi!')
             router.refresh()
