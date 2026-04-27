@@ -271,13 +271,13 @@ export async function deleteUser(userId: string, transferToUserId?: string) {
     if (!user) return { error: 'Unauthorized' }
 
     // Check if user is owner/admin
-    const { data: profile } = await supabase
+    const { data: adminProfile } = await supabase
         .from('profiles')
-        .select('role')
+        .select('role, full_name, email')
         .eq('id', user.id)
         .single()
 
-    if (!profile || !['owner', 'admin'].includes(profile.role)) {
+    if (!adminProfile || !['owner', 'admin'].includes(adminProfile.role)) {
         return { error: 'Bu işlem için yetkiniz yok.' }
     }
 
@@ -286,46 +286,137 @@ export async function deleteUser(userId: string, transferToUserId?: string) {
         return { error: 'Kendi hesabınızı buradan silemezsiniz.' }
     }
 
+    // Get target user info before deletion
+    const { data: targetProfile } = await supabase
+        .from('profiles')
+        .select('full_name, email, role')
+        .eq('id', userId)
+        .single()
+
+    let transferToName = ''
+    if (transferToUserId) {
+        const { data: transferProfile } = await supabase
+            .from('profiles')
+            .select('full_name')
+            .eq('id', transferToUserId)
+            .single()
+        transferToName = transferProfile?.full_name || 'Bilinmiyor'
+    }
+
     try {
         const adminClient = createAdminClient()
 
-        // 1. Transfer or NULL all FK references to this user across public tables
-        if (transferToUserId) {
-            // Transfer leads/activities/contracts/offers to the selected user
-            await adminClient.from('sales').update({ assigned_to: transferToUserId }).eq('assigned_to', userId)
-            await adminClient.from('activities').update({ assigned_to: userId === transferToUserId ? userId : transferToUserId }).eq('assigned_to', userId)
-            // also check user_id columns in same tables
-            await adminClient.from('activities').update({ user_id: transferToUserId }).eq('user_id', userId)
-            
-            // Handle contracts
-            await adminClient.from('contracts').update({ sales_rep_id: transferToUserId }).eq('sales_rep_id', userId)
-            await adminClient.from('contracts').update({ created_by: transferToUserId }).eq('created_by', userId)
+        // Transfer report tracker
+        const report: { table: string; column: string; count: number; action: 'transfer' | 'delete' }[] = []
 
-            // Handle offers and negotiations
-            await adminClient.from('offers').update({ user_id: transferToUserId }).eq('user_id', userId)
-            await adminClient.from('offer_negotiations').update({ proposed_by: transferToUserId }).eq('proposed_by', userId)
-        } else {
-            // NULL out references
-            await adminClient.from('sales').update({ assigned_to: null }).eq('assigned_to', userId)
-            await adminClient.from('activities').update({ assigned_to: null, user_id: null }).eq('assigned_to', userId)
-            await adminClient.from('contracts').update({ sales_rep_id: null, created_by: null }).eq('sales_rep_id', userId)
-            await adminClient.from('offers').update({ user_id: null }).eq('user_id', userId)
-            await adminClient.from('offer_negotiations').update({ proposed_by: null }).eq('proposed_by', userId)
+        // Helper: safely update a table column and track count
+        const safeUpdate = async (table: string, column: string, newValue: string | null, label?: string) => {
+            try {
+                // Count first
+                const { count } = await adminClient.from(table).select('*', { count: 'exact', head: true }).eq(column, userId)
+                const affected = count || 0
+                if (affected > 0) {
+                    const { error } = await adminClient.from(table).update({ [column]: newValue }).eq(column, userId)
+                    if (error) {
+                        console.warn(`deleteUser: ${table}.${column} update warning:`, error.message)
+                    } else {
+                        report.push({ table: label || table, column, count: affected, action: 'transfer' })
+                    }
+                }
+            } catch (e: any) {
+                console.warn(`deleteUser: ${table}.${column} skipped:`, e.message)
+            }
         }
 
-        // 2. Remove from team memberships (Many-to-Many always delete)
-        await adminClient.from('team_members').delete().eq('profile_id', userId)
-        
-        // 3. Handle notifications 
-        await adminClient.from('notifications').delete().eq('user_id', userId)
+        // Helper: safely delete rows from a table and track count
+        const safeDelete = async (table: string, column: string) => {
+            try {
+                const { count } = await adminClient.from(table).select('*', { count: 'exact', head: true }).eq(column, userId)
+                const affected = count || 0
+                if (affected > 0) {
+                    const { error } = await adminClient.from(table).delete().eq(column, userId)
+                    if (error) {
+                        console.warn(`deleteUser: ${table}.${column} delete warning:`, error.message)
+                    } else {
+                        report.push({ table, column, count: affected, action: 'delete' })
+                    }
+                }
+            } catch (e: any) {
+                console.warn(`deleteUser: ${table}.${column} delete skipped:`, e.message)
+            }
+        }
 
-        // 4. Deactivate profile and remove tenant relation
+        const target = transferToUserId || null
+
+        // 1. Core CRM tables
+        await safeUpdate('sales', 'assigned_to', target, 'Lead\'ler')
+
+        // Activities - all FK columns
+        await safeUpdate('activities', 'owner_id', target, 'Aktiviteler (sahip)')
+        await safeUpdate('activities', 'user_id', target, 'Aktiviteler (oluşturan)')
+        await safeUpdate('activities', 'assigned_to', target, 'Aktiviteler (atanan)')
+        await safeUpdate('activities', 'assigned_by_id', target, 'Aktiviteler (atayan)')
+
+        // Contracts
+        await safeUpdate('contracts', 'sales_rep_id', target, 'Sözleşmeler (temsilci)')
+        await safeUpdate('contracts', 'created_by', target, 'Sözleşmeler (oluşturan)')
+
+        // Offers & Negotiations
+        await safeUpdate('offers', 'user_id', target, 'Teklifler')
+        await safeUpdate('offer_negotiations', 'proposed_by', target, 'Müzakereler')
+
+        // Customers
+        await safeUpdate('customers', 'created_by', target, 'Müşteriler (oluşturan)')
+
+        // 2. Contract sub-tables
+        await safeUpdate('contract_activities', 'performed_by', target, 'Sözleşme aktiviteleri')
+        await safeUpdate('contract_documents', 'uploaded_by', target, 'Sözleşme dokümanları')
+
+        // 3. Broker module tables
+        await safeUpdate('broker_leads', 'broker_id', target, 'Broker lead\'leri (broker)')
+        await safeUpdate('broker_leads', 'assigned_to', target, 'Broker lead\'leri (atanan)')
+        await safeUpdate('broker_lead_status_history', 'changed_by', target, 'Broker durum geçmişi')
+        await safeUpdate('broker_applications', 'processed_by', target, 'Broker başvuruları')
+        await safeUpdate('broker_documents', 'verified_by', target, 'Broker dokümanları (onaylayan)')
+        await safeUpdate('broker_documents', 'uploaded_by', target, 'Broker dokümanları (yükleyen)')
+
+        // 4. Finance & Commissions
+        await safeUpdate('sales_commissions', 'user_id', target, 'Satış primleri')
+        await safeUpdate('finance_supplier_payments', 'profile_id', target, 'Tedarikçi ödemeleri')
+        await safeUpdate('finance_supplier_payments', 'created_by', target, 'Tedarikçi ödemeleri (oluşturan)')
+
+        // 5. Inbox & Public links
+        await safeUpdate('inbox_items', 'approved_by', target, 'Gelen kutusu')
+        await safeUpdate('public_links', 'created_by', target, 'Herkese açık linkler')
+
+        // 6. HR module
+        await safeUpdate('hr_employees', 'profile_id', target, 'İK çalışanları')
+
+        // 7. System logs
+        await safeUpdate('system_logs', 'user_id', target, 'Sistem logları')
+
+        // 8. Inventory
+        await safeUpdate('inventory_movements', 'created_by', target, 'Envanter hareketleri')
+
+        // 9. Broker finance tables (cascade, but be safe)
+        await safeDelete('broker_commission_payouts', 'broker_id')
+        await safeDelete('broker_commission_earnings', 'broker_id')
+        await safeDelete('broker_project_access', 'broker_id')
+        await safeDelete('broker_notifications', 'user_id')
+
+        // 10. Remove from team memberships (Many-to-Many always delete)
+        await safeDelete('team_members', 'profile_id')
+        
+        // 11. Handle notifications 
+        await safeDelete('notifications', 'user_id')
+
+        // 12. Deactivate profile and remove tenant relation
         await adminClient
             .from('profiles')
             .update({ is_active: false, tenant_id: null })
             .eq('id', userId)
 
-        // 5. Delete profile row (Now it should succeed as references are handled)
+        // 13. Delete profile row
         const { error: profileDeleteError } = await adminClient
             .from('profiles')
             .delete()
@@ -333,17 +424,77 @@ export async function deleteUser(userId: string, transferToUserId?: string) {
 
         if (profileDeleteError) {
             console.error('Profile delete error (non-fatal):', profileDeleteError.message)
-            // Continue to try and delete auth user
         }
 
-        // 6. Delete from Supabase Auth (Critical step)
+        // 14. Delete from Supabase Auth
         const { error: authError } = await adminClient.auth.admin.deleteUser(userId)
         if (authError) throw authError
 
+        // 15. Send email report to the admin who performed the deletion
+        const deletedUserName = targetProfile?.full_name || targetProfile?.email || userId
+        const adminEmail = adminProfile.email || user.email
+        if (adminEmail && process.env.RESEND_API_KEY) {
+            try {
+                const { Resend } = await import('resend')
+                const resend = new Resend(process.env.RESEND_API_KEY)
+
+                const transferredItems = report.filter(r => r.action === 'transfer')
+                const deletedItems = report.filter(r => r.action === 'delete')
+
+                const transferRows = transferredItems.length > 0
+                    ? transferredItems.map(r => `<tr><td style="padding:6px 12px;border-bottom:1px solid #eee;">${r.table}</td><td style="padding:6px 12px;border-bottom:1px solid #eee;text-align:center;font-weight:bold;">${r.count}</td><td style="padding:6px 12px;border-bottom:1px solid #eee;">✅ ${transferToName ? `${transferToName}'a aktarıldı` : 'NULL yapıldı'}</td></tr>`).join('')
+                    : '<tr><td colspan="3" style="padding:8px 12px;color:#888;">Aktarılacak kayıt bulunamadı</td></tr>'
+
+                const deleteRows = deletedItems.length > 0
+                    ? deletedItems.map(r => `<tr><td style="padding:6px 12px;border-bottom:1px solid #eee;">${r.table}</td><td style="padding:6px 12px;border-bottom:1px solid #eee;text-align:center;font-weight:bold;">${r.count}</td><td style="padding:6px 12px;border-bottom:1px solid #eee;">🗑️ Silindi</td></tr>`).join('')
+                    : ''
+
+                const totalTransferred = transferredItems.reduce((sum, r) => sum + r.count, 0)
+                const totalDeleted = deletedItems.reduce((sum, r) => sum + r.count, 0)
+
+                await resend.emails.send({
+                    from: 'NovoCRM <no-reply@novoxcrm.com>',
+                    to: adminEmail,
+                    subject: `✅ Kullanıcı Silindi: ${deletedUserName}`,
+                    html: `
+                        <div style="font-family:Inter,Arial,sans-serif;max-width:600px;margin:0 auto;">
+                            <div style="background:linear-gradient(135deg,#1e293b,#0f172a);color:white;padding:24px;border-radius:12px 12px 0 0;">
+                                <h2 style="margin:0;font-size:18px;">🗂️ Kullanıcı Silme Raporu</h2>
+                                <p style="margin:8px 0 0;opacity:0.8;font-size:13px;">${new Date().toLocaleString('tr-TR')}</p>
+                            </div>
+                            <div style="background:white;border:1px solid #e2e8f0;border-top:0;padding:24px;border-radius:0 0 12px 12px;">
+                                <div style="background:#fef3c7;border:1px solid #fde68a;padding:12px 16px;border-radius:8px;margin-bottom:16px;">
+                                    <strong style="color:#92400e;">Silinen Kullanıcı:</strong> ${deletedUserName} (${targetProfile?.role || ''})
+                                    ${transferToName ? `<br/><strong style="color:#92400e;">Kayıtlar aktarıldı:</strong> ${transferToName}` : ''}
+                                    <br/><strong style="color:#92400e;">İşlemi yapan:</strong> ${adminProfile.full_name || adminEmail}
+                                </div>
+                                <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                                    <thead><tr style="background:#f8fafc;">
+                                        <th style="padding:8px 12px;text-align:left;border-bottom:2px solid #e2e8f0;">Kayıt Türü</th>
+                                        <th style="padding:8px 12px;text-align:center;border-bottom:2px solid #e2e8f0;">Sayı</th>
+                                        <th style="padding:8px 12px;text-align:left;border-bottom:2px solid #e2e8f0;">İşlem</th>
+                                    </tr></thead>
+                                    <tbody>${transferRows}${deleteRows}</tbody>
+                                    <tfoot><tr style="background:#f0fdf4;">
+                                        <td style="padding:8px 12px;font-weight:bold;">Toplam</td>
+                                        <td style="padding:8px 12px;text-align:center;font-weight:bold;">${totalTransferred + totalDeleted}</td>
+                                        <td style="padding:8px 12px;font-size:12px;">${totalTransferred} aktarıldı, ${totalDeleted} silindi</td>
+                                    </tr></tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    `,
+                })
+            } catch (emailErr: any) {
+                console.error('Delete user email report error:', emailErr.message)
+            }
+        }
+
         revalidatePath('/settings')
         revalidatePath('/crm')
-        return { success: true }
+        return { success: true, report }
     } catch (e: any) {
+        console.error('deleteUser fatal error:', e)
         return { error: 'Silme işlemi başarısız: ' + e.message }
     }
 }
@@ -822,6 +973,36 @@ export async function toggleUserExternal(userId: string, isExternal: boolean) {
 
     if (error) {
         return { error: 'Güncelleme başarısız: ' + error.message }
+    }
+
+    revalidatePath('/settings')
+    revalidatePath('/crm')
+    return { success: true }
+}
+
+export async function toggleUserActive(userId: string, isActive: boolean) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    // Check permissions (Admin/Owner)
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+    if (!profile || !['owner', 'admin'].includes(profile.role)) {
+        return { error: 'Bu işlem için yetkiniz yok.' }
+    }
+
+    // Prevent deactivating self
+    if (userId === user.id) {
+        return { error: 'Kendi hesabınızı pasif yapamazsınız.' }
+    }
+
+    const { error } = await supabase
+        .from('profiles')
+        .update({ is_active: isActive })
+        .eq('id', userId)
+
+    if (error) {
+        return { error: 'Durum güncellenemedi: ' + error.message }
     }
 
     revalidatePath('/settings')

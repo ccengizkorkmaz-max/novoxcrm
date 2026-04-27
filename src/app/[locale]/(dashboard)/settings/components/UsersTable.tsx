@@ -6,8 +6,9 @@ import { Badge } from '@/components/ui/badge'
 import { useTranslations } from 'next-intl'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Switch } from "@/components/ui/switch"
 import { toast } from 'sonner'
-import { updateUserRole, toggleUserExternal } from '../actions'
+import { updateUserRole, toggleUserExternal, toggleUserActive } from '../actions'
 import UserTableActions from './UserTableActions'
 
 interface User {
@@ -17,6 +18,7 @@ interface User {
     role: string
     created_at: string
     is_external?: boolean
+    is_active?: boolean
 }
 
 interface UsersTableProps {
@@ -29,6 +31,8 @@ export default function UsersTable({ users, currentUserRole }: UsersTableProps) 
     
     // Local state to store optimistic updates for 'is_external'
     const [optimisticExternal, setOptimisticExternal] = useState<Record<string, boolean>>({})
+    // Local state for 'is_active' optimistic updates
+    const [optimisticActive, setOptimisticActive] = useState<Record<string, boolean>>({})
 
     // Only owner/admin can change roles and external flag
     const canManage = currentUserRole === 'owner' || currentUserRole === 'admin'
@@ -56,12 +60,35 @@ export default function UsersTable({ users, currentUserRole }: UsersTableProps) 
                     return next
                 })
                 toast.error(res.error)
-            } else {
-                // No toast needed for success since UI is instant, but keeping it optional
             }
         } catch (error) {
             // Revert optimistic update on catch
             setOptimisticExternal(prev => {
+                const next = { ...prev }
+                delete next[userId]
+                return next
+            })
+            toast.error("Bir hata oluştu")
+        }
+    }
+
+    const handleActiveToggle = async (userId: string, checked: boolean) => {
+        setOptimisticActive(prev => ({ ...prev, [userId]: checked }))
+        
+        try {
+            const res = await toggleUserActive(userId, checked)
+            if (res?.error) {
+                setOptimisticActive(prev => {
+                    const next = { ...prev }
+                    delete next[userId]
+                    return next
+                })
+                toast.error(res.error)
+            } else {
+                toast.success(checked ? 'Kullanıcı aktif edildi' : 'Kullanıcı pasif yapıldı')
+            }
+        } catch (error) {
+            setOptimisticActive(prev => {
                 const next = { ...prev }
                 delete next[userId]
                 return next
@@ -88,6 +115,7 @@ export default function UsersTable({ users, currentUserRole }: UsersTableProps) 
                 <TableRow>
                     <TableHead>{t('users.table.name')}</TableHead>
                     <TableHead>{t('users.table.email')}</TableHead>
+                    <TableHead className="text-center">Durum</TableHead>
                     <TableHead className="text-center">Dış Kaynak</TableHead>
                     <TableHead>{t('users.table.role')}</TableHead>
                     <TableHead>{t('users.table.date')}</TableHead>
@@ -98,9 +126,10 @@ export default function UsersTable({ users, currentUserRole }: UsersTableProps) 
                 {users?.map((u) => {
                     // Determine current visual state: use optimistic value if defined, otherwise use original value
                     const isExternal = optimisticExternal[u.id] !== undefined ? optimisticExternal[u.id] : (u.is_external || false)
+                    const isActive = optimisticActive[u.id] !== undefined ? optimisticActive[u.id] : (u.is_active !== false)
                     
                     return (
-                        <TableRow key={u.id}>
+                        <TableRow key={u.id} className={!isActive ? 'opacity-50' : ''}>
                             <TableCell className="font-medium">
                                 <div className="flex items-center gap-2">
                                     {u.full_name}
@@ -109,9 +138,24 @@ export default function UsersTable({ users, currentUserRole }: UsersTableProps) 
                                             Dış
                                         </Badge>
                                     )}
+                                    {!isActive && (
+                                        <Badge variant="outline" className="text-[10px] py-0 px-1.5 border-red-300 text-red-500 bg-red-50">
+                                            Pasif
+                                        </Badge>
+                                    )}
                                 </div>
                             </TableCell>
                             <TableCell>{u.email}</TableCell>
+                            <TableCell className="text-center">
+                                <div className="flex justify-center">
+                                    <Switch
+                                        checked={isActive}
+                                        onCheckedChange={(checked) => handleActiveToggle(u.id, checked)}
+                                        disabled={!canManage || u.role === 'owner'}
+                                        className="data-[state=checked]:bg-emerald-500"
+                                    />
+                                </div>
+                            </TableCell>
                             <TableCell className="text-center">
                                 <div className="flex justify-center">
                                     <Checkbox
@@ -163,7 +207,7 @@ export default function UsersTable({ users, currentUserRole }: UsersTableProps) 
                 })}
                 {!users || users.length === 0 && (
                     <TableRow>
-                        <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
+                        <TableCell colSpan={7} className="text-center h-24 text-muted-foreground">
                             {t('users.table.empty')}
                         </TableCell>
                     </TableRow>

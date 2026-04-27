@@ -103,10 +103,24 @@ export default function UserTableActions({ user, allUsers }: UserTableActionsPro
             const transferName = transferToUserId
                 ? transferCandidates.find(u => u.id === transferToUserId)?.full_name
                 : null
-            if (transferName && leadCount && leadCount > 0) {
-                toast.success(`${user.full_name} silindi. ${leadCount} lead ${transferName} kullanıcısına aktarıldı.`)
+
+            // Build a detailed report message
+            const report = (res as any)?.report as { table: string; count: number; action: string }[] | undefined
+            if (report && report.length > 0) {
+                const transferred = report.filter(r => r.action === 'transfer')
+                const deleted = report.filter(r => r.action === 'delete')
+                const totalTransferred = transferred.reduce((s, r) => s + r.count, 0)
+                const totalDeleted = deleted.reduce((s, r) => s + r.count, 0)
+
+                const lines = transferred.map(r => `• ${r.table}: ${r.count} kayıt${transferName ? ` → ${transferName}` : ''}`)
+                if (totalDeleted > 0) lines.push(`• ${totalDeleted} kayıt silindi`)
+
+                toast.success(`✅ ${user.full_name} başarıyla silindi`, {
+                    description: `${totalTransferred + totalDeleted} kayıt işlendi:\n${lines.join('\n')}`,
+                    duration: 8000,
+                })
             } else {
-                toast.success(t('users.forms.successDelete'))
+                toast.success(`${user.full_name} başarıyla silindi.`)
             }
             setIsDeleteOpen(false)
         }
