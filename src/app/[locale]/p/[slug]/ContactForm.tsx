@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { submitContactForm } from '../actions'
+import { submitContactForm } from './actions'
 import { Send, CheckCircle, Loader2 } from 'lucide-react'
 
 interface ContactFormProps {

@@ -18,6 +18,7 @@ interface ProfileData {
     agent_social_links: any
     agent_specializations: string[] | null
     agent_service_areas: string[] | null
+    company_name?: string
 }
 
 export function ProfileEditor({ profile }: { profile: ProfileData }) {
@@ -206,6 +207,17 @@ export function ProfileEditor({ profile }: { profile: ProfileData }) {
                             className="w-full h-11 px-4 rounded-xl border border-slate-100 bg-slate-50 text-sm text-slate-400"
                         />
                     </div>
+                    {profile.company_name && (
+                        <div>
+                            <label className="block text-xs font-semibold text-slate-600 mb-1.5">Firma</label>
+                            <input
+                                value={profile.company_name}
+                                disabled
+                                className="w-full h-11 px-4 rounded-xl border border-slate-100 bg-slate-50 text-sm text-slate-400"
+                            />
+                            <p className="text-[10px] text-slate-400 mt-1">🏢 CRM broker başvurunuzdan alınan firma bilgisi. Değiştirmek için yöneticinize başvurun.</p>
+                        </div>
+                    )}
                     <div>
                         <label className="block text-xs font-semibold text-slate-600 mb-1.5">Unvan</label>
                         <input

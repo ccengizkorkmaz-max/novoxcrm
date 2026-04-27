@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { ProfileEditor } from './ProfileEditor'
 
@@ -13,12 +14,27 @@ export default async function BrokerProfilePage() {
         .eq('id', user.id)
         .single()
 
-    // Also check broker_applications for additional info
-    const { data: brokerApp } = await supabase
+    // Get broker application data for pre-fill
+    const adminClient = createAdminClient()
+    const { data: brokerApp } = await adminClient
         .from('broker_applications')
-        .select('company_name, phone')
+        .select('full_name, company_name, email, phone')
         .eq('email', user.email)
         .maybeSingle()
+
+    // Auto-sync: if profile has missing fields but broker_applications has them, update profile
+    if (profile && brokerApp) {
+        const updates: Record<string, string> = {}
+        if (!profile.phone && brokerApp.phone) updates.phone = brokerApp.phone
+        if (!profile.agent_title && brokerApp.company_name) updates.agent_title = `${brokerApp.company_name} - Gayrimenkul Danışmanı`
+        if (!profile.full_name && brokerApp.full_name) updates.full_name = brokerApp.full_name
+
+        if (Object.keys(updates).length > 0) {
+            await adminClient.from('profiles').update(updates).eq('id', user.id)
+            // Merge into profile for display
+            Object.assign(profile, updates)
+        }
+    }
 
     return (
         <div className="space-y-6">
@@ -32,6 +48,7 @@ export default async function BrokerProfilePage() {
                     ...profile,
                     phone: profile?.phone || brokerApp?.phone || '',
                     slug: profile?.broker_slug || profile?.agent_slug || '',
+                    company_name: brokerApp?.company_name || '',
                 }}
             />
         </div>
