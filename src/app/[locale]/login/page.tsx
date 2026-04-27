@@ -114,7 +114,7 @@ export default async function LoginPage(props: {
                             <Button formAction={login} className="h-11 w-full bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-lg shadow-blue-600/20 transition-all">
                                 {t('loginButton')} <ArrowRight className="ml-2 h-4 w-4" />
                             </Button>
-                            <Button formAction={resetPassword} variant="ghost" className="h-9 w-full text-sm text-slate-500 hover:text-blue-600 font-medium">
+                            <Button formAction={resetPassword} formNoValidate variant="ghost" className="h-9 w-full text-sm text-slate-500 hover:text-blue-600 font-medium">
                                 {t('forgotPassword')}
                             </Button>
                         </div>
