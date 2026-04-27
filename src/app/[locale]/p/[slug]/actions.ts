@@ -72,7 +72,7 @@ export async function getAgentPublicProfile(slug: string) {
     if (projectIds.length > 0) {
         const { data: availableUnits } = await supabase
             .from('units')
-            .select('id, unit_number, unit_type, rooms, net_area, gross_area, floor, price, currency, status, project_id')
+            .select('id, unit_number, type, unit_category, area_net, area_gross, floor, price, currency, status, project_id, block')
             .in('project_id', projectIds)
             .eq('status', 'For Sale')
             .order('price', { ascending: true })

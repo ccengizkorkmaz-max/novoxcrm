@@ -6,13 +6,14 @@ import { Building2, MapPin, ChevronRight } from 'lucide-react'
 interface Unit {
     id: string
     unit_number: string
-    unit_type: string | null
-    rooms: string | null
-    net_area: number | null
-    gross_area: number | null
+    type: string | null
+    unit_category: string | null
+    area_net: number | null
+    area_gross: number | null
     floor: string | null
     price: number | null
     currency: string | null
+    block: string | null
 }
 
 interface Project {
@@ -122,9 +123,9 @@ export function ProjectTabs({ projects }: { projects: Project[] }) {
                                         {activeProject.units.map((unit) => (
                                             <tr key={unit.id} className="border-t border-slate-50 hover:bg-blue-50/30 transition-colors">
                                                 <td className="px-5 py-3 text-xs font-semibold text-slate-700">{unit.unit_number}</td>
-                                                <td className="px-5 py-3 text-xs text-slate-500">{unit.unit_type || '-'}</td>
-                                                <td className="px-5 py-3 text-xs text-slate-500">{unit.rooms || '-'}</td>
-                                                <td className="px-5 py-3 text-xs text-slate-500">{unit.net_area ? `${unit.net_area}` : unit.gross_area ? `${unit.gross_area}` : '-'}</td>
+                                                <td className="px-5 py-3 text-xs text-slate-500">{unit.type || '-'}</td>
+                                                <td className="px-5 py-3 text-xs text-slate-500">{unit.unit_category || '-'}</td>
+                                                <td className="px-5 py-3 text-xs text-slate-500">{unit.area_net ? `${unit.area_net}` : unit.area_gross ? `${unit.area_gross}` : '-'}</td>
                                                 <td className="px-5 py-3 text-xs text-slate-500">{unit.floor || '-'}</td>
                                                 <td className="px-5 py-3 text-xs font-bold text-blue-600 text-right">
                                                     {unit.price ? formatCurrency(unit.price, unit.currency || 'TRY') : 'Sorunuz'}
