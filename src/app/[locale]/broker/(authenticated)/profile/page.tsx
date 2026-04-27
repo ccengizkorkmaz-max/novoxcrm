@@ -45,9 +45,17 @@ export default async function BrokerProfilePage() {
 
             <ProfileEditor
                 profile={{
-                    ...profile,
+                    id: profile?.id || user.id,
+                    full_name: profile?.full_name || brokerApp?.full_name || '',
+                    email: profile?.email || user.email || '',
                     phone: profile?.phone || brokerApp?.phone || '',
+                    profile_photo_url: profile?.profile_photo_url || null,
+                    agent_title: profile?.agent_title || null,
+                    agent_bio: profile?.agent_bio || null,
                     slug: profile?.broker_slug || profile?.agent_slug || '',
+                    agent_social_links: profile?.agent_social_links || null,
+                    agent_specializations: profile?.agent_specializations || null,
+                    agent_service_areas: profile?.agent_service_areas || null,
                     company_name: brokerApp?.company_name || '',
                 }}
             />
