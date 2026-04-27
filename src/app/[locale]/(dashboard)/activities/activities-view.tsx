@@ -203,63 +203,101 @@ export function ActivitiesView({ initialActivities, customers, profiles, user }:
         <div className="flex flex-col gap-4 h-full">
             {/* Header & Controls */}
             <div className="flex flex-col gap-0 border rounded-lg bg-white shadow-sm">
-                {/* Top Bar */}
-                <div className="flex items-center justify-start gap-3 p-3 border-b first:rounded-t-lg bg-slate-50/30">
-                    <div className="flex items-center gap-2">
-                        <Button
-                            variant={showFilters ? 'secondary' : 'outline'}
-                            size="sm"
-                            onClick={() => setShowFilters(!showFilters)}
-                            className="gap-2 relative h-9 border-dashed"
-                        >
-                            <Filter className="h-4 w-4" />
-                            {t('filters.title')}
-                            {(selectedTypes.length > 0 || selectedTopics.length > 0 || selectedStatuses.length > 0 || selectedLeadStatuses.length > 0 || onlyMyActivities || dateFilter !== 'all' || sortOrder !== 'newest') && (
-                                <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
-                                </span>
+            {/* Top Bar */}
+                {(() => {
+                    const activeFilterCount = (onlyMyActivities ? 1 : 0)
+                        + selectedTypes.length
+                        + selectedTopics.length
+                        + selectedStatuses.length
+                        + selectedLeadStatuses.length
+                        + selectedPriorities.length
+                        + selectedOwners.length
+                        + (dateFilter !== 'all' ? 1 : 0)
+                    const hasFilters = activeFilterCount > 0 || sortOrder !== 'newest'
+
+                    const clearAll = () => {
+                        setOnlyMyActivities(false)
+                        setSelectedTypes([])
+                        setSelectedTopics([])
+                        setSelectedStatuses([])
+                        setSelectedLeadStatuses([])
+                        setSelectedPriorities([])
+                        setSelectedOwners([])
+                        setDateFilter('all')
+                        setSortOrder('newest')
+                    }
+
+                    return (
+                        <>
+                            <div className="flex items-center justify-start gap-3 p-3 border-b first:rounded-t-lg bg-slate-50/30">
+                                <div className="flex items-center gap-2">
+                                    <Button
+                                        variant={showFilters ? 'secondary' : 'outline'}
+                                        size="sm"
+                                        onClick={() => setShowFilters(!showFilters)}
+                                        className="gap-2 relative h-9 border-dashed"
+                                    >
+                                        <Filter className="h-4 w-4" />
+                                        {t('filters.title')}
+                                        {hasFilters && (
+                                            <span className="ml-1 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-blue-600 text-white text-[10px] font-bold">
+                                                {activeFilterCount || '!'}
+                                            </span>
+                                        )}
+                                        {showFilters ? <ChevronUp className="h-3 w-3 text-muted-foreground" /> : <ChevronDown className="h-3 w-3 text-muted-foreground" />}
+                                    </Button>
+                                    <Button
+                                        variant={dateFilter === 'today' ? 'secondary' : 'outline'}
+                                        size="sm"
+                                        onClick={() => setDateFilter('today')}
+                                        className="h-9"
+                                    >
+                                        {t('filters.today')}
+                                    </Button>
+                                    {hasFilters && (
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-9 px-2 text-muted-foreground hover:text-red-500 hover:bg-red-50"
+                                            onClick={clearAll}
+                                            title={t('filters.clear')}
+                                        >
+                                            <span className="text-xs mr-2">{t('filters.clear')}</span>
+                                            <X className="h-4 w-4" />
+                                        </Button>
+                                    )}
+                                </div>
+
+                                <div className="h-6 w-px bg-slate-200 mx-1" />
+
+                                <Button onClick={() => setShowCreate(true)} size="sm" className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm h-9">
+                                    <Plus className="mr-2 h-4 w-4" /> {t('newActivity')}
+                                </Button>
+                            </div>
+
+                            {/* Active filter warning bar — visible when filter panel is closed */}
+                            {hasFilters && !showFilters && (
+                                <div className="flex items-center justify-between px-4 py-2 bg-amber-50 border-b border-amber-200 text-amber-800 text-xs">
+                                    <div className="flex items-center gap-2">
+                                        <Filter className="h-3.5 w-3.5" />
+                                        <span className="font-medium">
+                                            {activeFilterCount} aktif filtre — {activities.length} / {initialActivities.length} kayıt gösteriliyor
+                                        </span>
+                                    </div>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-6 px-2 text-amber-700 hover:text-red-600 hover:bg-amber-100"
+                                        onClick={clearAll}
+                                    >
+                                        <X className="h-3 w-3 mr-1" />
+                                        Temizle
+                                    </Button>
+                                </div>
                             )}
-                            {showFilters ? <ChevronUp className="h-3 w-3 text-muted-foreground" /> : <ChevronDown className="h-3 w-3 text-muted-foreground" />}
-                        </Button>
-                        <Button
-                            variant={dateFilter === 'today' ? 'secondary' : 'outline'}
-                            size="sm"
-                            onClick={() => setDateFilter('today')}
-                            className="h-9"
-                        >
-                            {t('filters.today')}
-                        </Button>
-                        {(selectedTypes.length > 0 || selectedTopics.length > 0 || selectedStatuses.length > 0 || selectedLeadStatuses.length > 0 || onlyMyActivities || dateFilter !== 'all' || sortOrder !== 'newest') && (
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-9 px-2 text-muted-foreground hover:text-red-500 hover:bg-red-50"
-                                onClick={() => {
-                                    setOnlyMyActivities(false)
-                                    setSelectedTypes([])
-                                    setSelectedTopics([])
-                                    setSelectedStatuses([])
-                                    setSelectedLeadStatuses([])
-                                    setSelectedPriorities([])
-                                    setSelectedOwners([])
-                                    setDateFilter('all')
-                                    setSortOrder('newest')
-                                }}
-                                title={t('filters.clear')}
-                            >
-                                <span className="text-xs mr-2">{t('filters.clear')}</span>
-                                <X className="h-4 w-4" />
-                            </Button>
-                        )}
-                    </div>
-
-                    <div className="h-6 w-px bg-slate-200 mx-1" />
-
-                    <Button onClick={() => setShowCreate(true)} size="sm" className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm h-9">
-                        <Plus className="mr-2 h-4 w-4" /> {t('newActivity')}
-                    </Button>
-                </div>
+                        </>
+                    )
+                })()}
 
                 {/* Collapsible Filter Area */}
                 {showFilters && (
