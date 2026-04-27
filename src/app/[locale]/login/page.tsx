@@ -1,4 +1,4 @@
-import { login, signup } from './actions'
+import { login, signup, resetPassword } from './actions'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -113,6 +113,9 @@ export default async function LoginPage(props: {
                         <div className="flex flex-col gap-3 pt-2">
                             <Button formAction={login} className="h-11 w-full bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-lg shadow-blue-600/20 transition-all">
                                 {t('loginButton')} <ArrowRight className="ml-2 h-4 w-4" />
+                            </Button>
+                            <Button formAction={resetPassword} variant="ghost" className="h-9 w-full text-sm text-slate-500 hover:text-blue-600 font-medium">
+                                {t('forgotPassword')}
                             </Button>
                         </div>
                     </form>

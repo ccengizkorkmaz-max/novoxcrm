@@ -426,7 +426,8 @@
         "sidebarDesc": "Müşteri takibi, envanter yönetimi, sözleşmeler ve finansal raporlar tek bir platformda.",
         "secureInfrastructure": "Güvenli Altyapı",
         "version": "Sürüm 2.0",
-        "and": "ve"
+        "and": "ve",
+        "forgotPassword": "Şifremi Unuttum"
     },
     "Dashboard": {
         "tenantLoading": "Yükleniyor...",

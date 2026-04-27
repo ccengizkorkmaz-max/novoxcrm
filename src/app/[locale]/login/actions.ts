@@ -61,3 +61,26 @@ export async function signup(formData: FormData) {
     revalidatePath('/', 'layout')
     redirect({ href: `/login?message=Check email to continue sign in process`, locale })
 }
+
+export async function resetPassword(formData: FormData) {
+    const supabase = await createClient()
+    const email = formData.get('email') as string
+
+    if (!email || !email.includes('@')) {
+        const locale = await getLocale()
+        redirect({ href: '/login?error=Lütfen geçerli bir e-posta adresi girin.', locale })
+    }
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.novoxcrm.com'}/auth/callback?next=/update-password`,
+    })
+
+    if (error) {
+        console.error('Password reset error:', error)
+        const locale = await getLocale()
+        redirect({ href: '/login?error=Şifre sıfırlama e-postası gönderilemedi.', locale })
+    }
+
+    const locale = await getLocale()
+    redirect({ href: `/login?message=Şifre sıfırlama bağlantısı e-posta adresinize gönderildi.`, locale })
+}
