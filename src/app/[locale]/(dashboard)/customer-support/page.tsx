@@ -83,7 +83,7 @@ export default async function TenantSupportListing(props: {
                                     <div className="flex items-center gap-4 text-xs text-slate-500">
                                         <div className="flex items-center gap-1">
                                             <User className="h-3 w-3" />
-                                            {req.customers?.full_name || t('detail.unknownCustomer')}
+                                            {(Array.isArray(req.customers) ? req.customers[0]?.full_name : (req.customers as any)?.full_name) || t('detail.unknownCustomer')}
                                         </div>
                                         <div className="flex items-center gap-1">
                                             <Clock className="h-3 w-3" />
