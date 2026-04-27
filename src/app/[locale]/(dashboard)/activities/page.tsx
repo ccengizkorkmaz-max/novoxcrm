@@ -31,10 +31,10 @@ export default async function ActivitiesPage(props: {
             .order('full_name', { ascending: true })
             .limit(5000),
 
-        // 2. Fetch Activities (with optimized select — only needed fields)
+        // 2. Fetch Activities
         supabase
             .from('activities')
-            .select('id, type, topic, summary, description, due_date, status, priority, customer_id, owner_id, user_id, assigned_to, created_at, customers(full_name, sales(status)), owner:profiles!activities_owner_id_fkey(full_name)')
+            .select('*, customers(full_name, sales(status)), owner:profiles!activities_owner_id_fkey(full_name)')
             .order('due_date', { ascending: true })
             .limit(5000),
 
