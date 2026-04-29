@@ -11,9 +11,12 @@ import {
     BarChart3, Clock, Users, CheckCircle2, XCircle, PhoneOff,
     ArrowRight, Settings2, Eye, Bot, FileText, Target
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { toggleWorkflow, deleteWorkflow, launchWorkflow } from '../actions'
 import { WorkflowBuilder } from './WorkflowBuilder'
 import { ScriptManager } from './ScriptManager'
+import { SegmentManager } from './SegmentManager'
+import { CallResultsPanel } from './CallResultsPanel'
 
 interface OutreachDashboardProps {
     workflows: any[]
@@ -25,6 +28,7 @@ interface OutreachDashboardProps {
     profiles: any[]
     userId: string
     tenantId: string
+    detailedLogs: any[]
 }
 
 const channelIcons: Record<string, any> = {
@@ -59,12 +63,14 @@ const statusColors: Record<string, string> = {
 
 export function OutreachDashboard({
     workflows, segments, scripts, activeCount, recentLogs,
-    projects, profiles, userId, tenantId
+    projects, profiles, userId, tenantId, detailedLogs
 }: OutreachDashboardProps) {
     const [showBuilder, setShowBuilder] = useState(false)
     const [editingWorkflow, setEditingWorkflow] = useState<any>(null)
     const [showScripts, setShowScripts] = useState(false)
+    const [showSegments, setShowSegments] = useState(false)
     const [localWorkflows, setLocalWorkflows] = useState(workflows)
+    const [localSegments, setLocalSegments] = useState(segments)
     const [launching, setLaunching] = useState<string | null>(null)
 
     // Stats from recent logs
@@ -81,11 +87,21 @@ export function OutreachDashboard({
     }
 
     const handleDelete = async (id: string) => {
-        if (!confirm('Bu workflow silinsin mi?')) return
-        const result = await deleteWorkflow(id)
-        if (result.success) {
-            setLocalWorkflows(prev => prev.filter(w => w.id !== id))
-        }
+        toast('Bu workflow silinsin mi?', {
+            action: {
+                label: 'Sil',
+                onClick: async () => {
+                    const result = await deleteWorkflow(id)
+                    if (result.success) {
+                        setLocalWorkflows(prev => prev.filter(w => w.id !== id))
+                        toast.success('Workflow silindi')
+                    } else {
+                        toast.error('Silinemedi: ' + (result.error || 'Bilinmeyen hata'))
+                    }
+                },
+            },
+            cancel: { label: 'İptal', onClick: () => {} },
+        })
     }
 
     const handleLaunch = async (id: string) => {
@@ -93,12 +109,12 @@ export function OutreachDashboard({
         try {
             const result = await launchWorkflow(id)
             if ('error' in result) {
-                alert(`❌ ${result.error}`)
+                toast.error(result.error as string)
             } else {
-                alert(`✅ ${result.started} lead için outreach başlatıldı! (${result.skipped || 0} atlandı)`)
+                toast.success(`${result.started} lead için outreach başlatıldı! (${result.skipped || 0} atlandı)`)
             }
         } catch (err: any) {
-            alert(`❌ Hata: ${err.message}`)
+            toast.error(`Hata: ${err.message}`)
         }
         setLaunching(null)
     }
@@ -127,6 +143,19 @@ export function OutreachDashboard({
         )
     }
 
+    if (showSegments) {
+        return (
+            <SegmentManager
+                segments={localSegments}
+                projects={projects}
+                profiles={profiles}
+                tenantId={tenantId}
+                onClose={() => setShowSegments(false)}
+                onSegmentsChange={setLocalSegments}
+            />
+        )
+    }
+
     return (
         <div className="space-y-6">
             {/* Header */}
@@ -143,6 +172,11 @@ export function OutreachDashboard({
                     </p>
                 </div>
                 <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => setShowSegments(true)}
+                        className="gap-2 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10">
+                        <Target className="h-4 w-4" />
+                        Segmentler ({localSegments.length})
+                    </Button>
                     <Button variant="outline" size="sm" onClick={() => setShowScripts(true)}
                         className="gap-2 border-violet-500/30 text-violet-400 hover:bg-violet-500/10">
                         <Bot className="h-4 w-4" />
@@ -225,15 +259,7 @@ export function OutreachDashboard({
                 </TabsContent>
 
                 <TabsContent value="activity" className="space-y-2">
-                    {recentLogs.length === 0 ? (
-                        <Card className="bg-muted/30 p-8 text-center">
-                            <p className="text-sm text-muted-foreground">Henüz outreach aktivitesi yok.</p>
-                        </Card>
-                    ) : (
-                        recentLogs.map(log => (
-                            <ActivityLogRow key={log.id} log={log} />
-                        ))
-                    )}
+                    <CallResultsPanel initialLogs={detailedLogs} />
                 </TabsContent>
             </Tabs>
         </div>

@@ -238,10 +238,29 @@ export function NovoxSidebar({
                     <NavItem href="/activities" icon={CalendarCheck} onClick={onElementClick}>
                         {labels.activities || 'Activities'}
                     </NavItem>
-                    {isManager && hasOutreachModule && (
-                        <NavItem href="/outreach" icon={Phone} onClick={onElementClick}>
-                            {labels.outreach || 'Outreach'}
-                        </NavItem>
+                    {isManager && (
+                        <Accordion type="multiple" className="w-full border-none">
+                            <AccordionItem value="outreach_module" className="border-none">
+                                <AccordionTrigger className="px-3 py-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg hover:no-underline [&[data-state=open]]:text-white font-medium justify-start text-[13px] gap-3">
+                                    <Phone className="h-4 w-4" />
+                                    <span>{labels.outreach || 'Outreach'}</span>
+                                </AccordionTrigger>
+                                <AccordionContent className="pt-1 pb-2 pl-4 grid gap-0.5">
+                                    <NavItem href="/outreach" icon={Phone} onClick={onElementClick} isSubItem>
+                                        Workflow&apos;lar
+                                    </NavItem>
+                                    <NavItem href="/outreach/ai-caller" icon={MessageCircle} onClick={onElementClick} isSubItem>
+                                        AI Arama
+                                    </NavItem>
+                                    <NavItem href="/outreach/segments" icon={Target} onClick={onElementClick} isSubItem>
+                                        Segmentler
+                                    </NavItem>
+                                    <NavItem href="/outreach/reports" icon={BarChart3} onClick={onElementClick} isSubItem>
+                                        Outreach Raporu
+                                    </NavItem>
+                                </AccordionContent>
+                            </AccordionItem>
+                        </Accordion>
                     )}
                 </>
             )}

@@ -282,6 +282,7 @@ async function executeWhatsApp(execution: any, step: any, config: StepConfig, ph
     })
 
     if (result.success) {
+        await touchSaleTimestamp(execution.sale_id)
         await advanceToNextStep(execution, step, 'success')
     } else {
         await handleRetryOrAdvance(execution, step, config, 'failure')
@@ -338,6 +339,7 @@ async function executeSms(execution: any, step: any, config: StepConfig, phone: 
         external_id: result.messageId,
     })
 
+    if (result.success) await touchSaleTimestamp(execution.sale_id)
     await advanceToNextStep(execution, step, result.success ? 'success' : 'failure')
 }
 
@@ -457,6 +459,18 @@ async function handleRetryOrAdvance(execution: any, step: any, config: StepConfi
     }
 }
 
+/**
+ * Update sales.updated_at so the lead exits "inactive" segments
+ * after being contacted via any channel.
+ */
+async function touchSaleTimestamp(saleId: string | undefined) {
+    if (!saleId) return
+    const supabase = createAdminClient()
+    await supabase.from('sales')
+        .update({ updated_at: new Date().toISOString() })
+        .eq('id', saleId)
+}
+
 async function advanceToNextStep(execution: any, step: any, outcome: string) {
     const supabase = createAdminClient()
 
@@ -545,10 +559,16 @@ export async function handleVapiCallResult(callData: {
     let logStatus: string = 'no_answer'
 
     if (callData.endedReason === 'customer-ended-call' || callData.endedReason === 'assistant-ended-call') {
-        if (callData.duration && callData.duration > 15) {
+        if (callData.duration && callData.duration > 30) {
+            // Real conversation happened
             outcome = 'success'
             logStatus = 'answered'
+        } else if (callData.duration && callData.duration > 5) {
+            // Customer picked up but hung up quickly (mid-conversation cut)
+            outcome = 'no_answer'
+            logStatus = 'hung_up'
         }
+        // < 5 seconds = accidental pickup, treat as no_answer
     } else if (callData.endedReason === 'customer-did-not-answer') {
         outcome = 'no_answer'
         logStatus = 'no_answer'
@@ -594,6 +614,15 @@ export async function handleVapiCallResult(callData: {
         .eq('id', execution.current_step_id)
         .single()
 
+    // ─── Log call to customer timeline (all outcomes) ─────────
+    const durationText = callData.duration ? `${Math.floor(callData.duration / 60)}dk ${callData.duration % 60}sn` : ''
+    const transcriptBlock = callData.transcript
+        ? `\n\n📝 Transkript:\n${callData.transcript}`
+        : ''
+    const recordingBlock = callData.recordingUrl
+        ? `\n\n🎙️ Kayıt: ${callData.recordingUrl}`
+        : ''
+
     if (logStatus === 'converted') {
         await supabase.from('outreach_executions')
             .update({ status: 'converted', completed_at: new Date().toISOString() })
@@ -606,20 +635,66 @@ export async function handleVapiCallResult(callData: {
                 .eq('id', execution.sale_id)
         }
 
-        // Create activity in CRM
+        // Create activity — converted
         await supabase.from('activities').insert({
             tenant_id: execution.tenant_id,
             customer_id: execution.customer_id,
             type: 'Call',
             topic: 'Sales',
-            summary: 'AI Arama - Müşteri İlgilendi (Fırsata Dönüştü)',
-            description: callData.summary || callData.transcript?.substring(0, 500),
+            summary: `🤖 AI Arama — Müşteri İlgilendi ✅ (${durationText})`,
+            description: (callData.summary || 'Müşteri ilgi gösterdi.')
+                + transcriptBlock + recordingBlock,
             due_date: new Date().toISOString(),
             status: 'Completed',
             priority: 'High',
         })
-    } else if (stepData?.data) {
-        await handleRetryOrAdvance(execution, stepData.data, stepData.data.config || {}, outcome)
+    } else {
+        // Log non-converted calls too (answered, no_answer, busy)
+        // For answered calls, check AI analysis to distinguish interested vs not
+        let answeredSummary = `🤖 AI Arama — Görüşme Yapıldı (${durationText})`
+        if (logStatus === 'answered') {
+            const interested = callData.analysis?.structuredData?.interested
+            if (interested === false) {
+                answeredSummary = `🤖 AI Arama — Görüşüldü, İlgilenmedi ❌ (${durationText})`
+            } else if (interested === undefined || interested === null) {
+                // No AI analysis available — keep neutral
+                answeredSummary = `🤖 AI Arama — Görüşüldü (${durationText})`
+            }
+        }
+
+        const summaryMap: Record<string, string> = {
+            answered: answeredSummary,
+            hung_up: `🤖 AI Arama — Açtı ama Kapattı 📵 (${durationText})`,
+            no_answer: '🤖 AI Arama — Cevap Vermedi',
+            busy: '🤖 AI Arama — Hat Meşgul',
+        }
+
+        const priorityMap: Record<string, string> = {
+            answered: 'Medium',
+            hung_up: 'Medium',
+            no_answer: 'Low',
+            busy: 'Low',
+        }
+
+        await supabase.from('activities').insert({
+            tenant_id: execution.tenant_id,
+            customer_id: execution.customer_id,
+            type: 'Call',
+            topic: 'Sales',
+            summary: summaryMap[logStatus] || `🤖 AI Arama — ${logStatus} (${durationText})`,
+            description: (callData.summary || `Arama sonucu: ${logStatus}`)
+                + transcriptBlock + recordingBlock,
+            due_date: new Date().toISOString(),
+            status: 'Completed',
+            priority: priorityMap[logStatus] || 'Low',
+        })
+
+        // Update sales.updated_at so lead exits "inactive" segments
+        await touchSaleTimestamp(execution.sale_id)
+
+        if (stepData?.data) {
+            await handleRetryOrAdvance(execution, stepData.data, stepData.data.config || {}, outcome)
+        }
     }
 }
 

@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
 import { OutreachDashboard } from './components/OutreachDashboard'
@@ -19,6 +20,7 @@ export default async function OutreachPage() {
     if (!isManager) redirect('/')
 
     const tenantId = profile?.tenant_id
+    const supabaseAdmin = createAdminClient()
 
     // Fetch all data in parallel
     const [
@@ -30,30 +32,31 @@ export default async function OutreachPage() {
         statsRes,
         projectsRes,
         profilesRes,
+        detailedLogsRes,
     ] = await Promise.all([
-        supabase.from('outreach_workflows')
-            .select('*, outreach_segments(name)')
+        supabaseAdmin.from('outreach_workflows')
+            .select('*, outreach_segments(name), outreach_steps(*)')
             .eq('tenant_id', tenantId)
             .order('created_at', { ascending: false }),
-        supabase.from('outreach_segments')
+        supabaseAdmin.from('outreach_segments')
             .select('*')
             .eq('tenant_id', tenantId)
             .order('created_at', { ascending: false }),
-        supabase.from('outreach_scripts')
+        supabaseAdmin.from('outreach_scripts')
             .select('*')
             .eq('tenant_id', tenantId)
             .order('created_at', { ascending: false }),
-        supabase.from('outreach_executions')
+        supabaseAdmin.from('outreach_executions')
             .select('id', { count: 'exact', head: true })
             .eq('tenant_id', tenantId)
             .in('status', ['active', 'waiting']),
-        supabase.from('outreach_step_logs')
+        supabaseAdmin.from('outreach_step_logs')
             .select('*, outreach_executions!inner(tenant_id, customers(full_name)), outreach_steps(name, action_type)')
             .eq('outreach_executions.tenant_id', tenantId)
             .order('executed_at', { ascending: false })
             .limit(20),
         // Stats: counts per channel
-        supabase.from('outreach_step_logs')
+        supabaseAdmin.from('outreach_step_logs')
             .select('channel, status')
             .eq('outreach_executions.tenant_id', tenantId),
         // Projects for segment builder
@@ -65,6 +68,22 @@ export default async function OutreachPage() {
             .select('id, full_name, role')
             .eq('tenant_id', tenantId)
             .order('full_name'),
+        // Detailed logs for CallResultsPanel
+        supabaseAdmin.from('outreach_step_logs')
+            .select(`
+                *,
+                outreach_steps(name, action_type, config),
+                outreach_executions!inner(
+                    id, status, current_step_order, tenant_id,
+                    customers(id, full_name, phone, email),
+                    sales(id, status, projects(name)),
+                    outreach_workflows(name)
+                )
+            `)
+            .eq('outreach_executions.tenant_id', tenantId)
+            .in('channel', ['ai_call', 'whatsapp', 'sms'])
+            .order('executed_at', { ascending: false })
+            .limit(50),
     ])
 
     return (
@@ -80,6 +99,7 @@ export default async function OutreachPage() {
                     profiles={profilesRes.data || []}
                     userId={user.id}
                     tenantId={tenantId || ''}
+                    detailedLogs={detailedLogsRes.data || []}
                 />
             </Suspense>
         </div>

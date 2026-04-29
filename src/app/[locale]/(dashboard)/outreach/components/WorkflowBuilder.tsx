@@ -13,7 +13,8 @@ import {
     Phone, MessageSquare, Mail, Clock, Settings2, Zap, Plus,
     ArrowLeft, ArrowDown, Trash2, GripVertical, Save, Target, Bot, Bell
 } from 'lucide-react'
-import { createWorkflow, createSegment } from '../actions'
+import { createWorkflow } from '../actions'
+import { toast } from 'sonner'
 
 const ACTION_TYPES = [
     { value: 'ai_call', label: 'AI Telefon Araması', icon: Phone, color: 'violet' },
@@ -54,19 +55,9 @@ export function WorkflowBuilder({ segments, scripts, projects, profiles, tenantI
     const [hoursStart, setHoursStart] = useState(editingWorkflow?.working_hours_start?.substring(0, 5) || '09:00')
     const [hoursEnd, setHoursEnd] = useState(editingWorkflow?.working_hours_end?.substring(0, 5) || '19:00')
     const [workingDays, setWorkingDays] = useState<number[]>(editingWorkflow?.working_days || [1, 2, 3, 4, 5])
-    const [autoDetect, setAutoDetect] = useState(editingWorkflow?.is_auto_detect || false)
-    const [autoDetectDays, setAutoDetectDays] = useState(editingWorkflow?.auto_detect_days || 3)
     const [maxPerDay, setMaxPerDay] = useState(editingWorkflow?.max_leads_per_day || 50)
     const [steps, setSteps] = useState<Step[]>(editingWorkflow?.outreach_steps || [])
     const [saving, setSaving] = useState(false)
-    const [showSegmentForm, setShowSegmentForm] = useState(false)
-    const [segName, setSegName] = useState('')
-    const [segStatuses, setSegStatuses] = useState<string[]>(['Lead', 'Prospect'])
-    const [segProjectId, setSegProjectId] = useState('')
-    const [segAssignedTo, setSegAssignedTo] = useState('any')
-    const [segDateFrom, setSegDateFrom] = useState('')
-    const [segDateTo, setSegDateTo] = useState('')
-    const [segDaysInactive, setSegDaysInactive] = useState('')
 
     const addStep = (actionType: string) => {
         const id = `temp-${Date.now()}`
@@ -95,15 +86,15 @@ export function WorkflowBuilder({ segments, scripts, projects, profiles, tenantI
     }
 
     const handleSave = async () => {
-        if (!name) return alert('Workflow adı gerekli')
-        if (steps.length === 0) return alert('En az 1 adım ekleyin')
+        if (!name) return toast.warning('Workflow adı gerekli')
+        if (steps.length === 0) return toast.warning('En az 1 adım ekleyin')
         setSaving(true)
         try {
             const result = await createWorkflow({
                 name, description, segment_id: segmentId || undefined,
                 working_hours_start: hoursStart, working_hours_end: hoursEnd,
                 working_days: workingDays,
-                is_auto_detect: autoDetect, auto_detect_days: autoDetectDays,
+                is_auto_detect: false, auto_detect_days: 0,
                 max_leads_per_day: maxPerDay,
                 steps: steps.map(s => ({
                     step_order: s.step_order, name: s.name, action_type: s.action_type,
@@ -111,32 +102,15 @@ export function WorkflowBuilder({ segments, scripts, projects, profiles, tenantI
                     on_no_answer: s.on_no_answer, on_busy: s.on_busy,
                 })),
             })
-            if (result.error) alert('Hata: ' + result.error)
-            else onClose()
-        } catch (e: any) { alert('Hata: ' + e.message) }
+            if (result.error) toast.error('Hata: ' + result.error)
+            else {
+                toast.success('Workflow kaydedildi')
+                onClose()
+            }
+        } catch (e: any) { toast.error('Hata: ' + e.message) }
         setSaving(false)
     }
 
-    const handleCreateSegment = async () => {
-        if (!segName) return
-        const filters: any = { statuses: segStatuses }
-        if (segProjectId && segProjectId !== 'all') filters.project_id = segProjectId
-        if (segAssignedTo === 'unassigned') filters.unassigned = true
-        else if (segAssignedTo && segAssignedTo !== 'any') filters.assigned_to = segAssignedTo
-        if (segDateFrom) filters.date_from = segDateFrom
-        if (segDateTo) filters.date_to = segDateTo
-        if (segDaysInactive) filters.days_inactive = Number(segDaysInactive)
-
-        const result = await createSegment({
-            name: segName,
-            filters,
-        })
-        if (result.data) {
-            setSegmentId(result.data.id)
-            segments.push(result.data)
-            setShowSegmentForm(false)
-        }
-    }
 
     const dayNames = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz']
     const toggleDay = (d: number) => {
@@ -181,64 +155,51 @@ export function WorkflowBuilder({ segments, scripts, projects, profiles, tenantI
                         <h2 className="font-semibold text-sm flex items-center gap-2">
                             <Target className="h-4 w-4 text-emerald-400" /> Hedef Kitle
                         </h2>
-                        <Select value={segmentId} onValueChange={setSegmentId}>
-                            <SelectTrigger className="h-9"><SelectValue placeholder="Segment seç..." /></SelectTrigger>
-                            <SelectContent>
-                                {segments.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
-                        <Button variant="outline" size="sm" onClick={() => setShowSegmentForm(!showSegmentForm)} className="w-full gap-1 text-xs">
-                            <Plus className="h-3 w-3" /> Yeni Segment
-                        </Button>
-                        {showSegmentForm && (
-                            <div className="space-y-2 p-3 rounded-lg bg-muted/50 border">
-                                <Input value={segName} onChange={e => setSegName(e.target.value)} placeholder="Segment adı" className="h-8 text-xs" />
-                                <div className="flex flex-wrap gap-1">
-                                    {['Lead', 'Prospect', 'Potential', 'Lost'].map(s => (
-                                        <Badge key={s} variant="outline"
-                                            className={`cursor-pointer text-[10px] ${segStatuses.includes(s) ? 'bg-violet-500/20 border-violet-500/40' : ''}`}
-                                            onClick={() => setSegStatuses(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s])}>
-                                            {s}
-                                        </Badge>
-                                    ))}
-                                </div>
-                                <Select value={segProjectId} onValueChange={setSegProjectId}>
-                                    <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Tüm Projeler" /></SelectTrigger>
+                        {segments.length === 0 ? (
+                            <div className="text-center py-4">
+                                <p className="text-xs text-muted-foreground">Henüz segment oluşturulmamış.</p>
+                                <p className="text-[10px] text-muted-foreground mt-1">Outreach ana ekranından segment oluşturabilirsiniz.</p>
+                            </div>
+                        ) : (
+                            <>
+                                <Select value={segmentId} onValueChange={setSegmentId}>
+                                    <SelectTrigger className="h-9"><SelectValue placeholder="Segment seç..." /></SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="all">Tüm Projeler</SelectItem>
-                                        {projects.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                                        {segments.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                                     </SelectContent>
                                 </Select>
 
-                                <div className="space-y-1">
-                                    <Label className="text-[10px]">Temsilci Durumu</Label>
-                                    <Select value={segAssignedTo} onValueChange={setSegAssignedTo}>
-                                        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Fark etmez" /></SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="any">Fark etmez</SelectItem>
-                                            <SelectItem value="unassigned">Atanmamış Lead'ler</SelectItem>
-                                            {profiles.map(p => <SelectItem key={p.id} value={p.id}>{p.full_name}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                
-                                <div className="grid grid-cols-2 gap-2">
-                                    <div className="space-y-1">
-                                        <Label className="text-[10px]">Kayıt Başlangıç</Label>
-                                        <Input type="date" value={segDateFrom} onChange={e => setSegDateFrom(e.target.value)} className="h-8 text-xs" />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <Label className="text-[10px]">Kayıt Bitiş</Label>
-                                        <Input type="date" value={segDateTo} onChange={e => setSegDateTo(e.target.value)} className="h-8 text-xs" />
-                                    </div>
-                                </div>
-
-                                <div className="space-y-1 pb-1">
-                                    <Label className="text-[10px]">Hareketsizlik Süresi (Gün)</Label>
-                                    <Input type="number" placeholder="Örn: 7" value={segDaysInactive} onChange={e => setSegDaysInactive(e.target.value)} className="h-8 text-xs" />
-                                </div>
-                                <Button size="sm" onClick={handleCreateSegment} className="w-full h-8 text-xs">Hedef Kitleyi Kaydet</Button>
-                            </div>
+                                {/* Selected Segment Summary */}
+                                {segmentId && (() => {
+                                    const seg = segments.find(s => s.id === segmentId)
+                                    const f = seg?.filters || {}
+                                    return seg ? (
+                                        <div className="p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/20 space-y-2">
+                                            <p className="text-xs font-medium text-emerald-400">{seg.name}</p>
+                                            <div className="flex flex-wrap gap-1">
+                                                {f.statuses?.map((s: string) => (
+                                                    <Badge key={s} variant="outline" className="text-[10px] border-violet-500/30 text-violet-400 bg-violet-500/10">{s}</Badge>
+                                                ))}
+                                                {f.project_id && (
+                                                    <Badge variant="outline" className="text-[10px] border-blue-500/30 text-blue-400 bg-blue-500/10">
+                                                        📁 {projects.find(p => p.id === f.project_id)?.name || 'Proje'}
+                                                    </Badge>
+                                                )}
+                                                {f.days_inactive && (
+                                                    <Badge variant="outline" className="text-[10px] border-amber-500/30 text-amber-400 bg-amber-500/10">
+                                                        ⏰ {f.days_inactive}g hareketsiz
+                                                    </Badge>
+                                                )}
+                                                {f.unassigned && (
+                                                    <Badge variant="outline" className="text-[10px] border-rose-500/30 text-rose-400 bg-rose-500/10">
+                                                        Atanmamış
+                                                    </Badge>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ) : null
+                                })()}
+                            </>
                         )}
                     </Card>
 
@@ -262,19 +223,6 @@ export function WorkflowBuilder({ segments, scripts, projects, profiles, tenantI
                             <Label className="text-xs">Günlük max lead</Label>
                             <Input type="number" value={maxPerDay} onChange={e => setMaxPerDay(Number(e.target.value))} className="h-8 w-20 text-xs text-right" />
                         </div>
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <Label className="text-xs">Otomatik Tespit</Label>
-                                <p className="text-[10px] text-muted-foreground">Soğuyan lead&apos;leri otomatik bul</p>
-                            </div>
-                            <Switch checked={autoDetect} onCheckedChange={setAutoDetect} />
-                        </div>
-                        {autoDetect && (
-                            <div className="flex items-center justify-between">
-                                <Label className="text-xs">Soğuma süresi (gün)</Label>
-                                <Input type="number" value={autoDetectDays} onChange={e => setAutoDetectDays(Number(e.target.value))} className="h-8 w-20 text-xs text-right" />
-                            </div>
-                        )}
                     </Card>
                 </div>
 
@@ -375,21 +323,23 @@ function StepConfigEditor({ step, scripts, onConfigChange, onFieldChange }: {
                         <Input type="number" value={c.max_duration_seconds || 180}
                             onChange={e => onConfigChange('max_duration_seconds', Number(e.target.value))} className="h-7 text-[11px]" />
                     </div>
-                    <div className="col-span-2 flex items-center gap-2 p-2 rounded bg-muted/50 border">
-                        <Switch checked={c.retry?.enabled || false}
-                            onCheckedChange={v => onConfigChange('retry', { ...c.retry, enabled: v, interval_minutes: c.retry?.interval_minutes || 15, max_attempts: c.retry?.max_attempts || 3 })} />
-                        <span className="text-[11px]">Tekrar dene:</span>
+                    <div className="col-span-2 p-2.5 rounded bg-muted/50 border space-y-2">
+                        <div className="flex items-center gap-2">
+                            <Switch checked={c.retry?.enabled || false}
+                                onCheckedChange={(v: boolean) => onConfigChange('retry', { ...c.retry, enabled: v, interval_minutes: c.retry?.interval_minutes || 15, max_attempts: c.retry?.max_attempts || 3 })} />
+                            <span className="text-[11px] font-medium">Cevap yoksa tekrar dene</span>
+                        </div>
                         {c.retry?.enabled && (
-                            <>
+                            <div className="flex items-center gap-2 pl-1">
                                 <Input type="number" value={c.retry?.max_attempts || 3}
                                     onChange={e => onConfigChange('retry', { ...c.retry, max_attempts: Number(e.target.value) })}
-                                    className="h-6 w-12 text-[10px]" />
-                                <span className="text-[10px] text-muted-foreground">kez,</span>
+                                    className="h-7 w-16 text-xs text-center" />
+                                <span className="text-xs text-muted-foreground">kez,</span>
                                 <Input type="number" value={c.retry?.interval_minutes || 15}
                                     onChange={e => onConfigChange('retry', { ...c.retry, interval_minutes: Number(e.target.value) })}
-                                    className="h-6 w-12 text-[10px]" />
-                                <span className="text-[10px] text-muted-foreground">dk ara</span>
-                            </>
+                                    className="h-7 w-16 text-xs text-center" />
+                                <span className="text-xs text-muted-foreground">dk arayla</span>
+                            </div>
                         )}
                     </div>
                 </div>

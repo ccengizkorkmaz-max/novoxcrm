@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { resolveSegment, startWorkflowForLeads } from '@/lib/outreach/engine'
@@ -8,10 +9,12 @@ import { resolveSegment, startWorkflowForLeads } from '@/lib/outreach/engine'
 // ─── Helpers ─────────────────────────────────────────────────
 
 async function getAuthContext() {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const authClient = await createClient()
+    const { data: { user } } = await authClient.auth.getUser()
     if (!user) redirect('/login')
-    const { data: profile } = await supabase.from('profiles').select('tenant_id, role, full_name').eq('id', user.id).single()
+    const { data: profile } = await authClient.from('profiles').select('tenant_id, role, full_name').eq('id', user.id).single()
+    // Use admin client for data ops to bypass RLS on joined tables
+    const supabase = createAdminClient()
     return { supabase, user, profile, tenantId: profile?.tenant_id }
 }
 
@@ -35,6 +38,16 @@ export async function createSegment(payload: { name: string; description?: strin
     if (error) return { error: error.message }
     revalidatePath('/outreach')
     return { success: true, data }
+}
+
+export async function updateSegment(id: string, payload: { name?: string; description?: string; filters?: any }) {
+    const { supabase } = await getAuthContext()
+    const { error } = await supabase.from('outreach_segments')
+        .update({ ...payload, updated_at: new Date().toISOString() })
+        .eq('id', id)
+    if (error) return { error: error.message }
+    revalidatePath('/outreach')
+    return { success: true }
 }
 
 export async function deleteSegment(id: string) {
@@ -95,8 +108,16 @@ export async function deleteScript(id: string) {
 export async function getWorkflows() {
     const { supabase } = await getAuthContext()
     const { data } = await supabase.from('outreach_workflows')
-        .select('*, outreach_segments(name), outreach_steps(count)')
+        .select('*, outreach_segments(name), outreach_steps(*)')
         .order('created_at', { ascending: false })
+    // Sort steps by step_order within each workflow
+    if (data) {
+        data.forEach((w: any) => {
+            if (w.outreach_steps) {
+                w.outreach_steps.sort((a: any, b: any) => (a.step_order || 0) - (b.step_order || 0))
+            }
+        })
+    }
     return data || []
 }
 
@@ -135,18 +156,25 @@ export async function createWorkflow(payload: {
 
     // Create workflow
     const { steps, ...workflowData } = payload
+    console.log('[createWorkflow] workflowData:', JSON.stringify(workflowData, null, 2))
+    console.log('[createWorkflow] steps count:', steps?.length)
+    
     const { data: workflow, error } = await supabase.from('outreach_workflows').insert({
         tenant_id: tenantId,
         created_by: user.id,
         ...workflowData,
     }).select().single()
 
+    console.log('[createWorkflow] workflow result:', workflow?.id, 'error:', error?.message)
+
     if (error || !workflow) return { error: error?.message || 'Failed to create workflow' }
 
     // Create steps
     if (steps?.length) {
         const stepsPayload = steps.map(s => ({ ...s, workflow_id: workflow.id }))
+        console.log('[createWorkflow] stepsPayload:', JSON.stringify(stepsPayload, null, 2))
         const { error: stepsError } = await supabase.from('outreach_steps').insert(stepsPayload)
+        console.log('[createWorkflow] stepsError:', stepsError?.message, stepsError?.details)
         if (stepsError) {
             console.error('Create steps error:', stepsError)
             // Cleanup workflow if steps fail
@@ -262,6 +290,25 @@ export async function getExecutionLogs(executionId: string) {
         .select('*, outreach_steps(name, action_type)')
         .eq('execution_id', executionId)
         .order('executed_at', { ascending: true })
+    return data || []
+}
+
+export async function getDetailedCallLogs(limit: number = 50) {
+    const { supabase } = await getAuthContext()
+    const { data } = await supabase.from('outreach_step_logs')
+        .select(`
+            *,
+            outreach_steps(name, action_type, config),
+            outreach_executions(
+                id, status, current_step_order,
+                customers(id, full_name, phone, email),
+                sales(id, status, projects(name)),
+                outreach_workflows(name)
+            )
+        `)
+        .in('channel', ['ai_call', 'whatsapp', 'sms'])
+        .order('executed_at', { ascending: false })
+        .limit(limit)
     return data || []
 }
 

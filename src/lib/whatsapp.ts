@@ -26,7 +26,7 @@ export function getWhatsAppLink(phone: string, message: string) {
  */
 export async function sendWhatsAppMessage(to: string, message: string, phoneId?: string, accessToken?: string) {
     const PHONE_ID = phoneId || process.env.WHATSAPP_PHONE_NUMBER_ID;
-    const ACCESS_TOKEN = accessToken || process.env.WHATSAPP_ACCESS_TOKEN;
+    let ACCESS_TOKEN = accessToken || process.env.WHATSAPP_ACCESS_TOKEN;
 
     if (!PHONE_ID || !ACCESS_TOKEN) {
         console.error('WhatsApp API credentials missing');
@@ -34,6 +34,8 @@ export async function sendWhatsAppMessage(to: string, message: string, phoneId?:
     }
 
     const cleanPhone = normalizePhone(to);
+
+    ACCESS_TOKEN = ACCESS_TOKEN.replace(/[\r\n"\s]+/g, '');
 
     try {
         const response = await fetch(`https://graph.facebook.com/v18.0/${PHONE_ID}/messages`, {
@@ -61,6 +63,69 @@ export async function sendWhatsAppMessage(to: string, message: string, phoneId?:
         return { success: true, data };
     } catch (error) {
         console.error('WhatsApp Fetch Error:', error);
+        return { success: false, error: 'Network or Fetch Error' };
+    }
+}
+
+/**
+ * Sends a WhatsApp media message (Image, Video, Audio, Document) using the Meta Cloud API.
+ * Media is passed as a public URL.
+ */
+export async function sendWhatsAppMedia(
+    to: string, 
+    type: 'image' | 'video' | 'audio' | 'document', 
+    mediaUrl: string, 
+    caption?: string,
+    phoneId?: string, 
+    accessToken?: string
+) {
+    const PHONE_ID = phoneId || process.env.WHATSAPP_PHONE_NUMBER_ID;
+    let ACCESS_TOKEN = accessToken || process.env.WHATSAPP_ACCESS_TOKEN;
+
+    if (!PHONE_ID || !ACCESS_TOKEN) {
+        console.error('WhatsApp API credentials missing');
+        return { success: false, error: 'Credentials missing' };
+    }
+
+    const cleanPhone = normalizePhone(to);
+
+    const payload: any = {
+        messaging_product: 'whatsapp',
+        recipient_type: 'individual',
+        to: cleanPhone,
+        type: type,
+    };
+
+    // The Meta API requires the specific media type key (e.g. "image": { link: "...", caption: "..." })
+    payload[type] = { link: mediaUrl };
+    
+    // Only image, video, and document support captions. Audio does not.
+    if (caption && type !== 'audio') {
+        payload[type].caption = caption;
+    }
+
+    ACCESS_TOKEN = ACCESS_TOKEN.replace(/[\r\n"\s]+/g, '');
+
+    try {
+        const response = await fetch(`https://graph.facebook.com/v18.0/${PHONE_ID}/messages`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${ACCESS_TOKEN}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            console.error(`WhatsApp ${type} Send Error:`, data);
+            return { success: false, error: data.error?.message || 'API Error' };
+        }
+
+        return { success: true, data };
+    } catch (error) {
+        console.error(`WhatsApp ${type} Fetch Error:`, error);
         return { success: false, error: 'Network or Fetch Error' };
     }
 }
@@ -95,7 +160,7 @@ export async function sendWhatsAppTemplate(
     language: string = 'tr'
 ) {
     const PHONE_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
-    const ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN;
+    let ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN;
 
     if (!PHONE_ID || !ACCESS_TOKEN) {
         return { success: false, error: 'WhatsApp API credentials missing' };
@@ -114,6 +179,8 @@ export async function sendWhatsAppTemplate(
             })),
         });
     }
+
+    ACCESS_TOKEN = ACCESS_TOKEN.replace(/[\r\n"\s]+/g, '');
 
     try {
         const response = await fetch(`https://graph.facebook.com/v18.0/${PHONE_ID}/messages`, {

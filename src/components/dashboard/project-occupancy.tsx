@@ -28,7 +28,7 @@ export function ProjectOccupancy({ data }: ProjectOccupancyProps) {
 
     return (
         <div className="space-y-4">
-            {data.map((project) => {
+            {data.map((project, idx) => {
                 const occupancyRate = project.total > 0
                     ? Math.round(((project.sold + project.reserved) / project.total) * 100)
                     : 0
@@ -37,7 +37,7 @@ export function ProjectOccupancy({ data }: ProjectOccupancyProps) {
                 const availablePercent = project.total > 0 ? (project.available / project.total) * 100 : 0
 
                 return (
-                    <div key={project.projectName} className="group">
+                    <div key={`${project.projectName}-${idx}`} className="group">
                         <div className="flex items-center justify-between mb-1.5">
                             <div className="flex items-center gap-2">
                                 <span className="text-sm font-bold text-slate-800 truncate max-w-[180px]">
