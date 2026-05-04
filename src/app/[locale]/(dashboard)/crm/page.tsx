@@ -4,39 +4,19 @@ import { createClient } from '@/lib/supabase/server'
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
-import {
-    Activity,
-    CreditCard,
-    DollarSign,
-    Users,
-    TrendingUp,
-    CalendarCheck,
-    ClipboardList,
-    Building2,
-    Calendar,
-    ChevronRight,
-    ArrowUpRight,
-    Search,
-    Filter
-} from "lucide-react"
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
 import Link from 'next/link'
 import { formatCurrency } from '@/lib/utils'
 
-import { PipelineStats } from './components/PipelineStats'
 import PipelineList from './components/PipelineList'
-import NewSaleButton from './components/NewSaleButton'
-import CRMFilterSheet from './components/CRMFilterSheet'
 import CRMSearch from './components/CRMSearch'
-
 import SalesExportButton from './components/SalesExportButton'
 import BulkAutoAssignButton from './components/BulkAutoAssignButton'
-import React from 'react'
+import DeferredPipelineStats from './components/DeferredPipelineStats'
+import DeferredCRMToolbar from './components/DeferredCRMToolbar'
+import React, { Suspense } from 'react'
 
 export default async function CRMPage(props: {
     params: Promise<{ locale: string }>
@@ -63,10 +43,11 @@ export default async function CRMPage(props: {
     const from = (page - 1) * itemsPerPage
     const to = from + itemsPerPage - 1
 
-    // 1. Get Current User Role
+    // ============================================================
+    // CRITICAL PATH: Auth + Sales List (50 records) — loads FIRST
+    // ============================================================
     const { data: { user } } = await supabase.auth.getUser()
     
-    // 1. Get profile
     const { data: userProfile } = user 
         ? await supabase.from('profiles').select('role, tenant_id').eq('id', user.id).single()
         : { data: null }
@@ -75,24 +56,18 @@ export default async function CRMPage(props: {
     const isManager = isAdmin || userProfile?.role === 'manager'
     const userTenantId = userProfile?.tenant_id
 
-    // Detect tenant type for broker/developer mode
     const { data: tenantData } = userTenantId
         ? await supabase.from('tenants').select('tenant_type').eq('id', userTenantId).single()
         : { data: null }
     const tenantType = (tenantData as any)?.tenant_type || 'developer'
     const isBroker = tenantType === 'broker'
-    // Determine if only today's leads should be shown (query param tl=1)
-    const onlyTodayLeads = params.tl === '1'
 
-    // 2. Build base sales query for filtered data
+    // Build sales list query (THE CRITICAL 50 RECORDS)
     let baseQuery = supabase
         .from('sales')
         .select('*, customers!inner(id, full_name, email, phone, customer_number), units(unit_number, price, currency, projects(id, name)), projects(id, name), profiles(full_name)', { count: 'exact' })
-        .neq('status', 'Inbox') // Exclude inbox items (pending approval)
-        // Apply only-today-leads filter if enabled
+        .neq('status', 'Inbox')
 
-
-    // Role-based filtering
     if (!isManager && user) {
         baseQuery = baseQuery.eq('assigned_to', user.id)
     } else if (filterReps.length > 0) {
@@ -112,76 +87,9 @@ export default async function CRMPage(props: {
         baseQuery = baseQuery.or(`full_name.ilike.%${filterSearch}%,phone.ilike.%${filterSearch}%,email.ilike.%${filterSearch}%`, { foreignTable: 'customers' })
     }
 
-    // 3. Build Stats Query (reflects filters but ignores pagination)
-    let statsQuery = supabase
-        .from('sales')
-        .select('status')
-        .neq('status', 'Inbox')
-
-    if (!isManager && user) {
-        statsQuery = statsQuery.eq('assigned_to', user.id)
-    } else if (filterReps.length > 0) {
-        if (filterReps.includes('unassigned')) {
-            statsQuery = statsQuery.is('assigned_to', null)
-        } else {
-            statsQuery = statsQuery.in('assigned_to', filterReps)
-        }
-    }
-
-    if (filterProject) statsQuery = statsQuery.eq('project_id', filterProject)
-    if (filterCustomer) statsQuery = statsQuery.eq('customer_id', filterCustomer)
-    if (filterDateFrom) statsQuery = statsQuery.gte('created_at', filterDateFrom)
-    if (filterDateTo) statsQuery = statsQuery.lte('created_at', filterDateTo + 'T23:59:59')
-    // We don't filter by filterStatus for stats because we want to see the whole pipeline even if one status is selected in the list
-    if (filterSearch) {
-        statsQuery = statsQuery.or(`full_name.ilike.%${filterSearch}%,phone.ilike.%${filterSearch}%,email.ilike.%${filterSearch}%`, { foreignTable: 'customers' })
-    }
-
-    // 4. Fetch initial background data in parallel
-    // For Stats, we now use multiple headless count queries to bypass the 1000-record limit
-    const getStatusCount = (status: string | string[]) => {
-        let q = supabase.from('sales').select('*', { count: 'exact', head: true }).neq('status', 'Inbox')
-
-        if (!isManager && user) {
-            q = q.eq('assigned_to', user.id)
-        } else if (filterReps.length > 0) {
-            if (filterReps.includes('unassigned')) {
-                q = q.is('assigned_to', null)
-            } else {
-                q = q.in('assigned_to', filterReps)
-            }
-        }
-
-        if (filterProject) q = q.eq('project_id', filterProject)
-        if (filterCustomer) q = q.eq('customer_id', filterCustomer)
-        if (filterDateFrom) q = q.gte('created_at', filterDateFrom)
-        if (filterDateTo) q = q.lte('created_at', filterDateTo + 'T23:59:59')
-        if (filterSearch) q = q.or(`full_name.ilike.%${filterSearch}%,phone.ilike.%${filterSearch}%,email.ilike.%${filterSearch}%`, { foreignTable: 'customers' })
-
-        if (Array.isArray(status)) {
-            return q.in('status', status)
-        }
-        return q.eq('status', status)
-    }
-
-    const [
-        projectsRes,
-        profilesRes,
-        templatesRes,
-        customersRes,
-        availableUnitsRes,
-        salesListRes,
-        // Detailed counts
-        countLead,
-        countProspect,
-        countReservation,
-        countProposal,
-        countNegotiation,
-        countSold,
-        countCompleted,
-        countLost
-    ] = await Promise.all([
-        supabase.from('projects').select('id, name').order('name'),
+    // Fetch ONLY the sales list + profiles for the list (fast queries)
+    const [salesListRes, profilesRes, projectsRes, templatesRes] = await Promise.all([
+        baseQuery.order('created_at', { ascending: false }).range(from, to),
         supabase.from('profiles')
             .select('id, full_name')
             .eq('tenant_id', userTenantId)
@@ -192,43 +100,52 @@ export default async function CRMPage(props: {
             .eq('is_active', true)
             .in('role', ['admin', 'owner', 'manager', 'sales'])
             .order('full_name'),
+        supabase.from('projects').select('id, name').order('name'),
         supabase.from('payment_plan_templates').select('*').order('name', { ascending: true }),
-        supabase.from('customers')
-            .select('*, customer_demands(*), contract_customers(id)')
-            .eq('tenant_id', userTenantId)
-            .order('created_at', { ascending: false })
-            .limit(1000),
-        supabase.from('units').select('id, unit_number, projects(id, name)').in('status', ['For Sale', 'Stock']).limit(1000),
-        baseQuery.order('created_at', { ascending: false }).range(from, to),
-        // Counts
-        getStatusCount('Lead'),
-        getStatusCount('Prospect'),
-        getStatusCount(['Reservation', 'Reserved', 'Opsiyon - Kapora Bekleniyor']),
-        getStatusCount(['Proposal', 'Teklif - Kapora Bekleniyor']),
-        getStatusCount('Negotiation'),
-        getStatusCount('Sold'),
-        getStatusCount('Completed'),
-        getStatusCount('Lost')
     ])
 
-    const projectsData = projectsRes.data || []
     const profilesData = profilesRes.data || []
+    const projectsData = projectsRes.data || []
     const templates = templatesRes.data || []
-    const customers = customersRes.data || []
-    const availableUnits = availableUnitsRes.data || []
     const sales = salesListRes.data || []
     const totalSalesCount = salesListRes.count || 0
 
-    const statsData = {
-        Lead: countLead.count || 0,
-        Prospect: countProspect.count || 0,
-        Reservation: countReservation.count || 0,
-        Proposal: countProposal.count || 0,
-        Negotiation: countNegotiation.count || 0,
-        Sold: countSold.count || 0,
-        Completed: countCompleted.count || 0,
-        Lost: countLost.count || 0
+    // ============================================================
+    // RENDER: Sales list renders IMMEDIATELY, stats/toolbar stream in
+    // ============================================================
+
+    // Shared filter params for deferred components
+    const statsFilterProps = {
+        isManager,
+        userId: user?.id,
+        filterReps,
+        filterProject,
+        filterCustomer,
+        filterDateFrom,
+        filterDateTo,
+        filterSearch,
+        tenantType
     }
+
+    // Pipeline stats skeleton (shown while real stats load)
+    const statsSkeleton = (
+        <div className="flex gap-1 mb-3 animate-pulse">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+                <div key={i} className="flex-1 rounded-lg bg-muted/50 p-2.5">
+                    <div className="h-2 w-12 bg-muted rounded mb-2" />
+                    <div className="h-5 w-8 bg-muted rounded" />
+                </div>
+            ))}
+        </div>
+    )
+
+    // Toolbar skeleton (shown while heavy dropdown data loads)
+    const toolbarSkeleton = (
+        <>
+            <div className="h-9 w-24 bg-muted animate-pulse rounded" />
+            <div className="h-9 w-28 bg-muted animate-pulse rounded" />
+        </>
+    )
 
     return (
         <div className="flex flex-col gap-6">
@@ -236,27 +153,21 @@ export default async function CRMPage(props: {
                 <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-4 px-1">
                         <h1 className="text-xl md:text-2xl font-bold tracking-tight whitespace-nowrap">{isBroker ? 'İşlem Yönetimi' : t('title')}</h1>
-                        <React.Suspense fallback={<div className="h-9 w-24 bg-gray-100 animate-pulse rounded" />}>
-                            <CRMFilterSheet
-                                projects={isBroker ? [] : (projectsData || [])}
-                                profiles={profilesData || []}
-                                customers={customers || []}
+                        
+                        {/* Filter + NewSale — heavy data streams in via Suspense */}
+                        <Suspense fallback={toolbarSkeleton}>
+                            <DeferredCRMToolbar
+                                userTenantId={userTenantId || ''}
+                                isBroker={isBroker}
+                                tenantType={tenantType}
+                                params={params}
                             />
-                        </React.Suspense>
-                        <React.Suspense fallback={<div className="h-10 w-64 bg-gray-100 animate-pulse rounded" />}>
-                            <CRMSearch />
+                        </Suspense>
 
-                        </React.Suspense>
-                        <NewSaleButton
-                            customers={customers || []}
-                            availableUnits={availableUnits || []}
-                            initialState={{
-                                openNewSale: params.newSale === 'true',
-                                unitId: params.unitId as string,
-                                projectId: params.projectId as string
-                            }}
-                            tenantType={tenantType}
-                        />
+                        <Suspense fallback={<div className="h-10 w-64 bg-muted animate-pulse rounded" />}>
+                            <CRMSearch />
+                        </Suspense>
+
                         <SalesExportButton 
                             filters={{
                                 project: filterProject,
@@ -272,29 +183,33 @@ export default async function CRMPage(props: {
                     </div>
                 </div>
 
+                {/* Pipeline Stats — streams in via Suspense after list renders */}
                 <div className="hidden lg:block">
-                    <PipelineStats stats={statsData} tenantType={tenantType} />
+                    <Suspense fallback={statsSkeleton}>
+                        <DeferredPipelineStats {...statsFilterProps} />
+                    </Suspense>
                 </div>
             </div>
 
             <div className="lg:hidden px-1">
-                <PipelineStats stats={statsData} tenantType={tenantType} />
+                <Suspense fallback={statsSkeleton}>
+                    <DeferredPipelineStats {...statsFilterProps} />
+                </Suspense>
             </div>
 
-            <React.Suspense fallback={<div className="h-96 w-full bg-gray-100 animate-pulse rounded" />}>
-                <PipelineList
-                    sales={sales || []}
-                    customers={customers || []}
-                    availableUnits={availableUnits || []}
-                    templates={templates || []}
-                    profiles={profilesData || []}
-                    projects={projectsData || []}
-                    totalSalesCount={totalSalesCount}
-                    initialPage={page}
-                    isAdmin={isAdmin}
-                    tenantType={tenantType}
-                />
-            </React.Suspense>
+            {/* Sales List — renders IMMEDIATELY with first 50 records */}
+            <PipelineList
+                sales={sales || []}
+                customers={[]}
+                availableUnits={[]}
+                templates={templates || []}
+                profiles={profilesData || []}
+                projects={projectsData || []}
+                totalSalesCount={totalSalesCount}
+                initialPage={page}
+                isAdmin={isAdmin}
+                tenantType={tenantType}
+            />
         </div>
     )
 }

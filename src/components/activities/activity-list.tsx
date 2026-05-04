@@ -154,9 +154,7 @@ function ActivityRow({ activity, customers, profiles }: { activity: Activity, cu
                 </div>
             </TableCell>
                         <TableCell className="w-[30px] text-center">
-                          <Link href={`/activities/create?customer_id=${activity.customer_id}`} className="text-blue-600 hover:text-blue-700">
-                            <Plus className="h-5 w-5" />
-                          </Link>
+                          <ActivityCreateButton customerId={activity.customer_id} customers={customers} profiles={profiles} />
                         </TableCell>
             <TableCell>
                 <div className="max-w-full truncate">
@@ -232,3 +230,28 @@ function ActivityRow({ activity, customers, profiles }: { activity: Activity, cu
     )
 }
 
+// Inline create button with dialog
+function ActivityCreateButton({ customerId, customers, profiles }: { customerId: string | null, customers: any[], profiles: any[] }) {
+    const [open, setOpen] = useState(false)
+    return (
+        <>
+            <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-full"
+                onClick={(e) => { e.stopPropagation(); setOpen(true) }}
+                title="Yeni Aktivite"
+            >
+                <Plus className="h-4 w-4" />
+            </Button>
+            <ActivityForm
+                open={open}
+                onOpenChange={setOpen}
+                mode="create"
+                defaultCustomerId={customerId || undefined}
+                customers={customers}
+                profiles={profiles}
+            />
+        </>
+    )
+}

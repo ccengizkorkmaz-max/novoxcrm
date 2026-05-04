@@ -27,7 +27,8 @@ import SmsSettingsTab from './components/SmsSettingsTab'
 import { FinancialSettingsTab } from './components/FinancialSettingsTab'
 import { SystemLogsTab } from './components/SystemLogsTab'
 import SeoSettingsTab from './components/SeoSettingsTab'
-import { FileWarning } from 'lucide-react'
+import BrandSettingsTab from './components/BrandSettingsTab'
+import { FileWarning, Palette } from 'lucide-react'
 
 export default async function SettingsPage() {
     const supabase = await createClient()
@@ -127,61 +128,70 @@ export default async function SettingsPage() {
                 <p className="text-muted-foreground">{t('subtitle')}</p>
             </div>
 
-            <Tabs defaultValue="profile" className="w-full">
-                <TabsList className="flex w-full h-auto p-1 bg-slate-100/50 rounded-xl justify-start gap-1 overflow-x-auto mb-2">
-                    <TabsTrigger value="profile" className="flex-1 md:flex-none py-2.5 px-4 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all">
-                        <Building2 className="w-4 h-4 mr-2" />
-                        {t('tabs.profile')}
+            <Tabs defaultValue="profile" className="w-full" orientation="vertical">
+                <div className="flex flex-col md:flex-row gap-6">
+                {/* Vertical Tab Navigation */}
+                <TabsList className="flex flex-row md:flex-col h-auto p-1.5 bg-white border rounded-xl md:w-56 md:shrink-0 md:sticky md:top-4 md:self-start gap-0.5 overflow-x-auto md:overflow-x-visible">
+                    <TabsTrigger value="profile" className="justify-start w-full py-2 px-3 rounded-lg text-sm data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-sm transition-all">
+                        <Building2 className="w-4 h-4 mr-2 shrink-0" />
+                        <span className="hidden md:inline truncate">{t('tabs.profile')}</span>
                     </TabsTrigger>
-                    <TabsTrigger value="notifications" className="flex-1 md:flex-none py-2.5 px-4 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all">
-                        <Bell className="w-4 h-4 mr-2" />
-                        Bildirimler
+                    <TabsTrigger value="notifications" className="justify-start w-full py-2 px-3 rounded-lg text-sm data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-sm transition-all">
+                        <Bell className="w-4 h-4 mr-2 shrink-0" />
+                        <span className="hidden md:inline truncate">Bildirimler</span>
                     </TabsTrigger>
-                    <TabsTrigger value="users" className="flex-1 md:flex-none py-2.5 px-4 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all">
-                        <Users className="w-4 h-4 mr-2" />
-                        {t('tabs.users')}
+                    <TabsTrigger value="users" className="justify-start w-full py-2 px-3 rounded-lg text-sm data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-sm transition-all">
+                        <Users className="w-4 h-4 mr-2 shrink-0" />
+                        <span className="hidden md:inline truncate">{t('tabs.users')}</span>
                     </TabsTrigger>
-                    <TabsTrigger value="email" className="flex-1 md:flex-none py-2.5 px-4 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all">
-                        <Mail className="w-4 h-4 mr-2" />
-                        E-posta İşlemleri
+                    <TabsTrigger value="email" className="justify-start w-full py-2 px-3 rounded-lg text-sm data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-sm transition-all">
+                        <Mail className="w-4 h-4 mr-2 shrink-0" />
+                        <span className="hidden md:inline truncate">E-posta</span>
                     </TabsTrigger>
-                    <TabsTrigger value="templates" className="flex-1 md:flex-none py-2.5 px-4 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all">
-                        <FileText className="w-4 h-4 mr-2" />
-                        {t('tabs.templates')}
+                    <TabsTrigger value="templates" className="justify-start w-full py-2 px-3 rounded-lg text-sm data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-sm transition-all">
+                        <FileText className="w-4 h-4 mr-2 shrink-0" />
+                        <span className="hidden md:inline truncate">{t('tabs.templates')}</span>
                     </TabsTrigger>
-                    <TabsTrigger value="definitions" className="flex-1 md:flex-none py-2.5 px-4 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all">
-                        <Database className="w-4 h-4 mr-2" />
-                        Tanımlar
+                    <TabsTrigger value="definitions" className="justify-start w-full py-2 px-3 rounded-lg text-sm data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-sm transition-all">
+                        <Database className="w-4 h-4 mr-2 shrink-0" />
+                        <span className="hidden md:inline truncate">Tanımlar</span>
                     </TabsTrigger>
-                    <TabsTrigger value="financial" className="flex-1 md:flex-none py-2.5 px-4 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all">
-                        <Banknote className="w-4 h-4 mr-2" />
-                        Finansal
+                    <TabsTrigger value="financial" className="justify-start w-full py-2 px-3 rounded-lg text-sm data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-sm transition-all">
+                        <Banknote className="w-4 h-4 mr-2 shrink-0" />
+                        <span className="hidden md:inline truncate">Finansal</span>
                     </TabsTrigger>
-                    <TabsTrigger value="data" className="flex-1 md:flex-none py-2.5 px-4 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all">
-                        <Database className="w-4 h-4 mr-2" />
-                        {t('tabs.data')}
+                    <TabsTrigger value="data" className="justify-start w-full py-2 px-3 rounded-lg text-sm data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-sm transition-all">
+                        <Database className="w-4 h-4 mr-2 shrink-0" />
+                        <span className="hidden md:inline truncate">{t('tabs.data')}</span>
                     </TabsTrigger>
-                    <TabsTrigger value="commissions" className="flex-1 md:flex-none py-2.5 px-4 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all">
-                        <Banknote className="w-4 h-4 mr-2" />
-                        Primler
+                    <TabsTrigger value="commissions" className="justify-start w-full py-2 px-3 rounded-lg text-sm data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-sm transition-all">
+                        <Banknote className="w-4 h-4 mr-2 shrink-0" />
+                        <span className="hidden md:inline truncate">Primler</span>
                     </TabsTrigger>
-                    <TabsTrigger value="ai" className="flex-1 md:flex-none py-2.5 px-4 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all">
-                        <Brain className="w-4 h-4 mr-2" />
-                        {t('tabs.ai')}
+                    <TabsTrigger value="ai" className="justify-start w-full py-2 px-3 rounded-lg text-sm data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-sm transition-all">
+                        <Brain className="w-4 h-4 mr-2 shrink-0" />
+                        <span className="hidden md:inline truncate">{t('tabs.ai')}</span>
                     </TabsTrigger>
-                    <TabsTrigger value="sms" className="flex-1 md:flex-none py-2.5 px-4 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all">
-                        <MessageSquare className="w-4 h-4 mr-2" />
-                        SMS Ayarları
+                    <TabsTrigger value="sms" className="justify-start w-full py-2 px-3 rounded-lg text-sm data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-sm transition-all">
+                        <MessageSquare className="w-4 h-4 mr-2 shrink-0" />
+                        <span className="hidden md:inline truncate">SMS</span>
                     </TabsTrigger>
-                    <TabsTrigger value="seo" className="flex-1 md:flex-none py-2.5 px-4 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all">
-                        <Globe className="w-4 h-4 mr-2" />
-                        SEO
+                    <TabsTrigger value="seo" className="justify-start w-full py-2 px-3 rounded-lg text-sm data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-sm transition-all">
+                        <Globe className="w-4 h-4 mr-2 shrink-0" />
+                        <span className="hidden md:inline truncate">SEO</span>
                     </TabsTrigger>
-                    <TabsTrigger value="logs" className="flex-1 md:flex-none py-2.5 px-4 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all focus:outline-none">
-                        <FileWarning className="w-4 h-4 mr-2" />
-                        İşlem Logları
+                    <TabsTrigger value="brand" className="justify-start w-full py-2 px-3 rounded-lg text-sm data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-sm transition-all">
+                        <Palette className="w-4 h-4 mr-2 shrink-0" />
+                        <span className="hidden md:inline truncate">Tema</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="logs" className="justify-start w-full py-2 px-3 rounded-lg text-sm data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-sm transition-all focus:outline-none">
+                        <FileWarning className="w-4 h-4 mr-2 shrink-0" />
+                        <span className="hidden md:inline truncate">İşlem Logları</span>
                     </TabsTrigger>
                 </TabsList>
+
+                {/* Tab Content Area */}
+                <div className="flex-1 min-w-0">
 
 
                 {/* Tenant Profile Tab */}
@@ -272,6 +282,11 @@ export default async function SettingsPage() {
                     <SeoSettingsTab />
                 </TabsContent>
 
+                {/* Brand Settings Tab */}
+                <TabsContent value="brand" className="space-y-4">
+                    <BrandSettingsTab currentConfig={(tenant as any)?.brand_config || {}} />
+                </TabsContent>
+
                 {/* System Logs Tab */}
                 <TabsContent value="logs" className="space-y-4">
                     <SystemLogsTab 
@@ -279,6 +294,8 @@ export default async function SettingsPage() {
                         hasError={hasLogsTableError} 
                     />
                 </TabsContent>
+                </div>{/* end content area */}
+                </div>{/* end flex container */}
             </Tabs>
 
         </div>

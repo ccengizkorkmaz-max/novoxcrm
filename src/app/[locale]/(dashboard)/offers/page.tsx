@@ -14,30 +14,32 @@ export default async function OffersPage(props: {
     const query = searchParams.q as string
 
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+
+    // Parallel: auth + translations + expiration check
+    const [{ data: { user } }, t] = await Promise.all([
+        supabase.auth.getUser(),
+        getTranslations('Offers'),
+        checkOfferExpirations(false) // Check expirations in background
+    ])
+
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user?.id).single()
     const isManager = profile?.role === 'manager' || profile?.role === 'admin' || profile?.role === 'owner'
-
-    await checkOfferExpirations(false) // Check expirations on load, skip reval
-    const t = await getTranslations('Offers')
 
     // Fetch Offers
     let baseQuery = supabase
         .from('offers')
         .select('*, customers(full_name), units(unit_number, projects(name)), offer_negotiations(*), payment_plan')
-        .neq('status', 'Closed') // Hide signed/closed offers
+        .neq('status', 'Closed')
 
     if (!isManager && user) {
         baseQuery = baseQuery.eq('created_by', user.id)
     }
 
     if (query) {
-        // Search by customer name or unit number
         baseQuery = baseQuery.or(`full_name.ilike.%${query}%`, { foreignTable: 'customers' })
     }
 
     const { data: offers } = await baseQuery.order('created_at', { ascending: false })
-
 
     return (
         <div className="flex flex-col gap-6">

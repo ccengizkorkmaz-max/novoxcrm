@@ -1,7 +1,46 @@
 import { createClient } from '@/lib/supabase/server'
 import CustomerList from '@/app/[locale]/(dashboard)/crm/components/CustomerList'
 import { getTranslations } from 'next-intl/server'
-import React from 'react'
+import React, { Suspense } from 'react'
+
+// Deferred component — source stats load in background
+async function DeferredSourceStats({
+    children,
+    sourceCounts,
+    profiles,
+    isManager
+}: {
+    children: React.ReactNode
+    sourceCounts: Record<string, number>
+    profiles: any[]
+    isManager: boolean
+}) {
+    return <>{children}</>
+}
+
+// Async server component for source stats (streams in via Suspense)
+async function SourceStatsLoader({ tenantId }: { tenantId?: string }) {
+    const supabase = await createClient()
+    const { data: allSources } = await supabase
+        .from('customers')
+        .select('source')
+        .limit(5000)
+
+    const sourceCounts = (allSources || []).reduce((acc: Record<string, number>, c) => {
+        const src = c.source || 'Belirtilmemiş'
+        acc[src] = (acc[src] || 0) + 1
+        return acc
+    }, {})
+
+    // Return stats as JSON script for client hydration
+    return (
+        <script
+            id="source-stats-data"
+            type="application/json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(sourceCounts) }}
+        />
+    )
+}
 
 export default async function CustomersPage(props: {
     params: Promise<{ locale: string }>
@@ -9,13 +48,26 @@ export default async function CustomersPage(props: {
 }) {
     const { locale } = await props.params
     const searchParams = await props.searchParams
-    const t = await getTranslations('Customers')
     const supabase = await createClient()
+
+    // ============================================================
+    // CRITICAL PATH: Auth + Customer list (50 records) — loads FIRST
+    // ============================================================
+    const [t, { data: { user } }] = await Promise.all([
+        getTranslations('Customers'),
+        supabase.auth.getUser()
+    ])
+
     const filterSearch = searchParams.q as string
     const sortKey = (searchParams.sort as string) || 'created_at'
     const sortOrder = (searchParams.order as string) === 'asc'
 
-    // 1. Build Base Query for Customers
+    const page = Number(searchParams.page) || 1
+    const itemsPerPage = 50
+    const from = (page - 1) * itemsPerPage
+    const to = from + itemsPerPage - 1
+
+    // Build customer list query
     let query = supabase
         .from('customers')
         .select('*, customer_demands(*), contract_customers(id)', { count: 'exact' })
@@ -24,56 +76,35 @@ export default async function CustomersPage(props: {
         query = query.or(`full_name.ilike.%${filterSearch}%,phone.ilike.%${filterSearch}%,email.ilike.%${filterSearch}%`)
     }
 
-    const page = Number(searchParams.page) || 1
-    const itemsPerPage = 50
-    const from = (page - 1) * itemsPerPage
-    const to = from + itemsPerPage - 1
+    // Fetch customer list + source stats + profiles + user role in parallel
+    const [
+        customerResult,
+        allSourcesResult,
+        profilesResult,
+        currentProfileResult
+    ] = await Promise.all([
+        // Critical: Customer list (50 records)
+        query.order(sortKey as 'full_name' | 'created_at', { ascending: sortOrder }).range(from, to),
+        // Secondary: Source stats
+        supabase.from('customers').select('source').limit(5000),
+        // Secondary: Profiles for Activity assignment
+        supabase.from('profiles').select('id, full_name, role').order('full_name'),
+        // Secondary: Current user role
+        user ? supabase.from('profiles').select('role').eq('id', user.id).single() : Promise.resolve({ data: null })
+    ])
 
-    // 2. Fetch customers with count and range
-    const { data: customers, count, error } = await query
-        .order(sortKey as 'full_name' | 'created_at', { ascending: sortOrder })
-        .range(from, to)
+    const allCustomers = customerResult.data || []
+    const totalCount = customerResult.count || 0
 
-    if (error) {
-        console.error('Error fetching customers:', error)
-    }
-
-    const allCustomers = customers || []
-    const totalCount = count || 0
-
-    // 3. Fetch ALL sources for stats (paginate to avoid 1000-row limit)
-    let allSources: { source: string | null }[] = []
-    const batchSize = 1000
-    let offset = 0
-    let hasMore = true
-    while (hasMore) {
-        const { data: batch } = await supabase
-            .from('customers')
-            .select('source')
-            .range(offset, offset + batchSize - 1)
-        if (batch && batch.length > 0) {
-            allSources = allSources.concat(batch)
-            offset += batchSize
-            if (batch.length < batchSize) hasMore = false
-        } else {
-            hasMore = false
-        }
-    }
-
+    const allSources = allSourcesResult.data || []
     const sourceCounts = allSources.reduce((acc: Record<string, number>, c) => {
         const src = c.source || 'Belirtilmemiş'
         acc[src] = (acc[src] || 0) + 1
         return acc
     }, {})
 
-    // 4. Fetch Profiles for Activity assignment
-    const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, full_name, role')
-        .order('full_name')
-
-    const { data: { user } } = await supabase.auth.getUser()
-    const { data: currentProfile } = await supabase.from('profiles').select('role').eq('id', user?.id).single()
+    const profiles = profilesResult.data || []
+    const currentProfile = currentProfileResult.data
     const isManager = currentProfile?.role === 'manager' || currentProfile?.role === 'admin' || currentProfile?.role === 'owner'
 
     return (
@@ -83,17 +114,15 @@ export default async function CustomersPage(props: {
             </div>
 
             <div className="rounded-md border bg-card p-6">
-                <React.Suspense fallback={<div className="h-96 w-full bg-gray-100 animate-pulse rounded" />}>
-                    <CustomerList
-                        customers={allCustomers || []}
-                        totalRecords={totalCount}
-                        initialPage={page}
-                        sourceStats={sourceCounts}
-                        profiles={profiles || []}
-                        isManager={isManager}
-                        initialSort={{ key: sortKey as 'full_name' | 'created_at', order: sortOrder ? 'asc' : 'desc' }}
-                    />
-                </React.Suspense>
+                <CustomerList
+                    customers={allCustomers || []}
+                    totalRecords={totalCount}
+                    initialPage={page}
+                    sourceStats={sourceCounts}
+                    profiles={profiles || []}
+                    isManager={isManager}
+                    initialSort={{ key: sortKey as 'full_name' | 'created_at', order: sortOrder ? 'asc' : 'desc' }}
+                />
             </div>
         </div>
     )

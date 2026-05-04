@@ -17,6 +17,7 @@ import {
 import { SellerReportWidget } from './SellerReportWidget'
 import { PortfolioImageGallery } from './PortfolioImageGallery'
 import { DocumentManager } from '@/components/documents/DocumentManager'
+import NeighborhoodScoreCard from '@/components/broker/NeighborhoodScoreCard'
 
 interface Props {
     portfolio: any
@@ -257,11 +258,16 @@ export function PortfolioDetailView({ portfolio, agent, transactions, activities
                         <CardContent className="space-y-1.5">
                             {p.city && <p className="text-sm font-medium">{[p.neighborhood, p.district, p.city].filter(Boolean).join(', ')}</p>}
                             {p.address && <p className="text-xs text-muted-foreground">{p.address}</p>}
-                            <div className="mt-3 bg-slate-100 rounded-xl p-6 flex items-center justify-center text-xs text-muted-foreground border border-dashed">
-                                <MapPin className="h-4 w-4 mr-2" /> Harita yakında
-                            </div>
                         </CardContent>
                     </Card>
+
+                    {/* Mahalle Karnesi */}
+                    <NeighborhoodScoreCard
+                        address={p.address || [p.neighborhood, p.district, p.city].filter(Boolean).join(', ')}
+                        city={p.city || ''}
+                        projectName={p.title}
+                        radius={500}
+                    />
 
                     {/* Owner */}
                     <Card className="border shadow-sm">

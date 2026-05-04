@@ -148,7 +148,7 @@ export default async function InventoryPage(props: {
     }
 
     // 2. Fetch ALL data in parallel using Promise.all
-    // This significantly reduces load time by waiting for the longest request instead of the sum of all requests
+    // Auth, profile, projects, units, reports — ALL run simultaneously
     const [
         { data: projects },
         { data: customers },
@@ -156,7 +156,8 @@ export default async function InventoryPage(props: {
         agingData,
         velocityData,
         t,
-        { data: fetchedUnits }
+        { data: fetchedUnits },
+        { data: { user } }
     ] = await Promise.all([
         supabase.from('projects').select('id, name'),
         supabase.from('customers').select('id, full_name').order('full_name', { ascending: true }),
@@ -164,7 +165,8 @@ export default async function InventoryPage(props: {
         getStockAgingReport(),
         getSalesVelocityReport(),
         getTranslations('Inventory'),
-        query
+        query,
+        supabase.auth.getUser()
     ])
 
     const units = fetchedUnits
@@ -175,8 +177,7 @@ export default async function InventoryPage(props: {
         })
     }
 
-    // Get user role
-    const { data: { user } } = await supabase.auth.getUser()
+    // Get user role (profile fetch depends on user)
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user?.id).single()
     const isManager = profile?.role === 'manager' || profile?.role === 'admin' || profile?.role === 'owner'
 

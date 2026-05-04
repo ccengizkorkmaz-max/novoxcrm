@@ -10,6 +10,7 @@ import LanguageSwitcher from '@/components/LanguageSwitcher'
 import { ToastProvider } from '@/components/providers/ToastProvider'
 import NotificationBell from '@/components/notifications/NotificationBell'
 import { NextIntlClientProvider } from 'next-intl'
+import { resolveBrand, brandToCssVars, type BrandConfig } from '@/lib/brand-config'
 
 export default async function DashboardLayout(props: {
     children: React.ReactNode
@@ -17,38 +18,65 @@ export default async function DashboardLayout(props: {
 }) {
     const { locale } = await props.params
     const { children } = props
-    const t = await getTranslations('Dashboard')
-    const messages = await getMessages()
+
+    // Run all independent async operations in parallel for faster page loads
     const supabase = await createClient()
 
-    const {
-        data: { user },
-    } = await supabase.auth.getUser()
+    const [
+        { data: { user } },
+        t,
+        messages,
+        sidebarT
+    ] = await Promise.all([
+        supabase.auth.getUser(),
+        getTranslations('Dashboard'),
+        getMessages(),
+        getTranslations('Sidebar')
+    ])
 
     if (!user) {
         redirect('/login')
     }
 
-    // Fetch profile and tenant info
+    // Fetch profile (needed before tenant)
     const { data: profile } = await supabase
         .from('profiles')
         .select('full_name, tenant_id, role')
         .eq('id', user.id)
         .single()
 
-    const { data: tenant } = profile?.tenant_id ? await supabase
-        .from('tenants')
-        .select('name, tenant_type, has_broker_module, has_outreach_module')
-        .eq('id', profile.tenant_id)
-        .single() : { data: null }
+    // Fetch tenant info only if tenant_id exists (include brand_config for white-label)
+    let tenant: any = null
+    if (profile?.tenant_id) {
+        // Try with brand_config first, fallback without it if column doesn't exist yet
+        const result = await supabase
+            .from('tenants')
+            .select('name, tenant_type, has_broker_module, has_outreach_module, brand_config')
+            .eq('id', profile.tenant_id)
+            .single()
+        
+        if (result.error && result.error.message?.includes('brand_config')) {
+            // Column doesn't exist yet, query without it
+            const fallback = await supabase
+                .from('tenants')
+                .select('name, tenant_type, has_broker_module, has_outreach_module')
+                .eq('id', profile.tenant_id)
+                .single()
+            tenant = fallback.data
+        } else {
+            tenant = result.data
+        }
+    }
 
-    const tenantType = (tenant as any)?.tenant_type || 'developer'
-    const hasBrokerModule = (tenant as any)?.has_broker_module || false
-    const hasOutreachModule = (tenant as any)?.has_outreach_module || false
+    const tenantType = tenant?.tenant_type || 'developer'
+    const hasBrokerModule = tenant?.has_broker_module || false
+    const hasOutreachModule = tenant?.has_outreach_module || false
+
+    // Resolve white-label branding
+    const brand = resolveBrand(tenant?.brand_config)
+    const cssVars = brandToCssVars(brand)
 
     const isAuthorizedForSettings = profile?.role === 'admin' || profile?.role === 'owner'
-
-    const sidebarT = await getTranslations('Sidebar')
     const sidebarLabels = {
         overview: sidebarT('overview'),
         inbox: sidebarT('inbox'),
@@ -90,18 +118,22 @@ export default async function DashboardLayout(props: {
 
     return (
         <NextIntlClientProvider messages={messages} locale={locale}>
-            <div className="flex h-screen w-full bg-muted/40 font-sans">
+            <div className="flex h-screen w-full bg-muted/40 font-sans" style={cssVars as React.CSSProperties} data-ui-style={brand.uiStyle || 'default'}>
                 {/* Sidebar */}
-                <aside className="fixed inset-y-0 left-0 z-10 hidden w-64 flex-col border-r border-slate-800 bg-slate-950 md:flex print:hidden">
-                    <div className="flex flex-col border-b border-slate-800 px-4 py-3 lg:px-6">
+                <aside className="fixed inset-y-0 left-0 z-10 hidden w-64 flex-col border-r md:flex print:hidden" style={{ backgroundColor: brand.sidebarBg, borderColor: brand.sidebarBorder }}>
+                    <div className="flex flex-col px-4 py-3 lg:px-6" style={{ borderBottomWidth: '1px', borderColor: brand.sidebarBorder }}>
                         <div className="flex items-center justify-between">
                             <Link href="/" className="flex items-center gap-2 font-bold text-white">
-                                <Building2 className="h-6 w-6 text-blue-500" />
-                                <span className="text-lg tracking-tight">Novo CRM</span>
+                                {brand.logoUrl ? (
+                                    <img src={brand.logoUrl} alt={brand.appName} className="h-6 w-6 object-contain" />
+                                ) : (
+                                    <Building2 className="h-6 w-6" style={{ color: brand.primaryColor }} />
+                                )}
+                                <span className="text-lg tracking-tight">{brand.appName}</span>
+                                <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md" style={{ backgroundColor: brand.badgeBg, color: brand.badgeText }}>
+                                    {tenantType === 'broker' ? '.bro' : brand.badgeLabel}
+                                </span>
                             </Link>
-                            <div className="flex items-center gap-1">
-                                <NotificationBell />
-                            </div>
                         </div>
                         <div className="mt-1 flex flex-col">
                             <span className="text-xs font-bold text-slate-200 truncate">{tenant?.name || t('tenantLoading')}</span>
@@ -111,19 +143,8 @@ export default async function DashboardLayout(props: {
                     <div className="flex-1 overflow-auto py-2">
                         <NovoxSidebar role={profile?.role || 'sales'} labels={sidebarLabels} tenantType={tenantType} hasBrokerModule={hasBrokerModule} hasOutreachModule={hasOutreachModule} />
                     </div>
-                    <div className="px-4 py-2">
-                        <LanguageSwitcher variant="light" />
-                    </div>
-                    <div className="p-4 border-t border-slate-800 flex items-center justify-between gap-2">
+                    <div className="p-4 flex items-center justify-between gap-2" style={{ borderTopWidth: '1px', borderColor: brand.sidebarBorder }}>
                         <div className="flex items-center gap-1 overflow-hidden">
-                            {isAuthorizedForSettings && (
-                                <Link href="/settings">
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-white hover:bg-slate-800">
-                                        <Settings className="h-4 w-4" />
-                                        <span className="sr-only">{t('settings')}</span>
-                                    </Button>
-                                </Link>
-                            )}
                             <span className="text-[10px] text-slate-500 truncate max-w-[120px]">{user.email}</span>
                         </div>
                         <form action={async () => {
@@ -150,12 +171,19 @@ export default async function DashboardLayout(props: {
                                     <span className="sr-only">{t('toggleMenu')}</span>
                                 </Button>
                             </SheetTrigger>
-                            <SheetContent side="left" className="sm:max-w-xs flex flex-col p-0 bg-slate-950 border-r-slate-800">
-                                <div className="flex flex-col border-b border-slate-800 px-4 py-3">
+                            <SheetContent side="left" className="sm:max-w-xs flex flex-col p-0 border-r-0" style={{ backgroundColor: brand.sidebarBg }}>
+                                <div className="flex flex-col px-4 py-3" style={{ borderBottomWidth: '1px', borderColor: brand.sidebarBorder }}>
                                     <div className="flex items-center justify-between mb-2">
                                         <Link href="/" className="flex items-center gap-2 font-bold text-white">
-                                            <Building2 className="h-6 w-6 text-blue-500" />
-                                            <span className="text-lg tracking-tight">Novo CRM</span>
+                                            {brand.logoUrl ? (
+                                                <img src={brand.logoUrl} alt={brand.appName} className="h-6 w-6 object-contain" />
+                                            ) : (
+                                                <Building2 className="h-6 w-6" style={{ color: brand.primaryColor }} />
+                                            )}
+                                            <span className="text-lg tracking-tight">{brand.appName}</span>
+                                            <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md" style={{ backgroundColor: brand.badgeBg, color: brand.badgeText }}>
+                                                {tenantType === 'broker' ? '.bro' : brand.badgeLabel}
+                                            </span>
                                         </Link>
                                     </div>
                                     <div className="mt-1 flex flex-col">
@@ -169,7 +197,7 @@ export default async function DashboardLayout(props: {
                                 <div className="px-4 py-2">
                                     <LanguageSwitcher variant="light" />
                                 </div>
-                                <div className="p-4 border-t border-slate-800 flex items-center justify-between">
+                                <div className="p-4 flex items-center justify-between" style={{ borderTopWidth: '1px', borderColor: brand.sidebarBorder }}>
                                     {isAuthorizedForSettings && (
                                         <Link href="/settings" className="flex items-center gap-2 text-sm text-slate-400 hover:text-white">
                                             <Settings className="h-4 w-4" />
@@ -192,7 +220,10 @@ export default async function DashboardLayout(props: {
                         </Sheet>
                         <div className="flex flex-col ml-2 flex-1">
                             <div className="flex items-center justify-between w-full">
-                                <span className="font-bold text-sm leading-none">Novo CRM</span>
+                                <span className="font-bold text-sm leading-none">{brand.appName}</span>
+                                <span className="text-[8px] font-black uppercase px-1 py-0.5 rounded" style={{ backgroundColor: brand.badgeBg, color: brand.badgeText }}>
+                                    {tenantType === 'broker' ? '.bro' : brand.badgeLabel}
+                                </span>
                                 <div className="flex items-center gap-2">
                                     <NotificationBell />
                                 </div>
@@ -204,6 +235,17 @@ export default async function DashboardLayout(props: {
                             </div>
                         </div>
                     </header>
+                    <div className="hidden md:flex items-center justify-end gap-2 px-6 py-2 sticky top-0 z-20 bg-muted/40 print:hidden">
+                        <LanguageSwitcher />
+                        {isAuthorizedForSettings && (
+                            <Link href="/settings">
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-accent">
+                                    <Settings className="h-4 w-4" />
+                                </Button>
+                            </Link>
+                        )}
+                        <NotificationBell />
+                    </div>
                     <main className="grid flex-1 items-start gap-4 p-3 sm:px-6 sm:py-0 md:gap-8 overflow-auto">
                         {children}
                     </main>

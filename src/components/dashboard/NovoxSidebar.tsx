@@ -102,17 +102,21 @@ export function NovoxSidebar({
             <NavItem href="/" icon={LayoutDashboard} onClick={onElementClick}>
                 {labels.overview || 'Overview'}
             </NavItem>
-            {isManager && (
+            {isManager && !isBroker && (
                 <NavItem href="/inbox" icon={Mail} onClick={onElementClick}>
                     {labels.inbox || 'Inbox'}
                 </NavItem>
             )}
-            <NavItem href="/conversations" icon={MessageSquare} onClick={onElementClick}>
-                {labels.conversations || 'Conversations'}
-            </NavItem>
-            <NavItem href="/quick-crm" icon={Zap} onClick={onElementClick}>
-                {labels.quickCRM || 'Quick CRM'}
-            </NavItem>
+            {!isBroker && (
+                <NavItem href="/conversations" icon={MessageSquare} onClick={onElementClick}>
+                    {labels.conversations || 'Conversations'}
+                </NavItem>
+            )}
+            {!isBroker && (
+                <NavItem href="/quick-crm" icon={Zap} onClick={onElementClick}>
+                    {labels.quickCRM || 'Quick CRM'}
+                </NavItem>
+            )}
 
             {/* ======== DEVELOPER (MÜTEAHHİT) MENÜSÜ ======== */}
             {isDeveloper && (
@@ -183,17 +187,28 @@ export function NovoxSidebar({
                         <span>CRM</span>
                     </AccordionTrigger>
                     <AccordionContent className="pt-1 pb-2 pl-4 grid gap-0.5">
-                        <NavItem href="/customers" icon={Users} onClick={onElementClick} isSubItem>
-                            {labels.customers || 'Customers'}
-                        </NavItem>
-
-                        {isManager && (
-                            <NavItem href="/teams" icon={Users} onClick={onElementClick} isSubItem>
-                                {labels.salesTeams || 'Sales Teams'}
+                        {isBroker ? (
+                            <>
+                                <NavItem href="/contacts" icon={Users} onClick={onElementClick} isSubItem>
+                                    Kişiler
+                                </NavItem>
+                                <NavItem href="/broker-contracts" icon={FileText} onClick={onElementClick} isSubItem>
+                                    Sözleşmeler
+                                </NavItem>
+                            </>
+                        ) : (
+                            <NavItem href="/customers" icon={Users} onClick={onElementClick} isSubItem>
+                                {labels.customers || 'Customers'}
                             </NavItem>
                         )}
 
-                        {isSales && (
+                        {isManager && (
+                            <NavItem href="/teams" icon={Users} onClick={onElementClick} isSubItem>
+                                {isBroker ? 'Danışmanlar' : (labels.salesTeams || 'Sales Teams')}
+                            </NavItem>
+                        )}
+
+                        {isSales && !isBroker && (
                             <>
                                 <NavItem href="/crm" icon={Activity} onClick={onElementClick} isSubItem>
                                     {labels.salesManagement || 'Sales Management'}

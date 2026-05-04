@@ -113,7 +113,7 @@ export function NewPortfolioDialog({ open, onOpenChange }: NewPortfolioDialogPro
                         </TabsList>
 
                         {/* TAB 1: TEMEL BİLGİLER */}
-                        <TabsContent value="basic" className="space-y-4">
+                        <TabsContent value="basic" className="space-y-4" forceMount style={{ display: activeTab === 'basic' ? undefined : 'none' }}>
                             <div className="grid gap-2">
                                 <Label htmlFor="title" className="text-xs font-bold">Portföy Başlığı *</Label>
                                 <Input id="title" name="title" required placeholder="Örn: Beşiktaş'ta Deniz Manzaralı 3+1" className="h-10" />
@@ -185,7 +185,7 @@ export function NewPortfolioDialog({ open, onOpenChange }: NewPortfolioDialogPro
                         </TabsContent>
 
                         {/* TAB 2: KONUM */}
-                        <TabsContent value="location" className="space-y-4">
+                        <TabsContent value="location" className="space-y-4" forceMount style={{ display: activeTab === 'location' ? undefined : 'none' }}>
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="grid gap-2">
                                     <Label htmlFor="city" className="text-xs font-bold">İl</Label>
@@ -211,7 +211,7 @@ export function NewPortfolioDialog({ open, onOpenChange }: NewPortfolioDialogPro
                         </TabsContent>
 
                         {/* TAB 3: ÖZELLİKLER (AMENITIES) */}
-                        <TabsContent value="features" className="space-y-4">
+                        <TabsContent value="features" className="space-y-4" forceMount style={{ display: activeTab === 'features' ? undefined : 'none' }}>
                             <div className="grid gap-2">
                                 <Label className="text-xs font-bold">Isıtma Türü</Label>
                                 <select
@@ -255,7 +255,7 @@ export function NewPortfolioDialog({ open, onOpenChange }: NewPortfolioDialogPro
                         </TabsContent>
 
                         {/* TAB 4: EV SAHİBİ */}
-                        <TabsContent value="owner" className="space-y-4">
+                        <TabsContent value="owner" className="space-y-4" forceMount style={{ display: activeTab === 'owner' ? undefined : 'none' }}>
                             <div className="grid gap-2">
                                 <Label htmlFor="owner_name" className="text-xs font-bold">Ev Sahibi Adı</Label>
                                 <Input id="owner_name" name="owner_name" placeholder="Ad Soyad" />
@@ -285,8 +285,8 @@ export function NewPortfolioDialog({ open, onOpenChange }: NewPortfolioDialogPro
                             </div>
                         </TabsContent>
 
-                        {/* TAB 4: DETAY / AÇIKLAMA */}
-                        <TabsContent value="details" className="space-y-4">
+                        {/* TAB 5: DETAY / AÇIKLAMA */}
+                        <TabsContent value="details" className="space-y-4" forceMount style={{ display: activeTab === 'details' ? undefined : 'none' }}>
                             <div className="grid gap-2">
                                 <Label htmlFor="description" className="text-xs font-bold">İlan Açıklaması</Label>
                                 <textarea

@@ -43,6 +43,7 @@
     "pg": "^8.17.2",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "react-email-editor": "^1.8.0",
     "react-hot-toast": "^2.6.0",
     "recharts": "^3.7.0",
     "resend": "^6.8.0",

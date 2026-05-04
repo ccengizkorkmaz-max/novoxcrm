@@ -1,5 +1,7 @@
 'use client'
 
+import { CampaignEmailEditor } from './CampaignEmailEditor'
+
 import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -49,7 +51,7 @@ const TEMPLATE_CATEGORIES: Record<string, string> = {
 
 export function MarketingDashboard({ campaigns, templates, customers }: Props) {
     const router = useRouter()
-    const [activeTab, setActiveTab] = useState<'campaigns' | 'templates'>('campaigns')
+    const [activeTab, setActiveTab] = useState<'campaigns' | 'templates' | 'editor'>('campaigns')
     const [showNewCampaign, setShowNewCampaign] = useState(false)
     const [showNewTemplate, setShowNewTemplate] = useState(false)
 
@@ -174,15 +176,19 @@ export function MarketingDashboard({ campaigns, templates, customers }: Props) {
                 <button onClick={() => setActiveTab('campaigns')} className={cn("px-4 py-2 rounded-lg text-xs font-bold transition-all", activeTab === 'campaigns' ? "bg-slate-900 text-white" : "bg-white text-slate-500 border hover:bg-slate-50")}>
                     Kampanyalar
                 </button>
+                <button onClick={() => setActiveTab('editor')} className={cn("px-4 py-2 rounded-lg text-xs font-bold transition-all", activeTab === 'editor' ? "bg-slate-900 text-white" : "bg-white text-slate-500 border hover:bg-slate-50")}>
+                    ✨ İçerik Editörü
+                </button>
                 <button onClick={() => setActiveTab('templates')} className={cn("px-4 py-2 rounded-lg text-xs font-bold transition-all", activeTab === 'templates' ? "bg-slate-900 text-white" : "bg-white text-slate-500 border hover:bg-slate-50")}>
                     E-posta Şablonları
                 </button>
                 <div className="flex-1" />
-                {activeTab === 'campaigns' ? (
+                {activeTab === 'campaigns' && (
                     <Button onClick={() => setShowNewCampaign(true)} className="text-xs gap-1.5 bg-blue-600 hover:bg-blue-700">
                         <Plus className="h-4 w-4" /> Yeni Kampanya
                     </Button>
-                ) : (
+                )}
+                {activeTab === 'templates' && (
                     <Button onClick={() => setShowNewTemplate(true)} className="text-xs gap-1.5 bg-amber-600 hover:bg-amber-700">
                         <Plus className="h-4 w-4" /> Yeni Şablon
                     </Button>
@@ -250,6 +256,19 @@ export function MarketingDashboard({ campaigns, templates, customers }: Props) {
                         </div>
                     )}
                 </div>
+            )}
+
+            {/* Editor Tab */}
+            {activeTab === 'editor' && (
+                <CampaignEmailEditor
+                    onSave={(html, design) => {
+                        // Store design for future editing
+                        console.log('Saved design:', design)
+                        console.log('HTML output:', html?.slice(0, 200))
+                        setCBody(html)
+                        toast.success('İçerik kaydedildi! Artık kampanya oluşturabilirsiniz.')
+                    }}
+                />
             )}
 
             {/* Templates Tab */}

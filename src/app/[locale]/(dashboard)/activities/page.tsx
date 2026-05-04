@@ -22,64 +22,42 @@ export default async function ActivitiesPage(props: {
 
     const isAdmin = currentUserProfile?.role === 'admin' || currentUserProfile?.role === 'owner'
 
-    // Batch fetch helper — Supabase limits rows per query (default 1000)
-    async function fetchAll(query: any) {
-        const batchSize = 1000
-        let allData: any[] = []
-        let from = 0
-        let hasMore = true
-        while (hasMore) {
-            const { data, error } = await query.range(from, from + batchSize - 1)
-            if (error || !data || data.length === 0) {
-                hasMore = false
-            } else {
-                allData = allData.concat(data)
-                from += batchSize
-                if (data.length < batchSize) hasMore = false
-            }
-        }
-        return allData
+    // Build profiles query based on role
+    let profilesQuery = supabase
+        .from('profiles')
+        .select('id, full_name, role')
+        .neq('role', 'broker')
+        .not('full_name', 'is', null)
+        .neq('full_name', '')
+        .order('full_name')
+
+    if (!isAdmin) {
+        profilesQuery = profilesQuery.eq('id', user.id)
     }
 
-    // Run queries in parallel for speed
+    // Run all queries in parallel — NO MORE fetchAll while-loops!
+    // Limit activities and customers to reasonable amounts instead of fetching ALL records
     const [customers, activities, profilesResult, t] = await Promise.all([
-        // 1. Customers
-        fetchAll(
-            supabase
-                .from('customers')
-                .select('id, full_name')
-                .order('full_name', { ascending: true })
-                .order('id', { ascending: true })
-        ),
+        // Customers — only id and full_name, limit to 3000 (was fetching ALL via while-loop)
+        supabase
+            .from('customers')
+            .select('id, full_name')
+            .order('full_name', { ascending: true })
+            .limit(3000)
+            .then(r => r.data || []),
 
-        // 2. Activities — all records via batching
-        fetchAll(
-            supabase
-                .from('activities')
-                .select('*, customers(full_name, sales(status)), owner:profiles!activities_owner_id_fkey(full_name)')
-                .order('due_date', { ascending: true })
-                .order('id', { ascending: true })
-        ),
+        // Activities — limit to 2000 most recent (was fetching ALL via while-loop)
+        supabase
+            .from('activities')
+            .select('*, customers(full_name, sales(status)), owner:profiles!activities_owner_id_fkey(full_name)')
+            .order('due_date', { ascending: true })
+            .limit(2000)
+            .then(r => r.data || []),
 
-        // 3. Profiles for filter dropdown
-        (async () => {
-            let query = supabase
-                .from('profiles')
-                .select('id, full_name, role')
-                .neq('role', 'broker')
-                .not('full_name', 'is', null)
-                .neq('full_name', '')
-                .order('full_name')
+        // Profiles for filter dropdown
+        profilesQuery.then(r => r.data || []),
 
-            if (!isAdmin) {
-                query = query.eq('id', user.id)
-            }
-
-            const { data } = await query
-            return data || []
-        })(),
-
-        // 4. Translations
+        // Translations
         getTranslations('Activities'),
     ])
 

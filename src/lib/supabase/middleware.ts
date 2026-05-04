@@ -86,6 +86,19 @@ export async function updateSession(request: NextRequest, response?: NextRespons
     }
 
     if (user) {
+        // Only fetch profile for routes that actually need role-based redirection.
+        // Dashboard sub-routes (except root '/') are used by authenticated staff and don't need redirection checks.
+        const needsRoleCheck = 
+            pathWithoutLocale === '/' || 
+            pathWithoutLocale.startsWith('/customerservices') || 
+            pathWithoutLocale.startsWith('/broker') ||
+            pathWithoutLocale.startsWith('/dashboard') ||
+            pathWithoutLocale.startsWith('/admin')
+
+        if (!needsRoleCheck) {
+            return internalResponse
+        }
+
         // Fetch user profile to check role
         const { data: profile } = await supabase
             .from('profiles')

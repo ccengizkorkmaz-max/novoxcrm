@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { notFound } from "next/navigation"
 import { BrokerUnitList } from '@/components/broker/BrokerUnitList'
 import { BackButton } from '@/components/back-button'
+import NeighborhoodScoreCard from '@/components/broker/NeighborhoodScoreCard'
 
 export default async function BrokerProjectDetailPage(props: {
     params: Promise<{ id: string; locale: string }>
@@ -146,6 +147,16 @@ export default async function BrokerProjectDetailPage(props: {
                     </CardContent>
                 </Card>
             </div>
+
+            {/* Neighborhood Score Card - Full Width */}
+            <NeighborhoodScoreCard
+                lat={project.latitude}
+                lon={project.longitude}
+                address={project.address || ''}
+                city={project.city || ''}
+                projectName={project.name}
+                radius={500}
+            />
         </div>
     )
 }

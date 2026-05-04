@@ -93,9 +93,10 @@ interface ActivityFormProps {
     activity?: any
     customers?: any[]
     profiles?: any[]
+    defaultCustomerId?: string
 }
 
-export function ActivityForm({ open, onOpenChange, mode, activity, customers, profiles }: ActivityFormProps) {
+export function ActivityForm({ open, onOpenChange, mode, activity, customers, profiles, defaultCustomerId }: ActivityFormProps) {
     const t = useTranslations('Activities')
     const router = useRouter()
 
@@ -104,7 +105,7 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
     const [description, setDescription] = useState(activity?.description || '')
     const [notes, setNotes] = useState(activity?.notes || '')
     const [status, setStatus] = useState(activity?.status || 'Planned')
-    const [selectedCustomerId, setSelectedCustomerId] = useState(activity?.customer_id || '')
+    const [selectedCustomerId, setSelectedCustomerId] = useState(activity?.customer_id || defaultCustomerId || '')
     const [isProcessingVoice, setIsProcessingVoice] = useState(false)
 
     useEffect(() => {
