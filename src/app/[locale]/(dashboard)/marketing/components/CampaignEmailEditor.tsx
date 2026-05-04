@@ -230,18 +230,18 @@ export function CampaignEmailEditor({ initialDesign, initialHtml, onSave, portfo
                         appearance: { theme: 'modern_light' },
                         features: { textEditor: { spellChecker: false } },
                         tools: { form: { enabled: false } },
-                        mergeTags: [
-                            { name: 'Müşteri Adı', value: '{{musteri_adi}}' },
-                            { name: 'Portföy Başlık', value: '{{portfoy_baslik}}' },
-                            { name: 'Şehir', value: '{{sehir}}' },
-                            { name: 'İlçe', value: '{{ilce}}' },
-                            { name: 'Fiyat', value: '{{fiyat}}' },
-                            { name: 'Para Birimi', value: '{{para_birimi}}' },
-                            { name: 'Oda Sayısı', value: '{{oda_sayisi}}' },
-                            { name: 'Net m²', value: '{{net_m2}}' },
-                            { name: 'Firma Adı', value: '{{firma_adi}}' },
-                            { name: 'Danışman Adı', value: '{{danısman_adi}}' },
-                        ]
+                        mergeTags: {
+                            musteri_adi: { name: 'Müşteri Adı', value: '{{musteri_adi}}' },
+                            portfoy_baslik: { name: 'Portföy Başlık', value: '{{portfoy_baslik}}' },
+                            sehir: { name: 'Şehir', value: '{{sehir}}' },
+                            ilce: { name: 'İlçe', value: '{{ilce}}' },
+                            fiyat: { name: 'Fiyat', value: '{{fiyat}}' },
+                            para_birimi: { name: 'Para Birimi', value: '{{para_birimi}}' },
+                            oda_sayisi: { name: 'Oda Sayısı', value: '{{oda_sayisi}}' },
+                            net_m2: { name: 'Net m²', value: '{{net_m2}}' },
+                            firma_adi: { name: 'Firma Adı', value: '{{firma_adi}}' },
+                            danisman_adi: { name: 'Danışman Adı', value: '{{danisman_adi}}' },
+                        }
                     }}
                 />
             </div>
