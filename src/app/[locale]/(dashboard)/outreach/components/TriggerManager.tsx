@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Zap, Plus, ArrowLeft, Trash2, Save, Filter, PlayCircle, Settings2 } from 'lucide-react'
+import { Zap, Plus, ArrowLeft, ArrowRight, Trash2, Save, Filter, PlayCircle, Settings2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { getTriggers, createTrigger, deleteTrigger, toggleTrigger } from '../actions'
 
