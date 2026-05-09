@@ -603,7 +603,7 @@ async function advanceToNextStep(execution: any, step: any, outcome: string) {
 
     await supabase.from('outreach_executions')
         .update({
-            current_step_order: nextOrder,
+            current_step_order: nextStep.step_order,
             current_step_id: nextStep.id,
             current_retry_count: 0,
             next_action_at: new Date().toISOString(), // Execute immediately (or wait step will adjust)
