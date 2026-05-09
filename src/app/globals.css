@@ -219,6 +219,38 @@
     box-shadow: 0 8px 40px rgb(0 0 0 / 0.08);
 }
 
+/* ── Spatial / Extreme Minimalist: Typography focused, borderless, maximum whitespace ── */
+[data-ui-style="spatial"] {
+    --radius: 0px !important;
+    --background: oklch(1 0 0); /* Pure white */
+}
+.dark[data-ui-style="spatial"], [data-ui-style="spatial"].dark {
+    --background: oklch(0.05 0 0) !important; /* Almost pure black */
+    --card: oklch(0.05 0 0) !important;
+}
+[data-ui-style="spatial"] [data-slot="card"],
+[data-ui-style="spatial"] [data-slot="dialog-content"],
+[data-ui-style="spatial"] [data-slot="popover-content"] {
+    border-radius: 0px !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+    background-color: transparent !important;
+    border-bottom: 1px solid var(--border) !important; /* Only subtle separator lines */
+}
+[data-ui-style="spatial"] [data-slot="button"],
+[data-ui-style="spatial"] [data-slot="input"],
+[data-ui-style="spatial"] [data-slot="badge"],
+[data-ui-style="spatial"] button {
+    border-radius: 0px !important;
+    box-shadow: none !important;
+}
+/* For spatial design, buttons often have no background unless primary, we keep minimal borders */
+[data-ui-style="spatial"] [data-slot="card"]:hover {
+    box-shadow: none !important;
+    border-color: var(--border) !important;
+}
+
+
 @utility hero-grid {
     background-image:
         linear-gradient(to right, oklch(1 0 0 / 5%) 1px, transparent 1px),

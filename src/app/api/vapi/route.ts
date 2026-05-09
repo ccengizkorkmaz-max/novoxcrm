@@ -124,6 +124,40 @@ export async function POST(request: NextRequest) {
     if (!phoneNumber) {
       return NextResponse.json({ error: 'phoneNumber is required' }, { status: 400 });
     }
+
+    // --- CRM CONTEXT LOOKUP ---
+    const { createAdminClient } = await import('@/lib/supabase/admin');
+    const supabase = createAdminClient();
+    
+    let cleanPhone = phoneNumber.replace('+', '');
+    if (cleanPhone.startsWith('90')) cleanPhone = cleanPhone.substring(2);
+    
+    const { data: customers } = await supabase.from('customers')
+        .select('id, full_name, phone')
+        .ilike('phone', `%${cleanPhone}%`)
+        .limit(1);
+        
+    const crmCustomer = customers?.[0];
+    let crmContext = `Müşteri Adı: ${crmCustomer?.full_name || customerName || 'Bilinmiyor'}\n`;
+    
+    if (crmCustomer) {
+        const { data: activities } = await supabase.from('activities')
+            .select('type, description, created_at')
+            .eq('customer_id', crmCustomer.id)
+            .order('created_at', { ascending: false })
+            .limit(1);
+            
+        if (activities && activities.length > 0) {
+            crmContext += `Son Etkileşim: ${activities[0].type} - ${activities[0].description}\n`;
+        } else {
+            crmContext += `Son Etkileşim: Yok (İlk Arama)\n`;
+        }
+    }
+    
+    if (projectId) {
+        crmContext += `İlgilendiği Konu/Proje: ${projectId}\n`;
+    }
+    // ---------------------------
     
     // Check for custom script/voice overrides from the request body
     const { customPrompt, customVoiceId, voiceSettings } = body;
@@ -134,26 +168,31 @@ export async function POST(request: NextRequest) {
       phoneNumberId: PHONE_NUMBER_ID,
       customer: {
         number: phoneNumber,
-        name: customerName || undefined,
+        name: crmCustomer?.full_name || customerName || undefined,
       },
-      name: `Novo Call - ${customerName || phoneNumber}`,
+      name: `Novo Call - ${crmCustomer?.full_name || customerName || phoneNumber}`,
     };
     
     // We will build assistantOverrides dynamically
-    const overrides: any = {};
-    if (firstMessage) overrides.firstMessage = firstMessage;
+    const overrides: any = {
+        firstMessageMode: 'assistant-waits-for-user'
+    };
+    // if (firstMessage) overrides.firstMessage = firstMessage; // Removing hardcoded firstMessage as the LLM will generate it based on the prompt
     
     // System prompt override
-    if (customPrompt) {
-        overrides.model = {
-            messages: [
-                {
-                    role: "system",
-                    content: customPrompt
-                }
-            ]
-        };
-    }
+    // We append the CRM context so the AI knows exactly who they are talking to
+    const finalPrompt = customPrompt 
+        ? `${customPrompt}\n\n=== CRM BİLGİSİ ===\n${crmContext}`
+        : `Sen Novo Gayrimenkul danışmanısın. Müşteriyi arıyorsun.\n\n=== CRM BİLGİSİ ===\n${crmContext}`;
+
+    overrides.model = {
+        messages: [
+            {
+                role: "system",
+                content: finalPrompt
+            }
+        ]
+    };
 
     // Voice override
     if (customVoiceId) {

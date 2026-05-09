@@ -7,6 +7,8 @@ import { syncBrokerLeadFromSale } from '@/app/broker/actions'
 import { ensureFinancialAccount, createTransaction, createValuablePaper } from '../finance/actions'
 import { createNotification } from '@/lib/notifications/create'
 import { logSystemAction } from '@/lib/actions/system-logs'
+import { handleOutreachEvent } from '@/lib/outreach/events'
+
 export async function createCustomer(formData: FormData) {
     const supabase = await createClient()
     const { createAdminClient } = await import('@/lib/supabase/admin')
@@ -156,20 +158,15 @@ export async function createCustomer(formData: FormData) {
                     }).select().single()
 
                     if (!saleError && newSale) {
-                        // Automatic Follow-up Task
-                        await supabase.from('activities').insert({
-                            tenant_id: profile?.tenant_id,
-                            customer_id: data.id,
-                            user_id: user.id,
-                            owner_id: user.id,
-                            type: 'Call',
-                            topic: 'Sales',
-                            summary: 'Yeni Lead Takibi',
-                            description: `${full_name} için otomatik oluşturulan takip görevi.`,
-                            due_date: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(), // 2 hours later
-                            status: 'Planned',
-                            priority: 'High'
-                        })
+
+                        // Trigger Outreach Event: Lead Created
+                        if (profile?.tenant_id) {
+                            handleOutreachEvent(profile.tenant_id, 'lead_created', {
+                                saleId: newSale.id,
+                                customerId: data.id,
+                                status: 'Lead'
+                            }).catch(console.error)
+                        }
                     }
                 }
             }
@@ -435,6 +432,16 @@ export async function createSale(formData: FormData) {
 
     if (newSaleData) {
         await syncBrokerLeadFromSale(newSaleData.id, unit_id ? 'Prospect' : 'Lead')
+        
+        // Trigger Outreach Event: Lead Created
+        if (profile?.tenant_id) {
+            handleOutreachEvent(profile.tenant_id, 'lead_created', {
+                saleId: newSaleData.id,
+                customerId: customer_id,
+                status: unit_id ? 'Prospect' : 'Lead',
+                project_id: project_id || null
+            }).catch(console.error)
+        }
     }
 
     revalidatePath('/crm')
@@ -647,6 +654,16 @@ export async function updateSaleStatus(id: string, status: string) {
 
     revalidatePath('/crm')
     revalidatePath('/offers')
+
+    // Trigger Outreach Event: Status Changed
+    if (profile?.tenant_id && sale) {
+        handleOutreachEvent(profile.tenant_id, 'status_changed', {
+            saleId: id,
+            customerId: sale.customer_id,
+            status: status,
+            project_id: sale.project_id || null
+        }).catch(console.error)
+    }
 
     // Broker Sync
     await syncBrokerLeadFromSale(id, status)

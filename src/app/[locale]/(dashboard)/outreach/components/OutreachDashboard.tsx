@@ -17,6 +17,7 @@ import { WorkflowBuilder } from './WorkflowBuilder'
 import { ScriptManager } from './ScriptManager'
 import { SegmentManager } from './SegmentManager'
 import { CallResultsPanel } from './CallResultsPanel'
+import { TriggerManager } from './TriggerManager'
 
 interface OutreachDashboardProps {
     workflows: any[]
@@ -69,6 +70,7 @@ export function OutreachDashboard({
     const [editingWorkflow, setEditingWorkflow] = useState<any>(null)
     const [showScripts, setShowScripts] = useState(false)
     const [showSegments, setShowSegments] = useState(false)
+    const [showTriggers, setShowTriggers] = useState(false)
     const [localWorkflows, setLocalWorkflows] = useState(workflows)
     const [localSegments, setLocalSegments] = useState(segments)
     const [launching, setLaunching] = useState<string | null>(null)
@@ -156,6 +158,16 @@ export function OutreachDashboard({
         )
     }
 
+    if (showTriggers) {
+        return (
+            <TriggerManager
+                workflows={localWorkflows}
+                tenantId={tenantId}
+                onClose={() => setShowTriggers(false)}
+            />
+        )
+    }
+
     return (
         <div className="space-y-6">
             {/* Header */}
@@ -181,6 +193,11 @@ export function OutreachDashboard({
                         className="gap-2 border-violet-500/30 text-violet-400 hover:bg-violet-500/10">
                         <Bot className="h-4 w-4" />
                         AI Script&apos;ler
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => setShowTriggers(true)}
+                        className="gap-2 border-amber-500/30 text-amber-400 hover:bg-amber-500/10">
+                        <Zap className="h-4 w-4" />
+                        Tetikleyiciler
                     </Button>
                     <Button size="sm" onClick={() => setShowBuilder(true)}
                         className="gap-2 bg-gradient-to-r from-violet-600 to-blue-600 hover:from-violet-700 hover:to-blue-700">
@@ -221,6 +238,10 @@ export function OutreachDashboard({
                         <BarChart3 className="h-3.5 w-3.5" />
                         Son Aktivite
                     </TabsTrigger>
+                    <TabsTrigger value="triggers" className="data-[state=active]:bg-amber-600 data-[state=active]:text-white gap-2">
+                        <Zap className="h-3.5 w-3.5" />
+                        Tetikleyiciler
+                    </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="workflows" className="space-y-3">
@@ -260,6 +281,14 @@ export function OutreachDashboard({
 
                 <TabsContent value="activity" className="space-y-2">
                     <CallResultsPanel initialLogs={detailedLogs} />
+                </TabsContent>
+
+                <TabsContent value="triggers" className="space-y-3">
+                    <TriggerManager 
+                        workflows={localWorkflows} 
+                        tenantId={tenantId} 
+                        onClose={() => {}} // No back button needed in tab
+                    />
                 </TabsContent>
             </Tabs>
         </div>

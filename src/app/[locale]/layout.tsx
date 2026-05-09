@@ -76,7 +76,7 @@ export default async function RootLayout({
 
 
   return (
-    <html lang={locale} suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning data-ui-style="spatial">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

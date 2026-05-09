@@ -52,7 +52,7 @@ export async function processOutreachQueue() {
         .select(`
             *,
             outreach_workflows!inner(
-                working_hours_start, working_hours_end, working_days, timezone, is_active
+                id, working_hours_start, working_hours_end, working_days, timezone, is_active, conversion_goal_status
             ),
             customers(id, full_name, phone, email),
             sales(id, status, project_id, unit_id)
@@ -122,6 +122,14 @@ export async function processOutreachQueue() {
             continue
         }
 
+        // Check conversion goal
+        if (execution.outreach_workflows?.conversion_goal_status === execution.sales?.status) {
+            await supabase.from('outreach_executions')
+                .update({ status: 'completed', completed_at: now, metadata: { ...execution.metadata, goal_reached: true } })
+                .eq('id', execution.id)
+            continue
+        }
+
         // Execute the step
         try {
             await executeStep(execution, step)
@@ -169,6 +177,12 @@ async function executeStep(execution: any, step: any) {
         case 'notify':
             await executeNotify(execution, step, config)
             break
+        case 'condition':
+            await executeCondition(execution, step, config)
+            break
+        case 'ai_personalize':
+            await executeAiPersonalize(execution, step, config)
+            break
         default:
             await advanceToNextStep(execution, step, 'success')
     }
@@ -200,6 +214,7 @@ async function executeAiCall(execution: any, step: any, config: StepConfig, phon
     const result = await makeOutboundCall({
         phoneNumber: phone,
         assistantId: config.script_id || undefined,
+        firstMessage: execution.metadata?.personalized_message || undefined,
         metadata: {
             execution_id: execution.id,
             sale_id: execution.sale_id,
@@ -260,7 +275,8 @@ async function executeWhatsApp(execution: any, step: any, config: StepConfig, ph
         messageContent = `Template: ${config.template_name} [${params.join(', ')}]`
     } else if (config.free_text) {
         // Send free-text message (only works within 24h window)
-        const text = config.free_text
+        let text = execution.metadata?.personalized_message || config.free_text
+        text = text
             .replace('{customer_name}', customer?.full_name || '')
             .replace('{project_name}', execution.metadata?.project_name || '')
         result = await sendWhatsAppMessage(phone, text)
@@ -297,7 +313,7 @@ async function executeSms(execution: any, step: any, config: StepConfig, phone: 
         return
     }
 
-    const message = (config.custom_message || SMS_TEMPLATES[config.sms_template_key || 'default'] || '')
+    const message = (execution.metadata?.personalized_message || config.custom_message || SMS_TEMPLATES[config.sms_template_key || 'default'] || '')
         .replace('{customer_name}', customer?.full_name || 'Sayın Müşterimiz')
         .replace('{project_name}', execution.metadata?.project_name || '')
 
@@ -435,6 +451,74 @@ async function executeNotify(execution: any, step: any, config: StepConfig) {
     await logAndAdvance(execution, step, 'sent', 'notify')
 }
 
+async function executeCondition(execution: any, step: any, config: StepConfig) {
+    const supabase = createAdminClient()
+    const { field, operator, value } = config as any
+    const sale = execution.sales
+    
+    let isTrue = false
+    const actualValue = sale?.[field]
+    
+    if (operator === 'eq') isTrue = String(actualValue) === String(value)
+    else if (operator === 'neq') isTrue = String(actualValue) !== String(value)
+    else if (operator === 'contains') isTrue = String(actualValue).toLowerCase().includes(String(value).toLowerCase())
+    
+    await supabase.from('outreach_step_logs').insert({
+        execution_id: execution.id,
+        step_id: step.id,
+        channel: 'condition',
+        status: 'sent',
+        message_content: `Condition evaluated: ${field} ${operator} ${value} -> ${isTrue}`,
+    })
+    
+    await advanceToNextStep(execution, step, isTrue ? 'condition_true' : 'condition_false')
+}
+
+async function executeAiPersonalize(execution: any, step: any, config: StepConfig) {
+    const supabase = createAdminClient()
+    const { instruction } = config as any
+    const customer = execution.customers
+    const sale = execution.sales
+
+    // Fetch recent context for personalization
+    const { data: activities } = await supabase
+        .from('activities')
+        .select('summary, description')
+        .eq('customer_id', customer.id)
+        .order('created_at', { ascending: false })
+        .limit(3)
+
+    const context = activities?.map(a => `${a.summary}: ${a.description}`).join('\n') || 'Geçmiş görüşme kaydı yok.'
+
+    // Call LLM
+    
+    try {
+        const prompt = `Müşteri Adı: ${customer.full_name}\nBağlam:\n${context}\n\nTalimat: ${instruction}\n\nLütfen müşteri için samimi, profesyonel bir mesaj taslağı hazırla.`
+        
+        // Use Gemini for speed/cost
+        const response = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/ai/generate`, {
+            method: 'POST',
+            body: JSON.stringify({ prompt, type: 'personalization' })
+        })
+        const data = await response.json()
+        const personalizedMessage = data.text || 'Merhaba, sizinle iletişime geçmek istedik.'
+
+        // Store in metadata for next steps
+        await supabase.from('outreach_executions')
+            .update({
+                metadata: {
+                    ...execution.metadata,
+                    personalized_message: personalizedMessage
+                }
+            })
+            .eq('id', execution.id)
+
+        await logAndAdvance(execution, step, 'sent', 'ai_personalize', `Personalized: ${personalizedMessage.substring(0, 50)}...`)
+    } catch (err: any) {
+        await logAndAdvance(execution, step, 'failed', 'ai_personalize', err.message)
+    }
+}
+
 // ─── Retry & Advance Logic ──────────────────────────────────
 
 async function handleRetryOrAdvance(execution: any, step: any, config: StepConfig, outcome: string) {
@@ -475,25 +559,39 @@ async function advanceToNextStep(execution: any, step: any, outcome: string) {
     const supabase = createAdminClient()
 
     // Determine next action based on outcome
-    const nextAction = outcome === 'success' ? step.on_success
-        : outcome === 'no_answer' ? step.on_no_answer
-        : outcome === 'busy' ? step.on_busy
-        : step.on_failure
-
-    if (nextAction === 'stop') {
+    let nextStepId = null
+    
+    if (outcome === 'condition_true') nextStepId = step.next_step_id_on_condition_true || step.next_step_id_on_success
+    else if (outcome === 'condition_false') nextStepId = step.next_step_id_on_condition_false || step.next_step_id_on_failure
+    else if (outcome === 'success') nextStepId = step.next_step_id_on_success
+    else if (outcome === 'failure' || outcome === 'no_answer') nextStepId = step.next_step_id_on_failure
+    
+    if (nextStepId === 'stop') {
         await supabase.from('outreach_executions')
             .update({ status: 'stopped', completed_at: new Date().toISOString() })
             .eq('id', execution.id)
         return
     }
 
-    const nextOrder = step.step_order + 1
-    const { data: nextStep } = await supabase
-        .from('outreach_steps')
-        .select('id')
-        .eq('workflow_id', execution.workflow_id)
-        .eq('step_order', nextOrder)
-        .single()
+    // Determine next step order
+    let nextStep: any = null
+    if (nextStepId && nextStepId !== 'next') {
+        const { data } = await supabase
+            .from('outreach_steps')
+            .select('*')
+            .eq('id', nextStepId)
+            .single()
+        nextStep = data
+    } else {
+        const nextOrder = step.step_order + 1
+        const { data } = await supabase
+            .from('outreach_steps')
+            .select('*')
+            .eq('workflow_id', execution.workflow_id)
+            .eq('step_order', nextOrder)
+            .single()
+        nextStep = data
+    }
 
     if (!nextStep) {
         // No more steps

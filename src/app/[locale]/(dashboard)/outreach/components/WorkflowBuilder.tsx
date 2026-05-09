@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
     Phone, MessageSquare, Mail, Clock, Settings2, Zap, Plus,
-    ArrowLeft, ArrowDown, Trash2, GripVertical, Save, Target, Bot, Bell
+    ArrowLeft, ArrowDown, Trash2, GripVertical, Save, Target, Bot, Bell, Sparkles, Split
 } from 'lucide-react'
 import { createWorkflow } from '../actions'
 import { toast } from 'sonner'
@@ -20,6 +20,8 @@ const ACTION_TYPES = [
     { value: 'ai_call', label: 'AI Telefon Araması', icon: Phone, color: 'violet' },
     { value: 'whatsapp', label: 'WhatsApp Mesajı', icon: MessageSquare, color: 'emerald' },
     { value: 'sms', label: 'SMS Gönder', icon: Mail, color: 'blue' },
+    { value: 'condition', label: 'Eğer/Değilse', icon: Target, color: 'emerald' },
+    { value: 'ai_personalize', label: 'AI Kişiselleştir', icon: Sparkles, color: 'purple' },
     { value: 'wait', label: 'Bekle', icon: Clock, color: 'amber' },
     { value: 'status_update', label: 'Durum Güncelle', icon: Settings2, color: 'slate' },
     { value: 'notify', label: 'Bildirim Gönder', icon: Bell, color: 'rose' },
@@ -42,8 +44,8 @@ interface Step {
     config: any
     on_success: string
     on_failure: string
-    on_no_answer: string
-    on_busy: string
+    next_step_id_on_success?: string
+    next_step_id_on_failure?: string
 }
 
 export function WorkflowBuilder({ segments, scripts, projects, profiles, tenantId, editingWorkflow, onClose }: {
@@ -56,6 +58,8 @@ export function WorkflowBuilder({ segments, scripts, projects, profiles, tenantI
     const [hoursEnd, setHoursEnd] = useState(editingWorkflow?.working_hours_end?.substring(0, 5) || '19:00')
     const [workingDays, setWorkingDays] = useState<number[]>(editingWorkflow?.working_days || [1, 2, 3, 4, 5])
     const [maxPerDay, setMaxPerDay] = useState(editingWorkflow?.max_leads_per_day || 50)
+    const [conversionGoal, setConversionGoal] = useState(editingWorkflow?.conversion_goal_status || 'Prospect')
+    const [stopOnResponse, setStopOnResponse] = useState(editingWorkflow?.stop_on_customer_response ?? true)
     const [steps, setSteps] = useState<Step[]>(editingWorkflow?.outreach_steps || [])
     const [saving, setSaving] = useState(false)
 
@@ -96,10 +100,14 @@ export function WorkflowBuilder({ segments, scripts, projects, profiles, tenantI
                 working_days: workingDays,
                 is_auto_detect: false, auto_detect_days: 0,
                 max_leads_per_day: maxPerDay,
+                conversion_goal_status: conversionGoal,
+                stop_on_customer_response: stopOnResponse,
                 steps: steps.map(s => ({
                     step_order: s.step_order, name: s.name, action_type: s.action_type,
-                    config: s.config, on_success: s.on_success, on_failure: s.on_failure,
-                    on_no_answer: s.on_no_answer, on_busy: s.on_busy,
+                    config: s.config, 
+                    on_success: s.on_success, on_failure: s.on_failure,
+                    next_step_id_on_success: s.next_step_id_on_success,
+                    next_step_id_on_failure: s.next_step_id_on_failure,
                 })),
             })
             if (result.error) toast.error('Hata: ' + result.error)
@@ -147,6 +155,23 @@ export function WorkflowBuilder({ segments, scripts, projects, profiles, tenantI
                         <div className="space-y-2">
                             <Label className="text-xs">Açıklama</Label>
                             <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Kısa açıklama..." rows={2} />
+                        </div>
+                        <div className="space-y-3 pt-2 border-t">
+                            <div className="flex items-center justify-between">
+                                <Label className="text-xs">Yanıt gelirse durdur</Label>
+                                <Switch checked={stopOnResponse} onCheckedChange={setStopOnResponse} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-xs">Hedef Statü (Bununla sonlandır)</Label>
+                                <Select value={conversionGoal} onValueChange={setConversionGoal}>
+                                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="Prospect">Prospect (Fırsat)</SelectItem>
+                                        <SelectItem value="Sale">Sale (Satış)</SelectItem>
+                                        <SelectItem value="Meeting">Meeting (Randevu)</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
                         </div>
                     </Card>
 
@@ -261,6 +286,40 @@ export function WorkflowBuilder({ segments, scripts, projects, profiles, tenantI
                                                     <StepConfigEditor step={step} scripts={scripts}
                                                         onConfigChange={(k, v) => updateStepConfig(step.id, k, v)}
                                                         onFieldChange={(f, v) => updateStepField(step.id, f, v)} />
+
+                                                    {/* Branching UI */}
+                                                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-muted/50 mt-2">
+                                                        <div className="space-y-1">
+                                                            <Label className="text-[9px] uppercase tracking-wider text-muted-foreground">
+                                                                {step.action_type === 'condition' ? 'Koşul Doğru ise' : 'Başarılı ise'}
+                                                            </Label>
+                                                            <Select value={step.next_step_id_on_success || 'next'} onValueChange={v => updateStepField(step.id, 'next_step_id_on_success', v)}>
+                                                                <SelectTrigger className="h-6 text-[10px] bg-emerald-500/5 border-emerald-500/20"><SelectValue /></SelectTrigger>
+                                                                <SelectContent>
+                                                                    <SelectItem value="next">Sıradaki Adım</SelectItem>
+                                                                    <SelectItem value="stop">Durdur</SelectItem>
+                                                                    {steps.filter(s => s.id !== step.id).map(s => (
+                                                                        <SelectItem key={s.id} value={s.id}>{s.step_order}. {s.name}</SelectItem>
+                                                                    ))}
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </div>
+                                                        <div className="space-y-1">
+                                                            <Label className="text-[9px] uppercase tracking-wider text-muted-foreground">
+                                                                {step.action_type === 'condition' ? 'Koşul Yanlış ise' : 'Başarısız/Cevapsız ise'}
+                                                            </Label>
+                                                            <Select value={step.next_step_id_on_failure || 'next'} onValueChange={v => updateStepField(step.id, 'next_step_id_on_failure', v)}>
+                                                                <SelectTrigger className="h-6 text-[10px] bg-rose-500/5 border-rose-500/20"><SelectValue /></SelectTrigger>
+                                                                <SelectContent>
+                                                                    <SelectItem value="next">Sıradaki Adım</SelectItem>
+                                                                    <SelectItem value="stop">Durdur</SelectItem>
+                                                                    {steps.filter(s => s.id !== step.id).map(s => (
+                                                                        <SelectItem key={s.id} value={s.id}>{s.step_order}. {s.name}</SelectItem>
+                                                                    ))}
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </Card>
@@ -418,6 +477,44 @@ function StepConfigEditor({ step, scripts, onConfigChange, onFieldChange }: {
                 <Input value={c.notify_message || ''} onChange={e => onConfigChange('notify_message', e.target.value)}
                     placeholder="Bildirim mesajı..." className="h-7 text-[11px]" />
             )
+        case 'condition':
+            return (
+                <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                        <Select value={c.field || 'status'} onValueChange={v => onConfigChange('field', v)}>
+                            <SelectTrigger className="h-7 text-[11px]"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="status">Lead Statüsü</SelectItem>
+                                <SelectItem value="source">Kaynak</SelectItem>
+                                <SelectItem value="project_id">Proje</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <Select value={c.operator || 'eq'} onValueChange={v => onConfigChange('operator', v)}>
+                            <SelectTrigger className="h-7 w-20 text-[11px]"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="eq">Eşit</SelectItem>
+                                <SelectItem value="neq">Değil</SelectItem>
+                                <SelectItem value="contains">İçerir</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <Input value={c.value || ''} onChange={e => onConfigChange('value', e.target.value)}
+                            placeholder="Değer..." className="h-7 flex-1 text-[11px]" />
+                    </div>
+                    <p className="text-[9px] text-muted-foreground italic">Bu koşul sağlanırsa 'Başarılı' yolunu, sağlanmazsa 'Başarısız' yolunu izler.</p>
+                </div>
+            )
+        case 'ai_personalize':
+            return (
+                <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-[11px] text-purple-400 mb-1">
+                        <Sparkles className="h-3 w-3" /> Akıllı Mesaj Yazımı
+                    </div>
+                    <Textarea value={c.instruction || ''} onChange={e => onConfigChange('instruction', e.target.value)}
+                        placeholder="Örn: Müşterinin son görüşme notlarına bakarak sıcak bir giriş yap ve ilgilendiği projenin avantajlarını vurgula."
+                        rows={2} className="text-[11px]" />
+                    <p className="text-[9px] text-muted-foreground mt-1">Bu adımda AI mesajı hazırlar, bir sonraki WhatsApp/SMS adımında {`{{personalized_message}}`} olarak kullanılır.</p>
+                </div>
+            )
         default:
             return null
     }
@@ -429,6 +526,8 @@ function getDefaultConfig(type: string): any {
         case 'whatsapp': return { template_name: '', free_text: '' }
         case 'sms': return { sms_template_key: 'coldLeadReminder' }
         case 'wait': return { duration_value: 2, duration_unit: 'hours' }
+        case 'condition': return { field: 'status', operator: 'eq', value: '' }
+        case 'ai_personalize': return { instruction: '' }
         case 'status_update': return { new_status: '' }
         case 'notify': return { notify_message: 'Outreach tamamlandı: {customer_name}' }
         default: return {}

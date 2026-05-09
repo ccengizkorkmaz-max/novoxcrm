@@ -25,10 +25,14 @@ export interface VapiCallOptions {
     assistantId?: string
     /** Or inline assistant config */
     assistant?: VapiAssistantConfig
-    /** Customer metadata to pass to the AI agent */
+    /** Metadata for CRM integration */
     metadata?: Record<string, any>
     /** Override the phone number to call from */
     phoneNumberId?: string
+    /** Override the first message (greeting) */
+    firstMessage?: string
+    /** Override the system prompt */
+    systemPrompt?: string
 }
 
 export interface VapiAssistantConfig {
@@ -110,6 +114,16 @@ export async function makeOutboundCall(options: VapiCallOptions): Promise<VapiCa
                 return { success: false, error: 'No assistant configured. Set VAPI_ASSISTANT_ID or pass assistantId.' }
             }
             payload.assistantId = defaultAssistantId
+        }
+
+        // Apply overrides if provided
+        if (options.firstMessage || options.systemPrompt) {
+            payload.assistantOverrides = {
+                firstMessage: options.firstMessage,
+                model: options.systemPrompt ? {
+                    systemPrompt: options.systemPrompt
+                } : undefined
+            }
         }
 
         // Add metadata (customer info, sale info etc.)

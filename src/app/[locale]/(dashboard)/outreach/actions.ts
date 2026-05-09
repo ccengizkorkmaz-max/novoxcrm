@@ -141,15 +141,17 @@ export async function createWorkflow(payload: {
     is_auto_detect?: boolean
     auto_detect_days?: number
     max_leads_per_day?: number
+    conversion_goal_status?: string
+    stop_on_customer_response?: boolean
     steps: Array<{
         step_order: number
         name?: string
         action_type: string
         config: any
+        next_step_id_on_success?: string
+        next_step_id_on_failure?: string
         on_success?: string
         on_failure?: string
-        on_no_answer?: string
-        on_busy?: string
     }>
 }) {
     const { supabase, user, tenantId } = await getAuthContext()
@@ -245,7 +247,12 @@ export async function addStep(workflowId: string, step: {
     return { success: true, data }
 }
 
-export async function updateStep(id: string, payload: Partial<{ name: string; config: any; on_success: string; on_failure: string; on_no_answer: string; on_busy: string; is_active: boolean }>) {
+export async function updateStep(id: string, payload: Partial<{ 
+    name: string; config: any; 
+    on_success: string; on_failure: string; 
+    next_step_id_on_success: string; next_step_id_on_failure: string;
+    is_active: boolean 
+}>) {
     const { supabase } = await getAuthContext()
     const { error } = await supabase.from('outreach_steps').update(payload).eq('id', id)
     if (error) return { error: error.message }
@@ -413,6 +420,43 @@ export async function addOptout(customerId: string, phone: string, channel: stri
 export async function removeOptout(id: string) {
     const { supabase } = await getAuthContext()
     const { error } = await supabase.from('outreach_optouts').delete().eq('id', id)
+    if (error) return { error: error.message }
+    revalidatePath('/outreach')
+    return { success: true }
+}
+
+// ─── Event Triggers ──────────────────────────────────────────
+
+export async function getTriggers() {
+    const { supabase } = await getAuthContext()
+    const { data } = await supabase.from('outreach_event_triggers')
+        .select('*, outreach_workflows(name)')
+        .order('created_at', { ascending: false })
+    return data || []
+}
+
+export async function createTrigger(payload: { workflow_id: string; event_type: string; event_config: any }) {
+    const { supabase, tenantId } = await getAuthContext()
+    const { data, error } = await supabase.from('outreach_event_triggers').insert({
+        tenant_id: tenantId,
+        ...payload
+    }).select().single()
+    if (error) return { error: error.message }
+    revalidatePath('/outreach')
+    return { success: true, data }
+}
+
+export async function toggleTrigger(id: string, isActive: boolean) {
+    const { supabase } = await getAuthContext()
+    const { error } = await supabase.from('outreach_event_triggers').update({ is_active: isActive }).eq('id', id)
+    if (error) return { error: error.message }
+    revalidatePath('/outreach')
+    return { success: true }
+}
+
+export async function deleteTrigger(id: string) {
+    const { supabase } = await getAuthContext()
+    const { error } = await supabase.from('outreach_event_triggers').delete().eq('id', id)
     if (error) return { error: error.message }
     revalidatePath('/outreach')
     return { success: true }
