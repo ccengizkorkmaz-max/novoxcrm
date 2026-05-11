@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NovoCRM - Tower Gayrimenkul Teklif Dokümanı</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --secondary: #0f172a;
+            --text-main: #334155;
+            --text-light: #64748b;
+            --bg-light: #f8fafc;
+            --border: #e2e8f0;
+            --accent: #f59e0b;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+            color: var(--text-main);
+            background-color: #f1f5f9;
+            margin: 0;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--secondary) 0%, #1e293b 100%);
+            color: white;
+            padding: 50px 40px;
+            text-align: center;
+        }
+
+        .header h1 {
+            margin: 0 0 15px 0;
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .header p {
+            margin: 0;
+            font-size: 18px;
+            color: #cbd5e1;
+            font-weight: 300;
+        }
+
+        .content {
+            padding: 50px 40px;
+        }
+
+        .intro {
+            font-size: 16px;
+            margin-bottom: 40px;
+            padding-bottom: 30px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        h2 {
+            color: var(--secondary);
+            font-size: 22px;
+            font-weight: 600;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+
+        h2::before {
+            content: '';
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            background-color: var(--primary);
+            border-radius: 6px;
+            margin-right: 12px;
+        }
+
+        h3 {
+            color: var(--secondary);
+            font-size: 18px;
+            margin-top: 30px;
+            margin-bottom: 15px;
+        }
+
+        ul {
+            padding-left: 20px;
+            margin-bottom: 20px;
+        }
+
+        li {
+            margin-bottom: 12px;
+            position: relative;
+        }
+
+        li strong {
+            color: var(--secondary);
+        }
+
+        .highlight-box {
+            background-color: var(--bg-light);
+            border-left: 4px solid var(--primary);
+            padding: 20px;
+            border-radius: 0 8px 8px 0;
+            margin: 30px 0;
+        }
+
+        .pricing-section {
+            background: linear-gradient(to bottom right, #f8fafc, #f1f5f9);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 30px;
+            margin-top: 50px;
+        }
+
+        .pricing-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .pricing-header h2 {
+            justify-content: center;
+            margin-top: 0;
+        }
+
+        .pricing-header h2::before {
+            display: none;
+        }
+
+        .price-card {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+            margin-bottom: 20px;
+            border: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .price-info h4 {
+            margin: 0 0 8px 0;
+            color: var(--secondary);
+            font-size: 18px;
+        }
+
+        .price-info p {
+            margin: 0;
+            color: var(--text-light);
+            font-size: 14px;
+        }
+
+        .price-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--primary);
+            text-align: right;
+            min-width: 120px;
+        }
+
+        .hourly-rate {
+            background-color: #fffbeb;
+            border: 1px solid #fde68a;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        .hourly-rate h4 {
+            margin: 0 0 10px 0;
+            color: #b45309;
+        }
+
+        .hourly-rate p {
+            margin: 0;
+            font-size: 14px;
+            color: #92400e;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 30px;
+            color: var(--text-light);
+            font-size: 14px;
+            border-top: 1px solid var(--border);
+            background-color: var(--bg-light);
+        }
+
+        @media (max-width: 600px) {
+            .price-card {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .price-value {
+                margin-top: 15px;
+                text-align: left;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h1>NovoCRM Yönetim Sistemi Teklifi</h1>
+            <p>Tower Gayrimenkul İçin Özel Olarak Hazırlanmıştır</p>
+        </div>
+
+        <div class="content">
+            <div class="intro">
+                <p><strong>Sayın Tower Gayrimenkul Yönetimi,</strong></p>
+                <p>Gayrimenkul firmalarının merkez operasyonlarını, kendilerine bağlı şube/brokerları ve kendi
+                    bünyelerindeki danışman ağını tek bir merkezden yönetmeleri, sürdürülebilir büyümenin en kritik
+                    anahtarıdır.</p>
+                <p><strong>NovoCRM Gayrimenkul Versiyonu</strong>; Tower Gayrimenkul'ün kendi merkez operasyonlarını, iç
+                    ofislerini ve bağlı danışmanlarını <strong>(Merkez - Broker - Danışman - Portföy - Alıcı)</strong>
+                    tek bir ekosistemde dijitalleştiren uçtan uca bir yönetim platformudur.</p>
+            </div>
+
+            <h2>1. Merkez Ofis, Şube (Broker) ve Danışman Hiyerarşisi</h2>
+            <p>NovoCRM, Tower Gayrimenkul'ün organizasyon şemasına tam uyumlu çalışır.</p>
+            <ul>
+                <li><strong>Merkez Yönetim ve Şube Brokerları:</strong> Merkez ofis tüm performansı tepeden izlerken,
+                    her şube yöneticisi (Broker) kendi bünyesindeki danışmanların anlık ciro hedeflerini, portföy
+                    durumlarını, günlük yer gösterme sayılarını ve kapandı (işlem) oranlarını tek ekranda izler.</li>
+                <li><strong>Gayrimenkul Danışmanları:</strong> Her danışman sisteme kendi özel paneliyle giriş yapar.
+                    Sadece kendi alıcılarını, satıcılarını ve ilgilendiği portföyleri yönetir. (KVKK ve RLS kilitleri
+                    ile veriler korunur).</li>
+            </ul>
+
+            <h2>2. Portföy (Listing) ve Belge Yönetimi</h2>
+            <ul>
+                <li><strong>Detaylı Portföy Kartları:</strong> Konut, ticari, arsa gibi farklı gayrimenkul tiplerinde;
+                    m² detayları, oda sayıları, ada/parsel bilgileri, fotoğraf galerisi ve konum verileri.</li>
+                <li><strong>Dijital Evrak Çantası:</strong> Yetki belgeleri, tapu örnekleri, kimlik fotokopileri ve
+                    enerji kimlik belgeleri doğrudan portföy kartına yüklenir.</li>
+            </ul>
+
+            <h2>3. Kurumsal İlan Web Sitesi (Public Listings)</h2>
+            <ul>
+                <li><strong>Dinamik Web Sitesi:</strong> Çift veri girişine gerek kalmaz. Tower Gayrimenkul'e özel
+                    tasarlanmış web siteniz doğrudan CRM'deki portföylerle beslenir.</li>
+                <li><strong>Danışman Profilleri:</strong> Her danışmanın kendine ait kişisel bir sayfası olur.</li>
+                <li><strong>Müşteri Toplama Formu:</strong> Ziyaretçilerin doldurduğu formlar, CRM'de o portföyle
+                    ilgilenen danışmana anında "yeni müşteri" olarak düşer.</li>
+            </ul>
+
+            <h2>4. Alıcı Talepleri ve Yapay Zeka Eşleştirme</h2>
+            <ul>
+                <li><strong>Talep Havuzu:</strong> Müşterinin bütçe aralığı, aradığı bölge ve gayrimenkul tipi sisteme
+                    girilir.</li>
+                <li><strong>Akıllı Eşleştirme:</strong> Sistem, ofisinizin havuzundaki en uygun ilanları filtreler ve
+                    danışmana "Şu portföyler bu müşteriye uygun" önerisinde bulunur.</li>
+            </ul>
+
+            <h2>5. Teklif ve Müzakere Süreçleri</h2>
+            <ul>
+                <li><strong>Dijital Teklif Formları:</strong> Alıcının sunduğu revize teklif fiyatı, peşinat oranı ve
+                    ödeme şartları sisteme girilir.</li>
+                <li><strong>Müzakere Takibi:</strong> Kaparo alındığında işlem resmi olarak "Kapanış/Closing" sürecine
+                    aktarılır.</li>
+                <li><strong>Hizmet Bedeli ve Paylaşım:</strong> Ofis ile danışman arasındaki (Örn: %50 / %50) hizmet
+                    bedeli paylaşım oranları otomatik hesaplanır.</li>
+            </ul>
+
+            <h2>6. Çok Kanallı Bildirim ve Akıllı Uyarı Sistemleri</h2>
+            <div class="highlight-box">
+                Sahada sürekli hareket halinde olan danışmanların hiçbir fırsatı kaçırmaması için proaktif bir uyarı
+                motoru tasarlanmıştır:
+                <ul style="margin-top: 15px; margin-bottom: 0;">
+                    <li><strong>Anlık Push ve SMS Uyarıları:</strong> Web sitenizden yeni bir lead geldiğinde, ilgili
+                        danışmanın telefonuna anında bildirim düşer.</li>
+                    <li><strong>Follow-up Hatırlatıcıları:</strong> "Müşteri ile 1 hafta sonra tekrar görüşülecek"
+                        olarak işaretlenen takipler için sistem o sabah hatırlatma gönderir.</li>
+                    <li><strong>Portföy Yetki Süresi Uyarıları:</strong> Yetki Belgesi'nin süresi dolmaya 15 gün kala
+                        sistem uyarır.</li>
+                    <li><strong>Fiyat Düşüş Bildirimleri:</strong> Takip edilen taleplere uygun portföylerin fiyatı
+                        düştüğünde sistem uyararak satış fırsatı yaratır.</li>
+                </ul>
+            </div>
+
+            <h2>7. Global Best Practice'ler (Rekabet Avantajları)</h2>
+            <ul>
+                <li><strong>Speed-to-Lead (Saniye Bazlı Lead Atama):</strong> Web sitesinden gelen müşteri talebi uygun
+                    danışmana yönlendirilir. Danışman 5 dakika içinde aramazsa, lead otomatik olarak sıradaki danışmana
+                    geçer.</li>
+                <li><strong>Davranışsal Skorlama (Behavioral Scoring):</strong> Müşteriniz bir ilana 3 kez bakarsa,
+                    sistem müşterinin "sıcaklık skorunu" artırır ve danışmana "Hemen Ara" uyarısı gönderir.</li>
+                <li><strong>Damlama Pazarlama (Drip Campaigns):</strong> Soğuk müşterilere 6 ay boyunca otomatik SMS ve
+                    e-posta ile piyasa analizi gönderilir.</li>
+            </ul>
+
+            <h2>8. Entegrasyonlar, SLA ve Veri Güvenliği</h2>
+            <ul>
+                <li><strong>Üçüncü Parti Entegrasyonlar:</strong> Sahibinden.com, Hepsiemlak vb. emlak portalları ile
+                    XML entegrasyonu kapsam dahilindedir. (Not: Bulut santral ve E-Devlet/WebTapu entegrasyonları mevcut
+                    kapsama dahil değildir).</li>
+                <li><strong>Servis Seviyesi Taahhüdü (SLA) ve Destek:</strong> Sistem kesintisi yaşatan kritik hatalara
+                    2 saat içinde, standart taleplere ise 24 saat içinde müdahale edilir. Hafta içi 09:00 - 18:00
+                    saatleri arasında standart teknik destek sağlanır.</li>
+                <li><strong>Sunucu (Hosting) Maliyetleri:</strong> Uygulamanın barındırılacağı bulut sunucu kiralama ve
+                    aylık altyapı maliyetleri teklif kapsamına dahil değildir, Tower Gayrimenkul tarafından
+                    karşılanacaktır.</li>
+                <li><strong>Veri Mülkiyeti ve KVKK Taahhüdü:</strong> Sisteme girilen tüm müşteri, sözleşme, portföy ve
+                    finansal verilerin mülkiyeti %100 Tower Gayrimenkul'e aittir. NovoCRM, bu verileri kesinlikle
+                    işlemez, anonimleştirmez veya üçüncü şahıslarla paylaşmaz. Tüm altyapı KVKK standartlarına uygun
+                    olarak korunur.</li>
+            </ul>
+
+            <h2>9. Özelleştirme, Geliştirme ve Proje Takvimi</h2>
+            <div class="highlight-box" style="border-left-color: var(--accent); background-color: #fffbeb;">
+                <p style="margin-top: 0; margin-bottom: 15px;">Mevcut NovoCRM çekirdek altyapısı üzerine, Tower
+                    Gayrimenkul'ün ihtiyaçlarına özel olarak yapılacak UI/UX uyarlamaları ve yeni modül geliştirmeleri
+                    için proje teslim süresi <strong>8 Hafta (2 Ay)</strong> olarak planlanmıştır:</p>
+                <ul style="margin-bottom: 0;">
+                    <li><strong>1.-2. Hafta (İhtiyaç Analizi ve Mimari Tasarım):</strong> Tower Gayrimenkul süreçlerinin
+                        detaylı sistem analizi. Mevcut yapıya eklenecek yeni modüllerin, sözleşme akışlarının ve ofise
+                        özel kuralların projelendirilmesi.</li>
+                    <li><strong>3.-5. Hafta (Yazılım Geliştirme ve Kodlama):</strong> Analiz edilen özel modüllerin
+                        NovoCRM altyapısına kodlanması, kurumsal ilan web sitesi entegrasyonu ve API bağlantılarının
+                        (veri akışlarının) geliştirilmesi.</li>
+                    <li><strong>6.-7. Hafta (Test Süreçleri ve Veri Taşıma):</strong> Geliştirilen özelliklerin
+                        Kullanıcı Kabul Testlerinin (UAT) yapılması, eski sistemlerdeki müşteri/portföy verilerinin yeni
+                        platforma (migration) taşınması.</li>
+                    <li><strong>8. Hafta (Canlıya Geçiş ve Eğitim):</strong> Sistemin tam kapasiteyle canlıya alınması
+                        (Go-Live) ve tüm Broker/Danışman ekibine sistemin kullanımıyla ilgili eğitimlerin verilmesi.
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Fiyatlandırma Bölümü -->
+            <div class="pricing-section">
+                <div class="pricing-header">
+                    <h2 style="color: var(--secondary);">Fiyatlandırma, Ödeme ve İş Modeli</h2>
+                    <p style="color: var(--text-light);">Tower Gayrimenkul için hazırlanan finansal teklif detayları
+                        aşağıda sunulmuştur.</p>
+                </div>
+
+                <div class="price-card">
+                    <div class="price-info">
+                        <h4>1. Yazılım Lisans Satışı ve Özel Geliştirme Kurulumu</h4>
+                        <p>Sistemin Tower Gayrimenkul sunucularına kurulması, 8 haftalık özelleştirme süreçleri ve
+                            süresiz (ömür boyu) kullanım hakkı lisansı.</p>
+                    </div>
+                    <div class="price-value" style="font-size: 24px;">
+                        1.200.000 ₺ <span style="font-size: 14px; font-weight: normal; color: var(--text-light);">+
+                            KDV</span>
+                    </div>
+                </div>
+
+                <div class="price-card"
+                    style="flex-direction: column; align-items: flex-start; padding-bottom: 15px; background-color: #f8fafc;">
+                    <div class="price-info" style="margin-bottom: 15px;">
+                        <h4 style="font-size: 15px; color: var(--text-main);">Ödeme Planı:</h4>
+                    </div>
+                    <div
+                        style="width: 100%; display: flex; justify-content: space-between; font-size: 14px; padding-top: 10px; border-top: 1px solid var(--border);">
+                        <span><strong>%40 Peşin</strong> (Proje başlangıcında)</span>
+                        <span><strong>%30 UAT</strong> (Test aşamasında)</span>
+                        <span><strong>%30 Go-Live</strong> (Canlıya geçişte)</span>
+                    </div>
+                </div>
+
+                <div class="price-card">
+                    <div class="price-info">
+                        <h4>2. Yıllık Bakım ve Destek Anlaşması</h4>
+                        <p>İlk 1 yıl ücretsizdir. 2. yıldan itibaren başlar (Proje bedelinin %10'u). Güvenlik
+                            güncellemeleri, bug fix ve teknik desteği kapsar. Yıllık yenilemelerde TEFE-TÜFE oranında
+                            güncellenir.</p>
+                    </div>
+                    <div class="price-value">
+                        120.000 ₺ <span style="font-size: 14px; font-weight: normal; color: var(--text-light);">+ KDV /
+                            Yıl</span>
+                    </div>
+                </div>
+
+                <div class="hourly-rate">
+                    <h4>3. Ek Geliştirme ve Özel Modül Talepleri (Adam/Saat)</h4>
+                    <p>Mevcut kapsamın dışına çıkan, Tower Gayrimenkul'e özel ekstra modül talepleri, entegrasyonlar
+                        veya arayüz değişiklikleri adam/saat (Man/Hour) üzerinden maliyetlendirilecektir.</p>
+                    <p style="margin-top: 10px; font-weight: 600; font-size: 16px;">
+                        Geçerli Adam/Saat Ücreti: 2.000 ₺ <span style="font-size: 14px; font-weight: normal;">+ KDV /
+                            Saat</span>
+                    </p>
+                    <p style="font-size: 12px; margin-top: 5px; opacity: 0.8;">* Belirtilen adam/saat birim fiyatı 2026
+                        yılı sonuna kadar geçerlidir.</p>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="footer">
+            © 2026 NovoCRM Teknolojileri | Tower Gayrimenkul'e Özel Gizli Teklif Dokümanıdır
+        </div>
+    </div>
+
+</body>
+
+</html>

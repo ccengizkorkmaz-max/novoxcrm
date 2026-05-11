@@ -116,13 +116,36 @@ export async function makeOutboundCall(options: VapiCallOptions): Promise<VapiCa
             payload.assistantId = defaultAssistantId
         }
 
-        // Apply overrides if provided
-        if (options.firstMessage || options.systemPrompt) {
+        // If we have a custom system prompt, use a transient (inline) assistant
+        // to guarantee our prompt is used instead of the saved assistant's prompt
+        if (options.systemPrompt) {
+            payload.assistant = {
+                model: {
+                    provider: 'openai',
+                    model: 'gpt-4o-mini',
+                    messages: [{ role: 'system', content: options.systemPrompt }],
+                },
+                voice: {
+                    provider: '11labs',
+                    voiceId: 'uvU9jrgGLWNPeNA4NgNT', // İrem - aktif kadın sesi
+                    model: 'eleven_multilingual_v2',
+                    stability: 0.40,
+                    similarityBoost: 0.85,
+                    style: 0.35,
+                },
+                maxDurationSeconds: 300,
+                transcriber: {
+                    provider: 'deepgram',
+                    model: 'nova-3',
+                    language: 'tr',
+                },
+                silenceTimeoutSeconds: 120,
+            }
+            // Remove assistantId since we're using inline assistant
+            delete payload.assistantId
+        } else if (options.firstMessage) {
             payload.assistantOverrides = {
                 firstMessage: options.firstMessage,
-                model: options.systemPrompt ? {
-                    systemPrompt: options.systemPrompt
-                } : undefined
             }
         }
 

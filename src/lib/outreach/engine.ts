@@ -211,9 +211,26 @@ async function executeAiCall(execution: any, step: any, config: StepConfig, phon
         return
     }
 
+    // Fetch script prompt from DB if script_id is set
+    let scriptPrompt: string | undefined
+    if (config.script_id && config.script_id !== 'default') {
+        const { data: script } = await supabase
+            .from('outreach_scripts')
+            .select('prompt')
+            .eq('id', config.script_id)
+            .single()
+        if (script?.prompt) {
+            // Replace variables in the prompt
+            scriptPrompt = script.prompt
+                .replace(/\{customer_name\}/g, customer?.full_name || 'Müşteri')
+                .replace(/\{project_name\}/g, execution.sales?.projects?.name || 'projemiz')
+        }
+    }
+
     const result = await makeOutboundCall({
         phoneNumber: phone,
-        assistantId: config.script_id || undefined,
+        // Always use the default Vapi assistant, override with script prompt
+        systemPrompt: scriptPrompt,
         firstMessage: execution.metadata?.personalized_message || undefined,
         metadata: {
             execution_id: execution.id,

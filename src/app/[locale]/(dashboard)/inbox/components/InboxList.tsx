@@ -448,7 +448,7 @@ export function InboxList({ initialItems, archivedItems = [] }: InboxListProps) 
 
             {/* Detail Dialog (only for pending items) */}
             <Dialog open={!!viewingItem} onOpenChange={() => setViewingItem(null)}>
-                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white">
                     <DialogHeader>
                         <DialogTitle>Lead Detayları</DialogTitle>
                     </DialogHeader>
@@ -564,7 +564,7 @@ export function InboxList({ initialItems, archivedItems = [] }: InboxListProps) 
 
             {/* Delete Confirmation Dialog */}
             <Dialog open={!!showDeleteConfirm} onOpenChange={() => setShowDeleteConfirm(null)}>
-                <DialogContent className="max-w-md">
+                <DialogContent className="max-w-md bg-white">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2 text-red-600">
                             <Trash2 className="h-5 w-5" />

@@ -60,7 +60,7 @@ export function WorkflowBuilder({ segments, scripts, projects, profiles, tenantI
     const [maxPerDay, setMaxPerDay] = useState(editingWorkflow?.max_leads_per_day || 50)
     const [conversionGoal, setConversionGoal] = useState(editingWorkflow?.conversion_goal_status || 'Prospect')
     const [stopOnResponse, setStopOnResponse] = useState(editingWorkflow?.stop_on_customer_response ?? true)
-    const [steps, setSteps] = useState<Step[]>(editingWorkflow?.outreach_steps || [])
+    const [steps, setSteps] = useState<Step[]>((editingWorkflow?.outreach_steps || []).sort((a: any, b: any) => a.step_order - b.step_order))
     const [saving, setSaving] = useState(false)
 
     const addStep = (actionType: string) => {
