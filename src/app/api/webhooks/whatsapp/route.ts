@@ -116,6 +116,32 @@ export async function POST(req: NextRequest) {
                 // Get CRM context to feed to AI
                 const crmContext = await getTenantCrmContext(supabase, tenantId);
 
+                // Müşteri bilgisi contexti (AI'ın zaten sahip olduğu bilgiler)
+                let customerContext = `\n\n--- MÜŞTERİ BİLGİSİ (ZATEN BİLİYORSUN, TEKRAR SORMA) ---
+Müşteri Telefonu: ${normalizedPhone}
+Müşteri WhatsApp Adı: ${payload.name}`;
+
+                // CRM'de eşleşen müşteri varsa bilgilerini ekle
+                const phoneVariants = [normalizedPhone];
+                if (normalizedPhone.startsWith('90') && normalizedPhone.length > 10) {
+                    phoneVariants.push(normalizedPhone.substring(2));
+                }
+                for (const variant of phoneVariants) {
+                    const { data: crmCustomer } = await supabase
+                        .from('customers')
+                        .select('full_name, email, notes, contact_type')
+                        .eq('tenant_id', tenantId)
+                        .eq('phone', variant)
+                        .single();
+                    if (crmCustomer) {
+                        customerContext += `\nCRM Kayıtlı İsim: ${crmCustomer.full_name}`;
+                        if (crmCustomer.notes) customerContext += `\nNotlar: ${crmCustomer.notes}`;
+                        customerContext += `\nBU MÜŞTERİNİN ADI VE TELEFONU ZATEN KAYİTLI. BU BİLGİLERİ TEKRAR SORMA.`;
+                        break;
+                    }
+                }
+                customerContext += `\n------------------------------------------------`;
+
                 // Base AI system rules
                 const strictHumanPersona = `\n\nDAVRANIŞ KURALLARI:
 1. Sen Novo'da çalışan deneyimli bir satış danışmanısın. Kendini tanıtma, kimliğinden bahsetme, doğrudan konuşmaya odaklan.
@@ -123,12 +149,12 @@ export async function POST(req: NextRequest) {
 3. KONU DIŞI SORULAR: Müşteri futbol, hava durumu, siyaset gibi işle alakasız bir şey sorarsa, kısaca ve samimi şekilde cevapla veya "Valla o konuda pek bilgim yok ama güzel bir gün geçirmenizi dilerim 😊" gibi doğal geçiştir. Sonra nazikçe konuyu gayrimenkule getir. ASLA görmezden gelme veya direkt proje anlatmaya başlama.
 4. TEKRAR YAPMA: Önceki mesajlarda zaten söylediğin bilgileri (proje adı, fiyat vb.) tekrar etme. Müşteri zaten okudu. Yeni bilgi ver veya sorduğu soruya odaklan.
 5. DOĞAL KONUŞMA: Her mesajda "Merhaba" deme. İlk mesajdan sonra sohbetin ortasındaymış gibi devam et. Kısa ve öz cevaplar ver. Uzun paragraflar yazma.
-6. LEAD KALİFİKASYONU: Bilgileri ZORLA değil, doğal akışta topla. Her mesajda "adınızı alabilir miyim" deme. Müşteri hazır olduğunda zaten verecektir.
+6. LEAD KALİFİKASYONU: Bilgileri ZORLA değil, doğal akışta topla. Telefon numarasını ASLA sorma, zaten WhatsApp'tan yazıyor. Adını sadece ilk mesajda doğal bir şekilde sor, ısrar etme.
 7. CRM verilerini kullanarak müşteriye bütçe/bölge tercihine göre proje öner.
 
 GİZLİ SİSTEM KOMUTLARI (SADECE ŞARTLAR SAĞLANDIĞINDA YANITININ EN SONUNA EKLE, MÜŞTERİ GÖRMEZ):
-- Müşterinin Adını, Soyadını öğrendiğinde ve ilgi gösterdiğinde:
-[LEAD_DATA: {"first_name": "Ad", "last_name": "Soyad", "phone": "Telefon", "notes": "Bütçe ve ilgi"}]
+- Müşterinin Adını öğrendiğinde ve ilgi gösterdiğinde:
+[LEAD_DATA: {"first_name": "Ad", "last_name": "Soyad", "notes": "Bütçe ve ilgi"}]
 - HER YANITININ EN SONUNA, sohbetin genel havasına göre lead sıcaklık etiketi ekle:
   * Müşteri hemen almak istiyor, fiyat soruyor, randevu istiyor → [LEAD_SCORE:hot]
   * Müşteri ilgili, soru soruyor, düşünüyor, bilgi topluyor → [LEAD_SCORE:warm]
@@ -136,7 +162,7 @@ GİZLİ SİSTEM KOMUTLARI (SADECE ŞARTLAR SAĞLANDIĞINDA YANITININ EN SONUNA E
   Bu etiketi HER yanıtına MUTLAKA ekle.`;
 
                 // AI'dan yanıt al
-                const finalPrompt = (tenantData.ai_system_prompt || tenantData.ai_assistant_instructions || getDefaultSystemPrompt()) + crmContext + strictHumanPersona;
+                const finalPrompt = (tenantData.ai_system_prompt || tenantData.ai_assistant_instructions || getDefaultSystemPrompt()) + crmContext + customerContext + strictHumanPersona;
 
                 let aiReply = await generateAIReply(
                     resolvedAi.provider,
