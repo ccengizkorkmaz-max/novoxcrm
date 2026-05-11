@@ -81,6 +81,11 @@ export async function POST(req: NextRequest) {
             if (!tenant.wa_phone_number_id || !tenant.wa_access_token) {
                 return NextResponse.json({ error: 'Tenant WhatsApp credentials missing' }, { status: 500 });
             }
+            console.log(`[REPLY DEBUG] tenant_id: ${session.tenant_id}`);
+            console.log(`[REPLY DEBUG] phone_number_id: ${tenant.wa_phone_number_id}`);
+            console.log(`[REPLY DEBUG] token_start: ${tenant.wa_access_token?.substring(0, 20)}`);
+            console.log(`[REPLY DEBUG] token_length: ${tenant.wa_access_token?.length}`);
+            console.log(`[REPLY DEBUG] to: ${session.phone_number}`);
             sendResult = await sendWhatsAppMessage(
                 session.phone_number,
                 message,
