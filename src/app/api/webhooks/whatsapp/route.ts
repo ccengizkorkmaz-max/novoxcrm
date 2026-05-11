@@ -129,13 +129,37 @@ Müşteri WhatsApp Adı: ${payload.name}`;
                 for (const variant of phoneVariants) {
                     const { data: crmCustomer } = await supabase
                         .from('customers')
-                        .select('full_name, email, notes, contact_type')
+                        .select('id, full_name, email, notes, contact_type, budget_min, budget_max, desired_rooms, desired_districts')
                         .eq('tenant_id', tenantId)
                         .eq('phone', variant)
                         .single();
                     if (crmCustomer) {
                         customerContext += `\nCRM Kayıtlı İsim: ${crmCustomer.full_name}`;
-                        if (crmCustomer.notes) customerContext += `\nNotlar: ${crmCustomer.notes}`;
+                        if (crmCustomer.notes) customerContext += `\nMüşteri Notları: ${crmCustomer.notes}`;
+                        if (crmCustomer.budget_min || crmCustomer.budget_max) customerContext += `\nBütçe: ${crmCustomer.budget_min || '?'} - ${crmCustomer.budget_max || '?'} TL`;
+                        if (crmCustomer.desired_rooms) customerContext += `\nAranan Oda Sayısı: ${crmCustomer.desired_rooms}`;
+                        if (crmCustomer.desired_districts) customerContext += `\nAranan Bölge: ${crmCustomer.desired_districts}`;
+
+                        // Müşterinin aktivite/lead geçmişini çek
+                        const { data: activities } = await supabase
+                            .from('activities')
+                            .select('type, summary, description, topic, status, notes, project_id, projects(name), created_at')
+                            .eq('customer_id', crmCustomer.id)
+                            .order('created_at', { ascending: false })
+                            .limit(5);
+
+                        if (activities && activities.length > 0) {
+                            customerContext += `\n\n📋 MÜŞTERİ GEÇMİŞİ (Son ${activities.length} aktivite):`;
+                            for (const act of activities) {
+                                const projectName = (act as any).projects?.name;
+                                customerContext += `\n- [${act.type}] ${act.summary}`;
+                                if (projectName) customerContext += ` | Proje: ${projectName}`;
+                                if (act.description && act.description !== act.summary) customerContext += ` | ${act.description}`;
+                                if (act.status) customerContext += ` (${act.status})`;
+                            }
+                            customerContext += `\nBu geçmişi kullanarak müşterinin daha önce ilgilendiği projelere referans ver, "Daha önce ... projemizle ilgilenmiştiniz" gibi doğal geçişler yap.`;
+                        }
+
                         customerContext += `\nBU MÜŞTERİNİN ADI VE TELEFONU ZATEN KAYİTLI. BU BİLGİLERİ TEKRAR SORMA.`;
                         break;
                     }
