@@ -38,7 +38,7 @@ export async function sendWhatsAppMessage(to: string, message: string, phoneId?:
     ACCESS_TOKEN = ACCESS_TOKEN.replace(/[\r\n"\s]+/g, '');
 
     try {
-        const response = await fetch(`https://graph.facebook.com/v18.0/${PHONE_ID}/messages`, {
+        const response = await fetch(`https://graph.facebook.com/v21.0/${PHONE_ID}/messages`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${ACCESS_TOKEN}`,
@@ -107,7 +107,7 @@ export async function sendWhatsAppMedia(
     ACCESS_TOKEN = ACCESS_TOKEN.replace(/[\r\n"\s]+/g, '');
 
     try {
-        const response = await fetch(`https://graph.facebook.com/v18.0/${PHONE_ID}/messages`, {
+        const response = await fetch(`https://graph.facebook.com/v21.0/${PHONE_ID}/messages`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${ACCESS_TOKEN}`,
