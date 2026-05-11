@@ -172,17 +172,17 @@ GİZLİ SİSTEM KOMUTLARI (SADECE ŞARTLAR SAĞLANDIĞINDA YANITININ EN SONUNA E
                             // CRM'de müşteri oluştur veya güncelle
                             const { data: existingCust } = await supabase.from('customers').select('id').eq('phone', normalizedPhone).single();
                             if (!existingCust) {
+                                const fullName = `${leadData.first_name || ''} ${leadData.last_name || ''}`.trim() || 'WhatsApp Lead';
                                 await supabase.from('customers').insert({
                                     tenant_id: tenantId,
-                                    first_name: leadData.first_name,
-                                    last_name: leadData.last_name || 'Bilinmiyor',
+                                    full_name: fullName,
                                     phone: normalizedPhone,
-                                    email: '',
-                                    type: 'Lead',
-                                    status: 'New',
+                                    email: leadData.email || '',
                                     source: payload.channel,
+                                    contact_type: 'buyer',
+                                    notes: leadData.notes || null,
                                 });
-                                console.log(`✅ YENİ LEAD OLUŞTURULDU: ${leadData.first_name} ${leadData.last_name}`);
+                                console.log(`✅ YENİ LEAD OLUŞTURULDU: ${fullName}`);
                             }
                         } catch (e) {
                             console.error('Lead data parse error:', e);
@@ -414,20 +414,50 @@ async function findTenant(supabase: any, phoneNumberId: string, channel?: string
 async function findOrCreateConversation(
     supabase: any, tenantId: string, phone: string, messagePreview: string, channel: string = 'whatsapp'
 ) {
+    // Telefon numarasından müşteri eşleştir (hem 905xx hem 5xx formatıyla ara)
+    let customerId: string | null = null;
+    const phoneVariants = [phone]; // e.g. 905335914389
+    if (phone.startsWith('90') && phone.length > 10) {
+        phoneVariants.push(phone.substring(2)); // 5335914389
+    }
+    if (!phone.startsWith('90') && phone.length === 10) {
+        phoneVariants.push('90' + phone); // 905335914389
+    }
+
+    for (const variant of phoneVariants) {
+        const { data: customer } = await supabase
+            .from('customers')
+            .select('id')
+            .eq('tenant_id', tenantId)
+            .eq('phone', variant)
+            .limit(1)
+            .single();
+        if (customer) {
+            customerId = customer.id;
+            console.log(`✅ Müşteri eşleşti: ${customerId} (phone: ${variant})`);
+            break;
+        }
+    }
+
     const { data: existing } = await supabase
         .from('whatsapp_conversations')
-        .select('id, ai_enabled')
+        .select('id, ai_enabled, customer_id')
         .eq('tenant_id', tenantId)
         .eq('phone_number', phone)
         .single();
 
     if (existing) {
-        await supabase.from('whatsapp_conversations').update({
+        const updateData: any = {
             last_message_at: new Date().toISOString(),
             last_message_preview: messagePreview.substring(0, 50),
             unread_count: 1,
-            channel, // Ensure channel is always up-to-date
-        }).eq('id', existing.id);
+            channel,
+        };
+        // Eğer customer_id yoksa ve eşleştirme bulduysa güncelle
+        if (!existing.customer_id && customerId) {
+            updateData.customer_id = customerId;
+        }
+        await supabase.from('whatsapp_conversations').update(updateData).eq('id', existing.id);
 
         return { conversationId: existing.id, aiEnabled: existing.ai_enabled };
     }
@@ -436,6 +466,7 @@ async function findOrCreateConversation(
     const { data: newConv } = await supabase.from('whatsapp_conversations').insert({
         tenant_id: tenantId,
         phone_number: phone,
+        customer_id: customerId, // Eşleşen müşteriyi otomatik bağla
         last_message_preview: messagePreview.substring(0, 50),
         unread_count: 1,
         ai_enabled: true,
