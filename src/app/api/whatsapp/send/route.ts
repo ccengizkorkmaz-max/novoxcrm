@@ -4,7 +4,7 @@ import { sendWhatsAppMessage, sendWhatsAppMedia, sendWhatsAppTemplate } from '@/
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { phone, messageType, content, mediaUrl, templateName } = body;
+    const { phone, messageType, content, mediaUrl, templateName, templateParams, namedParams } = body;
 
     if (!phone) {
       return NextResponse.json({ error: 'Phone number is required' }, { status: 400 });
@@ -14,7 +14,9 @@ export async function POST(request: NextRequest) {
 
     if (messageType === 'template') {
       if (!templateName) return NextResponse.json({ error: 'Template name is required' }, { status: 400 });
-      result = await sendWhatsAppTemplate(phone, templateName, []);
+      // Use named params if provided, otherwise fall back to positional
+      const params = namedParams || templateParams || [];
+      result = await sendWhatsAppTemplate(phone, templateName, params);
     } else if (messageType === 'text') {
       if (!content) return NextResponse.json({ error: 'Message content is required' }, { status: 400 });
       result = await sendWhatsAppMessage(phone, content);

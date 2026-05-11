@@ -156,7 +156,7 @@ export const MessageTemplates = {
 export async function sendWhatsAppTemplate(
     to: string,
     templateName: string,
-    parameters: string[],
+    parameters: string[] | Record<string, string>,
     language: string = 'tr'
 ) {
     const PHONE_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
@@ -170,7 +170,9 @@ export async function sendWhatsAppTemplate(
 
     // Build template components with parameters
     const components: any[] = [];
-    if (parameters.length > 0) {
+    
+    if (Array.isArray(parameters) && parameters.length > 0) {
+        // Legacy positional parameters: ['Cengiz Bey', '50000']
         components.push({
             type: 'body',
             parameters: parameters.map(p => ({
@@ -178,12 +180,22 @@ export async function sendWhatsAppTemplate(
                 text: p,
             })),
         });
+    } else if (typeof parameters === 'object' && !Array.isArray(parameters) && Object.keys(parameters).length > 0) {
+        // Named parameters: { customer_name: 'Cengiz Bey' }
+        components.push({
+            type: 'body',
+            parameters: Object.entries(parameters).map(([name, value]) => ({
+                type: 'text',
+                parameter_name: name,
+                text: value,
+            })),
+        });
     }
 
     ACCESS_TOKEN = ACCESS_TOKEN.replace(/[\r\n"\s]+/g, '');
 
     try {
-        const response = await fetch(`https://graph.facebook.com/v18.0/${PHONE_ID}/messages`, {
+        const response = await fetch(`https://graph.facebook.com/v21.0/${PHONE_ID}/messages`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${ACCESS_TOKEN}`,

@@ -78,6 +78,7 @@ export default function AiCallerPage() {
   const [waPhone, setWaPhone] = useState('');
   const [waMessage, setWaMessage] = useState('');
   const [waType, setWaType] = useState<'text' | 'template' | 'video'>('text');
+  const [waParams, setWaParams] = useState('');
   const [waMediaUrl, setWaMediaUrl] = useState('');
   const [waSending, setWaSending] = useState(false);
   const [waResult, setWaResult] = useState<{ success: boolean; message: string } | null>(null);
@@ -153,7 +154,12 @@ export default function AiCallerPage() {
           messageType: waType,
           content: waMessage,
           mediaUrl: waType === 'video' ? waMediaUrl : undefined,
-          templateName: waType === 'template' ? waMessage : undefined // if template, we use waMessage as templateName
+          templateName: waType === 'template' ? waMessage : undefined,
+          namedParams: waType === 'template' && waParams.trim() ? 
+            Object.fromEntries(waParams.split(',').map(p => {
+              const [key, ...vals] = p.trim().split('=');
+              return [key.trim(), vals.join('=').trim()];
+            })) : undefined
         })
       });
       const data = await res.json();
@@ -517,12 +523,23 @@ export default function AiCallerPage() {
                     {waType === 'template' ? 'Şablon Adı' : 'Mesaj İçeriği'}
                 </label>
                 {waType === 'template' ? (
-                    <input 
-                        value={waMessage} 
-                        onChange={(e) => setWaMessage(e.target.value)} 
-                        placeholder="Örn: welcome_message"
-                        className="w-full h-10 px-3 rounded-lg border bg-background text-sm focus:ring-2 focus:ring-green-500 outline-none" 
-                    />
+                    <div className="space-y-3">
+                        <input 
+                            value={waMessage} 
+                            onChange={(e) => setWaMessage(e.target.value)} 
+                            placeholder="Örn: welcome_message"
+                            className="w-full h-10 px-3 rounded-lg border bg-background text-sm focus:ring-2 focus:ring-green-500 outline-none" 
+                        />
+                        <div>
+                            <label className="text-xs font-medium text-slate-700 mb-1.5 block">Şablon Parametreleri (Virgülle Ayırın)</label>
+                            <input 
+                                value={waParams} 
+                                onChange={(e) => setWaParams(e.target.value)} 
+                                placeholder="Örn: customer_name=Cengiz Bey"
+                                className="w-full h-10 px-3 rounded-lg border bg-background text-sm focus:ring-2 focus:ring-green-500 outline-none" 
+                            />
+                        </div>
+                    </div>
                 ) : (
                     <textarea 
                         value={waMessage} 
