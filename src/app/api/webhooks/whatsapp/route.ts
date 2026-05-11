@@ -129,8 +129,11 @@ export async function POST(req: NextRequest) {
 GİZLİ SİSTEM KOMUTLARI (SADECE ŞARTLAR SAĞLANDIĞINDA YANITININ EN SONUNA EKLE, MÜŞTERİ GÖRMEZ):
 - Müşterinin Adını, Soyadını öğrendiğinde ve ilgi gösterdiğinde:
 [LEAD_DATA: {"first_name": "Ad", "last_name": "Soyad", "phone": "Telefon", "notes": "Bütçe ve ilgi"}]
-- Müşteri "Hemen almak istiyorum" gibi acil sinyal verirse:
-[HOT_LEAD]`;
+- HER YANITININ EN SONUNA, sohbetin genel havasına göre lead sıcaklık etiketi ekle:
+  * Müşteri hemen almak istiyor, fiyat soruyor, randevu istiyor → [LEAD_SCORE:hot]
+  * Müşteri ilgili, soru soruyor, düşünüyor, bilgi topluyor → [LEAD_SCORE:warm]
+  * Müşteri ilgisiz, sadece baktı, kısa/soğuk yanıtlar veriyor → [LEAD_SCORE:cold]
+  Bu etiketi HER yanıtına MUTLAKA ekle.`;
 
                 // AI'dan yanıt al
                 const finalPrompt = (tenantData.ai_system_prompt || tenantData.ai_assistant_instructions || getDefaultSystemPrompt()) + crmContext + strictHumanPersona;
@@ -145,11 +148,27 @@ GİZLİ SİSTEM KOMUTLARI (SADECE ŞARTLAR SAĞLANDIĞINDA YANITININ EN SONUNA E
 
                 if (aiReply) {
                     // GİZLİ KOMUTLARI İŞLE VE METİNDEN TEMİZLE
-                    let isHotLead = false;
+
+                    // 1. Lead Sıcaklık Skoru
+                    let leadScore = 'unknown';
+                    const scoreMatch = aiReply.match(/\[LEAD_SCORE:(hot|warm|cold)\]/);
+                    if (scoreMatch) {
+                        leadScore = scoreMatch[1];
+                        aiReply = aiReply.replace(scoreMatch[0], '').trim();
+                        console.log(`🌡️ Lead Score: ${leadScore}`);
+
+                        // Conversation'ın lead_score'unu güncelle
+                        await supabase.from('whatsapp_conversations').update({
+                            lead_score: leadScore,
+                        }).eq('id', conversationId);
+                    }
+
+                    // 2. HOT LEAD tespiti (eski format uyumluluğu + yeni skor)
+                    let isHotLead = leadScore === 'hot' || aiReply.includes('[HOT_LEAD]');
                     if (aiReply.includes('[HOT_LEAD]')) {
-                        isHotLead = true;
                         aiReply = aiReply.replace('[HOT_LEAD]', '').trim();
-                        
+                    }
+                    if (isHotLead) {
                         // Yüksek öncelikli bildirim/aktivite oluştur
                         await supabase.from('activities').insert({
                             tenant_id: tenantId,

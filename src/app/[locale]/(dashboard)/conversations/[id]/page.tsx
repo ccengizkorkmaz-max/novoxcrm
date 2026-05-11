@@ -104,6 +104,28 @@ export default async function ConversationDetailPage(props: { params: Promise<{ 
                         </div>
                     )}
 
+                    {/* Lead Sıcaklık */}
+                    {session.lead_score && session.lead_score !== 'unknown' && (
+                        <div className={cn(
+                            "p-3 rounded-xl border text-center",
+                            session.lead_score === 'hot' && 'bg-red-50 border-red-200',
+                            session.lead_score === 'warm' && 'bg-orange-50 border-orange-200',
+                            session.lead_score === 'cold' && 'bg-sky-50 border-sky-200',
+                        )}>
+                            <div className="text-2xl mb-1">
+                                {session.lead_score === 'hot' ? '🔥' : session.lead_score === 'warm' ? '🟠' : '🔵'}
+                            </div>
+                            <div className={cn(
+                                "text-[10px] font-black uppercase tracking-widest",
+                                session.lead_score === 'hot' && 'text-red-700',
+                                session.lead_score === 'warm' && 'text-orange-700',
+                                session.lead_score === 'cold' && 'text-sky-700',
+                            )}>
+                                {session.lead_score === 'hot' ? 'Sıcak Lead' : session.lead_score === 'warm' ? 'Ilık Lead' : 'Soğuk Lead'}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Compact Info Grid */}
                     <div className="grid grid-cols-2 gap-2">
                         <div className="bg-slate-50 rounded-lg p-2.5 text-center">

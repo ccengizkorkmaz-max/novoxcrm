@@ -84,12 +84,24 @@ export default function ConversationSidebar({ sessions }: ConversationSidebarPro
                                             {session.customers?.full_name || `+${session.phone_number}`}
                                         </span>
                                         {!isActive && (
-                                            <Badge className={cn(
-                                                "text-[9px] px-1.5 py-0 min-w-max uppercase font-black tracking-widest border-none",
-                                                session.ai_enabled ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'
-                                            )}>
-                                                {session.ai_enabled ? 'AI' : 'İNSAN'}
-                                            </Badge>
+                                            <div className="flex items-center gap-1">
+                                                {session.lead_score && session.lead_score !== 'unknown' && (
+                                                    <span className={cn(
+                                                        "text-[9px] px-1.5 py-0.5 rounded-full font-black tracking-wider",
+                                                        session.lead_score === 'hot' && 'bg-red-100 text-red-700',
+                                                        session.lead_score === 'warm' && 'bg-orange-100 text-orange-700',
+                                                        session.lead_score === 'cold' && 'bg-sky-100 text-sky-600',
+                                                    )}>
+                                                        {session.lead_score === 'hot' ? '🔥' : session.lead_score === 'warm' ? '🟠' : '🔵'}
+                                                    </span>
+                                                )}
+                                                <Badge className={cn(
+                                                    "text-[9px] px-1.5 py-0 min-w-max uppercase font-black tracking-widest border-none",
+                                                    session.ai_enabled ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'
+                                                )}>
+                                                    {session.ai_enabled ? 'AI' : 'İNSAN'}
+                                                </Badge>
+                                            </div>
                                         )}
                                     </div>
                                     <div className={cn(
