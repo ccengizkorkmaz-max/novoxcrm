@@ -901,7 +901,7 @@ export default function PipelineList({
             }
 
             <Dialog open={isPlanOpen} onOpenChange={setIsPlanOpen}>
-                <DialogContent className="max-w-2xl w-[95vw] rounded-2xl">
+                <DialogContent className="max-w-2xl w-[95vw] rounded-2xl bg-white dark:bg-slate-950">
                     <DialogHeader>
                         <DialogTitle>{t('actions.paymentPlanTitle')}</DialogTitle>
                     </DialogHeader>
@@ -918,7 +918,7 @@ export default function PipelineList({
             </Dialog>
 
             <Dialog open={!!viewingLead} onOpenChange={(open) => !open && setViewingLead(null)}>
-                <DialogContent className="max-w-lg w-[95vw] rounded-2xl overflow-hidden p-0">
+                <DialogContent className="max-w-lg w-[95vw] rounded-2xl overflow-hidden p-0 bg-white dark:bg-slate-950">
                     <DialogHeader className="p-6 bg-slate-50 border-b">
                         <div className="flex items-center gap-3 mb-1">
                             <div className="h-10 w-10 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600">
@@ -937,7 +937,7 @@ export default function PipelineList({
             </Dialog>
 
             <Dialog open={!!saleToDelete} onOpenChange={(open) => !open && setSaleToDelete(null)}>
-                <DialogContent className="max-w-lg rounded-2xl p-0 overflow-hidden border-none shadow-2xl">
+                <DialogContent className="max-w-lg rounded-2xl p-0 overflow-hidden border-none shadow-2xl bg-white dark:bg-slate-950">
                     <div className="p-8 space-y-4 text-center">
                         <div className="h-16 w-16 bg-red-50 text-red-500 rounded-3xl flex items-center justify-center mx-auto mb-4 animate-bounce">
                             <Trash className="w-8 h-8" />
