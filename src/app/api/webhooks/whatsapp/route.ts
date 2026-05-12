@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { sendWhatsAppMessage } from '@/lib/whatsapp';
+import { fireLeadCreatedTrigger } from '@/lib/outreach/triggers';
 
 /**
  * WHATSAPP & MESSENGER UNIFIED WEBHOOK
@@ -253,6 +254,13 @@ GİZLİ SİSTEM KOMUTLARI (SADECE ŞARTLAR SAĞLANDIĞINDA YANITININ EN SONUNA E
                                     source: payload.channel,
                                     contact_type: 'buyer',
                                     notes: leadData.notes || null,
+                                }).select('id').single().then(({ data: newCust }) => {
+                                    if (newCust) {
+                                        // 🚀 Outreach tetikleyicisini ateşle
+                                        fireLeadCreatedTrigger(tenantId, newCust.id).catch(e =>
+                                            console.error('[WA] Trigger hatası:', e.message)
+                                        );
+                                    }
                                 });
                                 console.log(`✅ YENİ LEAD OLUŞTURULDU: ${fullName}`);
                             }
