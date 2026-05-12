@@ -542,12 +542,23 @@ function WhatsAppStepConfig({ c, onConfigChange }: {
                 </Select>
             </div>
             {selected && (
-                <div className="p-2 rounded bg-emerald-500/5 border border-emerald-500/20 space-y-1">
-                    <p className="text-[9px] font-medium text-emerald-400 uppercase tracking-wider">Şablon Önizleme</p>
-                    <p className="text-[10px] text-muted-foreground leading-relaxed">{selected.body}</p>
+                <div className="p-2.5 rounded border border-amber-500/20 bg-amber-500/5 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                        <p className="text-[9px] font-semibold text-amber-400 uppercase tracking-wider">📋 Şablon Önizleme (Salt Okunur)</p>
+                        <a
+                            href="https://business.facebook.com/latest/whatsapp_manager/message_templates"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[9px] text-blue-400 hover:text-blue-300 underline underline-offset-2"
+                        >
+                            Düzenlemek için → WhatsApp Yöneticisi ↗
+                        </a>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground leading-relaxed whitespace-pre-line select-none">{selected.body}</p>
                     {selected.params > 0 && (
-                        <p className="text-[9px] text-amber-400">⚡ {selected.params} parametre — customer_name otomatik doldurulur</p>
+                        <p className="text-[9px] text-emerald-400">⚡ {selected.params} parametre — customer_name otomatik doldurulur</p>
                     )}
+                    <p className="text-[9px] text-amber-400/70 italic">⚠ Bu metin Meta tarafından onaylanmış şablondur. Değişiklikler buradan yapılamaz.</p>
                 </div>
             )}
             <div>
