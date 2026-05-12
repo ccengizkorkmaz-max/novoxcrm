@@ -264,8 +264,8 @@ export async function POST(req: Request) {
                         if (wpPhone.startsWith('0')) wpPhone = '90' + wpPhone.substring(1);
                         if (!wpPhone.startsWith('90') && wpPhone.length === 10) wpPhone = '90' + wpPhone;
 
-                        // Müşteri adını düzelt
-                        const customerName = name?.split(' ')[0] || 'Değerli Müşterimiz';
+                        // Müşteri adını düzelt (tam ad kullan, sadece isim fazla samimi)
+                        const customerName = name?.trim() || 'Değerli Müşterimiz';
 
                         // Şablonu gönder
                         const templateResult = await sendWhatsAppTemplate(
