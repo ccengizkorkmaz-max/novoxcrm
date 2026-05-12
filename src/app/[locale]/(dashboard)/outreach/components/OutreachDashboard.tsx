@@ -88,22 +88,15 @@ export function OutreachDashboard({
         }
     }
 
-    const handleDelete = async (id: string) => {
-        toast('Bu workflow silinsin mi?', {
-            action: {
-                label: 'Sil',
-                onClick: async () => {
-                    const result = await deleteWorkflow(id)
-                    if (result.success) {
-                        setLocalWorkflows(prev => prev.filter(w => w.id !== id))
-                        toast.success('Workflow silindi')
-                    } else {
-                        toast.error('Silinemedi: ' + (result.error || 'Bilinmeyen hata'))
-                    }
-                },
-            },
-            cancel: { label: 'İptal', onClick: () => {} },
-        })
+    const handleDelete = async (id: string, name: string) => {
+        if (!window.confirm(`"${name}" workflow'u silinsin mi? Bu işlem geri alınamaz.`)) return
+        const result = await deleteWorkflow(id)
+        if (result.success) {
+            setLocalWorkflows(prev => prev.filter(w => w.id !== id))
+            toast.success('Workflow silindi')
+        } else {
+            toast.error('Silinemedi: ' + (result.error || 'Bilinmeyen hata'))
+        }
     }
 
     const handleLaunch = async (id: string) => {
@@ -122,27 +115,19 @@ export function OutreachDashboard({
     }
 
     const handleStop = async (id: string, name: string) => {
-        toast(`"${name}" akışı durdurulsun mu?`, {
-            description: 'Tüm aktif ve bekleyen gönderimleri iptal edilecek.',
-            action: {
-                label: '🛑 Acil Durdur',
-                onClick: async () => {
-                    setStopping(id)
-                    try {
-                        const result = await stopWorkflow(id)
-                        if ('error' in result) {
-                            toast.error('Durdurulamadı: ' + result.error)
-                        } else {
-                            toast.success(`Akış durduruldu! ${result.stopped || 0} işlem iptal edildi.`)
-                        }
-                    } catch (err: any) {
-                        toast.error('Hata: ' + err.message)
-                    }
-                    setStopping(null)
-                }
-            },
-            cancel: { label: 'Vazgeç', onClick: () => {} },
-        })
+        if (!window.confirm(`"${name}" akışı durdurulsun mu?\nTüm aktif ve bekleyen gönderimleri iptal edilecek.`)) return
+        setStopping(id)
+        try {
+            const result = await stopWorkflow(id)
+            if ('error' in result) {
+                toast.error('Durdurulamadı: ' + result.error)
+            } else {
+                toast.success(`Akış durduruldu! ${result.stopped || 0} işlem iptal edildi.`)
+            }
+        } catch (err: any) {
+            toast.error('Hata: ' + err.message)
+        }
+        setStopping(null)
     }
 
     if (showBuilder) {
@@ -295,7 +280,7 @@ export function OutreachDashboard({
                                 workflow={w}
                                 onToggle={() => handleToggle(w.id, w.is_active)}
                                 onEdit={() => { setEditingWorkflow(w); setShowBuilder(true) }}
-                                onDelete={() => handleDelete(w.id)}
+                                onDelete={() => handleDelete(w.id, w.name)}
                                 onLaunch={() => handleLaunch(w.id)}
                                 onStop={() => handleStop(w.id, w.name)}
                                 isLaunching={launching === w.id}
