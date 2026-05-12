@@ -271,7 +271,7 @@ export async function POST(req: Request) {
                         const templateResult = await sendWhatsAppTemplate(
                             wpPhone,
                             templateName,
-                            [{type: 'text', text: customerName}, {type: 'text', text: projectName}]
+                            [customerName, projectName]
                         );
 
                         if (templateResult.success) {
