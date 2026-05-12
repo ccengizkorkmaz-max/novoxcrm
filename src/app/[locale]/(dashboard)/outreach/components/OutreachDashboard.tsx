@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -75,6 +75,11 @@ export function OutreachDashboard({
     const [localWorkflows, setLocalWorkflows] = useState(workflows)
     const router = useRouter()
     const [localSegments, setLocalSegments] = useState(segments)
+
+    // Prop değiştiğinde local state'i güncelle (router.refresh sonrası)
+    useEffect(() => { setLocalWorkflows(workflows) }, [workflows])
+    useEffect(() => { setLocalSegments(segments) }, [segments])
+
     const [launching, setLaunching] = useState<string | null>(null)
     const [stopping, setStopping] = useState<string | null>(null)
     const [confirmDialog, setConfirmDialog] = useState<{

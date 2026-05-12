@@ -248,7 +248,7 @@ export async function addStep(workflowId: string, step: {
 }
 
 export async function updateStep(id: string, payload: Partial<{ 
-    name: string; config: any; 
+    step_order: number; name: string; config: any; 
     on_success: string; on_failure: string; 
     next_step_id_on_success: string; next_step_id_on_failure: string;
     is_active: boolean 

@@ -13,7 +13,7 @@ import {
     Phone, MessageSquare, Mail, Clock, Settings2, Zap, Plus,
     ArrowLeft, ArrowDown, Trash2, GripVertical, Save, Target, Bot, Bell, Sparkles, Split
 } from 'lucide-react'
-import { createWorkflow, updateWorkflow, addStep as addStepAction, updateStep } from '../actions'
+import { createWorkflow, updateWorkflow, addStep as addStepAction, updateStep, deleteStep } from '../actions'
 import { getWhatsAppTemplates } from '../actions'
 import { toast } from 'sonner'
 
@@ -63,6 +63,7 @@ export function WorkflowBuilder({ segments, scripts, projects, profiles, tenantI
     const [stopOnResponse, setStopOnResponse] = useState(editingWorkflow?.stop_on_customer_response ?? true)
     const [steps, setSteps] = useState<Step[]>((editingWorkflow?.outreach_steps || []).sort((a: any, b: any) => a.step_order - b.step_order))
     const [saving, setSaving] = useState(false)
+    const [deletedStepIds, setDeletedStepIds] = useState<string[]>([])
 
     const addStep = (actionType: string) => {
         const id = `temp-${Date.now()}`
@@ -79,6 +80,10 @@ export function WorkflowBuilder({ segments, scripts, projects, profiles, tenantI
     }
 
     const removeStep = (id: string) => {
+        // temp adımlar henüz DB'de yok, sadece local'den sil
+        if (!id.startsWith('temp-')) {
+            setDeletedStepIds(prev => [...prev, id])
+        }
         setSteps(prev => prev.filter(s => s.id !== id).map((s, i) => ({ ...s, step_order: i + 1 })))
     }
 
@@ -118,6 +123,11 @@ export function WorkflowBuilder({ segments, scripts, projects, profiles, tenantI
                     return
                 }
 
+                // Silinen adımları DB'den kaldır
+                for (const deletedId of deletedStepIds) {
+                    await deleteStep(deletedId)
+                }
+
                 // Adımları güncelle / yeni adım ekle
                 for (const s of steps) {
                     if (s.id.startsWith('temp-')) {
@@ -128,7 +138,7 @@ export function WorkflowBuilder({ segments, scripts, projects, profiles, tenantI
                         if (r?.error) toast.error('Adım eklenemedi: ' + r.error)
                     } else {
                         const r = await updateStep(s.id, {
-                            name: s.name, config: s.config,
+                            step_order: s.step_order, name: s.name, config: s.config,
                             on_success: s.on_success, on_failure: s.on_failure,
                         })
                         if (r?.error) toast.error('Adım güncellenemedi: ' + r.error)
