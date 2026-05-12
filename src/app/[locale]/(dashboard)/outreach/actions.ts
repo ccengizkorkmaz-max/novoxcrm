@@ -349,6 +349,19 @@ export async function stopExecution(id: string) {
     return { success: true }
 }
 
+export async function stopWorkflow(workflowId: string) {
+    const { supabase, tenantId } = await getAuthContext()
+    // Tüm aktif/bekleyen execution'ları durdur
+    const { error, count } = await supabase.from('outreach_executions')
+        .update({ status: 'stopped', completed_at: new Date().toISOString() })
+        .eq('workflow_id', workflowId)
+        .eq('tenant_id', tenantId)
+        .in('status', ['active', 'waiting', 'pending'])
+    if (error) return { error: error.message }
+    revalidatePath('/outreach')
+    return { success: true, stopped: count || 0 }
+}
+
 // ─── Launch Workflow ─────────────────────────────────────────
 
 export async function launchWorkflow(workflowId: string) {

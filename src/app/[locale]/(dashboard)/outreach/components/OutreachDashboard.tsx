@@ -6,13 +6,12 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import {
-    Phone, MessageSquare, Mail, Zap, Plus, Play, Pause, Trash2,
+import { OctagonX, Phone, MessageSquare, Mail, Zap, Plus, Play, Pause, Trash2,
     BarChart3, Clock, Users, CheckCircle2, XCircle, PhoneOff,
     ArrowRight, Settings2, Eye, Bot, FileText, Target
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { toggleWorkflow, deleteWorkflow, launchWorkflow } from '../actions'
+import { toggleWorkflow, deleteWorkflow, launchWorkflow, stopWorkflow } from '../actions'
 import { WorkflowBuilder } from './WorkflowBuilder'
 import { ScriptManager } from './ScriptManager'
 import { SegmentManager } from './SegmentManager'
@@ -74,6 +73,7 @@ export function OutreachDashboard({
     const [localWorkflows, setLocalWorkflows] = useState(workflows)
     const [localSegments, setLocalSegments] = useState(segments)
     const [launching, setLaunching] = useState<string | null>(null)
+    const [stopping, setStopping] = useState<string | null>(null)
 
     // Stats from recent logs
     const totalCalls = recentLogs.filter(l => l.channel === 'ai_call').length
@@ -119,6 +119,30 @@ export function OutreachDashboard({
             toast.error(`Hata: ${err.message}`)
         }
         setLaunching(null)
+    }
+
+    const handleStop = async (id: string, name: string) => {
+        toast(`"${name}" akışı durdurulsun mu?`, {
+            description: 'Tüm aktif ve bekleyen gönderimleri iptal edilecek.',
+            action: {
+                label: '🛑 Acil Durdur',
+                onClick: async () => {
+                    setStopping(id)
+                    try {
+                        const result = await stopWorkflow(id)
+                        if ('error' in result) {
+                            toast.error('Durdurulamadı: ' + result.error)
+                        } else {
+                            toast.success(`Akış durduruldu! ${result.stopped || 0} işlem iptal edildi.`)
+                        }
+                    } catch (err: any) {
+                        toast.error('Hata: ' + err.message)
+                    }
+                    setStopping(null)
+                }
+            },
+            cancel: { label: 'Vazgeç', onClick: () => {} },
+        })
     }
 
     if (showBuilder) {
@@ -273,7 +297,9 @@ export function OutreachDashboard({
                                 onEdit={() => { setEditingWorkflow(w); setShowBuilder(true) }}
                                 onDelete={() => handleDelete(w.id)}
                                 onLaunch={() => handleLaunch(w.id)}
+                                onStop={() => handleStop(w.id, w.name)}
                                 isLaunching={launching === w.id}
+                                isStopping={stopping === w.id}
                             />
                         ))
                     )}
@@ -318,8 +344,8 @@ function StatCard({ icon: Icon, label, value, color }: { icon: any; label: strin
     )
 }
 
-function WorkflowCard({ workflow, onToggle, onEdit, onDelete, onLaunch, isLaunching }: {
-    workflow: any; onToggle: () => void; onEdit: () => void; onDelete: () => void; onLaunch: () => void; isLaunching: boolean
+function WorkflowCard({ workflow, onToggle, onEdit, onDelete, onLaunch, onStop, isLaunching, isStopping }: {
+    workflow: any; onToggle: () => void; onEdit: () => void; onDelete: () => void; onLaunch: () => void; onStop: () => void; isLaunching: boolean; isStopping: boolean
 }) {
     return (
         <Card className="hover:bg-muted/50 transition-colors">
@@ -364,10 +390,16 @@ function WorkflowCard({ workflow, onToggle, onEdit, onDelete, onLaunch, isLaunch
                 </div>
                 <div className="flex items-center gap-2 mt-3 pt-3 border-t">
                     <Button variant="outline" size="sm" onClick={onLaunch}
-                        disabled={!workflow.is_active || isLaunching}
+                        disabled={!workflow.is_active || isLaunching || isStopping}
                         className="gap-1.5 text-xs border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10">
                         <Play className="h-3 w-3" />
                         {isLaunching ? 'Başlatılıyor...' : 'Başlat'}
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={onStop}
+                        disabled={isStopping}
+                        className="gap-1.5 text-xs border-red-500/40 text-red-400 hover:bg-red-500/10">
+                        <OctagonX className="h-3 w-3" />
+                        {isStopping ? 'Durduruluyor...' : 'Durdur'}
                     </Button>
                     <Button variant="outline" size="sm" onClick={onEdit}
                         className="gap-1.5 text-xs">
