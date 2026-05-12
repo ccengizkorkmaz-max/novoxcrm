@@ -28,43 +28,31 @@ export async function getMessagingSessions() {
         // Telefon numarası üzerinden müşteri adı eşleştir (customer_id olmayan sessionlar için)
         const unmatchedSessions = sessions.filter(s => !s.customers?.full_name && s.phone_number)
         if (unmatchedSessions.length > 0) {
-            // Tüm telefon varyantlarını topla
-            const phoneVariants: string[] = []
-            unmatchedSessions.forEach(s => {
-                const phone = s.phone_number
-                phoneVariants.push(phone)
-                if (phone.startsWith('90') && phone.length > 10) {
-                    phoneVariants.push(phone.substring(2)) // 90 prefix'siz
-                    phoneVariants.push('0' + phone.substring(2)) // 0 prefix'li
-                }
-            })
+            // Her eşleşmemiş session için son 10 hane ile arama yap
+            for (const s of unmatchedSessions) {
+                const last10 = s.phone_number.replace(/\D/g, '').slice(-10)
+                if (last10.length < 10) continue
 
-            const { data: matchedCustomers } = await supabase
-                .from('customers')
-                .select('full_name, phone')
-                .in('phone', phoneVariants)
+                const { data: matches } = await supabase
+                    .from('customers')
+                    .select('full_name, phone')
+                    .ilike('phone', `%${last10}%`)
+                    .limit(10)
 
-            if (matchedCustomers && matchedCustomers.length > 0) {
-                // Telefon -> ad map'i oluştur
-                const phoneToName: Record<string, string> = {}
-                matchedCustomers.forEach(c => {
-                    if (c.phone && c.full_name) {
-                        phoneToName[c.phone] = c.full_name
-                    }
-                })
-
-                // Eşleştir
-                sessions.forEach(s => {
-                    if (!s.customers?.full_name && s.phone_number) {
-                        const phone = s.phone_number
-                        const name = phoneToName[phone] 
-                            || phoneToName[phone.startsWith('90') ? phone.substring(2) : ''] 
-                            || phoneToName[phone.startsWith('90') ? '0' + phone.substring(2) : '']
-                        if (name) {
-                            s.customers = { full_name: name, phone: phone }
+                if (matches && matches.length > 0) {
+                    // Birden fazla varsa en çok tekrar eden ismi al
+                    const nameCounts: Record<string, number> = {}
+                    matches.forEach(m => {
+                        if (m.full_name) {
+                            nameCounts[m.full_name] = (nameCounts[m.full_name] || 0) + 1
                         }
+                    })
+                    const bestName = Object.entries(nameCounts)
+                        .sort((a, b) => b[1] - a[1])[0]?.[0]
+                    if (bestName) {
+                        s.customers = { full_name: bestName, phone: s.phone_number }
                     }
-                })
+                }
             }
         }
 
@@ -95,23 +83,29 @@ export async function getMessagingSession(id: string) {
             return null
         }
 
-        // Telefon numarası ile müşteri eşleştir
+        // Telefon numarası ile müşteri eşleştir (son 10 hane ile)
         if (session && !session.customers?.full_name && session.phone_number) {
-            const phone = session.phone_number
-            const variants = [phone]
-            if (phone.startsWith('90') && phone.length > 10) {
-                variants.push(phone.substring(2))
-                variants.push('0' + phone.substring(2))
-            }
-            const { data: customer } = await supabase
-                .from('customers')
-                .select('full_name, phone')
-                .in('phone', variants)
-                .limit(1)
-                .single()
+            const last10 = session.phone_number.replace(/\D/g, '').slice(-10)
+            if (last10.length >= 10) {
+                const { data: matches } = await supabase
+                    .from('customers')
+                    .select('full_name, phone')
+                    .ilike('phone', `%${last10}%`)
+                    .limit(10)
 
-            if (customer?.full_name) {
-                session.customers = { full_name: customer.full_name, phone: phone }
+                if (matches && matches.length > 0) {
+                    const nameCounts: Record<string, number> = {}
+                    matches.forEach(m => {
+                        if (m.full_name) {
+                            nameCounts[m.full_name] = (nameCounts[m.full_name] || 0) + 1
+                        }
+                    })
+                    const bestName = Object.entries(nameCounts)
+                        .sort((a, b) => b[1] - a[1])[0]?.[0]
+                    if (bestName) {
+                        session.customers = { full_name: bestName, phone: session.phone_number }
+                    }
+                }
             }
         }
 
