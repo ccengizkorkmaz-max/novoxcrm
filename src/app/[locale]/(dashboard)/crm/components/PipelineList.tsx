@@ -14,7 +14,7 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Calculator, Sparkles, User, Info, Mail, MessageSquareText, CalendarPlus, Trash, AlertTriangle, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from 'lucide-react'
+import { Calculator, Sparkles, User, Info, Mail, Phone, MessageSquareText, CalendarPlus, Trash, AlertTriangle, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from 'lucide-react'
 import { updateSaleStatus, autoAssignLead, assignSale } from '../actions'
 import {
     Command,
@@ -391,11 +391,20 @@ export default function PipelineList({
                                                                     </Button>
                                                                 )}
                                                             </div>
-                                                            {sale.customers?.customer_number ? (
-                                                                <span className="text-[10px] font-black px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded-md border border-blue-100 flex-shrink-0 w-fit">{sale.customers.customer_number}</span>
-                                                            ) : (
-                                                                <span className="text-xs text-muted-foreground hidden lg:inline-block">ID: {sale.id.slice(0, 8)}...</span>
-                                                            )}
+                                                            <div className="flex items-center gap-1.5 flex-wrap">
+                                                                {sale.customers?.customer_number && (
+                                                                    <span className="text-[10px] font-black px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded-md border border-blue-100 flex-shrink-0">{sale.customers.customer_number}</span>
+                                                                )}
+                                                                {sale.customers?.phone && (
+                                                                    <a href={`tel:${sale.customers.phone}`} className="inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 bg-slate-50 text-slate-500 rounded-md border border-slate-200 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-colors flex-shrink-0" title="Telefon">
+                                                                        <Phone className="h-2.5 w-2.5" />
+                                                                        {sale.customers.phone}
+                                                                    </a>
+                                                                )}
+                                                                {!sale.customers?.customer_number && !sale.customers?.phone && (
+                                                                    <span className="text-xs text-muted-foreground hidden lg:inline-block">ID: {sale.id.slice(0, 8)}...</span>
+                                                                )}
+                                                            </div>
                                                             {isBroker && sale.description && (
                                                                 <p className="text-[10px] text-muted-foreground truncate max-w-[200px]" title={sale.description}>
                                                                     💬 {sale.description}
