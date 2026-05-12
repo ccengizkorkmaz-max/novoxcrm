@@ -112,6 +112,7 @@ export function WorkflowBuilder({ segments, scripts, projects, profiles, tenantI
                     is_auto_detect: false,
                     auto_detect_days: 0,
                     max_leads_per_day: maxPerDay,
+                    stop_on_customer_response: stopOnResponse,
                 }
                 // segment_id: sadece değer varsa ekle
                 if (segmentId) updatePayload.segment_id = segmentId

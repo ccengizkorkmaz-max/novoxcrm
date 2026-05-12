@@ -200,6 +200,7 @@ export async function updateWorkflow(id: string, payload: Partial<{
     is_auto_detect: boolean
     auto_detect_days: number
     max_leads_per_day: number
+    stop_on_customer_response: boolean
 }>) {
     const { supabase } = await getAuthContext()
     const { error } = await supabase.from('outreach_workflows')
