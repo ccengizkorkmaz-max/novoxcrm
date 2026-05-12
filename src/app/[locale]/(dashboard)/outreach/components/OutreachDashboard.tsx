@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -72,6 +73,7 @@ export function OutreachDashboard({
     const [showSegments, setShowSegments] = useState(false)
     const [showTriggers, setShowTriggers] = useState(false)
     const [localWorkflows, setLocalWorkflows] = useState(workflows)
+    const router = useRouter()
     const [localSegments, setLocalSegments] = useState(segments)
     const [launching, setLaunching] = useState<string | null>(null)
     const [stopping, setStopping] = useState<string | null>(null)
@@ -164,7 +166,7 @@ export function OutreachDashboard({
                 profiles={profiles}
                 tenantId={tenantId}
                 editingWorkflow={editingWorkflow}
-                onClose={() => { setShowBuilder(false); setEditingWorkflow(null) }}
+                onClose={() => { setShowBuilder(false); setEditingWorkflow(null); router.refresh() }}
             />
         )
     }
