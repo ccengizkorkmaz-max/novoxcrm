@@ -278,7 +278,45 @@ export async function reorderSteps(workflowId: string, stepIds: string[]) {
     return { success: true }
 }
 
+// ─── Triggers ────────────────────────────────────────────────
+
+export async function getTriggers() {
+    const { supabase } = await getAuthContext()
+    const { data } = await supabase.from('outreach_triggers')
+        .select('*, outreach_workflows(name)')
+        .order('created_at', { ascending: false })
+    return data || []
+}
+
+export async function createTrigger(payload: { workflow_id: string; event_type: string; event_config: any }) {
+    const { supabase, tenantId } = await getAuthContext()
+    const { error } = await supabase.from('outreach_triggers').insert({
+        tenant_id: tenantId,
+        ...payload
+    })
+    if (error) return { error: error.message }
+    revalidatePath('/outreach')
+    return { success: true }
+}
+
+export async function deleteTrigger(id: string) {
+    const { supabase } = await getAuthContext()
+    const { error } = await supabase.from('outreach_triggers').delete().eq('id', id)
+    if (error) return { error: error.message }
+    revalidatePath('/outreach')
+    return { success: true }
+}
+
+export async function toggleTrigger(id: string, isActive: boolean) {
+    const { supabase } = await getAuthContext()
+    const { error } = await supabase.from('outreach_triggers').update({ is_active: isActive }).eq('id', id)
+    if (error) return { error: error.message }
+    revalidatePath('/outreach')
+    return { success: true }
+}
+
 // ─── Executions ──────────────────────────────────────────────
+
 
 export async function getExecutions(workflowId?: string, status?: string) {
     const { supabase } = await getAuthContext()
