@@ -113,8 +113,9 @@ export async function POST(req: NextRequest) {
                     parts: [{ text: m.content }],
                 }));
 
-                // Get CRM context to feed to AI
-                const crmContext = await getTenantCrmContext(supabase, tenantId);
+                // CRM envanter bilgisi devre dışı - proje bilgileri system prompt'taki web sitesinden alınan Bilgi Bankası'ndan geliyor
+                // Units tablosundaki veriler eksik/güncel olmayabilir, AI'ı yanıltıyor
+                const crmContext = '';
 
                 // Müşteri bilgisi contexti (AI'ın zaten sahip olduğu bilgiler)
                 let customerContext = `\n\n--- MÜŞTERİ BİLGİSİ (SİSTEM İÇİ - MÜŞTERİYE BUNLARI SÖYLEME) ---
