@@ -97,9 +97,9 @@ export function WorkflowBuilder({ segments, scripts, projects, profiles, tenantI
         try {
             if (editingWorkflow?.id) {
                 // ── Güncelleme modu ──
-                const wfResult = await updateWorkflow(editingWorkflow.id, {
-                    name, description,
-                    segment_id: segmentId || undefined,
+                const updatePayload: any = {
+                    name,
+                    description,
                     working_hours_start: hoursStart,
                     working_hours_end: hoursEnd,
                     working_days: workingDays,
@@ -107,24 +107,34 @@ export function WorkflowBuilder({ segments, scripts, projects, profiles, tenantI
                     is_auto_detect: false,
                     auto_detect_days: 0,
                     max_leads_per_day: maxPerDay,
-                })
-                if (wfResult.error) { toast.error('Hata: ' + wfResult.error); setSaving(false); return }
+                }
+                // segment_id: sadece değer varsa ekle
+                if (segmentId) updatePayload.segment_id = segmentId
 
-                // Mevcut adımları güncelle / yeni adım ekle
+                const wfResult = await updateWorkflow(editingWorkflow.id, updatePayload)
+                if (wfResult.error) {
+                    toast.error('Kayıt hatası: ' + wfResult.error)
+                    setSaving(false)
+                    return
+                }
+
+                // Adımları güncelle / yeni adım ekle
                 for (const s of steps) {
                     if (s.id.startsWith('temp-')) {
-                        await addStepAction(editingWorkflow.id, {
+                        const r = await addStepAction(editingWorkflow.id, {
                             step_order: s.step_order, name: s.name, action_type: s.action_type,
                             config: s.config, on_success: s.on_success, on_failure: s.on_failure,
                         })
+                        if (r?.error) toast.error('Adım eklenemedi: ' + r.error)
                     } else {
-                        await updateStep(s.id, {
+                        const r = await updateStep(s.id, {
                             name: s.name, config: s.config,
                             on_success: s.on_success, on_failure: s.on_failure,
                         })
+                        if (r?.error) toast.error('Adım güncellenemedi: ' + r.error)
                     }
                 }
-                toast.success('Workflow güncellendi')
+                toast.success('✅ Workflow güncellendi')
                 onClose()
             } else {
                 // ── Yeni oluşturma modu ──

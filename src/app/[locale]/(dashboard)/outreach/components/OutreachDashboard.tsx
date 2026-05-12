@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { OctagonX, Phone, MessageSquare, Mail, Zap, Plus, Play, Pause, Trash2,
     BarChart3, Clock, Users, CheckCircle2, XCircle, PhoneOff,
     ArrowRight, Settings2, Eye, Bot, FileText, Target
@@ -74,6 +75,14 @@ export function OutreachDashboard({
     const [localSegments, setLocalSegments] = useState(segments)
     const [launching, setLaunching] = useState<string | null>(null)
     const [stopping, setStopping] = useState<string | null>(null)
+    const [confirmDialog, setConfirmDialog] = useState<{
+        open: boolean
+        title: string
+        description: string
+        confirmLabel: string
+        confirmClass?: string
+        onConfirm: () => Promise<void>
+    }>({ open: false, title: '', description: '', confirmLabel: '', onConfirm: async () => {} })
 
     // Stats from recent logs
     const totalCalls = recentLogs.filter(l => l.channel === 'ai_call').length
@@ -89,14 +98,22 @@ export function OutreachDashboard({
     }
 
     const handleDelete = async (id: string, name: string) => {
-        if (!window.confirm(`"${name}" workflow'u silinsin mi? Bu işlem geri alınamaz.`)) return
-        const result = await deleteWorkflow(id)
-        if (result.success) {
-            setLocalWorkflows(prev => prev.filter(w => w.id !== id))
-            toast.success('Workflow silindi')
-        } else {
-            toast.error('Silinemedi: ' + (result.error || 'Bilinmeyen hata'))
-        }
+        setConfirmDialog({
+            open: true,
+            title: 'Workflow Silinsin mi?',
+            description: `"${name}" workflow\'u ve tüm adımları kalıcı olarak silinecek. Bu işlem geri alınamaz.`,
+            confirmLabel: 'Evet, Sil',
+            confirmClass: 'bg-red-600 hover:bg-red-700 text-white',
+            onConfirm: async () => {
+                const result = await deleteWorkflow(id)
+                if (result.success) {
+                    setLocalWorkflows(prev => prev.filter(w => w.id !== id))
+                    toast.success('Workflow silindi')
+                } else {
+                    toast.error('Silinemedi: ' + (result.error || 'Bilinmeyen hata'))
+                }
+            }
+        })
     }
 
     const handleLaunch = async (id: string) => {
@@ -115,19 +132,27 @@ export function OutreachDashboard({
     }
 
     const handleStop = async (id: string, name: string) => {
-        if (!window.confirm(`"${name}" akışı durdurulsun mu?\nTüm aktif ve bekleyen gönderimleri iptal edilecek.`)) return
-        setStopping(id)
-        try {
-            const result = await stopWorkflow(id)
-            if ('error' in result) {
-                toast.error('Durdurulamadı: ' + result.error)
-            } else {
-                toast.success(`Akış durduruldu! ${result.stopped || 0} işlem iptal edildi.`)
+        setConfirmDialog({
+            open: true,
+            title: 'Akışı Durdur',
+            description: `"${name}" akışındaki tüm aktif ve bekleyen gönderimleri iptal edilecek.`,
+            confirmLabel: '🛑 Evet, Durdur',
+            confirmClass: 'bg-red-600 hover:bg-red-700 text-white',
+            onConfirm: async () => {
+                setStopping(id)
+                try {
+                    const result = await stopWorkflow(id)
+                    if ('error' in result) {
+                        toast.error('Durdurulamadı: ' + result.error)
+                    } else {
+                        toast.success(`Akış durduruldu! ${result.stopped || 0} işlem iptal edildi.`)
+                    }
+                } catch (err: any) {
+                    toast.error('Hata: ' + err.message)
+                }
+                setStopping(null)
             }
-        } catch (err: any) {
-            toast.error('Hata: ' + err.message)
-        }
-        setStopping(null)
+        })
     }
 
     if (showBuilder) {
@@ -179,6 +204,25 @@ export function OutreachDashboard({
 
     return (
         <div className="space-y-6">
+            {/* Confirm Dialog */}
+            <AlertDialog open={confirmDialog.open} onOpenChange={o => setConfirmDialog(d => ({ ...d, open: o }))}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>{confirmDialog.title}</AlertDialogTitle>
+                        <AlertDialogDescription>{confirmDialog.description}</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>İptal</AlertDialogCancel>
+                        <AlertDialogAction
+                            className={confirmDialog.confirmClass}
+                            onClick={async () => { await confirmDialog.onConfirm() }}
+                        >
+                            {confirmDialog.confirmLabel}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
