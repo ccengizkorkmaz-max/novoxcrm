@@ -542,7 +542,7 @@ function WhatsAppStepConfig({ c, onConfigChange }: {
                 </Select>
             </div>
             {selected && (
-                <div className="p-2.5 rounded border border-amber-500/20 bg-amber-500/5 space-y-1.5">
+                <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
                         <p className="text-[9px] font-semibold text-amber-400 uppercase tracking-wider">📋 Şablon Önizleme (Salt Okunur)</p>
                         <a
@@ -554,11 +554,16 @@ function WhatsAppStepConfig({ c, onConfigChange }: {
                             Düzenlemek için → WhatsApp Yöneticisi ↗
                         </a>
                     </div>
-                    <p className="text-[10px] text-muted-foreground leading-relaxed whitespace-pre-line select-none">{selected.body}</p>
-                    {selected.params > 0 && (
-                        <p className="text-[9px] text-emerald-400">⚡ {selected.params} parametre — customer_name otomatik doldurulur</p>
-                    )}
-                    <p className="text-[9px] text-amber-400/70 italic">⚠ Bu metin Meta tarafından onaylanmış şablondur. Değişiklikler buradan yapılamaz.</p>
+                    {/* WhatsApp bubble */}
+                    <div className="rounded-xl rounded-tl-sm bg-[#1a1a1a] border border-white/10 p-3 max-h-48 overflow-y-auto">
+                        <pre className="text-[12px] text-white/85 leading-relaxed whitespace-pre-wrap font-sans select-none break-words">{selected.body}</pre>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        {selected.params > 0 && (
+                            <span className="text-[9px] text-emerald-400">⚡ {selected.params} parametre — customer_name otomatik doldurulur</span>
+                        )}
+                        <span className="text-[9px] text-amber-400/60 italic">⚠ Meta onaylı şablon, değiştirilemez</span>
+                    </div>
                 </div>
             )}
         </div>
