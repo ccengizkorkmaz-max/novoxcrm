@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -14,6 +14,7 @@ import {
     ArrowLeft, ArrowDown, Trash2, GripVertical, Save, Target, Bot, Bell, Sparkles, Split
 } from 'lucide-react'
 import { createWorkflow } from '../actions'
+import { getWhatsAppTemplates } from '../actions'
 import { toast } from 'sonner'
 
 const ACTION_TYPES = [
@@ -404,21 +405,7 @@ function StepConfigEditor({ step, scripts, onConfigChange, onFieldChange }: {
                 </div>
             )
         case 'whatsapp':
-            return (
-                <div className="space-y-2">
-                    <div>
-                        <Label className="text-[10px]">Template Adı (Meta onaylı)</Label>
-                        <Input value={c.template_name || ''} onChange={e => onConfigChange('template_name', e.target.value)}
-                            placeholder="lead_followup_v1" className="h-7 text-[11px]" />
-                    </div>
-                    <div>
-                        <Label className="text-[10px]">Veya Serbest Mesaj</Label>
-                        <Textarea value={c.free_text || ''} onChange={e => onConfigChange('free_text', e.target.value)}
-                            placeholder="Merhaba {customer_name}..." rows={2} className="text-[11px]" />
-                        <p className="text-[9px] text-muted-foreground mt-1">Değişkenler: {'{customer_name}'}, {'{project_name}'}</p>
-                    </div>
-                </div>
-            )
+            return <WhatsAppStepConfig c={c} onConfigChange={onConfigChange} />
         case 'sms':
             return (
                 <div className="space-y-2">
@@ -518,6 +505,59 @@ function StepConfigEditor({ step, scripts, onConfigChange, onFieldChange }: {
         default:
             return null
     }
+}
+
+function WhatsAppStepConfig({ c, onConfigChange }: {
+    c: any
+    onConfigChange: (key: string, value: any) => void
+}) {
+    const [templates, setTemplates] = useState<any[]>([])
+    const [loading, setLoading] = useState(true)
+
+    useEffect(() => {
+        getWhatsAppTemplates().then(res => {
+            setTemplates(res)
+            setLoading(false)
+        }).catch(() => setLoading(false))
+    }, [])
+
+    const selected = templates.find(t => t.name === c.template_name)
+
+    return (
+        <div className="space-y-2">
+            <div>
+                <Label className="text-[10px]">WhatsApp Şablonu (Meta Onaylı)</Label>
+                <Select value={c.template_name || ''} onValueChange={v => onConfigChange('template_name', v)}>
+                    <SelectTrigger className="h-7 text-[11px]">
+                        <SelectValue placeholder={loading ? 'Şablonlar yükleniyor...' : 'Şablon seç...'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {templates.map(t => (
+                            <SelectItem key={t.name} value={t.name}>
+                                <span className="font-medium">{t.name}</span>
+                                {t.status && <span className="ml-2 text-[9px] text-muted-foreground">({t.status})</span>}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
+            {selected && (
+                <div className="p-2 rounded bg-emerald-500/5 border border-emerald-500/20 space-y-1">
+                    <p className="text-[9px] font-medium text-emerald-400 uppercase tracking-wider">Şablon Önizleme</p>
+                    <p className="text-[10px] text-muted-foreground leading-relaxed">{selected.body}</p>
+                    {selected.params > 0 && (
+                        <p className="text-[9px] text-amber-400">⚡ {selected.params} parametre — customer_name otomatik doldurulur</p>
+                    )}
+                </div>
+            )}
+            <div>
+                <Label className="text-[10px]">Veya Serbest Mesaj (şablon yoksa)</Label>
+                <Textarea value={c.free_text || ''} onChange={e => onConfigChange('free_text', e.target.value)}
+                    placeholder="Merhaba {customer_name}..." rows={2} className="text-[11px]" />
+                <p className="text-[9px] text-muted-foreground mt-1">Değişkenler: {'{customer_name}'}, {'{project_name}'}</p>
+            </div>
+        </div>
+    )
 }
 
 function getDefaultConfig(type: string): any {

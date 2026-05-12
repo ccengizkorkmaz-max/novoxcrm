@@ -386,6 +386,41 @@ export async function launchWorkflow(workflowId: string) {
     return { success: true, ...result }
 }
 
+export async function getWhatsAppTemplates() {
+    const PHONE_ID = process.env.WHATSAPP_PHONE_NUMBER_ID
+    let ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN
+    if (!PHONE_ID || !ACCESS_TOKEN) return []
+    ACCESS_TOKEN = ACCESS_TOKEN.replace(/[\r\n"\s]+/g, '')
+
+    try {
+        // Phone Number ID'den Business Account ID'ye ulaş
+        const meRes = await fetch(
+            `https://graph.facebook.com/v21.0/${PHONE_ID}?fields=whatsapp_business_account&access_token=${ACCESS_TOKEN}`
+        )
+        const meData = await meRes.json()
+        const wabaId = meData?.whatsapp_business_account?.id
+        if (!wabaId) return []
+
+        const res = await fetch(
+            `https://graph.facebook.com/v21.0/${wabaId}/message_templates?fields=name,status,components&limit=100&access_token=${ACCESS_TOKEN}`
+        )
+        const data = await res.json()
+        if (!data.data) return []
+
+        return data.data
+            .filter((t: any) => t.status === 'APPROVED')
+            .map((t: any) => {
+                const body = t.components?.find((c: any) => c.type === 'BODY')?.text || ''
+                const params = (body.match(/\{\{[^}]+\}\}/g) || []).length
+                return { name: t.name, status: t.status, body, params }
+            })
+            .sort((a: any, b: any) => a.name.localeCompare(b.name))
+    } catch {
+        return []
+    }
+}
+
+
 // ─── Stats ───────────────────────────────────────────────────
 
 export async function getOutreachStats() {
