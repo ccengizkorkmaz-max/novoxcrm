@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createAdminClient } from '@/lib/supabase/admin';
 import { revalidatePath } from 'next/cache';
-import { fireLeadCreatedTrigger } from '@/lib/outreach/triggers';
 
 export async function POST(req: NextRequest) {
     try {
@@ -246,11 +245,6 @@ Daima:
 
                     if (!customerErr && customerData) {
                         const customerId = customerData.id;
-
-                        // 🚀 Outreach tetikleyicisini ateşle
-                        fireLeadCreatedTrigger(tenantId, customerId).catch(e => 
-                            console.error('[Make] Trigger hatası:', e.message)
-                        );
 
                         // Create sale pipeline logic (Assuming lead creates a sale record)
                         let saleParams: any = {
