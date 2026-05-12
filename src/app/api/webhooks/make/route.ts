@@ -22,17 +22,20 @@ export async function POST(req: NextRequest) {
 
         const adminSupabase = createAdminClient();
 
-        // 1. Get an active tenant. Default to the first active one, or one predefined.
+        // 1. Tenant belirleme: payload'da tenant_id varsa kullan, yoksa Novo'ya yönlendir
+        const NOVO_TENANT_ID = '89b2829e-fc21-477e-8fd8-9f9f0c587e81';
+        const tenantId = payload.tenant_id || NOVO_TENANT_ID;
+
         const { data: tenantData } = await adminSupabase
             .from('tenants')
             .select('id, name')
-            .limit(1)
+            .eq('id', tenantId)
             .single();
 
-        const tenantId = tenantData?.id;
-        if (!tenantId) {
-            return NextResponse.json({ error: 'No active tenant found' }, { status: 500 });
+        if (!tenantData) {
+            return NextResponse.json({ error: 'Tenant not found' }, { status: 400 });
         }
+        console.log(`[Make] Tenant: ${tenantData.name} (${tenantId})`);
 
         // 2. Fetch or Create Session
         let { data: session } = await adminSupabase
