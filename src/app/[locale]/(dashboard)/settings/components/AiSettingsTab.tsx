@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
-import { Brain, Sparkles, AlertCircle, Info, ToggleLeft, ToggleRight, Phone, Facebook } from 'lucide-react'
+import { Brain, Sparkles, AlertCircle, Info, ToggleLeft, ToggleRight, Phone, Facebook, Zap, Send } from 'lucide-react'
 import { toast } from 'sonner'
 import { updateAiSettings, updateAiAssistantCharacter } from '../actions'
 import { useTranslations } from 'next-intl'
@@ -33,6 +33,10 @@ interface AiSettingsTabProps {
         wa_phone_number_id?: string | null
         wa_access_token?: string | null
         fb_page_id?: string | null
+        // WhatsApp Otomasyon
+        wa_auto_template_enabled?: boolean
+        wa_auto_template_name?: string | null
+        wa_auto_template_rule?: string | null
     }
 }
 
@@ -259,6 +263,68 @@ export default function AiSettingsTab({ tenant }: AiSettingsTabProps) {
                                     autoComplete="off"
                                 />
                                 <p className="text-[10px] text-muted-foreground">Meta Developer → App Dashboard → Permanent Page Access Token</p>
+                            </div>
+                        </div>
+
+                        {/* WhatsApp Otomasyon Section */}
+                        <div className="p-4 rounded-xl border bg-emerald-50/50 space-y-4">
+                            <div className="flex items-center justify-between">
+                                <div className="space-y-0.5">
+                                    <Label className="text-base flex items-center gap-2">
+                                        <Zap className="h-4 w-4 text-emerald-600" />
+                                        WhatsApp Otomasyon
+                                    </Label>
+                                    <p className="text-xs text-muted-foreground">Yeni lead geldiğinde otomatik WhatsApp şablon mesajı gönderir.</p>
+                                </div>
+                                <Switch
+                                    name="wa_auto_template_enabled"
+                                    defaultChecked={tenant.wa_auto_template_enabled ?? false}
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="wa_auto_template_name" className="text-xs text-slate-500 flex items-center gap-1">
+                                        <Send className="h-3 w-3" /> Şablon Adı
+                                    </Label>
+                                    <Input
+                                        id="wa_auto_template_name"
+                                        name="wa_auto_template_name"
+                                        defaultValue={tenant.wa_auto_template_name || 'novo_talep_alindi'}
+                                        placeholder="Örn: novo_talep_alindi"
+                                        className="bg-white font-mono text-sm"
+                                    />
+                                    <p className="text-[10px] text-muted-foreground">Meta WhatsApp Manager'da onaylı şablon adı</p>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="wa_auto_template_rule" className="text-xs text-slate-500 flex items-center gap-1">
+                                        <Zap className="h-3 w-3" /> Gönderim Kuralı
+                                    </Label>
+                                    <Select
+                                        onValueChange={(val) => {
+                                            const input = document.getElementById('wa_auto_template_rule_input') as HTMLInputElement;
+                                            if (input) input.value = val;
+                                        }}
+                                        defaultValue={tenant.wa_auto_template_rule || 'new_lead'}
+                                    >
+                                        <SelectTrigger className="w-full bg-white">
+                                            <SelectValue placeholder="Kural Seçin" />
+                                        </SelectTrigger>
+                                        <SelectContent position="popper">
+                                            <SelectItem value="new_lead">Yeni Lead Geldiğinde</SelectItem>
+                                            <SelectItem value="all_customers">Her Yeni Müşteri Kaydında</SelectItem>
+                                            <SelectItem value="disabled">Devre Dışı</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <input
+                                        type="hidden"
+                                        id="wa_auto_template_rule_input"
+                                        name="wa_auto_template_rule"
+                                        defaultValue={tenant.wa_auto_template_rule || 'new_lead'}
+                                    />
+                                    <p className="text-[10px] text-muted-foreground">Şablon mesajının ne zaman tetikleneceği</p>
+                                </div>
                             </div>
                         </div>
 

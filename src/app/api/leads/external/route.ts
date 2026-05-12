@@ -235,37 +235,52 @@ export async function POST(req: Request) {
 
             console.log('✅ Facebook Ads lead created:', newSale.id)
 
-            // ── 5. Otomatik WhatsApp "Talebiniz Alındı" şablonu gönder ───────
+            // ── 5. Otomatik WhatsApp şablon mesajı gönder (Tenant ayarlarından) ───────
             if (phone && isNewCustomer) {
                 try {
-                    // Proje adını bul
-                    let projectName = 'Novo';
-                    if (projectId) {
-                        const { data: proj } = await supabase.from('projects').select('name').eq('id', projectId).single();
-                        if (proj) projectName = proj.name;
-                    } else if (form_name) {
-                        projectName = form_name;
-                    }
+                    // Tenant'ın WhatsApp otomasyon ayarlarını kontrol et
+                    const { data: tenantSettings } = await supabase
+                        .from('tenants')
+                        .select('wa_auto_template_enabled, wa_auto_template_name, wa_auto_template_rule')
+                        .eq('id', tenant_id)
+                        .single();
 
-                    // Telefon numarasını normalize et (90 ile başlatılması lazım)
-                    let wpPhone = phone.replace(/[^\d]/g, '');
-                    if (wpPhone.startsWith('0')) wpPhone = '90' + wpPhone.substring(1);
-                    if (!wpPhone.startsWith('90') && wpPhone.length === 10) wpPhone = '90' + wpPhone;
+                    const isAutoEnabled = tenantSettings?.wa_auto_template_enabled ?? false;
+                    const templateName = tenantSettings?.wa_auto_template_name || 'novo_talep_alindi';
+                    const templateRule = tenantSettings?.wa_auto_template_rule || 'new_lead';
 
-                    // Müşteri adını düzelt
-                    const customerName = name?.split(' ')[0] || 'Değerli Müşterimiz';
+                    if (isAutoEnabled && templateRule !== 'disabled') {
+                        // Proje adını bul
+                        let projectName = 'Novo';
+                        if (projectId) {
+                            const { data: proj } = await supabase.from('projects').select('name').eq('id', projectId).single();
+                            if (proj) projectName = proj.name;
+                        } else if (form_name) {
+                            projectName = form_name;
+                        }
 
-                    // novo_talep_alindi şablonunu gönder (Utility - anında teslim)
-                    const templateResult = await sendWhatsAppTemplate(
-                        wpPhone,
-                        'novo_talep_alindi',
-                        [{type: 'text', text: customerName}, {type: 'text', text: projectName}]
-                    );
+                        // Telefon numarasını normalize et
+                        let wpPhone = phone.replace(/[^\d]/g, '');
+                        if (wpPhone.startsWith('0')) wpPhone = '90' + wpPhone.substring(1);
+                        if (!wpPhone.startsWith('90') && wpPhone.length === 10) wpPhone = '90' + wpPhone;
 
-                    if (templateResult.success) {
-                        console.log(`📩 WhatsApp talep alındı mesajı gönderildi: ${wpPhone} (${projectName})`);
+                        // Müşteri adını düzelt
+                        const customerName = name?.split(' ')[0] || 'Değerli Müşterimiz';
+
+                        // Şablonu gönder
+                        const templateResult = await sendWhatsAppTemplate(
+                            wpPhone,
+                            templateName,
+                            [{type: 'text', text: customerName}, {type: 'text', text: projectName}]
+                        );
+
+                        if (templateResult.success) {
+                            console.log(`📩 WhatsApp "${templateName}" gönderildi: ${wpPhone} (${projectName})`);
+                        } else {
+                            console.warn('⚠️ WhatsApp şablon gönderilemedi:', templateResult.error);
+                        }
                     } else {
-                        console.warn('⚠️ WhatsApp şablon gönderilemedi:', templateResult.error);
+                        console.log('ℹ️ WhatsApp otomasyon devre dışı (tenant ayarı)');
                     }
                 } catch (waError) {
                     console.warn('⚠️ WhatsApp auto-send error (non-blocking):', waError);

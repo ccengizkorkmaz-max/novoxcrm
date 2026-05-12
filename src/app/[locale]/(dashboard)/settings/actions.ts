@@ -733,6 +733,15 @@ export async function updateAiSettings(formData: FormData) {
     if (fbPageId !== null) updates.fb_page_id = fbPageId || null
     if (waAccessToken !== null) updates.wa_access_token = waAccessToken || null
 
+    // WhatsApp Otomasyon fields
+    const waAutoTemplateName = formData.get('wa_auto_template_name') as string
+    const waAutoTemplateRule = formData.get('wa_auto_template_rule') as string
+    const waAutoTemplateEnabled = formData.get('wa_auto_template_enabled')
+
+    if (waAutoTemplateName !== null) updates.wa_auto_template_name = waAutoTemplateName || 'novo_talep_alindi'
+    if (waAutoTemplateRule !== null) updates.wa_auto_template_rule = waAutoTemplateRule || 'new_lead'
+    updates.wa_auto_template_enabled = waAutoTemplateEnabled === 'on'
+
     const { error } = await supabase
         .from('tenants')
         .update(updates)
