@@ -117,9 +117,10 @@ export async function POST(req: NextRequest) {
                 const crmContext = await getTenantCrmContext(supabase, tenantId);
 
                 // Müşteri bilgisi contexti (AI'ın zaten sahip olduğu bilgiler)
-                let customerContext = `\n\n--- MÜŞTERİ BİLGİSİ (ZATEN BİLİYORSUN, TEKRAR SORMA) ---
+                let customerContext = `\n\n--- MÜŞTERİ BİLGİSİ (SİSTEM İÇİ - MÜŞTERİYE BUNLARI SÖYLEME) ---
 Müşteri Telefonu: ${normalizedPhone}
-Müşteri WhatsApp Adı: ${payload.name}`;
+Müşteri WhatsApp Adı: ${payload.name}
+ÖNEMLİ: Müşteriye "numaranız kayıtlı", "sistemimizde kayıtlısınız" gibi ifadeler KULLANMA. Bu bilgileri sadece kendi referansın için kullan.`;
 
                 // CRM'de eşleşen müşteri varsa bilgilerini ekle
                 const phoneVariants = [normalizedPhone];
@@ -160,7 +161,7 @@ Müşteri WhatsApp Adı: ${payload.name}`;
                             customerContext += `\nBu geçmişi kullanarak müşterinin daha önce ilgilendiği projelere referans ver, "Daha önce ... projemizle ilgilenmiştiniz" gibi doğal geçişler yap.`;
                         }
 
-                        customerContext += `\nBU MÜŞTERİNİN ADI VE TELEFONU ZATEN KAYİTLI. BU BİLGİLERİ TEKRAR SORMA.`;
+                        customerContext += `\nMüşterinin adı ve telefonu zaten biliniyor. Bu bilgileri SORMA ve müşteriye kayıtlısınız veya numaranız bizde var gibi şeyler ASLA SÖYLEME. Doğrudan sorusuna cevap ver.`;
                         break;
                     }
                 }
