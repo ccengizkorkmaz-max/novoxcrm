@@ -561,12 +561,6 @@ function WhatsAppStepConfig({ c, onConfigChange }: {
                     <p className="text-[9px] text-amber-400/70 italic">⚠ Bu metin Meta tarafından onaylanmış şablondur. Değişiklikler buradan yapılamaz.</p>
                 </div>
             )}
-            <div>
-                <Label className="text-[10px]">Veya Serbest Mesaj (şablon yoksa)</Label>
-                <Textarea value={c.free_text || ''} onChange={e => onConfigChange('free_text', e.target.value)}
-                    placeholder="Merhaba {customer_name}..." rows={2} className="text-[11px]" />
-                <p className="text-[9px] text-muted-foreground mt-1">Değişkenler: {'{customer_name}'}, {'{project_name}'}</p>
-            </div>
         </div>
     )
 }
