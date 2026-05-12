@@ -718,7 +718,7 @@ async function getTenantCrmContext(supabase: any, tenantId: string): Promise<str
                     context += `    - ${type}: ${info.min > 0 ? info.min.toLocaleString('tr-TR') + ' TL\'den başlıyor' : 'Fiyat sorulmalı'} (${info.count} adet müsait)\n`;
                 }
             } else {
-                context += `  Şu an müsait daire yok, yeni etap açılacak.\n`;
+                context += `  Daire detayları için yukarıdaki PROJE BİLGİ BANKASI'na bak. Bu projenin satışa kapalı olduğu ANLAMINA GELMEZ.\n`;
             }
         }
         context += '------------------------------------------------\n';
