@@ -13,7 +13,7 @@ import {
     Phone, MessageSquare, Mail, Clock, Settings2, Zap, Plus,
     ArrowLeft, ArrowDown, Trash2, GripVertical, Save, Target, Bot, Bell, Sparkles, Split
 } from 'lucide-react'
-import { createWorkflow, updateWorkflow, addStep, updateStep } from '../actions'
+import { createWorkflow, updateWorkflow, addStep as addStepAction, updateStep } from '../actions'
 import { getWhatsAppTemplates } from '../actions'
 import { toast } from 'sonner'
 
@@ -113,7 +113,7 @@ export function WorkflowBuilder({ segments, scripts, projects, profiles, tenantI
                 // Mevcut adımları güncelle / yeni adım ekle
                 for (const s of steps) {
                     if (s.id.startsWith('temp-')) {
-                        await addStep(editingWorkflow.id, {
+                        await addStepAction(editingWorkflow.id, {
                             step_order: s.step_order, name: s.name, action_type: s.action_type,
                             config: s.config, on_success: s.on_success, on_failure: s.on_failure,
                         })
