@@ -15,7 +15,14 @@ import { fireLeadCreatedTrigger } from '@/lib/outreach/triggers'
  *   Headers: x-webhook-secret: <secret>
  */
 
-const INTERNAL_SOURCES = ['manual', 'crm', 'import', 'migration', 'admin']
+// Sadece bu kaynaklardan gelen lead'ler tetikleyiciyi ateşler
+const EXTERNAL_SOURCES = [
+    'whatsapp', 'facebook_messenger', 'messenger', 'instagram',
+    'website', 'web', 'landing_page',
+    'make', 'zapier', 'api',
+    'google_ads', 'facebook_ads', 'tiktok_ads',
+    'sahibinden', 'hepsiemlak', 'emlakjet',
+]
 const WEBHOOK_SECRET = process.env.SUPABASE_WEBHOOK_SECRET || 'novox_webhook_2024'
 
 export async function POST(req: NextRequest) {
@@ -27,17 +34,17 @@ export async function POST(req: NextRequest) {
         }
 
         const body = await req.json()
-        const record = body.record // Supabase INSERT webhook'u yeni kaydı 'record' olarak gönderir
+        const record = body.record
 
         if (!record?.id || !record?.tenant_id) {
             return NextResponse.json({ status: 'skipped', reason: 'no record' })
         }
 
-        // Source kontrolü: sadece dış kaynak ise tetikle
+        // Source kontrolü: sadece bilinen dış kaynaklar tetikler
         const source = (record.source || '').toLowerCase()
-        if (INTERNAL_SOURCES.includes(source)) {
-            console.log(`[LeadTrigger] Dahili kaynak (${source}), atlanıyor: ${record.full_name}`)
-            return NextResponse.json({ status: 'skipped', reason: 'internal_source' })
+        if (!EXTERNAL_SOURCES.includes(source)) {
+            console.log(`[LeadTrigger] Dahili/bilinmeyen kaynak (${source || 'boş'}), atlanıyor: ${record.full_name}`)
+            return NextResponse.json({ status: 'skipped', reason: 'not_external_source' })
         }
 
         console.log(`[LeadTrigger] 🚀 Yeni dış lead: ${record.full_name} (${source}) → Tetikleyici ateşleniyor`)
