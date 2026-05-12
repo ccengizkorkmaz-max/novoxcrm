@@ -1,6 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
+import { sendWhatsAppTemplate } from '@/lib/whatsapp'
 
 export async function GET() {
     return NextResponse.json({
@@ -233,6 +234,43 @@ export async function POST(req: Request) {
             }
 
             console.log('✅ Facebook Ads lead created:', newSale.id)
+
+            // ── 5. Otomatik WhatsApp "Talebiniz Alındı" şablonu gönder ───────
+            if (phone && isNewCustomer) {
+                try {
+                    // Proje adını bul
+                    let projectName = 'Novo';
+                    if (projectId) {
+                        const { data: proj } = await supabase.from('projects').select('name').eq('id', projectId).single();
+                        if (proj) projectName = proj.name;
+                    } else if (form_name) {
+                        projectName = form_name;
+                    }
+
+                    // Telefon numarasını normalize et (90 ile başlatılması lazım)
+                    let wpPhone = phone.replace(/[^\d]/g, '');
+                    if (wpPhone.startsWith('0')) wpPhone = '90' + wpPhone.substring(1);
+                    if (!wpPhone.startsWith('90') && wpPhone.length === 10) wpPhone = '90' + wpPhone;
+
+                    // Müşteri adını düzelt
+                    const customerName = name?.split(' ')[0] || 'Değerli Müşterimiz';
+
+                    // novo_talep_alindi şablonunu gönder (Utility - anında teslim)
+                    const templateResult = await sendWhatsAppTemplate(
+                        wpPhone,
+                        'novo_talep_alindi',
+                        [{type: 'text', text: customerName}, {type: 'text', text: projectName}]
+                    );
+
+                    if (templateResult.success) {
+                        console.log(`📩 WhatsApp talep alındı mesajı gönderildi: ${wpPhone} (${projectName})`);
+                    } else {
+                        console.warn('⚠️ WhatsApp şablon gönderilemedi:', templateResult.error);
+                    }
+                } catch (waError) {
+                    console.warn('⚠️ WhatsApp auto-send error (non-blocking):', waError);
+                }
+            }
 
             revalidatePath('/[locale]/(dashboard)/crm')
             return NextResponse.json({
