@@ -281,6 +281,30 @@ export async function POST(req: Request) {
                                 wa_first_message_sent: true,
                                 wa_first_message_at: new Date().toISOString()
                             }).eq('id', newSale.id);
+
+                            // Mesajı conversation geçmişine kaydet (AI context için)
+                            try {
+                                const { data: existingConv } = await supabase
+                                    .from('whatsapp_conversations')
+                                    .select('id')
+                                    .eq('tenant_id', tenant_id)
+                                    .eq('phone_number', wpPhone)
+                                    .single();
+
+                                if (existingConv) {
+                                    await supabase.from('whatsapp_messages').insert({
+                                        conversation_id: existingConv.id,
+                                        tenant_id: tenant_id,
+                                        role: 'assistant',
+                                        direction: 'outbound',
+                                        sender_type: 'user',
+                                        content: `[Şablon: ${templateName}] Müşteriye ${projectName} projesi hakkında bilgi mesajı gönderildi. Müşteri adı: ${customerName}.`,
+                                        status: 'delivered',
+                                    });
+                                }
+                            } catch (convErr) {
+                                console.warn('Conversation log hatası (non-blocking):', convErr);
+                            }
                         } else {
                             console.warn('⚠️ WhatsApp şablon gönderilemedi:', templateResult.error);
                         }
