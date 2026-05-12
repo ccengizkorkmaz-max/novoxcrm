@@ -13,7 +13,7 @@ import { OctagonX, Phone, MessageSquare, Mail, Zap, Plus, Play, Pause, Trash2,
     ArrowRight, Settings2, Eye, Bot, FileText, Target
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { toggleWorkflow, deleteWorkflow, launchWorkflow, stopWorkflow } from '../actions'
+import { toggleWorkflow, deleteWorkflow, launchWorkflow, stopWorkflow, deleteTrigger } from '../actions'
 import { WorkflowBuilder } from './WorkflowBuilder'
 import { ScriptManager } from './ScriptManager'
 import { SegmentManager } from './SegmentManager'
@@ -31,6 +31,7 @@ interface OutreachDashboardProps {
     userId: string
     tenantId: string
     detailedLogs: any[]
+    triggers: any[]
 }
 
 const channelIcons: Record<string, any> = {
@@ -65,7 +66,7 @@ const statusColors: Record<string, string> = {
 
 export function OutreachDashboard({
     workflows, segments, scripts, activeCount, recentLogs,
-    projects, profiles, userId, tenantId, detailedLogs
+    projects, profiles, userId, tenantId, detailedLogs, triggers
 }: OutreachDashboardProps) {
     const [showBuilder, setShowBuilder] = useState(false)
     const [editingWorkflow, setEditingWorkflow] = useState<any>(null)
@@ -105,17 +106,31 @@ export function OutreachDashboard({
     }
 
     const handleDelete = async (id: string, name: string) => {
+        const linkedTriggers = triggers.filter(t => t.workflow_id === id)
+        const hasTriggers = linkedTriggers.length > 0
+
         setConfirmDialog({
             open: true,
             title: 'Workflow Silinsin mi?',
-            description: `"${name}" workflow\'u ve tüm adımları kalıcı olarak silinecek. Bu işlem geri alınamaz.`,
-            confirmLabel: 'Evet, Sil',
+            description: hasTriggers
+                ? `"${name}" workflow'u ve tüm adımları kalıcı olarak silinecek.\n\n⚡ Bu workflow'a bağlı ${linkedTriggers.length} tetikleyici de silinecektir. Bu işlem geri alınamaz.`
+                : `"${name}" workflow'u ve tüm adımları kalıcı olarak silinecek. Bu işlem geri alınamaz.`,
+            confirmLabel: hasTriggers ? 'Tetikleyiciyle Birlikte Sil' : 'Evet, Sil',
             confirmClass: 'bg-red-600 hover:bg-red-700 text-white',
             onConfirm: async () => {
+                // Önce bağlı tetikleyicileri sil
+                if (hasTriggers) {
+                    for (const t of linkedTriggers) {
+                        await deleteTrigger(t.id)
+                    }
+                }
                 const result = await deleteWorkflow(id)
                 if (result.success) {
                     setLocalWorkflows(prev => prev.filter(w => w.id !== id))
-                    toast.success('Workflow silindi')
+                    toast.success(hasTriggers
+                        ? `Workflow ve ${linkedTriggers.length} tetikleyici silindi`
+                        : 'Workflow silindi'
+                    )
                 } else {
                     toast.error('Silinemedi: ' + (result.error || 'Bilinmeyen hata'))
                 }
@@ -329,6 +344,7 @@ export function OutreachDashboard({
                             <WorkflowCard
                                 key={w.id}
                                 workflow={w}
+                                hasTrigger={triggers.some(t => t.workflow_id === w.id && t.is_active)}
                                 onToggle={() => handleToggle(w.id, w.is_active)}
                                 onEdit={() => { setEditingWorkflow(w); setShowBuilder(true) }}
                                 onDelete={() => handleDelete(w.id, w.name)}
@@ -380,8 +396,8 @@ function StatCard({ icon: Icon, label, value, color }: { icon: any; label: strin
     )
 }
 
-function WorkflowCard({ workflow, onToggle, onEdit, onDelete, onLaunch, onStop, isLaunching, isStopping }: {
-    workflow: any; onToggle: () => void; onEdit: () => void; onDelete: () => void; onLaunch: () => void; onStop: () => void; isLaunching: boolean; isStopping: boolean
+function WorkflowCard({ workflow, hasTrigger, onToggle, onEdit, onDelete, onLaunch, onStop, isLaunching, isStopping }: {
+    workflow: any; hasTrigger: boolean; onToggle: () => void; onEdit: () => void; onDelete: () => void; onLaunch: () => void; onStop: () => void; isLaunching: boolean; isStopping: boolean
 }) {
     return (
         <Card className="hover:bg-muted/50 transition-colors">
@@ -397,6 +413,12 @@ function WorkflowCard({ workflow, onToggle, onEdit, onDelete, onLaunch, onStop, 
                                 <Badge variant="outline" className={`text-[10px] ${workflow.is_active ? 'border-emerald-500/30 text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'}`}>
                                     {workflow.is_active ? 'Aktif' : 'Pasif'}
                                 </Badge>
+                                {hasTrigger && (
+                                    <Badge variant="outline" className="text-[10px] border-amber-500/30 text-amber-400 bg-amber-500/10 gap-1">
+                                        <Zap className="h-2.5 w-2.5" />
+                                        Otomatik
+                                    </Badge>
+                                )}
                             </div>
                             {workflow.description && (
                                 <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{workflow.description}</p>

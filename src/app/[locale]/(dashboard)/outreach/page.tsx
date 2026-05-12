@@ -33,6 +33,7 @@ export default async function OutreachPage() {
         projectsRes,
         profilesRes,
         detailedLogsRes,
+        triggersRes,
     ] = await Promise.all([
         supabaseAdmin.from('outreach_workflows')
             .select('*, outreach_segments(name), outreach_steps(*)')
@@ -84,6 +85,10 @@ export default async function OutreachPage() {
             .in('channel', ['ai_call', 'whatsapp', 'sms'])
             .order('executed_at', { ascending: false })
             .limit(50),
+        // Triggers for workflow badges
+        supabaseAdmin.from('outreach_triggers')
+            .select('id, workflow_id, event_type, is_active')
+            .eq('tenant_id', tenantId),
     ])
 
     return (
@@ -100,6 +105,7 @@ export default async function OutreachPage() {
                     userId={user.id}
                     tenantId={tenantId || ''}
                     detailedLogs={detailedLogsRes.data || []}
+                    triggers={triggersRes.data || []}
                 />
             </Suspense>
         </div>

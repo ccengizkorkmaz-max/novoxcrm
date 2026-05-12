@@ -1,11 +1,12 @@
-'use server'
+// Outreach trigger fire logic — called from webhooks when new leads are created
 
 import { createAdminClient } from '@/lib/supabase/admin'
-import { startWorkflowForLeads } from '@/lib/outreach/engine'
 
 /**
  * Yeni lead oluştuğunda outreach_triggers tablosundaki
  * lead_created kurallarını kontrol eder ve eşleşen workflow'ları başlatır.
+ * 
+ * NOT: Bu fonksiyon sale_id gerektirmez — doğrudan customer üzerinden çalışır.
  */
 export async function fireLeadCreatedTrigger(tenantId: string, customerId: string) {
     try {
@@ -37,17 +38,50 @@ export async function fireLeadCreatedTrigger(tenantId: string, customerId: strin
         }
 
         for (const trigger of triggers) {
-            console.log(`[Trigger] 🚀 Workflow başlatılıyor: ${trigger.workflow_id} → ${customer.full_name}`)
+            // Workflow'un ilk adımını bul
+            const { data: firstStep } = await supabase
+                .from('outreach_steps')
+                .select('id')
+                .eq('workflow_id', trigger.workflow_id)
+                .eq('step_order', 1)
+                .single()
 
-            // sales kaydı oluşturmadan doğrudan workflow engine'e gönder
-            const leads = [{
-                customer_id: customer.id,
-                customer_name: customer.full_name,
-                phone: customer.phone,
-            }]
+            if (!firstStep) {
+                console.log(`[Trigger] Workflow ${trigger.workflow_id} adım bulunamadı, atlanıyor`)
+                continue
+            }
 
-            await startWorkflowForLeads(trigger.workflow_id, leads, tenantId)
-            console.log(`[Trigger] ✅ Workflow başlatıldı: ${customer.full_name} (${customer.phone})`)
+            // Aynı müşteri için zaten aktif execution var mı?
+            const { data: existing } = await supabase
+                .from('outreach_executions')
+                .select('id')
+                .eq('workflow_id', trigger.workflow_id)
+                .eq('customer_id', customerId)
+                .in('status', ['active', 'waiting'])
+                .limit(1)
+
+            if (existing?.length) {
+                console.log(`[Trigger] Müşteri zaten aktif execution'da: ${customer.full_name}`)
+                continue
+            }
+
+            // Execution oluştur (sale_id opsiyonel — null olabilir)
+            const { error } = await supabase.from('outreach_executions').insert({
+                tenant_id: tenantId,
+                workflow_id: trigger.workflow_id,
+                customer_id: customerId,
+                sale_id: null,
+                current_step_id: firstStep.id,
+                current_step_order: 1,
+                status: 'active',
+                next_action_at: new Date().toISOString(),
+            })
+
+            if (error) {
+                console.error(`[Trigger] Execution oluşturma hatası:`, error.message)
+            } else {
+                console.log(`[Trigger] ✅ Workflow başlatıldı: ${customer.full_name} (${customer.phone})`)
+            }
         }
     } catch (error: any) {
         console.error('[Trigger] lead_created hatası:', error.message)
