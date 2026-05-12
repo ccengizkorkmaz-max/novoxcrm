@@ -83,6 +83,14 @@ export default function ConversationSidebar({ sessions }: ConversationSidebarPro
                                         )}>
                                             {session.customers?.full_name || `+${session.phone_number}`}
                                         </span>
+                                        {session.customers?.full_name && (
+                                            <span className={cn(
+                                                "text-[10px] font-bold tracking-wide",
+                                                isActive ? "text-blue-200" : "text-slate-400"
+                                            )}>
+                                                +{session.phone_number}
+                                            </span>
+                                        )}
                                         {!isActive && (
                                             <div className="flex items-center gap-1">
                                                 {session.lead_score && session.lead_score !== 'unknown' && (
