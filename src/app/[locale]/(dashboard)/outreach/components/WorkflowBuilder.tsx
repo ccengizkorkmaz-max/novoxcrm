@@ -13,7 +13,7 @@ import {
     Phone, MessageSquare, Mail, Clock, Settings2, Zap, Plus,
     ArrowLeft, ArrowDown, Trash2, GripVertical, Save, Target, Bot, Bell, Sparkles, Split
 } from 'lucide-react'
-import { createWorkflow } from '../actions'
+import { createWorkflow, updateWorkflow, addStep, updateStep } from '../actions'
 import { getWhatsAppTemplates } from '../actions'
 import { toast } from 'sonner'
 
@@ -95,26 +95,57 @@ export function WorkflowBuilder({ segments, scripts, projects, profiles, tenantI
         if (steps.length === 0) return toast.warning('En az 1 adım ekleyin')
         setSaving(true)
         try {
-            const result = await createWorkflow({
-                name, description, segment_id: segmentId || undefined,
-                working_hours_start: hoursStart, working_hours_end: hoursEnd,
-                working_days: workingDays,
-                is_auto_detect: false, auto_detect_days: 0,
-                max_leads_per_day: maxPerDay,
-                conversion_goal_status: conversionGoal,
-                stop_on_customer_response: stopOnResponse,
-                steps: steps.map(s => ({
-                    step_order: s.step_order, name: s.name, action_type: s.action_type,
-                    config: s.config, 
-                    on_success: s.on_success, on_failure: s.on_failure,
-                    next_step_id_on_success: s.next_step_id_on_success,
-                    next_step_id_on_failure: s.next_step_id_on_failure,
-                })),
-            })
-            if (result.error) toast.error('Hata: ' + result.error)
-            else {
-                toast.success('Workflow kaydedildi')
+            if (editingWorkflow?.id) {
+                // ── Güncelleme modu ──
+                const wfResult = await updateWorkflow(editingWorkflow.id, {
+                    name, description,
+                    segment_id: segmentId || undefined,
+                    working_hours_start: hoursStart,
+                    working_hours_end: hoursEnd,
+                    working_days: workingDays,
+                    is_active: editingWorkflow.is_active,
+                    is_auto_detect: false,
+                    auto_detect_days: 0,
+                    max_leads_per_day: maxPerDay,
+                })
+                if (wfResult.error) { toast.error('Hata: ' + wfResult.error); setSaving(false); return }
+
+                // Mevcut adımları güncelle / yeni adım ekle
+                for (const s of steps) {
+                    if (s.id.startsWith('temp-')) {
+                        await addStep(editingWorkflow.id, {
+                            step_order: s.step_order, name: s.name, action_type: s.action_type,
+                            config: s.config, on_success: s.on_success, on_failure: s.on_failure,
+                        })
+                    } else {
+                        await updateStep(s.id, {
+                            name: s.name, config: s.config,
+                            on_success: s.on_success, on_failure: s.on_failure,
+                        })
+                    }
+                }
+                toast.success('Workflow güncellendi')
                 onClose()
+            } else {
+                // ── Yeni oluşturma modu ──
+                const result = await createWorkflow({
+                    name, description, segment_id: segmentId || undefined,
+                    working_hours_start: hoursStart, working_hours_end: hoursEnd,
+                    working_days: workingDays,
+                    is_auto_detect: false, auto_detect_days: 0,
+                    max_leads_per_day: maxPerDay,
+                    conversion_goal_status: conversionGoal,
+                    stop_on_customer_response: stopOnResponse,
+                    steps: steps.map(s => ({
+                        step_order: s.step_order, name: s.name, action_type: s.action_type,
+                        config: s.config,
+                        on_success: s.on_success, on_failure: s.on_failure,
+                        next_step_id_on_success: s.next_step_id_on_success,
+                        next_step_id_on_failure: s.next_step_id_on_failure,
+                    })),
+                })
+                if (result.error) toast.error('Hata: ' + result.error)
+                else { toast.success('Workflow kaydedildi'); onClose() }
             }
         } catch (e: any) { toast.error('Hata: ' + e.message) }
         setSaving(false)
