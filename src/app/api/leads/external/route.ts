@@ -276,6 +276,11 @@ export async function POST(req: Request) {
 
                         if (templateResult.success) {
                             console.log(`📩 WhatsApp "${templateName}" gönderildi: ${wpPhone} (${projectName})`);
+                            // Sales kaydına WA gönderildi işareti koy
+                            await supabase.from('sales').update({
+                                wa_first_message_sent: true,
+                                wa_first_message_at: new Date().toISOString()
+                            }).eq('id', newSale.id);
                         } else {
                             console.warn('⚠️ WhatsApp şablon gönderilemedi:', templateResult.error);
                         }
