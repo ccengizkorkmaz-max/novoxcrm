@@ -2,7 +2,7 @@
 
 import { format } from 'date-fns'
 import { enUS, tr } from 'date-fns/locale'
-import { CalendarIcon, Phone, Mail, MessageSquare, Briefcase, FileText, User, MoreHorizontal, Video, Building2 } from 'lucide-react'
+import { CalendarIcon, Phone, Mail, MessageSquare, Briefcase, FileText, User, MoreHorizontal, Video, Building2, CheckCircle2 } from 'lucide-react'
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Link } from "@/i18n/routing"
@@ -128,11 +128,12 @@ export function ActivityCard({ activity, customers, profiles, onComplete }: Acti
                     {/* Body: Summary, Description & Customer */}
                     <div className="min-w-0">
                         <h4 className={cn(
-                            "text-[12px] font-bold text-slate-700 leading-tight mb-1 group-hover:text-blue-700 transition-colors line-clamp-2",
-                            isCompleted && "line-through text-slate-400 font-medium",
+                            "text-[12px] font-bold text-slate-700 leading-tight mb-1 group-hover:text-blue-700 transition-colors line-clamp-2 inline-flex items-start gap-1",
+                            isCompleted && "text-slate-500 font-medium",
                             isCancelled && "line-through text-slate-400 font-medium"
                         )}>
-                            {activity.summary}
+                            {isCompleted && <CheckCircle2 className="h-3.5 w-3.5 text-green-500 shrink-0 mt-0.5" />}
+                            <span className="line-clamp-2">{activity.summary}</span>
                         </h4>
                         {activity.description && (
                             <p className="text-[10px] text-slate-500 leading-snug line-clamp-2 mb-1">
