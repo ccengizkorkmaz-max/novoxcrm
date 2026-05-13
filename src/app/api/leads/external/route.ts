@@ -303,7 +303,7 @@ export async function POST(req: Request) {
                                     .select('id')
                                     .eq('tenant_id', tenant_id)
                                     .eq('phone_number', wpPhone)
-                                    .single();
+                                    .maybeSingle();
 
                                 if (!existingConv) {
                                     // Sohbet yoksa oluştur
