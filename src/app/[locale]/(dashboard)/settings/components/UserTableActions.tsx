@@ -48,6 +48,7 @@ interface UserTableActionsProps {
         role: string
         email: string | null
         is_external?: boolean
+        phone?: string | null
     }
     allUsers: {
         id: string

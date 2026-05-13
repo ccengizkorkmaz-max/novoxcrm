@@ -8,8 +8,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox"
 import { Switch } from "@/components/ui/switch"
 import { toast } from 'sonner'
-import { updateUserRole, toggleUserExternal, toggleUserActive } from '../actions'
+import { updateUserRole, toggleUserExternal, toggleUserActive, toggleHotLeadManager } from '../actions'
 import UserTableActions from './UserTableActions'
+import { Flame } from 'lucide-react'
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 interface User {
     id: string
@@ -19,6 +26,8 @@ interface User {
     created_at: string
     is_external?: boolean
     is_active?: boolean
+    is_hot_lead_manager?: boolean
+    phone?: string | null
 }
 
 interface UsersTableProps {
@@ -33,6 +42,8 @@ export default function UsersTable({ users, currentUserRole }: UsersTableProps) 
     const [optimisticExternal, setOptimisticExternal] = useState<Record<string, boolean>>({})
     // Local state for 'is_active' optimistic updates
     const [optimisticActive, setOptimisticActive] = useState<Record<string, boolean>>({})
+    // Local state for 'is_hot_lead_manager' optimistic updates
+    const [optimisticHotLead, setOptimisticHotLead] = useState<Record<string, boolean>>({})
 
     // Only owner/admin can change roles and external flag
     const canManage = currentUserRole === 'owner' || currentUserRole === 'admin'
@@ -97,6 +108,34 @@ export default function UsersTable({ users, currentUserRole }: UsersTableProps) 
         }
     }
 
+    const handleHotLeadToggle = async (userId: string, checked: boolean) => {
+        setOptimisticHotLead(prev => ({ ...prev, [userId]: checked }))
+        
+        try {
+            const res = await toggleHotLeadManager(userId, checked)
+            if (res?.error) {
+                setOptimisticHotLead(prev => {
+                    const next = { ...prev }
+                    delete next[userId]
+                    return next
+                })
+                toast.error(res.error)
+            } else {
+                toast.success(checked 
+                    ? '🔥 Hot Lead Manager aktif edildi — bu kullanıcıya sıcak müşteri bildirimleri gönderilecek' 
+                    : 'Hot Lead Manager devre dışı bırakıldı'
+                )
+            }
+        } catch (error) {
+            setOptimisticHotLead(prev => {
+                const next = { ...prev }
+                delete next[userId]
+                return next
+            })
+            toast.error("Bir hata oluştu")
+        }
+    }
+
     const getRoleLabel = (role: string) => {
         switch (role) {
             case 'admin': return t('users.roles.admin')
@@ -110,6 +149,7 @@ export default function UsersTable({ users, currentUserRole }: UsersTableProps) 
     }
 
     return (
+        <TooltipProvider>
         <Table>
             <TableHeader>
                 <TableRow>
@@ -117,6 +157,19 @@ export default function UsersTable({ users, currentUserRole }: UsersTableProps) 
                     <TableHead>{t('users.table.email')}</TableHead>
                     <TableHead className="text-center">Durum</TableHead>
                     <TableHead className="text-center">Dış Kaynak</TableHead>
+                    <TableHead className="text-center">
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <div className="flex items-center justify-center gap-1 cursor-help">
+                                    <Flame className="h-3.5 w-3.5 text-orange-500" />
+                                    <span className="text-xs">Hot Lead</span>
+                                </div>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="max-w-[260px]">
+                                <p className="text-xs">Aktif edildiğinde, AI WhatsApp yazışmalarında tespit edilen sıcak müşteriler hakkında bu kullanıcıya WhatsApp bildirimi gönderilir.</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TableHead>
                     <TableHead>{t('users.table.role')}</TableHead>
                     <TableHead>{t('users.table.date')}</TableHead>
                     <TableHead className="w-[50px]"></TableHead>
@@ -127,6 +180,7 @@ export default function UsersTable({ users, currentUserRole }: UsersTableProps) 
                     // Determine current visual state: use optimistic value if defined, otherwise use original value
                     const isExternal = optimisticExternal[u.id] !== undefined ? optimisticExternal[u.id] : (u.is_external || false)
                     const isActive = optimisticActive[u.id] !== undefined ? optimisticActive[u.id] : (u.is_active !== false)
+                    const isHotLeadManager = optimisticHotLead[u.id] !== undefined ? optimisticHotLead[u.id] : (u.is_hot_lead_manager || false)
                     
                     return (
                         <TableRow key={u.id} className={!isActive ? 'opacity-50' : ''}>
@@ -141,6 +195,12 @@ export default function UsersTable({ users, currentUserRole }: UsersTableProps) 
                                     {!isActive && (
                                         <Badge variant="outline" className="text-[10px] py-0 px-1.5 border-red-300 text-red-500 bg-red-50">
                                             Pasif
+                                        </Badge>
+                                    )}
+                                    {isHotLeadManager && (
+                                        <Badge variant="outline" className="text-[10px] py-0 px-1.5 border-orange-400 text-orange-600 bg-gradient-to-r from-orange-50 to-red-50">
+                                            <Flame className="h-2.5 w-2.5 mr-0.5" />
+                                            Hot Lead
                                         </Badge>
                                     )}
                                 </div>
@@ -163,6 +223,30 @@ export default function UsersTable({ users, currentUserRole }: UsersTableProps) 
                                         onCheckedChange={(checked) => handleExternalToggle(u.id, checked === true)}
                                         disabled={!canManage || u.role === 'broker'} 
                                     />
+                                </div>
+                            </TableCell>
+                            <TableCell className="text-center">
+                                <div className="flex justify-center">
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <div>
+                                                <Switch
+                                                    checked={isHotLeadManager}
+                                                    onCheckedChange={(checked) => handleHotLeadToggle(u.id, checked)}
+                                                    disabled={!canManage}
+                                                    className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-orange-500 data-[state=checked]:to-red-500"
+                                                />
+                                            </div>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="top">
+                                            <p className="text-xs">
+                                                {isHotLeadManager 
+                                                    ? `Aktif — ${u.phone ? u.phone : 'Telefon tanımlı değil!'}`
+                                                    : 'Sıcak müşteri WhatsApp bildirimi'
+                                                }
+                                            </p>
+                                        </TooltipContent>
+                                    </Tooltip>
                                 </div>
                             </TableCell>
                             <TableCell>
@@ -207,12 +291,13 @@ export default function UsersTable({ users, currentUserRole }: UsersTableProps) 
                 })}
                 {!users || users.length === 0 && (
                     <TableRow>
-                        <TableCell colSpan={7} className="text-center h-24 text-muted-foreground">
+                        <TableCell colSpan={8} className="text-center h-24 text-muted-foreground">
                             {t('users.table.empty')}
                         </TableCell>
                     </TableRow>
                 )}
             </TableBody>
         </Table>
+        </TooltipProvider>
     )
 }

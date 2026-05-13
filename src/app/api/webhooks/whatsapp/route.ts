@@ -233,6 +233,83 @@ GİZLİ SİSTEM KOMUTLARI (SADECE ŞARTLAR SAĞLANDIĞINDA YANITININ EN SONUNA E
                             priority: 'High',
                         });
                         console.log('🔥 HOT LEAD DETECTED AND ALERT CREATED');
+
+                        // ── Hot Lead Manager WhatsApp Bildirimi ──
+                        try {
+                            // Tüm hot lead manager'ları bul
+                            const { data: hotLeadManagers } = await supabase
+                                .from('profiles')
+                                .select('id, full_name, phone')
+                                .eq('tenant_id', tenantId)
+                                .eq('is_hot_lead_manager', true)
+                                .eq('is_active', true);
+
+                            if (hotLeadManagers && hotLeadManagers.length > 0) {
+                                // Konuşma özetini oluştur (son 10 mesaj)
+                                const { data: recentMessages } = await supabase
+                                    .from('whatsapp_messages')
+                                    .select('role, content, created_at')
+                                    .eq('conversation_id', conversationId)
+                                    .order('created_at', { ascending: false })
+                                    .limit(10);
+
+                                let conversationSummary = '';
+                                if (recentMessages && recentMessages.length > 0) {
+                                    conversationSummary = recentMessages
+                                        .reverse()
+                                        .map((m: any) => `${m.role === 'user' ? '👤 Müşteri' : '🤖 AI'}: ${m.content.substring(0, 120)}`)
+                                        .join('\n');
+                                }
+
+                                // Müşteri adını bul (CRM veya WhatsApp adı)
+                                let customerName = payload.name || 'Bilinmiyor';
+                                const phoneVariantsForLookup = [normalizedPhone];
+                                if (normalizedPhone.startsWith('90') && normalizedPhone.length > 10) {
+                                    phoneVariantsForLookup.push(normalizedPhone.substring(2));
+                                }
+                                for (const variant of phoneVariantsForLookup) {
+                                    const { data: cust } = await supabase
+                                        .from('customers')
+                                        .select('full_name')
+                                        .eq('tenant_id', tenantId)
+                                        .eq('phone', variant)
+                                        .single();
+                                    if (cust?.full_name) {
+                                        customerName = cust.full_name;
+                                        break;
+                                    }
+                                }
+
+                                // Bildirim mesajını formatla
+                                const notificationMessage =
+                                    `🔥 *HOT LEAD TESPİT EDİLDİ!*\n\n` +
+                                    `👤 *Müşteri:* ${customerName}\n` +
+                                    `📞 *Telefon:* ${normalizedPhone}\n` +
+                                    `⏰ *Zaman:* ${new Date().toLocaleString('tr-TR')}\n\n` +
+                                    `📋 *Konuşma Özeti:*\n${conversationSummary ? conversationSummary.substring(0, 900) : 'Özet oluşturulamadı'}\n\n` +
+                                    `💡 _Bu müşteri satın alma niyeti gösteriyor. Hemen iletişime geçin!_`;
+
+                                // Her hot lead manager'a WhatsApp mesajı gönder
+                                const accessToken = tenantData.wa_access_token;
+                                for (const manager of hotLeadManagers) {
+                                    if (manager.phone && accessToken && tenantData.wa_phone_number_id) {
+                                        try {
+                                            await sendWhatsAppMessage(
+                                                manager.phone,
+                                                notificationMessage,
+                                                tenantData.wa_phone_number_id,
+                                                accessToken
+                                            );
+                                            console.log(`🔥 Hot Lead bildirimi gönderildi: ${manager.full_name} (${manager.phone})`);
+                                        } catch (sendErr) {
+                                            console.error(`Hot Lead bildirim hatası (${manager.full_name}):`, sendErr);
+                                        }
+                                    }
+                                }
+                            }
+                        } catch (hotLeadNotifyError) {
+                            console.error('Hot Lead Manager bildirim hatası:', hotLeadNotifyError);
+                        }
                     }
 
                     const leadMatch = aiReply.match(/\[LEAD_DATA:\s*(\{.*?\})\s*\]/);

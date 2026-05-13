@@ -9,6 +9,7 @@ import { updateUser } from '../actions'
 import { toast } from 'sonner'
 import { useTranslations } from 'next-intl'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Phone } from 'lucide-react'
 
 interface EditUserFormProps {
     user: {
@@ -16,6 +17,7 @@ interface EditUserFormProps {
         full_name: string | null
         role: string
         is_external?: boolean
+        phone?: string | null
     }
     onClose: () => void
 }
@@ -81,6 +83,24 @@ export default function EditUserForm({ user, onClose }: EditUserFormProps) {
                         placeholder={t('users.forms.passwordPlaceholder')}
                         minLength={6}
                     />
+                </div>
+
+                {/* Telefon Numarası */}
+                <div className="space-y-2">
+                    <Label htmlFor="edit-phone" className="flex items-center gap-1.5">
+                        <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+                        WhatsApp Telefon Numarası
+                    </Label>
+                    <Input
+                        id="edit-phone"
+                        name="phone"
+                        type="tel"
+                        defaultValue={user.phone || ''}
+                        placeholder="905XXXXXXXXX"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                        Hot Lead Manager bildirimleri bu numaraya WhatsApp ile gönderilir.
+                    </p>
                 </div>
 
                 {/* Dış Kaynak Toggle */}

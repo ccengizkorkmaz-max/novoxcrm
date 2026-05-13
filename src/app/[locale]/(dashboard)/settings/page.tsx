@@ -64,7 +64,7 @@ export default async function SettingsPage() {
     // 3. Get all users
     const { data: users } = await supabase
         .from('profiles')
-        .select('id, full_name, email, role, created_at, is_external, is_active')
+        .select('id, full_name, email, role, created_at, is_external, is_active, is_hot_lead_manager, phone')
         .eq('tenant_id', profile.tenant_id)
         .order('created_at', { ascending: false })
 

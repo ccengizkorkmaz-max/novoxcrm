@@ -101,6 +101,7 @@ export async function addUser(formData: FormData) {
     const name = formData.get('name') as string
     const password = formData.get('password') as string
     const role = formData.get('role') as string || 'user'
+    const phone = formData.get('phone') as string
 
     if (!password || password.length < 6) {
         return { error: 'Şifre en az 6 karakter olmalıdır.' }
@@ -149,11 +150,14 @@ export async function addUser(formData: FormData) {
             return { error: `Kullanıcı oluşturulamadı: ${error.message}` }
         }
 
-        // Ensure is_external is updated in profiles if the trigger didn't pick it up from metadata
+        // Ensure is_external and phone are updated in profiles if the trigger didn't pick it up from metadata
         if (data.user) {
             await adminClient
                 .from('profiles')
-                .update({ is_external: formData.get('is_external') === 'on' })
+                .update({ 
+                    is_external: formData.get('is_external') === 'on',
+                    phone: phone || null 
+                })
                 .eq('id', data.user.id)
         }
 
@@ -509,11 +513,12 @@ export async function updateUser(userId: string, formData: FormData) {
     const role = formData.get('role') as string
     const password = formData.get('password') as string
     const is_external = formData.get('is_external') === 'on'
+    const phone = formData.get('phone') as string
 
     // 1. Update Profile
     const { error } = await supabase
         .from('profiles')
-        .update({ full_name, role, is_external })
+        .update({ full_name, role, is_external, phone: phone || null })
         .eq('id', userId)
 
     if (error) {
@@ -1016,5 +1021,61 @@ export async function toggleUserActive(userId: string, isActive: boolean) {
 
     revalidatePath('/settings')
     revalidatePath('/crm')
+    return { success: true }
+}
+
+export async function toggleHotLeadManager(userId: string, isHotLeadManager: boolean) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    // Check permissions (Admin/Owner)
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+    if (!profile || !['owner', 'admin'].includes(profile.role)) {
+        return { error: 'Bu işlem için yetkiniz yok.' }
+    }
+
+    // Check if the user has a phone number set (required for WhatsApp notifications)
+    if (isHotLeadManager) {
+        const { data: targetProfile } = await supabase.from('profiles').select('phone').eq('id', userId).single()
+        if (!targetProfile?.phone) {
+            return { error: 'Hot Lead Manager aktif etmek için önce kullanıcının telefon numarasını tanımlayın.' }
+        }
+    }
+
+    const { error } = await supabase
+        .from('profiles')
+        .update({ is_hot_lead_manager: isHotLeadManager })
+        .eq('id', userId)
+
+    if (error) {
+        return { error: 'Hot Lead Manager güncellenemedi: ' + error.message }
+    }
+
+    revalidatePath('/settings')
+    return { success: true }
+}
+
+export async function updateUserPhone(userId: string, phone: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    // Check permissions (Admin/Owner)
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+    if (!profile || !['owner', 'admin'].includes(profile.role)) {
+        return { error: 'Bu işlem için yetkiniz yok.' }
+    }
+
+    const { error } = await supabase
+        .from('profiles')
+        .update({ phone: phone || null })
+        .eq('id', userId)
+
+    if (error) {
+        return { error: 'Telefon güncellenemedi: ' + error.message }
+    }
+
+    revalidatePath('/settings')
     return { success: true }
 }

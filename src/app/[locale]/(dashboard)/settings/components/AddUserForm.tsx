@@ -8,6 +8,7 @@ import { DialogFooter } from "@/components/ui/dialog"
 import { addUser } from '../actions'
 import { toast } from 'sonner'
 import { useTranslations } from 'next-intl'
+import { Phone } from 'lucide-react'
 
 export default function AddUserForm({ onClose }: { onClose: () => void }) {
     const t = useTranslations('Settings')
@@ -63,6 +64,23 @@ export default function AddUserForm({ onClose }: { onClose: () => void }) {
                         <option value="admin">{t('users.roles.admin')}</option>
                         <option value="broker">Dış Broker</option>
                     </select>
+                </div>
+
+                {/* Telefon Numarası */}
+                <div className="space-y-2">
+                    <Label htmlFor="add-phone" className="flex items-center gap-1.5">
+                        <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+                        WhatsApp Telefon Numarası
+                    </Label>
+                    <Input
+                        id="add-phone"
+                        name="phone"
+                        type="tel"
+                        placeholder="905XXXXXXXXX"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                        Hot Lead Manager bildirimleri için gerekli. Sonradan da eklenebilir.
+                    </p>
                 </div>
 
                 <div className="flex items-center gap-2 pt-2">
