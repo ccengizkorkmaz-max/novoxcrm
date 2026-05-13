@@ -804,7 +804,7 @@ export async function updateAiAssistantCharacter(formData: FormData) {
             const knowledgeBase = formData.get('ai_knowledge_base') as string;
             
             if (knowledgeBase) {
-                combinedPrompt += `\n\n--- ŞİRKET BİLGİ BANKASI VE AKTİF PROJELER ---\n${knowledgeBase}`;
+                combinedPrompt += `\n\n--- ŞİRKET BİLGİ BANKASI VE AKTİF PROJELER ---\n${knowledgeBase}\n\nÖNEMLİ KURAL: Projeler hakkında SADECE yukarıdaki BİLGİ BANKASI'nda yazan bilgileri kullan. Bilmediğin veya bilgi bankasında yazmayan bir detay (fiyat, metrekare, teslim tarihi vb.) sorulursa ASLA uydurma, 'Bu detay şu an sistemimde mevcut değil, dilerseniz ilgili satış uzmanımızın size net bilgi vermesini sağlayabilirim' şeklinde yanıt ver.`;
             }
 
             // You can also add personality instructions here if you want

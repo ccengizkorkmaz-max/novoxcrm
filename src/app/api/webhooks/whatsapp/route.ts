@@ -189,7 +189,7 @@ GİZLİ SİSTEM KOMUTLARI (SADECE ŞARTLAR SAĞLANDIĞINDA YANITININ EN SONUNA E
   Bu etiketi HER yanıtına MUTLAKA ekle.`;
 
                 // AI'dan yanıt al
-                let knowledgeContext = tenantData.ai_knowledge_base ? `\n\n--- ŞİRKET BİLGİ BANKASI VE AKTİF PROJELER ---\n${tenantData.ai_knowledge_base}\n` : '';
+                let knowledgeContext = tenantData.ai_knowledge_base ? `\n\n--- ŞİRKET BİLGİ BANKASI VE AKTİF PROJELER ---\n${tenantData.ai_knowledge_base}\n\nÖNEMLİ KURAL: Projeler hakkında SADECE yukarıdaki BİLGİ BANKASI'nda yazan bilgileri kullan. Bilmediğin veya bilgi bankasında yazmayan bir detay (fiyat, metrekare, teslim tarihi vb.) sorulursa ASLA uydurma, 'Bu detay şu an sistemimde mevcut değil, dilerseniz ilgili satış uzmanımızın size net bilgi vermesini sağlayabilirim' şeklinde yanıt ver.\n` : '';
                 const finalPrompt = (tenantData.ai_system_prompt || tenantData.ai_assistant_instructions || getDefaultSystemPrompt()) + knowledgeContext + crmContext + customerContext + strictHumanPersona;
 
                 let aiReply = await generateAIReply(
