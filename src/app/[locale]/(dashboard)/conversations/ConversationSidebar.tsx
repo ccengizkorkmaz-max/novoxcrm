@@ -1,9 +1,10 @@
 'use client'
 
+import { useState } from 'react'
 import { Link } from '@/i18n/routing'
 import { formatDistanceToNow } from 'date-fns'
 import { tr } from 'date-fns/locale'
-import { MessageSquare, User, Clock, CheckCircle2, AlertCircle } from 'lucide-react'
+import { MessageSquare, User, Clock, Search, X } from 'lucide-react'
 import { Badge } from "@/components/ui/badge"
 import { usePathname } from 'next/navigation'
 import { cn } from "@/lib/utils"
@@ -14,6 +15,16 @@ interface ConversationSidebarProps {
 
 export default function ConversationSidebar({ sessions }: ConversationSidebarProps) {
     const pathname = usePathname()
+    const [search, setSearch] = useState('')
+
+    const filteredSessions = search.trim()
+        ? sessions.filter((s) => {
+            const q = search.toLowerCase()
+            const name = (s.customers?.full_name || '').toLowerCase()
+            const phone = (s.phone_number || '').toLowerCase()
+            return name.includes(q) || phone.includes(q)
+        })
+        : sessions
 
     return (
         <div className="flex flex-col h-full bg-white border-r border-slate-200 w-full lg:w-96 shrink-0 shadow-sm overflow-hidden">
@@ -26,32 +37,49 @@ export default function ConversationSidebar({ sessions }: ConversationSidebarPro
                         Mesajlaşmalar
                     </h2>
                     <Badge variant="outline" className="border-slate-200 text-slate-400 font-black text-[10px] tracking-widest">
-                        {sessions.length}
+                        {filteredSessions.length}{search.trim() ? `/${sessions.length}` : ''}
                     </Badge>
                 </div>
                 <div className="relative">
                     <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-                        <Clock className="h-4 w-4 text-slate-400" />
+                        <Search className="h-4 w-4 text-slate-400" />
                     </div>
-                    <div className="w-full bg-slate-50 border border-slate-100 rounded-xl py-2 pl-10 pr-4 text-[11px] font-bold text-slate-500 uppercase tracking-tight">
-                        Canlı Görüşme Akışı
-                    </div>
+                    <input
+                        type="text"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        placeholder="İsim veya telefon ile ara..."
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-10 pr-9 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all"
+                    />
+                    {search && (
+                        <button
+                            onClick={() => setSearch('')}
+                            className="absolute inset-y-0 right-2.5 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
+                        >
+                            <X className="h-4 w-4" />
+                        </button>
+                    )}
                 </div>
             </div>
 
             <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-2 bg-slate-50/10">
-                {sessions.length === 0 ? (
+                {filteredSessions.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
                         <div className="h-16 w-16 rounded-3xl bg-slate-50 flex items-center justify-center text-slate-200 mb-4 border border-slate-100 shadow-inner rotate-12">
                             <MessageSquare className="h-8 w-8 -rotate-12" />
                         </div>
-                        <h3 className="text-slate-900 font-extrabold text-sm mb-1">Görüşme Bulunamadı</h3>
+                        <h3 className="text-slate-900 font-extrabold text-sm mb-1">
+                            {search.trim() ? 'Sonuç Bulunamadı' : 'Görüşme Bulunamadı'}
+                        </h3>
                         <p className="text-slate-500 text-[11px] font-medium leading-relaxed">
-                            Henüz bir mesajlaşma trafiği başlatılmamış.
+                            {search.trim()
+                                ? `"${search}" için eşleşen görüşme yok.`
+                                : 'Henüz bir mesajlaşma trafiği başlatılmamış.'
+                            }
                         </p>
                     </div>
                 ) : (
-                    sessions.map((session) => {
+                    filteredSessions.map((session) => {
                         const isActive = pathname.includes(session.id)
 
                         return (
@@ -138,3 +166,4 @@ export default function ConversationSidebar({ sessions }: ConversationSidebarPro
         </div>
     )
 }
+

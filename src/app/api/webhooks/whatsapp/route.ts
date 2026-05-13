@@ -277,7 +277,9 @@ GİZLİ SİSTEM KOMUTLARI (SADECE ŞARTLAR SAĞLANDIĞINDA YANITININ EN SONUNA E
                                 let customerName = payload.name || 'Bilinmiyor';
                                 const phoneVariantsForLookup = [normalizedPhone];
                                 if (normalizedPhone.startsWith('90') && normalizedPhone.length > 10) {
-                                    phoneVariantsForLookup.push(normalizedPhone.substring(2));
+                                    phoneVariantsForLookup.push(normalizedPhone.substring(2));       // 5xx
+                                    phoneVariantsForLookup.push('+' + normalizedPhone);              // +90xxx
+                                    phoneVariantsForLookup.push('0' + normalizedPhone.substring(2)); // 05xx
                                 }
                                 for (const variant of phoneVariantsForLookup) {
                                     const { data: cust } = await supabase
@@ -581,14 +583,18 @@ async function findTenant(supabase: any, phoneNumberId: string, channel?: string
 async function findOrCreateConversation(
     supabase: any, tenantId: string, phone: string, messagePreview: string, channel: string = 'whatsapp', contactName?: string
 ) {
-    // Telefon numarasından müşteri eşleştir (hem 905xx hem 5xx formatıyla ara)
+    // Telefon numarasından müşteri eşleştir (tüm olası formatlarla ara)
     let customerId: string | null = null;
     const phoneVariants = [phone]; // e.g. 905335914389
     if (phone.startsWith('90') && phone.length > 10) {
-        phoneVariants.push(phone.substring(2)); // 5335914389
+        phoneVariants.push(phone.substring(2));        // 5335914389
+        phoneVariants.push('+' + phone);               // +905335914389
+        phoneVariants.push('0' + phone.substring(2));  // 05335914389
     }
     if (!phone.startsWith('90') && phone.length === 10) {
-        phoneVariants.push('90' + phone); // 905335914389
+        phoneVariants.push('90' + phone);              // 905335914389
+        phoneVariants.push('+90' + phone);             // +905335914389
+        phoneVariants.push('0' + phone);               // 05335914389
     }
 
     for (const variant of phoneVariants) {
