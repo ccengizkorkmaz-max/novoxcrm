@@ -389,6 +389,7 @@ GİZLİ SİSTEM KOMUTLARI (SADECE ŞARTLAR SAĞLANDIĞINDA YANITININ EN SONUNA E
                     // Conversation güncelle
                     await supabase.from('whatsapp_conversations').update({
                         last_message_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString(),
                         last_message_preview: aiReply.substring(0, 50),
                     }).eq('id', conversationId);
 

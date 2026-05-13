@@ -132,6 +132,7 @@ export async function POST(req: NextRequest) {
         await supabase.from('whatsapp_conversations')
             .update({
                 last_message_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
                 last_message_preview: message.substring(0, 50),
                 ai_enabled: false // Human took over!
             })
