@@ -181,6 +181,11 @@ export async function POST(request: NextRequest) {
       ]
     };
 
+    // Optimize start speaking plan to reduce the silence delay
+    overrides.startSpeakingPlan = {
+      waitSeconds: 0.1
+    };
+
     // Voice override
     if (customVoiceId) {
       overrides.voice = {
