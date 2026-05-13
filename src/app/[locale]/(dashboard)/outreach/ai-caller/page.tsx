@@ -57,6 +57,7 @@ export default function AiCallerPage() {
 
   // New states for Custom Script & Voice Settings
   const [customPrompt, setCustomPrompt] = useState('');
+  const [customFirstMessage, setCustomFirstMessage] = useState('');
   const [elevenVoices, setElevenVoices] = useState<any[]>([]);
   const [selectedVoice, setSelectedVoice] = useState('');
   const [voiceSettings, setVoiceSettings] = useState({
@@ -114,6 +115,7 @@ export default function AiCallerPage() {
     try {
       const payloadOverrides = {
         customPrompt: customPrompt.trim() || undefined,
+        customFirstMessage: customFirstMessage.trim() || undefined,
         customVoiceId: selectedVoice || undefined,
         voiceSettings: selectedVoice ? voiceSettings : undefined
       };
@@ -223,6 +225,18 @@ export default function AiCallerPage() {
                   className="w-full h-24 p-3 rounded-lg border text-sm focus:ring-2 focus:ring-blue-500 outline-none resize-none"
                 />
                 <p className="text-[10px] text-muted-foreground mt-1">Boş bırakılırsa Vapi üzerindeki varsayılan prompt kullanılır.</p>
+              </div>
+
+              {/* First Message Area */}
+              <div>
+                  <label className="text-xs font-medium text-slate-700 mb-1.5 block">Açılış Mesajı (İlk Söylenecek Cümle)</label>
+                  <textarea 
+                      value={customFirstMessage} 
+                      onChange={(e) => setCustomFirstMessage(e.target.value)} 
+                      placeholder="Örn: Merhaba, Novo Gayrimenkul'den arıyorum, nasılsınız?"
+                      className="w-full h-16 p-3 rounded-lg border text-sm focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1">Telefon açıldığında AI doğrudan bu metni okuyacaktır. Boş bırakılırsa müşterinin konuşmasını bekler ("Efendim", "Alo" vb).</p>
               </div>
 
               {/* Voice Selection */}

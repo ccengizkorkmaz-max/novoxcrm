@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
     // ---------------------------
 
     // Check for custom script/voice overrides from the request body
-    const { customPrompt, customVoiceId, voiceSettings } = body;
+    const { customPrompt, customFirstMessage, customVoiceId, voiceSettings } = body;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const callPayload: any = {
@@ -147,9 +147,12 @@ export async function POST(request: NextRequest) {
     };
 
     // We will build assistantOverrides dynamically
-    const overrides: any = {
-      firstMessageMode: 'assistant-waits-for-user'
-    };
+    const overrides: any = {};
+    if (customFirstMessage) {
+      overrides.firstMessage = customFirstMessage;
+    } else {
+      overrides.firstMessageMode = 'assistant-waits-for-user';
+    }
     // if (firstMessage) overrides.firstMessage = firstMessage; // Removing hardcoded firstMessage as the LLM will generate it based on the prompt
 
     // System prompt override
