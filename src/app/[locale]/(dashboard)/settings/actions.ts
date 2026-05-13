@@ -784,6 +784,7 @@ export async function updateAiAssistantCharacter(formData: FormData) {
         ai_assistant_personality: formData.get('ai_assistant_personality') as string,
         ai_assistant_gender: formData.get('ai_assistant_gender') as string,
         ai_assistant_instructions: formData.get('ai_assistant_instructions') as string,
+        ai_knowledge_base: formData.get('ai_knowledge_base') as string,
     }
 
     const { error } = await supabase
@@ -794,6 +795,47 @@ export async function updateAiAssistantCharacter(formData: FormData) {
     if (error) {
         console.error('Update AI Character Error:', error)
         return { error: 'Karakter ayarları güncellenirken bir hata oluştu.' }
+    }
+
+    // Sync with Vapi API if configured
+    if (process.env.VAPI_API_KEY && process.env.VAPI_ASSISTANT_ID) {
+        try {
+            let combinedPrompt = formData.get('ai_assistant_instructions') as string || '';
+            const knowledgeBase = formData.get('ai_knowledge_base') as string;
+            
+            if (knowledgeBase) {
+                combinedPrompt += `\n\n--- ŞİRKET BİLGİ BANKASI VE AKTİF PROJELER ---\n${knowledgeBase}`;
+            }
+
+            // You can also add personality instructions here if you want
+            const personality = formData.get('ai_assistant_personality') as string;
+            if (personality) {
+                combinedPrompt = `Kişilik/Üslup: ${personality}\n\n` + combinedPrompt;
+            }
+
+            await fetch(`https://api.vapi.ai/assistant/${process.env.VAPI_ASSISTANT_ID}`, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': `Bearer ${process.env.VAPI_API_KEY}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    model: {
+                        model: 'gpt-4o', // or keep existing
+                        messages: [
+                            {
+                                role: 'system',
+                                content: combinedPrompt
+                            }
+                        ]
+                    }
+                })
+            });
+            console.log('✅ Synced AI instructions with Vapi Assistant');
+        } catch (vapiErr) {
+            console.error('Vapi Sync Error:', vapiErr);
+            // Don't fail the whole action if Vapi fails
+        }
     }
 
     // Comprehensive revalidation

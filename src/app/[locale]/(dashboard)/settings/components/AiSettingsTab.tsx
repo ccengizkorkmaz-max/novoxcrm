@@ -29,6 +29,7 @@ interface AiSettingsTabProps {
         ai_assistant_personality?: string | null
         ai_assistant_gender?: string | null
         ai_assistant_instructions?: string | null
+        ai_knowledge_base?: string | null
         // Messaging integration fields
         wa_phone_number_id?: string | null
         wa_access_token?: string | null
@@ -439,6 +440,21 @@ export default function AiSettingsTab({ tenant }: AiSettingsTabProps) {
                                 className="min-h-[120px] resize-none"
                             />
                             <p className="text-[10px] text-muted-foreground">Bu talimatlar asistanın zekasına (system prompt) doğrudan eklenir.</p>
+                        </div>
+
+                        <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                                <Label htmlFor="ai_knowledge_base" className="text-sm font-medium text-slate-700">Aktif Projeler & Bilgi Bankası</Label>
+                                <Badge variant="secondary" className="text-[10px] font-normal">Tüm AI Asistanlar okur</Badge>
+                            </div>
+                            <Textarea
+                                id="ai_knowledge_base"
+                                name="ai_knowledge_base"
+                                defaultValue={tenant.ai_knowledge_base || ''}
+                                placeholder="Örn: Aktif projelerimiz: 1. Novo Vista (İzmir) - 1+1 daireler 3 milyon TL'den başlar, %50 peşin 12 ay vade... 2. Querencia (Kıbrıs) - 85.000 GBP..."
+                                className="min-h-[200px] resize-none"
+                            />
+                            <p className="text-[10px] text-muted-foreground">Bu alana yazacağınız bilgiler, Vapi (sesli) ve WhatsApp asistanınız tarafından müşteri sorularını doğru cevaplamak için okunur.</p>
                         </div>
                     </div>
 

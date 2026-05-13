@@ -189,7 +189,8 @@ GİZLİ SİSTEM KOMUTLARI (SADECE ŞARTLAR SAĞLANDIĞINDA YANITININ EN SONUNA E
   Bu etiketi HER yanıtına MUTLAKA ekle.`;
 
                 // AI'dan yanıt al
-                const finalPrompt = (tenantData.ai_system_prompt || tenantData.ai_assistant_instructions || getDefaultSystemPrompt()) + crmContext + customerContext + strictHumanPersona;
+                let knowledgeContext = tenantData.ai_knowledge_base ? `\n\n--- ŞİRKET BİLGİ BANKASI VE AKTİF PROJELER ---\n${tenantData.ai_knowledge_base}\n` : '';
+                const finalPrompt = (tenantData.ai_system_prompt || tenantData.ai_assistant_instructions || getDefaultSystemPrompt()) + knowledgeContext + crmContext + customerContext + strictHumanPersona;
 
                 let aiReply = await generateAIReply(
                     resolvedAi.provider,
@@ -560,7 +561,7 @@ function parseIncomingPayload(body: any): IncomingPayload | null {
  * WhatsApp → wa_phone_number_id, Messenger → fb_page_id
  */
 async function findTenant(supabase: any, phoneNumberId: string, channel?: string) {
-    const selectFields = 'id, ai_provider, ai_api_key, ai_system_prompt, ai_assistant_instructions, wa_phone_number_id, wa_access_token, fb_page_id, gemini_api_key, openai_api_key, is_gemini_enabled, is_openai_enabled, gemini_model, openai_model, name';
+    const selectFields = 'id, ai_provider, ai_api_key, ai_system_prompt, ai_assistant_instructions, ai_knowledge_base, wa_phone_number_id, wa_access_token, fb_page_id, gemini_api_key, openai_api_key, is_gemini_enabled, is_openai_enabled, gemini_model, openai_model, name';
 
     // Messenger ise önce fb_page_id ile dene
     if (channel === 'messenger') {
