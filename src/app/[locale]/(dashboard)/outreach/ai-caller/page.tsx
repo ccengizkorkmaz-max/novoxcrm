@@ -19,13 +19,7 @@ interface CallRecord {
 
 interface PhoneEntry { number: string; name: string; }
 
-const PROJECTS = [
-  { id: 'izmir-novo-vista', name: 'İzmir Novo Vista' },
-  { id: 'querencia', name: 'Querencia' },
-  { id: 'la-vista', name: 'La Vista' },
-  { id: 'courtyard-platinum', name: 'Courtyard Platinum' },
-  { id: 'grand-sapphire', name: 'Grand Sapphire' },
-];
+
 
 function statusBadge(status: string) {
   const map: Record<string, { color: string; label: string }> = {
@@ -54,7 +48,6 @@ export default function AiCallerPage() {
   const [calling, setCalling] = useState(false);
   const [singleNumber, setSingleNumber] = useState('');
   const [singleName, setSingleName] = useState('');
-  const [selectedProject, setSelectedProject] = useState('izmir-novo-vista');
   const [batchList, setBatchList] = useState<PhoneEntry[]>([]);
   const [batchNumber, setBatchNumber] = useState('');
   const [batchName, setBatchName] = useState('');
@@ -120,19 +113,19 @@ export default function AiCallerPage() {
     setCallResult(null);
     try {
       const payloadOverrides = {
-          customPrompt: customPrompt.trim() || undefined,
-          customVoiceId: selectedVoice || undefined,
-          voiceSettings: selectedVoice ? voiceSettings : undefined
+        customPrompt: customPrompt.trim() || undefined,
+        customVoiceId: selectedVoice || undefined,
+        voiceSettings: selectedVoice ? voiceSettings : undefined
       };
-      
+
       const body = mode === 'single'
-        ? { phoneNumber: singleNumber, customerName: singleName, projectId: selectedProject, ...payloadOverrides }
-        : { action: 'batch', phoneNumbers: batchList.map(p => ({ ...p, projectId: selectedProject })), projectId: selectedProject, ...payloadOverrides };
-      
+        ? { phoneNumber: singleNumber, customerName: singleName, ...payloadOverrides }
+        : { action: 'batch', phoneNumbers: batchList, ...payloadOverrides };
+
       const res = await fetch('/api/vapi', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
-      setCallResult({ success: true, message: mode === 'single' ? `Arama başlatıldı! ID: ${data.id}` : `${data.results?.filter((r: {success: boolean}) => r.success).length} arama başlatıldı` });
+      setCallResult({ success: true, message: mode === 'single' ? `Arama başlatıldı! ID: ${data.id}` : `${data.results?.filter((r: { success: boolean }) => r.success).length} arama başlatıldı` });
       if (mode === 'single') { setSingleNumber(''); setSingleName(''); }
       else setBatchList([]);
       setTimeout(fetchCalls, 3000);
@@ -155,7 +148,7 @@ export default function AiCallerPage() {
           content: waMessage,
           mediaUrl: waType === 'video' ? waMediaUrl : undefined,
           templateName: waType === 'template' ? waMessage : undefined,
-          namedParams: waType === 'template' && waParams.trim() ? 
+          namedParams: waType === 'template' && waParams.trim() ?
             Object.fromEntries(waParams.split(',').map(p => {
               const [key, ...vals] = p.trim().split('=');
               return [key.trim(), vals.join('=').trim()];
@@ -206,102 +199,91 @@ export default function AiCallerPage() {
           </div>
         </div>
 
-        {/* Project Selection */}
-        <div className="mb-4">
-          <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Proje</label>
-          <div className="flex flex-wrap gap-2">
-            {PROJECTS.map(p => (
-              <button key={p.id} onClick={() => setSelectedProject(p.id)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition ${selectedProject === p.id ? 'border-blue-500 bg-blue-500/10 text-blue-400' : 'border-border hover:border-blue-500/50 text-muted-foreground'}`}>
-                {p.name}
-              </button>
-            ))}
-          </div>
-        </div>
+
 
         {/* Script & Voice Settings (Collapsible) */}
         <div className="mb-6 border rounded-lg overflow-hidden bg-slate-50/50">
-            <button 
-                onClick={() => setShowAdvanced(!showAdvanced)} 
-                className="w-full flex items-center justify-between p-3 bg-white hover:bg-slate-50 text-sm font-medium border-b"
-            >
-                <span>Ayarlar & Script (ElevenLabs Optimizasyonu)</span>
-                {showAdvanced ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            </button>
-            
-            {showAdvanced && (
-                <div className="p-4 space-y-5">
-                    {/* Script Area */}
-                    <div>
-                        <label className="text-xs font-medium text-slate-700 mb-1.5 block">AI Mesaj Scripti (Sistem Promptu)</label>
-                        <textarea 
-                            value={customPrompt} 
-                            onChange={(e) => setCustomPrompt(e.target.value)} 
-                            placeholder="Örn: Sen Novo Gayrimenkul'den arayan bir satış asistanısın. Amacın..."
-                            className="w-full h-24 p-3 rounded-lg border text-sm focus:ring-2 focus:ring-blue-500 outline-none resize-none"
-                        />
-                        <p className="text-[10px] text-muted-foreground mt-1">Boş bırakılırsa Vapi üzerindeki varsayılan prompt kullanılır.</p>
-                    </div>
+          <button
+            onClick={() => setShowAdvanced(!showAdvanced)}
+            className="w-full flex items-center justify-between p-3 bg-white hover:bg-slate-50 text-sm font-medium border-b"
+          >
+            <span>Ayarlar & Script (ElevenLabs Optimizasyonu)</span>
+            {showAdvanced ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </button>
 
-                    {/* Voice Selection */}
-                    <div>
-                        <label className="text-xs font-medium text-slate-700 mb-1.5 block">ElevenLabs Ses Seçimi</label>
-                        <select 
-                            value={selectedVoice} 
-                            onChange={(e) => setSelectedVoice(e.target.value)}
-                            className="w-full h-10 px-3 rounded-lg border text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white"
-                        >
-                            <option value="">Varsayılan Sesi Kullan</option>
-                            {elevenVoices.map((v: any) => (
-                                <option key={v.voice_id} value={v.voice_id}>{v.name}</option>
-                            ))}
-                        </select>
-                    </div>
+          {showAdvanced && (
+            <div className="p-4 space-y-5">
+              {/* Script Area */}
+              <div>
+                <label className="text-xs font-medium text-slate-700 mb-1.5 block">AI Mesaj Scripti (Sistem Promptu)</label>
+                <textarea
+                  value={customPrompt}
+                  onChange={(e) => setCustomPrompt(e.target.value)}
+                  placeholder="Örn: Sen Novo Gayrimenkul'den arayan bir satış asistanısın. Amacın..."
+                  className="w-full h-24 p-3 rounded-lg border text-sm focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                />
+                <p className="text-[10px] text-muted-foreground mt-1">Boş bırakılırsa Vapi üzerindeki varsayılan prompt kullanılır.</p>
+              </div>
 
-                    {/* Voice Settings */}
-                    {selectedVoice && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-4 rounded-lg border">
-                            <div>
-                                <label className="text-xs font-medium text-slate-700 flex justify-between mb-1.5">
-                                    <span>Stability (Kararlılık)</span>
-                                    <span>{voiceSettings.stability}</span>
-                                </label>
-                                <input type="range" min="0" max="1" step="0.01" value={voiceSettings.stability}
-                                    onChange={(e) => setVoiceSettings(p => ({...p, stability: parseFloat(e.target.value)}))}
-                                    className="w-full accent-blue-600" />
-                                <p className="text-[10px] text-muted-foreground mt-1">Düşük = Daha duygusal/değişken, Yüksek = Daha monoton</p>
-                            </div>
-                            <div>
-                                <label className="text-xs font-medium text-slate-700 flex justify-between mb-1.5">
-                                    <span>Similarity Boost (Benzerlik)</span>
-                                    <span>{voiceSettings.similarityBoost}</span>
-                                </label>
-                                <input type="range" min="0" max="1" step="0.01" value={voiceSettings.similarityBoost}
-                                    onChange={(e) => setVoiceSettings(p => ({...p, similarityBoost: parseFloat(e.target.value)}))}
-                                    className="w-full accent-blue-600" />
-                                <p className="text-[10px] text-muted-foreground mt-1">Orijinal sese yakınlık oranı</p>
-                            </div>
-                            <div>
-                                <label className="text-xs font-medium text-slate-700 flex justify-between mb-1.5">
-                                    <span>Style Exaggeration (Stil Abartısı)</span>
-                                    <span>{voiceSettings.style}</span>
-                                </label>
-                                <input type="range" min="0" max="1" step="0.01" value={voiceSettings.style}
-                                    onChange={(e) => setVoiceSettings(p => ({...p, style: parseFloat(e.target.value)}))}
-                                    className="w-full accent-blue-600" />
-                            </div>
-                            <div className="flex items-center gap-2 pt-5">
-                                <input type="checkbox" id="speakerBoost" checked={voiceSettings.useSpeakerBoost}
-                                    onChange={(e) => setVoiceSettings(p => ({...p, useSpeakerBoost: e.target.checked}))}
-                                    className="accent-blue-600 w-4 h-4 rounded border-gray-300" />
-                                <label htmlFor="speakerBoost" className="text-xs font-medium text-slate-700 cursor-pointer">
-                                    Speaker Boost Kullan
-                                </label>
-                            </div>
-                        </div>
-                    )}
+              {/* Voice Selection */}
+              <div>
+                <label className="text-xs font-medium text-slate-700 mb-1.5 block">ElevenLabs Ses Seçimi</label>
+                <select
+                  value={selectedVoice}
+                  onChange={(e) => setSelectedVoice(e.target.value)}
+                  className="w-full h-10 px-3 rounded-lg border text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                >
+                  <option value="">Varsayılan Sesi Kullan</option>
+                  {elevenVoices.map((v: any) => (
+                    <option key={v.voice_id} value={v.voice_id}>{v.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Voice Settings */}
+              {selectedVoice && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-4 rounded-lg border">
+                  <div>
+                    <label className="text-xs font-medium text-slate-700 flex justify-between mb-1.5">
+                      <span>Stability (Kararlılık)</span>
+                      <span>{voiceSettings.stability}</span>
+                    </label>
+                    <input type="range" min="0" max="1" step="0.01" value={voiceSettings.stability}
+                      onChange={(e) => setVoiceSettings(p => ({ ...p, stability: parseFloat(e.target.value) }))}
+                      className="w-full accent-blue-600" />
+                    <p className="text-[10px] text-muted-foreground mt-1">Düşük = Daha duygusal/değişken, Yüksek = Daha monoton</p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-slate-700 flex justify-between mb-1.5">
+                      <span>Similarity Boost (Benzerlik)</span>
+                      <span>{voiceSettings.similarityBoost}</span>
+                    </label>
+                    <input type="range" min="0" max="1" step="0.01" value={voiceSettings.similarityBoost}
+                      onChange={(e) => setVoiceSettings(p => ({ ...p, similarityBoost: parseFloat(e.target.value) }))}
+                      className="w-full accent-blue-600" />
+                    <p className="text-[10px] text-muted-foreground mt-1">Orijinal sese yakınlık oranı</p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-slate-700 flex justify-between mb-1.5">
+                      <span>Style Exaggeration (Stil Abartısı)</span>
+                      <span>{voiceSettings.style}</span>
+                    </label>
+                    <input type="range" min="0" max="1" step="0.01" value={voiceSettings.style}
+                      onChange={(e) => setVoiceSettings(p => ({ ...p, style: parseFloat(e.target.value) }))}
+                      className="w-full accent-blue-600" />
+                  </div>
+                  <div className="flex items-center gap-2 pt-5">
+                    <input type="checkbox" id="speakerBoost" checked={voiceSettings.useSpeakerBoost}
+                      onChange={(e) => setVoiceSettings(p => ({ ...p, useSpeakerBoost: e.target.checked }))}
+                      className="accent-blue-600 w-4 h-4 rounded border-gray-300" />
+                    <label htmlFor="speakerBoost" className="text-xs font-medium text-slate-700 cursor-pointer">
+                      Speaker Boost Kullan
+                    </label>
+                  </div>
                 </div>
-            )}
+              )}
+            </div>
+          )}
         </div>
 
         {mode === 'single' ? (
@@ -481,89 +463,89 @@ export default function AiCallerPage() {
         </div>
 
         <div className="space-y-4">
-            <div className="flex gap-4">
-                <div className="flex-1">
-                    <label className="text-xs font-medium text-slate-700 mb-1.5 block">Alıcı Telefonu</label>
-                    <input 
-                        value={waPhone} 
-                        onChange={(e) => setWaPhone(e.target.value)} 
-                        placeholder="+905551234567"
-                        className="w-full h-10 px-3 rounded-lg border bg-background text-sm focus:ring-2 focus:ring-green-500 outline-none" 
-                    />
-                </div>
-                <div className="flex-1">
-                    <label className="text-xs font-medium text-slate-700 mb-1.5 block">Mesaj Tipi</label>
-                    <select 
-                        value={waType} 
-                        onChange={(e) => setWaType(e.target.value as any)}
-                        className="w-full h-10 px-3 rounded-lg border bg-background text-sm focus:ring-2 focus:ring-green-500 outline-none"
-                    >
-                        <option value="text">Düz Metin (Serbest)</option>
-                        <option value="template">Şablon (Örn: hello_world)</option>
-                        <option value="video">Video + Metin</option>
-                    </select>
-                </div>
+          <div className="flex gap-4">
+            <div className="flex-1">
+              <label className="text-xs font-medium text-slate-700 mb-1.5 block">Alıcı Telefonu</label>
+              <input
+                value={waPhone}
+                onChange={(e) => setWaPhone(e.target.value)}
+                placeholder="+905551234567"
+                className="w-full h-10 px-3 rounded-lg border bg-background text-sm focus:ring-2 focus:ring-green-500 outline-none"
+              />
             </div>
+            <div className="flex-1">
+              <label className="text-xs font-medium text-slate-700 mb-1.5 block">Mesaj Tipi</label>
+              <select
+                value={waType}
+                onChange={(e) => setWaType(e.target.value as any)}
+                className="w-full h-10 px-3 rounded-lg border bg-background text-sm focus:ring-2 focus:ring-green-500 outline-none"
+              >
+                <option value="text">Düz Metin (Serbest)</option>
+                <option value="template">Şablon (Örn: hello_world)</option>
+                <option value="video">Video + Metin</option>
+              </select>
+            </div>
+          </div>
 
-            {waType === 'video' && (
-                <div>
-                    <label className="text-xs font-medium text-slate-700 mb-1.5 block">Video URL</label>
-                    <input 
-                        value={waMediaUrl} 
-                        onChange={(e) => setWaMediaUrl(e.target.value)} 
-                        placeholder="https://example.com/video.mp4"
-                        className="w-full h-10 px-3 rounded-lg border bg-background text-sm focus:ring-2 focus:ring-green-500 outline-none" 
-                    />
-                    <p className="text-[10px] text-muted-foreground mt-1">İnternete açık bir MP4 video linki girin.</p>
-                </div>
-            )}
-
+          {waType === 'video' && (
             <div>
-                <label className="text-xs font-medium text-slate-700 mb-1.5 block">
-                    {waType === 'template' ? 'Şablon Adı' : 'Mesaj İçeriği'}
-                </label>
-                {waType === 'template' ? (
-                    <div className="space-y-3">
-                        <input 
-                            value={waMessage} 
-                            onChange={(e) => setWaMessage(e.target.value)} 
-                            placeholder="Örn: welcome_message"
-                            className="w-full h-10 px-3 rounded-lg border bg-background text-sm focus:ring-2 focus:ring-green-500 outline-none" 
-                        />
-                        <div>
-                            <label className="text-xs font-medium text-slate-700 mb-1.5 block">Şablon Parametreleri (Virgülle Ayırın)</label>
-                            <input 
-                                value={waParams} 
-                                onChange={(e) => setWaParams(e.target.value)} 
-                                placeholder="Örn: customer_name=Cengiz Bey"
-                                className="w-full h-10 px-3 rounded-lg border bg-background text-sm focus:ring-2 focus:ring-green-500 outline-none" 
-                            />
-                        </div>
-                    </div>
-                ) : (
-                    <textarea 
-                        value={waMessage} 
-                        onChange={(e) => setWaMessage(e.target.value)} 
-                        placeholder="Merhaba, NovoCRM'den deneme mesajı..."
-                        className="w-full h-24 p-3 rounded-lg border bg-background text-sm focus:ring-2 focus:ring-green-500 outline-none resize-none"
-                    />
-                )}
+              <label className="text-xs font-medium text-slate-700 mb-1.5 block">Video URL</label>
+              <input
+                value={waMediaUrl}
+                onChange={(e) => setWaMediaUrl(e.target.value)}
+                placeholder="https://example.com/video.mp4"
+                className="w-full h-10 px-3 rounded-lg border bg-background text-sm focus:ring-2 focus:ring-green-500 outline-none"
+              />
+              <p className="text-[10px] text-muted-foreground mt-1">İnternete açık bir MP4 video linki girin.</p>
             </div>
+          )}
 
-            <button 
-                onClick={sendWhatsApp} 
-                disabled={waSending || !waPhone || (!waMessage && waType !== 'template')}
-                className="h-10 px-6 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-medium flex items-center justify-center w-full gap-2 disabled:opacity-50 transition"
-            >
-                {waSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageSquareText className="h-4 w-4" />} Gönder
-            </button>
-
-            {waResult && (
-                <div className={`mt-3 p-3 rounded-lg text-sm flex items-center gap-2 ${waResult.success ? 'bg-green-500/10 text-green-600' : 'bg-red-500/10 text-red-600'}`}>
-                    {waResult.success ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
-                    {waResult.message}
+          <div>
+            <label className="text-xs font-medium text-slate-700 mb-1.5 block">
+              {waType === 'template' ? 'Şablon Adı' : 'Mesaj İçeriği'}
+            </label>
+            {waType === 'template' ? (
+              <div className="space-y-3">
+                <input
+                  value={waMessage}
+                  onChange={(e) => setWaMessage(e.target.value)}
+                  placeholder="Örn: welcome_message"
+                  className="w-full h-10 px-3 rounded-lg border bg-background text-sm focus:ring-2 focus:ring-green-500 outline-none"
+                />
+                <div>
+                  <label className="text-xs font-medium text-slate-700 mb-1.5 block">Şablon Parametreleri (Virgülle Ayırın)</label>
+                  <input
+                    value={waParams}
+                    onChange={(e) => setWaParams(e.target.value)}
+                    placeholder="Örn: customer_name=Cengiz Bey"
+                    className="w-full h-10 px-3 rounded-lg border bg-background text-sm focus:ring-2 focus:ring-green-500 outline-none"
+                  />
                 </div>
+              </div>
+            ) : (
+              <textarea
+                value={waMessage}
+                onChange={(e) => setWaMessage(e.target.value)}
+                placeholder="Merhaba, NovoCRM'den deneme mesajı..."
+                className="w-full h-24 p-3 rounded-lg border bg-background text-sm focus:ring-2 focus:ring-green-500 outline-none resize-none"
+              />
             )}
+          </div>
+
+          <button
+            onClick={sendWhatsApp}
+            disabled={waSending || !waPhone || (!waMessage && waType !== 'template')}
+            className="h-10 px-6 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-medium flex items-center justify-center w-full gap-2 disabled:opacity-50 transition"
+          >
+            {waSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageSquareText className="h-4 w-4" />} Gönder
+          </button>
+
+          {waResult && (
+            <div className={`mt-3 p-3 rounded-lg text-sm flex items-center gap-2 ${waResult.success ? 'bg-green-500/10 text-green-600' : 'bg-red-500/10 text-red-600'}`}>
+              {waResult.success ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+              {waResult.message}
+            </div>
+          )}
         </div>
       </div>
     </div>
