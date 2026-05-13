@@ -109,6 +109,11 @@ export async function getMessagingSession(id: string) {
             }
         }
 
+        // Okunmamış mesajları sıfırla
+        if (session && session.unread_count > 0) {
+            await supabase.from('whatsapp_conversations').update({ unread_count: 0 }).eq('id', id)
+        }
+
         return session
     } catch (error) {
         console.error('Server error fetching session:', error)

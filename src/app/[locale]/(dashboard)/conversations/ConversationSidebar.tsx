@@ -121,6 +121,11 @@ export default function ConversationSidebar({ sessions }: ConversationSidebarPro
                                         )}
                                         {!isActive && (
                                             <div className="flex items-center gap-1">
+                                                {session.unread_count > 0 && (
+                                                    <span className="flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-black text-white shadow-sm" title={`${session.unread_count} okunmamış mesaj`}>
+                                                        {session.unread_count}
+                                                    </span>
+                                                )}
                                                 {session.lead_score && session.lead_score !== 'unknown' && (
                                                     <span className={cn(
                                                         "text-[9px] px-1.5 py-0.5 rounded-full font-black tracking-wider",
