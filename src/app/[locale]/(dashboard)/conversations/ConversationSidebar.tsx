@@ -8,6 +8,7 @@ import { MessageSquare, User, Clock, Search, X } from 'lucide-react'
 import { Badge } from "@/components/ui/badge"
 import { usePathname } from 'next/navigation'
 import { cn } from "@/lib/utils"
+import { useSupabaseRealtime } from '@/hooks/useSupabaseRealtime'
 
 interface ConversationSidebarProps {
     sessions: any[]
@@ -16,6 +17,8 @@ interface ConversationSidebarProps {
 export default function ConversationSidebar({ sessions }: ConversationSidebarProps) {
     const pathname = usePathname()
     const [search, setSearch] = useState('')
+
+    useSupabaseRealtime({ table: 'whatsapp_conversations' })
 
     const filteredSessions = search.trim()
         ? sessions.filter((s) => {
