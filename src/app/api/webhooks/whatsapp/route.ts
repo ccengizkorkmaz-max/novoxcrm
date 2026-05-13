@@ -634,6 +634,7 @@ async function findOrCreateConversation(
     if (existing) {
         const updateData: any = {
             last_message_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
             last_message_preview: messagePreview.substring(0, 50),
             unread_count: 1,
             channel,
