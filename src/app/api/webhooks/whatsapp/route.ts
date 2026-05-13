@@ -221,7 +221,19 @@ GİZLİ SİSTEM KOMUTLARI (SADECE ŞARTLAR SAĞLANDIĞINDA YANITININ EN SONUNA E
                     if (aiReply.includes('[HOT_LEAD]')) {
                         aiReply = aiReply.replace('[HOT_LEAD]', '').trim();
                     }
+
+                    // Dedup: Bu konuşma için daha önce bildirim gönderilmiş mi kontrol et
+                    let alreadyNotified = false;
                     if (isHotLead) {
+                        const { data: convCheck } = await supabase
+                            .from('whatsapp_conversations')
+                            .select('hot_lead_notified')
+                            .eq('id', conversationId)
+                            .single();
+                        alreadyNotified = convCheck?.hot_lead_notified === true;
+                    }
+
+                    if (isHotLead && !alreadyNotified) {
                         // Yüksek öncelikli bildirim/aktivite oluştur
                         await supabase.from('activities').insert({
                             tenant_id: tenantId,
@@ -310,6 +322,12 @@ GİZLİ SİSTEM KOMUTLARI (SADECE ŞARTLAR SAĞLANDIĞINDA YANITININ EN SONUNA E
                         } catch (hotLeadNotifyError) {
                             console.error('Hot Lead Manager bildirim hatası:', hotLeadNotifyError);
                         }
+
+                        // Bu konuşma için bildirim gönderildiğini işaretle (tekrar gönderilmesini önle)
+                        await supabase.from('whatsapp_conversations').update({
+                            hot_lead_notified: true,
+                        }).eq('id', conversationId);
+                        console.log('✅ Konuşma hot_lead_notified olarak işaretlendi');
                     }
 
                     const leadMatch = aiReply.match(/\[LEAD_DATA:\s*(\{.*?\})\s*\]/);

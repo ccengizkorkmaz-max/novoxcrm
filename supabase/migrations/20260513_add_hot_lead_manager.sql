@@ -12,3 +12,8 @@ ADD COLUMN IF NOT EXISTS phone TEXT;
 CREATE INDEX IF NOT EXISTS idx_profiles_hot_lead_manager 
 ON profiles (tenant_id, is_hot_lead_manager) 
 WHERE is_hot_lead_manager = TRUE;
+
+-- Add hot_lead_notified flag to conversations for deduplication
+-- Prevents sending duplicate notifications for the same conversation
+ALTER TABLE whatsapp_conversations 
+ADD COLUMN IF NOT EXISTS hot_lead_notified BOOLEAN DEFAULT FALSE;
