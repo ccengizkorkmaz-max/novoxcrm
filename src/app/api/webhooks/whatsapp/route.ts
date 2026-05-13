@@ -502,12 +502,24 @@ function parseIncomingPayload(body: any): IncomingPayload | null {
             const msg = body.entry[0].changes[0].value.messages[0];
             const contact = body.entry[0].changes[0].value.contacts?.[0];
             const meta = body.entry[0].changes[0].value.metadata;
+            
+            let messageText = msg.text?.body || '';
+            if (msg.type === 'interactive') {
+                if (msg.interactive?.type === 'button_reply') {
+                    messageText = msg.interactive.button_reply.title || '';
+                } else if (msg.interactive?.type === 'list_reply') {
+                    messageText = msg.interactive.list_reply.title || '';
+                }
+            } else if (msg.type === 'button') {
+                messageText = msg.button?.text || '';
+            }
+
             return {
                 channel: 'whatsapp',
                 phone: msg.from,
                 external_user_id: contact?.wa_id || msg.from,
                 name: contact?.profile?.name || 'WhatsApp User',
-                message: msg.text?.body || '',
+                message: messageText,
                 timestamp: msg.timestamp,
                 message_id: msg.id,
                 phoneNumberId: meta?.phone_number_id || '',

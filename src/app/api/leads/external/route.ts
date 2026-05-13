@@ -281,15 +281,44 @@ export async function POST(req: Request) {
                                 wa_first_message_sent: true,
                                 wa_first_message_at: new Date().toISOString()
                             }).eq('id', newSale.id);
+                            
+                            // Aktivite olarak kaydet
+                            await supabase.from('activities').insert({
+                                tenant_id: tenant_id,
+                                customer_id: customerId,
+                                project_id: projectId,
+                                type: 'Whatsapp',
+                                topic: 'Sales',
+                                summary: `💬 WhatsApp Mesajı Gönderildi (${templateName})`,
+                                description: `Sistem tarafından otomatik şablon mesajı gönderildi.`,
+                                status: 'Completed',
+                                due_date: new Date().toISOString(),
+                                priority: 'Medium'
+                            });
 
                             // Mesajı conversation geçmişine kaydet (AI context için)
                             try {
-                                const { data: existingConv } = await supabase
+                                let { data: existingConv } = await supabase
                                     .from('whatsapp_conversations')
                                     .select('id')
                                     .eq('tenant_id', tenant_id)
                                     .eq('phone_number', wpPhone)
                                     .single();
+
+                                if (!existingConv) {
+                                    // Sohbet yoksa oluştur
+                                    const { data: newConv } = await supabase.from('whatsapp_conversations').insert({
+                                        tenant_id: tenant_id,
+                                        phone_number: wpPhone,
+                                        customer_id: customerId,
+                                        contact_name: customerName,
+                                        channel: 'whatsapp',
+                                        ai_enabled: true,
+                                        last_message_preview: `[Şablon] ${templateName}`,
+                                        unread_count: 0
+                                    }).select('id').single();
+                                    existingConv = newConv;
+                                }
 
                                 if (existingConv) {
                                     await supabase.from('whatsapp_messages').insert({
@@ -297,7 +326,7 @@ export async function POST(req: Request) {
                                         tenant_id: tenant_id,
                                         role: 'assistant',
                                         direction: 'outbound',
-                                        sender_type: 'user',
+                                        sender_type: 'bot',
                                         content: `[Şablon: ${templateName}] Müşteriye ${projectName} projesi hakkında bilgi mesajı gönderildi. Müşteri adı: ${customerName}.`,
                                         status: 'delivered',
                                     });

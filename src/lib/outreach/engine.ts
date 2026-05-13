@@ -316,6 +316,19 @@ async function executeWhatsApp(execution: any, step: any, config: StepConfig, ph
 
     if (result.success) {
         await touchSaleTimestamp(execution.sale_id)
+        
+        await supabase.from('activities').insert({
+            tenant_id: execution.tenant_id,
+            customer_id: execution.customer_id,
+            type: 'Whatsapp',
+            topic: 'Sales',
+            summary: `💬 WhatsApp Mesajı Gönderildi (${config.template_name || 'Serbest Metin'})`,
+            description: messageContent,
+            due_date: new Date().toISOString(),
+            status: 'Completed',
+            priority: 'Medium',
+        })
+
         await advanceToNextStep(execution, step, 'success')
     } else {
         await handleRetryOrAdvance(execution, step, config, 'failure')
