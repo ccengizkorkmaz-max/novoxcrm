@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
 
         // ── 3. Sohbeti Bul veya Oluştur ────────────────────────────────
         const { conversationId, aiEnabled } = await findOrCreateConversation(
-            supabase, tenantId, normalizedPhone, payload.message, payload.channel
+            supabase, tenantId, normalizedPhone, payload.message, payload.channel, payload.name
         );
 
         if (!conversationId) {
@@ -579,7 +579,7 @@ async function findTenant(supabase: any, phoneNumberId: string, channel?: string
  * Telefon numarasına göre sohbet bul veya yeni oluştur
  */
 async function findOrCreateConversation(
-    supabase: any, tenantId: string, phone: string, messagePreview: string, channel: string = 'whatsapp'
+    supabase: any, tenantId: string, phone: string, messagePreview: string, channel: string = 'whatsapp', contactName?: string
 ) {
     // Telefon numarasından müşteri eşleştir (hem 905xx hem 5xx formatıyla ara)
     let customerId: string | null = null;
@@ -624,6 +624,10 @@ async function findOrCreateConversation(
         if (!existing.customer_id && customerId) {
             updateData.customer_id = customerId;
         }
+        // WhatsApp kişi adını güncelle (her zaman en güncel ismi tut)
+        if (contactName && contactName !== 'WhatsApp User') {
+            updateData.contact_name = contactName;
+        }
         await supabase.from('whatsapp_conversations').update(updateData).eq('id', existing.id);
 
         return { conversationId: existing.id, aiEnabled: existing.ai_enabled };
@@ -634,6 +638,7 @@ async function findOrCreateConversation(
         tenant_id: tenantId,
         phone_number: phone,
         customer_id: customerId, // Eşleşen müşteriyi otomatik bağla
+        contact_name: (contactName && contactName !== 'WhatsApp User') ? contactName : null,
         last_message_preview: messagePreview.substring(0, 50),
         unread_count: 1,
         ai_enabled: true,
