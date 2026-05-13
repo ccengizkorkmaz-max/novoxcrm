@@ -115,8 +115,13 @@ export async function POST(request: NextRequest) {
     const crmCustomer = customers?.[0];
     let crmContext = `Müşteri Adı: ${crmCustomer?.full_name || customerName || 'Bilinmiyor'}\n`;
 
-    const { data: tenants } = await supabase.from('tenants').select('*').limit(1);
-    const tenantData = tenants?.[0] || {};
+    const { data: tenants } = await supabase.from('tenants').select('*').not('ai_knowledge_base', 'is', null).limit(1);
+    let tenantData = tenants?.[0];
+    if (!tenantData) {
+        // Fallback if no tenant has knowledge base
+        const { data: anyTenants } = await supabase.from('tenants').select('*').limit(1);
+        tenantData = anyTenants?.[0] || {};
+    }
 
     if (crmCustomer) {
       const { data: activities } = await supabase.from('activities')
