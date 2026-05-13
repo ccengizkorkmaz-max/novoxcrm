@@ -186,6 +186,8 @@ export async function POST(request: NextRequest) {
         : `Sen Novo Gayrimenkul danışmanısın. Müşteriyi arıyorsun.\n\n=== CRM BİLGİSİ ===\n${crmContext}`;
 
     overrides.model = {
+        provider: "openai",
+        model: "gpt-4o",
         messages: [
             {
                 role: "system",
