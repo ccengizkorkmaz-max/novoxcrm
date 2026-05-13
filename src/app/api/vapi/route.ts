@@ -115,6 +115,9 @@ export async function POST(request: NextRequest) {
     const crmCustomer = customers?.[0];
     let crmContext = `Müşteri Adı: ${crmCustomer?.full_name || customerName || 'Bilinmiyor'}\n`;
 
+    const { data: tenants } = await supabase.from('tenants').select('*').limit(1);
+    const tenantData = tenants?.[0] || {};
+
     if (crmCustomer) {
       const { data: activities } = await supabase.from('activities')
         .select('type, description, created_at')
@@ -157,9 +160,15 @@ export async function POST(request: NextRequest) {
 
     // System prompt override
     // We append the CRM context so the AI knows exactly who they are talking to
-    const finalPrompt = customPrompt
-      ? `${customPrompt}\n\n=== CRM BİLGİSİ ===\n${crmContext}`
-      : `Sen Novo Gayrimenkul danışmanısın. Müşteriyi arıyorsun.\n\n=== CRM BİLGİSİ ===\n${crmContext}`;
+    let basePrompt = customPrompt;
+    if (!basePrompt) {
+        basePrompt = tenantData.ai_assistant_instructions || "Sen Novo Gayrimenkul danışmanısın. Müşteriyi arıyorsun.";
+        if (tenantData.ai_knowledge_base) {
+             basePrompt += `\n\n--- ŞİRKET BİLGİ BANKASI VE AKTİF PROJELER ---\n${tenantData.ai_knowledge_base}\n\nÖNEMLİ KURAL: Projeler hakkında SADECE yukarıdaki BİLGİ BANKASI'nda yazan bilgileri kullan. Bilmediğin veya bilgi bankasında yazmayan bir detay (fiyat, metrekare, teslim tarihi vb.) sorulursa ASLA uydurma, 'Bu detay şu an sistemimde mevcut değil, dilerseniz ilgili satış uzmanımızın size net bilgi vermesini sağlayabilirim' şeklinde yanıt ver.\n`;
+        }
+    }
+    
+    const finalPrompt = `${basePrompt}\n\n=== CRM BİLGİSİ ===\n${crmContext}`;
 
     overrides.model = {
       provider: "openai",
