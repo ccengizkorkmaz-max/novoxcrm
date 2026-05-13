@@ -737,7 +737,12 @@ async function callGemini(
             
             const model = genAI.getGenerativeModel(modelConfig);
 
-            const chat = model.startChat({ history: chatHistory.slice(0, -1) }); // Son mesaj hariç geçmiş
+            let safeHistory = chatHistory.slice(0, -1);
+            if (safeHistory.length > 0 && safeHistory[0].role === 'model') {
+                safeHistory.unshift({ role: 'user', parts: [{ text: 'Merhaba' }] });
+            }
+
+            const chat = model.startChat({ history: safeHistory }); // Son mesaj hariç geçmiş
             const lastMessage = chatHistory[chatHistory.length - 1]?.parts?.[0]?.text || '';
             const result = await chat.sendMessage(lastMessage);
             const text = result.response.text();
