@@ -157,10 +157,12 @@ export async function sendWhatsAppTemplate(
     to: string,
     templateName: string,
     parameters: string[] | Record<string, string>,
-    language: string = 'tr'
+    language: string = 'tr',
+    phoneId?: string,
+    accessToken?: string
 ) {
-    const PHONE_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
-    let ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN;
+    const PHONE_ID = phoneId || process.env.WHATSAPP_PHONE_NUMBER_ID;
+    let ACCESS_TOKEN = accessToken || process.env.WHATSAPP_ACCESS_TOKEN;
 
     if (!PHONE_ID || !ACCESS_TOKEN) {
         return { success: false, error: 'WhatsApp API credentials missing' };

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { sendWhatsAppMessage } from '@/lib/whatsapp';
+import { sendWhatsAppMessage, sendWhatsAppTemplate } from '@/lib/whatsapp';
 
 /**
  * WHATSAPP & MESSENGER UNIFIED WEBHOOK
@@ -294,23 +294,23 @@ GİZLİ SİSTEM KOMUTLARI (SADECE ŞARTLAR SAĞLANDIĞINDA YANITININ EN SONUNA E
                                     }
                                 }
 
-                                // Bildirim mesajını formatla
-                                const notificationMessage =
-                                    `🔥 *HOT LEAD TESPİT EDİLDİ!*\n\n` +
-                                    `👤 *Müşteri:* ${customerName}\n` +
-                                    `📞 *Telefon:* ${normalizedPhone}\n` +
-                                    `⏰ *Zaman:* ${new Date().toLocaleString('tr-TR')}\n\n` +
-                                    `📋 *Konuşma Özeti:*\n${conversationSummary ? conversationSummary.substring(0, 900) : 'Özet oluşturulamadı'}\n\n` +
-                                    `💡 _Bu müşteri satın alma niyeti gösteriyor. Hemen iletişime geçin!_`;
-
                                 // Her hot lead manager'a WhatsApp mesajı gönder
                                 const accessToken = tenantData.wa_access_token;
+                                const params = [
+                                    customerName,
+                                    normalizedPhone,
+                                    new Date().toLocaleString('tr-TR'),
+                                    conversationSummary ? conversationSummary.substring(0, 500) : 'Özet oluşturulamadı'
+                                ];
+
                                 for (const manager of hotLeadManagers) {
                                     if (manager.phone && accessToken && tenantData.wa_phone_number_id) {
                                         try {
-                                            await sendWhatsAppMessage(
+                                            await sendWhatsAppTemplate(
                                                 manager.phone,
-                                                notificationMessage,
+                                                'hot_lead_notification',
+                                                params,
+                                                'tr',
                                                 tenantData.wa_phone_number_id,
                                                 accessToken
                                             );
