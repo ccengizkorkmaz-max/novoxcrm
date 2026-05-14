@@ -22,31 +22,16 @@ function isPlatformHost(hostname: string): boolean {
 export async function middleware(request: NextRequest) {
     const hostname = request.headers.get('host')?.split(':')[0] || ''
 
+    // Run i18n middleware
+    const response = i18nMiddleware(request);
+
     // Custom Domain Resolution
-    // If the hostname is NOT a known platform host, it might be a tenant custom domain
+    // If the hostname is NOT a known platform host, tag it on the response
     if (hostname && !isPlatformHost(hostname)) {
-        // Inject custom domain as a header for downstream server components
-        const requestHeaders = new Headers(request.headers)
-        requestHeaders.set('x-custom-domain', hostname)
-        
-        // Create a new request with the custom domain header
-        const modifiedRequest = new NextRequest(request.url, {
-            headers: requestHeaders,
-        })
-        
-        // Run i18n middleware with modified request
-        const response = i18nMiddleware(modifiedRequest)
-        
-        // Pass custom domain header to the response for server-side reading
-        if (response) {
-            response.headers.set('x-custom-domain', hostname)
-        }
-        
-        return await updateSession(modifiedRequest, response)
+        response.headers.set('x-custom-domain', hostname)
     }
 
-    // Standard flow for platform hosts
-    const response = i18nMiddleware(request);
+    // Then update session (Supabase)
     return await updateSession(request, response)
 }
 
