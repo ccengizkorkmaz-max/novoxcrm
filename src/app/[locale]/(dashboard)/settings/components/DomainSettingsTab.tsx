@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -19,7 +19,7 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import { setCustomDomain, checkDomainVerification, removeCustomDomain } from '../actions/domain-actions'
+import { useRouter } from 'next/navigation'
 
 interface DomainSettingsTabProps {
     currentDomain: string | null
@@ -28,21 +28,32 @@ interface DomainSettingsTabProps {
 }
 
 export default function DomainSettingsTab({ currentDomain, domainVerified, verificationRecord }: DomainSettingsTabProps) {
+    const router = useRouter()
     const [domain, setDomain] = useState('')
-    const [isPending, startTransition] = useTransition()
-    const [verifyPending, setVerifyPending] = useState(false)
+    const [loading, setLoading] = useState(false)
+    const [verifyLoading, setVerifyLoading] = useState(false)
     const [localDomain, setLocalDomain] = useState(currentDomain)
     const [localVerified, setLocalVerified] = useState(domainVerified)
     const [localVerification, setLocalVerification] = useState(verificationRecord?.verification || [])
 
-    const handleSetDomain = () => {
+    const callDomainApi = async (action: string, domain?: string) => {
+        const res = await fetch('/api/domains', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action, domain }),
+        })
+        return res.json()
+    }
+
+    const handleSetDomain = async () => {
         if (!domain.trim()) {
             toast.error('Lutfen gecerli bir domain girin.')
             return
         }
 
-        startTransition(async () => {
-            const result = await setCustomDomain(domain.trim())
+        setLoading(true)
+        try {
+            const result = await callDomainApi('set', domain.trim())
             if (result.error) {
                 toast.error(result.error)
             } else {
@@ -51,48 +62,60 @@ export default function DomainSettingsTab({ currentDomain, domainVerified, verif
                 setLocalVerified(result.verified || false)
                 setLocalVerification(result.verification || [])
                 setDomain('')
+                router.refresh()
             }
-        })
+        } catch {
+            toast.error('Bir hata olustu.')
+        } finally {
+            setLoading(false)
+        }
     }
 
     const handleVerify = async () => {
-        setVerifyPending(true)
+        setVerifyLoading(true)
         try {
-            const result = await checkDomainVerification()
-            if (result?.error) {
+            const result = await callDomainApi('verify')
+            if (result.error) {
                 toast.error(result.error)
-            } else if (result?.verified) {
+            } else if (result.verified) {
                 toast.success('DNS dogrulandi! Domain aktif.')
                 setLocalVerified(true)
                 setLocalVerification([])
+                router.refresh()
             } else {
-                toast.warning('DNS henuz dogrulanmadi. Lutfen DNS kayitlarinizi kontrol edin.')
-                setLocalVerification(result?.verification || [])
+                toast.warning('DNS henuz dogrulanmadi.')
+                setLocalVerification(result.verification || [])
             }
         } catch {
-            toast.error('Dogrulama kontrolu basarisiz oldu.')
+            toast.error('Dogrulama basarisiz.')
         } finally {
-            setVerifyPending(false)
+            setVerifyLoading(false)
         }
     }
 
     const handleRemove = async () => {
-        startTransition(async () => {
-            const result = await removeCustomDomain()
+        setLoading(true)
+        try {
+            const result = await callDomainApi('remove')
             if (result.error) {
                 toast.error(result.error)
             } else {
-                toast.success('Domain basariyla kaldirildi.')
+                toast.success('Domain kaldirildi.')
                 setLocalDomain(null)
                 setLocalVerified(false)
                 setLocalVerification([])
+                router.refresh()
             }
-        })
+        } catch {
+            toast.error('Hata olustu.')
+        } finally {
+            setLoading(false)
+        }
     }
 
     const copyToClipboard = (text: string) => {
         navigator.clipboard.writeText(text)
-        toast.success('Panoya kopyalandi!')
+        toast.success('Kopyalandi!')
     }
 
     return (
@@ -110,7 +133,6 @@ export default function DomainSettingsTab({ currentDomain, domainVerified, verif
                 <CardContent className="space-y-6">
                     {localDomain ? (
                         <>
-                            {/* Active Domain Display */}
                             <div className="p-4 rounded-lg border bg-slate-50 space-y-3">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
@@ -120,39 +142,31 @@ export default function DomainSettingsTab({ currentDomain, domainVerified, verif
                                             <p className="text-xs text-muted-foreground">Aktif Custom Domain</p>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        {localVerified ? (
-                                            <Badge className="bg-green-100 text-green-700 gap-1">
-                                                <CheckCircle2 className="h-3 w-3" />
-                                                Dogrulandi
-                                            </Badge>
-                                        ) : (
-                                            <Badge className="bg-yellow-100 text-yellow-700 gap-1">
-                                                <AlertCircle className="h-3 w-3" />
-                                                DNS Bekleniyor
-                                            </Badge>
-                                        )}
-                                    </div>
+                                    {localVerified ? (
+                                        <Badge className="bg-green-100 text-green-700 gap-1">
+                                            <CheckCircle2 className="h-3 w-3" />
+                                            Dogrulandi
+                                        </Badge>
+                                    ) : (
+                                        <Badge className="bg-yellow-100 text-yellow-700 gap-1">
+                                            <AlertCircle className="h-3 w-3" />
+                                            DNS Bekleniyor
+                                        </Badge>
+                                    )}
                                 </div>
 
                                 {localVerified && (
                                     <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 p-3 rounded-md">
                                         <CheckCircle2 className="h-4 w-4" />
-                                        <span>Domain aktif ve SSL sertifikasi Vercel tarafindan saglaniyor.</span>
-                                        <a
-                                            href={`https://${localDomain}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="ml-auto flex items-center gap-1 text-green-800 hover:underline font-medium"
-                                        >
-                                            <ExternalLink className="h-3 w-3" />
-                                            Ac
+                                        <span>Domain aktif, SSL Vercel tarafindan saglaniyor.</span>
+                                        <a href={`https://${localDomain}`} target="_blank" rel="noopener noreferrer"
+                                            className="ml-auto flex items-center gap-1 text-green-800 hover:underline font-medium">
+                                            <ExternalLink className="h-3 w-3" /> Ac
                                         </a>
                                     </div>
                                 )}
                             </div>
 
-                            {/* DNS Instructions (if not verified) */}
                             {!localVerified && (
                                 <div className="space-y-4">
                                     <div className="p-4 rounded-lg border border-yellow-200 bg-yellow-50 space-y-3">
@@ -161,7 +175,7 @@ export default function DomainSettingsTab({ currentDomain, domainVerified, verif
                                             DNS Yapilandirmasi Gerekli
                                         </h4>
                                         <p className="text-sm text-yellow-700">
-                                            Asagidaki DNS kaydini domain saglayicinizin (GoDaddy, Cloudflare, vb.) DNS ayarlarina ekleyin:
+                                            Asagidaki DNS kaydini domain saglayicinizin DNS ayarlarina ekleyin:
                                         </p>
 
                                         <div className="bg-white rounded-md border p-4 space-y-3">
@@ -189,7 +203,7 @@ export default function DomainSettingsTab({ currentDomain, domainVerified, verif
 
                                         {localVerification && localVerification.length > 0 && (
                                             <div className="bg-white rounded-md border p-4 space-y-2">
-                                                <p className="text-xs font-medium text-muted-foreground">Ek Dogrulama Kaydi (gerekli olabilir):</p>
+                                                <p className="text-xs font-medium text-muted-foreground">Ek Dogrulama Kaydi:</p>
                                                 {localVerification.map((v: any, i: number) => (
                                                     <div key={i} className="grid grid-cols-3 gap-4 text-sm items-center">
                                                         <span className="font-mono font-bold">{v.type}</span>
@@ -210,19 +224,13 @@ export default function DomainSettingsTab({ currentDomain, domainVerified, verif
                                         </p>
                                     </div>
 
-                                    <Button
-                                        onClick={handleVerify}
-                                        disabled={verifyPending}
-                                        variant="outline"
-                                        className="gap-2"
-                                    >
-                                        {verifyPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                                    <Button onClick={handleVerify} disabled={verifyLoading} variant="outline" className="gap-2">
+                                        {verifyLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                                         DNS Durumunu Kontrol Et
                                     </Button>
                                 </div>
                             )}
 
-                            {/* Remove Domain */}
                             <div className="pt-4 border-t">
                                 <AlertDialog>
                                     <AlertDialogTrigger asChild>
@@ -233,19 +241,15 @@ export default function DomainSettingsTab({ currentDomain, domainVerified, verif
                                     </AlertDialogTrigger>
                                     <AlertDialogContent>
                                         <AlertDialogHeader>
-                                            <AlertDialogTitle>Domain baglantisini kaldirmak istediginize emin misiniz?</AlertDialogTitle>
+                                            <AlertDialogTitle>Domain kaldirmak istediginize emin misiniz?</AlertDialogTitle>
                                             <AlertDialogDescription>
-                                                <strong>{localDomain}</strong> domain baglantisi kaldirilacak ve platformunuza bu adres uzerinden erisilemeyecektir.
+                                                <strong>{localDomain}</strong> baglantisi kaldirilacak.
                                             </AlertDialogDescription>
                                         </AlertDialogHeader>
                                         <AlertDialogFooter>
                                             <AlertDialogCancel>Vazgec</AlertDialogCancel>
-                                            <AlertDialogAction
-                                                onClick={handleRemove}
-                                                className="bg-red-600 hover:bg-red-700"
-                                                disabled={isPending}
-                                            >
-                                                {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                            <AlertDialogAction onClick={handleRemove} className="bg-red-600 hover:bg-red-700" disabled={loading}>
+                                                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                                 Kaldir
                                             </AlertDialogAction>
                                         </AlertDialogFooter>
@@ -254,46 +258,39 @@ export default function DomainSettingsTab({ currentDomain, domainVerified, verif
                             </div>
                         </>
                     ) : (
-                        <>
-                            {/* Add Domain Form */}
-                            <div className="space-y-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="custom-domain">Domain Adresi</Label>
-                                    <div className="flex gap-2">
-                                        <Input
-                                            id="custom-domain"
-                                            placeholder="crm.firmaadi.com"
-                                            value={domain}
-                                            onChange={(e) => setDomain(e.target.value)}
-                                            disabled={isPending}
-                                            className="flex-1"
-                                        />
-                                        <Button
-                                            onClick={handleSetDomain}
-                                            disabled={isPending || !domain.trim()}
-                                            className="gap-2 min-w-[140px]"
-                                        >
-                                            {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Globe className="h-4 w-4" />}
-                                            Domain Ekle
-                                        </Button>
-                                    </div>
-                                    <p className="text-xs text-muted-foreground">
-                                        Ornek: <code className="bg-slate-100 px-1 rounded">crm.firmaadi.com</code> veya <code className="bg-slate-100 px-1 rounded">portal.firmaadi.com.tr</code>
-                                    </p>
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="custom-domain">Domain Adresi</Label>
+                                <div className="flex gap-2">
+                                    <Input
+                                        id="custom-domain"
+                                        placeholder="crm.firmaadi.com"
+                                        value={domain}
+                                        onChange={(e) => setDomain(e.target.value)}
+                                        disabled={loading}
+                                        className="flex-1"
+                                    />
+                                    <Button onClick={handleSetDomain} disabled={loading || !domain.trim()} className="gap-2 min-w-[140px]">
+                                        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Globe className="h-4 w-4" />}
+                                        Domain Ekle
+                                    </Button>
                                 </div>
-
-                                <div className="p-4 rounded-lg border bg-blue-50/50 space-y-3">
-                                    <h4 className="font-semibold text-sm text-blue-800">Nasil Calisir?</h4>
-                                    <ol className="text-sm text-blue-700 space-y-2 list-decimal list-inside">
-                                        <li>Yukariya kendi domain adresinizi girin</li>
-                                        <li>Sistem size gerekli DNS kaydini gosterecek</li>
-                                        <li>Domain saglayicinizda (GoDaddy, Cloudflare vb.) DNS kaydini ekleyin</li>
-                                        <li>DNS yayilimi sonrasi domain otomatik aktif olacaktir</li>
-                                        <li>SSL sertifikasi Vercel tarafindan ucretsiz saglanir</li>
-                                    </ol>
-                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                    Ornek: <code className="bg-slate-100 px-1 rounded">crm.firmaadi.com</code> veya <code className="bg-slate-100 px-1 rounded">portal.firmaadi.com.tr</code>
+                                </p>
                             </div>
-                        </>
+
+                            <div className="p-4 rounded-lg border bg-blue-50/50 space-y-3">
+                                <h4 className="font-semibold text-sm text-blue-800">Nasil Calisir?</h4>
+                                <ol className="text-sm text-blue-700 space-y-2 list-decimal list-inside">
+                                    <li>Yukariya kendi domain adresinizi girin</li>
+                                    <li>Sistem size gerekli DNS kaydini gosterecek</li>
+                                    <li>Domain saglayicinizda DNS kaydini ekleyin</li>
+                                    <li>DNS yayilimi sonrasi domain otomatik aktif olacaktir</li>
+                                    <li>SSL sertifikasi Vercel tarafindan ucretsiz saglanir</li>
+                                </ol>
+                            </div>
+                        </div>
                     )}
                 </CardContent>
             </Card>
