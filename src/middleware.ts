@@ -20,16 +20,8 @@ function isPlatformHost(hostname: string): boolean {
 }
 
 export async function middleware(request: NextRequest) {
-    const hostname = request.headers.get('host')?.split(':')[0] || ''
-
     // Run i18n middleware
     const response = i18nMiddleware(request);
-
-    // Custom Domain Resolution
-    // If the hostname is NOT a known platform host, tag it on the response
-    if (hostname && !isPlatformHost(hostname)) {
-        response.headers.set('x-custom-domain', hostname)
-    }
 
     // Then update session (Supabase)
     return await updateSession(request, response)
