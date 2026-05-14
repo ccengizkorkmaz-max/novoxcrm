@@ -1,3 +1,5 @@
+'use client'
+
 import { Button } from '@/components/ui/button'
 import { ChevronRight, Sparkles } from 'lucide-react'
 import { LeadCaptureModal } from '@/components/marketing/LeadCaptureModal'
