@@ -215,29 +215,44 @@ export async function cancelReservation(unitId: string, saleId: string) {
 
     if (unitError) return { error: 'Ünite durumu güncellenemedi.' }
 
-    // 2. Update Sale status to Lost
-    const { error: saleError } = await supabase
-        .from('sales')
-        .update({ 
-            status: 'Lost', 
-            reservation_expiry: null,
-            description: 'Rezervasyon İptal Edildi'
-        })
-        .eq('id', saleId)
+    // 2. Resolve saleId if empty — find by unit_id
+    let resolvedSaleId = saleId
+    if (!resolvedSaleId) {
+        const { data: sale } = await supabase
+            .from('sales')
+            .select('id')
+            .eq('unit_id', unitId)
+            .in('status', ['Reservation', 'Lead', 'Opsiyon - Kapora Bekleniyor', 'Prospect'])
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single()
 
-    if (saleError) return { error: 'Rezervasyon kaydı güncellenemedi.' }
+        resolvedSaleId = sale?.id || ''
+    }
 
-    // 3. Cancel associated Pending deposits
-    await supabase.from('deposits')
-        .update({ status: 'Cancelled' })
-        .eq('sale_id', saleId)
-        .eq('status', 'Pending')
+    // 3. Update Sale status to Lost (if sale exists)
+    if (resolvedSaleId) {
+        await supabase
+            .from('sales')
+            .update({ 
+                status: 'Lost', 
+                reservation_expiry: null,
+                description: 'Rezervasyon İptal Edildi'
+            })
+            .eq('id', resolvedSaleId)
+
+        // 4. Cancel associated Pending deposits
+        await supabase.from('deposits')
+            .update({ status: 'Cancelled' })
+            .eq('sale_id', resolvedSaleId)
+            .eq('status', 'Pending')
+
+        // Broker Sync
+        await syncBrokerLeadFromSale(resolvedSaleId, 'Lost')
+    }
 
     // Log activity
     await logUnitActivity(unitId, 'status_change', 'Rezervasyon iptal edildi', 'Reserved', 'For Sale')
-
-    // Broker Sync
-    await syncBrokerLeadFromSale(saleId, 'Lost')
 
     revalidatePath('/options')
     revalidatePath('/inventory')

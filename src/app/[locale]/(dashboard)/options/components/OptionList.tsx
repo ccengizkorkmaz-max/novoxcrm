@@ -170,29 +170,26 @@ export default function OptionList({ options, templates = [] }: { options: Optio
                                                     </Link>
                                                 )}
                                                 {activeSale && (
-                                                    <>
-                                                        <Button
-                                                            variant="outline"
-                                                            size="sm"
-                                                            onClick={() => handleOfferClick(activeSale.id, option.id)}
-                                                        >
-                                                            {t('actions.createOffer')}
-                                                        </Button>
-
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="h-9 w-9 text-muted-foreground hover:text-red-500 hover:bg-red-50"
-                                                            onClick={() => handleCancelReservation(option.id, activeSale.id)}
-                                                            disabled={isDeleting === activeSale.id}
-                                                            title={t('actions.cancelOption')}
-                                                        >
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Button>
-                                                    </>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => handleOfferClick(activeSale.id, option.id)}
+                                                    >
+                                                        {t('actions.createOffer')}
+                                                    </Button>
                                                 )}
 
-
+                                                {/* Cancel/Delete button — always visible for reserved units */}
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-9 w-9 text-muted-foreground hover:text-red-500 hover:bg-red-50"
+                                                    onClick={() => handleCancelReservation(option.id, activeSale?.id || '')}
+                                                    disabled={isDeleting === (activeSale?.id || option.id)}
+                                                    title={t('actions.cancelOption')}
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
                                             </div>
                                         </TableCell>
                                     </TableRow>
