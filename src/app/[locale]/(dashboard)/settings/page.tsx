@@ -28,7 +28,8 @@ import { FinancialSettingsTab } from './components/FinancialSettingsTab'
 import { SystemLogsTab } from './components/SystemLogsTab'
 import SeoSettingsTab from './components/SeoSettingsTab'
 import BrandSettingsTab from './components/BrandSettingsTab'
-import { FileWarning, Palette } from 'lucide-react'
+import DomainSettingsTab from './components/DomainSettingsTab'
+import { FileWarning, Palette, Link2 } from 'lucide-react'
 
 export default async function SettingsPage() {
     const supabase = await createClient()
@@ -184,6 +185,10 @@ export default async function SettingsPage() {
                         <Palette className="w-4 h-4 mr-2 shrink-0" />
                         <span className="hidden md:inline truncate">Tema</span>
                     </TabsTrigger>
+                    <TabsTrigger value="domain" className="justify-start w-full py-2 px-3 rounded-lg text-sm data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-sm transition-all">
+                        <Link2 className="w-4 h-4 mr-2 shrink-0" />
+                        <span className="hidden md:inline truncate">Domain</span>
+                    </TabsTrigger>
                     <TabsTrigger value="logs" className="justify-start w-full py-2 px-3 rounded-lg text-sm data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-sm transition-all focus:outline-none">
                         <FileWarning className="w-4 h-4 mr-2 shrink-0" />
                         <span className="hidden md:inline truncate">İşlem Logları</span>
@@ -285,6 +290,15 @@ export default async function SettingsPage() {
                 {/* Brand Settings Tab */}
                 <TabsContent value="brand" className="space-y-4">
                     <BrandSettingsTab currentConfig={(tenant as any)?.brand_config || {}} />
+                </TabsContent>
+
+                {/* Domain Settings Tab */}
+                <TabsContent value="domain" className="space-y-4">
+                    <DomainSettingsTab
+                        currentDomain={(tenant as any)?.custom_domain || null}
+                        domainVerified={(tenant as any)?.domain_verified || false}
+                        verificationRecord={(tenant as any)?.domain_verification_record || {}}
+                    />
                 </TabsContent>
 
                 {/* System Logs Tab */}

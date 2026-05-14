@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { syncBrokerLeadFromSale } from '@/app/broker/actions'
+import { logUnitPriceHistory } from '../inventory/actions'
 import { ensureFinancialAccount, createTransaction, createValuablePaper } from '../finance/actions'
 import { createNotification } from '@/lib/notifications/create'
 import { logSystemAction } from '@/lib/actions/system-logs'
@@ -942,6 +943,14 @@ export async function finalizeOffer(offerId: string) {
             `Satış tamamlandı. Sözleşme oluşturuldu. Müşteri: ${offer.customers?.full_name || 'Bilinmiyor'}`,
             offer.units?.status || 'Active',
             'Sold'
+        )
+
+        // Log Price History (Closing Price)
+        await logUnitPriceHistory(
+            offer.unit_id,
+            offer.price,
+            offer.currency,
+            `Satış Kapanış Fiyatı (Teklif: ${offer.id.slice(0,8)})`
         )
     } catch (e) {
         console.error('Failed to log unit activity during offer finalization:', e)

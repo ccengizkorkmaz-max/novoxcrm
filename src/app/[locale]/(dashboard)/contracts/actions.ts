@@ -142,9 +142,23 @@ export async function createContract(formData: FormData) {
 
             // Log error but don't fail the whole process for unit update
             if (unitError) console.error('Failed to update unit status', unitError)
+
+            // Log Price History
+            try {
+                const { logUnitPriceHistory } = await import('../inventory/actions')
+                await logUnitPriceHistory(
+                    unit_id,
+                    amount,
+                    currency || 'TRY',
+                    `Sözleşme Oluşturuldu (${contract_number})`
+                )
+            } catch (e) {
+                console.error('Failed to log price history in createContract:', e)
+            }
         }
 
         revalidatePath('/contracts')
+        revalidatePath('/inventory')
         return { success: true, data: contract }
     } catch (error: any) {
         console.error('Create Contract Error:', error)
@@ -165,6 +179,16 @@ export async function updateContract(id: string, formData: FormData) {
     }
 
     try {
+        // Fetch current contract to see if price changed
+        const { data: currentContract } = await supabase
+            .from('contracts')
+            .select('id, amount, currency, unit_id, sale_id')
+            .eq('id', id)
+            .single()
+
+        const newAmount = updates.amount ? parseFloat(updates.amount) : null
+        const priceChanged = newAmount !== null && currentContract && newAmount !== currentContract.amount
+
         const { error } = await supabase
             .from('contracts')
             .update(updates)
@@ -172,9 +196,33 @@ export async function updateContract(id: string, formData: FormData) {
 
         if (error) throw error
 
+        // If price changed, sync to sales and log history
+        if (priceChanged && currentContract) {
+            // Update Sales final_price
+            if (currentContract.sale_id) {
+                await supabase.from('sales')
+                    .update({ final_price: newAmount })
+                    .eq('id', currentContract.sale_id)
+            }
+
+            // Log Price History
+            if (currentContract.unit_id) {
+                const { logUnitPriceHistory } = await import('../inventory/actions')
+                await logUnitPriceHistory(
+                    currentContract.unit_id,
+                    newAmount,
+                    currentContract.currency || 'TRY',
+                    `Sözleşme Revizyonu (${updates.contract_number || currentContract.id.slice(0, 8)})`
+                )
+            }
+        }
+
         revalidatePath(`/contracts/${id}`)
+        revalidatePath('/contracts')
+        revalidatePath('/crm')
         return { success: true }
     } catch (error: any) {
+        console.error('Update Contract Error:', error)
         return { error: error.message }
     }
 }
@@ -636,6 +684,85 @@ export async function updateContractDeliveryDetails(id: string, deliveryStatus: 
         return { success: true }
     } catch (error: any) {
         console.error('Update Delivery Details Error:', error)
+        return { error: error.message }
+    }
+}
+
+export async function updateContractPaymentPlan(contractId: string, items: any[], totalAmount: number) {
+    const supabase = await createClient()
+    try {
+        // 1. Get contract info
+        const { data: contract } = await supabase
+            .from('contracts')
+            .select('id, unit_id, sale_id, currency')
+            .eq('id', contractId)
+            .single()
+
+        if (!contract) throw new Error('Sözleşme bulunamadı')
+
+        // 2. Delete old payment plan items
+        await supabase.from('payment_plans').delete().eq('contract_id', contractId)
+
+        // 3. Insert new items
+        const planInserts = items.map(item => ({
+            contract_id: contractId,
+            sale_id: contract.sale_id,
+            payment_type: item.payment_type,
+            due_date: item.due_date,
+            amount: item.amount,
+            currency: item.currency || contract.currency,
+            notes: item.notes,
+            status: 'Pending'
+        }))
+
+        const { error: planError } = await supabase
+            .from('payment_plans')
+            .insert(planInserts)
+
+        if (planError) throw planError
+
+        // 4. Update contract amount if it differs
+        const { error: contractError } = await supabase
+            .from('contracts')
+            .update({ 
+                amount: totalAmount,
+                final_amount: totalAmount,
+                total_amount: totalAmount // Simplified for now
+            })
+            .eq('id', contractId)
+
+        if (contractError) throw contractError
+
+        // 5. Update Sale final_price
+        if (contract.sale_id) {
+            await supabase.from('sales')
+                .update({ final_price: totalAmount })
+                .eq('id', contract.sale_id)
+        }
+
+        // 6. Log Price History
+        if (contract.unit_id) {
+            const { logUnitPriceHistory } = await import('../inventory/actions')
+            await logUnitPriceHistory(
+                contract.unit_id,
+                totalAmount,
+                contract.currency || 'TRY',
+                `Ödeme Planı Revizyonu (${contractId.slice(0, 8)})`
+            )
+        }
+
+        // 7. Log Activity
+        await logContractActivity(
+            supabase,
+            contractId,
+            'plan_updated',
+            `Ödeme planı güncellendi. Yeni tutar: ${totalAmount}`
+        )
+
+        revalidatePath(`/contracts/${contractId}`)
+        return { success: true }
+    } catch (error: any) {
+        console.error('Update Payment Plan Error:', error)
         return { error: error.message }
     }
 }

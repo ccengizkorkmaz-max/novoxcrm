@@ -968,3 +968,28 @@ export async function getPublicLinksReport() {
 
     return data || []
 }
+
+export async function logUnitPriceHistory(unitId: string, newPrice: number, currency: string, reason: string = 'Price Update') {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    
+    // Get old price
+    const { data: unit } = await supabase.from('units').select('price').eq('id', unitId).single()
+    const oldPrice = unit?.price || 0
+
+    const { error } = await supabase.from('unit_price_history').insert({
+        unit_id: unitId,
+        old_price: oldPrice,
+        new_price: newPrice,
+        currency: currency,
+        reason: reason,
+        created_by: user?.id
+    })
+
+    if (error) {
+        console.error('Failed to log price history:', error)
+        return { error: error.message }
+    }
+
+    return { success: true }
+}

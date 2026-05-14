@@ -533,3 +533,58 @@ export async function getMarketingAnalytics() {
         formData
     }
 }
+
+export async function getSalesComparisonReport() {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    // Get all sold/completed units with their initial price and final sale price
+    const { data, error } = await supabase
+        .from('sales')
+        .select(`
+            id,
+            final_price,
+            currency,
+            status,
+            created_at,
+            units (
+                unit_number,
+                price,
+                currency,
+                projects (name)
+            ),
+            customers (full_name)
+        `)
+        .in('status', ['Sold', 'Completed', 'Contract'])
+        .order('created_at', { ascending: false })
+
+    if (error) {
+        console.error('Sales Comparison Error:', error)
+        return { error: error.message }
+    }
+
+    const comparison = (data || []).map((sale: any) => {
+        const unit = Array.isArray(sale.units) ? sale.units[0] : sale.units
+        const customer = Array.isArray(sale.customers) ? sale.customers[0] : sale.customers
+        const listPrice = unit?.price || 0
+        const salePrice = sale.final_price || 0
+        const diff = salePrice - listPrice
+        const diffPercent = listPrice > 0 ? (diff / listPrice) * 100 : 0
+
+        return {
+            id: sale.id,
+            project: unit?.projects?.name || (Array.isArray(unit?.projects) ? unit?.projects[0]?.name : '-'),
+            unit: unit?.unit_number || '-',
+            customer: customer?.full_name || '-',
+            listPrice,
+            salePrice,
+            currency: sale.currency || unit?.currency || 'TRY',
+            diff,
+            diffPercent,
+            date: sale.created_at
+        }
+    })
+
+    return comparison
+}
