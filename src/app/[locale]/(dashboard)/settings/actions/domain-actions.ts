@@ -270,7 +270,7 @@ export async function autoConfigureCloudflare(apiToken: string, zoneId: string, 
     }
 
     // 2. Extract subdomain part for CNAME name
-    // e.g., "crm.example.com" → name should be "crm" (Cloudflare auto-appends the zone)
+    // e.g., "crm.example.com" -> name should be "crm" (Cloudflare auto-appends the zone)
     // But Cloudflare accepts full domain name too
     const recordName = domain // Cloudflare handles this correctly
 
