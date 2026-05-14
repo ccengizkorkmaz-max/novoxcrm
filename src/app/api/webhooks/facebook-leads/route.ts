@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { fireLeadCreatedTrigger } from '@/lib/outreach/triggers'
 
 /**
  * FACEBOOK LEAD ADS WEBHOOK
@@ -124,8 +125,8 @@ async function fetchLeadData(leadgenId: string, pageId: string) {
         return {
             id: data.id,
             created_time: data.created_time,
-            full_name: fields['full_name'] || fields['ad'] || fields['isim'] || 
-                       `${fields['first_name'] || ''} ${fields['last_name'] || ''}`.trim() || 'Facebook Lead',
+            full_name: fields['full_name'] || fields['ad'] || fields['isim'] ||
+                `${fields['first_name'] || ''} ${fields['last_name'] || ''}`.trim() || 'Facebook Lead',
             phone: fields['phone_number'] || fields['telefon'] || fields['phone'] || '',
             email: fields['email'] || fields['e-posta'] || '',
             city: fields['city'] || fields['şehir'] || fields['sehir'] || '',
