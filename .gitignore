@@ -52,3 +52,4 @@ google-indexer-key.json
 
 # scratch scripts (may contain secrets)
 scratch/
+.env*.local
