@@ -25,7 +25,7 @@ export async function getDeposits() {
             *,
             customer:customers(full_name),
             sale:sales(unit_id, assigned_to, unit:units(unit_number, block)),
-            offer:offers(unit_id, created_by, unit:units(unit_number, block))
+            offer:offers(unit_id, user_id, unit:units(unit_number, block))
         `)
         .eq('tenant_id', profile.tenant_id)
         .order('created_at', { ascending: false })
@@ -40,7 +40,7 @@ export async function getDeposits() {
     if (!isManager) {
         result = result.filter(d => {
             const saleAssignedTo = d.sale?.assigned_to || (Array.isArray(d.sale) && d.sale[0]?.assigned_to)
-            const offerCreatedBy = d.offer?.created_by || (Array.isArray(d.offer) && d.offer[0]?.created_by)
+            const offerCreatedBy = d.offer?.user_id || (Array.isArray(d.offer) && d.offer[0]?.user_id)
             return saleAssignedTo === user.id || offerCreatedBy === user.id
         })
     }
