@@ -4,15 +4,17 @@ import { useTranslations } from 'next-intl'
 import { Link } from '@/i18n/routing'
 import { Button } from '@/components/ui/button'
 import { Building2, Download, ArrowLeft, CheckCircle2, Shield, Zap, LayoutDashboard, Calculator, Users2, PieChart } from 'lucide-react'
+import { useBrand } from '@/components/providers/BrandProvider'
 
 export default function GuidePage() {
     const t = useTranslations('Guide')
     const ts = useTranslations('SolutionSection')
+    const { brandName, brandShort, brandDomain } = useBrand()
 
     const sections = [
         {
             title: "1. Yönetici Özeti: \"Bütünleşik Mimari\"",
-            content: "Novo CRM sadece bir CRM değildir; inşaat ve gayrimenkul sektörleri için özel olarak tasarlanmış bir Proje Odaklı Satış ve Stok İşletim Sistemidir.",
+            content: `${brandName} sadece bir CRM degildir; insaat ve gayrimenkul sektorleri icin ozel olarak tasarlanmis bir Proje Odakli Satis ve Stok Isletim Sistemidir.`,
             points: [
                 "Temel Sorun: Dağınık Excel dosyaları ve veri adacıkları.",
                 "Novo Çözümü: Lead'den Tapu teslimine kadar tek veri kaynağı."
@@ -51,7 +53,7 @@ export default function GuidePage() {
                         <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                             <Building2 size={18} />
                         </div>
-                        Novo CRM
+                        {brandName}
                     </Link>
                     <div className="flex items-center gap-4">
                         <Button variant="ghost" size="sm" asChild className="text-slate-400 hover:text-white">
@@ -110,7 +112,7 @@ export default function GuidePage() {
 
                     {/* Comparison Table / Summary */}
                     <div className="md:col-span-2 p-8 rounded-3xl bg-blue-600/5 border border-blue-500/20 print:border-slate-300 print:bg-white print:text-black">
-                        <h2 className="text-2xl font-bold text-white mb-8 text-center print:text-black">Neden Novo CRM?</h2>
+                        <h2 className="text-2xl font-bold text-white mb-8 text-center print:text-black">Neden {brandName}?</h2>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
                             <div className="text-center">
                                 <div className="text-3xl font-bold text-blue-400 mb-2">+%35</div>
@@ -130,7 +132,7 @@ export default function GuidePage() {
 
                 {/* Print Footer */}
                 <div className="hidden print:block mt-20 pt-8 border-t border-slate-200 text-center text-xs text-slate-500">
-                    <p>© 2026 Novo CRM. Tüm hakları saklıdır. | www.novoxcrm.com | info@novoxcrm.com</p>
+                    <p>&copy; 2026 {brandName}. Tum haklari saklidir. | www.{brandDomain} | info@{brandDomain}</p>
                 </div>
             </main>
 

@@ -4,13 +4,24 @@ import { CheckCircle2, TrendingUp, Users, Shield, Zap, Globe, ArrowRight } from 
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { LeadCaptureModal } from '@/components/marketing/LeadCaptureModal'
+import { headers } from 'next/headers'
+import { getBrandNameFromHost } from '@/lib/tenant/resolve-brand-from-host'
 
-export const metadata: Metadata = {
-    title: "Gayrimenkul CRM Yazılımı | Konut Projeleri için Satış Takibi – Novo CRM",
-    description: "Gayrimenkul firmaları için özel CRM çözümü. Konut projelerinde müşteri, stok ve broker yönetimini Novo CRM ile dijitalleştirin.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+    const headerList = await headers()
+    const host = headerList.get('host') || 'novoxcrm.com'
+    const brandName = await getBrandNameFromHost(host)
+    return {
+        title: `Gayrimenkul CRM Yazilimi | Konut Projeleri icin Satis Takibi - ${brandName}`,
+        description: `Gayrimenkul firmalari icin ozel CRM cozumu. Konut projelerinde musteri, stok ve broker yonetimini ${brandName} ile dijitallestirin.`,
+    }
+}
 
-export default function GayrimenkulCRMPage() {
+export default async function GayrimenkulCRMPage() {
+    const headerList = await headers()
+    const host = headerList.get('host') || 'novoxcrm.com'
+    const brandName = await getBrandNameFromHost(host)
+
     return (
         <div className="bg-slate-950 min-h-screen pt-24 pb-20">
             <section className="container mx-auto px-4 py-16 text-center">
@@ -42,7 +53,7 @@ export default function GayrimenkulCRMPage() {
             <section className="py-24 border-t border-slate-900 relative">
                 <div className="container mx-auto px-4">
                     <div className="text-center mb-16">
-                        <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">Neden Novo CRM?</h2>
+                        <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">Neden {brandName}?</h2>
                     </div>
                     <div className="grid lg:grid-cols-3 gap-12">
                         <div className="p-8 rounded-3xl bg-slate-900/50 border border-slate-800 hover:border-blue-500/30 transition-all group">
@@ -97,7 +108,7 @@ export default function GayrimenkulCRMPage() {
                 <div className="p-12 md:p-20 rounded-[40px] bg-gradient-to-br from-blue-900/20 to-slate-900 border border-blue-500/20">
                     <h2 className="text-3xl md:text-5xl font-bold text-white mb-8">Gayrimenkul Satışlarını Artırmaya Hazır Mısınız?</h2>
                     <p className="text-xl text-slate-400 mb-12 max-w-2xl mx-auto">
-                        Novo CRM ile tanışın, projelerinizi dijital dünyada daha verimli yönetin.
+                        {brandName} ile tanisin, projelerinizi dijital dunyada daha verimli yonetin.
                     </p>
                     <div className="flex justify-center gap-6">
                         <LeadCaptureModal

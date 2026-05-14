@@ -3,8 +3,11 @@ import { Shield, Zap, Database, Globe, CheckCircle2, ArrowLeft, Cpu, Lock, Layer
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { LeadCaptureModal } from '@/components/marketing/LeadCaptureModal'
+import { useBrand } from '@/components/providers/BrandProvider'
 
 export default function SystemDetailsPage() {
+    const { brandName, brandShort } = useBrand()
+
     return (
         <div className="bg-slate-950 min-h-screen text-slate-200">
             <div className="pt-32 pb-24">
@@ -14,7 +17,7 @@ export default function SystemDetailsPage() {
                         Enterprise Infrastructure
                     </div>
                     <h1 className="text-4xl md:text-7xl font-black text-white mb-8 tracking-tight">
-                        Novo <span className="text-blue-500">Architecture</span>
+                        {brandShort} <span className="text-blue-500">Architecture</span>
                     </h1>
                     <p className="text-xl text-slate-400 max-w-3xl mx-auto leading-relaxed">
                         En zorlu kurumsal gereksinimler ve yüksek trafikli operasyonlar için tasarlanmış, esnek ve güvenli teknoloji ekosistemi.
@@ -29,7 +32,7 @@ export default function SystemDetailsPage() {
                                 <Server className="text-blue-500" /> Dağıtım ve Kurulum Esnekliği
                             </h2>
                             <p className="text-slate-400 text-lg">
-                                Veri gizliliği ve güvenlik politikalarınıza en uygun yöntemi seçin. Novo CRM, hibrit çalışma modellerine tam uyumludur.
+                                Veri gizliligi ve guvenlik politikalariniza en uygun yontemi secin. {brandName}, hibrit calisma modellerine tam uyumludur.
                             </p>
 
                             <div className="space-y-4">
@@ -39,7 +42,7 @@ export default function SystemDetailsPage() {
                                             <Globe size={32} />
                                         </div>
                                         <div>
-                                            <h3 className="text-xl font-bold text-white">Novo Secure Cloud</h3>
+                                            <h3 className="text-xl font-bold text-white">{brandShort} Secure Cloud</h3>
                                             <p className="text-blue-400/60 text-sm">Managed SaaS Solution</p>
                                         </div>
                                     </div>

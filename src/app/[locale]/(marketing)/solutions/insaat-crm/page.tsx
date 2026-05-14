@@ -4,13 +4,24 @@ import { CheckCircle2, TrendingUp, Users, Shield, Zap, LayoutDashboard, Database
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { LeadCaptureModal } from '@/components/marketing/LeadCaptureModal'
+import { headers } from 'next/headers'
+import { getBrandNameFromHost } from '@/lib/tenant/resolve-brand-from-host'
 
-export const metadata: Metadata = {
-    title: "İnşaat Firmaları için CRM | Proje Satış ve Stok Yönetimi – Novo CRM",
-    description: "İnşaat firmalarına özel CRM yazılımı. Proje bazlı satış takibi, daire envanteri ve ödeme planı Novo CRM'de.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+    const headerList = await headers()
+    const host = headerList.get('host') || 'novoxcrm.com'
+    const brandName = await getBrandNameFromHost(host)
+    return {
+        title: `Insaat Firmalari icin CRM | Proje Satis ve Stok Yonetimi - ${brandName}`,
+        description: `Insaat firmalarina ozel CRM yazilimi. Proje bazli satis takibi, daire envanteri ve odeme plani ${brandName}'de.`,
+    }
+}
 
-export default function InsaatCRMPage() {
+export default async function InsaatCRMPage() {
+    const headerList = await headers()
+    const host = headerList.get('host') || 'novoxcrm.com'
+    const brandName = await getBrandNameFromHost(host)
+
     return (
         <div className="bg-slate-950 min-h-screen pt-24 pb-20">
             <section className="container mx-auto px-4 py-16 text-center">
@@ -24,7 +35,7 @@ export default function InsaatCRMPage() {
                     </span>
                 </h1>
                 <p className="text-xl text-slate-400 max-w-3xl mx-auto leading-relaxed mb-12">
-                    İnşaat projelerinde satış süreçleri, klasik CRM sistemleriyle yönetilemeyecek kadar karmaşıktır. Novo CRM, inşaat firmalarının proje satışlarını tek panelden yönetmesini sağlar.
+                    Insaat projelerinde satis surecleri, klasik CRM sistemleriyle yonetilemeyecek kadar karmasiktir. {brandName}, insaat firmalarinin proje satislarini tek panelden yonetmesini saglar.
                 </p>
                 <div className="flex flex-wrap justify-center gap-6">
                     <LeadCaptureModal

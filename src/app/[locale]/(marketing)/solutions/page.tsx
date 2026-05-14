@@ -4,8 +4,14 @@ import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { LeadCaptureModal } from '@/components/marketing/LeadCaptureModal'
 import { CRMLifecycle } from '@/components/marketing/CRMLifecycle'
+import { headers } from 'next/headers'
+import { getBrandNameFromHost } from '@/lib/tenant/resolve-brand-from-host'
 
-export default function SolutionsPage() {
+export default async function SolutionsPage() {
+    const headerList = await headers()
+    const host = headerList.get('host') || 'novoxcrm.com'
+    const brandName = await getBrandNameFromHost(host)
+
     return (
         <div className="bg-slate-950 min-h-screen pt-24 pb-20">
             {/* Executive Hero */}
@@ -20,7 +26,7 @@ export default function SolutionsPage() {
                     </span>
                 </h1>
                 <p className="text-xl text-slate-400 max-w-3xl mx-auto leading-relaxed mb-12">
-                    Novo CRM, sadece bir veri kayıt sistemi değildir. Satış ofisinizden bağımsız broker ağınıza, pazarlama bütçenizden finansal nakit akışınıza kadar tüm ekosistemi yöneten stratejik bir yönetim panelidir.
+                    {brandName}, sadece bir veri kayit sistemi degildir. Satis ofisinizden bagimsiz broker aginiza, pazarlama butcenizden finansal nakit akisiniza kadar tum ekosistemi yoneten stratejik bir yonetim panelidir.
                 </p>
                 <div className="flex flex-wrap justify-center gap-6">
                     <LeadCaptureModal
@@ -82,7 +88,7 @@ export default function SolutionsPage() {
                             </div>
                             <h3 className="text-3xl font-bold text-white mb-6 leading-tight">Dış Satış Ağınızı Tek Merkezden Yönetin</h3>
                             <p className="text-lg text-slate-400 mb-8">
-                                Proje satışlarının %60'ından fazlası dış brokerlar üzerinden döner. Novo CRM ile broker ağınızı kontrol altına alın.
+                                Proje satislarinin %60'indan fazlasi dis brokerlar uzerinden doner. {brandName} ile broker aginizi kontrol altina alin.
                             </p>
                             <ul className="space-y-4">
                                 {[
@@ -132,7 +138,7 @@ export default function SolutionsPage() {
                             </div>
                             <h3 className="text-3xl font-bold text-white mb-6 leading-tight">Yüksek Trafikli Satış Ofisleri İçin Hızlı Çözümler</h3>
                             <p className="text-lg text-slate-400 mb-8">
-                                Lansman dönemlerinde saniyelerin önemi vardır. Novo CRM operasyonun her aşamasını hızlandırır.
+                                Lansman donemlerinde saniyelerin onemi vardir. {brandName} operasyonun her asamasini hizlandirir.
                             </p>
                             <ul className="space-y-4">
                                 {[
@@ -231,7 +237,7 @@ export default function SolutionsPage() {
                                 <tr className="bg-slate-900/80">
                                     <th className="p-6 text-white font-bold border-b border-slate-800">Kriter</th>
                                     <th className="p-6 text-white font-bold border-b border-slate-800">Geleneksel Yazılım</th>
-                                    <th className="p-6 text-blue-400 font-bold border-b border-slate-800">Novo CRM</th>
+                                    <th className="p-6 text-blue-400 font-bold border-b border-slate-800">{brandName}</th>
                                 </tr>
                             </thead>
                             <tbody className="text-sm">

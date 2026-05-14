@@ -8,11 +8,13 @@ import NotificationBell from '@/components/notifications/NotificationBell'
 import { useTranslations } from 'next-intl'
 import { Link } from '@/i18n/routing'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
+import { useBrand } from '@/components/providers/BrandProvider'
 
 export function Navbar() {
     const [isScrolled, setIsScrolled] = useState(false)
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
     const t = useTranslations('Navbar')
+    const { brandName } = useBrand()
 
     useEffect(() => {
         const handleScroll = () => {
@@ -42,7 +44,7 @@ export function Navbar() {
                     <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-[0_0_15px_rgba(37,99,235,0.4)] group-hover:scale-110 transition-transform">
                         <Building2 size={24} className="text-white" />
                     </div>
-                    <span className="tracking-tight">Novo CRM</span>
+                    <span className="tracking-tight">{brandName}</span>
                 </Link>
 
                 {/* Desktop Nav */}

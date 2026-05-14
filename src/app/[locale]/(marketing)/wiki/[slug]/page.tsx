@@ -4,6 +4,8 @@ import { notFound } from 'next/navigation'
 import { ArrowLeft, Clock, Calendar, Tag, Share2, MessageCircle } from 'lucide-react'
 import { wikiArticles } from '@/data/wiki-data'
 import type { Metadata } from 'next'
+import { headers } from 'next/headers'
+import { getBrandNameFromHost } from '@/lib/tenant/resolve-brand-from-host'
 
 // Tüm slug'ları ve locale'leri Next.js'e bildirerek 404 hatasını önle
 export async function generateStaticParams() {
@@ -16,15 +18,19 @@ export async function generateStaticParams() {
     );
 }
 
-// Her makale için SEO metadata
 export async function generateMetadata(
     { params }: { params: Promise<{ slug: string; locale: string }> }
 ): Promise<Metadata> {
     const { slug } = await params;
     const article = wikiArticles.find(a => a.slug === slug);
     if (!article) return {};
+
+    const headerList = await headers()
+    const host = headerList.get('host') || 'novoxcrm.com'
+    const brandName = await getBrandNameFromHost(host)
+
     return {
-        title: `${article.title} | NovoxCRM Bilgi Bankası`,
+        title: `${article.title} | ${brandName} Bilgi Bankasi`,
         description: article.excerpt,
         keywords: article.tags?.join(', '),
         openGraph: {
@@ -90,17 +96,23 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
         ? relatedArticles
         : wikiArticles.filter(a => a.category === article.category && a.slug !== article.slug).slice(0, 3);
 
-    // JSON-LD Schema (Google SEO için kritik)
+    // Resolve brand from hostname for JSON-LD
+    const headerList = await headers()
+    const host = headerList.get('host') || 'novoxcrm.com'
+    const brandName = await getBrandNameFromHost(host)
+    const baseUrl = host.includes('localhost') ? `http://${host}` : `https://${host}`
+
+    // JSON-LD Schema (Google SEO icin kritik)
     const jsonLd = {
         "@context": "https://schema.org",
         "@type": "Article",
         "mainEntityOfPage": {
             "@type": "WebPage",
-            "id": `https://novoxcrm.com/${locale}/wiki/${article.slug}`
+            "id": `${baseUrl}/${locale}/wiki/${article.slug}`
         },
         "headline": article.title,
         "description": article.excerpt,
-        "image": article.image || "https://novoxcrm.com/og-image.jpg",
+        "image": article.image || `${baseUrl}/og-image.jpg`,
         "author": {
             "@type": "Person",
             "name": article.author,
@@ -108,17 +120,17 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
         },
         "publisher": {
             "@type": "Organization",
-            "name": "NovoxCRM",
+            "name": brandName,
             "logo": {
                 "@type": "ImageObject",
-                "url": "https://novoxcrm.com/logo.png"
+                "url": `${baseUrl}/logo.png`
             }
         },
         "datePublished": (() => {
             const months: Record<string, string> = {
-                'Ocak': '01', 'Şubat': '02', 'Mart': '03', 'Nisan': '04',
-                'Mayıs': '05', 'Haziran': '06', 'Temmuz': '07', 'Ağustos': '08',
-                'Eylül': '09', 'Ekim': '10', 'Kasım': '11', 'Aralık': '12',
+                'Ocak': '01', 'Subat': '02', 'Mart': '03', 'Nisan': '04',
+                'Mayis': '05', 'Haziran': '06', 'Temmuz': '07', 'Agustos': '08',
+                'Eylul': '09', 'Ekim': '10', 'Kasim': '11', 'Aralik': '12',
             };
             const parts = article.date.split(' ');
             if (parts.length === 3) {

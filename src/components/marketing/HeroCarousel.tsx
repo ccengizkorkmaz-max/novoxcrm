@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, ChevronRight, Brain, Target, Mic, BarChart3, Sparkles, LayoutGrid, FileText, Settings2 } from 'lucide-react'
 import Image from 'next/image'
+import { useBrand } from '@/components/providers/BrandProvider'
 
 const slides = [
     {
@@ -43,6 +44,7 @@ const slides = [
 export function HeroCarousel() {
     const [currentIndex, setCurrentIndex] = useState(0)
     const [direction, setDirection] = useState(0)
+    const { brandName } = useBrand()
 
     useEffect(() => {
         const timer = setInterval(() => {
@@ -121,7 +123,7 @@ export function HeroCarousel() {
                         >
                             <Image
                                 src={slides[currentIndex].image}
-                                alt={`Novo CRM - ${slides[currentIndex].title}: ${slides[currentIndex].description}`}
+                                alt={`${brandName} - ${slides[currentIndex].title}: ${slides[currentIndex].description}`}
                                 fill
                                 className="object-contain bg-slate-950/50 opacity-90 transition-all duration-700"
                                 priority={currentIndex === 0}

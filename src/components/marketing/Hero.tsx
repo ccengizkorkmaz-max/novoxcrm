@@ -4,12 +4,14 @@ import { LeadCaptureModal } from '@/components/marketing/LeadCaptureModal'
 import { useTranslations, useLocale } from 'next-intl'
 import { Link } from '@/i18n/routing'
 import { AnimatedHeroHeadline } from '@/components/marketing/AnimatedHeroHeadline'
+import { useBrand } from '@/components/providers/BrandProvider'
 
 import { HeroCarousel } from '@/components/marketing/HeroCarousel'
 
 export function Hero() {
     const t = useTranslations('Hero')
     const locale = useLocale()
+    const { brandName } = useBrand()
 
     return (
         <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 overflow-hidden bg-slate-950">
@@ -42,7 +44,7 @@ export function Hero() {
                     {t('description').split('Novo CRM').map((part, i, arr) => (
                         <span key={i}>
                             {part}
-                            {i < arr.length - 1 && <span className="text-white font-bold">Novo CRM</span>}
+                            {i < arr.length - 1 && <span className="text-white font-bold">{brandName}</span>}
                         </span>
                     ))}
                 </p>

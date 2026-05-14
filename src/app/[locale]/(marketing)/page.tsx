@@ -14,13 +14,19 @@ import { ResourcesSection } from '@/components/marketing/ResourcesSection'
 import { PricingSection } from '@/components/marketing/PricingSection'
 import { FAQSection } from '@/components/marketing/FAQSection'
 import { getTranslations } from 'next-intl/server'
+import { headers } from 'next/headers'
+import { getBrandNameFromHost } from '@/lib/tenant/resolve-brand-from-host'
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
     const { locale } = await params;
     const t = await getTranslations({ locale, namespace: 'Index' });
+    const headerList = await headers()
+    const host = headerList.get('host') || 'novoxcrm.com'
+    const brandName = await getBrandNameFromHost(host)
+
     return {
-        title: t('title'),
-        description: t('description'),
+        title: t('title').replace(/Novo CRM/gi, brandName),
+        description: t('description').replace(/Novo CRM/gi, brandName),
         alternates: {
             canonical: '/',
             languages: {
@@ -35,6 +41,12 @@ export default async function MarketingPage({ params }: { params: Promise<{ loca
     const { locale } = await params;
     const t = await getTranslations({ locale, namespace: 'Marketing_CTA' })
     const faqT = await getTranslations({ locale, namespace: 'FAQSection' })
+
+    // Resolve brand from hostname
+    const headerList = await headers()
+    const host = headerList.get('host') || 'novoxcrm.com'
+    const brandName = await getBrandNameFromHost(host)
+    const baseUrl = host.includes('localhost') ? `http://${host}` : `https://${host}`
 
     // Build FAQ Schema for Google Rich Results & AI Search
     const faqItems = [0, 1, 2, 3, 4, 5].map((i) => ({
@@ -52,14 +64,14 @@ export default async function MarketingPage({ params }: { params: Promise<{ loca
         "mainEntity": faqItems
     };
 
-    // Organization schema for brand signals
+    // Organization schema for brand signals - dynamic per domain
     const orgSchema = {
         "@context": "https://schema.org",
         "@type": "Organization",
-        "name": "Novo CRM",
-        "url": "https://novoxcrm.com",
-        "logo": "https://novoxcrm.com/icon-512.png",
-        "description": "İnşaat ve gayrimenkul firmaları için özel geliştirilmiş CRM yazılımı. Konut projeleri, stok takibi, broker yönetimi ve satış süreçlerini tek platformda yönetin.",
+        "name": brandName,
+        "url": baseUrl,
+        "logo": `${baseUrl}/icon-512.png`,
+        "description": `Insaat ve gayrimenkul firmalari icin ozel gelistirilmis CRM yazilimi. Konut projeleri, stok takibi, broker yonetimi ve satis sureclerini tek platformda yonetin.`,
         "sameAs": [],
         "contactPoint": {
             "@type": "ContactPoint",

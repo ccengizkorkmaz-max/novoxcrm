@@ -1,10 +1,13 @@
+'use client'
 
 import Link from 'next/link'
 import { Building2, Facebook, Instagram, Linkedin, Twitter } from 'lucide-react'
 import { useTranslations } from 'next-intl'
+import { useBrand } from '@/components/providers/BrandProvider'
 
 export function Footer() {
     const t = useTranslations('Footer')
+    const { brandName, brandDomain } = useBrand()
 
     return (
         <footer className="bg-slate-950 text-slate-400 border-t border-slate-900 py-12 md:py-20">
@@ -16,7 +19,7 @@ export function Footer() {
                             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                                 <Building2 size={20} className="text-white" />
                             </div>
-                            Novo CRM
+                            {brandName}
                         </Link>
                         <p className="text-sm leading-relaxed mb-6">
                             {t('brandDescription')}
@@ -56,7 +59,7 @@ export function Footer() {
                     <div>
                         <h4 className="text-white font-bold mb-6">{t('contactTitle')}</h4>
                         <ul className="space-y-4 text-sm">
-                            <li>E-posta: info@novoxcrm.com</li>
+                            <li>E-posta: info@{brandDomain}</li>
                             <li>Adres: İstanbul, Türkiye</li>
                             <li className="pt-2">
                                 <div className="p-4 rounded-xl bg-slate-900 border border-slate-800">
