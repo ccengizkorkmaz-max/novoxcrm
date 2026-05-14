@@ -1,6 +1,7 @@
 'use client'
 
-import { createContext, useContext, type ReactNode } from 'react'
+import { createContext, useContext, useCallback, type ReactNode } from 'react'
+import { useTranslations } from 'next-intl'
 
 interface BrandContextType {
     brandName: string
@@ -38,3 +39,27 @@ export function BrandProvider({
 export function useBrand() {
     return useContext(BrandContext)
 }
+
+/**
+ * Hook that wraps useTranslations and auto-replaces "Novo CRM" / "Novo"
+ * with the current brand name in all translation outputs.
+ * Usage: const bt = useBrandedTranslations('Hero')
+ *        bt('description') // "Novo CRM" in translation → "Oikos CRM"
+ */
+export function useBrandedTranslations(namespace: string) {
+    const t = useTranslations(namespace)
+    const { brandName, brandShort } = useBrand()
+
+    return useCallback(
+        (key: string, values?: Record<string, any>) => {
+            const raw = t(key, values)
+            if (brandName === 'Novo CRM') return raw // no replacement needed
+            return raw
+                .replace(/Novo CRM/g, brandName)
+                .replace(/NovoCRM/g, brandName.replace(' ', ''))
+                .replace(/\bNovo\b/g, brandShort)
+        },
+        [t, brandName, brandShort]
+    )
+}
+

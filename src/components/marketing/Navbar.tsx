@@ -5,15 +5,14 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { LeadCaptureModal } from '@/components/marketing/LeadCaptureModal'
 import NotificationBell from '@/components/notifications/NotificationBell'
-import { useTranslations } from 'next-intl'
+import { useBrandedTranslations, useBrand } from '@/components/providers/BrandProvider'
 import { Link } from '@/i18n/routing'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
-import { useBrand } from '@/components/providers/BrandProvider'
 
 export function Navbar() {
     const [isScrolled, setIsScrolled] = useState(false)
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-    const t = useTranslations('Navbar')
+    const t = useBrandedTranslations('Navbar')
     const { brandName } = useBrand()
 
     useEffect(() => {

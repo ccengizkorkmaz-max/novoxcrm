@@ -5,10 +5,10 @@ import {
     AccordionItem,
     AccordionTrigger,
 } from "@/components/ui/accordion"
-import { useTranslations } from 'next-intl'
+import { useBrandedTranslations } from '@/components/providers/BrandProvider'
 
 export function FAQSection() {
-    const t = useTranslations('FAQSection')
+    const t = useBrandedTranslations('FAQSection')
 
     return (
         <section className="py-24 bg-slate-950 relative border-t border-slate-900" id="faq">

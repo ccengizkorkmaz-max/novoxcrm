@@ -2,10 +2,10 @@
 import Link from 'next/link'
 import { Calculator, FileText, ArrowRight } from 'lucide-react'
 import { LeadCaptureModal } from '@/components/marketing/LeadCaptureModal'
-import { useTranslations } from 'next-intl'
+import { useBrandedTranslations } from '@/components/providers/BrandProvider'
 
 export function ResourcesSection() {
-    const t = useTranslations('ResourcesSection')
+    const t = useBrandedTranslations('ResourcesSection')
 
     return (
         <section className="py-24 bg-slate-950 border-t border-slate-900 relative">

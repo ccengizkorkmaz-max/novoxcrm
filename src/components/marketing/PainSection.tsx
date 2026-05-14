@@ -1,9 +1,9 @@
 
 import { AlertCircle, Users, Database, FileText } from 'lucide-react'
-import { useTranslations } from 'next-intl'
+import { useBrandedTranslations } from '@/components/providers/BrandProvider'
 
 export function PainSection() {
-    const t = useTranslations('PainSection')
+    const t = useBrandedTranslations('PainSection')
 
     const problems = [
         {

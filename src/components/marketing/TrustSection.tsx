@@ -1,9 +1,9 @@
 
 import { Building2, Users, Wallet, Trophy } from 'lucide-react'
-import { useTranslations } from 'next-intl'
+import { useBrandedTranslations } from '@/components/providers/BrandProvider'
 
 export function TrustSection() {
-    const t = useTranslations('TrustSection')
+    const t = useBrandedTranslations('TrustSection')
 
     const stats = [
         {

@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { useTranslations } from 'next-intl'
+import { useBrandedTranslations } from '@/components/providers/BrandProvider'
 import { Brain, Mic, Target, ShieldCheck, Sparkles } from 'lucide-react'
 
 const icons = {
@@ -12,7 +12,7 @@ const icons = {
 }
 
 export function AiFeaturesSection() {
-    const t = useTranslations('AiFeaturesSection')
+    const t = useBrandedTranslations('AiFeaturesSection')
 
     const containerVariants = {
         hidden: { opacity: 0 },

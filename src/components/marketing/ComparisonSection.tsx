@@ -1,9 +1,9 @@
 
 import { XCircle, CheckCircle } from 'lucide-react'
-import { useTranslations } from 'next-intl'
+import { useBrandedTranslations } from '@/components/providers/BrandProvider'
 
 export function ComparisonSection() {
-    const t = useTranslations('ComparisonSection')
+    const t = useBrandedTranslations('ComparisonSection')
 
     return (
         <section className="py-24 bg-slate-950 relative overflow-hidden">

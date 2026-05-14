@@ -4,11 +4,11 @@ import { useState } from 'react'
 import { Check, X, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { LeadCaptureModal } from '@/components/marketing/LeadCaptureModal'
-import { useTranslations } from 'next-intl'
+import { useBrandedTranslations } from '@/components/providers/BrandProvider'
 import { motion } from 'framer-motion'
 
 export function PricingSection() {
-    const t = useTranslations('PricingSection')
+    const t = useBrandedTranslations('PricingSection')
     const [isYearly, setIsYearly] = useState(false)
 
     const plans = [

@@ -2,11 +2,10 @@
 
 import Link from 'next/link'
 import { Building2, Facebook, Instagram, Linkedin, Twitter } from 'lucide-react'
-import { useTranslations } from 'next-intl'
-import { useBrand } from '@/components/providers/BrandProvider'
+import { useBrandedTranslations, useBrand } from '@/components/providers/BrandProvider'
 
 export function Footer() {
-    const t = useTranslations('Footer')
+    const t = useBrandedTranslations('Footer')
     const { brandName, brandDomain } = useBrand()
 
     return (

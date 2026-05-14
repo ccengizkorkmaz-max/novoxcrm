@@ -1,14 +1,14 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { useTranslations } from 'next-intl'
+import { useBrandedTranslations } from '@/components/providers/BrandProvider'
 import {
     Phone, MessageSquare, Mail, Clock, GitBranch, Sparkles,
     Workflow, Users, BarChart3, Bot, Zap, ArrowRight
 } from 'lucide-react'
 
 export function OutreachShowcase() {
-    const t = useTranslations('OutreachShowcase')
+    const t = useBrandedTranslations('OutreachShowcase')
 
     const steps = [
         {

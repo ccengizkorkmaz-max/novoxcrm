@@ -5,7 +5,7 @@ import { Briefcase, TrendingUp, Users } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
-import { useTranslations } from 'next-intl'
+import { useBrandedTranslations } from '@/components/providers/BrandProvider'
 
 const personas = [
     {
@@ -26,7 +26,7 @@ const personas = [
 ]
 
 export function PersonaSection() {
-    const t = useTranslations('PersonaSection')
+    const t = useBrandedTranslations('PersonaSection')
     const [activeTab, setActiveTab] = useState(personas[0])
 
     return (

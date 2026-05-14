@@ -6,7 +6,7 @@ import {
     Brain, Phone, MessageSquare, Mail, BarChart3, Shield, Zap,
     Building2, Users, Layers, Sparkles, Globe, Bot, Clock
 } from 'lucide-react'
-import { useTranslations } from 'next-intl'
+import { useBrandedTranslations } from '@/components/providers/BrandProvider'
 
 function AnimatedCounter({ target, suffix = '', duration = 2000 }: { target: number; suffix?: string; duration?: number }) {
     const [count, setCount] = useState(0)
@@ -33,7 +33,7 @@ function AnimatedCounter({ target, suffix = '', duration = 2000 }: { target: num
 }
 
 export function PlatformPowerSection() {
-    const t = useTranslations('PlatformPower')
+    const t = useBrandedTranslations('PlatformPower')
 
     const stats = [
         {

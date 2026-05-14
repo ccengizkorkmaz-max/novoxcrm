@@ -2,10 +2,10 @@
 import { CheckCircle2, LayoutDashboard, Calculator, PieChart, Users2, Database, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
-import { useTranslations } from 'next-intl'
+import { useBrandedTranslations } from '@/components/providers/BrandProvider'
 
 export function SolutionSection() {
-    const t = useTranslations('SolutionSection')
+    const t = useBrandedTranslations('SolutionSection')
 
     const solutions = [
         {

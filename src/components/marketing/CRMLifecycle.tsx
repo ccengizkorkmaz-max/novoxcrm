@@ -1,9 +1,9 @@
 import { ArrowRight } from 'lucide-react'
 import Image from 'next/image'
-import { useTranslations } from 'next-intl'
+import { useBrandedTranslations } from '@/components/providers/BrandProvider'
 
 export function CRMLifecycle() {
-    const t = useTranslations('CRMLifecycle')
+    const t = useBrandedTranslations('CRMLifecycle')
 
     return (
         <section id="process-flow" className="py-24 bg-slate-900/20 relative overflow-hidden">

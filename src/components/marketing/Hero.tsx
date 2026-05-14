@@ -3,15 +3,14 @@
 import { Button } from '@/components/ui/button'
 import { ChevronRight, Sparkles } from 'lucide-react'
 import { LeadCaptureModal } from '@/components/marketing/LeadCaptureModal'
-import { useTranslations, useLocale } from 'next-intl'
+import { useLocale } from 'next-intl'
+import { useBrandedTranslations, useBrand } from '@/components/providers/BrandProvider'
 import { Link } from '@/i18n/routing'
 import { AnimatedHeroHeadline } from '@/components/marketing/AnimatedHeroHeadline'
-import { useBrand } from '@/components/providers/BrandProvider'
-
 import { HeroCarousel } from '@/components/marketing/HeroCarousel'
 
 export function Hero() {
-    const t = useTranslations('Hero')
+    const t = useBrandedTranslations('Hero')
     const locale = useLocale()
     const { brandName } = useBrand()
 
