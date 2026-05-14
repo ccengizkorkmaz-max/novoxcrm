@@ -25,94 +25,63 @@ const PLATFORM_HOSTS = [
 ]
 
 /**
- * Domains approved for full white-label marketing pages.
- * ONLY these custom domains will have their brand name shown on marketing pages.
- * All other custom domains will show "Novo CRM" on marketing pages
- * and will only get a custom login page (handled by middleware).
+ * Static brand mapping for approved white-label marketing domains.
+ * ONLY these domains will show custom branding on marketing pages.
+ * All other custom domains will show "Novo CRM" and only get a custom login page.
+ * 
+ * This is intentionally static (not DB-driven) for:
+ * 1. Reliability - no DB dependency for marketing page rendering
+ * 2. Performance - zero latency brand resolution
+ * 3. Security - prevents random tenants from hijacking marketing pages
  */
-const MARKETING_WHITELABEL_DOMAINS = [
-    'oikoscrm.com',
-    'www.oikoscrm.com',
-]
+const WHITELABEL_BRAND_MAP: Record<string, { brandName: string; brandConfig: BrandConfig }> = {
+    'oikoscrm.com': {
+        brandName: 'Oikos CRM',
+        brandConfig: {
+            ...DEFAULT_BRAND,
+            appName: 'Oikos CRM',
+        },
+    },
+    'www.oikoscrm.com': {
+        brandName: 'Oikos CRM',
+        brandConfig: {
+            ...DEFAULT_BRAND,
+            appName: 'Oikos CRM',
+        },
+    },
+}
 
 /**
  * Resolve tenant brand config from the request hostname.
- * ONLY returns custom brand for approved white-label marketing domains.
- * Other custom domains always get default Novo CRM branding on marketing pages.
+ * Uses static mapping for approved white-label domains.
+ * All other domains get default Novo CRM branding.
  */
 export async function resolveBrandFromHost(hostname: string): Promise<BrandConfig> {
     const cleanHost = hostname.split(':')[0] // remove port
 
-    // Platform hosts always get default branding
-    if (PLATFORM_HOSTS.includes(cleanHost) || cleanHost.endsWith('.vercel.app')) {
-        return DEFAULT_BRAND
+    // Check static white-label mapping first
+    const whitelabel = WHITELABEL_BRAND_MAP[cleanHost]
+    if (whitelabel) {
+        return whitelabel.brandConfig
     }
 
-    // ONLY approved white-label domains get custom marketing branding
-    if (!MARKETING_WHITELABEL_DOMAINS.includes(cleanHost)) {
-        return DEFAULT_BRAND
-    }
-
-    try {
-        const supabase = await createClient()
-        const { data: tenant } = await supabase
-            .from('tenants')
-            .select('brand_config, name')
-            .eq('custom_domain', cleanHost)
-            .single()
-
-        if (tenant?.brand_config) {
-            return resolveBrand(tenant.brand_config)
-        }
-
-        // Tenant found but no brand_config set - use tenant name as appName
-        if (tenant?.name) {
-            return {
-                ...DEFAULT_BRAND,
-                appName: tenant.name,
-            }
-        }
-    } catch {
-        // DB error - fall back to default
-    }
-
+    // Everything else gets default branding
     return DEFAULT_BRAND
 }
 
 /**
- * Get just the brand name for metadata purposes (lighter query).
- * ONLY returns custom brand name for approved white-label marketing domains.
- * All other custom domains return 'Novo CRM'.
+ * Get just the brand name for metadata purposes.
+ * Uses static mapping - no DB query needed.
  */
 export async function getBrandNameFromHost(hostname: string): Promise<string> {
     const cleanHost = hostname.split(':')[0]
 
-    if (PLATFORM_HOSTS.includes(cleanHost) || cleanHost.endsWith('.vercel.app')) {
-        return 'Novo CRM'
+    // Check static white-label mapping
+    const whitelabel = WHITELABEL_BRAND_MAP[cleanHost]
+    if (whitelabel) {
+        return whitelabel.brandName
     }
 
-    // ONLY approved white-label domains get custom brand name
-    if (!MARKETING_WHITELABEL_DOMAINS.includes(cleanHost)) {
-        return 'Novo CRM'
-    }
-
-    try {
-        const supabase = await createClient()
-        const { data: tenant } = await supabase
-            .from('tenants')
-            .select('brand_config, name')
-            .eq('custom_domain', cleanHost)
-            .single()
-
-        if (tenant?.brand_config?.appName) {
-            return tenant.brand_config.appName
-        }
-        if (tenant?.name) {
-            return tenant.name
-        }
-    } catch {
-        // fall back
-    }
-
+    // Default for all other domains
     return 'Novo CRM'
 }
