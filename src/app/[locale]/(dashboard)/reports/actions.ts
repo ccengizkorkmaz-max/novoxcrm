@@ -1,7 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { startOfMonth, subMonths, format } from 'date-fns'
+import { startOfMonth, subMonths, format, isToday, isThisWeek, isThisMonth } from 'date-fns'
 import { tr } from 'date-fns/locale'
 
 export async function getSalesAnalytics() {
@@ -475,6 +475,12 @@ export async function getMarketingAnalytics() {
 
         const formMatch = desc.match(/(?:Form:\s*)([^)\n\|]+)/i)
         
+        let channel = source || 'Bilinmiyor';
+        if (['Facebook Ads', 'Facebook', 'fb'].includes(source)) channel = 'Facebook';
+        else if (['Instagram', 'ig'].includes(source)) channel = 'Instagram';
+        else if (['WEB Form'].includes(source)) channel = 'Web Sitesi';
+        else if (['Email', 'E-Posta'].includes(source)) channel = 'E-Posta';
+
         if (formMatch && formMatch[1]) {
             sourceName = `Form: ${formMatch[1].trim()}`
         } else if (source === 'WEB Form') {
@@ -492,10 +498,15 @@ export async function getMarketingAnalytics() {
         }
 
         if (!acc[sourceName]) {
-            acc[sourceName] = { total: 0, statuses: {} }
+            acc[sourceName] = { total: 0, today: 0, thisWeek: 0, thisMonth: 0, channel, statuses: {} }
         }
 
         acc[sourceName].total += 1
+
+        const saleDate = new Date(sale.created_at);
+        if (isToday(saleDate)) acc[sourceName].today += 1;
+        if (isThisWeek(saleDate, { weekStartsOn: 1 })) acc[sourceName].thisWeek += 1;
+        if (isThisMonth(saleDate)) acc[sourceName].thisMonth += 1;
 
         const label = statusLabels[sale.status] || sale.status || 'Diğer'
         acc[sourceName].statuses[label] = (acc[sourceName].statuses[label] || 0) + 1
@@ -507,6 +518,10 @@ export async function getMarketingAnalytics() {
         return {
             formName,
             total: data.total,
+            today: data.today,
+            thisWeek: data.thisWeek,
+            thisMonth: data.thisMonth,
+            channel: data.channel,
             statuses: data.statuses
         }
     }).sort((a, b) => b.total - a.total)

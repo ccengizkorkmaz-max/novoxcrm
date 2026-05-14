@@ -58,8 +58,12 @@ export default async function MarketingReportsPage() {
                     <Table>
                         <TableHeader className="bg-slate-50">
                             <TableRow>
-                                <TableHead className="w-[30%]">Form / Kampanya Adı</TableHead>
-                                <TableHead className="text-center">Toplam Gelen</TableHead>
+                                <TableHead className="w-[20%]">Form / Kampanya Adı</TableHead>
+                                <TableHead className="w-[10%] text-center">Kanal</TableHead>
+                                <TableHead className="w-[8%] text-center">Bugün</TableHead>
+                                <TableHead className="w-[8%] text-center">Bu Hafta</TableHead>
+                                <TableHead className="w-[8%] text-center">Bu Ay</TableHead>
+                                <TableHead className="w-[10%] text-center">Toplam Gelen</TableHead>
                                 <TableHead>Lead Kırılımı (Durum Analizi)</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -70,7 +74,19 @@ export default async function MarketingReportsPage() {
                                         <TableCell className="font-semibold">
                                             {form.formName}
                                         </TableCell>
-                                        <TableCell className="text-center font-bold text-lg text-slate-700">
+                                        <TableCell className="text-center text-xs font-medium text-slate-500">
+                                            <Badge variant="outline" className="bg-slate-50">{form.channel}</Badge>
+                                        </TableCell>
+                                        <TableCell className="text-center font-semibold text-slate-600">
+                                            {form.today > 0 ? <span className="text-blue-600">+{form.today}</span> : '0'}
+                                        </TableCell>
+                                        <TableCell className="text-center font-semibold text-slate-600">
+                                            {form.thisWeek > 0 ? <span className="text-blue-600">+{form.thisWeek}</span> : '0'}
+                                        </TableCell>
+                                        <TableCell className="text-center font-semibold text-slate-600">
+                                            {form.thisMonth > 0 ? <span className="text-blue-600">+{form.thisMonth}</span> : '0'}
+                                        </TableCell>
+                                        <TableCell className="text-center font-bold text-lg text-slate-800">
                                             {form.total}
                                         </TableCell>
                                         <TableCell>
@@ -96,7 +112,7 @@ export default async function MarketingReportsPage() {
                                 ))
                             ) : (
                                 <TableRow>
-                                    <TableCell colSpan={3} className="h-32 text-center text-muted-foreground">
+                                    <TableCell colSpan={7} className="h-32 text-center text-muted-foreground">
                                         Henüz dijital form (Facebook Ads, Web form vb.) üzerinden gelen bir kayıt bulunamadı.
                                     </TableCell>
                                 </TableRow>
