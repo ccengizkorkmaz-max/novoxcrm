@@ -33,13 +33,13 @@ export default function ConversationSidebar({ sessions }: ConversationSidebarPro
         <div className="flex flex-col h-full bg-white border-r border-slate-200 w-full lg:w-96 shrink-0 shadow-sm overflow-hidden">
             <div className="p-6 border-b border-slate-200 bg-white sticky top-0 z-20">
                 <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-black text-slate-900 flex items-center gap-2">
+                    <h2 className="text-xl font-semibold text-slate-900 flex items-center gap-2">
                         <div className="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center">
                             <MessageSquare className="h-5 w-5 text-white" />
                         </div>
                         Mesajlaşmalar
                     </h2>
-                    <Badge variant="outline" className="border-slate-200 text-slate-400 font-black text-[10px] tracking-widest">
+                    <Badge variant="outline" className="border-slate-200 text-slate-500 font-medium text-xs">
                         {filteredSessions.length}{search.trim() ? `/${sessions.length}` : ''}
                     </Badge>
                 </div>
@@ -71,7 +71,7 @@ export default function ConversationSidebar({ sessions }: ConversationSidebarPro
                         <div className="h-16 w-16 rounded-3xl bg-slate-50 flex items-center justify-center text-slate-200 mb-4 border border-slate-100 shadow-inner rotate-12">
                             <MessageSquare className="h-8 w-8 -rotate-12" />
                         </div>
-                        <h3 className="text-slate-900 font-extrabold text-sm mb-1">
+                        <h3 className="text-slate-900 font-medium text-sm mb-1">
                             {search.trim() ? 'Sonuç Bulunamadı' : 'Görüşme Bulunamadı'}
                         </h3>
                         <p className="text-slate-500 text-[11px] font-medium leading-relaxed">
@@ -97,7 +97,7 @@ export default function ConversationSidebar({ sessions }: ConversationSidebarPro
                                 )}
                             >
                                 <div className={cn(
-                                    "h-12 w-12 rounded-xl flex items-center justify-center shrink-0 border transition-all duration-300 shadow-sm font-black",
+                                    "h-12 w-12 rounded-xl flex items-center justify-center shrink-0 border transition-all duration-300 shadow-sm font-semibold",
                                     isActive
                                         ? "bg-white/10 border-white/20 text-white"
                                         : session.ai_enabled ? "bg-blue-50 border-blue-100 text-blue-600" :
@@ -109,14 +109,14 @@ export default function ConversationSidebar({ sessions }: ConversationSidebarPro
                                 <div className="flex-1 min-w-0 pr-2 text-left">
                                     <div className="flex items-center justify-between gap-2 mb-1">
                                         <span className={cn(
-                                            "font-black text-[13px] truncate tracking-tight",
+                                            "font-medium text-sm truncate",
                                             isActive ? "text-white" : "text-slate-900"
                                         )}>
                                             {session.customers?.full_name || `+${session.phone_number}`}
                                         </span>
                                         {session.customers?.full_name && (
                                             <span className={cn(
-                                                "text-[10px] font-bold tracking-wide",
+                                                "text-xs font-normal",
                                                 isActive ? "text-blue-200" : "text-slate-400"
                                             )}>
                                                 +{session.phone_number}
@@ -131,7 +131,7 @@ export default function ConversationSidebar({ sessions }: ConversationSidebarPro
                                                 )}
                                                 {session.lead_score && session.lead_score !== 'unknown' && (
                                                     <span className={cn(
-                                                        "text-[9px] px-1.5 py-0.5 rounded-full font-black tracking-wider",
+                                                        "text-[10px] px-2 py-0.5 rounded-full font-medium",
                                                         session.lead_score === 'hot' && 'bg-red-100 text-red-700',
                                                         session.lead_score === 'warm' && 'bg-orange-100 text-orange-700',
                                                         session.lead_score === 'cold' && 'bg-sky-100 text-sky-600',
@@ -140,7 +140,7 @@ export default function ConversationSidebar({ sessions }: ConversationSidebarPro
                                                     </span>
                                                 )}
                                                 <Badge className={cn(
-                                                    "text-[9px] px-1.5 py-0 min-w-max uppercase font-black tracking-widest border-none",
+                                                    "text-[10px] px-2 py-0.5 min-w-max uppercase font-medium border-none",
                                                     session.ai_enabled ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'
                                                 )}>
                                                     {session.ai_enabled ? 'AI' : 'İNSAN'}
@@ -149,13 +149,13 @@ export default function ConversationSidebar({ sessions }: ConversationSidebarPro
                                         )}
                                     </div>
                                     <div className={cn(
-                                        "text-[10px] font-bold truncate opacity-50 tracking-widest",
+                                        "text-xs truncate opacity-70",
                                         isActive ? "text-blue-100" : "text-slate-500"
                                     )}>
                                         {session.last_message_preview || 'Mesaj yok'}
                                     </div>
                                     <div className={cn(
-                                        "flex items-center gap-1.5 mt-2 text-[10px] font-black uppercase tracking-[0.05em]",
+                                        "flex items-center gap-1.5 mt-2 text-xs font-normal",
                                         isActive ? "text-blue-100/70" : "text-slate-400"
                                     )}>
                                         <Clock className="h-3 w-3" />
