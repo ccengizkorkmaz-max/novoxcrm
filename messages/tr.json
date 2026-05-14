@@ -972,7 +972,11 @@
             "createOffer": "Teklif Ver",
             "viewUnit": "Ünite Detayını Gör",
             "viewOffer": "Teklif Detayını Gör",
-            "editOption": "Opsiyonu Düzenle"
+            "editOption": "Opsiyonu Düzenle",
+            "cancelOption": "Opsiyonu İptal Et (Sil)"
+        },
+        "confirm": {
+            "cancelOption": "Bu opsiyonu iptal etmek (silmek) istediğinize emin misiniz? Ünite tekrar satışa açılacaktır."
         },
         "dialog": {
             "title": "Ödeme Planı ve Teklif Oluştur",
@@ -986,6 +990,7 @@
             "offerCreated": "Teklif başarıyla oluşturuldu.",
             "offerError": "Teklif oluşturulurken bir hata oluştu.",
             "optionUpdated": "Opsiyon tarihi başarıyla güncellendi.",
+            "optionCancelled": "Opsiyon başarıyla iptal edildi.",
             "updateError": "Bir hata oluştu."
         }
     },

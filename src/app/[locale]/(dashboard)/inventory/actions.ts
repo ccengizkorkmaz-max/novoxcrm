@@ -202,6 +202,49 @@ export async function updateReservation(formData: FormData) {
     return { success: true }
 }
 
+export async function cancelReservation(unitId: string, saleId: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) redirect('/login')
+
+    // 1. Update Unit status to For Sale
+    const { error: unitError } = await supabase
+        .from('units')
+        .update({ status: 'For Sale' })
+        .eq('id', unitId)
+
+    if (unitError) return { error: 'Ünite durumu güncellenemedi.' }
+
+    // 2. Update Sale status to Lost
+    const { error: saleError } = await supabase
+        .from('sales')
+        .update({ 
+            status: 'Lost', 
+            reservation_expiry: null,
+            description: 'Rezervasyon İptal Edildi'
+        })
+        .eq('id', saleId)
+
+    if (saleError) return { error: 'Rezervasyon kaydı güncellenemedi.' }
+
+    // 3. Cancel associated Pending deposits
+    await supabase.from('deposits')
+        .update({ status: 'Cancelled' })
+        .eq('sale_id', saleId)
+        .eq('status', 'Pending')
+
+    // Log activity
+    await logUnitActivity(unitId, 'status_change', 'Rezervasyon iptal edildi', 'Reserved', 'For Sale')
+
+    // Broker Sync
+    await syncBrokerLeadFromSale(saleId, 'Lost')
+
+    revalidatePath('/options')
+    revalidatePath('/inventory')
+    revalidatePath('/finance/deposits')
+    return { success: true }
+}
+
 export async function convertReservationToOffer(unitId: string) {
     const supabase = await createClient()
 

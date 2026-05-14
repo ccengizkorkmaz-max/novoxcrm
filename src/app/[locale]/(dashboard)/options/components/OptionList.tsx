@@ -1,13 +1,13 @@
 'use client'
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { FileText, Eye, Calendar } from 'lucide-react'
+import { FileText, Eye, Calendar, Trash2 } from 'lucide-react'
 import Link from 'next/link'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import { EditOptionDialog } from './edit-option-dialog'
-import { convertReservationToOffer } from '../../inventory/actions'
+import { convertReservationToOffer, cancelReservation } from '../../inventory/actions'
 import {
     Dialog,
     DialogContent,
@@ -35,6 +35,7 @@ export default function OptionList({ options, templates = [] }: { options: Optio
     const [planOpen, setPlanOpen] = useState(false)
     const [selectedSaleId, setSelectedSaleId] = useState<string | null>(null)
     const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null)
+    const [isDeleting, setIsDeleting] = useState<string | null>(null)
 
     const handleOfferClick = (saleId: string, unitId: string) => {
         setSelectedSaleId(saleId)
@@ -50,6 +51,24 @@ export default function OptionList({ options, templates = [] }: { options: Optio
             toast.success(t('messages.offerCreated'))
         } else {
             toast.error(res.error || t('messages.offerError'))
+        }
+    }
+
+    const handleCancelReservation = async (unitId: string, saleId: string) => {
+        if (!confirm(t('confirm.cancelOption'))) return
+
+        setIsDeleting(saleId)
+        try {
+            const res = await cancelReservation(unitId, saleId)
+            if (res.success) {
+                toast.success(t('messages.optionCancelled'))
+            } else {
+                toast.error(res.error || 'İşlem başarısız')
+            }
+        } catch (error) {
+            toast.error('Bir hata oluştu')
+        } finally {
+            setIsDeleting(null)
         }
     }
 
@@ -76,20 +95,30 @@ export default function OptionList({ options, templates = [] }: { options: Optio
                                 const customerName = activeSale?.customers?.full_name || '-'
                                 const expiryDate = activeSale?.reservation_expiry
 
+                                // Check if expired
+                                const isExpired = expiryDate && new Date(expiryDate) < new Date()
+
                                 // Find the associated offer (the latest one)
                                 const activeOffer = option.offers && option.offers.length > 0
                                     ? option.offers.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
                                     : null
 
                                 return (
-                                    <TableRow key={option.id}>
+                                    <TableRow key={option.id} className={cn(isExpired && "opacity-60 bg-muted/30 grayscale-[0.5]")}>
                                         <TableCell className="font-medium">
                                             <div className="flex flex-col">
                                                 <span>{option.projects?.name || '-'}</span>
                                                 <span className="text-sm text-muted-foreground">{option.unit_number}</span>
                                             </div>
                                         </TableCell>
-                                        <TableCell>{customerName}</TableCell>
+                                        <TableCell>
+                                            <div className="flex flex-col">
+                                                <span>{customerName}</span>
+                                                {isExpired && (
+                                                    <span className="text-[10px] font-bold text-red-500 uppercase">SÜRESİ DOLDU</span>
+                                                )}
+                                            </div>
+                                        </TableCell>
                                         <TableCell>{option.type}</TableCell>
                                         <TableCell>
                                             <div className="flex flex-col">
@@ -110,8 +139,8 @@ export default function OptionList({ options, templates = [] }: { options: Optio
 
                                         <TableCell>
                                             {expiryDate ? (
-                                                <div className="flex items-center gap-2">
-                                                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                                                <div className={cn("flex items-center gap-2", isExpired ? "text-red-500 font-bold" : "text-foreground")}>
+                                                    <Calendar className="h-4 w-4 opacity-70" />
                                                     {new Date(expiryDate).toLocaleDateString('tr-TR')}
                                                 </div>
                                             ) : '-'}
@@ -141,13 +170,26 @@ export default function OptionList({ options, templates = [] }: { options: Optio
                                                     </Link>
                                                 )}
                                                 {activeSale && (
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        onClick={() => handleOfferClick(activeSale.id, option.id)}
-                                                    >
-                                                        {t('actions.createOffer')}
-                                                    </Button>
+                                                    <>
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => handleOfferClick(activeSale.id, option.id)}
+                                                        >
+                                                            {t('actions.createOffer')}
+                                                        </Button>
+
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-9 w-9 text-muted-foreground hover:text-red-500 hover:bg-red-50"
+                                                            onClick={() => handleCancelReservation(option.id, activeSale.id)}
+                                                            disabled={isDeleting === activeSale.id}
+                                                            title={t('actions.cancelOption')}
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </>
                                                 )}
 
 
