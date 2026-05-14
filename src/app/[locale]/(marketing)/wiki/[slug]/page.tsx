@@ -95,8 +95,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
         : wikiArticles.filter(a => a.category === article.category && a.slug !== article.slug).slice(0, 3);
 
     // Resolve brand from hostname for JSON-LD
-    const headerList = await headers()
-    const host = headerList.get('host') || 'novoxcrm.com'
+    const host = await getHostFromHeaders()
     const brandName = await getBrandNameFromHost(host)
     const baseUrl = host.includes('localhost') ? `http://${host}` : `https://${host}`
 

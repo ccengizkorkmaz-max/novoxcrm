@@ -16,8 +16,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function InsaatCRMPage() {
-    const headerList = await headers()
-    const host = headerList.get('host') || 'novoxcrm.com'
+    const host = await getHostFromHeaders()
     const brandName = await getBrandNameFromHost(host)
 
     return (
