@@ -1223,6 +1223,7 @@ export async function updateSaleToReservation(saleId: string, unitId: string, ex
     revalidatePath('/options')
     revalidatePath('/inventory')
     revalidatePath('/offers')
+    revalidatePath('/finance/deposits')
 
     // Broker Sync
     await syncBrokerLeadFromSale(saleId, initialStatus)
