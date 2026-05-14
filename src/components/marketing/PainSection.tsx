@@ -1,3 +1,5 @@
+'use client'
+
 
 import { AlertCircle, Users, Database, FileText } from 'lucide-react'
 import { useBrandedTranslations } from '@/components/providers/BrandProvider'

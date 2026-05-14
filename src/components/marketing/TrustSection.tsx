@@ -1,3 +1,5 @@
+'use client'
+
 
 import { Building2, Users, Wallet, Trophy } from 'lucide-react'
 import { useBrandedTranslations } from '@/components/providers/BrandProvider'

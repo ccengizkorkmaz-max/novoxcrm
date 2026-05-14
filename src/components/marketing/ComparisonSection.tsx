@@ -1,3 +1,5 @@
+'use client'
+
 
 import { XCircle, CheckCircle } from 'lucide-react'
 import { useBrandedTranslations } from '@/components/providers/BrandProvider'

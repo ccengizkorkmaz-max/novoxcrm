@@ -1,3 +1,5 @@
+'use client'
+
 
 import { CheckCircle2, LayoutDashboard, Calculator, PieChart, Users2, Database, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
