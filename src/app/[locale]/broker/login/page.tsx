@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Building2, ArrowRight, ShieldCheck, Briefcase } from 'lucide-react'
 import Link from 'next/link'
+import { getBrandNameFromHost, getHostFromHeaders } from '@/lib/tenant/resolve-brand-from-host'
 
 export default async function BrokerLoginPage({
     searchParams,
@@ -11,6 +12,9 @@ export default async function BrokerLoginPage({
     searchParams: Promise<{ message: string, error: string, email: string }>
 }) {
     const params = await searchParams
+    const host = await getHostFromHeaders()
+    const brandName = await getBrandNameFromHost(host)
+    const brandShort = brandName.replace(/\s*CRM\s*/i, '').trim() || brandName
 
     return (
         <div className="min-h-screen w-full flex" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)' }}>
@@ -24,7 +28,7 @@ export default async function BrokerLoginPage({
                             <Building2 className="h-5 w-5 text-white" />
                         </div>
                         <div>
-                            <span className="text-lg font-bold text-white">Novo Broker</span>
+                            <span className="text-lg font-bold text-white">{brandShort} Broker</span>
                             <p className="text-[10px] text-slate-400 font-medium">Partner Portal</p>
                         </div>
                     </div>
@@ -68,7 +72,7 @@ export default async function BrokerLoginPage({
                         <div className="h-14 w-14 rounded-2xl flex items-center justify-center mb-3" style={{ background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)' }}>
                             <Building2 className="h-7 w-7 text-white" />
                         </div>
-                        <h1 className="text-xl font-bold text-white">Novo Broker Portal</h1>
+                        <h1 className="text-xl font-bold text-white">{brandShort} Broker Portal</h1>
                         <p className="text-xs text-slate-400 mt-1">Satış Ortağı Girişi</p>
                     </div>
 
@@ -152,7 +156,7 @@ export default async function BrokerLoginPage({
                     </div>
 
                     <p className="mt-6 text-center text-[10px] text-slate-600">
-                        Powered by <span className="font-semibold text-slate-500">Novo CRM</span>
+                        Powered by <span className="font-semibold text-slate-500">{brandName}</span>
                     </p>
                 </div>
             </div>

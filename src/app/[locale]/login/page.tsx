@@ -7,12 +7,15 @@ import { Building2, ArrowRight, ShieldCheck } from 'lucide-react'
 import { LeadCaptureModal } from '@/components/marketing/LeadCaptureModal'
 import { getTranslations } from 'next-intl/server'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
+import { getBrandNameFromHost, getHostFromHeaders } from '@/lib/tenant/resolve-brand-from-host'
 
 export default async function LoginPage(props: {
     searchParams: Promise<{ message: string, error: string, email: string }>
 }) {
     const params = await props.searchParams
     const t = await getTranslations('Auth')
+    const host = await getHostFromHeaders()
+    const brandName = await getBrandNameFromHost(host)
 
     return (
         <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2">
@@ -30,7 +33,7 @@ export default async function LoginPage(props: {
                         <div className="bg-white/10 p-2 rounded-lg backdrop-blur-sm">
                             <Building2 className="h-6 w-6" />
                         </div>
-                        <span className="tracking-tight font-bold">Novo CRM</span>
+                        <span className="tracking-tight font-bold">{brandName}</span>
                     </div>
 
                     <div className="space-y-6 max-w-lg">

@@ -9,6 +9,7 @@ import { notFound } from 'next/navigation';
 import { routing } from '@/i18n/routing';
 import PWARegister from '@/components/PWARegister';
 import { getBrandNameFromHost, getHostFromHeaders } from '@/lib/tenant/resolve-brand-from-host';
+import { BrandProvider } from '@/components/providers/BrandProvider';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -81,7 +82,10 @@ export default async function RootLayout({
   // side is the easiest way to get started
   const messages = await getMessages();
 
-
+  // Resolve brand for BrandProvider
+  const host = await getHostFromHeaders();
+  const brandName = await getBrandNameFromHost(host);
+  const brandDomain = host.split(':')[0];
   return (
     <html lang={locale} suppressHydrationWarning data-ui-style="spatial">
       <body
@@ -103,7 +107,9 @@ export default async function RootLayout({
           </Script>
           <Toaster />
           <PWARegister />
-          {children}
+          <BrandProvider brandName={brandName} brandDomain={brandDomain}>
+            {children}
+          </BrandProvider>
         </NextIntlClientProvider>
       </body>
     </html>

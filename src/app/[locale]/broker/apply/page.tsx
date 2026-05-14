@@ -11,10 +11,10 @@ import { Building2, CheckCircle2, ArrowRight, Phone, Mail, User, ShieldCheck, Lo
 import { submitBrokerApplication, sendVerificationCode } from '@/app/broker/actions'
 import { toast } from 'sonner'
 import Link from 'next/link'
-import { useTranslations } from 'next-intl'
+import { useBrandedTranslations } from '@/components/providers/BrandProvider'
 
 function BrokerApplyContent() {
-    const t = useTranslations('Broker.apply')
+    const t = useBrandedTranslations('Broker.apply')
     const searchParams = useSearchParams()
     const tenantId = searchParams.get('tenant') || ''
     const [loading, setLoading] = useState(false)
