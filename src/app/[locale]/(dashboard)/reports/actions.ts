@@ -460,30 +460,35 @@ export async function getMarketingAnalytics() {
         'Reserved': 'Rezerve'
     }
 
-    // Filter leads that are coming from digital marketing (Facebook Ads, Web Form, Email, or has Form in description)
+    const marketingSources = ['Facebook Ads', 'Facebook', 'fb', 'Instagram', 'ig', 'WEB Form', 'Email', 'E-Posta', 'Whatsapp&Call Center'];
+
     const marketingSales = sales.filter(s => {
         const source = sourceMap[s.customer_id] || ''
         const desc = s.description || ''
-        return source === 'Facebook Ads' || source === 'WEB Form' || source === 'Email' || desc.includes('Form:')
+        return marketingSources.includes(source) || desc.includes('Form:') || source.toLowerCase().includes('form')
     })
 
     const leadsByForm = marketingSales.reduce((acc: Record<string, any>, sale) => {
         let sourceName = 'Diğer Kampanyalar/Formlar'
         const source = sourceMap[sale.customer_id] || ''
+        const desc = sale.description || ''
 
-        if (sale.description) {
-            const formMatch = sale.description.match(/(?:Form:\s*)([^)\n\|]+)/i)
-            if (formMatch && formMatch[1]) {
-                sourceName = `Form: ${formMatch[1].trim()}`
-            } else if (source === 'WEB Form') {
-                sourceName = 'Web Sitesi İletişim Formu'
-            } else if (source === 'Email') {
-                sourceName = 'Gelen E-posta'
-            }
+        const formMatch = desc.match(/(?:Form:\s*)([^)\n\|]+)/i)
+        
+        if (formMatch && formMatch[1]) {
+            sourceName = `Form: ${formMatch[1].trim()}`
         } else if (source === 'WEB Form') {
             sourceName = 'Web Sitesi İletişim Formu'
-        } else if (source === 'Email') {
-            sourceName = 'Gelen E-posta'
+        } else if (['Email', 'E-Posta'].includes(source)) {
+            sourceName = 'Gelen E-posta Kampanyaları'
+        } else if (['Facebook Ads', 'Facebook', 'fb'].includes(source)) {
+            sourceName = 'Facebook Reklamları'
+        } else if (['Instagram', 'ig'].includes(source)) {
+            sourceName = 'Instagram Reklamları'
+        } else if (source === 'Whatsapp&Call Center') {
+            sourceName = 'WhatsApp & Çağrı Merkezi İlanları'
+        } else if (source) {
+            sourceName = source
         }
 
         if (!acc[sourceName]) {
