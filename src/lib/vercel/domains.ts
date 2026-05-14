@@ -13,7 +13,8 @@
 const VERCEL_API_BASE = 'https://api.vercel.com'
 
 function getHeaders() {
-    const token = process.env.VERCEL_API_TOKEN
+    // Strip out any non-ASCII characters (like →) that might have been accidentally copied into the env var
+    const token = process.env.VERCEL_API_TOKEN?.replace(/[^\x20-\x7E]/g, '').trim()
     if (!token) throw new Error('VERCEL_API_TOKEN is not configured')
     return {
         Authorization: `Bearer ${token}`,
@@ -22,13 +23,13 @@ function getHeaders() {
 }
 
 function getProjectId() {
-    const projectId = process.env.VERCEL_PROJECT_ID
+    const projectId = process.env.VERCEL_PROJECT_ID?.replace(/[^\x20-\x7E]/g, '').trim()
     if (!projectId) throw new Error('VERCEL_PROJECT_ID is not configured')
     return projectId
 }
 
 function getTeamQuery() {
-    const teamId = process.env.VERCEL_TEAM_ID
+    const teamId = process.env.VERCEL_TEAM_ID?.replace(/[^\x20-\x7E]/g, '').trim()
     return teamId ? `?teamId=${teamId}` : ''
 }
 
