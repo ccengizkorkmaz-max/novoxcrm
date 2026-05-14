@@ -4,12 +4,10 @@ import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { LeadCaptureModal } from '@/components/marketing/LeadCaptureModal'
 import { CRMLifecycle } from '@/components/marketing/CRMLifecycle'
-import { headers } from 'next/headers'
-import { getBrandNameFromHost } from '@/lib/tenant/resolve-brand-from-host'
+import { getBrandNameFromHost, getHostFromHeaders } from '@/lib/tenant/resolve-brand-from-host'
 
 export default async function SolutionsPage() {
-    const headerList = await headers()
-    const host = headerList.get('host') || 'novoxcrm.com'
+    const host = await getHostFromHeaders()
     const brandName = await getBrandNameFromHost(host)
 
     return (

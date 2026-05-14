@@ -14,14 +14,12 @@ import { ResourcesSection } from '@/components/marketing/ResourcesSection'
 import { PricingSection } from '@/components/marketing/PricingSection'
 import { FAQSection } from '@/components/marketing/FAQSection'
 import { getTranslations } from 'next-intl/server'
-import { headers } from 'next/headers'
-import { getBrandNameFromHost } from '@/lib/tenant/resolve-brand-from-host'
+import { getBrandNameFromHost, getHostFromHeaders } from '@/lib/tenant/resolve-brand-from-host'
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
     const { locale } = await params;
     const t = await getTranslations({ locale, namespace: 'Index' });
-    const headerList = await headers()
-    const host = headerList.get('host') || 'novoxcrm.com'
+    const host = await getHostFromHeaders()
     const brandName = await getBrandNameFromHost(host)
 
     return {
@@ -43,8 +41,7 @@ export default async function MarketingPage({ params }: { params: Promise<{ loca
     const faqT = await getTranslations({ locale, namespace: 'FAQSection' })
 
     // Resolve brand from hostname
-    const headerList = await headers()
-    const host = headerList.get('host') || 'novoxcrm.com'
+    const host = await getHostFromHeaders()
     const brandName = await getBrandNameFromHost(host)
     const baseUrl = host.includes('localhost') ? `http://${host}` : `https://${host}`
 

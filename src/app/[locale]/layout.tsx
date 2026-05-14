@@ -8,8 +8,7 @@ import { getMessages } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { routing } from '@/i18n/routing';
 import PWARegister from '@/components/PWARegister';
-import { headers } from 'next/headers';
-import { getBrandNameFromHost } from '@/lib/tenant/resolve-brand-from-host';
+import { getBrandNameFromHost, getHostFromHeaders } from '@/lib/tenant/resolve-brand-from-host';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -22,8 +21,7 @@ const geistMono = Geist_Mono({
 });
 
 export async function generateMetadata(): Promise<Metadata> {
-  const headerList = await headers()
-  const host = headerList.get('host') || 'novoxcrm.com'
+  const host = await getHostFromHeaders()
   const brandName = await getBrandNameFromHost(host)
   const baseUrl = host.includes('localhost') ? `http://${host}` : `https://${host}`
 

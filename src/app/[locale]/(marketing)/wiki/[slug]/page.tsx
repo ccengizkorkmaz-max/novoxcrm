@@ -4,8 +4,7 @@ import { notFound } from 'next/navigation'
 import { ArrowLeft, Clock, Calendar, Tag, Share2, MessageCircle } from 'lucide-react'
 import { wikiArticles } from '@/data/wiki-data'
 import type { Metadata } from 'next'
-import { headers } from 'next/headers'
-import { getBrandNameFromHost } from '@/lib/tenant/resolve-brand-from-host'
+import { getBrandNameFromHost, getHostFromHeaders } from '@/lib/tenant/resolve-brand-from-host'
 
 // Tüm slug'ları ve locale'leri Next.js'e bildirerek 404 hatasını önle
 export async function generateStaticParams() {
@@ -25,8 +24,7 @@ export async function generateMetadata(
     const article = wikiArticles.find(a => a.slug === slug);
     if (!article) return {};
 
-    const headerList = await headers()
-    const host = headerList.get('host') || 'novoxcrm.com'
+    const host = await getHostFromHeaders()
     const brandName = await getBrandNameFromHost(host)
 
     return {

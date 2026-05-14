@@ -1,5 +1,20 @@
 import { createClient } from '@/lib/supabase/server'
 import { resolveBrand, DEFAULT_BRAND, type BrandConfig } from '@/lib/brand-config'
+import { headers } from 'next/headers'
+
+/**
+ * Safely get the hostname from request headers.
+ * Returns 'novoxcrm.com' during static generation when headers() is unavailable.
+ */
+export async function getHostFromHeaders(): Promise<string> {
+    try {
+        const headerList = await headers()
+        return headerList.get('host') || 'novoxcrm.com'
+    } catch {
+        // headers() throws during static generation - return default
+        return 'novoxcrm.com'
+    }
+}
 
 // Known platform hostnames (not custom domains)
 const PLATFORM_HOSTS = [
@@ -10,15 +25,31 @@ const PLATFORM_HOSTS = [
 ]
 
 /**
+ * Domains approved for full white-label marketing pages.
+ * ONLY these custom domains will have their brand name shown on marketing pages.
+ * All other custom domains will show "Novo CRM" on marketing pages
+ * and will only get a custom login page (handled by middleware).
+ */
+const MARKETING_WHITELABEL_DOMAINS = [
+    'oikoscrm.com',
+    'www.oikoscrm.com',
+]
+
+/**
  * Resolve tenant brand config from the request hostname.
- * If the hostname is a custom domain, look up the tenant and return their brand config.
- * If it's a platform host, return the default Novo CRM branding.
+ * ONLY returns custom brand for approved white-label marketing domains.
+ * Other custom domains always get default Novo CRM branding on marketing pages.
  */
 export async function resolveBrandFromHost(hostname: string): Promise<BrandConfig> {
     const cleanHost = hostname.split(':')[0] // remove port
 
     // Platform hosts always get default branding
     if (PLATFORM_HOSTS.includes(cleanHost) || cleanHost.endsWith('.vercel.app')) {
+        return DEFAULT_BRAND
+    }
+
+    // ONLY approved white-label domains get custom marketing branding
+    if (!MARKETING_WHITELABEL_DOMAINS.includes(cleanHost)) {
         return DEFAULT_BRAND
     }
 
@@ -50,12 +81,18 @@ export async function resolveBrandFromHost(hostname: string): Promise<BrandConfi
 
 /**
  * Get just the brand name for metadata purposes (lighter query).
- * Returns the appName from tenant's brand_config, or tenant name, or 'Novo CRM'.
+ * ONLY returns custom brand name for approved white-label marketing domains.
+ * All other custom domains return 'Novo CRM'.
  */
 export async function getBrandNameFromHost(hostname: string): Promise<string> {
     const cleanHost = hostname.split(':')[0]
 
     if (PLATFORM_HOSTS.includes(cleanHost) || cleanHost.endsWith('.vercel.app')) {
+        return 'Novo CRM'
+    }
+
+    // ONLY approved white-label domains get custom brand name
+    if (!MARKETING_WHITELABEL_DOMAINS.includes(cleanHost)) {
         return 'Novo CRM'
     }
 

@@ -1,13 +1,11 @@
 import type { Metadata } from 'next'
 import { Footer } from '@/components/marketing/Footer'
 import { Navbar } from '@/components/marketing/Navbar'
-import { headers } from 'next/headers'
-import { getBrandNameFromHost } from '@/lib/tenant/resolve-brand-from-host'
+import { getBrandNameFromHost, getHostFromHeaders } from '@/lib/tenant/resolve-brand-from-host'
 import { BrandProvider } from '@/components/providers/BrandProvider'
 
 export async function generateMetadata(): Promise<Metadata> {
-    const headerList = await headers()
-    const host = headerList.get('host') || 'novoxcrm.com'
+    const host = await getHostFromHeaders()
     const brandName = await getBrandNameFromHost(host)
     const baseUrl = host.includes('localhost') ? `http://${host}` : `https://${host}`
 
@@ -50,8 +48,7 @@ export default async function MarketingLayout(props: {
     const { children } = props
 
     // Resolve brand from hostname
-    const headerList = await headers()
-    const host = headerList.get('host') || 'novoxcrm.com'
+    const host = await getHostFromHeaders()
     const brandName = await getBrandNameFromHost(host)
     const brandDomain = host.split(':')[0]
 

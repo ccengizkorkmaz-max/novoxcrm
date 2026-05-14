@@ -4,12 +4,10 @@ import { CheckCircle2, TrendingUp, Users, Shield, Zap, LayoutDashboard, Database
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { LeadCaptureModal } from '@/components/marketing/LeadCaptureModal'
-import { headers } from 'next/headers'
-import { getBrandNameFromHost } from '@/lib/tenant/resolve-brand-from-host'
+import { getBrandNameFromHost, getHostFromHeaders } from '@/lib/tenant/resolve-brand-from-host'
 
 export async function generateMetadata(): Promise<Metadata> {
-    const headerList = await headers()
-    const host = headerList.get('host') || 'novoxcrm.com'
+    const host = await getHostFromHeaders()
     const brandName = await getBrandNameFromHost(host)
     return {
         title: `Insaat Firmalari icin CRM | Proje Satis ve Stok Yonetimi - ${brandName}`,
