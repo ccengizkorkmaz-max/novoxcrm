@@ -207,43 +207,64 @@ export default function DepositsPage() {
                                                     <Clock className="h-3 w-3" /> {t('status.pending')}
                                                 </Badge>
                                             )}
-                                                >
-                                                    {t('actions.cancel')}
-                                                </Button>
-                                                <Button
-                                                    size="sm"
-                                                    onClick={() => handleConfirm(d.id)}
-                                                    className="bg-green-600 hover:bg-green-700"
-                                                >
-                                                    {t('actions.approve')}
-                                                </Button>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex flex-col gap-1">
+                                                <span className="text-sm">
+                                                    {format(new Date(d.created_at), 'dd.MM.yyyy HH:mm')}
+                                                </span>
+                                                {d.status === 'Paid' && d.paid_at && (
+                                                    <span className="text-[10px] text-muted-foreground italic">
+                                                        {format(new Date(d.paid_at), 'dd.MM.yyyy HH:mm')} {t('info.approvedAt')}
+                                                    </span>
+                                                )}
                                             </div>
-                                        )}
-                                        {d.status === 'Refund Pending' && (
+                                        </TableCell>
+                                        <TableCell className="text-right">
                                             <div className="flex justify-end gap-2">
-                                                <Button
-                                                    size="sm"
-                                                    onClick={() => handleRefundConfirm(d.id)}
-                                                    className="bg-orange-600 hover:bg-orange-700"
-                                                >
-                                                    {t('actions.approveRefund')}
-                                                </Button>
+                                                {d.status === 'Pending' && (
+                                                    <>
+                                                        <Button
+                                                            size="sm"
+                                                            variant="ghost"
+                                                            onClick={() => handleCancel(d.id)}
+                                                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                                        >
+                                                            {t('actions.cancel')}
+                                                        </Button>
+                                                        <Button
+                                                            size="sm"
+                                                            onClick={() => handleConfirm(d.id)}
+                                                            className="bg-green-600 hover:bg-green-700 text-white"
+                                                        >
+                                                            {t('actions.approve')}
+                                                        </Button>
+                                                    </>
+                                                )}
+                                                {d.status === 'Refund Pending' && (
+                                                    <Button
+                                                        size="sm"
+                                                        onClick={() => handleRefundConfirm(d.id)}
+                                                        className="bg-orange-600 hover:bg-orange-700 text-white"
+                                                    >
+                                                        {t('actions.approveRefund')}
+                                                    </Button>
+                                                )}
+                                                {isAdmin && (
+                                                    <Button
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        onClick={() => handleDelete(d.id)}
+                                                        className="text-muted-foreground hover:text-red-600"
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                )}
                                             </div>
-                                        )}
-                                        </div>
-                                        {d.status === 'Paid' && (
-                                            <span className="text-xs text-muted-foreground italic">
-                                                {format(new Date(d.paid_at), 'dd.MM.yyyy HH:mm')} {t('info.approvedAt')}
-                                            </span>
-                                        )}
-                                        {d.status === 'Refunded' && (
-                                            <span className="text-xs text-muted-foreground italic">
-                                                {t('info.refundedAt')}
-                                            </span>
-                                        )}
-                                    </TableCell>
-                                </TableRow>
-                            ))}
+                                        </TableCell>
+                                    </TableRow>
+                                )
+                            })}
                         </TableBody>
                     </Table>
                 </CardContent>
