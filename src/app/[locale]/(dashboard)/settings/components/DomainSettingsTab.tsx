@@ -145,7 +145,7 @@ export default function DomainSettingsTab({ currentDomain, domainVerified, verif
                                     {localVerified ? (
                                         <Badge className="bg-green-100 text-green-700 gap-1">
                                             <CheckCircle2 className="h-3 w-3" />
-                                            Dogrulandi
+                                            Vercel&apos;e Eklendi
                                         </Badge>
                                     ) : (
                                         <Badge className="bg-yellow-100 text-yellow-700 gap-1">
@@ -154,82 +154,122 @@ export default function DomainSettingsTab({ currentDomain, domainVerified, verif
                                         </Badge>
                                     )}
                                 </div>
-
-                                {localVerified && (
-                                    <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 p-3 rounded-md">
-                                        <CheckCircle2 className="h-4 w-4" />
-                                        <span>Domain aktif, SSL Vercel tarafindan saglaniyor.</span>
-                                        <a href={`https://${localDomain}`} target="_blank" rel="noopener noreferrer"
-                                            className="ml-auto flex items-center gap-1 text-green-800 hover:underline font-medium">
-                                            <ExternalLink className="h-3 w-3" /> Ac
-                                        </a>
-                                    </div>
-                                )}
                             </div>
 
-                            {!localVerified && (
-                                <div className="space-y-4">
-                                    <div className="p-4 rounded-lg border border-yellow-200 bg-yellow-50 space-y-3">
-                                        <h4 className="font-semibold text-yellow-800 flex items-center gap-2">
-                                            <AlertCircle className="h-4 w-4" />
-                                            DNS Yapilandirmasi Gerekli
-                                        </h4>
-                                        <p className="text-sm text-yellow-700">
-                                            Asagidaki DNS kaydini domain saglayicinizin DNS ayarlarina ekleyin:
-                                        </p>
+                            {/* DNS Configuration - always show */}
+                            <div className="space-y-4">
+                                <div className="p-4 rounded-lg border border-blue-200 bg-blue-50 space-y-3">
+                                    <h4 className="font-semibold text-blue-800 flex items-center gap-2">
+                                        <AlertCircle className="h-4 w-4" />
+                                        DNS Yapilandirmasi
+                                    </h4>
+                                    <p className="text-sm text-blue-700">
+                                        Asagidaki DNS kayitlarini domain saglayicinizin (Cloudflare, GoDaddy vb.) DNS ayarlarina ekleyin:
+                                    </p>
 
-                                        <div className="bg-white rounded-md border p-4 space-y-3">
-                                            <div className="grid grid-cols-3 gap-4 text-xs font-medium text-muted-foreground">
-                                                <span>Tur</span>
-                                                <span>Ad / Host</span>
-                                                <span>Deger / Target</span>
-                                            </div>
-                                            <div className="grid grid-cols-3 gap-4 text-sm items-center">
-                                                <span className="font-mono font-bold">CNAME</span>
-                                                <div className="flex items-center gap-1">
-                                                    <span className="font-mono">{localDomain.split('.')[0]}</span>
-                                                    <button onClick={() => copyToClipboard(localDomain.split('.')[0])} className="text-muted-foreground hover:text-foreground">
-                                                        <Copy className="h-3 w-3" />
-                                                    </button>
+                                    {/* Detect apex vs subdomain */}
+                                    {(() => {
+                                        const parts = localDomain.split('.')
+                                        const isApex = parts.length <= 2 || (parts.length === 3 && parts[2] === 'tr')
+                                        return (
+                                            <div className="bg-white rounded-md border p-4 space-y-4">
+                                                <div className="grid grid-cols-4 gap-3 text-xs font-medium text-muted-foreground border-b pb-2">
+                                                    <span>Tur</span>
+                                                    <span>Ad / Host</span>
+                                                    <span>Deger / Content</span>
+                                                    <span>Proxy</span>
                                                 </div>
-                                                <div className="flex items-center gap-1">
-                                                    <span className="font-mono">cname.vercel-dns.com</span>
-                                                    <button onClick={() => copyToClipboard('cname.vercel-dns.com')} className="text-muted-foreground hover:text-foreground">
-                                                        <Copy className="h-3 w-3" />
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {localVerification && localVerification.length > 0 && (
-                                            <div className="bg-white rounded-md border p-4 space-y-2">
-                                                <p className="text-xs font-medium text-muted-foreground">Ek Dogrulama Kaydi:</p>
-                                                {localVerification.map((v: any, i: number) => (
-                                                    <div key={i} className="grid grid-cols-3 gap-4 text-sm items-center">
-                                                        <span className="font-mono font-bold">{v.type}</span>
-                                                        <span className="font-mono text-xs">{v.domain}</span>
+                                                {isApex ? (
+                                                    <>
+                                                        <div className="grid grid-cols-4 gap-3 text-sm items-center">
+                                                            <span className="font-mono font-bold text-red-600">A</span>
+                                                            <div className="flex items-center gap-1">
+                                                                <span className="font-mono">@</span>
+                                                                <button onClick={() => copyToClipboard('@')} className="text-muted-foreground hover:text-foreground">
+                                                                    <Copy className="h-3 w-3" />
+                                                                </button>
+                                                            </div>
+                                                            <div className="flex items-center gap-1">
+                                                                <span className="font-mono font-semibold">76.76.21.21</span>
+                                                                <button onClick={() => copyToClipboard('76.76.21.21')} className="text-muted-foreground hover:text-foreground">
+                                                                    <Copy className="h-3 w-3" />
+                                                                </button>
+                                                            </div>
+                                                            <span className="text-xs text-orange-600 font-medium">KAPALI (gri bulut)</span>
+                                                        </div>
+                                                        <div className="grid grid-cols-4 gap-3 text-sm items-center opacity-70">
+                                                            <span className="font-mono font-bold">CNAME</span>
+                                                            <div className="flex items-center gap-1">
+                                                                <span className="font-mono">www</span>
+                                                                <button onClick={() => copyToClipboard('www')} className="text-muted-foreground hover:text-foreground">
+                                                                    <Copy className="h-3 w-3" />
+                                                                </button>
+                                                            </div>
+                                                            <div className="flex items-center gap-1">
+                                                                <span className="font-mono">cname.vercel-dns.com</span>
+                                                                <button onClick={() => copyToClipboard('cname.vercel-dns.com')} className="text-muted-foreground hover:text-foreground">
+                                                                    <Copy className="h-3 w-3" />
+                                                                </button>
+                                                            </div>
+                                                            <span className="text-xs text-orange-600 font-medium">KAPALI</span>
+                                                        </div>
+                                                        <p className="text-xs text-muted-foreground italic">* www kaydi opsiyoneldir (www yonlendirmesi icin)</p>
+                                                    </>
+                                                ) : (
+                                                    <div className="grid grid-cols-4 gap-3 text-sm items-center">
+                                                        <span className="font-mono font-bold">CNAME</span>
                                                         <div className="flex items-center gap-1">
-                                                            <span className="font-mono text-xs truncate">{v.value}</span>
-                                                            <button onClick={() => copyToClipboard(v.value)} className="text-muted-foreground hover:text-foreground flex-shrink-0">
+                                                            <span className="font-mono">{parts[0]}</span>
+                                                            <button onClick={() => copyToClipboard(parts[0])} className="text-muted-foreground hover:text-foreground">
                                                                 <Copy className="h-3 w-3" />
                                                             </button>
                                                         </div>
+                                                        <div className="flex items-center gap-1">
+                                                            <span className="font-mono">cname.vercel-dns.com</span>
+                                                            <button onClick={() => copyToClipboard('cname.vercel-dns.com')} className="text-muted-foreground hover:text-foreground">
+                                                                <Copy className="h-3 w-3" />
+                                                            </button>
+                                                        </div>
+                                                        <span className="text-xs text-orange-600 font-medium">KAPALI (gri bulut)</span>
                                                     </div>
-                                                ))}
+                                                )}
                                             </div>
-                                        )}
+                                        )
+                                    })()}
 
-                                        <p className="text-xs text-yellow-600">
-                                            Not: DNS degisiklikleri 1-48 saat icerisinde yayilir. Cloudflare kullaniyorsaniz proxy (turuncu bulut) kapali olmalidir.
-                                        </p>
+                                    {localVerification && localVerification.length > 0 && (
+                                        <div className="bg-white rounded-md border p-4 space-y-2">
+                                            <p className="text-xs font-medium text-muted-foreground">Ek Dogrulama Kaydi (Vercel):</p>
+                                            {localVerification.map((v: any, i: number) => (
+                                                <div key={i} className="grid grid-cols-3 gap-4 text-sm items-center">
+                                                    <span className="font-mono font-bold">{v.type}</span>
+                                                    <span className="font-mono text-xs">{v.domain}</span>
+                                                    <div className="flex items-center gap-1">
+                                                        <span className="font-mono text-xs truncate">{v.value}</span>
+                                                        <button onClick={() => copyToClipboard(v.value)} className="text-muted-foreground hover:text-foreground flex-shrink-0">
+                                                            <Copy className="h-3 w-3" />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    <div className="bg-orange-50 border border-orange-200 rounded-md p-3 space-y-1">
+                                        <p className="text-xs font-semibold text-orange-800">Onemli Notlar:</p>
+                                        <ul className="text-xs text-orange-700 list-disc list-inside space-y-1">
+                                            <li>Cloudflare kullaniyorsaniz <strong>Proxy (turuncu bulut) mutlaka KAPALI</strong> olmalidir</li>
+                                            <li>DNS degisiklikleri 1-48 saat icerisinde yayilir</li>
+                                            <li>SSL sertifikasi DNS yayildiktan sonra Vercel tarafindan otomatik olusturulur</li>
+                                        </ul>
                                     </div>
-
-                                    <Button onClick={handleVerify} disabled={verifyLoading} variant="outline" className="gap-2">
-                                        {verifyLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                                        DNS Durumunu Kontrol Et
-                                    </Button>
                                 </div>
-                            )}
+
+                                <Button onClick={handleVerify} disabled={verifyLoading} variant="outline" className="gap-2">
+                                    {verifyLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                                    DNS Durumunu Kontrol Et
+                                </Button>
+                            </div>
 
                             <div className="pt-4 border-t">
                                 <AlertDialog>
