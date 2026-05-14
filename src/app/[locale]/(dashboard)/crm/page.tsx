@@ -88,7 +88,7 @@ export default async function CRMPage(props: {
     }
 
     // Fetch ONLY the sales list + profiles for the list (fast queries)
-    const [salesListRes, profilesRes, projectsRes, templatesRes] = await Promise.all([
+    const [salesListRes, profilesRes, projectsRes, templatesRes, availableUnitsRes] = await Promise.all([
         baseQuery.order('created_at', { ascending: false }).range(from, to),
         supabase.from('profiles')
             .select('id, full_name')
@@ -102,12 +102,14 @@ export default async function CRMPage(props: {
             .order('full_name'),
         supabase.from('projects').select('id, name').order('name'),
         supabase.from('payment_plan_templates').select('*').order('name', { ascending: true }),
+        supabase.from('units').select('id, unit_number, projects(id, name)').in('status', ['For Sale', 'Stock', 'Available']).limit(2000)
     ])
 
     const profilesData = profilesRes.data || []
     const projectsData = projectsRes.data || []
     const templates = templatesRes.data || []
     const sales = salesListRes.data || []
+    const availableUnitsData = availableUnitsRes.data || []
     const totalSalesCount = salesListRes.count || 0
 
     // ============================================================
@@ -147,6 +149,7 @@ export default async function CRMPage(props: {
         </>
     )
 
+    // Sales List — renders IMMEDIATELY with first 50 records
     return (
         <div className="flex flex-col gap-6">
             <div className="sticky top-0 z-30 bg-background/95 backdrop-blur pb-2 pt-1 border-b mb-2">
@@ -201,7 +204,7 @@ export default async function CRMPage(props: {
             <PipelineList
                 sales={sales || []}
                 customers={[]}
-                availableUnits={[]}
+                availableUnits={availableUnitsData}
                 templates={templates || []}
                 profiles={profilesData || []}
                 projects={projectsData || []}
