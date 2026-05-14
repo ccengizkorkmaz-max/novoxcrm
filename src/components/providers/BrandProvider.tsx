@@ -43,23 +43,52 @@ export function useBrand() {
 /**
  * Hook that wraps useTranslations and auto-replaces "Novo CRM" / "Novo"
  * with the current brand name in all translation outputs.
- * Usage: const bt = useBrandedTranslations('Hero')
- *        bt('description') // "Novo CRM" in translation → "Oikos CRM"
+ * Supports: bt(key), bt.raw(key), bt.has(key)
  */
 export function useBrandedTranslations(namespace: string) {
     const t = useTranslations(namespace)
     const { brandName, brandShort } = useBrand()
 
-    return useCallback(
-        (key: string, values?: Record<string, any>) => {
-            const raw = t(key, values)
-            if (brandName === 'Novo CRM') return raw // no replacement needed
-            return raw
+    const replaceBrand = useCallback(
+        (text: string): string => {
+            if (brandName === 'Novo CRM') return text
+            return text
                 .replace(/Novo CRM/g, brandName)
                 .replace(/NovoCRM/g, brandName.replace(' ', ''))
                 .replace(/\bNovo\b/g, brandShort)
         },
-        [t, brandName, brandShort]
+        [brandName, brandShort]
     )
-}
 
+    // Deep-replace brand in any JSON structure returned by t.raw()
+    const deepReplace = useCallback(
+        (value: any): any => {
+            if (brandName === 'Novo CRM') return value
+            if (typeof value === 'string') return replaceBrand(value)
+            if (Array.isArray(value)) return value.map(deepReplace)
+            if (value && typeof value === 'object') {
+                const result: any = {}
+                for (const k of Object.keys(value)) {
+                    result[k] = deepReplace(value[k])
+                }
+                return result
+            }
+            return value
+        },
+        [brandName, replaceBrand]
+    )
+
+    // Build a callable function with .raw() and .has() attached
+    const bt = useCallback(
+        (key: string, values?: Record<string, any>) => {
+            return replaceBrand(t(key, values))
+        },
+        [t, replaceBrand]
+    )
+
+    // Attach raw method
+    return Object.assign(bt, {
+        raw: (key: string) => deepReplace(t.raw(key)),
+        has: (key: string) => t.has(key),
+    })
+}
