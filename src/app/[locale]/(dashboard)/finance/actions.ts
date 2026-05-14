@@ -1,7 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, unstable_noStore as noStore } from 'next/cache'
 import { finalizeOffer } from '../crm/actions'
 import { syncBrokerLeadFromSale } from '@/app/broker/actions'
 
@@ -9,6 +9,7 @@ import { syncBrokerLeadFromSale } from '@/app/broker/actions'
  * Fetches all deposits (kaporalar) in the system.
  */
 export async function getDeposits() {
+    noStore()
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return []
