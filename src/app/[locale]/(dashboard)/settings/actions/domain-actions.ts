@@ -8,6 +8,12 @@ import {
     verifyDomainOnVercel,
     getDomainFromVercel,
 } from '@/lib/vercel/domains'
+import {
+    detectCloudflareNameservers,
+    addCnameToCloudflareDns,
+    verifyCloudflareCredentials,
+    listCloudflareZones,
+} from '@/lib/cloudflare/dns'
 
 /**
  * Set a custom domain for the current tenant.
@@ -232,5 +238,76 @@ export async function getDomainStatus() {
         domain: tenant?.custom_domain || null,
         verified: tenant?.domain_verified || false,
         verificationRecord: tenant?.domain_verification_record || {},
+    }
+}
+
+/**
+ * Check if a domain's DNS is managed by Cloudflare.
+ */
+export async function checkDnsProvider(domain: string) {
+    try {
+        const isCloudflare = await detectCloudflareNameservers(domain)
+        return { provider: isCloudflare ? 'cloudflare' : 'other' }
+    } catch (err: any) {
+        console.error('DNS Provider Check Error:', err)
+        return { provider: 'other' }
+    }
+}
+
+/**
+ * Auto-configure Cloudflare DNS for the custom domain.
+ * Adds CNAME record pointing to cname.vercel-dns.com
+ */
+export async function autoConfigureCloudflare(apiToken: string, zoneId: string, domain: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Yetkisiz erisim' }
+
+    // 1. Verify credentials
+    const verification = await verifyCloudflareCredentials(apiToken, zoneId)
+    if (!verification.valid) {
+        return { error: verification.error || 'Cloudflare kimlik bilgileri gecersiz.' }
+    }
+
+    // 2. Extract subdomain part for CNAME name
+    // e.g., "crm.example.com" → name should be "crm" (Cloudflare auto-appends the zone)
+    // But Cloudflare accepts full domain name too
+    const recordName = domain // Cloudflare handles this correctly
+
+    // 3. Add CNAME record
+    const result = await addCnameToCloudflareDns(apiToken, zoneId, recordName)
+
+    if (!result.success) {
+        return { error: result.error || 'DNS kaydi eklenemedi.' }
+    }
+
+    return {
+        success: true,
+        message: `CNAME kaydi basariyla eklendi: ${domain} -> cname.vercel-dns.com`,
+        recordId: result.recordId,
+    }
+}
+
+/**
+ * Auto-detect Zone ID from Cloudflare API token.
+ */
+export async function detectCloudflareZone(apiToken: string, domain: string) {
+    try {
+        const zones = await listCloudflareZones(apiToken)
+        
+        // Find matching zone for the domain
+        const parts = domain.split('.')
+        const rootDomain = parts.length > 2 ? parts.slice(-2).join('.') : domain
+
+        const match = zones.find(z => z.name === rootDomain)
+
+        if (match) {
+            return { zoneId: match.id, zoneName: match.name }
+        }
+
+        // Return all zones so user can pick
+        return { zones, zoneId: null }
+    } catch (err: any) {
+        return { error: err.message }
     }
 }
