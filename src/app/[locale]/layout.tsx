@@ -8,6 +8,8 @@ import { getMessages } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { routing } from '@/i18n/routing';
 import PWARegister from '@/components/PWARegister';
+import { headers } from 'next/headers';
+import { getBrandNameFromHost } from '@/lib/tenant/resolve-brand-from-host';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -19,35 +21,42 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  metadataBase: new URL('https://novoxcrm.com'),
-  title: "Novo CRM | İnşaat & Gayrimenkul CRM – Konut Projeleri için Satış Yönetimi",
-  description: "Novo CRM, inşaat ve gayrimenkul firmaları için özel geliştirilmiş CRM yazılımıdır. Konut projeleri, stok takibi, broker yönetimi ve satış süreçlerini tek platformda yönetin.",
-  manifest: '/manifest.json',
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "default",
-    title: "Novo CRM",
-  },
-  icons: {
-    icon: "/icon-512.png",
-    apple: "/icon-512.png",
-  },
-  formatDetection: {
-    telephone: false,
-  },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
+export async function generateMetadata(): Promise<Metadata> {
+  const headerList = await headers()
+  const host = headerList.get('host') || 'novoxcrm.com'
+  const brandName = await getBrandNameFromHost(host)
+  const baseUrl = host.includes('localhost') ? `http://${host}` : `https://${host}`
+
+  return {
+    metadataBase: new URL(baseUrl),
+    title: `${brandName} | Insaat & Gayrimenkul CRM - Konut Projeleri icin Satis Yonetimi`,
+    description: `${brandName}, insaat ve gayrimenkul firmalari icin ozel gelistirilmis CRM yazilimidir. Konut projeleri, stok takibi, broker yonetimi ve satis sureclerini tek platformda yonetin.`,
+    manifest: '/manifest.json',
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: "default",
+      title: brandName,
+    },
+    icons: {
+      icon: "/icon-512.png",
+      apple: "/icon-512.png",
+    },
+    formatDetection: {
+      telephone: false,
+    },
+    robots: {
       index: true,
       follow: true,
-      'max-video-preview': -1,
-      'max-image-preview': 'large',
-      'max-snippet': -1,
+      googleBot: {
+        index: true,
+        follow: true,
+        'max-video-preview': -1,
+        'max-image-preview': 'large',
+        'max-snippet': -1,
+      },
     },
-  },
-};
+  }
+}
 
 export const viewport = {
   themeColor: "#020617", // Dark background for PWA
