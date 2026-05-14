@@ -426,10 +426,12 @@ export async function getMarketingAnalytics() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: 'Unauthorized' }
 
-    // Fetch sales
+    // Fetch sales (Most recent 20,000 to avoid memory crashes but include today's data)
     const { data: sales, error: salesError } = await supabase
         .from('sales')
         .select('id, status, description, created_at, customer_id')
+        .order('created_at', { ascending: false })
+        .limit(20000)
 
     if (salesError || !sales) return { error: 'No sales data' }
 
