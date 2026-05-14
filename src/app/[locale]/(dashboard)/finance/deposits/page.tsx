@@ -96,11 +96,24 @@ export default function DepositsPage() {
         }
     }
 
-    const filteredDeposits = deposits.filter(d =>
-        d.customer?.full_name?.toLowerCase().includes(search.toLowerCase()) ||
-        d.sale?.unit?.unit_number?.toLowerCase().includes(search.toLowerCase()) ||
-        d.offer?.unit?.unit_number?.toLowerCase().includes(search.toLowerCase())
-    )
+    const filteredDeposits = deposits.filter(d => {
+        if (!search) return true
+        
+        // Handle both object and array response from Supabase joins
+        const getVal = (obj: any) => Array.isArray(obj) ? obj[0] : obj
+        const customer = getVal(d.customer)
+        const sale = getVal(d.sale)
+        const offer = getVal(d.offer)
+
+        const customerName = customer?.full_name?.toLowerCase() || ''
+        const saleUnit = sale?.unit?.unit_number?.toLowerCase() || ''
+        const offerUnit = offer?.unit?.unit_number?.toLowerCase() || ''
+        const searchLower = search.toLowerCase()
+
+        return customerName.includes(searchLower) || 
+               saleUnit.includes(searchLower) || 
+               offerUnit.includes(searchLower)
+    })
 
     return (
         <div className="p-8 space-y-6">
@@ -147,71 +160,53 @@ export default function DepositsPage() {
                                 <TableRow>
                                     <TableCell colSpan={7} className="text-center py-10 text-muted-foreground">{t('table.empty')}</TableCell>
                                 </TableRow>
-                            ) : filteredDeposits.map((d) => (
-                                <TableRow key={d.id}>
-                                    <TableCell className="font-medium">{d.customer?.full_name}</TableCell>
-                                    <TableCell>
-                                        <Badge variant="outline">
-                                            {d.sale_id ? t('status.reservation') : t('status.offer')}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell>
-                                        {d.sale?.unit?.unit_number || d.offer?.unit?.unit_number}
-                                        <span className="text-xs text-muted-foreground ml-1">
-                                            ({d.sale?.unit?.block || d.offer?.unit?.block})
-                                        </span>
-                                    </TableCell>
-                                    <TableCell>
-                                        <span className="font-bold">
-                                            {d.amount.toLocaleString(locale === 'tr' ? 'tr-TR' : 'en-US')} {d.currency}
-                                        </span>
-                                    </TableCell>
-                                    <TableCell>
-                                        {d.status === 'Paid' ? (
-                                            <Badge className="bg-green-100 text-green-700 hover:bg-green-100 flex w-fit items-center gap-1">
-                                                <CheckCircle2 className="h-3 w-3" /> {t('status.paid')}
+                            ) : filteredDeposits.map((d) => {
+                                const getVal = (obj: any) => Array.isArray(obj) ? obj[0] : obj
+                                const customer = getVal(d.customer)
+                                const sale = getVal(d.sale)
+                                const offer = getVal(d.offer)
+
+                                return (
+                                    <TableRow key={d.id}>
+                                        <TableCell className="font-medium">{customer?.full_name}</TableCell>
+                                        <TableCell>
+                                            <Badge variant="outline">
+                                                {d.sale_id ? t('status.reservation') : t('status.offer')}
                                             </Badge>
-                                        ) : d.status === 'Pending' ? (
-                                            <Badge className="bg-yellow-100 text-yellow-700 hover:bg-yellow-100 flex w-fit items-center gap-1">
-                                                <Clock className="h-3 w-3" /> {t('status.pending')}
-                                            </Badge>
-                                        ) : d.status === 'Refund Pending' ? (
-                                            <Badge className="bg-orange-100 text-orange-700 hover:bg-orange-100 flex w-fit items-center gap-1">
-                                                <Clock className="h-3 w-3" /> {t('status.refundPending')}
-                                            </Badge>
-                                        ) : d.status === 'Refunded' ? (
-                                            <Badge className="bg-gray-100 text-gray-700 hover:bg-gray-100 flex w-fit items-center gap-1">
-                                                <CheckCircle2 className="h-3 w-3" /> {t('status.refunded')}
-                                            </Badge>
-                                        ) : (
-                                            <Badge variant="destructive" className="flex w-fit items-center gap-1">
-                                                <XCircle className="h-3 w-3" /> {t('status.cancelled')}
-                                            </Badge>
-                                        )}
-                                    </TableCell>
-                                    <TableCell className="text-xs text-muted-foreground">
-                                        {format(new Date(d.created_at), 'dd.MM.yyyy HH:mm')}
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        <div className="flex justify-end gap-2 items-center">
-                                            {isAdmin && (
-                                                <Button
-                                                    size="icon"
-                                                    variant="ghost"
-                                                    className="text-red-600 hover:text-red-700 hover:bg-red-50 h-8 w-8"
-                                                    onClick={() => handleDelete(d.id)}
-                                                    title={t('actions.delete') || "Sil"}
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
+                                        </TableCell>
+                                        <TableCell>
+                                            {sale?.unit?.unit_number || offer?.unit?.unit_number}
+                                            <span className="text-xs text-muted-foreground ml-1">
+                                                ({sale?.unit?.block || offer?.unit?.block})
+                                            </span>
+                                        </TableCell>
+                                        <TableCell>
+                                            <span className="font-bold">
+                                                {d.amount.toLocaleString(locale === 'tr' ? 'tr-TR' : 'en-US')} {d.currency}
+                                            </span>
+                                        </TableCell>
+                                        <TableCell>
+                                            {d.status === 'Paid' ? (
+                                                <Badge className="bg-green-100 text-green-700 hover:bg-green-100 flex w-fit items-center gap-1">
+                                                    <CheckCircle2 className="h-3 w-3" /> {t('status.paid')}
+                                                </Badge>
+                                            ) : d.status === 'Cancelled' ? (
+                                                <Badge variant="destructive" className="flex w-fit items-center gap-1">
+                                                    <XCircle className="h-3 w-3" /> {t('status.cancelled')}
+                                                </Badge>
+                                            ) : d.status === 'Refund Pending' ? (
+                                                <Badge variant="secondary" className="bg-orange-100 text-orange-700 hover:bg-orange-100 flex w-fit items-center gap-1">
+                                                    <Clock className="h-3 w-3" /> {t('status.refundPending')}
+                                                </Badge>
+                                            ) : d.status === 'Refunded' ? (
+                                                <Badge variant="secondary" className="bg-slate-100 text-slate-700 hover:bg-slate-100 flex w-fit items-center gap-1">
+                                                    <CheckCircle2 className="h-3 w-3" /> {t('status.refunded')}
+                                                </Badge>
+                                            ) : (
+                                                <Badge variant="outline" className="text-blue-600 border-blue-200 bg-blue-50 flex w-fit items-center gap-1">
+                                                    <Clock className="h-3 w-3" /> {t('status.pending')}
+                                                </Badge>
                                             )}
-                                        {d.status === 'Pending' && (
-                                            <div className="flex justify-end gap-2">
-                                                <Button
-                                                    size="sm"
-                                                    variant="ghost"
-                                                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                                    onClick={() => handleCancel(d.id)}
                                                 >
                                                     {t('actions.cancel')}
                                                 </Button>

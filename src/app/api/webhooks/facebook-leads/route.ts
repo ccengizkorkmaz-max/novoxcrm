@@ -190,5 +190,22 @@ async function saveLeadToCRM(
     }
 
     console.log(`[FB Leads] ✅ Yeni lead kaydedildi: ${leadData.full_name} (${phone})`)
+
+    // Outreach tetikleyicisini çalıştır (Otomatik WhatsApp vb. için)
+    // Not: customer id'sini almak için insert sonrası veriyi dönmek gerekebilir veya telefonla bulabiliriz.
+    // Ancak insert başarılıysa ve bizde veri varsa direkt customer_id'ye ihtiyacımız var.
+    const { data: newCustomer } = await supabase
+        .from('customers')
+        .select('id')
+        .eq('tenant_id', NOVO_TENANT_ID)
+        .eq('phone', phone)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single()
+
+    if (newCustomer) {
+        await fireLeadCreatedTrigger(NOVO_TENANT_ID, newCustomer.id)
+    }
+
     return true
 }
