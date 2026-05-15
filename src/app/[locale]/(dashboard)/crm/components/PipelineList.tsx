@@ -14,8 +14,9 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Calculator, Sparkles, User, Info, Mail, Phone, MessageSquareText, CalendarPlus, Trash, AlertTriangle, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from 'lucide-react'
+import { Calculator, Sparkles, User, Info, Mail, Phone, MessageSquareText, CalendarPlus, Trash, AlertTriangle, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, Filter, X } from 'lucide-react'
 import ColumnVisibilityPicker from '@/components/ui/column-visibility-picker'
+import ColumnFilterRow from '@/components/ui/column-filter-row'
 import { updateSaleStatus, autoAssignLead, assignSale } from '../actions'
 import {
     Command,
@@ -285,7 +286,73 @@ export default function PipelineList({
     }
 
     const totalPages = Math.ceil(totalSalesCount / itemsPerPage)
-    const currentSales = sales
+
+    // Column filters
+    const [colFilters, setColFilters] = useState<Record<string, string>>({})
+    const [showFilters, setShowFilters] = useState(false)
+
+    const handleColFilter = (colId: string, value: string) => {
+        setColFilters(prev => {
+            const next = { ...prev }
+            if (value) next[colId] = value
+            else delete next[colId]
+            return next
+        })
+    }
+
+    const clearAllFilters = () => setColFilters({})
+
+    const activeFilterCount = Object.values(colFilters).filter(v => v.length > 0).length
+
+    // Get unique values for select filters
+    const uniqueStatuses = [...new Set(sales.map(s => s.status).filter(Boolean))]
+    const uniqueProjects = [...new Set(sales.map(s => s.units?.projects?.name || s.projects?.name).filter(Boolean))]
+    const uniqueReps = [...new Set(sales.map(s => s.profiles?.full_name).filter(Boolean))]
+
+    const filterableColumns = colOrder
+        .filter(colId => !(isBroker && (colId === 'project' || colId === 'unit')) && !hiddenCols.includes(colId))
+        .map(colId => {
+            if (colId === 'status') return { id: colId, label: 'Durum', type: 'select' as const, options: uniqueStatuses }
+            if (colId === 'project') return { id: colId, label: 'Proje', type: 'select' as const, options: uniqueProjects }
+            if (colId === 'rep') return { id: colId, label: 'Temsilci', type: 'select' as const, options: uniqueReps }
+            if (colId === 'customer') return { id: colId, label: 'Müşteri', type: 'text' as const }
+            if (colId === 'unit') return { id: colId, label: 'Birim', type: 'text' as const }
+            if (colId === 'date') return { id: colId, label: 'Tarih', type: 'text' as const }
+            if (colId === 'amount') return { id: colId, label: 'Tutar', type: 'text' as const }
+            return { id: colId, label: colId, type: 'text' as const }
+        })
+
+    // Apply column filters client-side
+    const currentSales = sales.filter(sale => {
+        for (const [colId, filterVal] of Object.entries(colFilters)) {
+            if (!filterVal) continue
+            const q = filterVal.toLowerCase()
+            if (colId === 'customer') {
+                const name = (sale.customers?.full_name || '').toLowerCase()
+                const phone = (sale.customers?.phone || '').toLowerCase()
+                const custNum = (sale.customers?.customer_number || '').toLowerCase()
+                if (!name.includes(q) && !phone.includes(q) && !custNum.includes(q)) return false
+            } else if (colId === 'project') {
+                const pName = (sale.units?.projects?.name || sale.projects?.name || '').toLowerCase()
+                if (pName !== q.toLowerCase() && !pName.includes(q)) return false
+            } else if (colId === 'unit') {
+                const uNum = (sale.units?.unit_number || '').toLowerCase()
+                if (!uNum.includes(q)) return false
+            } else if (colId === 'status') {
+                if (sale.status !== filterVal) return false
+            } else if (colId === 'rep') {
+                const repName = (sale.profiles?.full_name || '').toLowerCase()
+                if (repName !== q.toLowerCase() && !repName.includes(q)) return false
+            } else if (colId === 'date') {
+                const dateStr = new Date(sale.created_at).toLocaleDateString('tr-TR')
+                if (!dateStr.includes(q)) return false
+            } else if (colId === 'amount') {
+                const amt = String(sale.deposit_amount || sale.final_price || '')
+                if (!amt.includes(q)) return false
+            }
+        }
+        return true
+    })
 
     const handlePageChange = (newPage: number) => {
         const params = new URLSearchParams(searchParams.toString())
@@ -343,6 +410,27 @@ export default function PipelineList({
                         onReset={resetColVisibility}
                         storageKey={PIPELINE_HIDDEN_COLS_KEY}
                     />
+                    <Button
+                        variant={showFilters ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => { setShowFilters(!showFilters); if (showFilters) clearAllFilters() }}
+                        className={cn(
+                            "gap-1.5 h-8 text-xs font-bold shadow-sm transition-all",
+                            showFilters
+                                ? "bg-blue-600 hover:bg-blue-700 text-white"
+                                : activeFilterCount > 0
+                                    ? "border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100"
+                                    : "border-slate-200"
+                        )}
+                    >
+                        <Filter className="w-3.5 h-3.5" />
+                        Filtre
+                        {activeFilterCount > 0 && (
+                            <span className="bg-white/20 text-[9px] font-black px-1.5 py-0.5 rounded-full">
+                                {activeFilterCount}
+                            </span>
+                        )}
+                    </Button>
                 </div>
                 <div className="rounded-b-xl border bg-card shadow-sm relative w-full overflow-auto lg:max-h-[calc(100vh-270px)] max-w-[calc(100vw-1rem)] lg:max-w-full print:max-h-none print:overflow-visible">
                     <table className="min-w-[1000px] w-full caption-bottom text-sm border-collapse">
@@ -382,6 +470,18 @@ export default function PipelineList({
                                 })}
                             </TableRow>
                         </TableHeader>
+                        {showFilters && (
+                            <thead>
+                                <ColumnFilterRow
+                                    columns={filterableColumns}
+                                    visibleColumns={colOrder.filter(c => !(isBroker && (c === 'project' || c === 'unit')) && !hiddenCols.includes(c))}
+                                    filters={colFilters}
+                                    onFilterChange={handleColFilter}
+                                    onClearAll={clearAllFilters}
+                                    columnWidths={colWidths}
+                                />
+                            </thead>
+                        )}
                         <TableBody>
                             {currentSales && currentSales.length > 0 ? (
                                 currentSales.map((sale: any) => {

@@ -26,8 +26,9 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { cn } from '@/lib/utils'
-import { UserPlus, Pencil, Trash, Mail, Phone, Tag, CalendarPlus, AlertTriangle, Users, Search, ArrowUpDown, ArrowUp, ArrowDown, PieChart, Target, TrendingUp, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from 'lucide-react'
+import { UserPlus, Pencil, Trash, Mail, Phone, Tag, CalendarPlus, AlertTriangle, Users, Search, ArrowUpDown, ArrowUp, ArrowDown, PieChart, Target, TrendingUp, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, Filter, X } from 'lucide-react'
 import ColumnVisibilityPicker from '@/components/ui/column-visibility-picker'
+import ColumnFilterRow from '@/components/ui/column-filter-row'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from '@/components/ui/textarea'
@@ -317,7 +318,66 @@ export default function CustomerList({
         : customers
 
     const totalPages = Math.ceil(totalRecords / itemsPerPage)
-    const currentItems = filteredAndSortedCustomers
+
+    // Column filters
+    const [colFilters, setColFilters] = useState<Record<string, string>>({})
+    const [showFilters, setShowFilters] = useState(false)
+
+    const handleColFilter = (colId: string, value: string) => {
+        setColFilters(prev => {
+            const next = { ...prev }
+            if (value) next[colId] = value
+            else delete next[colId]
+            return next
+        })
+    }
+
+    const clearAllFilters = () => setColFilters({})
+    const activeFilterCount = Object.values(colFilters).filter(v => v.length > 0).length
+
+    // Unique values for select-type filters
+    const uniqueSources = [...new Set(customers.map(c => c.source).filter(Boolean))]
+    const uniqueStatusTypes = ['Müşteri', 'Aday', 'İletişim']
+
+    const filterableColumns = columnOrder
+        .filter(colId => !hiddenCols.includes(colId))
+        .map(colId => {
+            if (colId === 'source') return { id: colId, label: 'Kaynak', type: 'select' as const, options: uniqueSources }
+            if (colId === 'status') return { id: colId, label: 'Durum', type: 'select' as const, options: uniqueStatusTypes }
+            if (colId === 'name') return { id: colId, label: 'Ad', type: 'text' as const }
+            if (colId === 'phone') return { id: colId, label: 'Tel', type: 'text' as const }
+            if (colId === 'email') return { id: colId, label: 'E-posta', type: 'text' as const }
+            if (colId === 'date') return { id: colId, label: 'Tarih', type: 'text' as const }
+            return { id: colId, label: colId, type: 'text' as const }
+        })
+
+    // Apply column filters on top of search filter
+    const currentItems = filteredAndSortedCustomers.filter(c => {
+        for (const [colId, filterVal] of Object.entries(colFilters)) {
+            if (!filterVal) continue
+            const q = filterVal.toLowerCase()
+            if (colId === 'name') {
+                const name = (c.full_name || '').toLowerCase()
+                const custNum = (c.customer_number || '').toLowerCase()
+                if (!name.includes(q) && !custNum.includes(q)) return false
+            } else if (colId === 'phone') {
+                if (!(c.phone || '').toLowerCase().includes(q)) return false
+            } else if (colId === 'email') {
+                if (!(c.email || '').toLowerCase().includes(q)) return false
+            } else if (colId === 'source') {
+                if ((c.source || '') !== filterVal) return false
+            } else if (colId === 'status') {
+                const hasContract = c.contract_customers && c.contract_customers.length > 0
+                const hasDemands = c.customer_demands && c.customer_demands.length > 0
+                const statusLabel = hasContract ? 'Müşteri' : hasDemands ? 'Aday' : 'İletişim'
+                if (statusLabel !== filterVal) return false
+            } else if (colId === 'date') {
+                const dateStr = new Date(c.created_at).toLocaleDateString('tr-TR')
+                if (!dateStr.includes(q)) return false
+            }
+        }
+        return true
+    })
 
     const handlePageChange = (newPage: number) => {
         const params = new URLSearchParams(searchParams.toString())
@@ -615,6 +675,27 @@ export default function CustomerList({
                         onReset={resetColVisibility}
                         storageKey={CUSTOMER_HIDDEN_COLS_KEY}
                     />
+                    <Button
+                        variant={showFilters ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => { setShowFilters(!showFilters); if (showFilters) clearAllFilters() }}
+                        className={cn(
+                            "gap-1.5 h-7 text-[10px] font-bold shadow-sm transition-all",
+                            showFilters
+                                ? "bg-blue-600 hover:bg-blue-700 text-white"
+                                : activeFilterCount > 0
+                                    ? "border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100"
+                                    : "border-slate-200"
+                        )}
+                    >
+                        <Filter className="w-3 h-3" />
+                        Filtre
+                        {activeFilterCount > 0 && (
+                            <span className="bg-white/20 text-[9px] font-black px-1.5 py-0.5 rounded-full">
+                                {activeFilterCount}
+                            </span>
+                        )}
+                    </Button>
                 </div>
                 <div className="relative w-full overflow-auto max-h-[calc(100vh-380px)]">
                     <Table>
@@ -702,6 +783,18 @@ export default function CustomerList({
                                 })}
                             </TableRow>
                         </TableHeader>
+                        {showFilters && (
+                            <thead>
+                                <ColumnFilterRow
+                                    columns={filterableColumns}
+                                    visibleColumns={columnOrder.filter(c => !hiddenCols.includes(c))}
+                                    filters={colFilters}
+                                    onFilterChange={handleColFilter}
+                                    onClearAll={clearAllFilters}
+                                    columnWidths={columnWidths}
+                                />
+                            </thead>
+                        )}
                         <TableBody>
                             {currentItems && currentItems.length > 0 ? (
                                 currentItems.map((c) => (
