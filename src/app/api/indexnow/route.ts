@@ -1,6 +1,7 @@
 
 import { NextResponse } from 'next/server'
 import { getSitemapUrls } from '@/lib/sitemap-utils'
+import { getHostFromHeaders } from '@/lib/tenant/resolve-brand-from-host'
 
 // Force dynamic rendering since we depend on external data/sitemap logic
 export const dynamic = 'force-dynamic'
@@ -60,13 +61,14 @@ async function handler(request: Request) {
         for (let i = 0; i < urlsToSubmit.length; i += BATCH_SIZE) {
             const batch = urlsToSubmit.slice(i, i + BATCH_SIZE)
 
+            // Dynamically resolve host for multi-domain support
+            const currentHost = await getHostFromHeaders()
+            const cleanHost = currentHost.split(':')[0].replace(/^www\./, '')
+
             const payload = {
-                host: 'novoxcrm.com',
+                host: cleanHost,
                 key: apiKey,
-                // Assuming the key file is hosted at root as [API_KEY].txt or similar
-                // If not, keyLocation is optional if host matches site verified in Bing Webmaster Tools
-                // but recommended. Let's assume standard implementation.
-                keyLocation: `https://novoxcrm.com/${apiKey}.txt`,
+                keyLocation: `https://${cleanHost}/${apiKey}.txt`,
                 urlList: batch
             }
 
