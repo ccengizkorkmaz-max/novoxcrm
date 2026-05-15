@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Calculator, Sparkles, User, Info, Mail, Phone, MessageSquareText, CalendarPlus, Trash, AlertTriangle, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from 'lucide-react'
+import ColumnVisibilityPicker from '@/components/ui/column-visibility-picker'
 import { updateSaleStatus, autoAssignLead, assignSale } from '../actions'
 import {
     Command,
@@ -50,8 +51,12 @@ type PipelineColId = 'customer' | 'project' | 'unit' | 'status' | 'date' | 'amou
 const DEFAULT_PIPELINE_COL_ORDER: PipelineColId[] = ['customer', 'project', 'unit', 'status', 'date', 'amount', 'rep', 'actions', 'quickicons']
 const PIPELINE_COL_ORDER_KEY = 'pipeline_list_column_order'
 const PIPELINE_COL_WIDTHS_KEY = 'pipeline_list_column_widths'
+const PIPELINE_HIDDEN_COLS_KEY = 'pipeline_list_hidden_cols'
 const DEFAULT_PIPELINE_WIDTHS: Record<PipelineColId, number> = {
     customer: 240, project: 200, unit: 100, status: 160, date: 140, amount: 160, rep: 180, actions: 180, quickicons: 130
+}
+const PIPELINE_COL_LABELS: Record<PipelineColId, string> = {
+    customer: 'Müşteri', project: 'Proje', unit: 'Birim', status: 'Durum', date: 'Tarih', amount: 'Tutar', rep: 'Temsilci', actions: 'İşlemler', quickicons: 'Kısayollar'
 }
 
 export default function PipelineList({
@@ -145,6 +150,34 @@ export default function PipelineList({
     })
     const dragColRef = useRef<PipelineColId | null>(null)
     const [dragOverCol, setDragOverCol] = useState<PipelineColId | null>(null)
+
+    // Hidden columns
+    const [hiddenCols, setHiddenCols] = useState<string[]>(() => {
+        if (typeof window !== 'undefined') {
+            try {
+                const saved = localStorage.getItem(PIPELINE_HIDDEN_COLS_KEY)
+                if (saved) return JSON.parse(saved)
+            } catch {}
+        }
+        return []
+    })
+
+    const toggleColVisibility = (colId: string) => {
+        setHiddenCols(prev => {
+            const next = prev.includes(colId) ? prev.filter(c => c !== colId) : [...prev, colId]
+            try { localStorage.setItem(PIPELINE_HIDDEN_COLS_KEY, JSON.stringify(next)) } catch {}
+            return next
+        })
+    }
+
+    const resetColVisibility = () => {
+        setHiddenCols([])
+        try { localStorage.removeItem(PIPELINE_HIDDEN_COLS_KEY) } catch {}
+    }
+
+    const pipelineColumns = DEFAULT_PIPELINE_COL_ORDER
+        .filter(colId => !(isBroker && (colId === 'project' || colId === 'unit')))
+        .map(colId => ({ id: colId, label: PIPELINE_COL_LABELS[colId], required: colId === 'customer' }))
 
     const handleColDragStart = useCallback((col: PipelineColId) => { dragColRef.current = col }, [])
     const handleColDragOver = useCallback((e: React.DragEvent, col: PipelineColId) => {
@@ -292,23 +325,30 @@ export default function PipelineList({
             <div className="hidden md:block relative group">
                 {/* Column hint bar */}
                 <div className="flex items-center gap-2 px-4 py-1.5 bg-slate-50/80 border border-border rounded-t-xl border-b-0 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                    Sütunları sürükle &amp; bırak ile sırala · Kenarını sürükleyerek genişlet
+                    <span className="flex-1">Sütunları sürükle &amp; bırak ile sırala · Kenarını sürükleyerek genişlet</span>
                     {colOrder.join(',') !== DEFAULT_PIPELINE_COL_ORDER.join(',') && (
-                        <button onClick={() => { setColOrder(DEFAULT_PIPELINE_COL_ORDER); try { localStorage.removeItem(PIPELINE_COL_ORDER_KEY) } catch {} }} className="text-blue-500 hover:text-blue-700 underline underline-offset-2 ml-2">
+                        <button onClick={() => { setColOrder(DEFAULT_PIPELINE_COL_ORDER); try { localStorage.removeItem(PIPELINE_COL_ORDER_KEY) } catch {} }} className="text-blue-500 hover:text-blue-700 underline underline-offset-2">
                             Sıral. sıfırla
                         </button>
                     )}
                     {JSON.stringify(colWidths) !== JSON.stringify(DEFAULT_PIPELINE_WIDTHS) && (
-                        <button onClick={() => { setColWidths({ ...DEFAULT_PIPELINE_WIDTHS }); try { localStorage.removeItem(PIPELINE_COL_WIDTHS_KEY) } catch {} }} className="text-slate-400 hover:text-blue-600 underline underline-offset-2 ml-1">
+                        <button onClick={() => { setColWidths({ ...DEFAULT_PIPELINE_WIDTHS }); try { localStorage.removeItem(PIPELINE_COL_WIDTHS_KEY) } catch {} }} className="text-slate-400 hover:text-blue-600 underline underline-offset-2">
                             Geniş. sıfırla
                         </button>
                     )}
+                    <ColumnVisibilityPicker
+                        columns={pipelineColumns}
+                        hiddenColumns={hiddenCols}
+                        onToggle={toggleColVisibility}
+                        onReset={resetColVisibility}
+                        storageKey={PIPELINE_HIDDEN_COLS_KEY}
+                    />
                 </div>
                 <div className="rounded-b-xl border bg-card shadow-sm relative w-full overflow-auto lg:max-h-[calc(100vh-270px)] max-w-[calc(100vw-1rem)] lg:max-w-full print:max-h-none print:overflow-visible">
                     <table className="min-w-[1000px] w-full caption-bottom text-sm border-collapse">
                         <TableHeader className="sticky top-0 z-10 bg-slate-100/95 dark:bg-slate-800/95 backdrop-blur shadow-sm supports-[backdrop-filter]:bg-slate-100/60 font-sans">
                             <TableRow className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
-                                {colOrder.filter(colId => !(isBroker && (colId === 'project' || colId === 'unit'))).map(colId => {
+                                {colOrder.filter(colId => !(isBroker && (colId === 'project' || colId === 'unit')) && !hiddenCols.includes(colId)).map(colId => {
                                     const isOver = dragOverCol === colId
                                     const w = colWidths[colId]
                                     const dragProps = {
@@ -370,7 +410,7 @@ export default function PipelineList({
                                             key={sale.id}
                                             className={`transition-colors border-b hover:bg-muted/30 ${isCompleted ? 'bg-emerald-50/30' : ''} ${isLost ? 'bg-red-50/20' : ''}`}
                                         >
-                                            {colOrder.filter(colId => !(isBroker && (colId === 'project' || colId === 'unit'))).map(colId => {
+                                            {colOrder.filter(colId => !(isBroker && (colId === 'project' || colId === 'unit')) && !hiddenCols.includes(colId)).map(colId => {
                                                 const cellCls = "px-3 py-2 align-middle border-r border-border/50"
                                                 if (colId === 'customer') return (
                                                     <TableCell key="customer" className={cellCls}>

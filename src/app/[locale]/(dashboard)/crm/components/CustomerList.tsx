@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { cn } from '@/lib/utils'
 import { UserPlus, Pencil, Trash, Mail, Phone, Tag, CalendarPlus, AlertTriangle, Users, Search, ArrowUpDown, ArrowUp, ArrowDown, PieChart, Target, TrendingUp, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from 'lucide-react'
+import ColumnVisibilityPicker from '@/components/ui/column-visibility-picker'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from '@/components/ui/textarea'
@@ -52,6 +53,10 @@ const COLUMN_WIDTHS_KEY = 'customer_list_column_widths'
 
 const DEFAULT_WIDTHS: Record<ColumnId, number> = {
     name: 250, phone: 150, email: 200, source: 150, status: 120, date: 140, actions: 110
+}
+const CUSTOMER_HIDDEN_COLS_KEY = 'customer_list_hidden_cols'
+const CUSTOMER_COL_LABELS: Record<ColumnId, string> = {
+    name: 'Müşteri Adı', phone: 'Telefon', email: 'E-posta', source: 'Kaynak', status: 'Durum', date: 'Kayıt Tarihi', actions: 'İşlemler'
 }
 
 export default function CustomerList({
@@ -92,6 +97,36 @@ export default function CustomerList({
     const [currentPage, setCurrentPage] = useState(initialPage)
     const [pageInputValue, setPageInputValue] = useState(initialPage.toString())
     const itemsPerPage = 50
+
+    // Hidden columns
+    const [hiddenCols, setHiddenCols] = useState<string[]>(() => {
+        if (typeof window !== 'undefined') {
+            try {
+                const saved = localStorage.getItem(CUSTOMER_HIDDEN_COLS_KEY)
+                if (saved) return JSON.parse(saved)
+            } catch {}
+        }
+        return []
+    })
+
+    const toggleColVisibility = (colId: string) => {
+        setHiddenCols(prev => {
+            const next = prev.includes(colId) ? prev.filter(c => c !== colId) : [...prev, colId]
+            try { localStorage.setItem(CUSTOMER_HIDDEN_COLS_KEY, JSON.stringify(next)) } catch {}
+            return next
+        })
+    }
+
+    const resetColVisibility = () => {
+        setHiddenCols([])
+        try { localStorage.removeItem(CUSTOMER_HIDDEN_COLS_KEY) } catch {}
+    }
+
+    const customerColumns = DEFAULT_COLUMN_ORDER.map(colId => ({
+        id: colId,
+        label: CUSTOMER_COL_LABELS[colId],
+        required: colId === 'name'
+    }))
 
     // Column ordering (drag & drop)
     const [columnOrder, setColumnOrder] = useState<ColumnId[]>(() => {
@@ -573,12 +608,19 @@ export default function CustomerList({
                             Genişlikleri sıfırla
                         </button>
                     )}
+                    <ColumnVisibilityPicker
+                        columns={customerColumns}
+                        hiddenColumns={hiddenCols}
+                        onToggle={toggleColVisibility}
+                        onReset={resetColVisibility}
+                        storageKey={CUSTOMER_HIDDEN_COLS_KEY}
+                    />
                 </div>
                 <div className="relative w-full overflow-auto max-h-[calc(100vh-380px)]">
                     <Table>
                         <TableHeader className="bg-slate-50/80 sticky top-0 z-20">
                             <TableRow>
-                                {columnOrder.map((colId) => {
+                                {columnOrder.filter(colId => !hiddenCols.includes(colId)).map((colId) => {
                                     const isOver = dragOverCol === colId
                                     const baseHead = "font-bold text-[11px] uppercase tracking-wider text-slate-400 select-none transition-colors relative overflow-visible"
                                     const dragHead = "cursor-grab active:cursor-grabbing"
@@ -664,7 +706,7 @@ export default function CustomerList({
                             {currentItems && currentItems.length > 0 ? (
                                 currentItems.map((c) => (
                                     <TableRow key={c.id} className="hover:bg-slate-50/50 transition-colors group">
-                                        {columnOrder.map((colId) => {
+                                        {columnOrder.filter(colId => !hiddenCols.includes(colId)).map((colId) => {
                                             if (colId === 'name') return (
                                                 <TableCell key="name" className="py-2">
                                                     <Link href={`/customers/${c.id}`} className="flex items-center gap-3">
