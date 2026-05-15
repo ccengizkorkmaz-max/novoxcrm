@@ -40,6 +40,9 @@ export function Footer() {
                             <li><Link href="/solutions" className="hover:text-white transition-colors">{t('solutions.all')}</Link></li>
                             <li><Link href="/payment-plan-calculator" className="hover:text-white transition-colors">{t('solutions.paymentCalculator')}</Link></li>
                             <li><Link href="/tools/tapu-harci-hesaplayici" className="hover:text-white transition-colors">Tapu Harcı Hesaplayıcı</Link></li>
+                            <li><Link href="/tools/serefiye-hesaplayici" className="hover:text-white transition-colors">Şerefiye Hesaplayıcı</Link></li>
+                            <li><Link href="/tools/emlak-vergisi-hesaplayici" className="hover:text-white transition-colors">Emlak Vergisi Hesaplayıcı</Link></li>
+                            <li><Link href="/tools/konut-kredisi-karsilastirma" className="hover:text-white transition-colors">Konut Kredisi Karşılaştırma</Link></li>
                             <li><Link href="/karsilastirma/en-iyi-gayrimenkul-crm-2026" className="hover:text-white transition-colors">CRM Karşılaştırma</Link></li>
                             <li><a href="https://mulkunuhesapla.com/" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">{t('solutions.mulkunuhesapla')}</a></li>
                         </ul>

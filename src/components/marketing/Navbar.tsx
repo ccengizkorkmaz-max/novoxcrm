@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from 'react'
-import { Building2, Menu, X, ChevronRight, ChevronDown, Calculator, CreditCard } from 'lucide-react'
+import { Building2, Menu, X, ChevronRight, ChevronDown, Calculator, CreditCard, Home, TrendingUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { LeadCaptureModal } from '@/components/marketing/LeadCaptureModal'
@@ -11,6 +11,9 @@ import LanguageSwitcher from '@/components/LanguageSwitcher'
 
 const toolsMenu = [
     { name: 'Tapu Harcı Hesaplayıcı', href: '/tools/tapu-harci-hesaplayici', icon: Calculator, desc: 'Tapu harcı, KDV ve döner sermaye hesaplama' },
+    { name: 'Şerefiye Hesaplayıcı', href: '/tools/serefiye-hesaplayici', icon: Building2, desc: 'Kat, cephe ve manzara bazlı fiyat farkı' },
+    { name: 'Emlak Vergisi Hesaplayıcı', href: '/tools/emlak-vergisi-hesaplayici', icon: Home, desc: '2026 güncel vergi dilimleriyle hesaplama' },
+    { name: 'Konut Kredisi Karşılaştırma', href: '/tools/konut-kredisi-karsilastirma', icon: TrendingUp, desc: '10 bankanın faiz oranlarını karşılaştırın' },
     { name: 'Ödeme Planı Sihirbazı', href: '/payment-plan-calculator', icon: CreditCard, desc: 'Konut projeleri için ödeme planı oluşturun' },
 ]
 

@@ -42,6 +42,9 @@ const STATIC_PAGE_DATES: Record<string, string> = {
     '/ebooks/gayrimenkul-projelerinde-dijital-donusum-rehberi': '2026-04-15T00:00:00.000Z',
     '/login': '2026-02-01T00:00:00.000Z',
     '/tools/tapu-harci-hesaplayici': '2026-05-15T00:00:00.000Z',
+    '/tools/serefiye-hesaplayici': '2026-05-15T00:00:00.000Z',
+    '/tools/emlak-vergisi-hesaplayici': '2026-05-15T00:00:00.000Z',
+    '/tools/konut-kredisi-karsilastirma': '2026-05-15T00:00:00.000Z',
 }
 
 // Supported locales
