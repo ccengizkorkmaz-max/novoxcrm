@@ -281,6 +281,30 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
                     </div>
                 )}
 
+                {/* Cross-Link Section — Internal Linking SEO Boost */}
+                <section className="mb-20 grid md:grid-cols-2 gap-6">
+                    <div className="p-6 rounded-2xl bg-slate-900/50 border border-slate-800">
+                        <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4">🧮 Ücretsiz Araçlar</h3>
+                        <ul className="space-y-3 text-sm">
+                            <li><Link href={`/${locale}/tools/tapu-harci-hesaplayici`} className="text-blue-400 hover:text-blue-300 transition-colors">Tapu Harcı Hesaplayıcı 2026</Link></li>
+                            <li><Link href={`/${locale}/tools/serefiye-hesaplayici`} className="text-blue-400 hover:text-blue-300 transition-colors">Şerefiye Hesaplama Aracı</Link></li>
+                            <li><Link href={`/${locale}/tools/emlak-vergisi-hesaplayici`} className="text-blue-400 hover:text-blue-300 transition-colors">Emlak Vergisi Hesaplayıcı</Link></li>
+                            <li><Link href={`/${locale}/tools/konut-kredisi-karsilastirma`} className="text-blue-400 hover:text-blue-300 transition-colors">Konut Kredisi Karşılaştırma</Link></li>
+                            <li><Link href={`/${locale}/payment-plan-calculator`} className="text-blue-400 hover:text-blue-300 transition-colors">Ödeme Planı Sihirbazı</Link></li>
+                        </ul>
+                    </div>
+                    <div className="p-6 rounded-2xl bg-slate-900/50 border border-slate-800">
+                        <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4">🏗️ Çözümler & Karşılaştırma</h3>
+                        <ul className="space-y-3 text-sm">
+                            <li><Link href={`/${locale}/solutions/gayrimenkul-crm`} className="text-blue-400 hover:text-blue-300 transition-colors">Gayrimenkul CRM Yazılımı</Link></li>
+                            <li><Link href={`/${locale}/solutions/insaat-crm`} className="text-blue-400 hover:text-blue-300 transition-colors">İnşaat CRM Yazılımı</Link></li>
+                            <li><Link href={`/${locale}/karsilastirma/en-iyi-gayrimenkul-crm-2026`} className="text-blue-400 hover:text-blue-300 transition-colors">En İyi 10 Gayrimenkul CRM 2026</Link></li>
+                            <li><Link href={`/${locale}/karsilastirma/oikos-crm-vs-emor`} className="text-blue-400 hover:text-blue-300 transition-colors">Oikos CRM vs e-MOR Karşılaştırma</Link></li>
+                            <li><Link href={`/${locale}/karsilastirma/crm-vs-excel-gayrimenkul`} className="text-blue-400 hover:text-blue-300 transition-colors">CRM mi Excel mi?</Link></li>
+                        </ul>
+                    </div>
+                </section>
+
                 {/* Suggested Articles */}
                 {suggestedArticles.length > 0 && (
                     <section className="mt-20">
