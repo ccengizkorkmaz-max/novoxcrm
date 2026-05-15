@@ -1,0 +1,133 @@
+export interface ComparisonData {
+    slug: string
+    title: string
+    metaTitle: string
+    metaDescription: string
+    competitor: string
+    competitorDescription: string
+    features: { name: string; oikos: string; competitor: string }[]
+    verdict: string
+    faq: { question: string; answer: string }[]
+}
+
+export const comparisons: ComparisonData[] = [
+    {
+        slug: 'oikos-crm-vs-emor',
+        title: 'Oikos CRM vs e-MOR: Hangi Gayrimenkul CRM Daha İyi?',
+        metaTitle: 'Oikos CRM vs e-MOR Karşılaştırma 2026 | Gayrimenkul CRM',
+        metaDescription: 'Oikos CRM ve e-MOR gayrimenkul CRM yazılımlarının detaylı karşılaştırması. Özellikler, fiyat, kullanım kolaylığı ve entegrasyonlar.',
+        competitor: 'e-MOR',
+        competitorDescription: 'e-MOR, konut üreticileri ve gayrimenkul geliştirme şirketleri için ERP entegrasyonlu kurumsal bir CRM çözümüdür.',
+        features: [
+            { name: 'Modern Arayüz', oikos: '✅ Next.js tabanlı modern UI', competitor: '⚠️ Eski nesil arayüz' },
+            { name: 'WhatsApp Entegrasyonu', oikos: '✅ Yerleşik AI chatbot', competitor: '❌ Yok' },
+            { name: 'Broker Portalı', oikos: '✅ Tam özellikli', competitor: '✅ Mevcut' },
+            { name: 'Stok Yönetimi', oikos: '✅ İnteraktif lejant', competitor: '✅ ERP entegreli' },
+            { name: 'Ödeme Planı', oikos: '✅ Otomatik hesaplama', competitor: '✅ ERP bağlantılı' },
+            { name: 'Yapay Zeka', oikos: '✅ AI sesli arama + chatbot', competitor: '❌ Yok' },
+            { name: 'Mobil Uyumluluk', oikos: '✅ PWA + responsive', competitor: '⚠️ Sınırlı' },
+            { name: 'Kurulum Süresi', oikos: '✅ Dakikalar', competitor: '⚠️ Haftalar (ERP entegrasyon)' },
+            { name: 'Fiyatlandırma', oikos: '✅ Uygun', competitor: '⚠️ Kurumsal segment (yüksek)' },
+        ],
+        verdict: 'Oikos CRM, modern arayüzü, AI entegrasyonu ve hızlı kurulumu ile küçük-orta ölçekli inşaat firmalarına ideal. e-MOR ise büyük holdingler için ERP entegrasyonu gereken durumlarda tercih edilebilir.',
+        faq: [
+            { question: 'e-MOR alternatifi var mı?', answer: 'Evet, Oikos CRM modern arayüzü ve AI özellikleriyle e-MOR\'un güçlü bir alternatifidir. Daha hızlı kurulum ve uygun fiyatla aynı temel özellikleri sunar.' },
+            { question: 'e-MOR\'dan Oikos CRM\'e geçiş zor mu?', answer: 'Hayır, veri aktarımı desteğimizle geçiş süreci genellikle 1-2 hafta içinde tamamlanır.' },
+        ]
+    },
+    {
+        slug: 'oikos-crm-vs-yapisoft',
+        title: 'Oikos CRM vs Yapısoft: İnşaat CRM Karşılaştırması',
+        metaTitle: 'Oikos CRM vs Yapısoft (SalesOffice) Karşılaştırma 2026',
+        metaDescription: 'Oikos CRM ve Yapısoft SalesOffice inşaat CRM karşılaştırması. Proje satış takibi, broker yönetimi ve fiyat analizi.',
+        competitor: 'Yapısoft (SalesOffice)',
+        competitorDescription: 'Yapısoft, SalesOffice ve emlapp ürünleriyle inşaat ve emlak sektörüne hizmet veren köklü bir yazılım firmasıdır.',
+        features: [
+            { name: 'Proje Bazlı Satış', oikos: '✅ Tam özellikli', competitor: '✅ Tam özellikli' },
+            { name: 'WhatsApp Entegrasyonu', oikos: '✅ AI chatbot + toplu mesaj', competitor: '❌ Yok' },
+            { name: 'AI Sesli Arama', oikos: '✅ Otomatik outbound', competitor: '❌ Yok' },
+            { name: 'Çoklu Dil Desteği', oikos: '✅ Türkçe + İngilizce', competitor: '✅ Çoklu dil' },
+            { name: 'Broker Portalı', oikos: '✅ Web tabanlı', competitor: '✅ Mevcut' },
+            { name: 'Bulut Tabanlı', oikos: '✅ %100 bulut', competitor: '⚠️ Hibrit' },
+            { name: 'Entegrasyonlar', oikos: '✅ WhatsApp, Vapi, Make.com', competitor: '⚠️ Sınırlı' },
+            { name: 'Fiyatlandırma', oikos: '✅ Şeffaf', competitor: '⚠️ Teklif bazlı' },
+        ],
+        verdict: 'Oikos CRM, AI ve otomasyon yetenekleriyle Yapısoft\'tan ayrışır. Yapısoft köklü bir çözüm olsa da modern AI özellikleri sunmamaktadır.',
+        faq: [
+            { question: 'Yapısoft alternatifi arıyorum, ne önerirsiniz?', answer: 'Oikos CRM, Yapısoft\'un tüm temel özelliklerini sunarken WhatsApp AI chatbot ve sesli arama gibi modern otomasyon araçlarını da ekler.' },
+            { question: 'SalesOffice\'den Oikos CRM\'e geçiş yapabilir miyim?', answer: 'Evet, CSV/Excel veri aktarımı ile mevcut müşteri ve proje verilerinizi kolayca taşıyabilirsiniz.' },
+        ]
+    },
+    {
+        slug: 'crm-vs-excel-gayrimenkul',
+        title: 'CRM mi Excel mi? Gayrimenkul Satışında Doğru Tercih',
+        metaTitle: 'CRM vs Excel Gayrimenkul | Hangisi Daha İyi? 2026',
+        metaDescription: 'Gayrimenkul satışında CRM mi yoksa Excel mi kullanmalı? Maliyet, verimlilik ve risk analizi ile doğru kararı verin.',
+        competitor: 'Microsoft Excel',
+        competitorDescription: 'Excel, gayrimenkul sektöründe hala en yaygın kullanılan araç olmaya devam ediyor. Ancak ciddi sınırlamaları var.',
+        features: [
+            { name: 'Gerçek Zamanlı Stok', oikos: '✅ Anlık güncelleme', competitor: '❌ Dosya bazlı, eski kalır' },
+            { name: 'Çoklu Kullanıcı', oikos: '✅ Sınırsız eşzamanlı', competitor: '⚠️ Dosya çakışması riski' },
+            { name: 'Otomatik Hatırlatma', oikos: '✅ SMS, WhatsApp, e-posta', competitor: '❌ Manuel takip' },
+            { name: 'Müşteri Geçmişi', oikos: '✅ Timeline + notlar', competitor: '⚠️ Sayfalar arası kaybolur' },
+            { name: 'Raporlama', oikos: '✅ Anlık dashboard', competitor: '⚠️ Saatlerce formül yazma' },
+            { name: 'Veri Güvenliği', oikos: '✅ Şifreli + rol bazlı', competitor: '❌ USB\'ye kopyalanabilir' },
+            { name: 'Broker Yönetimi', oikos: '✅ Portal + hakediş', competitor: '❌ İmkansız' },
+            { name: 'Ödeme Planı', oikos: '✅ Otomatik hesaplama', competitor: '⚠️ Hata riski yüksek' },
+            { name: 'Maliyet', oikos: '⚠️ Aylık abonelik', competitor: '✅ Ücretsiz (ama gizli maliyetler)' },
+        ],
+        verdict: 'Excel "ücretsiz" görünse de, kaybettiği zaman ve fırsat maliyeti CRM aboneliğinden çok daha yüksektir. 5+ çalışanlı her firma CRM kullanmalıdır.',
+        faq: [
+            { question: 'Gayrimenkul satışında Excel yerine ne kullanmalıyım?', answer: 'Gayrimenkul sektörüne özel geliştirilmiş CRM yazılımları kullanmalısınız. Bu sistemler stok takibi, ödeme planı ve müşteri yönetimini otomatikleştirir.' },
+            { question: 'Excel\'den CRM\'e geçiş zor mu?', answer: 'Hayır, mevcut Excel verileriniz CSV formatında dışa aktarılıp CRM\'e içe aktarılabilir. Süreç genellikle 1-2 gün sürer.' },
+        ]
+    },
+    {
+        slug: 'oikos-crm-vs-salesforce',
+        title: 'Oikos CRM vs Salesforce: Gayrimenkul İçin Hangisi?',
+        metaTitle: 'Oikos CRM vs Salesforce Gayrimenkul CRM 2026',
+        metaDescription: 'Salesforce gayrimenkul için uygun mu? Oikos CRM ile sektörel karşılaştırma. Fiyat, özellik ve kullanım kolaylığı analizi.',
+        competitor: 'Salesforce',
+        competitorDescription: 'Salesforce, dünyanın en büyük CRM platformudur. Ancak gayrimenkul sektörüne özel değildir ve yüksek özelleştirme maliyeti gerektirir.',
+        features: [
+            { name: 'Sektörel Hazırlık', oikos: '✅ Gayrimenkul için hazır', competitor: '⚠️ Genel amaçlı, özelleştirme gerekir' },
+            { name: 'Daire/Stok Yönetimi', oikos: '✅ Yerleşik modül', competitor: '❌ Custom development gerekir' },
+            { name: 'Ödeme Planı', oikos: '✅ Otomatik', competitor: '❌ Özel geliştirme' },
+            { name: 'Broker Portalı', oikos: '✅ Hazır', competitor: '❌ Community Cloud ek maliyet' },
+            { name: 'Türkçe Destek', oikos: '✅ %100 Türkçe', competitor: '⚠️ Sınırlı Türkçe' },
+            { name: 'Kurulum Maliyeti', oikos: '✅ Düşük', competitor: '❌ $50.000+ danışmanlık' },
+            { name: 'Aylık Maliyet', oikos: '✅ Uygun', competitor: '❌ $150+/kullanıcı/ay' },
+        ],
+        verdict: 'Salesforce güçlü ama gayrimenkul için fazla genel ve pahalıdır. Oikos CRM, sektöre özel hazır modülleriyle çok daha hızlı ve ekonomik bir çözümdür.',
+        faq: [
+            { question: 'Salesforce gayrimenkul için uygun mu?', answer: 'Salesforce genel amaçlı bir CRM\'dir. Gayrimenkul sektörüne uyarlamak için yüksek maliyetli özelleştirme ve danışmanlık gerekir.' },
+            { question: 'Salesforce\'tan Oikos CRM\'e geçiş yapabilir miyim?', answer: 'Evet, Salesforce verilerinizi dışa aktarıp Oikos CRM\'e aktarabilirsiniz. Geçiş desteği sunuyoruz.' },
+        ]
+    },
+    {
+        slug: 'en-iyi-gayrimenkul-crm-2026',
+        title: 'En İyi 10 Gayrimenkul CRM Yazılımı 2026 Karşılaştırması',
+        metaTitle: 'En İyi 10 Gayrimenkul CRM Yazılımı 2026 | Karşılaştırma',
+        metaDescription: '2026 yılının en iyi gayrimenkul CRM yazılımlarını karşılaştırdık. Oikos CRM, e-MOR, Yapısoft, Fizbot ve diğerleri.',
+        competitor: 'Tüm Rakipler',
+        competitorDescription: 'Türkiye\'deki tüm gayrimenkul CRM yazılımlarının kapsamlı karşılaştırması.',
+        features: [
+            { name: 'Oikos CRM', oikos: '⭐ #1 - AI + WhatsApp + Broker', competitor: 'En kapsamlı' },
+            { name: 'e-MOR', oikos: '#2 - ERP entegrasyonu güçlü', competitor: 'Kurumsal segment' },
+            { name: 'Yapısoft SalesOffice', oikos: '#3 - Köklü çözüm', competitor: 'Çoklu ürün' },
+            { name: 'Fizbot', oikos: '#4 - Bireysel danışman odaklı', competitor: '2. el pazar' },
+            { name: 'RE-OS', oikos: '#5 - Portal entegrasyonu', competitor: 'MLS desteği' },
+            { name: 'BasitCRM', oikos: '#6 - Ekonomik giriş seviyesi', competitor: 'Kolay kullanım' },
+            { name: 'PİR Cloud', oikos: '#7 - Proje yönetimi', competitor: 'İnşaat süreç' },
+            { name: 'Zoho CRM', oikos: '#8 - Genel amaçlı', competitor: 'Esnek platform' },
+            { name: 'HubSpot', oikos: '#9 - Pazarlama güçlü', competitor: 'Ücretsiz başlangıç' },
+            { name: 'Salesforce', oikos: '#10 - Kurumsal güç', competitor: 'Yüksek maliyet' },
+        ],
+        verdict: 'Oikos CRM, AI entegrasyonu, sektörel hazır modülleri ve uygun fiyatıyla 2026\'nın en iyi gayrimenkul CRM yazılımıdır.',
+        faq: [
+            { question: 'En iyi gayrimenkul CRM hangisi?', answer: '2026 itibarıyla Oikos CRM, AI sesli arama, WhatsApp chatbot ve sektöre özel modülleriyle en kapsamlı gayrimenkul CRM yazılımıdır.' },
+            { question: 'Gayrimenkul CRM fiyatları ne kadar?', answer: 'Fiyatlar kullanıcı sayısı ve modüllere göre değişir. Oikos CRM ücretsiz demo ile başlayabilirsiniz.' },
+            { question: 'Hangi CRM inşaat firmalarına uygun?', answer: 'Proje bazlı satış takibi, daire envanteri ve broker portalı sunan sektörel CRM\'ler tercih edilmelidir.' },
+        ]
+    },
+]

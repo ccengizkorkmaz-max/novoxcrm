@@ -1,6 +1,8 @@
 
 import { MetadataRoute } from 'next'
 import { wikiArticles } from '@/data/wiki-data'
+import { turkishCities } from '@/data/cities-data'
+import { comparisons } from '@/data/comparisons-data'
 import { createClient } from '@/lib/supabase/server'
 import { getHostFromHeaders } from '@/lib/tenant/resolve-brand-from-host'
 import { getCanonicalBaseUrl } from '@/lib/seo-constants'
@@ -39,6 +41,7 @@ const STATIC_PAGE_DATES: Record<string, string> = {
     '/privacy-policy': '2026-02-01T00:00:00.000Z',
     '/ebooks/gayrimenkul-projelerinde-dijital-donusum-rehberi': '2026-04-15T00:00:00.000Z',
     '/login': '2026-02-01T00:00:00.000Z',
+    '/tools/tapu-harci-hesaplayici': '2026-05-15T00:00:00.000Z',
 }
 
 // Supported locales
@@ -123,7 +126,27 @@ export async function getSitemapUrls(): Promise<MetadataRoute.Sitemap> {
         )
     )
 
-    // ── 3. Public Broker Profiles (no locale prefix, both www variants) ──
+    // ── 3. City pages (programmatic SEO) ──
+    const cityRoutes = turkishCities.flatMap((city) =>
+        generateVariants(
+            `/sehir/${city.slug}`,
+            new Date('2026-05-15T00:00:00.000Z'),
+            'monthly',
+            0.6
+        )
+    )
+
+    // ── 4. Comparison pages ──
+    const comparisonRoutes = comparisons.flatMap((comp) =>
+        generateVariants(
+            `/karsilastirma/${comp.slug}`,
+            new Date('2026-05-15T00:00:00.000Z'),
+            'monthly',
+            0.7
+        )
+    )
+
+    // ── 5. Public Broker Profiles (no locale prefix, both www variants) ──
     const { data: profiles } = await supabase
         .from('profiles')
         .select('broker_slug, updated_at')
@@ -140,7 +163,7 @@ export async function getSitemapUrls(): Promise<MetadataRoute.Sitemap> {
     )
 
     // ── 4. Combine and add i18n alternates ──
-    const allRoutes = [...marketingRoutes, ...wikiRoutes, ...profileRoutes]
+    const allRoutes = [...marketingRoutes, ...wikiRoutes, ...cityRoutes, ...comparisonRoutes, ...profileRoutes]
 
     return allRoutes.map((route) => {
         const { _path, ...rest } = route
