@@ -71,7 +71,10 @@ export async function updateSession(request: NextRequest, response?: NextRespons
         pathWithoutLocale.startsWith('/p/') ||
         pathWithoutLocale.startsWith('/ai') ||
         pathWithoutLocale.startsWith('/broker/apply') ||
-        pathWithoutLocale.startsWith('/broker/login')
+        pathWithoutLocale.startsWith('/broker/login') ||
+        pathWithoutLocale.startsWith('/tools') ||
+        pathWithoutLocale.startsWith('/sehir') ||
+        pathWithoutLocale.startsWith('/karsilastirma')
 
     if (!user && !isPublicRoute) {
         const isPortalRoute = pathWithoutLocale.startsWith('/customerservices')
@@ -115,7 +118,10 @@ export async function updateSession(request: NextRequest, response?: NextRespons
             pathWithoutLocale.startsWith('/solutions') ||
             pathWithoutLocale.startsWith('/system-details') ||
             pathWithoutLocale.startsWith('/ebooks') ||
-            pathWithoutLocale.startsWith('/wiki')
+            pathWithoutLocale.startsWith('/wiki') ||
+            pathWithoutLocale.startsWith('/tools') ||
+            pathWithoutLocale.startsWith('/sehir') ||
+            pathWithoutLocale.startsWith('/karsilastirma')
 
         // If customer tries to access dashboard or broker portal, redirect to portal
         if (profile?.role === 'customer' && !isPortalPath && !isPublicPath && !isBrokerPath && !pathWithoutLocale.startsWith('/auth') && !isMarketingPath) {
