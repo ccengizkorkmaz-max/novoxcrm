@@ -311,7 +311,6 @@ export async function POST(req: Request) {
                                         tenant_id: tenant_id,
                                         phone_number: wpPhone,
                                         customer_id: customerId,
-                                        contact_name: customerName,
                                         channel: 'whatsapp',
                                         ai_enabled: true,
                                         last_message_preview: `[Şablon] ${templateName}`,
