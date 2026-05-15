@@ -38,6 +38,7 @@ const STATIC_PAGE_DATES: Record<string, string> = {
     '/broker/apply': '2026-02-15T00:00:00.000Z',
     '/privacy-policy': '2026-02-01T00:00:00.000Z',
     '/ebooks/gayrimenkul-projelerinde-dijital-donusum-rehberi': '2026-04-15T00:00:00.000Z',
+    '/login': '2026-02-01T00:00:00.000Z',
 }
 
 // Supported locales
@@ -48,37 +49,59 @@ const LOCALES = ['tr', 'en'] as const
  * Each domain (novoxcrm.com, oikoscrm.com) gets its own sitemap
  * with URLs pointing to itself — essential for independent indexing.
  * 
- * Generates entries for BOTH /tr and /en locales as separate URLs,
- * with hreflang alternates linking them together.
+ * Generates entries for:
+ *  1. Root URLs (no locale prefix): /wiki/slug, /solutions, etc.
+ *  2. /tr locale URLs: /tr/wiki/slug
+ *  3. /en locale URLs: /en/wiki/slug
+ * 
+ * This matches how Google has historically indexed the site with
+ * all three URL variants (root + /tr + /en).
  */
 export async function getSitemapUrls(): Promise<MetadataRoute.Sitemap> {
     const host = await getHostFromHeaders()
     const baseUrl = getCanonicalBaseUrl(host)
     const supabase = await createClient()
 
-    // 1. Base marketing routes — generate for EACH locale
-    const marketingRoutes = LOCALES.flatMap((locale) =>
-        Object.entries(STATIC_PAGE_DATES).map(([route, date]) => ({
+    // ── 1. Marketing routes — root (no prefix) + each locale ──
+    const marketingRoutes = Object.entries(STATIC_PAGE_DATES).flatMap(([route, date]) => {
+        const rootEntry = {
+            url: `${baseUrl}${route || '/'}`,
+            lastModified: new Date(date),
+            changeFrequency: 'weekly' as const,
+            priority: route === '' ? 1 : 0.8,
+            _path: route,
+        }
+        const localeEntries = LOCALES.map((locale) => ({
             url: `${baseUrl}/${locale}${route}`,
             lastModified: new Date(date),
             changeFrequency: 'weekly' as const,
             priority: route === '' ? 1 : 0.8,
-            _path: route,  // internal: for alternate generation
+            _path: route,
         }))
-    )
+        return [rootEntry, ...localeEntries]
+    })
 
-    // 2. Dynamic Wiki articles — for each locale
-    const wikiRoutes = LOCALES.flatMap((locale) =>
-        wikiArticles.map((article) => ({
+    // ── 2. Wiki articles — root + each locale ──
+    const wikiRoutes = wikiArticles.flatMap((article) => {
+        const date = new Date(parseTurkishDate(article.date))
+        const rootEntry = {
+            url: `${baseUrl}/wiki/${article.slug}`,
+            lastModified: date,
+            changeFrequency: 'monthly' as const,
+            priority: 0.6,
+            _path: `/wiki/${article.slug}`,
+        }
+        const localeEntries = LOCALES.map((locale) => ({
             url: `${baseUrl}/${locale}/wiki/${article.slug}`,
-            lastModified: new Date(parseTurkishDate(article.date)),
+            lastModified: date,
             changeFrequency: 'monthly' as const,
             priority: 0.6,
             _path: `/wiki/${article.slug}`,
         }))
-    )
+        return [rootEntry, ...localeEntries]
+    })
 
-    // 3. Public Broker Profiles (locale-independent — /p/slug)
+    // ── 3. Public Broker Profiles (no locale prefix) ──
     const { data: profiles } = await supabase
         .from('profiles')
         .select('broker_slug, updated_at')
@@ -89,10 +112,10 @@ export async function getSitemapUrls(): Promise<MetadataRoute.Sitemap> {
         lastModified: new Date(profile.updated_at || '2026-03-01T00:00:00.000Z'),
         changeFrequency: 'daily' as const,
         priority: 0.7,
-        _path: null as string | null,  // no locale alternates for /p/ routes
+        _path: null as string | null,
     })) || []
 
-    // 4. Combine and add i18n alternates
+    // ── 4. Combine and add i18n alternates ──
     const allRoutes = [...marketingRoutes, ...wikiRoutes, ...profileRoutes]
 
     return allRoutes.map((route) => {
