@@ -462,45 +462,74 @@ export async function getMarketingAnalytics() {
         'Reserved': 'Rezerve'
     }
 
-    const marketingSources = ['Facebook Ads', 'Facebook', 'fb', 'Instagram', 'ig', 'WEB Form', 'Email', 'E-Posta', 'Whatsapp&Call Center'];
+    // Parse description → Kanal, Proje, Kampanya
+    // Pattern: "Lead from Facebook Ads (Form: NOVO CITY İZMİR) (Campaign: 1504 / City İzmir / Potansiyel Müşteri Form Kampanyası)"
+    function parseDescription(desc: string) {
+        let channel = ''
+        let project = ''
+        let campaign = ''
 
-    const marketingSales = sales.filter(s => {
-        const source = sourceMap[s.customer_id] || ''
-        const desc = s.description || ''
-        return marketingSources.includes(source) || desc.includes('Form:') || source.toLowerCase().includes('form')
-    })
+        const channelMatch = desc.match(/Lead from\s+([^(]+?)(?:\s*\(|$)/i)
+        if (channelMatch) channel = channelMatch[1].trim()
+
+        const formMatch = desc.match(/\(Form:\s*([^)]+)\)/i)
+        if (formMatch) project = formMatch[1].trim()
+
+        const campaignMatch = desc.match(/\(Campaign:\s*([^)]+)\)/i)
+        if (campaignMatch) campaign = campaignMatch[1].trim()
+
+        return { channel, project, campaign }
+    }
 
     const leadsByForm = marketingSales.reduce((acc: Record<string, any>, sale) => {
-        let sourceName = 'Diğer Kampanyalar/Formlar'
         const source = sourceMap[sale.customer_id] || ''
         const desc = sale.description || ''
+        const parsed = parseDescription(desc)
 
-        const formMatch = desc.match(/(?:Form:\s*)([^)\n\|]+)/i)
-        
-        let channel = source || 'Bilinmiyor';
-        if (['Facebook Ads', 'Facebook', 'fb'].includes(source)) channel = 'Facebook';
-        else if (['Instagram', 'ig'].includes(source)) channel = 'Instagram';
-        else if (['WEB Form'].includes(source)) channel = 'Web Sitesi';
-        else if (['Email', 'E-Posta'].includes(source)) channel = 'E-Posta';
+        // Determine channel
+        let channel = parsed.channel || source || 'Bilinmiyor'
+        if (['Facebook Ads', 'Facebook', 'fb'].includes(source) || channel.includes('Facebook')) channel = 'Facebook Ads'
+        else if (['Instagram', 'ig'].includes(source)) channel = 'Instagram'
+        else if (['WEB Form'].includes(source)) channel = 'Web Sitesi'
+        else if (['Email', 'E-Posta'].includes(source)) channel = 'E-Posta'
+        else if (source === 'Whatsapp&Call Center') channel = 'WhatsApp & Çağrı Merkezi'
 
-        if (formMatch && formMatch[1]) {
-            sourceName = `Form: ${formMatch[1].trim()}`
+        // Determine form/project name
+        let projectName = parsed.project || ''
+        let campaignName = parsed.campaign || ''
+
+        // Create a unique key per project+campaign combination
+        let sourceName = ''
+        if (projectName && campaignName) {
+            sourceName = `${projectName} — ${campaignName}`
+        } else if (projectName) {
+            sourceName = projectName
+        } else if (campaignName) {
+            sourceName = campaignName
+        } else if (['Facebook Ads', 'Facebook', 'fb'].includes(source)) {
+            sourceName = 'Facebook Reklamları (Genel)'
+        } else if (['Instagram', 'ig'].includes(source)) {
+            sourceName = 'Instagram Reklamları (Genel)'
         } else if (source === 'WEB Form') {
             sourceName = 'Web Sitesi İletişim Formu'
         } else if (['Email', 'E-Posta'].includes(source)) {
-            sourceName = 'Gelen E-posta Kampanyaları'
-        } else if (['Facebook Ads', 'Facebook', 'fb'].includes(source)) {
-            sourceName = 'Facebook Reklamları'
-        } else if (['Instagram', 'ig'].includes(source)) {
-            sourceName = 'Instagram Reklamları'
+            sourceName = 'Gelen E-posta'
         } else if (source === 'Whatsapp&Call Center') {
-            sourceName = 'WhatsApp & Çağrı Merkezi İlanları'
+            sourceName = 'WhatsApp & Çağrı Merkezi'
         } else if (source) {
             sourceName = source
+        } else {
+            sourceName = 'Diğer'
         }
 
         if (!acc[sourceName]) {
-            acc[sourceName] = { total: 0, today: 0, thisWeek: 0, thisMonth: 0, channel, statuses: {} }
+            acc[sourceName] = {
+                total: 0, today: 0, thisWeek: 0, thisMonth: 0,
+                channel,
+                project: projectName,
+                campaign: campaignName,
+                statuses: {}
+            }
         }
 
         acc[sourceName].total += 1
@@ -524,13 +553,64 @@ export async function getMarketingAnalytics() {
             thisWeek: data.thisWeek,
             thisMonth: data.thisMonth,
             channel: data.channel,
+            project: data.project,
+            campaign: data.campaign,
             statuses: data.statuses
         }
     }).sort((a, b) => b.total - a.total)
 
+    // Channel-level summary
+    const channelSummary = marketingSales.reduce((acc: Record<string, { total: number, today: number, thisWeek: number, thisMonth: number }>, sale) => {
+        const desc = sale.description || ''
+        const source = sourceMap[sale.customer_id] || ''
+        const parsed = parseDescription(desc)
+
+        let ch = parsed.channel || source || 'Bilinmiyor'
+        if (['Facebook Ads', 'Facebook', 'fb'].includes(source) || ch.includes('Facebook')) ch = 'Facebook Ads'
+        else if (['Instagram', 'ig'].includes(source)) ch = 'Instagram'
+        else if (['WEB Form'].includes(source)) ch = 'Web Sitesi'
+        else if (['Email', 'E-Posta'].includes(source)) ch = 'E-Posta'
+        else if (source === 'Whatsapp&Call Center') ch = 'WhatsApp & Çağrı Merkezi'
+
+        if (!acc[ch]) acc[ch] = { total: 0, today: 0, thisWeek: 0, thisMonth: 0 }
+        acc[ch].total += 1
+        const saleDate = new Date(sale.created_at)
+        if (isToday(saleDate)) acc[ch].today += 1
+        if (isThisWeek(saleDate, { weekStartsOn: 1 })) acc[ch].thisWeek += 1
+        if (isThisMonth(saleDate)) acc[ch].thisMonth += 1
+
+        return acc
+    }, {})
+
+    const channelData = Object.entries(channelSummary)
+        .map(([name, data]) => ({ name, ...data }))
+        .sort((a, b) => b.total - a.total)
+
+    // Project-level summary
+    const projectSummary = marketingSales.reduce((acc: Record<string, { total: number, today: number, thisWeek: number, thisMonth: number }>, sale) => {
+        const desc = sale.description || ''
+        const parsed = parseDescription(desc)
+        const proj = parsed.project || 'Proje Belirtilmemiş'
+
+        if (!acc[proj]) acc[proj] = { total: 0, today: 0, thisWeek: 0, thisMonth: 0 }
+        acc[proj].total += 1
+        const saleDate = new Date(sale.created_at)
+        if (isToday(saleDate)) acc[proj].today += 1
+        if (isThisWeek(saleDate, { weekStartsOn: 1 })) acc[proj].thisWeek += 1
+        if (isThisMonth(saleDate)) acc[proj].thisMonth += 1
+
+        return acc
+    }, {})
+
+    const projectData = Object.entries(projectSummary)
+        .map(([name, data]) => ({ name, ...data }))
+        .sort((a, b) => b.total - a.total)
+
     return {
         totalMarketingLeads: marketingSales.length,
-        formData
+        formData,
+        channelData,
+        projectData,
     }
 }
 
