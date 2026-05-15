@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Calculator, Info, ChevronDown, ChevronUp } from "lucide-react"
+import { Calculator, Info } from "lucide-react"
 
 export default function TapuHarciClient() {
     const [propertyValue, setPropertyValue] = useState("")
@@ -9,7 +9,6 @@ export default function TapuHarciClient() {
     const [isFirstHome, setIsFirstHome] = useState(false)
     const [isForeign, setIsForeign] = useState(false)
     const [propertySize, setPropertySize] = useState("under150")
-    const [showDetails, setShowDetails] = useState(false)
 
     const value = parseFloat(propertyValue.replace(/\./g, "").replace(",", ".")) || 0
 
@@ -107,52 +106,70 @@ export default function TapuHarciClient() {
 
                 {/* Results */}
                 {value > 0 && (
-                    <div className="border-t border-slate-800 pt-8 space-y-4">
-                        <div className="grid md:grid-cols-3 gap-4">
+                    <div className="border-t border-slate-800 pt-8 space-y-6">
+                        {/* KDV Info Banner */}
+                        <div className={`p-4 rounded-xl border text-sm flex items-center gap-3 ${
+                            isForeign ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300' :
+                            (isFirstHome && propertySize === 'under150') ? 'bg-blue-500/10 border-blue-500/20 text-blue-300' :
+                            'bg-amber-500/10 border-amber-500/20 text-amber-300'
+                        }`}>
+                            <Info size={18} className="shrink-0" />
+                            <span>
+                                {isForeign
+                                    ? '🌍 Yabancı uyruklu alıcı — KDV %0 (döviz şartıyla muaf)'
+                                    : (isFirstHome && propertySize === 'under150')
+                                        ? '🏠 İlk konut + 150m² altı — KDV %1 avantajı uygulandı'
+                                        : `📐 Standart KDV oranı: %${(kdvRate * 100).toFixed(0)}`
+                                }
+                            </span>
+                        </div>
+
+                        {/* Main Result Cards */}
+                        <div className="grid md:grid-cols-2 gap-4">
                             <div className="p-6 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-center">
-                                <div className="text-sm text-blue-300 mb-1">Tapu Harcı (Toplam)</div>
+                                <div className="text-sm text-blue-300 mb-1">Tapu Harcı (Toplam %4)</div>
                                 <div className="text-2xl font-bold text-white">{formatCurrency(totalTapuHarci)}</div>
-                                <div className="text-xs text-blue-400 mt-1">Gayrimenkul değerinin %4&apos;ü</div>
+                                <div className="text-xs text-blue-400 mt-2 space-y-0.5">
+                                    <div>Alıcı: {formatCurrency(buyerShare)} ({buyerPays}%)</div>
+                                    <div>Satıcı: {formatCurrency(sellerShare)} ({100 - buyerPays}%)</div>
+                                </div>
                             </div>
-                            <div className="p-6 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-center">
-                                <div className="text-sm text-emerald-300 mb-1">Alıcı Payı</div>
-                                <div className="text-2xl font-bold text-white">{formatCurrency(buyerShare)}</div>
-                                <div className="text-xs text-emerald-400 mt-1">%{buyerPays} pay</div>
-                            </div>
-                            <div className="p-6 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-center">
-                                <div className="text-sm text-purple-300 mb-1">Satıcı Payı</div>
-                                <div className="text-2xl font-bold text-white">{formatCurrency(sellerShare)}</div>
-                                <div className="text-xs text-purple-400 mt-1">%{100 - buyerPays} pay</div>
+                            <div className="p-6 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-center">
+                                <div className="text-sm text-amber-300 mb-1">KDV (%{(kdvRate * 100).toFixed(0)})</div>
+                                <div className="text-2xl font-bold text-white">{formatCurrency(kdvAmount)}</div>
+                                <div className="text-xs text-amber-400 mt-2">
+                                    {isForeign ? 'Yabancı alıcı muafiyeti' :
+                                     (isFirstHome && propertySize === 'under150') ? 'İlk konut avantajlı oran' :
+                                     'Standart oran'}
+                                </div>
                             </div>
                         </div>
 
-                        {/* Detail Breakdown */}
-                        <button onClick={() => setShowDetails(!showDetails)}
-                            className="w-full flex items-center justify-center gap-2 text-sm text-slate-400 hover:text-white transition-colors py-3">
-                            {showDetails ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                            {showDetails ? "Detayları Gizle" : "Tüm Maliyetleri Göster"}
-                        </button>
-
-                        {showDetails && (
-                            <div className="bg-slate-800/50 rounded-2xl p-6 space-y-4">
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-slate-400">Tapu Harcı (Alıcı)</span>
-                                    <span className="text-white font-medium">{formatCurrency(buyerShare)}</span>
-                                </div>
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-slate-400">KDV (%{(kdvRate * 100).toFixed(0)})</span>
-                                    <span className="text-white font-medium">{formatCurrency(kdvAmount)}</span>
-                                </div>
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-slate-400">Döner Sermaye</span>
-                                    <span className="text-white font-medium">{formatCurrency(donerSermaye)}</span>
-                                </div>
-                                <div className="border-t border-slate-700 pt-4 flex justify-between text-lg font-bold">
-                                    <span className="text-white">Alıcı Toplam Maliyet</span>
-                                    <span className="text-blue-400">{formatCurrency(totalBuyerCost)}</span>
-                                </div>
+                        {/* Detailed Breakdown - always visible */}
+                        <div className="bg-slate-800/50 rounded-2xl p-6 space-y-3">
+                            <div className="flex justify-between text-sm">
+                                <span className="text-slate-400">Tapu Harcı (Alıcı payı)</span>
+                                <span className="text-white font-medium">{formatCurrency(buyerShare)}</span>
                             </div>
-                        )}
+                            <div className="flex justify-between text-sm">
+                                <span className="text-slate-400">KDV (%{(kdvRate * 100).toFixed(0)})</span>
+                                <span className="text-white font-medium">{formatCurrency(kdvAmount)}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                                <span className="text-slate-400">Döner Sermaye Bedeli</span>
+                                <span className="text-white font-medium">{formatCurrency(donerSermaye)}</span>
+                            </div>
+                            <div className="border-t border-slate-700 pt-4 flex justify-between text-lg font-bold">
+                                <span className="text-white">Alıcı Toplam Maliyet</span>
+                                <span className="text-emerald-400">{formatCurrency(totalBuyerCost)}</span>
+                            </div>
+                        </div>
+
+                        {/* Seller summary */}
+                        <div className="bg-slate-800/30 rounded-xl p-4 flex justify-between text-sm">
+                            <span className="text-slate-500">Satıcı Toplam Maliyet</span>
+                            <span className="text-slate-300 font-medium">{formatCurrency(sellerShare)}</span>
+                        </div>
                     </div>
                 )}
             </div>
