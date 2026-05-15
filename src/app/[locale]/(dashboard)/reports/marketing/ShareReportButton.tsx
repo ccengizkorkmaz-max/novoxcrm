@@ -29,7 +29,7 @@ export default function ShareReportButton() {
         // Load existing shares
         setLoadingShares(true)
         const result = await getActiveShares()
-        if ('shares' in result) setShares(result.shares)
+        if ('shares' in result) setShares(result.shares || [])
         setLoadingShares(false)
     }
 
@@ -54,7 +54,7 @@ export default function ShareReportButton() {
 
         // Refresh shares list
         const updated = await getActiveShares()
-        if ('shares' in updated) setShares(updated.shares)
+        if ('shares' in updated) setShares(updated.shares || [])
     }
 
     const handleCopy = () => {
