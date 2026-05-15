@@ -21,12 +21,21 @@ async function DeferredSourceStats({
 // Async server component for source stats (streams in via Suspense)
 async function SourceStatsLoader({ tenantId }: { tenantId?: string }) {
     const supabase = await createClient()
-    const { data: allSources } = await supabase
-        .from('customers')
-        .select('source')
-        .limit(5000)
+    let allSources: { source: string }[] = []
+    const batchSize = 1000
+    let batchPage = 0
+    while (true) {
+        const { data } = await supabase
+            .from('customers')
+            .select('source')
+            .range(batchPage * batchSize, (batchPage + 1) * batchSize - 1)
+        if (!data || data.length === 0) break
+        allSources = allSources.concat(data)
+        if (data.length < batchSize) break
+        batchPage++
+    }
 
-    const sourceCounts = (allSources || []).reduce((acc: Record<string, number>, c) => {
+    const sourceCounts = allSources.reduce((acc: Record<string, number>, c) => {
         const src = c.source || 'Belirtilmemiş'
         acc[src] = (acc[src] || 0) + 1
         return acc
@@ -76,17 +85,14 @@ export default async function CustomersPage(props: {
         query = query.or(`full_name.ilike.%${filterSearch}%,phone.ilike.%${filterSearch}%,email.ilike.%${filterSearch}%`)
     }
 
-    // Fetch customer list + source stats + profiles + user role in parallel
+    // Fetch customer list + profiles + user role in parallel
     const [
         customerResult,
-        allSourcesResult,
         profilesResult,
         currentProfileResult
     ] = await Promise.all([
         // Critical: Customer list (50 records)
         query.order(sortKey as 'full_name' | 'created_at', { ascending: sortOrder }).range(from, to),
-        // Secondary: Source stats
-        supabase.from('customers').select('source').limit(5000),
         // Secondary: Profiles for Activity assignment
         supabase.from('profiles').select('id, full_name, role').order('full_name'),
         // Secondary: Current user role
@@ -96,7 +102,21 @@ export default async function CustomersPage(props: {
     const allCustomers = customerResult.data || []
     const totalCount = customerResult.count || 0
 
-    const allSources = allSourcesResult.data || []
+    // Fetch ALL sources with pagination (Supabase caps at 1000 per request)
+    let allSources: { source: string }[] = []
+    const batchSize = 1000
+    let batchPage = 0
+    while (true) {
+        const { data } = await supabase
+            .from('customers')
+            .select('source')
+            .range(batchPage * batchSize, (batchPage + 1) * batchSize - 1)
+        if (!data || data.length === 0) break
+        allSources = allSources.concat(data)
+        if (data.length < batchSize) break
+        batchPage++
+    }
+
     const sourceCounts = allSources.reduce((acc: Record<string, number>, c) => {
         const src = c.source || 'Belirtilmemiş'
         acc[src] = (acc[src] || 0) + 1
