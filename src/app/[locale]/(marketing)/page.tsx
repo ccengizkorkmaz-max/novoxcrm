@@ -15,6 +15,7 @@ import { PricingSection } from '@/components/marketing/PricingSection'
 import { FAQSection } from '@/components/marketing/FAQSection'
 import { getTranslations } from 'next-intl/server'
 import { getBrandNameFromHost, getHostFromHeaders } from '@/lib/tenant/resolve-brand-from-host'
+import { getCanonicalBaseUrl } from '@/lib/seo-constants'
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
     const { locale } = await params;
@@ -43,7 +44,8 @@ export default async function MarketingPage({ params }: { params: Promise<{ loca
     // Resolve brand from hostname
     const host = await getHostFromHeaders()
     const brandName = await getBrandNameFromHost(host)
-    const baseUrl = host.includes('localhost') ? `http://${host}` : `https://${host}`
+    // Each domain is self-canonical — structured data uses its own URL
+    const baseUrl = getCanonicalBaseUrl(host)
 
     // Build FAQ Schema for Google Rich Results & AI Search
     const faqItems = [0, 1, 2, 3, 4, 5].map((i) => ({

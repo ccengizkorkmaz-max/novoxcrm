@@ -1,7 +1,12 @@
 
 import { MetadataRoute } from 'next'
+import { getHostFromHeaders } from '@/lib/tenant/resolve-brand-from-host'
+import { getCanonicalBaseUrl } from '@/lib/seo-constants'
 
-export default function robots(): MetadataRoute.Robots {
+export default async function robots(): Promise<MetadataRoute.Robots> {
+    const host = await getHostFromHeaders()
+    const baseUrl = getCanonicalBaseUrl(host)
+
     return {
         rules: [
             {
@@ -37,6 +42,6 @@ export default function robots(): MetadataRoute.Robots {
                 allow: ['/'],
             },
         ],
-        sitemap: 'https://novoxcrm.com/sitemap.xml',
+        sitemap: `${baseUrl}/sitemap.xml`,
     }
 }

@@ -5,6 +5,7 @@ import { ArrowLeft, Clock, Calendar, Tag, Share2, MessageCircle } from 'lucide-r
 import { wikiArticles } from '@/data/wiki-data'
 import type { Metadata } from 'next'
 import { getBrandNameFromHost, getHostFromHeaders } from '@/lib/tenant/resolve-brand-from-host'
+import { getCanonicalBaseUrl } from '@/lib/seo-constants'
 
 // Tüm slug'ları ve locale'leri Next.js'e bildirerek 404 hatasını önle
 export async function generateStaticParams() {
@@ -97,7 +98,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
     // Resolve brand from hostname for JSON-LD
     const host = await getHostFromHeaders()
     const brandName = await getBrandNameFromHost(host)
-    const baseUrl = host.includes('localhost') ? `http://${host}` : `https://${host}`
+    const baseUrl = getCanonicalBaseUrl(host)
 
     // JSON-LD Schema (Google SEO icin kritik)
     const jsonLd = {

@@ -3,11 +3,13 @@ import { Footer } from '@/components/marketing/Footer'
 import { Navbar } from '@/components/marketing/Navbar'
 import { getBrandNameFromHost, getHostFromHeaders } from '@/lib/tenant/resolve-brand-from-host'
 import { BrandProvider } from '@/components/providers/BrandProvider'
+import { getCanonicalBaseUrl } from '@/lib/seo-constants'
 
 export async function generateMetadata(): Promise<Metadata> {
     const host = await getHostFromHeaders()
     const brandName = await getBrandNameFromHost(host)
-    const baseUrl = host.includes('localhost') ? `http://${host}` : `https://${host}`
+    // Each domain is self-canonical for independent SEO indexing
+    const baseUrl = getCanonicalBaseUrl(host)
 
     return {
         metadataBase: new URL(baseUrl),

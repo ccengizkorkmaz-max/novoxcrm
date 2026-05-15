@@ -2,6 +2,8 @@
 import { MetadataRoute } from 'next'
 import { wikiArticles } from '@/data/wiki-data'
 import { createClient } from '@/lib/supabase/server'
+import { getHostFromHeaders } from '@/lib/tenant/resolve-brand-from-host'
+import { getCanonicalBaseUrl } from '@/lib/seo-constants'
 
 /**
  * Parse Turkish date format "27 Ocak 2026" to ISO date string
@@ -35,8 +37,14 @@ const STATIC_PAGE_DATES: Record<string, string> = {
     '/broker/apply': '2026-02-15T00:00:00.000Z',
 }
 
+/**
+ * Generate sitemap URLs using the current request's hostname.
+ * Each domain (novoxcrm.com, oikoscrm.com) gets its own sitemap
+ * with URLs pointing to itself — essential for independent indexing.
+ */
 export async function getSitemapUrls(): Promise<MetadataRoute.Sitemap> {
-    const baseUrl = 'https://novoxcrm.com'
+    const host = await getHostFromHeaders()
+    const baseUrl = getCanonicalBaseUrl(host)
     const supabase = await createClient()
 
     // 1. Base marketing routes (with locale prefix /tr for canonical)
