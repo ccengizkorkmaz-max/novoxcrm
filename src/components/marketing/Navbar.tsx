@@ -28,6 +28,7 @@ export function Navbar() {
         { name: t('solutions_construction'), href: '/solutions/insaat-crm' },
         { name: t('wiki'), href: '/wiki' },
         { name: t('pricing'), href: '/#pricing' },
+        { name: 'Araçlar', href: '/tools/tapu-harci-hesaplayici' },
     ]
 
     return (
