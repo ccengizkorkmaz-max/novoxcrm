@@ -141,6 +141,40 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
         })()
     };
 
+    // BreadcrumbList Schema → SERP'te zengin breadcrumb gösterimi
+    const breadcrumbSchema = {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            { "@type": "ListItem", "position": 1, "name": "Ana Sayfa", "item": baseUrl },
+            { "@type": "ListItem", "position": 2, "name": "Bilgi Bankası", "item": `${baseUrl}/${locale}/wiki` },
+            { "@type": "ListItem", "position": 3, "name": article.title, "item": `${baseUrl}/${locale}/wiki/${article.slug}` }
+        ]
+    };
+
+    // FAQPage Schema → "People Also Ask" kutusunu ele geçirme
+    // Wiki makalelerindeki FAQ bölümünü otomatik parse et
+    const faqSplit = article.content.split(/##\s*S[ıi]k[çc]a Sorulan Sorular/i);
+    let faqSchema = null;
+    if (faqSplit.length > 1) {
+        const faqContent = faqSplit[1];
+        const faqMatches = [...faqContent.matchAll(/###\s*(.+?)[\n]+([^#]+?)(?=###|$)/g)];
+        if (faqMatches.length > 0) {
+            faqSchema = {
+                "@context": "https://schema.org",
+                "@type": "FAQPage",
+                "mainEntity": faqMatches.map(m => ({
+                    "@type": "Question",
+                    "name": m[1].trim(),
+                    "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": m[2].trim().replace(/\n+/g, ' ').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+                    }
+                }))
+            };
+        }
+    }
+
     // İçindekiler Tablosu (TOC) Oluşturucu
     const headings = [...(article.content.matchAll(/^##\s+(.*$)/gm))].map((match, idx) => ({
         id: `heading-${idx}`,
@@ -153,6 +187,16 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
             />
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+            />
+            {faqSchema && (
+                <script
+                    type="application/ld+json"
+                    dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+                />
+            )}
             <div className="container mx-auto px-4 max-w-4xl">
                 {/* Back Link */}
                 <Link

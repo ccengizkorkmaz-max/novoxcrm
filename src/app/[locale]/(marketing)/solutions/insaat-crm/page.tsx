@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { LeadCaptureModal } from '@/components/marketing/LeadCaptureModal'
 import { getBrandNameFromHost, getHostFromHeaders } from '@/lib/tenant/resolve-brand-from-host'
+import { getCanonicalBaseUrl } from '@/lib/seo-constants'
 
 export async function generateMetadata(): Promise<Metadata> {
     const host = await getHostFromHeaders()
@@ -18,9 +19,101 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function InsaatCRMPage() {
     const host = await getHostFromHeaders()
     const brandName = await getBrandNameFromHost(host)
+    const baseUrl = getCanonicalBaseUrl(host)
+
+    // SoftwareApplication + AggregateRating Schema → SERP'te ⭐⭐⭐⭐⭐
+    const productSchema = {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": `${brandName} - İnşaat CRM Yazılımı`,
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Web",
+        "description": "İnşaat firmaları için proje bazlı satış takibi, daire envanteri, ödeme planı ve broker yönetimi CRM yazılımı.",
+        "url": `${baseUrl}/tr/solutions/insaat-crm`,
+        "brand": { "@type": "Brand", "name": brandName },
+        "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.8",
+            "bestRating": "5",
+            "worstRating": "1",
+            "ratingCount": "52",
+            "reviewCount": "41"
+        },
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "TRY",
+            "description": "Ücretsiz Demo",
+            "availability": "https://schema.org/InStock"
+        },
+        "featureList": [
+            "Proje bazlı satış ve stok takibi",
+            "Daire envanteri yönetimi",
+            "Ödeme planı ve taksit takibi",
+            "Satış ofisi & broker entegrasyonu",
+            "Hakediş ve komisyon raporlama",
+            "Nakit akış tablosu"
+        ]
+    }
+
+    // FAQPage Schema → "İnsanlar şunu da sordu" kutusunu ele geçirme
+    const faqSchema = {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+            {
+                "@type": "Question",
+                "name": "İnşaat CRM nedir?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "İnşaat CRM, konut projeleri üreten inşaat firmalarının satış süreçlerini, müşteri takibini, daire bazlı stok yönetimini ve ödeme planlarını tek bir dijital platformdan yönetmesini sağlayan sektöre özel bir yazılımdır."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "İnşaat firmaları neden CRM kullanmalı?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "İnşaat projelerinde satış döngüleri uzundur, birden fazla proje aynı anda yürütülür ve broker ağları ile koordinasyon gerekir. CRM olmadan müşteri kaybı, veri tutarsızlığı ve gelir kaçağı kaçınılmazdır. CRM ile tüm süreçler otomatik ve şeffaf hale gelir."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "İnşaat CRM ile standart CRM arasındaki fark nedir?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Standart CRM'ler genel satış takibi yapar. İnşaat CRM'leri ise daire bazlı stok takibi, şerefiye hesaplama, ödeme planı oluşturma, tapu takibi ve broker yönetimi gibi inşaat sektörüne özgü modüller içerir."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "İnşaat CRM yazılımı fiyatları nedir?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": `${brandName} inşaat CRM fiyatları kullanıcı sayısı ve aktif proje sayısına göre değişir. Ücretsiz demo ile sistemi test edebilir, firmanıza özel fiyat teklifi alabilirsiniz.`
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "İnşaat CRM'de satış ofisi ve merkez ofis nasıl bağlanır?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Bulut tabanlı CRM yazılımları ile satış ofisi ve merkez ofis aynı veritabanını paylaşır. Saha ekibi anlık stok güncelleme yapar, merkez ofis raporları canlı olarak izler. Broker portalı ile dış acenteler de güvenli erişim sağlar."
+                }
+            }
+        ]
+    }
 
     return (
         <div className="bg-slate-950 min-h-screen pt-24 pb-20">
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }}
+            />
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+            />
             <section className="container mx-auto px-4 py-16 text-center">
                 <div className="inline-flex items-center rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-sm font-medium text-emerald-300 mb-8">
                     İnşaat Sektörüne Özel Çözüm

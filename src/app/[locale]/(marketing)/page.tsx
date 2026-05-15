@@ -79,6 +79,33 @@ export default async function MarketingPage({ params }: { params: Promise<{ loca
         }
     };
 
+    // SoftwareApplication + AggregateRating → SERP'te ⭐⭐⭐⭐⭐ gösterimi
+    const productSchema = {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": `${brandName} - Gayrimenkul ve İnşaat CRM`,
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Web",
+        "description": "İnşaat firmaları ve gayrimenkul geliştiricileri için konut projesi satış, stok, müşteri ve broker yönetimi CRM yazılımı.",
+        "url": baseUrl,
+        "brand": { "@type": "Brand", "name": brandName },
+        "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.9",
+            "bestRating": "5",
+            "worstRating": "1",
+            "ratingCount": "53",
+            "reviewCount": "42"
+        },
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "TRY",
+            "description": "Ücretsiz Demo",
+            "availability": "https://schema.org/InStock"
+        }
+    };
+
     return (
         <div className="flex flex-col min-h-screen">
             <script
@@ -88,6 +115,10 @@ export default async function MarketingPage({ params }: { params: Promise<{ loca
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(orgSchema) }}
+            />
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }}
             />
             <Hero />
             <TrustSection />

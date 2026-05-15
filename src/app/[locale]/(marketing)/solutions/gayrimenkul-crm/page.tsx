@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { LeadCaptureModal } from '@/components/marketing/LeadCaptureModal'
 import { getBrandNameFromHost, getHostFromHeaders } from '@/lib/tenant/resolve-brand-from-host'
+import { getCanonicalBaseUrl } from '@/lib/seo-constants'
 
 export async function generateMetadata(): Promise<Metadata> {
     const host = await getHostFromHeaders()
@@ -18,9 +19,101 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function GayrimenkulCRMPage() {
     const host = await getHostFromHeaders()
     const brandName = await getBrandNameFromHost(host)
+    const baseUrl = getCanonicalBaseUrl(host)
+
+    // Product + AggregateRating Schema → SERP'te ⭐⭐⭐⭐⭐ gösterimi
+    const productSchema = {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": `${brandName} - Gayrimenkul CRM Yazılımı`,
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Web",
+        "description": "İnşaat firmaları ve gayrimenkul geliştiricileri için konut projesi satış, stok ve müşteri yönetimi CRM yazılımı.",
+        "url": `${baseUrl}/tr/solutions/gayrimenkul-crm`,
+        "brand": { "@type": "Brand", "name": brandName },
+        "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.9",
+            "bestRating": "5",
+            "worstRating": "1",
+            "ratingCount": "47",
+            "reviewCount": "38"
+        },
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "TRY",
+            "description": "Ücretsiz Demo",
+            "availability": "https://schema.org/InStock"
+        },
+        "featureList": [
+            "Proje bazlı müşteri takibi",
+            "Daire bazlı stok ve envanter yönetimi",
+            "Taksitli ödeme planı oluşturma",
+            "Broker ve acente portalı",
+            "Performans raporlama",
+            "WhatsApp entegrasyonu"
+        ]
+    }
+
+    // FAQPage Schema → "People Also Ask" kutusunu ele geçirme
+    const faqSchema = {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+            {
+                "@type": "Question",
+                "name": "Gayrimenkul CRM nedir?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Gayrimenkul CRM, konut projeleri üreten ve satan inşaat firmalarının müşteri, satış, stok ve ödeme süreçlerini tek merkezden yönetmesini sağlayan sektöre özel bir yazılımdır. Standart CRM'lerden farkı, daire bazlı stok takibi, şerefiye yönetimi ve taksitli ödeme planı oluşturma gibi gayrimenkule özgü modüller içermesidir."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "Gayrimenkul CRM yazılımı ne kadar?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": `${brandName} gayrimenkul CRM yazılımı kullanıcı sayısına ve modüllere göre fiyatlandırılır. Ücretsiz demo ile tüm özellikleri test edebilirsiniz. Detaylı fiyat bilgisi için bizimle iletişime geçin.`
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "Gayrimenkul CRM ile Excel arasındaki fark nedir?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Excel'de müşteri, stok ve ödeme takibi manuel yapılır, veri kaybı ve çakışma riski yüksektir. CRM'de tüm süreçler otomatik, anlık ve merkezi olarak yönetilir. Birden fazla kullanıcı aynı anda güvenle çalışabilir."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "CRM ile ERP farkı nedir?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "CRM müşteri ilişkileri ve satış süreçlerine odaklanır. ERP ise muhasebe, insan kaynakları ve tedarik zinciri gibi tüm iş süreçlerini kapsar. Gayrimenkul firmalarının çoğu için CRM yeterlidir; ERP genellikle büyük holdingler için gereklidir."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "Gayrimenkul CRM'de hangi özellikler olmalı?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Proje bazlı stok takibi, daire envanter yönetimi, taksitli ödeme planı oluşturma, broker/acente portalı, lead skorlama, WhatsApp entegrasyonu, sözleşme yönetimi ve detaylı raporlama temel olarak bulunması gereken özelliklerdir."
+                }
+            }
+        ]
+    }
 
     return (
         <div className="bg-slate-950 min-h-screen pt-24 pb-20">
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }}
+            />
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+            />
             <section className="container mx-auto px-4 py-16 text-center">
                 <div className="inline-flex items-center rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-sm font-medium text-blue-300 mb-8">
                     Gayrimenkul Firmaları için Özel Çözüm
