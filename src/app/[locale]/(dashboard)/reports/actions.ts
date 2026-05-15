@@ -462,6 +462,14 @@ export async function getMarketingAnalytics() {
         'Reserved': 'Rezerve'
     }
 
+    const marketingSources = ['Facebook Ads', 'Facebook', 'fb', 'Instagram', 'ig', 'WEB Form', 'Email', 'E-Posta', 'Whatsapp&Call Center'];
+
+    const marketingSales = sales.filter(s => {
+        const source = sourceMap[s.customer_id] || ''
+        const desc = s.description || ''
+        return marketingSources.includes(source) || desc.includes('Form:') || source.toLowerCase().includes('form')
+    })
+
     // Parse description → Kanal, Proje, Kampanya
     // Pattern: "Lead from Facebook Ads (Form: NOVO CITY İZMİR) (Campaign: 1504 / City İzmir / Potansiyel Müşteri Form Kampanyası)"
     function parseDescription(desc: string) {
