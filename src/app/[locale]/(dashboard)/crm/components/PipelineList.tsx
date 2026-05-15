@@ -391,8 +391,8 @@ export default function PipelineList({
             {/* Desktop Table View */}
             <div className="hidden md:block relative group">
                 {/* Column hint bar */}
-                <div className="flex items-center gap-2 px-4 py-1.5 bg-slate-50/80 border border-border rounded-t-xl border-b-0 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                    <span className="flex-1">Sütunları sürükle &amp; bırak ile sırala · Kenarını sürükleyerek genişlet</span>
+                <div className="flex items-center gap-2 px-4 py-1.5 bg-slate-50/80 border border-border rounded-t-xl border-b-0 text-[10px] font-bold text-slate-400 uppercase tracking-widest flex-wrap">
+                    <span className="whitespace-nowrap">Sütunları sürükle &amp; bırak ile sırala</span>
                     {colOrder.join(',') !== DEFAULT_PIPELINE_COL_ORDER.join(',') && (
                         <button onClick={() => { setColOrder(DEFAULT_PIPELINE_COL_ORDER); try { localStorage.removeItem(PIPELINE_COL_ORDER_KEY) } catch {} }} className="text-blue-500 hover:text-blue-700 underline underline-offset-2">
                             Sıral. sıfırla

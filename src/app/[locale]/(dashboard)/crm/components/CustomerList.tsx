@@ -88,6 +88,7 @@ export default function CustomerList({
     const [selectedCustomerForActivity, setSelectedCustomerForActivity] = useState<Customer | null>(null)
     const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null)
     const [isPending, setIsPending] = useState(false)
+    const [customerType, setCustomerType] = useState<'individual' | 'corporate'>('individual')
 
     const [searchQuery, setSearchQuery] = useState('')
     const [sortConfig, setSortConfig] = useState<{ key: SortKey; order: SortOrder }>({
@@ -456,11 +457,12 @@ export default function CustomerList({
                                 <UserPlus className="mr-2 h-5 w-5" /> {t('addCustomer')}
                             </Button>
                         </DialogTrigger>
-                        <DialogContent className="max-w-lg w-[95vw] rounded-2xl p-0 overflow-hidden border-none shadow-2xl">
-                            <DialogHeader className="p-6 bg-slate-50 border-b border-slate-100">
+                        <DialogContent className="max-w-4xl w-[95vw] rounded-2xl p-0 overflow-hidden border-none shadow-2xl max-h-[90vh] overflow-y-auto">
+                            <DialogHeader className="p-5 bg-slate-50 border-b border-slate-100">
                                 <DialogTitle className="text-xl font-black text-slate-900">{t('createModal.title')}</DialogTitle>
                             </DialogHeader>
                             <form action={async (formData) => {
+                                formData.set('customer_type', customerType)
                                 setIsPending(true)
                                 try {
                                     const res = await createCustomer(formData)
@@ -469,143 +471,185 @@ export default function CustomerList({
                                     } else {
                                         toast.success(t('messages.created') || 'Müşteri oluşturuldu')
                                         setIsCreateOpen(false)
+                                        setCustomerType('individual')
                                         router.refresh()
                                     }
                                 } finally {
                                     setIsPending(false)
                                 }
                             }}>
-                                <div className="p-6">
+                                <div className="p-5">
+                                    {/* Customer Type Toggle */}
+                                    <div className="flex items-center gap-3 mb-5 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                        <Label className="text-[11px] font-black text-slate-500 uppercase tracking-widest whitespace-nowrap">Müşteri Tipi</Label>
+                                        <div className="flex gap-1 bg-white rounded-lg border border-slate-200 p-0.5">
+                                            <button type="button" onClick={() => setCustomerType('individual')}
+                                                className={cn("px-4 py-1.5 rounded-md text-xs font-bold transition-all", customerType === 'individual' ? "bg-blue-600 text-white shadow-sm" : "text-slate-500 hover:text-slate-700")}>
+                                                Bireysel
+                                            </button>
+                                            <button type="button" onClick={() => setCustomerType('corporate')}
+                                                className={cn("px-4 py-1.5 rounded-md text-xs font-bold transition-all", customerType === 'corporate' ? "bg-blue-600 text-white shadow-sm" : "text-slate-500 hover:text-slate-700")}>
+                                                Kurumsal
+                                            </button>
+                                        </div>
+                                        <input type="hidden" name="customer_type" value={customerType} />
+                                    </div>
+
                                     <Tabs defaultValue="general" className="w-full">
-                                        <TabsList className="grid w-full grid-cols-2 mb-6 bg-slate-100 p-1 rounded-xl">
+                                        <TabsList className={cn("grid w-full mb-5 bg-slate-100 p-1 rounded-xl", customerType === 'corporate' ? "grid-cols-3" : "grid-cols-2")}>
                                             <TabsTrigger value="general" className="rounded-lg font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">{t('tabs.details')}</TabsTrigger>
+                                            {customerType === 'corporate' && (
+                                                <TabsTrigger value="company" className="rounded-lg font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">Firma Bilgileri</TabsTrigger>
+                                            )}
                                             <TabsTrigger value="demands" className="rounded-lg font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">{t('tabs.demands')}</TabsTrigger>
                                         </TabsList>
-                                        <TabsContent value="general" forceMount={true} className="data-[state=inactive]:hidden space-y-4">
-                                            <div className="grid gap-2">
-                                                <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{t('form.fullName')}</Label>
-                                                <Input name="full_name" required className="h-11 bg-slate-50 border-slate-200 focus:ring-blue-500 rounded-xl transition-all" />
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div className="grid gap-2">
+                                        <TabsContent value="general" forceMount={true} className="data-[state=inactive]:hidden space-y-3">
+                                            <div className="grid grid-cols-3 gap-4">
+                                                <div className="grid gap-1.5">
+                                                    <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{t('form.fullName')}</Label>
+                                                    <Input name="full_name" required className="h-10 bg-slate-50 border-slate-200 rounded-xl" />
+                                                </div>
+                                                <div className="grid gap-1.5">
                                                     <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{t('form.phone')}</Label>
-                                                    <Input name="phone" required className="h-11 bg-slate-50 border-slate-200 focus:ring-blue-500 rounded-xl transition-all" />
+                                                    <Input name="phone" required className="h-10 bg-slate-50 border-slate-200 rounded-xl" />
                                                 </div>
-                                                <div className="grid gap-2">
+                                                <div className="grid gap-1.5">
                                                     <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{t('form.email')}</Label>
-                                                    <Input name="email" type="email" className="h-11 bg-slate-50 border-slate-200 focus:ring-blue-500 rounded-xl transition-all" />
+                                                    <Input name="email" type="email" className="h-10 bg-slate-50 border-slate-200 rounded-xl" />
                                                 </div>
                                             </div>
-                                            <div className="grid gap-2">
-                                                <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{t('form.source')}</Label>
-                                                <Input name="source" placeholder={t('form.sourcePlaceholder')} className="h-11 bg-slate-50 border-slate-200 focus:ring-blue-500 rounded-xl transition-all" />
-                                            </div>
-                                            <div className="grid gap-2">
-                                                <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{t('form.address')}</Label>
-                                                <Textarea name="address" className="bg-slate-50 border-slate-200 focus:ring-blue-500 rounded-xl transition-all resize-none min-h-[80px]" />
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div className="grid gap-2">
+                                            <div className="grid grid-cols-3 gap-4">
+                                                <div className="grid gap-1.5">
+                                                    <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{t('form.source')}</Label>
+                                                    <Input name="source" placeholder={t('form.sourcePlaceholder')} className="h-10 bg-slate-50 border-slate-200 rounded-xl" />
+                                                </div>
+                                                <div className="grid gap-1.5">
                                                     <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{t('form.city')}</Label>
-                                                    <Input name="city" className="h-11 bg-slate-50 border-slate-200 focus:ring-blue-500 rounded-xl transition-all" />
+                                                    <Input name="city" className="h-10 bg-slate-50 border-slate-200 rounded-xl" />
                                                 </div>
-                                                <div className="grid gap-2">
+                                                <div className="grid gap-1.5">
                                                     <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{t('form.district')}</Label>
-                                                    <Input name="district" className="h-11 bg-slate-50 border-slate-200 focus:ring-blue-500 rounded-xl transition-all" />
+                                                    <Input name="district" className="h-10 bg-slate-50 border-slate-200 rounded-xl" />
                                                 </div>
                                             </div>
-
-                                            <div className="pt-4 border-t mt-4">
-                                                <Label className="text-blue-600 font-black text-[10px] uppercase tracking-widest">{t('form.portalAccess')}</Label>
-                                                <div className="grid grid-cols-2 gap-4 mt-3">
-                                                    <div className="grid gap-1.5">
+                                            <div className="grid gap-1.5">
+                                                <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{t('form.address')}</Label>
+                                                <Textarea name="address" className="bg-slate-50 border-slate-200 rounded-xl resize-none min-h-[60px]" />
+                                            </div>
+                                            <div className="pt-3 border-t mt-2">
+                                                <Label className="text-blue-600 font-black text-[10px] uppercase tracking-widest">Portal Erişimi</Label>
+                                                <div className="grid grid-cols-2 gap-4 mt-2">
+                                                    <div className="grid gap-1">
                                                         <Label className="text-[10px] font-bold text-slate-400 ml-1">{t('form.username')}</Label>
-                                                        <Input name="portal_username" placeholder={t('form.username')} className="h-10 bg-white border-slate-200 rounded-xl" />
+                                                        <Input name="portal_username" placeholder={t('form.username')} className="h-9 bg-white border-slate-200 rounded-xl" />
                                                     </div>
-                                                    <div className="grid gap-1.5">
+                                                    <div className="grid gap-1">
                                                         <Label className="text-[10px] font-bold text-slate-400 ml-1">{t('form.password')}</Label>
-                                                        <Input name="portal_password" type="password" placeholder={t('form.password')} className="h-10 bg-white border-slate-200 rounded-xl" />
+                                                        <Input name="portal_password" type="password" placeholder={t('form.password')} className="h-9 bg-white border-slate-200 rounded-xl" />
                                                     </div>
                                                 </div>
                                             </div>
                                         </TabsContent>
-                                        <TabsContent value="demands" forceMount={true} className="data-[state=inactive]:hidden space-y-4">
-                                            <div className="grid gap-4 py-2">
+                                        {customerType === 'corporate' && (
+                                            <TabsContent value="company" forceMount={true} className="data-[state=inactive]:hidden space-y-3">
                                                 <div className="grid grid-cols-2 gap-4">
-                                                    <div className="space-y-2">
-                                                        <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{t('form.minBudget')}</Label>
-                                                        <Input name="min_price" type="number" placeholder="0" className="h-11 bg-slate-50 border-slate-200 rounded-xl" />
+                                                    <div className="grid gap-1.5">
+                                                        <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Firma Adı <span className="text-red-500">*</span></Label>
+                                                        <Input name="company_name" required={customerType === 'corporate'} className="h-10 bg-slate-50 border-slate-200 rounded-xl" />
                                                     </div>
-                                                    <div className="space-y-2">
-                                                        <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{t('form.maxBudget')}</Label>
-                                                        <Input name="max_price" type="number" placeholder="0" className="h-11 bg-slate-50 border-slate-200 rounded-xl" />
-                                                    </div>
-                                                </div>
-
-                                                <div className="space-y-2">
-                                                    <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{t('form.roomCount')}</Label>
-                                                    <div className="flex gap-2 flex-wrap">
-                                                        {['1+1', '2+1', '3+1', '4+1', 'Villa'].map(type => (
-                                                            <label key={type} className="flex items-center space-x-2 border border-slate-100 bg-slate-50/50 p-2.5 px-4 rounded-xl cursor-pointer hover:bg-white hover:border-blue-200 hover:shadow-sm transition-all">
-                                                                <input
-                                                                    type="checkbox"
-                                                                    name="room_count"
-                                                                    value={type}
-                                                                    className="h-4 w-4 rounded-md border-slate-300 text-blue-600 focus:ring-blue-500"
-                                                                />
-                                                                <span className="text-sm font-bold text-slate-700">{type}</span>
-                                                            </label>
-                                                        ))}
+                                                    <div className="grid gap-1.5">
+                                                        <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Firma Telefonu</Label>
+                                                        <Input name="company_phone" className="h-10 bg-slate-50 border-slate-200 rounded-xl" />
                                                     </div>
                                                 </div>
-
-                                                <div className="space-y-2">
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div className="grid gap-1.5">
+                                                        <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Vergi Dairesi <span className="text-red-500">*</span></Label>
+                                                        <Input name="tax_office" required={customerType === 'corporate'} className="h-10 bg-slate-50 border-slate-200 rounded-xl" />
+                                                    </div>
+                                                    <div className="grid gap-1.5">
+                                                        <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Vergi Numarası <span className="text-red-500">*</span></Label>
+                                                        <Input name="tax_number" required={customerType === 'corporate'} className="h-10 bg-slate-50 border-slate-200 rounded-xl" />
+                                                    </div>
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div className="grid gap-1.5">
+                                                        <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Firma E-posta</Label>
+                                                        <Input name="company_email" type="email" className="h-10 bg-slate-50 border-slate-200 rounded-xl" />
+                                                    </div>
+                                                    <div className="grid gap-1.5">
+                                                        <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Web Sitesi</Label>
+                                                        <Input name="company_website" placeholder="https://" className="h-10 bg-slate-50 border-slate-200 rounded-xl" />
+                                                    </div>
+                                                </div>
+                                                <div className="grid gap-1.5">
+                                                    <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Firma Adresi</Label>
+                                                    <Textarea name="company_address" className="bg-slate-50 border-slate-200 rounded-xl resize-none min-h-[60px]" />
+                                                </div>
+                                            </TabsContent>
+                                        )}
+                                        <TabsContent value="demands" forceMount={true} className="data-[state=inactive]:hidden space-y-3">
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="space-y-1.5">
+                                                    <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{t('form.minBudget')}</Label>
+                                                    <Input name="min_price" type="number" placeholder="0" className="h-10 bg-slate-50 border-slate-200 rounded-xl" />
+                                                </div>
+                                                <div className="space-y-1.5">
+                                                    <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{t('form.maxBudget')}</Label>
+                                                    <Input name="max_price" type="number" placeholder="0" className="h-10 bg-slate-50 border-slate-200 rounded-xl" />
+                                                </div>
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{t('form.roomCount')}</Label>
+                                                <div className="flex gap-2 flex-wrap">
+                                                    {['1+1', '2+1', '3+1', '4+1', 'Villa'].map(type => (
+                                                        <label key={type} className="flex items-center space-x-2 border border-slate-100 bg-slate-50/50 p-2 px-3 rounded-xl cursor-pointer hover:bg-white hover:border-blue-200 transition-all">
+                                                            <input type="checkbox" name="room_count" value={type} className="h-4 w-4 rounded-md border-slate-300 text-blue-600" />
+                                                            <span className="text-sm font-bold text-slate-700">{type}</span>
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            <div className="grid grid-cols-3 gap-4">
+                                                <div className="space-y-1.5">
                                                     <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{t('form.location')}</Label>
-                                                    <Input name="location_preference" placeholder={t('form.locationPlaceholder')} className="h-11 bg-slate-50 border-slate-200 rounded-xl" />
+                                                    <Input name="location_preference" placeholder={t('form.locationPlaceholder')} className="h-10 bg-slate-50 border-slate-200 rounded-xl" />
                                                 </div>
-
-                                                <div className="grid grid-cols-2 gap-4">
-                                                    <div className="space-y-2">
-                                                        <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{t('form.propertyType')}</Label>
-                                                        <Select name="property_type">
-                                                            <SelectTrigger className="h-11 bg-slate-50 border-slate-200 rounded-xl">
-                                                                <SelectValue placeholder={t('form.select')} />
-                                                            </SelectTrigger>
-                                                            <SelectContent className="rounded-xl shadow-xl">
-                                                                <SelectItem value="Apartment">{t('types.Apartment')}</SelectItem>
-                                                                <SelectItem value="Villa">{t('types.Villa')}</SelectItem>
-                                                                <SelectItem value="Office">{t('types.Office')}</SelectItem>
-                                                                <SelectItem value="Shop">{t('types.Shop')}</SelectItem>
-                                                                <SelectItem value="Commercial">{t('types.Commercial')}</SelectItem>
-                                                                <SelectItem value="Land">{t('types.Land')}</SelectItem>
-                                                            </SelectContent>
-                                                        </Select>
-                                                    </div>
-                                                    <div className="space-y-2">
-                                                        <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{t('form.investmentPurpose')}</Label>
-                                                        <Select name="investment_purpose">
-                                                            <SelectTrigger className="h-11 bg-slate-50 border-slate-200 rounded-xl">
-                                                                <SelectValue placeholder={t('form.select')} />
-                                                            </SelectTrigger>
-                                                            <SelectContent className="rounded-xl shadow-xl">
-                                                                <SelectItem value="Living">{t('purposes.Living')}</SelectItem>
-                                                                <SelectItem value="Investment">{t('purposes.Investment')}</SelectItem>
-                                                                <SelectItem value="Holiday">{t('purposes.Holiday')}</SelectItem>
-                                                            </SelectContent>
-                                                        </Select>
-                                                    </div>
+                                                <div className="space-y-1.5">
+                                                    <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{t('form.propertyType')}</Label>
+                                                    <Select name="property_type">
+                                                        <SelectTrigger className="h-10 bg-slate-50 border-slate-200 rounded-xl"><SelectValue placeholder={t('form.select')} /></SelectTrigger>
+                                                        <SelectContent className="rounded-xl shadow-xl">
+                                                            <SelectItem value="Apartment">{t('types.Apartment')}</SelectItem>
+                                                            <SelectItem value="Villa">{t('types.Villa')}</SelectItem>
+                                                            <SelectItem value="Office">{t('types.Office')}</SelectItem>
+                                                            <SelectItem value="Shop">{t('types.Shop')}</SelectItem>
+                                                            <SelectItem value="Commercial">{t('types.Commercial')}</SelectItem>
+                                                            <SelectItem value="Land">{t('types.Land')}</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
                                                 </div>
-
-                                                <div className="space-y-2">
-                                                    <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{t('form.notes')}</Label>
-                                                    <Textarea name="notes" placeholder={t('form.notesPlaceholder')} className="bg-slate-50 border-slate-200 rounded-xl resize-none min-h-[100px]" />
+                                                <div className="space-y-1.5">
+                                                    <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{t('form.investmentPurpose')}</Label>
+                                                    <Select name="investment_purpose">
+                                                        <SelectTrigger className="h-10 bg-slate-50 border-slate-200 rounded-xl"><SelectValue placeholder={t('form.select')} /></SelectTrigger>
+                                                        <SelectContent className="rounded-xl shadow-xl">
+                                                            <SelectItem value="Living">{t('purposes.Living')}</SelectItem>
+                                                            <SelectItem value="Investment">{t('purposes.Investment')}</SelectItem>
+                                                            <SelectItem value="Holiday">{t('purposes.Holiday')}</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
                                                 </div>
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{t('form.notes')}</Label>
+                                                <Textarea name="notes" placeholder={t('form.notesPlaceholder')} className="bg-slate-50 border-slate-200 rounded-xl resize-none min-h-[70px]" />
                                             </div>
                                         </TabsContent>
                                     </Tabs>
                                 </div>
-                                <DialogFooter className="p-6 bg-slate-50 border-t border-slate-100">
-                                    <Button type="submit" disabled={isPending} className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-100 transition-all select-none">
+                                <DialogFooter className="p-5 bg-slate-50 border-t border-slate-100">
+                                    <Button type="submit" disabled={isPending} className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-100 transition-all">
                                         {isPending ? (
                                             <div className="flex items-center gap-2">
                                                 <span className="animate-spin h-4 w-4 border-2 border-white/20 border-t-white rounded-full" />

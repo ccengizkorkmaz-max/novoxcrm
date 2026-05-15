@@ -34,6 +34,14 @@ export async function createCustomer(formData: FormData) {
     const country = formData.get('country') as string
     const portal_username = (formData.get('portal_username') as string)?.trim() || null
     const portal_password = (formData.get('portal_password') as string)?.trim() || null
+    const customer_type = (formData.get('customer_type') as string) || 'individual'
+    const company_name = (formData.get('company_name') as string)?.trim() || null
+    const tax_office = (formData.get('tax_office') as string)?.trim() || null
+    const tax_number = (formData.get('tax_number') as string)?.trim() || null
+    const company_address = (formData.get('company_address') as string)?.trim() || null
+    const company_phone = (formData.get('company_phone') as string)?.trim() || null
+    const company_website = (formData.get('company_website') as string)?.trim() || null
+    const company_email = (formData.get('company_email') as string)?.trim() || null
 
     const { data, error } = await adminSupabase
         .from('customers')
@@ -50,7 +58,15 @@ export async function createCustomer(formData: FormData) {
             country,
             portal_username,
             portal_password,
-            created_by: user.id
+            created_by: user.id,
+            customer_type,
+            company_name,
+            tax_office,
+            tax_number,
+            company_address,
+            company_phone,
+            company_website,
+            company_email
         })
         .select()
         .single()
