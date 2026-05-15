@@ -426,24 +426,66 @@ export async function getMarketingAnalytics() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: 'Unauthorized' }
 
-    // Fetch sales (Most recent 20,000 to avoid memory crashes but include today's data)
-    const { data: sales, error: salesError } = await supabase
-        .from('sales')
-        .select('id, status, description, created_at, customer_id')
-        .order('created_at', { ascending: false })
-        .limit(20000)
+    // Fetch ALL marketing sales using DB-level filter (description contains 'Form:' or 'Lead from')
+    // Paginate through batches of 1000 to avoid Supabase row limits
+    let allSales: any[] = []
+    let page = 0
+    const batchSize = 1000
+    while (true) {
+        const { data: batch, error } = await supabase
+            .from('sales')
+            .select('id, status, description, created_at, customer_id')
+            .or('description.ilike.%Form:%,description.ilike.%Lead from%')
+            .order('created_at', { ascending: false })
+            .range(page * batchSize, (page + 1) * batchSize - 1)
+        
+        if (error || !batch || batch.length === 0) break
+        allSales = allSales.concat(batch)
+        if (batch.length < batchSize) break
+        page++
+    }
 
-    if (salesError || !sales) return { error: 'No sales data' }
+    if (allSales.length === 0) return { error: 'No sales data' }
 
-    // Fetch customer sources
-    const { data: customers } = await supabase
-        .from('customers')
-        .select('id, source, full_name')
+    // Also include sales whose customer source is a marketing channel (but has no description)
+    const marketingSources = ['Facebook Ads', 'Facebook', 'fb', 'Instagram', 'ig', 'WEB Form', 'Email', 'E-Posta', 'Whatsapp&Call Center']
 
+    // Get sales that have marketing source but NO description match (to fill the gap)
+    const existingIds = new Set(allSales.map(s => s.id))
+    let extraPage = 0
+    while (true) {
+        const { data: batch, error } = await supabase
+            .from('sales')
+            .select('id, status, description, created_at, customer_id, customers!inner(source)')
+            .in('customers.source', marketingSources)
+            .order('created_at', { ascending: false })
+            .range(extraPage * batchSize, (extraPage + 1) * batchSize - 1)
+
+        if (error || !batch || batch.length === 0) break
+        batch.forEach((s: any) => {
+            if (!existingIds.has(s.id)) {
+                allSales.push(s)
+                existingIds.add(s.id)
+            }
+        })
+        if (batch.length < batchSize) break
+        extraPage++
+    }
+
+    const marketingSales = allSales
+
+    // Build a minimal source map for the customers in our dataset
+    const customerIds = [...new Set(marketingSales.map(s => s.customer_id).filter(Boolean))]
     const sourceMap: Record<string, string> = {}
-    customers?.forEach(c => {
-        sourceMap[c.id] = c.source || 'Bilinmiyor'
-    })
+    // Batch fetch customer sources
+    for (let i = 0; i < customerIds.length; i += batchSize) {
+        const batch = customerIds.slice(i, i + batchSize)
+        const { data: custs } = await supabase
+            .from('customers')
+            .select('id, source')
+            .in('id', batch)
+        custs?.forEach(c => { sourceMap[c.id] = c.source || '' })
+    }
 
     const statusLabels: Record<string, string> = {
         'Lead': 'Aday',
@@ -461,14 +503,6 @@ export async function getMarketingAnalytics() {
         'Transferred': 'Devredildi',
         'Reserved': 'Rezerve'
     }
-
-    const marketingSources = ['Facebook Ads', 'Facebook', 'fb', 'Instagram', 'ig', 'WEB Form', 'Email', 'E-Posta', 'Whatsapp&Call Center'];
-
-    const marketingSales = sales.filter(s => {
-        const source = sourceMap[s.customer_id] || ''
-        const desc = s.description || ''
-        return marketingSources.includes(source) || desc.includes('Form:') || source.toLowerCase().includes('form')
-    })
 
     // Parse description → Kanal, Proje, Kampanya
     // Pattern: "Lead from Facebook Ads (Form: NOVO CITY İZMİR) (Campaign: 1504 / City İzmir / Potansiyel Müşteri Form Kampanyası)"
