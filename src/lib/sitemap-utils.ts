@@ -45,75 +45,99 @@ const STATIC_PAGE_DATES: Record<string, string> = {
 const LOCALES = ['tr', 'en'] as const
 
 /**
+ * Returns both www and non-www base URLs for the current domain.
+ * Google has indexed both variants, so sitemap must include both.
+ */
+function getBaseUrls(host: string): string[] {
+    const cleanHost = host.split(':')[0]
+    if (cleanHost === 'localhost' || cleanHost === '127.0.0.1') {
+        return [`http://${host}`]
+    }
+    // Strip www if present to get the bare domain
+    const bareDomain = cleanHost.replace(/^www\./, '')
+    return [
+        `https://${bareDomain}`,
+        `https://www.${bareDomain}`,
+    ]
+}
+
+/**
  * Generate sitemap URLs using the current request's hostname.
  * Each domain (novoxcrm.com, oikoscrm.com) gets its own sitemap
  * with URLs pointing to itself — essential for independent indexing.
  * 
- * Generates entries for:
- *  1. Root URLs (no locale prefix): /wiki/slug, /solutions, etc.
- *  2. /tr locale URLs: /tr/wiki/slug
- *  3. /en locale URLs: /en/wiki/slug
- * 
- * This matches how Google has historically indexed the site with
- * all three URL variants (root + /tr + /en).
+ * Generates entries for ALL URL variants that Google has historically indexed:
+ *  - domain.com/wiki/slug           (root, no www)
+ *  - domain.com/tr/wiki/slug        (tr locale, no www)
+ *  - domain.com/en/wiki/slug        (en locale, no www)
+ *  - www.domain.com/wiki/slug       (root, www)
+ *  - www.domain.com/tr/wiki/slug    (tr locale, www)
+ *  - www.domain.com/en/wiki/slug    (en locale, www)
  */
 export async function getSitemapUrls(): Promise<MetadataRoute.Sitemap> {
     const host = await getHostFromHeaders()
-    const baseUrl = getCanonicalBaseUrl(host)
+    const baseUrls = getBaseUrls(host)
+    const canonicalBaseUrl = getCanonicalBaseUrl(host) // non-www for alternates
     const supabase = await createClient()
 
-    // ── 1. Marketing routes — root (no prefix) + each locale ──
-    const marketingRoutes = Object.entries(STATIC_PAGE_DATES).flatMap(([route, date]) => {
-        const rootEntry = {
-            url: `${baseUrl}${route || '/'}`,
-            lastModified: new Date(date),
-            changeFrequency: 'weekly' as const,
-            priority: route === '' ? 1 : 0.8,
-            _path: route,
-        }
-        const localeEntries = LOCALES.map((locale) => ({
-            url: `${baseUrl}/${locale}${route}`,
-            lastModified: new Date(date),
-            changeFrequency: 'weekly' as const,
-            priority: route === '' ? 1 : 0.8,
-            _path: route,
-        }))
-        return [rootEntry, ...localeEntries]
-    })
+    // Helper: generate entries for a path across all base URLs and locales
+    function generateVariants(
+        path: string,
+        date: Date,
+        changeFreq: 'weekly' | 'monthly' | 'daily',
+        priority: number
+    ) {
+        return baseUrls.flatMap((base) => {
+            // Root URL (no locale prefix)
+            const rootEntry = {
+                url: `${base}${path || '/'}`,
+                lastModified: date,
+                changeFrequency: changeFreq,
+                priority,
+                _path: path,
+            }
+            // Locale-prefixed URLs
+            const localeEntries = LOCALES.map((locale) => ({
+                url: `${base}/${locale}${path}`,
+                lastModified: date,
+                changeFrequency: changeFreq,
+                priority,
+                _path: path,
+            }))
+            return [rootEntry, ...localeEntries]
+        })
+    }
 
-    // ── 2. Wiki articles — root + each locale ──
-    const wikiRoutes = wikiArticles.flatMap((article) => {
-        const date = new Date(parseTurkishDate(article.date))
-        const rootEntry = {
-            url: `${baseUrl}/wiki/${article.slug}`,
-            lastModified: date,
-            changeFrequency: 'monthly' as const,
-            priority: 0.6,
-            _path: `/wiki/${article.slug}`,
-        }
-        const localeEntries = LOCALES.map((locale) => ({
-            url: `${baseUrl}/${locale}/wiki/${article.slug}`,
-            lastModified: date,
-            changeFrequency: 'monthly' as const,
-            priority: 0.6,
-            _path: `/wiki/${article.slug}`,
-        }))
-        return [rootEntry, ...localeEntries]
-    })
+    // ── 1. Marketing routes ──
+    const marketingRoutes = Object.entries(STATIC_PAGE_DATES).flatMap(
+        ([route, date]) => generateVariants(route, new Date(date), 'weekly', route === '' ? 1 : 0.8)
+    )
 
-    // ── 3. Public Broker Profiles (no locale prefix) ──
+    // ── 2. Wiki articles ──
+    const wikiRoutes = wikiArticles.flatMap((article) =>
+        generateVariants(
+            `/wiki/${article.slug}`,
+            new Date(parseTurkishDate(article.date)),
+            'monthly',
+            0.6
+        )
+    )
+
+    // ── 3. Public Broker Profiles (no locale prefix, both www variants) ──
     const { data: profiles } = await supabase
         .from('profiles')
         .select('broker_slug, updated_at')
         .not('broker_slug', 'is', null)
 
-    const profileRoutes = profiles?.map((profile) => ({
-        url: `${baseUrl}/p/${profile.broker_slug}`,
-        lastModified: new Date(profile.updated_at || '2026-03-01T00:00:00.000Z'),
-        changeFrequency: 'daily' as const,
-        priority: 0.7,
-        _path: null as string | null,
-    })) || []
+    const profileRoutes = baseUrls.flatMap((base) =>
+        (profiles || []).map((profile) => ({
+            url: `${base}/p/${profile.broker_slug}`,
+            lastModified: new Date(profile.updated_at || '2026-03-01T00:00:00.000Z'),
+            changeFrequency: 'daily' as const,
+            priority: 0.7,
+            _path: null as string | null,
+        }))
+    )
 
     // ── 4. Combine and add i18n alternates ──
     const allRoutes = [...marketingRoutes, ...wikiRoutes, ...profileRoutes]
@@ -130,8 +154,8 @@ export async function getSitemapUrls(): Promise<MetadataRoute.Sitemap> {
             ...rest,
             alternates: {
                 languages: {
-                    tr: `${baseUrl}/tr${_path}`,
-                    en: `${baseUrl}/en${_path}`,
+                    tr: `${canonicalBaseUrl}/tr${_path}`,
+                    en: `${canonicalBaseUrl}/en${_path}`,
                 },
             },
         } as any
