@@ -4,6 +4,7 @@ import { getMarketingAnalytics } from "../actions"
 import AnalyticsMetricCard from "../components/AnalyticsMetricCard"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
+import ShareReportButton from "./ShareReportButton"
 
 export const dynamic = 'force-dynamic'
 
@@ -46,6 +47,7 @@ export default async function MarketingReportsPage() {
                         <p className="text-sm text-muted-foreground">Dijital kanallardan gelen lead'lerin kanal, proje ve kampanya bazlı performans analizi.</p>
                     </div>
                 </div>
+                <ShareReportButton />
             </div>
 
             {/* ── Top Metrics ── */}
@@ -158,9 +160,9 @@ export default async function MarketingReportsPage() {
                 <div className="p-6 border-b bg-muted/30 flex items-center gap-2">
                     <PieChart className="w-5 h-5 text-indigo-600" />
                     <div>
-                        <h3 className="font-semibold text-lg">Kampanya Detay Analizi</h3>
+                        <h3 className="font-semibold text-lg">Form & Kampanya Detay Analizi</h3>
                         <p className="text-sm text-muted-foreground mt-1">
-                            Her kampanyanın kanal, proje ve pipeline kırılımı.
+                            Her Facebook formunun lead sayısı, kampanya bilgisi ve pipeline kırılımı.
                         </p>
                     </div>
                 </div>
@@ -168,9 +170,9 @@ export default async function MarketingReportsPage() {
                     <Table>
                         <TableHeader className="bg-slate-50">
                             <TableRow>
-                                <TableHead className="w-[12%]">Kanal</TableHead>
-                                <TableHead className="w-[14%]">Proje</TableHead>
-                                <TableHead className="w-[20%]">Kampanya</TableHead>
+                                <TableHead className="w-[10%]">Kanal</TableHead>
+                                <TableHead className="w-[18%]">Form Adı</TableHead>
+                                <TableHead className="w-[18%]">Kampanya</TableHead>
                                 <TableHead className="w-[6%] text-center">Bugün</TableHead>
                                 <TableHead className="w-[6%] text-center">Hafta</TableHead>
                                 <TableHead className="w-[6%] text-center">Ay</TableHead>
@@ -186,9 +188,9 @@ export default async function MarketingReportsPage() {
                                             <Badge className={`${getChannelColor(form.channel)} px-2 py-0.5 text-[10px] font-bold`}>{form.channel}</Badge>
                                         </TableCell>
                                         <TableCell className="font-semibold text-sm">
-                                            {form.project || <span className="text-muted-foreground italic">—</span>}
+                                            {form.formName || <span className="text-muted-foreground italic">—</span>}
                                         </TableCell>
-                                        <TableCell className="text-xs text-muted-foreground">
+                                        <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate" title={form.campaign}>
                                             {form.campaign || <span className="italic">—</span>}
                                         </TableCell>
                                         <TableCell className="text-center font-semibold text-sm">

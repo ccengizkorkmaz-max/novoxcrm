@@ -536,18 +536,14 @@ export async function getMarketingAnalytics() {
         else if (['Email', 'E-Posta'].includes(source)) channel = 'E-Posta'
         else if (source === 'Whatsapp&Call Center') channel = 'WhatsApp & Çağrı Merkezi'
 
-        // Determine form/project name
-        let projectName = parsed.project || ''
+        // Form name = Facebook form name from Make.com (e.g. "Novo City İzmir - Elemeli - Ek")
+        let formName = parsed.project || ''
         let campaignName = parsed.campaign || ''
 
-        // Create a unique key per project+campaign combination
+        // Group by FORM NAME (primary key)
         let sourceName = ''
-        if (projectName && campaignName) {
-            sourceName = `${projectName} — ${campaignName}`
-        } else if (projectName) {
-            sourceName = projectName
-        } else if (campaignName) {
-            sourceName = campaignName
+        if (formName) {
+            sourceName = formName
         } else if (['Facebook Ads', 'Facebook', 'fb'].includes(source)) {
             sourceName = 'Facebook Reklamları (Genel)'
         } else if (['Instagram', 'ig'].includes(source)) {
@@ -568,13 +564,18 @@ export async function getMarketingAnalytics() {
             acc[sourceName] = {
                 total: 0, today: 0, thisWeek: 0, thisMonth: 0,
                 channel,
-                project: projectName,
-                campaign: campaignName,
+                formName: formName,
+                campaigns: {},
                 statuses: {}
             }
         }
 
         acc[sourceName].total += 1
+
+        // Track campaigns under this form
+        if (campaignName) {
+            acc[sourceName].campaigns[campaignName] = (acc[sourceName].campaigns[campaignName] || 0) + 1
+        }
 
         const saleDate = new Date(sale.created_at);
         if (isToday(saleDate)) acc[sourceName].today += 1;
@@ -588,6 +589,12 @@ export async function getMarketingAnalytics() {
     }, {})
 
     const formData = Object.entries(leadsByForm).map(([formName, data]: [string, any]) => {
+        // Pick the most common campaign for display
+        const topCampaign = Object.entries(data.campaigns || {})
+            .sort((a: any, b: any) => b[1] - a[1])
+            .map(([name]) => name)[0] || ''
+        const campaignCount = Object.keys(data.campaigns || {}).length
+
         return {
             formName,
             total: data.total,
@@ -595,8 +602,10 @@ export async function getMarketingAnalytics() {
             thisWeek: data.thisWeek,
             thisMonth: data.thisMonth,
             channel: data.channel,
-            project: data.project,
-            campaign: data.campaign,
+            campaign: campaignCount > 1 
+                ? `${topCampaign} (+${campaignCount - 1} diğer)` 
+                : topCampaign,
+            campaigns: data.campaigns,
             statuses: data.statuses
         }
     }).sort((a, b) => b.total - a.total)

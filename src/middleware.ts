@@ -20,6 +20,11 @@ function isPlatformHost(hostname: string): boolean {
 }
 
 export async function middleware(request: NextRequest) {
+    // Skip i18n and auth for shared public report pages
+    if (request.nextUrl.pathname.startsWith('/shared/')) {
+        return NextResponse.next()
+    }
+
     // Run i18n middleware
     const response = i18nMiddleware(request);
 
