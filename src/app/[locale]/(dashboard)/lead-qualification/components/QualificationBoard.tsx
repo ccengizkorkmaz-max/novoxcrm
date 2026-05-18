@@ -13,7 +13,14 @@ import { updateQualificationStatus, addCallNote, convertToSale } from '../action
 import { Calendar, Check, Clock, FileText, Info, Phone, PhoneMissed, X, Building2, User, LayoutGrid, List, Table, Undo2, MessageSquareText } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { tr } from 'date-fns/locale'
-import { useRouter } from 'next/navigation'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { useRouter, useSearchParams } from 'next/navigation'
+
+const getEkSoru = (notes?: string) => {
+    if (!notes) return null
+    const match = notes.match(/Ek Soru:\s*(.+)/i)
+    return match ? match[1].trim() : null
+}
 
 const STATUSES = [
     { id: 'new', label: 'Yeni', icon: FileText, color: 'bg-emerald-100 text-emerald-700', border: 'border-emerald-200' },
@@ -29,15 +36,47 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
     const [selectedQual, setSelectedQual] = useState<any>(null)
     const [viewMode, setViewMode] = useState<'kanban' | 'rapid' | 'table'>('rapid')
     
-    // Rapid View specific state
-    const [rapidFilterStatus, setRapidFilterStatus] = useState<string>('all')
-    const [searchQuery, setSearchQuery] = useState('')
+    const searchParams = useSearchParams()
     const router = useRouter()
+    
+    // Server-sync filtering states
+    const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '')
+    const [selectedStatuses, setSelectedStatuses] = useState<string[]>(
+        searchParams.get('status') ? searchParams.get('status')!.split(',') : []
+    )
     
     // Sync external data changes (pagination) to local state
     useEffect(() => {
         setQualifications(initialData)
     }, [initialData])
+    
+    // Update URL when filters change
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            const params = new URLSearchParams(window.location.search)
+            let changed = false
+            
+            if (searchQuery !== (params.get('search') || '')) {
+                if (searchQuery) params.set('search', searchQuery)
+                else params.delete('search')
+                changed = true
+            }
+            
+            const currentStatus = params.get('status') || ''
+            const newStatus = selectedStatuses.join(',')
+            if (currentStatus !== newStatus) {
+                if (newStatus) params.set('status', newStatus)
+                else params.delete('status')
+                changed = true
+            }
+            
+            if (changed) {
+                params.delete('page') // reset page on filter
+                router.push(`?${params.toString()}`)
+            }
+        }, 400)
+        return () => clearTimeout(timer)
+    }, [searchQuery, selectedStatuses, router])
     
     // Dialog states
     const [isNoteDialogOpen, setIsNoteDialogOpen] = useState(false)
@@ -189,19 +228,8 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
         items: qualifications.filter(q => q.status === status.id)
     }))
 
-    // Rapid View Filtreleme
-    const filteredRapidItems = qualifications.filter(q => {
-        if (rapidFilterStatus !== 'all' && q.status !== rapidFilterStatus) return false
-        if (searchQuery) {
-            const query = searchQuery.toLowerCase()
-            return (
-                q.customers?.full_name?.toLowerCase().includes(query) ||
-                q.customers?.phone?.includes(query) ||
-                q.call_notes?.toLowerCase().includes(query)
-            )
-        }
-        return true
-    })
+    // Rapid View Filtreleme (Artık server-side)
+    const filteredRapidItems = qualifications
 
     return (
         <div className="flex flex-col h-full space-y-4">
@@ -310,8 +338,18 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
                                                             <div className="flex items-center gap-1 text-blue-700 font-semibold text-[10px]">
                                                                 <Info className="w-3 h-3" /> Meta Reklamı
                                                             </div>
-                                                            <div className="text-[9px] text-blue-600 truncate" title={qual.campaign_name || qual.customers?.notes || 'Bilinmeyen Kampanya'}>
-                                                                {qual.campaign_name || qual.customers?.notes || 'Detay bulunamadı'}
+                                                            <div className="text-[9px] text-blue-600 truncate" title={qual.campaign_name || 'Bilinmeyen Kampanya'}>
+                                                                {qual.campaign_name || 'Kampanya bilinmiyor'}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                    {getEkSoru(qual.customers?.notes) && (
+                                                        <div className="mt-1 flex flex-col gap-1 p-1.5 bg-indigo-50 rounded border border-indigo-100">
+                                                            <div className="text-[10px] font-semibold text-indigo-700 flex items-center gap-1">
+                                                                <MessageSquareText className="w-3 h-3" /> Ek Soru
+                                                            </div>
+                                                            <div className="text-xs text-indigo-900 font-medium whitespace-pre-wrap">
+                                                                {getEkSoru(qual.customers?.notes)}
                                                             </div>
                                                         </div>
                                                     )}
@@ -379,18 +417,24 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
                             </div>
                             <div className="flex overflow-x-auto gap-1 pb-1 snap-x scrollbar-hide">
                                 <button 
-                                    onClick={() => setRapidFilterStatus('all')}
-                                    className={`snap-start whitespace-nowrap px-3 py-1 rounded-full text-xs font-medium transition-colors ${rapidFilterStatus === 'all' ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                                    onClick={() => setSelectedStatuses([])}
+                                    className={`snap-start whitespace-nowrap px-3 py-1 rounded-full text-xs font-medium transition-colors ${selectedStatuses.length === 0 ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
                                 >
-                                    Tümü ({qualifications.length})
+                                    Tümü ({totalCount})
                                 </button>
                                 {STATUSES.map(s => {
-                                    const count = qualifications.filter(q => q.status === s.id).length
+                                    const count = statusCounts[s.id] || 0
                                     return (
                                         <button 
                                             key={s.id}
-                                            onClick={() => setRapidFilterStatus(s.id)}
-                                            className={`snap-start whitespace-nowrap px-3 py-1 rounded-full text-xs font-medium transition-colors ${rapidFilterStatus === s.id ? s.color.replace('bg-', 'bg-').replace('text-', 'text-') + ' ring-2 ring-offset-1' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                                            onClick={() => {
+                                                if (selectedStatuses.includes(s.id)) {
+                                                    setSelectedStatuses(selectedStatuses.filter(id => id !== s.id))
+                                                } else {
+                                                    setSelectedStatuses([...selectedStatuses, s.id])
+                                                }
+                                            }}
+                                            className={`snap-start whitespace-nowrap px-3 py-1 rounded-full text-xs font-medium transition-colors ${selectedStatuses.includes(s.id) ? s.color.replace('bg-', 'bg-').replace('text-', 'text-') + ' ring-2 ring-offset-1' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
                                         >
                                             {s.label} ({count})
                                         </button>
@@ -467,6 +511,11 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
                                             </span>
                                             {(selectedQual.customers?.source || selectedQual.source) && (
                                                 <Badge variant="secondary" className="bg-slate-200 hover:bg-slate-300 text-slate-700">{selectedQual.customers?.source || selectedQual.source}</Badge>
+                                            )}
+                                            {getEkSoru(selectedQual.customers?.notes) && (
+                                                <span className="flex items-center gap-1.5 text-indigo-700 bg-indigo-50 px-2 py-1 rounded-md border border-indigo-100 font-medium ml-2">
+                                                    <MessageSquareText className="w-4 h-4" /> Ek Soru: {getEkSoru(selectedQual.customers?.notes)}
+                                                </span>
                                             )}
                                         </div>
                                     </div>
@@ -580,17 +629,33 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
                                 onChange={e => setSearchQuery(e.target.value)}
                                 className="w-64 px-3 py-1.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
-                            <Select value={rapidFilterStatus} onValueChange={setRapidFilterStatus}>
-                                <SelectTrigger className="w-[180px] h-9">
-                                    <SelectValue placeholder="Durum Seçin" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">Tüm Durumlar</SelectItem>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="outline" className="w-[180px] h-9 justify-between">
+                                        {selectedStatuses.length === 0 ? "Tüm Durumlar" : `${selectedStatuses.length} Durum Seçili`}
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent className="w-[180px]">
+                                    <DropdownMenuCheckboxItem
+                                        checked={selectedStatuses.length === 0}
+                                        onCheckedChange={() => setSelectedStatuses([])}
+                                    >
+                                        Tüm Durumlar
+                                    </DropdownMenuCheckboxItem>
                                     {STATUSES.map(s => (
-                                        <SelectItem key={s.id} value={s.id}>{s.label}</SelectItem>
+                                        <DropdownMenuCheckboxItem
+                                            key={s.id}
+                                            checked={selectedStatuses.includes(s.id)}
+                                            onCheckedChange={(checked) => {
+                                                if (checked) setSelectedStatuses([...selectedStatuses, s.id])
+                                                else setSelectedStatuses(selectedStatuses.filter(id => id !== s.id))
+                                            }}
+                                        >
+                                            {s.label}
+                                        </DropdownMenuCheckboxItem>
                                     ))}
-                                </SelectContent>
-                            </Select>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                         </div>
                         <div className="flex items-center gap-2 overflow-x-auto px-2 hide-scrollbar">
                             {STATUSES.map(status => {

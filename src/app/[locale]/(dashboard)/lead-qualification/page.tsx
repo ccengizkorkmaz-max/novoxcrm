@@ -19,6 +19,8 @@ export default async function LeadQualificationPage(props: {
 
     const searchParams = await props.searchParams
     const page = typeof searchParams.page === 'string' ? parseInt(searchParams.page) : 1
+    const searchQuery = typeof searchParams.search === 'string' ? searchParams.search : ''
+    const statusFilters = typeof searchParams.status === 'string' && searchParams.status ? searchParams.status.split(',') : []
     const pageSize = 100
 
     let qualifications: any[] = []
@@ -27,11 +29,20 @@ export default async function LeadQualificationPage(props: {
     
     if (profile?.tenant_id) {
         // İlk olarak toplam kayıt sayısını alalım
-        const { count } = await supabase
+        let queryCount = supabase
             .from('lead_qualifications')
-            .select('*', { count: 'exact', head: true })
+            .select('*, customers!inner(full_name, phone)', { count: 'exact', head: true })
             .eq('tenant_id', profile.tenant_id)
             
+        if (statusFilters.length > 0) {
+            queryCount = queryCount.in('status', statusFilters)
+        }
+        if (searchQuery) {
+            const sq = searchQuery.trim()
+            queryCount = queryCount.or(`full_name.ilike.%${sq}%,phone.ilike.%${sq}%`, { foreignTable: 'customers' })
+        }
+        
+        const { count } = await queryCount
         totalCount = count || 0
 
         // Get exact counts for all statuses
@@ -55,39 +66,31 @@ export default async function LeadQualificationPage(props: {
         const from = (page - 1) * pageSize
         const to = from + pageSize - 1
 
-        const { data, error } = await supabase
+        let queryData = supabase
             .from('lead_qualifications')
             .select(`
                 *,
-                customers (
-                    id,
-                    full_name,
-                    phone,
-                    email,
-                    customer_number,
-                    created_at,
-                    source,
-                    notes,
-                    customer_demands (
-                        notes
-                    ),
-                    outreach_executions (
-                        id
-                    )
+                customers!inner (
+                    id, full_name, phone, email, customer_number, created_at, source, notes,
+                    customer_demands ( notes ),
+                    outreach_executions ( id )
                 ),
-                projects:project_id (
-                    id,
-                    name
-                ),
-                profiles!lead_qualifications_assigned_to_fkey (
-                    id,
-                    full_name
-                )
+                projects:project_id ( id, name ),
+                profiles!lead_qualifications_assigned_to_fkey ( id, full_name )
             `)
             .eq('tenant_id', profile.tenant_id)
             .order('created_at', { ascending: false })
             .range(from, to)
+
+        if (statusFilters.length > 0) {
+            queryData = queryData.in('status', statusFilters)
+        }
+        if (searchQuery) {
+            const sq = searchQuery.trim()
+            queryData = queryData.or(`full_name.ilike.%${sq}%,phone.ilike.%${sq}%`, { foreignTable: 'customers' })
+        }
             
+        const { data, error } = await queryData
         if (!error && data) {
             qualifications = data
         }
