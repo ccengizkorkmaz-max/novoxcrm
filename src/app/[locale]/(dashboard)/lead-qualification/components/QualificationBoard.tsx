@@ -237,12 +237,12 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
                     {/* Board Header Stats */}
                     <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
                         {columns.map(col => (
-                            <div key={col.id} className={`p-3 rounded-xl border ${col.border} ${col.color} bg-opacity-50 flex flex-col items-center justify-center`}>
-                                <div className="flex items-center gap-1.5 font-semibold text-sm mb-1">
-                                    <col.icon className="w-4 h-4" />
+                            <div key={col.id} className={`px-3 py-2 rounded-lg border ${col.border} ${col.color} bg-opacity-50 flex items-center justify-between`}>
+                                <div className="flex items-center gap-1.5 font-medium text-xs">
+                                    <col.icon className="w-3.5 h-3.5" />
                                     {col.label}
                                 </div>
-                                <span className="text-2xl font-black">{col.items.length}</span>
+                                <span className="text-base font-black">{statusCounts[col.id] || 0}</span>
                             </div>
                         ))}
                     </div>
@@ -262,7 +262,7 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
                                             <div className={`w-2 h-2 rounded-full ${col.color.split(' ')[0]}`} />
                                             {col.label}
                                         </div>
-                                        <Badge variant="secondary" className="bg-slate-100">{col.items.length}</Badge>
+                                        <Badge variant="secondary" className="bg-slate-100">{statusCounts[col.id] || 0}</Badge>
                                     </div>
                                     
                                     <div className="flex-1 p-2 overflow-y-auto space-y-2 max-h-[calc(100vh-300px)]">
