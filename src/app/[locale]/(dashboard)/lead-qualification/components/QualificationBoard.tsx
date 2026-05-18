@@ -714,46 +714,49 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
                             </tbody>
                         </table>
                     </div>
-                    {totalCount > pageSize && (
-                        <div className="p-4 border-t bg-slate-50 flex items-center justify-between">
-                            <div className="text-xs text-slate-500">
-                                Toplam <span className="font-bold">{totalCount}</span> kayıttan <span className="font-bold">{(currentPage - 1) * pageSize + 1} - {Math.min(currentPage * pageSize, totalCount)}</span> arası gösteriliyor.
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    disabled={currentPage <= 1}
-                                    onClick={() => {
-                                        const params = new URLSearchParams(window.location.search)
-                                        params.set('page', (currentPage - 1).toString())
-                                        router.push(`?${params.toString()}`)
-                                    }}
-                                    className="h-8"
-                                >
-                                    Önceki
-                                </Button>
-                                <span className="text-xs font-medium px-2 text-slate-600">
-                                    Sayfa {currentPage} / {Math.ceil(totalCount / pageSize)}
-                                </span>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    disabled={currentPage >= Math.ceil(totalCount / pageSize)}
-                                    onClick={() => {
-                                        const params = new URLSearchParams(window.location.search)
-                                        params.set('page', (currentPage + 1).toString())
-                                        router.push(`?${params.toString()}`)
-                                    }}
-                                    className="h-8"
-                                >
-                                    Sonraki
-                                </Button>
-                            </div>
-                        </div>
-                    )}
                 </div>
             )}
+
+            {/* Global Pagination Controls */}
+            {totalCount > pageSize && (
+                <div className="p-4 bg-white border rounded-xl shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4 mt-auto shrink-0">
+                    <div className="text-sm text-slate-600">
+                        Toplam <span className="font-bold text-slate-900">{totalCount}</span> kayıttan <span className="font-bold text-slate-900">{(currentPage - 1) * pageSize + 1} - {Math.min(currentPage * pageSize, totalCount)}</span> arası gösteriliyor.
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={currentPage <= 1}
+                            onClick={() => {
+                                const params = new URLSearchParams(window.location.search)
+                                params.set('page', (currentPage - 1).toString())
+                                router.push(`?${params.toString()}`)
+                            }}
+                            className="h-9 px-4 hover:bg-slate-50"
+                        >
+                            Önceki
+                        </Button>
+                        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 rounded-md border text-sm font-medium text-slate-700">
+                            Sayfa {currentPage} <span className="text-slate-400">/</span> {Math.ceil(totalCount / pageSize)}
+                        </div>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={currentPage >= Math.ceil(totalCount / pageSize)}
+                            onClick={() => {
+                                const params = new URLSearchParams(window.location.search)
+                                params.set('page', (currentPage + 1).toString())
+                                router.push(`?${params.toString()}`)
+                            }}
+                            className="h-9 px-4 hover:bg-slate-50"
+                        >
+                            Sonraki
+                        </Button>
+                    </div>
+                </div>
+            )}
+
 
             {/* Detay Dialog */}
             <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
