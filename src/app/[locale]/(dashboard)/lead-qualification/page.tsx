@@ -35,26 +35,21 @@ export default async function LeadQualificationPage(props: {
         totalCount = count || 0
 
         // Get exact counts for all statuses
-        let allStatuses: { status: string }[] = []
-        let batchPage = 0
-        const batchSize = 5000
-        while (true) {
-            const { data } = await supabase
+        const statusKeys = ['new', 'contacted', 'follow_up', 'unreachable', 'disqualified', 'qualified']
+        const countPromises = statusKeys.map(async (status) => {
+            const { count } = await supabase
                 .from('lead_qualifications')
-                .select('status')
+                .select('*', { count: 'exact', head: true })
                 .eq('tenant_id', profile.tenant_id)
-                .range(batchPage * batchSize, (batchPage + 1) * batchSize - 1)
-            if (!data || data.length === 0) break
-            allStatuses = allStatuses.concat(data)
-            if (data.length < batchSize) break
-            batchPage++
-        }
+                .eq('status', status)
+            return { status, count: count || 0 }
+        })
         
-        statusCounts = allStatuses.reduce((acc: Record<string, number>, item) => {
-            const st = item.status || 'new'
-            acc[st] = (acc[st] || 0) + 1
+        const results = await Promise.all(countPromises)
+        statusCounts = results.reduce((acc, curr) => {
+            acc[curr.status] = curr.count
             return acc
-        }, {})
+        }, {} as Record<string, number>)
 
         // Paginasyonlu veriyi çekelim
         const from = (page - 1) * pageSize

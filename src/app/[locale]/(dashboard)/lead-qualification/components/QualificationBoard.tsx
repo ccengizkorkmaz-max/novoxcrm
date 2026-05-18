@@ -13,6 +13,7 @@ import { updateQualificationStatus, addCallNote, convertToSale } from '../action
 import { Calendar, Check, Clock, FileText, Info, Phone, PhoneMissed, X, Building2, User, LayoutGrid, List, Table, Undo2, MessageSquareText } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { tr } from 'date-fns/locale'
+import { useRouter } from 'next/navigation'
 
 const STATUSES = [
     { id: 'new', label: 'Yeni', icon: FileText, color: 'bg-emerald-100 text-emerald-700', border: 'border-emerald-200' },
@@ -31,6 +32,7 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
     // Rapid View specific state
     const [rapidFilterStatus, setRapidFilterStatus] = useState<string>('all')
     const [searchQuery, setSearchQuery] = useState('')
+    const router = useRouter()
     
     // Dialog states
     const [isNoteDialogOpen, setIsNoteDialogOpen] = useState(false)
@@ -718,9 +720,9 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
                                     size="sm"
                                     disabled={currentPage <= 1}
                                     onClick={() => {
-                                        const url = new URL(window.location.href)
-                                        url.searchParams.set('page', (currentPage - 1).toString())
-                                        window.location.href = url.toString()
+                                        const params = new URLSearchParams(window.location.search)
+                                        params.set('page', (currentPage - 1).toString())
+                                        router.push(`?${params.toString()}`)
                                     }}
                                     className="h-8"
                                 >
@@ -734,9 +736,9 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
                                     size="sm"
                                     disabled={currentPage >= Math.ceil(totalCount / pageSize)}
                                     onClick={() => {
-                                        const url = new URL(window.location.href)
-                                        url.searchParams.set('page', (currentPage + 1).toString())
-                                        window.location.href = url.toString()
+                                        const params = new URLSearchParams(window.location.search)
+                                        params.set('page', (currentPage + 1).toString())
+                                        router.push(`?${params.toString()}`)
                                     }}
                                     className="h-8"
                                 >
