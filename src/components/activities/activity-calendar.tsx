@@ -33,9 +33,10 @@ interface ActivityCalendarProps {
     activities: any[]
     customers: any[]
     profiles: any[]
+    projects?: any[]
 }
 
-export function ActivityCalendar({ activities, customers, profiles }: ActivityCalendarProps) {
+export function ActivityCalendar({ activities, customers, profiles, projects }: ActivityCalendarProps) {
     const locale = useLocale()
     const dateLocale = locale === 'tr' ? tr : enUS
     const [currentMonth, setCurrentMonth] = useState(new Date())
@@ -216,6 +217,7 @@ export function ActivityCalendar({ activities, customers, profiles }: ActivityCa
                         activity={selectedActivity}
                         customers={customers}
                         profiles={profiles}
+                        projects={projects}
                     />
                     <ActivityForm
                         open={showComplete}
@@ -224,6 +226,7 @@ export function ActivityCalendar({ activities, customers, profiles }: ActivityCa
                         activity={selectedActivity}
                         customers={customers}
                         profiles={profiles}
+                        projects={projects}
                     />
                 </>
             )}

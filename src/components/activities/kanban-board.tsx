@@ -12,6 +12,7 @@ interface KanbanBoardProps {
     activities: Activity[]
     customers?: any[]
     profiles?: any[]
+    projects?: any[]
 }
 
 interface KanbanColumnProps {
@@ -19,10 +20,11 @@ interface KanbanColumnProps {
     activities: Activity[]
     customers?: any[]
     profiles?: any[]
+    projects?: any[]
     variant?: 'default' | 'danger' | 'warning' | 'success' | 'info' | 'primary' | 'secondary'
 }
 
-function KanbanColumn({ title, activities, customers, profiles, variant = 'default' }: KanbanColumnProps) {
+function KanbanColumn({ title, activities, customers, profiles, projects, variant = 'default' }: KanbanColumnProps) {
     const t = useTranslations('Activities')
 
     const colors = {
@@ -67,6 +69,7 @@ function KanbanColumn({ title, activities, customers, profiles, variant = 'defau
                             activity={activity}
                             customers={customers}
                             profiles={profiles}
+                            projects={projects}
                         />
                     ))}
                     {activities.length === 0 && (
@@ -82,7 +85,7 @@ function KanbanColumn({ title, activities, customers, profiles, variant = 'defau
     )
 }
 
-export function KanbanBoard({ activities, customers, profiles }: KanbanBoardProps) {
+export function KanbanBoard({ activities, customers, profiles, projects }: KanbanBoardProps) {
     const t = useTranslations('Activities')
 
     const overdue = activities.filter(a => a.status !== 'Completed' && a.status !== 'Cancelled' && a.due_date && isPast(parseISO(a.due_date)) && !isToday(parseISO(a.due_date)))
@@ -106,12 +109,12 @@ export function KanbanBoard({ activities, customers, profiles }: KanbanBoardProp
 
     return (
         <div className="flex grow h-full gap-2.5 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
-            <KanbanColumn variant="danger" title={t('kanban.overdue')} activities={overdue} customers={customers} profiles={profiles} />
-            <KanbanColumn variant="info" title={t('kanban.today')} activities={today} customers={customers} profiles={profiles} />
-            <KanbanColumn variant="primary" title={t('kanban.tomorrow')} activities={tomorrow} customers={customers} profiles={profiles} />
-            <KanbanColumn variant="default" title={t('kanban.thisWeek')} activities={thisWeek} customers={customers} profiles={profiles} />
-            <KanbanColumn variant="secondary" title="Tarihsiz" activities={noDate} customers={customers} profiles={profiles} />
-            <KanbanColumn variant="success" title={t('kanban.completed')} activities={completed} customers={customers} profiles={profiles} />
+            <KanbanColumn variant="danger" title={t('kanban.overdue')} activities={overdue} customers={customers} profiles={profiles} projects={projects} />
+            <KanbanColumn variant="info" title={t('kanban.today')} activities={today} customers={customers} profiles={profiles} projects={projects} />
+            <KanbanColumn variant="primary" title={t('kanban.tomorrow')} activities={tomorrow} customers={customers} profiles={profiles} projects={projects} />
+            <KanbanColumn variant="default" title={t('kanban.thisWeek')} activities={thisWeek} customers={customers} profiles={profiles} projects={projects} />
+            <KanbanColumn variant="secondary" title="Tarihsiz" activities={noDate} customers={customers} profiles={profiles} projects={projects} />
+            <KanbanColumn variant="success" title={t('kanban.completed')} activities={completed} customers={customers} profiles={profiles} projects={projects} />
         </div>
     )
 }

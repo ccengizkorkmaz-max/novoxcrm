@@ -29,6 +29,7 @@ import { SystemLogsTab } from './components/SystemLogsTab'
 import SeoSettingsTab from './components/SeoSettingsTab'
 import BrandSettingsTab from './components/BrandSettingsTab'
 import DomainSettingsTab from './components/DomainSettingsTab'
+import UnitFieldOptionsTab from './components/UnitFieldOptionsTab'
 import { FileWarning, Palette, Link2 } from 'lucide-react'
 
 export default async function SettingsPage() {
@@ -72,8 +73,14 @@ export default async function SettingsPage() {
     // Get templates
     const { data: templates } = await supabase
         .from('payment_plan_templates')
-        .select('*')
+        .select('*, projects(name)')
         .order('created_at', { ascending: false })
+
+    // Get Projects for template form
+    const { data: projects } = await supabase
+        .from('projects')
+        .select('id, name')
+        .order('name')
 
     // Get unit types
     const { data: unitTypes } = await supabase
@@ -86,6 +93,12 @@ export default async function SettingsPage() {
         .from('commission_rules')
         .select('*')
         .order('source_category', { ascending: true })
+
+    // Get Unit Field Options
+    const { data: unitFieldOptions } = await supabase
+        .from('unit_field_options')
+        .select('*')
+        .eq('tenant_id', profile.tenant_id)
 
     // Get Notification Settings
     const { data: notificationSettings } = await supabase
@@ -246,15 +259,13 @@ export default async function SettingsPage() {
 
                 {/* Templates Tab */}
                 <TabsContent value="templates" className="space-y-4">
-                    <PaymentTemplatesTab templates={templates || []} />
+                    <PaymentTemplatesTab templates={templates || []} projects={projects || []} />
                 </TabsContent>
 
                 {/* Definitions Tab */}
                 <TabsContent value="definitions" className="space-y-4">
-                    <div className="text-xs text-muted-foreground">
-                        Debug: {unitTypes ? unitTypes.length : 0} types found.
-                    </div>
                     <UnitTypesTab unitTypes={unitTypes || []} />
+                    <UnitFieldOptionsTab fieldOptions={(unitFieldOptions || []).map((f: any) => ({ id: f.id, field_name: f.field_name, field_label: f.field_label, options: f.options || [] }))} />
                 </TabsContent>
 
                 {/* Financial Settings Tab */}

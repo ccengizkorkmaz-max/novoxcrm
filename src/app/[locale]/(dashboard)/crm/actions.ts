@@ -10,6 +10,19 @@ import { createNotification } from '@/lib/notifications/create'
 import { logSystemAction } from '@/lib/actions/system-logs'
 import { handleOutreachEvent } from '@/lib/outreach/events'
 
+export async function getCustomerFullProfile(customerId: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Not authenticated' }
+
+    const { data: customer } = await supabase.from('customers').select('*, customer_demands(*)').eq('id', customerId).single()
+    const { data: activities } = await supabase.from('activities').select('*, profiles(full_name)').eq('customer_id', customerId).order('created_at', { ascending: false })
+    const { data: contracts } = await supabase.from('contracts').select('*, project:projects(name), unit:units(block, unit_number)').eq('customer_id', customerId)
+    const { data: sales } = await supabase.from('sales').select('*, profiles(full_name), project:projects(name), unit:units(block, unit_number)').eq('customer_id', customerId)
+
+    return { customer, activities, contracts, sales }
+}
+
 export async function createCustomer(formData: FormData) {
     const supabase = await createClient()
     const { createAdminClient } = await import('@/lib/supabase/admin')
@@ -251,6 +264,15 @@ export async function updateCustomer(formData: FormData) {
     const country = formData.get('country') as string
     const portal_username = (formData.get('portal_username') as string)?.trim() || null
     const portal_password = (formData.get('portal_password') as string)?.trim() || null
+    const created_at_input = formData.get('created_at') as string
+
+    let validCreatedAt = null;
+    if (created_at_input) {
+        const parsedDate = new Date(created_at_input);
+        if (!isNaN(parsedDate.getTime())) {
+            validCreatedAt = parsedDate.toISOString();
+        }
+    }
 
     if (!id) return { error: 'Customer ID required' }
 
@@ -267,7 +289,8 @@ export async function updateCustomer(formData: FormData) {
             city,
             country,
             portal_username,
-            portal_password
+            portal_password,
+            ...(validCreatedAt ? { created_at: validCreatedAt } : {})
         })
         .eq('id', id)
 
@@ -287,6 +310,13 @@ export async function updateCustomer(formData: FormData) {
             }
         })
         return { error: `Güncelleme başarısız: ${error.message}` }
+    }
+
+    if (validCreatedAt) {
+        await supabase
+            .from('lead_qualifications')
+            .update({ created_at: validCreatedAt })
+            .eq('customer_id', id)
     }
 
     await logSystemAction({
@@ -619,6 +649,24 @@ export async function updateSaleStatus(id: string, status: string) {
     // If status is Lost, free up the unit
     if (status === 'Lost' && sale?.unit_id) {
         await supabase.from('units').update({ status: 'For Sale' }).eq('id', sale.unit_id)
+    }
+
+    // Sync unit status with sale pipeline stages
+    if (sale?.unit_id) {
+        const unitStatusMap: Record<string, string> = {
+            'Proposal': 'Option',
+            'Teklif - Kapora Bekleniyor': 'Option',
+            'Opsiyon - Kapora Bekleniyor': 'Option',
+            'Reservation': 'Reserved',
+            'Negotiation': 'Option',
+            'Contract': 'Reserved',
+            'Sold': 'Sold',
+            'Completed': 'Sold',
+        }
+        const newUnitStatus = unitStatusMap[status]
+        if (newUnitStatus) {
+            await supabase.from('units').update({ status: newUnitStatus }).eq('id', sale.unit_id)
+        }
     }
 
     // Finance Integration: Record total debt if Sold/Completed
@@ -1780,15 +1828,22 @@ export async function autoAssignAllSales() {
     return { success: true, count: assignedCount, remainingCount: remainingCount || 0 }
 }
 
-export async function getPaymentTemplates() {
+export async function getPaymentTemplates(projectId?: string | null) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return null
 
-    const { data, error } = await supabase
+    let query = supabase
         .from('payment_plan_templates')
         .select('*')
         .order('name', { ascending: true })
+
+    // If projectId provided, filter: show templates for that project + general templates (no project)
+    if (projectId) {
+        query = query.or(`project_id.eq.${projectId},project_id.is.null`)
+    }
+
+    const { data, error } = await query
 
     if (error) {
         console.error('getPaymentTemplates error:', error)

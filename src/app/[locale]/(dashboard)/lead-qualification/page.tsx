@@ -1,0 +1,144 @@
+import { getTranslations } from 'next-intl/server'
+import { createClient } from '@/lib/supabase/server'
+import QualificationBoard from './components/QualificationBoard'
+
+export const dynamic = 'force-dynamic'
+
+export default async function LeadQualificationPage(props: {
+    params: Promise<{ locale: string }>
+    searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+        return null
+    }
+
+    const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single()
+
+    const searchParams = await props.searchParams
+    const page = typeof searchParams.page === 'string' ? parseInt(searchParams.page) : 1
+    const pageSize = 100
+
+    let qualifications = []
+    let totalCount = 0
+    let statusCounts: Record<string, number> = {}
+    
+    if (profile?.tenant_id) {
+        // İlk olarak toplam kayıt sayısını alalım
+        const { count } = await supabase
+            .from('lead_qualifications')
+            .select('*', { count: 'exact', head: true })
+            .eq('tenant_id', profile.tenant_id)
+            
+        totalCount = count || 0
+
+        // Get exact counts for all statuses
+        let allStatuses: { status: string }[] = []
+        let batchPage = 0
+        const batchSize = 5000
+        while (true) {
+            const { data } = await supabase
+                .from('lead_qualifications')
+                .select('status')
+                .eq('tenant_id', profile.tenant_id)
+                .range(batchPage * batchSize, (batchPage + 1) * batchSize - 1)
+            if (!data || data.length === 0) break
+            allStatuses = allStatuses.concat(data)
+            if (data.length < batchSize) break
+            batchPage++
+        }
+        
+        statusCounts = allStatuses.reduce((acc: Record<string, number>, item) => {
+            const st = item.status || 'new'
+            acc[st] = (acc[st] || 0) + 1
+            return acc
+        }, {})
+
+        // Paginasyonlu veriyi çekelim
+        const from = (page - 1) * pageSize
+        const to = from + pageSize - 1
+
+        const { data, error } = await supabase
+            .from('lead_qualifications')
+            .select(`
+                *,
+                customers (
+                    id,
+                    full_name,
+                    phone,
+                    email,
+                    customer_number,
+                    created_at,
+                    source,
+                    notes,
+                    customer_demands (
+                        notes
+                    ),
+                    outreach_executions (
+                        id
+                    )
+                ),
+                projects:project_id (
+                    id,
+                    name
+                ),
+                profiles!lead_qualifications_assigned_to_fkey (
+                    id,
+                    full_name
+                )
+            `)
+            .eq('tenant_id', profile.tenant_id)
+            .order('created_at', { ascending: false })
+            .range(from, to)
+            
+        if (!error && data) {
+            qualifications = data
+        }
+    }
+
+    // Projeleri çek (Satışa aktarırken sormak için)
+    let projects = []
+    let units = []
+    if (profile?.tenant_id) {
+        const { data: pData } = await supabase
+            .from('projects')
+            .select('id, name')
+            .eq('tenant_id', profile.tenant_id)
+            .eq('status', 'Active')
+            .order('name')
+        if (pData) projects = pData
+
+        const { data: uData } = await supabase
+            .from('units')
+            .select('id, unit_number, project_id, price, currency')
+            .eq('tenant_id', profile.tenant_id)
+            .in('status', ['Available', 'Müsait'])
+            .order('unit_number')
+        if (uData) units = uData
+    }
+
+    return (
+        <div className="flex flex-col h-[calc(100vh-6rem)] gap-4">
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-xl md:text-2xl font-bold tracking-tight">Ön Değerlendirme (Lead Qualification)</h1>
+                    <p className="text-sm text-muted-foreground">Potansiyel müşterileri satış hunisine (CRM) girmeden önce filtreleyin ve arama sonuçlarını girin.</p>
+                </div>
+            </div>
+            
+            <div className="flex-1 min-h-0">
+                <QualificationBoard 
+                    initialData={qualifications} 
+                    totalCount={totalCount} 
+                    currentPage={page} 
+                    pageSize={pageSize}
+                    statusCounts={statusCounts}
+                    projects={projects} 
+                    availableUnits={units} 
+                />
+            </div>
+        </div>
+    )
+}

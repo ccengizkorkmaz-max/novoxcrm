@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Phone, Mail, Filter, MapPin } from 'lucide-react'
+import { Phone, Mail, Filter, MapPin, Clock } from 'lucide-react'
 import { ActivityTimeline } from '@/components/activities/activity-timeline'
 import { AiMatchWidget } from './AiMatchWidget'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -71,7 +71,7 @@ export function CustomerView({ customer, activities, contracts = [], profiles = 
     }
 
     // Filter Logic
-    const filteredActivities = activities.filter(a => {
+    const filteredActivities = (activities || []).filter(a => {
         // Type Filter
         if (selectedTypes.length > 0) {
             if (!selectedTypes.includes(a.type)) return false
@@ -126,9 +126,15 @@ export function CustomerView({ customer, activities, contracts = [], profiles = 
                                         <Input name="email" type="email" defaultValue={customer.email} />
                                     </div>
                                 </div>
-                                <div className="grid gap-2">
-                                    <Label>{t('form.source')}</Label>
-                                    <Input name="source" defaultValue={customer.source} />
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid gap-2">
+                                        <Label>{t('form.source')}</Label>
+                                        <Input name="source" defaultValue={customer.source} />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label>Kayıt Tarihi</Label>
+                                        <Input type="date" name="created_at" defaultValue={customer.created_at ? new Date(customer.created_at).toISOString().split('T')[0] : ''} />
+                                    </div>
                                 </div>
                                 <div className="grid gap-2">
                                     <Label>{t('form.address')}</Label>
@@ -165,8 +171,8 @@ export function CustomerView({ customer, activities, contracts = [], profiles = 
 
                 <div className="flex items-center gap-4">
                     <h1 className="text-2xl font-bold tracking-tight">{customer.full_name}</h1>
-                    <Badge className={contracts.length > 0 ? 'bg-blue-600' : customer.customer_demands?.length ? 'bg-green-600' : ''} variant={contracts.length > 0 || customer.customer_demands?.length ? 'default' : 'secondary'}>
-                        {contracts.length > 0 ? t('badges.customer') : customer.customer_demands?.length ? t('badges.lead') : t('badges.contact')}
+                    <Badge className={(contracts || []).length > 0 ? 'bg-blue-600' : customer.customer_demands?.length ? 'bg-green-600' : ''} variant={(contracts || []).length > 0 || customer.customer_demands?.length ? 'default' : 'secondary'}>
+                        {(contracts || []).length > 0 ? t('badges.customer') : customer.customer_demands?.length ? t('badges.lead') : t('badges.contact')}
                     </Badge>
                 </div>
             </div>
@@ -207,6 +213,10 @@ export function CustomerView({ customer, activities, contracts = [], profiles = 
                             <div className="text-sm">
                                 <span className="font-semibold block mb-1">Kaynak</span>
                                 <span className="text-muted-foreground">{customer.source || '-'}</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-sm text-slate-500 pt-2 border-t border-slate-100">
+                                <Clock className="h-3 w-3 shrink-0" />
+                                <span>Kayıt Tarihi: <span className="font-medium text-slate-700">{new Date(customer.created_at).toLocaleDateString('tr-TR')}</span></span>
                             </div>
                         </CardContent>
                     </Card>

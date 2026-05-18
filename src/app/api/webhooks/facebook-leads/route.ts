@@ -204,6 +204,14 @@ async function saveLeadToCRM(
         .single()
 
     if (newCustomer) {
+        // Doğrudan satış yönetimine (CRM pipeline) lead olarak aktar
+        await supabase.from('sales').insert({
+            tenant_id: NOVO_TENANT_ID,
+            customer_id: newCustomer.id,
+            status: 'Lead',
+            description: `FB Form: ${formId || '-'} / Ad: ${adId || '-'}`,
+        })
+
         await fireLeadCreatedTrigger(NOVO_TENANT_ID, newCustomer.id)
     }
 

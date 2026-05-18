@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -14,27 +14,70 @@ import { RoomAreasInput } from '@/components/room-areas-input'
 import { toast } from 'sonner'
 import { updateUnit } from '@/app/[locale]/(dashboard)/inventory/[id]/actions'
 
-const UNIT_CATEGORIES = [
+const DEFAULT_UNIT_CATEGORIES = [
     "Daire", "Depo", "Dükkan", "Ofis", "Villa",
     "Dubleks Daire", "Bahçe Dubleks Daire", "Çatı Dubleks Daire",
     "Roof Daire", "Loft Daire", "Penthouse", "Ticari Alan"
 ]
 
-const UNIT_FEATURES = [
+const DEFAULT_UNIT_FEATURES = [
     "Balkon", "Teras", "Ebeveyn Banyosu", "Giyinme Odası",
     "Akıllı Ev Sistemi", "Yerden Isıtma", "Ankastre Set", "Klima"
 ]
+
+interface FieldOptions {
+    unit_category?: string[]
+    type?: string[]
+    parking_type?: string[]
+    heating_type?: string[]
+    kitchen_type?: string[]
+    features?: string[]
+}
 
 export function UnitEditForm({ unit, disabled = false }: { unit: any; disabled?: boolean }) {
     const router = useRouter()
     const [loading, setLoading] = useState(false)
     const [selectedFeatures, setSelectedFeatures] = useState<string[]>(unit.features || [])
+    const [fieldOptions, setFieldOptions] = useState<FieldOptions>({})
+
+    // Fetch dynamic field options from settings
+    useEffect(() => {
+        fetch('/api/settings/unit-field-options')
+            .then(r => r.json())
+            .then(data => {
+                if (data.fields && data.fields.length > 0) {
+                    const opts: FieldOptions = {}
+                    data.fields.forEach((f: any) => {
+                        opts[f.field_name as keyof FieldOptions] = f.options
+                    })
+                    setFieldOptions(opts)
+                }
+            })
+            .catch(() => { /* use defaults */ })
+    }, [])
+
+    const UNIT_CATEGORIES = fieldOptions.unit_category || DEFAULT_UNIT_CATEGORIES
+    const UNIT_TYPES = fieldOptions.type || ['1+0', '1+1', '2+1', '3+1', '4+1', '5+1', 'Villa', 'Commercial']
+    const PARKING_TYPES = fieldOptions.parking_type || ['Kapalı Otopark', 'Açık Otopark', 'Yok']
+    const HEATING_TYPES = fieldOptions.heating_type || ['Kombi', 'Kombi Yerden Isıtma', 'Merkezi Sistem', 'Merkezi Sistem Yerden Isıtma', 'Klima']
+    const KITCHEN_TYPES = fieldOptions.kitchen_type || ['Kapalı Mutfak', 'Açık Mutfak']
+    const UNIT_FEATURES = fieldOptions.features || DEFAULT_UNIT_FEATURES
+
+    const PRICE_PROTECTED_STATUSES = ['Sold', 'Reserved', 'Option', 'Blocked', 'Delivered']
 
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault()
         setLoading(true)
 
         const formData = new FormData(e.currentTarget)
+
+        // Check if price changed and unit is in protected status
+        const newPrice = parseFloat(formData.get('price') as string)
+        if (newPrice !== unit.price && PRICE_PROTECTED_STATUSES.includes(unit.status)) {
+            toast.error('⚠️ Bu ünitenin durumu "' + unit.status + '" olduğu için fiyat değişikliği yapılamaz. Önce satış durumunu güncelleyin.')
+            setLoading(false)
+            return
+        }
 
         // Handled Checkbox issues by appending features manually
         formData.delete('features') // Remove any partial/wrong data
@@ -129,12 +172,10 @@ export function UnitEditForm({ unit, disabled = false }: { unit: any; disabled?:
                             <div className="space-y-2">
                                 <Label>Oda Tipi</Label>
                                 <select name="type" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" defaultValue={unit.type}>
-                                    <option value="1+1">1+1</option>
-                                    <option value="2+1">2+1</option>
-                                    <option value="3+1">3+1</option>
-                                    <option value="4+1">4+1</option>
-                                    <option value="Villa">Villa</option>
-                                    <option value="Commercial">Ticari</option>
+                                    <option value="">Seçiniz</option>
+                                    {UNIT_TYPES.map(t => (
+                                        <option key={t} value={t}>{t}</option>
+                                    ))}
                                 </select>
                             </div>
                             <div className="space-y-2">
@@ -167,28 +208,27 @@ export function UnitEditForm({ unit, disabled = false }: { unit: any; disabled?:
                                 <Label>Otopark</Label>
                                 <select name="parking_type" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" defaultValue={unit.parking_type}>
                                     <option value="">Seçiniz...</option>
-                                    <option value="Kapalı Otopark">🅿️ Var, Kapalı</option>
-                                    <option value="Açık Otopark">🅿️ Var, Açık</option>
-                                    <option value="Yok">❌ Yok</option>
+                                    {PARKING_TYPES.map(p => (
+                                        <option key={p} value={p}>{p}</option>
+                                    ))}
                                 </select>
                             </div>
                             <div className="space-y-2">
                                 <Label>Isıtma</Label>
                                 <select name="heating_type" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" defaultValue={unit.heating_type}>
                                     <option value="">Seçiniz...</option>
-                                    <option value="Kombi">🔥 Kombi</option>
-                                    <option value="Kombi Yerden Isıtma">🔥 Kombi Yerden</option>
-                                    <option value="Merkezi Sistem">🏢 Merkezi</option>
-                                    <option value="Merkezi Sistem Yerden Isıtma">🏢 Merkezi Yerden</option>
-                                    <option value="Klima">❄️ Klima</option>
+                                    {HEATING_TYPES.map(h => (
+                                        <option key={h} value={h}>{h}</option>
+                                    ))}
                                 </select>
                             </div>
                             <div className="space-y-2">
                                 <Label>Mutfak Tipi</Label>
                                 <select name="kitchen_type" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" defaultValue={unit.kitchen_type}>
                                     <option value="">Seçiniz...</option>
-                                    <option value="Kapalı Mutfak">🚪 Kapalı</option>
-                                    <option value="Açık Mutfak">🍳 Açık</option>
+                                    {KITCHEN_TYPES.map(k => (
+                                        <option key={k} value={k}>{k}</option>
+                                    ))}
                                 </select>
                             </div>
                             <div className="space-y-2">

@@ -113,6 +113,11 @@ export function NovoxSidebar({
                 </NavItem>
             )}
             {!isBroker && (
+                <NavItem href="/lead-qualification" icon={Target} onClick={onElementClick}>
+                    Ön Değerlendirme
+                </NavItem>
+            )}
+            {!isBroker && (
                 <NavItem href="/quick-crm" icon={Zap} onClick={onElementClick}>
                     {labels.quickCRM || 'Quick CRM'}
                 </NavItem>

@@ -25,6 +25,8 @@ export interface Activity {
     customer_id: string
     customers?: { full_name: string }
     owner?: { full_name: string }
+    projects?: { name: string }
+    project_id?: string
     due_date: string
     status: 'Planned' | 'In Progress' | 'Completed' | 'Overdue' | 'Cancelled'
     outcome?: string
@@ -40,6 +42,7 @@ interface ActivityCardProps {
     activity: Activity
     customers?: any[]
     profiles?: any[]
+    projects?: any[]
     onComplete?: (id: string) => void
 }
 
@@ -57,7 +60,7 @@ function getActivityIcon(type: string) {
     }
 }
 
-export function ActivityCard({ activity, customers, profiles, onComplete }: ActivityCardProps) {
+export function ActivityCard({ activity, customers, profiles, projects, onComplete }: ActivityCardProps) {
     const t = useTranslations('Activities')
     const locale = useLocale()
     const [showEdit, setShowEdit] = useState(false)
@@ -148,6 +151,12 @@ export function ActivityCard({ activity, customers, profiles, onComplete }: Acti
                                 </div>
                             </Link>
                         )}
+                        {(activity as any).projects?.name && (
+                            <div className="flex items-center gap-1 text-[10px] text-blue-600 font-semibold truncate bg-blue-50/50 rounded px-1 w-fit max-w-full mt-0.5">
+                                <Building2 className="h-2.5 w-2.5 shrink-0" />
+                                <span className="truncate">{(activity as any).projects.name}</span>
+                            </div>
+                        )}
                     </div>
 
                     {/* Footer: Date & Owner */}
@@ -182,6 +191,7 @@ export function ActivityCard({ activity, customers, profiles, onComplete }: Acti
                 activity={activity}
                 customers={customers}
                 profiles={profiles}
+                projects={projects}
             />
             <ActivityForm
                 open={showComplete}
@@ -190,6 +200,7 @@ export function ActivityCard({ activity, customers, profiles, onComplete }: Acti
                 activity={activity}
                 customers={customers}
                 profiles={profiles}
+                projects={projects}
             />
         </>
     )

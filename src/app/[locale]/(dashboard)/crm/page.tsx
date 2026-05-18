@@ -101,7 +101,7 @@ export default async function CRMPage(props: {
             .in('role', ['admin', 'owner', 'manager', 'sales'])
             .order('full_name'),
         supabase.from('projects').select('id, name').order('name'),
-        supabase.from('payment_plan_templates').select('*').order('name', { ascending: true }),
+        supabase.from('payment_plan_templates').select('*, project_id').order('name', { ascending: true }),
         supabase.from('units').select('id, unit_number, projects(id, name)').in('status', ['For Sale', 'Stock', 'Available']).limit(2000)
     ])
 

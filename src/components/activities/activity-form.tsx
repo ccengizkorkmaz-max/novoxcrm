@@ -93,10 +93,11 @@ interface ActivityFormProps {
     activity?: any
     customers?: any[]
     profiles?: any[]
+    projects?: any[]
     defaultCustomerId?: string
 }
 
-export function ActivityForm({ open, onOpenChange, mode, activity, customers, profiles, defaultCustomerId }: ActivityFormProps) {
+export function ActivityForm({ open, onOpenChange, mode, activity, customers, profiles, projects, defaultCustomerId }: ActivityFormProps) {
     const t = useTranslations('Activities')
     const router = useRouter()
 
@@ -106,6 +107,7 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
     const [notes, setNotes] = useState(activity?.notes || '')
     const [status, setStatus] = useState(activity?.status || 'Planned')
     const [selectedCustomerId, setSelectedCustomerId] = useState(activity?.customer_id || defaultCustomerId || '')
+    const [selectedProjectId, setSelectedProjectId] = useState(activity?.project_id || '')
     const [isProcessingVoice, setIsProcessingVoice] = useState(false)
 
     useEffect(() => {
@@ -115,6 +117,7 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
             setNotes(activity?.notes || '')
             setStatus(activity?.status || 'Planned')
             setSelectedCustomerId(activity?.customer_id || '')
+            setSelectedProjectId(activity?.project_id || '')
         }
     }, [open, activity])
 
@@ -258,6 +261,21 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
                                         />
                                         <UpcomingActivitiesInfo customerId={selectedCustomerId} />
                                     </div>
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label>Proje</Label>
+                                    <select
+                                        name="project_id"
+                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                        value={selectedProjectId}
+                                        onChange={(e) => setSelectedProjectId(e.target.value)}
+                                    >
+                                        <option value="">Proje Seçiniz (Opsiyonel)</option>
+                                        {projects?.map((p: any) => (
+                                            <option key={p.id} value={p.id}>{p.name}</option>
+                                        ))}
+                                    </select>
                                 </div>
 
                                 <div className="grid gap-2">

@@ -190,6 +190,7 @@ export async function createPaymentPlanTemplate(formData: FormData) {
             console.error('JSON Parse Error', e)
         }
     }
+    const project_id = formData.get('project_id') as string
 
     const { error } = await supabase
         .from('payment_plan_templates')
@@ -198,6 +199,7 @@ export async function createPaymentPlanTemplate(formData: FormData) {
             down_payment_rate: Number(down_payment_rate),
             installment_count: Number(installment_count),
             interim_payment_structure,
+            project_id: project_id && project_id.trim() !== '' ? project_id : null,
         })
 
     if (error) {
@@ -239,6 +241,7 @@ export async function updatePaymentPlanTemplate(formData: FormData) {
             console.error('JSON Parse Error', e)
         }
     }
+    const project_id = formData.get('project_id') as string
 
     const { error } = await supabase
         .from('payment_plan_templates')
@@ -247,6 +250,7 @@ export async function updatePaymentPlanTemplate(formData: FormData) {
             down_payment_rate: Number(down_payment_rate),
             installment_count: Number(installment_count),
             interim_payment_structure,
+            project_id: project_id && project_id.trim() !== '' ? project_id : null,
         })
         .eq('id', id)
 

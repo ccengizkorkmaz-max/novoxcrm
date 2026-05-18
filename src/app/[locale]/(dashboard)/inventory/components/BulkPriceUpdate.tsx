@@ -30,6 +30,8 @@ export function BulkPriceUpdate({ selectedUnits, totalUnits, onComplete }: BulkP
     const [changeValue, setChangeValue] = useState('')
     const [loading, setLoading] = useState(false)
 
+    const [resultInfo, setResultInfo] = useState<{ updatedCount: number; skippedCount: number; skippedUnits: { unit_number: string; status: string }[] } | null>(null)
+
     const handleSubmit = async () => {
         const value = parseFloat(changeValue)
         if (isNaN(value)) {
@@ -47,16 +49,32 @@ export function BulkPriceUpdate({ selectedUnits, totalUnits, onComplete }: BulkP
         setLoading(false)
 
         if (result.success) {
-            toast.success(`${result.updatedCount} ünite fiyatı güncellendi.`)
-            setOpen(false)
-            setChangeValue('')
-            onComplete?.()
+            if (result.skippedCount && result.skippedCount > 0) {
+                setResultInfo({
+                    updatedCount: result.updatedCount || 0,
+                    skippedCount: result.skippedCount,
+                    skippedUnits: result.skippedUnits || []
+                })
+            } else {
+                toast.success(`${result.updatedCount} ünite fiyatı güncellendi.`)
+                setOpen(false)
+                setChangeValue('')
+                onComplete?.()
+            }
         } else {
             toast.error(result.error || 'Güncelleme başarısız.')
         }
     }
 
+    const closeResultInfo = () => {
+        setResultInfo(null)
+        setOpen(false)
+        setChangeValue('')
+        onComplete?.()
+    }
+
     return (
+        <>
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
                 <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5">
@@ -149,5 +167,37 @@ export function BulkPriceUpdate({ selectedUnits, totalUnits, onComplete }: BulkP
                 </DialogFooter>
             </DialogContent>
         </Dialog>
+
+        {/* Result Info Popup */}
+        <Dialog open={!!resultInfo} onOpenChange={() => closeResultInfo()}>
+            <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Fiyat Güncelleme Sonucu</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-3 py-4">
+                    <div className="flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+                        <TrendingUp className="h-4 w-4 text-emerald-600" />
+                        <span className="text-sm text-emerald-700 font-bold">{resultInfo?.updatedCount} ünite fiyatı güncellendi</span>
+                    </div>
+                    {resultInfo && resultInfo.skippedCount > 0 && (
+                        <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg space-y-2">
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm text-amber-700 font-bold">⚠️ {resultInfo.skippedCount} ünite korumalı durumda olduğu için atlandı</span>
+                            </div>
+                            <div className="text-xs text-amber-600 space-y-0.5 max-h-32 overflow-y-auto">
+                                {resultInfo.skippedUnits.map((u, i) => (
+                                    <div key={i}>Ünite {u.unit_number} — <Badge variant="outline" className="text-[9px] py-0">{u.status}</Badge></div>
+                                ))}
+                            </div>
+                            <p className="text-[10px] text-amber-500 mt-1">Satılmış, rezerve, opsiyonlu veya teklif verilmiş ünitelerin fiyatları otomatik olarak değiştirilemez.</p>
+                        </div>
+                    )}
+                </div>
+                <DialogFooter>
+                    <Button onClick={closeResultInfo}>Tamam</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+        </>
     )
 }

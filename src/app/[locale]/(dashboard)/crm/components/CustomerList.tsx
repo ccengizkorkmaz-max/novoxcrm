@@ -859,7 +859,7 @@ export default function CustomerList({
                                                                 )}
                                                                 <span className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors uppercase tracking-tight text-xs">{c.full_name}</span>
                                                             </div>
-                                                            <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">{new Date(c.created_at).toLocaleDateString()}</span>
+                                                            <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">{new Date(c.created_at).toLocaleDateString('tr-TR')}</span>
                                                         </div>
                                                     </Link>
                                                 </TableCell>

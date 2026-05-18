@@ -37,7 +37,7 @@ export default async function ActivitiesPage(props: {
 
     // Run all queries in parallel — NO MORE fetchAll while-loops!
     // Limit activities and customers to reasonable amounts instead of fetching ALL records
-    const [customers, activities, profilesResult, t] = await Promise.all([
+    const [customers, activities, profilesResult, t, projects] = await Promise.all([
         // Customers — only id and full_name, limit to 3000 (was fetching ALL via while-loop)
         supabase
             .from('customers')
@@ -46,19 +46,31 @@ export default async function ActivitiesPage(props: {
             .limit(3000)
             .then(r => r.data || []),
 
-        // Activities — limit to 2000 most recent (was fetching ALL via while-loop)
+        // Activities — limit to 500 to avoid statement timeout
+        // NOTE: Do NOT add projects(name) join here — it causes timeout with many rows
+        // Project names are mapped client-side from the projects list
         supabase
             .from('activities')
-            .select('*, customers(full_name, sales(status)), owner:profiles!activities_owner_id_fkey(full_name)')
-            .order('due_date', { ascending: true })
-            .limit(2000)
-            .then(r => r.data || []),
+            .select('*, customers(full_name), owner:profiles!activities_owner_id_fkey(full_name)')
+            .order('due_date', { ascending: false })
+            .limit(500)
+            .then(r => {
+                if (r.error) console.error('[Activities] Query Error:', r.error.message)
+                return r.data || []
+            }),
 
         // Profiles for filter dropdown
         profilesQuery.then(r => r.data || []),
 
         // Translations
         getTranslations('Activities'),
+
+        // Projects
+        supabase
+            .from('projects')
+            .select('id, name')
+            .order('name')
+            .then(r => r.data || []),
     ])
 
     // Filter out suspicious profile names (like "1")
@@ -87,6 +99,7 @@ export default async function ActivitiesPage(props: {
                     initialActivities={activities}
                     customers={customers}
                     profiles={profiles}
+                    projects={projects}
                     user={user}
                 />
             </Suspense>

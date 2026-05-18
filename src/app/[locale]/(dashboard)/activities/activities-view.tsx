@@ -18,10 +18,11 @@ interface ActivitiesViewProps {
     initialActivities: any[]
     customers: any[]
     profiles: any[]
+    projects: any[]
     user: any
 }
 
-export function ActivitiesView({ initialActivities, customers, profiles, user }: ActivitiesViewProps) {
+export function ActivitiesView({ initialActivities, customers, profiles, projects, user }: ActivitiesViewProps) {
     const t = useTranslations('Activities')
     const tCrm = useTranslations('CRM')
     const [showCreate, setShowCreate] = useState(false)
@@ -144,6 +145,9 @@ export function ActivitiesView({ initialActivities, customers, profiles, user }:
         return sortOrder === 'newest' ? dateB - dateA : dateA - dateB
     })
 
+    // Build project lookup map for client-side matching
+    const projectMap = new Map(projects.map((p: any) => [p.id, p.name]))
+
     // Map to Activity Interface
     const activities: Activity[] = sortedActivities.map(a => ({
         id: a.id,
@@ -160,7 +164,9 @@ export function ActivitiesView({ initialActivities, customers, profiles, user }:
         description: a.description,
         priority: a.priority,
         reminder_at: a.reminder_at,
-        owner_id: a.owner_id
+        owner_id: a.owner_id,
+        project_id: a.project_id,
+        projects: a.project_id ? { name: projectMap.get(a.project_id) || '' } : undefined
     }))
 
     const toggleType = (id: string) => {
@@ -489,19 +495,19 @@ export function ActivitiesView({ initialActivities, customers, profiles, user }:
 
                 <TabsContent value="calendar" className="mt-0 flex-1 min-h-0 overflow-hidden">
                     <div className="h-full overflow-y-auto rounded-lg border bg-card">
-                        <ActivityCalendar activities={activities} customers={customers} profiles={profiles} />
+                        <ActivityCalendar activities={activities} customers={customers} profiles={profiles} projects={projects} />
                     </div>
                 </TabsContent>
 
                 <TabsContent value="kanban" className="mt-0 flex-1 min-h-0 overflow-hidden">
                     <div className="h-full overflow-y-auto pr-2">
-                        <KanbanBoard activities={activities} customers={customers} profiles={profiles} />
+                        <KanbanBoard activities={activities} customers={customers} profiles={profiles} projects={projects} />
                     </div>
                 </TabsContent>
 
                 <TabsContent value="list" className="mt-0 flex-1 min-h-0 overflow-hidden">
                     <div className="h-full overflow-y-auto">
-                        <ActivityList activities={activities} customers={customers} profiles={profiles} />
+                        <ActivityList activities={activities} customers={customers} profiles={profiles} projects={projects} />
                     </div>
                 </TabsContent>
             </Tabs>
@@ -512,6 +518,7 @@ export function ActivitiesView({ initialActivities, customers, profiles, user }:
                 mode="create"
                 customers={customers}
                 profiles={profiles}
+                projects={projects}
             />
         </div>
     )

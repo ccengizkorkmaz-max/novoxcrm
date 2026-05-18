@@ -18,6 +18,7 @@ interface ActivityListProps {
     activities: Activity[]
     customers: any[]
     profiles: any[]
+    projects?: any[]
 }
 
 const statusColors: Record<string, string> = {
@@ -29,7 +30,7 @@ const statusColors: Record<string, string> = {
 
 const ITEMS_PER_PAGE = 20
 
-export function ActivityList({ activities, customers, profiles }: ActivityListProps) {
+export function ActivityList({ activities, customers, profiles, projects }: ActivityListProps) {
     const t = useTranslations('Activities')
     const [currentPage, setCurrentPage] = useState(1)
 
@@ -67,7 +68,7 @@ export function ActivityList({ activities, customers, profiles }: ActivityListPr
                     </TableHeader>
                     <TableBody>
                         {currentActivities.map((activity) => (
-                            <ActivityRow key={activity.id} activity={activity} customers={customers} profiles={profiles} />
+                            <ActivityRow key={activity.id} activity={activity} customers={customers} profiles={profiles} projects={projects} />
                         ))}
                     </TableBody>
                 </Table>
@@ -107,7 +108,7 @@ export function ActivityList({ activities, customers, profiles }: ActivityListPr
     )
 }
 
-function ActivityRow({ activity, customers, profiles }: { activity: Activity, customers: any[], profiles: any[] }) {
+function ActivityRow({ activity, customers, profiles, projects }: { activity: Activity, customers: any[], profiles: any[], projects?: any[] }) {
     const t = useTranslations('Activities')
     const locale = useLocale()
     const [showEdit, setShowEdit] = useState(false)
@@ -168,6 +169,11 @@ function ActivityRow({ activity, customers, profiles }: { activity: Activity, cu
                     <span className="text-xs font-medium text-slate-800 truncate" title={activity.summary}>
                         {activity.summary}
                     </span>
+                    {(activity as any).projects?.name && (
+                        <span className="text-[10px] text-blue-600 font-semibold truncate">
+                            📁 {(activity as any).projects.name}
+                        </span>
+                    )}
                     {activity.description && (
                         <span className="text-[10px] text-slate-500 truncate" title={activity.description}>
                             {activity.description}
@@ -218,6 +224,7 @@ function ActivityRow({ activity, customers, profiles }: { activity: Activity, cu
                     activity={activity}
                     customers={customers}
                     profiles={profiles}
+                    projects={projects}
                 />
                 <ActivityForm
                     open={showComplete}

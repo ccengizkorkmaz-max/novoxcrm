@@ -249,23 +249,22 @@ Daima:
                     if (!customerErr && customerData) {
                         const customerId = customerData.id;
 
-                        // Create sale pipeline logic (Assuming lead creates a sale record)
-                        let saleParams: any = {
+                        // Create lead_qualifications logic
+                        let qualParams: any = {
                             tenant_id: tenantId,
                             customer_id: customerId,
-                            status: 'Lead',
-                            description: `AI Asistanı (${channel}) ile görüşüldü.`
+                            status: 'new',
+                            source: channel,
+                            campaign_name: `AI Bot Conversation`,
+                            call_notes: `AI Asistanı (${channel}) ile görüşüldü.`
                         };
 
-                        // Add dummy unit or project based on schema: 
-                        // Our schema has unit_id, assigned_to etc. "project_id" column might exist in sales table now (added via a migration) 
-                        // Let's just create raw Sale record
-                        const { data: saleData } = await adminSupabase.from('sales').insert(saleParams).select('id').single();
+                        const { data: qualData } = await adminSupabase.from('lead_qualifications').insert(qualParams).select('id').single();
 
                         // Update session to link
                         await adminSupabase.from('messaging_sessions').update({
                             customer_id: customerId,
-                            sale_id: saleData?.id
+                            sale_id: null // Removed sale_id mapping since we use qual
                         }).eq('id', session.id);
                     }
                 }

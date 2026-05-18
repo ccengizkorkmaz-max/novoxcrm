@@ -586,16 +586,35 @@ export async function getUnitTimeline(unitId: string) {
 // --- Stock Aging Report moved to ./stats-actions.ts
 
 // --- Bulk Price Update ---
+const PRICE_PROTECTED_STATUSES = ['Sold', 'Reserved', 'Option', 'Blocked', 'Delivered']
+
 export async function bulkUpdatePrices(unitIds: string[], changeType: 'percentage' | 'fixed', changeValue: number) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: 'Not authenticated' }
 
     let updatedCount = 0
+    let skippedCount = 0
+    const skippedUnits: { unit_number: string; status: string }[] = []
 
     for (const unitId of unitIds) {
-        const { data: unit } = await supabase.from('units').select('price, currency').eq('id', unitId).single()
+        const { data: unit } = await supabase.from('units').select('price, currency, status, unit_number').eq('id', unitId).single()
         if (!unit) continue
+
+        // Check if unit has active sale with protected status
+        const { data: activeSale } = await supabase
+            .from('sales')
+            .select('status')
+            .eq('unit_id', unitId)
+            .in('status', ['Proposal', 'Reservation', 'Opsiyon - Kapora Bekleniyor', 'Contract', 'Sold', 'Completed'])
+            .limit(1)
+            .maybeSingle()
+
+        if (PRICE_PROTECTED_STATUSES.includes(unit.status) || activeSale) {
+            skippedCount++
+            skippedUnits.push({ unit_number: unit.unit_number, status: unit.status })
+            continue
+        }
 
         const oldPrice = unit.price
         let newPrice: number
@@ -624,7 +643,7 @@ export async function bulkUpdatePrices(unitIds: string[], changeType: 'percentag
     }
 
     revalidatePath('/inventory')
-    return { success: true, updatedCount }
+    return { success: true, updatedCount, skippedCount, skippedUnits }
 }
 
 // --- Extended Status Update (with logging) ---

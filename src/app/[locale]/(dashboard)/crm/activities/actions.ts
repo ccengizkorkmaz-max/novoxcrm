@@ -108,6 +108,7 @@ export async function updateActivity(formData: FormData) {
             topic: formData.get('topic') as string,
             notes: formData.get('notes') as string,
             owner_id: (formData.get('owner_id') as string)?.trim() !== '' ? formData.get('owner_id') as string : null,
+            project_id: (formData.get('project_id') as string)?.trim() !== '' ? formData.get('project_id') as string : null,
             priority: formData.get('priority') as string,
             status: status || undefined,
             completed_at: status === 'Completed' ? new Date().toISOString() : undefined,

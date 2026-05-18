@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Plus, Trash2, FileText, Pencil, AlertTriangle, Calendar, Percent, CreditCard } from 'lucide-react'
+import { Plus, Trash2, FileText, Pencil, AlertTriangle, Calendar, Percent, CreditCard, Building2, Filter } from 'lucide-react'
 import { createPaymentPlanTemplate, deletePaymentPlanTemplate, updatePaymentPlanTemplate } from '../actions'
 import {
     Dialog,
@@ -32,7 +32,7 @@ import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
 
-export function PaymentTemplatesTab({ templates }: { templates: any[] }) {
+export function PaymentTemplatesTab({ templates, projects }: { templates: any[], projects: any[] }) {
     const router = useRouter()
     const t = useTranslations('Settings')
     const [interims, setInterims] = useState<{ month: number, rate: number }[]>([])
@@ -40,6 +40,14 @@ export function PaymentTemplatesTab({ templates }: { templates: any[] }) {
     const [editingTemplate, setEditingTemplate] = useState<any>(null)
     const [templateToDelete, setTemplateToDelete] = useState<any>(null)
     const [isPending, setIsPending] = useState(false)
+    const [filterProjectId, setFilterProjectId] = useState<string>('all')
+
+    // Filter templates by project
+    const filteredTemplates = filterProjectId === 'all'
+        ? templates
+        : filterProjectId === 'none'
+            ? templates.filter(t => !t.project_id)
+            : templates.filter(t => t.project_id === filterProjectId)
 
     const addInterim = () => {
         setInterims([...interims, { month: 6, rate: 10 }])
@@ -102,20 +110,70 @@ export function PaymentTemplatesTab({ templates }: { templates: any[] }) {
                             <CardDescription className="text-slate-500 font-medium">{t('templates.description')}</CardDescription>
                         </div>
                     </div>
-                    <Button
-                        onClick={handleCreateClick}
-                        className="bg-blue-600 hover:bg-blue-700 h-11 px-6 rounded-xl font-bold shadow-lg shadow-blue-100 transition-all select-none"
-                    >
-                        <Plus className="w-5 h-5 mr-2" />
-                        {t('templates.new')}
-                    </Button>
+                    <div className="flex items-center gap-3">
+                        <Button
+                            onClick={handleCreateClick}
+                            className="bg-blue-600 hover:bg-blue-700 h-11 px-6 rounded-xl font-bold shadow-lg shadow-blue-100 transition-all select-none"
+                        >
+                            <Plus className="w-5 h-5 mr-2" />
+                            {t('templates.new')}
+                        </Button>
+                    </div>
                 </CardHeader>
+
+                {/* Project Filter Bar */}
+                {projects.length > 0 && (
+                    <div className="px-8 py-3 border-b border-slate-100 bg-slate-50/30 flex items-center gap-3">
+                        <Filter className="h-4 w-4 text-slate-400" />
+                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Proje:</span>
+                        <div className="flex gap-1.5 flex-wrap">
+                            <button
+                                onClick={() => setFilterProjectId('all')}
+                                className={`text-xs px-3 py-1.5 rounded-lg font-bold transition-all ${
+                                    filterProjectId === 'all'
+                                        ? 'bg-blue-600 text-white shadow-sm'
+                                        : 'bg-white text-slate-500 border border-slate-200 hover:border-blue-200 hover:text-blue-600'
+                                }`}
+                            >
+                                Tümü ({templates.length})
+                            </button>
+                            <button
+                                onClick={() => setFilterProjectId('none')}
+                                className={`text-xs px-3 py-1.5 rounded-lg font-bold transition-all ${
+                                    filterProjectId === 'none'
+                                        ? 'bg-slate-700 text-white shadow-sm'
+                                        : 'bg-white text-slate-500 border border-slate-200 hover:border-slate-300'
+                                }`}
+                            >
+                                Genel
+                            </button>
+                            {projects.map(p => {
+                                const count = templates.filter(t => t.project_id === p.id).length
+                                if (count === 0) return null
+                                return (
+                                    <button
+                                        key={p.id}
+                                        onClick={() => setFilterProjectId(p.id)}
+                                        className={`text-xs px-3 py-1.5 rounded-lg font-bold transition-all ${
+                                            filterProjectId === p.id
+                                                ? 'bg-blue-600 text-white shadow-sm'
+                                                : 'bg-white text-slate-500 border border-slate-200 hover:border-blue-200 hover:text-blue-600'
+                                        }`}
+                                    >
+                                        {p.name} ({count})
+                                    </button>
+                                )
+                            })}
+                        </div>
+                    </div>
+                )}
                 <CardContent className="p-0">
                     <div className="overflow-x-auto">
                         <Table>
                             <TableHeader className="bg-slate-50/30">
                                 <TableRow className="border-slate-100 hover:bg-transparent">
                                     <TableHead className="px-8 py-4 font-black text-[10px] text-slate-400 uppercase tracking-widest">{t('templates.table.name')}</TableHead>
+                                    <TableHead className="px-8 py-4 font-black text-[10px] text-slate-400 uppercase tracking-widest">Proje</TableHead>
                                     <TableHead className="px-8 py-4 font-black text-[10px] text-slate-400 uppercase tracking-widest">{t('templates.table.down')}</TableHead>
                                     <TableHead className="px-8 py-4 font-black text-[10px] text-slate-400 uppercase tracking-widest">{t('templates.table.installments')}</TableHead>
                                     <TableHead className="px-8 py-4 font-black text-[10px] text-slate-400 uppercase tracking-widest">{t('templates.table.interim')}</TableHead>
@@ -123,8 +181,8 @@ export function PaymentTemplatesTab({ templates }: { templates: any[] }) {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {templates && templates.length > 0 ? (
-                                    templates.map((tpl: any) => (
+                                {filteredTemplates && filteredTemplates.length > 0 ? (
+                                    filteredTemplates.map((tpl: any) => (
                                         <TableRow key={tpl.id} className="group border-slate-50 hover:bg-slate-50/50 transition-colors">
                                             <TableCell className="px-8 py-5 font-black text-slate-700">
                                                 <div className="flex items-center gap-3">
@@ -133,6 +191,16 @@ export function PaymentTemplatesTab({ templates }: { templates: any[] }) {
                                                     </div>
                                                     {tpl.name}
                                                 </div>
+                                            </TableCell>
+                                            <TableCell className="px-8 py-5">
+                                                {tpl.projects?.name ? (
+                                                    <Badge variant="secondary" className="bg-indigo-50 text-indigo-700 border-none font-bold px-2.5 py-1 rounded-lg text-[11px]">
+                                                        <Building2 className="h-3 w-3 mr-1" />
+                                                        {tpl.projects.name}
+                                                    </Badge>
+                                                ) : (
+                                                    <span className="text-slate-300 italic text-xs font-medium">Genel</span>
+                                                )}
                                             </TableCell>
                                             <TableCell className="px-8 py-5">
                                                 <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-none font-black px-3 py-1 rounded-lg">
@@ -172,7 +240,7 @@ export function PaymentTemplatesTab({ templates }: { templates: any[] }) {
                                     ))
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={5} className="text-center h-48">
+                                        <TableCell colSpan={6} className="text-center h-48">
                                             <div className="flex flex-col items-center justify-center gap-2">
                                                 <div className="h-16 w-16 bg-slate-50 text-slate-200 rounded-3xl flex items-center justify-center mb-2">
                                                     <CreditCard className="w-8 h-8" />
@@ -229,6 +297,25 @@ export function PaymentTemplatesTab({ templates }: { templates: any[] }) {
                                 className="h-12 bg-slate-50 border-slate-200 focus:ring-blue-500 rounded-xl font-bold"
                             />
                         </div>
+
+                        {/* Project Select */}
+                        {projects.length > 0 && (
+                            <div className="space-y-2">
+                                <Label htmlFor="t-project" className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Proje (Opsiyonel)</Label>
+                                <select
+                                    id="t-project"
+                                    name="project_id"
+                                    defaultValue={editingTemplate?.project_id || ''}
+                                    className="flex h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold focus:ring-blue-500"
+                                >
+                                    <option value="">Genel (Şablon tüm projelerde geçerli)</option>
+                                    {projects.map((p: any) => (
+                                        <option key={p.id} value={p.id}>{p.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+
                         <div className="grid grid-cols-2 gap-6">
                             <div className="space-y-2">
                                 <Label htmlFor="t-down" className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{t('templates.dialog.down')} (%)</Label>

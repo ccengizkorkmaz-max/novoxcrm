@@ -6,6 +6,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { formatCurrency, cn } from '@/lib/utils'
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import {
     Select,
     SelectContent,
@@ -14,7 +16,7 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Calculator, Sparkles, User, Info, Mail, Phone, MessageSquareText, CalendarPlus, Trash, AlertTriangle, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, Filter, X } from 'lucide-react'
+import { Calculator, Sparkles, User, Info, Mail, Phone, MessageSquareText, CalendarPlus, Trash, AlertTriangle, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, Filter, X, Undo2 } from 'lucide-react'
 import ColumnVisibilityPicker from '@/components/ui/column-visibility-picker'
 import ColumnFilterRow from '@/components/ui/column-filter-row'
 import { updateSaleStatus, autoAssignLead, assignSale } from '../actions'
@@ -41,8 +43,10 @@ import { CustomerEditDialog } from './CustomerEditDialog'
 import { AiMatchDialog } from '@/components/customers/AiMatchDialog'
 import { ActivityForm } from '@/components/activities/activity-form'
 import { useRouter, useSearchParams } from 'next/navigation'
-
-// Removed redundant imports
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { CustomerView } from '@/components/customers/customer-view'
+import { getCustomerFullProfile } from '../actions'
+import { revertSaleToQualification } from '@/app/[locale]/(dashboard)/lead-qualification/actions'
 
 
 import { useTranslations, useLocale } from 'next-intl'
@@ -114,6 +118,8 @@ export default function PipelineList({
     const [isEditOpen, setIsEditOpen] = useState(false)
     const [isActivityOpen, setIsActivityOpen] = useState(false)
     const [selectedCustomerForActivity, setSelectedCustomerForActivity] = useState<any | null>(null)
+    const [viewingCustomerProfile, setViewingCustomerProfile] = useState<any | null>(null)
+    const [isCustomerProfileOpen, setIsCustomerProfileOpen] = useState(false)
     const [currentPage, setCurrentPage] = useState(initialPage)
     const [pageInputValue, setPageInputValue] = useState(initialPage.toString())
     const itemsPerPage = 50
@@ -201,6 +207,32 @@ export default function PipelineList({
     }, [])
     const handleColDragEnd = useCallback(() => { setDragOverCol(null); dragColRef.current = null }, [])
 
+    const [sheetWidth, setSheetWidth] = useState(800)
+    const isResizingSheet = useRef(false)
+
+    useEffect(() => {
+        const handleMouseMove = (e: MouseEvent) => {
+            if (!isResizingSheet.current) return
+            // Calculate new width for a right-side sheet
+            const newWidth = window.innerWidth - e.clientX
+            if (newWidth > 400 && newWidth < window.innerWidth - 50) {
+                setSheetWidth(newWidth)
+            }
+        }
+        const handleMouseUp = () => {
+            if (isResizingSheet.current) {
+                isResizingSheet.current = false
+                document.body.style.cursor = 'default'
+            }
+        }
+        document.addEventListener('mousemove', handleMouseMove)
+        document.addEventListener('mouseup', handleMouseUp)
+        return () => {
+            document.removeEventListener('mousemove', handleMouseMove)
+            document.removeEventListener('mouseup', handleMouseUp)
+        }
+    }, [])
+
     useEffect(() => {
         const handleMouseMove = (e: MouseEvent) => {
             if (!resizingRef.current) return
@@ -243,6 +275,47 @@ export default function PipelineList({
     const handlePlanClick = (saleId: string) => {
         setSelectedSaleId(saleId)
         setIsPlanOpen(true)
+    }
+
+    const handleOpenCustomerProfile = async (customer: any) => {
+        setViewingCustomerProfile(null)
+        setIsCustomerProfileOpen(true)
+        const data = await getCustomerFullProfile(customer.id)
+        if (!data.error) {
+            setViewingCustomerProfile(data)
+        } else {
+            toast.error(data.error)
+            setIsCustomerProfileOpen(false)
+        }
+    }
+
+    // Revert Dialog State
+    const [revertDialogOpen, setRevertDialogOpen] = useState(false)
+    const [revertSaleId, setRevertSaleId] = useState<string | null>(null)
+    const [revertNote, setRevertNote] = useState('')
+    const [revertStatus, setRevertStatus] = useState('follow_up')
+
+    const openRevertDialog = (saleId: string) => {
+        setRevertSaleId(saleId)
+        setRevertNote('')
+        setRevertStatus('follow_up')
+        setRevertDialogOpen(true)
+    }
+
+    const submitRevertToQualification = async () => {
+        if (!revertSaleId) return
+        
+        const promise = revertSaleToQualification(revertSaleId, revertStatus, revertNote)
+        setRevertDialogOpen(false)
+        
+        toast.promise(promise, {
+            loading: 'Geri gönderiliyor...',
+            success: (data) => {
+                if (data.error) throw new Error(data.error)
+                return 'Kayıt başarıyla Ön Değerlendirme aşamasına geri gönderildi.'
+            },
+            error: (err) => err.message || 'İşlem başarısız oldu'
+        })
     }
 
     const handleAutoAssign = async (saleId: string) => {
@@ -516,7 +589,7 @@ export default function PipelineList({
                                                     <TableCell key="customer" className={cellCls}>
                                                         <div className="flex flex-col gap-0.5">
                                                             <div className="flex items-center gap-2">
-                                                                <button type="button" onClick={() => handleCustomerEdit(sale.customers)} className="font-semibold text-foreground text-sm hover:text-blue-600 hover:underline transition-colors text-left">
+                                                                <button type="button" onClick={() => handleOpenCustomerProfile(sale.customers)} className="font-semibold text-foreground text-sm hover:text-blue-600 hover:underline transition-colors text-left">
                                                                     {sale.customers?.full_name}
                                                                 </button>
                                                                 {sale.wa_first_message_sent && (
@@ -702,6 +775,11 @@ export default function PipelineList({
                                                                         <MatchUnitDialog saleId={sale.id} currentUnitId={sale.unit_id} availableUnits={availableUnits} customerName={sale.customers?.full_name} />
                                                                     )}
                                                                     {sale.status === 'Lost' && !sale.restarted_at && <RestartSaleButton saleId={sale.id} />}
+                                                                    {['Lead', 'Prospect'].includes(sale.status) && (
+                                                                        <Button variant="outline" size="icon" className="h-7 w-7 text-orange-600 border-orange-100 hover:bg-orange-50" onClick={() => openRevertDialog(sale.id)} title="Ön Değerlendirmeye Geri Gönder">
+                                                                            <Undo2 className="h-3.5 w-3.5" />
+                                                                        </Button>
+                                                                    )}
                                                                 </>
                                                             )}
                                                         </div>
@@ -916,6 +994,11 @@ export default function PipelineList({
                                                         customerId={sale.customers?.id}
                                                         customerName={sale.customers?.full_name}
                                                     />
+                                                    {['Lead', 'Prospect'].includes(sale.status) && (
+                                                        <Button variant="outline" size="icon" className="h-8 w-8 text-orange-600 border-orange-100 hover:bg-orange-50" onClick={() => openRevertDialog(sale.id)} title="Ön Değerlendirmeye Geri Gönder">
+                                                            <Undo2 className="h-3.5 w-3.5" />
+                                                        </Button>
+                                                    )}
                                                 </>
                                             )}
                                             {sale.status === 'Lost' && !sale.restarted_at && (
@@ -1059,15 +1142,22 @@ export default function PipelineList({
                     <DialogHeader>
                         <DialogTitle>{t('actions.paymentPlanTitle')}</DialogTitle>
                     </DialogHeader>
-                    {selectedSaleId && (
-                        <PaymentPlanCalculator
-                            saleId={selectedSaleId}
-                            totalAmount={sales.find(s => s.id === selectedSaleId)?.final_price || sales.find(s => s.id === selectedSaleId)?.units?.price || 0}
-                            initialCurrency={sales.find(s => s.id === selectedSaleId)?.currency || sales.find(s => s.id === selectedSaleId)?.units?.currency || 'TRY'}
-                            onClose={() => setIsPlanOpen(false)}
-                            templates={templates}
-                        />
-                    )}
+                    {selectedSaleId && (() => {
+                        const selectedSale = sales.find(s => s.id === selectedSaleId)
+                        const saleProjectId = selectedSale?.units?.project_id || selectedSale?.project_id
+                        const filteredTemplates = saleProjectId
+                            ? templates.filter((t: any) => !t.project_id || t.project_id === saleProjectId)
+                            : templates
+                        return (
+                            <PaymentPlanCalculator
+                                saleId={selectedSaleId}
+                                totalAmount={selectedSale?.final_price || selectedSale?.units?.price || 0}
+                                initialCurrency={selectedSale?.currency || selectedSale?.units?.currency || 'TRY'}
+                                onClose={() => setIsPlanOpen(false)}
+                                templates={filteredTemplates}
+                            />
+                        )
+                    })()}
                 </DialogContent>
             </Dialog>
 
@@ -1145,6 +1235,46 @@ export default function PipelineList({
                 onOpenChange={setIsEditOpen}
             />
 
+            <Sheet open={isCustomerProfileOpen} onOpenChange={setIsCustomerProfileOpen}>
+                <SheetContent 
+                    side="right" 
+                    className="overflow-y-auto border-l shadow-2xl bg-white p-0 sm:max-w-none"
+                    style={{ width: `${sheetWidth}px`, maxWidth: '100vw' }}
+                >
+                    <div 
+                        className="absolute left-0 top-0 bottom-0 w-2 hover:w-4 cursor-col-resize hover:bg-blue-500/50 z-50 transition-all flex items-center justify-center group"
+                        onMouseDown={(e) => {
+                            e.preventDefault()
+                            isResizingSheet.current = true
+                            document.body.style.cursor = 'col-resize'
+                        }}
+                    >
+                        <div className="h-12 w-1 bg-slate-300 rounded-full group-hover:bg-white shadow-sm" />
+                    </div>
+                    <SheetHeader className="sr-only">
+                        <SheetTitle>Müşteri Profili</SheetTitle>
+                    </SheetHeader>
+                    <div className="p-6 h-full bg-slate-50/30">
+                        {viewingCustomerProfile ? (
+                            <CustomerView 
+                                customer={viewingCustomerProfile.customer} 
+                                activities={viewingCustomerProfile.activities} 
+                                contracts={viewingCustomerProfile.contracts} 
+                                sales={viewingCustomerProfile.sales} 
+                                profiles={profiles} 
+                            />
+                        ) : (
+                            <div className="flex h-full items-center justify-center text-muted-foreground">
+                                <div className="flex items-center gap-2">
+                                    <span className="animate-spin h-5 w-5 border-2 border-slate-300 border-t-slate-600 rounded-full" />
+                                    <span>Müşteri bilgileri yükleniyor...</span>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </SheetContent>
+            </Sheet>
+
             <ActivityForm
                 open={isActivityOpen}
                 onOpenChange={setIsActivityOpen}
@@ -1156,6 +1286,59 @@ export default function PipelineList({
                 customers={customers}
                 profiles={profiles}
             />
+
+            {/* Revert To Qualification Dialog */}
+            <Dialog open={revertDialogOpen} onOpenChange={setRevertDialogOpen}>
+                <DialogContent className="max-w-md bg-white rounded-2xl shadow-2xl p-6">
+                    <DialogHeader>
+                        <div className="mx-auto w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mb-3">
+                            <Undo2 className="h-6 w-6 text-orange-600" />
+                        </div>
+                        <DialogTitle className="text-center text-xl font-bold">Ön Değerlendirmeye İade</DialogTitle>
+                    </DialogHeader>
+                    
+                    <div className="space-y-4 py-4">
+                        <p className="text-sm text-center text-slate-500 mb-4">
+                            Bu kaydı satış hunisinden çıkarıp yeniden Ön Değerlendirme aşamasına göndermek üzeresiniz.
+                        </p>
+                        
+                        <div className="space-y-2">
+                            <Label className="text-sm font-bold text-slate-700">Hangi Duruma Gönderilecek?</Label>
+                            <Select value={revertStatus} onValueChange={setRevertStatus}>
+                                <SelectTrigger className="w-full h-10 border-slate-200">
+                                    <SelectValue placeholder="Durum seçin" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="new">Yeni Talep</SelectItem>
+                                    <SelectItem value="contacted">Arandı</SelectItem>
+                                    <SelectItem value="follow_up">Takipte</SelectItem>
+                                    <SelectItem value="unreachable">Ulaşılamadı</SelectItem>
+                                    <SelectItem value="disqualified">Elendi (Olumsuz)</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        
+                        <div className="space-y-2">
+                            <Label className="text-sm font-bold text-slate-700">İade Nedeni / Notu</Label>
+                            <Textarea 
+                                placeholder="Neden geri gönderiliyor? Neler konuşuldu? (İsteğe bağlı)" 
+                                value={revertNote}
+                                onChange={e => setRevertNote(e.target.value)}
+                                className="resize-none min-h-[100px] border-slate-200"
+                            />
+                        </div>
+                    </div>
+                    
+                    <div className="flex gap-3 w-full">
+                        <Button variant="outline" onClick={() => setRevertDialogOpen(false)} className="flex-1 h-11 border-slate-200 hover:bg-slate-50">
+                            İptal
+                        </Button>
+                        <Button onClick={submitRevertToQualification} className="flex-1 h-11 bg-orange-600 hover:bg-orange-700 text-white font-medium shadow-md shadow-orange-200">
+                            Geri Gönder
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div >
     )
 }
