@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -33,6 +33,11 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
     const [rapidFilterStatus, setRapidFilterStatus] = useState<string>('all')
     const [searchQuery, setSearchQuery] = useState('')
     const router = useRouter()
+    
+    // Sync external data changes (pagination) to local state
+    useEffect(() => {
+        setQualifications(initialData)
+    }, [initialData])
     
     // Dialog states
     const [isNoteDialogOpen, setIsNoteDialogOpen] = useState(false)
