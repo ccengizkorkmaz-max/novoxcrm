@@ -52,7 +52,7 @@ export function Footer() {
                     <div>
                         <h4 className="text-white font-bold mb-6">{t('corporateTitle')}</h4>
                         <ul className="space-y-4 text-sm">
-                            <li><Link href="/hakkimizda" className="hover:text-white transition-colors">{t('corporate.about')} / Hakkımızda</Link></li>
+                            <li><Link href="/hakkimizda" className="hover:text-white transition-colors">Hakkımızda</Link></li>
                             <li><Link href="/wiki" className="hover:text-white transition-colors">{t('corporate.wiki')}</Link></li>
                             <li><Link href="/gizlilik-sozlesmesi" className="hover:text-white transition-colors">Gizlilik Sözleşmesi</Link></li>
                             <li><Link href="/mesafeli-satis-sozlesmesi" className="hover:text-white transition-colors">Mesafeli Satış Sözleşmesi</Link></li>
