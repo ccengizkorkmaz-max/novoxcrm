@@ -667,8 +667,19 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
                                                     status.color.includes('green') ? 'bg-green-500' :
                                                     status.color.includes('red') ? 'bg-red-500' :
                                                     status.color.includes('slate') ? 'bg-slate-500' : 'bg-gray-500';
+                                const isSelected = selectedStatuses.includes(status.id);
                                 return (
-                                    <div key={status.id} className="flex items-center gap-1.5 px-2.5 py-1 bg-white border rounded-md text-xs whitespace-nowrap shadow-sm cursor-pointer hover:bg-slate-50 transition-colors" onClick={() => setRapidFilterStatus(status.id)}>
+                                    <div 
+                                        key={status.id} 
+                                        className={`flex items-center gap-1.5 px-2.5 py-1 bg-white border rounded-md text-xs whitespace-nowrap shadow-sm cursor-pointer transition-colors ${isSelected ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:bg-slate-50'}`} 
+                                        onClick={() => {
+                                            if (isSelected) {
+                                                setSelectedStatuses(selectedStatuses.filter(id => id !== status.id))
+                                            } else {
+                                                setSelectedStatuses([...selectedStatuses, status.id])
+                                            }
+                                        }}
+                                    >
                                         <div className={`w-2 h-2 rounded-full ${bulletColor}`} />
                                         <span className="text-slate-600 font-medium">{status.label}</span>
                                         <span className="font-bold text-slate-900 ml-0.5">{count}</span>
