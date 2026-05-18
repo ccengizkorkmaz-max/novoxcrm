@@ -21,7 +21,7 @@ export default async function LeadQualificationPage(props: {
     const page = typeof searchParams.page === 'string' ? parseInt(searchParams.page) : 1
     const pageSize = 100
 
-    let qualifications = []
+    let qualifications: any[] = []
     let totalCount = 0
     let statusCounts: Record<string, number> = {}
     
@@ -94,8 +94,8 @@ export default async function LeadQualificationPage(props: {
     }
 
     // Projeleri çek (Satışa aktarırken sormak için)
-    let projects = []
-    let units = []
+    let projects: any[] = []
+    let units: any[] = []
     if (profile?.tenant_id) {
         const { data: pData } = await supabase
             .from('projects')
