@@ -89,7 +89,7 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
     const [nextStatus, setNextStatus] = useState('contacted')
     const [disqualifyReason, setDisqualifyReason] = useState('')
     const [selectedProject, setSelectedProject] = useState('')
-    const [selectedUnit, setSelectedUnit] = useState('')
+    const [saleDescription, setSaleDescription] = useState('')
 
     // Drag & Drop
     const handleDragStart = (e: React.DragEvent, qualId: string) => {
@@ -136,7 +136,7 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
             setIsDisqualifyDialogOpen(true)
         } else if (action === 'qualify') {
             setSelectedProject(qual.project_id || '')
-            setSelectedUnit('')
+            setSaleDescription(getEkSoru(qual.customers?.notes) || '')
             setIsQualifyDialogOpen(true)
         }
     }
@@ -144,7 +144,7 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
     const submitQualify = async () => {
         if (!selectedQual || !selectedProject) return
         
-        const promise = convertToSale(selectedQual.id, selectedProject, selectedUnit === 'none' ? null : (selectedUnit || null))
+        const promise = convertToSale(selectedQual.id, selectedProject, null, saleDescription)
         toast.promise(promise, {
             loading: 'Satış hunisine aktarılıyor...',
             success: (data) => {
@@ -661,11 +661,13 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
                             {STATUSES.map(status => {
                                 const count = statusCounts[status.id] || 0;
                                 if (count === 0) return null;
-                                // Simple mapping for bullet color based on badge styling
                                 const bulletColor = status.color.includes('blue') ? 'bg-blue-500' :
                                                     status.color.includes('yellow') ? 'bg-yellow-500' :
+                                                    status.color.includes('amber') ? 'bg-amber-500' :
                                                     status.color.includes('green') ? 'bg-green-500' :
+                                                    status.color.includes('emerald') ? 'bg-emerald-500' :
                                                     status.color.includes('red') ? 'bg-red-500' :
+                                                    status.color.includes('orange') ? 'bg-orange-500' :
                                                     status.color.includes('slate') ? 'bg-slate-500' : 'bg-gray-500';
                                 const isSelected = selectedStatuses.includes(status.id);
                                 return (
@@ -1028,7 +1030,7 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
                     <div className="space-y-4 py-4">
                         <div className="space-y-2">
                             <Label>İlgilendiği Proje <span className="text-red-500">*</span></Label>
-                            <Select value={selectedProject} onValueChange={(v) => { setSelectedProject(v); setSelectedUnit(''); }}>
+                            <Select value={selectedProject} onValueChange={setSelectedProject}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Lütfen ilgilendiği projeyi seçin..." />
                                 </SelectTrigger>
@@ -1042,27 +1044,15 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
                                 </SelectContent>
                             </Select>
                         </div>
-                        {selectedProject && availableUnits && (
-                            <div className="space-y-2">
-                                <Label>İlgilendiği Ünite (Opsiyonel)</Label>
-                                <Select value={selectedUnit} onValueChange={setSelectedUnit}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Belli bir ünite seçebilirsiniz..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="none">Belirtilmedi</SelectItem>
-                                        {availableUnits.filter(u => u.project_id === selectedProject).map((u: any) => (
-                                            <SelectItem key={u.id} value={u.id}>
-                                                NO: {u.unit_number} {u.price ? `- ${u.price} ${u.currency}` : ''}
-                                            </SelectItem>
-                                        ))}
-                                        {availableUnits.filter(u => u.project_id === selectedProject).length === 0 && (
-                                            <SelectItem value="-" disabled>Bu projede müsait ünite yok</SelectItem>
-                                        )}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        )}
+                        <div className="space-y-2">
+                            <Label>Açıklama (Talep Detayı)</Label>
+                            <Textarea 
+                                placeholder="Müşterinin talepleri, aradığı özellikler vb..." 
+                                value={saleDescription} 
+                                onChange={e => setSaleDescription(e.target.value)}
+                                rows={3}
+                            />
+                        </div>
                         <p className="text-xs text-muted-foreground mt-2">Müşteriyi satış hunisine aktarabilmek için en az bir proje seçimi zorunludur.</p>
                     </div>
                     <DialogFooter>

@@ -105,7 +105,7 @@ export async function addCallNote(id: string, customerId: string, note: string, 
     return { error: null }
 }
 
-export async function convertToSale(qualificationId: string, projectId: string, unitId: string | null = null) {
+export async function convertToSale(qualificationId: string, projectId: string, unitId: string | null = null, description: string = '') {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     
@@ -135,7 +135,8 @@ export async function convertToSale(qualificationId: string, projectId: string, 
             status: 'Prospect', // Start at Prospect since it's qualified
             assigned_to: qual.assigned_to || user.id,
             project_id: projectId,
-            unit_id: unitId
+            unit_id: unitId,
+            description: description || ''
         })
         .select()
         .single()
