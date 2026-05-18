@@ -47,7 +47,7 @@ export default function HakkimizdaPage() {
                             </h2>
                             <div className="pl-11 space-y-2 text-slate-400">
                                 <p><strong>Firma Ünvanı:</strong> BTPROSES Teknoloji Danışmanlık Ltd.Şti.</p>
-                                <p><strong>Merkez Adresi:</strong> Burhaniye mh. Reşit Bey Sok. No:6 Üsküdar / İstanbul</p>
+                                <p><strong>Merkez Adresi:</strong> Burhaniye Mh. Üsküdar - İstanbul 34676</p>
                                 <p><strong>E-posta:</strong> info@btproses.com</p>
                                 <p><strong>Faaliyet Alanı:</strong> Yazılım Geliştirme, SaaS (Software as a Service), Teknoloji Danışmanlığı</p>
                             </div>

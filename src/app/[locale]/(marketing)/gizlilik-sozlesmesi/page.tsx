@@ -94,7 +94,7 @@ export default function GizlilikSozlesmesiPage() {
                             <p className="pl-11 mb-2 text-slate-400">Bu gizlilik sözleşmesi ve veri taleplerinizle ilgili bizimle iletişime geçebilirsiniz:</p>
                             <p className="pl-11 font-bold text-xl text-blue-400 hover:text-blue-300 transition-colors">info@btproses.com</p>
                             <p className="pl-11 mt-2 text-slate-400">BTPROSES Teknoloji Danışmanlık Ltd.Şti.</p>
-                            <p className="pl-11 text-sm text-slate-500">Burhaniye mh. Reşit Bey Sok. No:6 Üsküdar-İstanbul</p>
+                            <p className="pl-11 text-sm text-slate-500">Burhaniye Mh. Üsküdar - İstanbul 34676</p>
                         </section>
                     </div>
                 </div>

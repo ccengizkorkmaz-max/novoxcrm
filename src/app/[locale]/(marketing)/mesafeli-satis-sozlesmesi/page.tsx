@@ -35,7 +35,7 @@ export default function MesafeliSatisSozlesmesiPage() {
                                     <h3 className="text-slate-300 font-semibold mb-1">1.1. SATICI (Hizmet Sağlayıcı)</h3>
                                     <ul className="list-disc pl-5 space-y-1 text-slate-400">
                                         <li><strong>Unvanı:</strong> BTPROSES Teknoloji Danışmanlık Ltd.Şti.</li>
-                                        <li><strong>Adres:</strong> Burhaniye mh. Reşit Bey Sok. No:6 Üsküdar-İstanbul</li>
+                                        <li><strong>Adres:</strong> Burhaniye Mh. Üsküdar - İstanbul 34676</li>
                                         <li><strong>İletişim:</strong> info@btproses.com</li>
                                     </ul>
                                 </div>
