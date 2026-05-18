@@ -890,7 +890,17 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
                                             <Info className="w-3 h-3" /> Meta Reklam Kampanya Detayı
                                         </Label>
                                         <div className="text-sm text-blue-900 break-words">
-                                            {selectedQual.campaign_name || selectedQual.customers?.notes || 'Detay bulunamadı'}
+                                            {selectedQual.campaign_name || 'Detay bulunamadı'}
+                                        </div>
+                                    </div>
+                                )}
+                                {getEkSoru(selectedQual.customers?.notes) && (
+                                    <div className="space-y-1 col-span-2 bg-indigo-50 p-2 rounded-lg border border-indigo-100 mt-2">
+                                        <Label className="text-xs text-indigo-700 font-bold flex items-center gap-1">
+                                            <MessageSquareText className="w-3 h-3" /> Reklam Ek Soru
+                                        </Label>
+                                        <div className="text-sm text-indigo-900 break-words font-medium whitespace-pre-wrap">
+                                            {getEkSoru(selectedQual.customers?.notes)}
                                         </div>
                                     </div>
                                 )}
