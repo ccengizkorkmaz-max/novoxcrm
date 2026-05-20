@@ -221,3 +221,76 @@ export async function revertSaleToQualification(saleId: string, targetStatus: st
     
     return { error: null }
 }
+
+export async function createLeadQualification(formData: FormData) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    
+    if (!user) return { error: 'Not authenticated' }
+
+    const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single()
+    if (!profile) return { error: 'Profile not found' }
+
+    const full_name = formData.get('full_name') as string
+    const phone = formData.get('phone') as string
+    const email = (formData.get('email') as string) || null
+    const source = (formData.get('source') as string) || 'manual'
+    const campaign_name = (formData.get('campaign_name') as string) || null
+    const project_id = (formData.get('project_id') as string) || null
+    const notes = (formData.get('notes') as string) || ''
+
+    if (!full_name || !phone) {
+        return { error: 'İsim ve telefon zorunludur.' }
+    }
+
+    const { createAdminClient } = await import('@/lib/supabase/admin')
+    const adminSupabase = createAdminClient()
+
+    // 1. Create or Find Customer
+    // For simplicity, we create a new customer. You could also try matching by phone.
+    const { data: customer, error: customerErr } = await adminSupabase
+        .from('customers')
+        .insert({
+            tenant_id: profile.tenant_id,
+            full_name,
+            phone,
+            email,
+            source,
+            created_by: user.id,
+            notes: notes ? `Ön Değerlendirme Notu: ${notes}` : null
+        })
+        .select()
+        .single()
+
+    if (customerErr) return { error: customerErr.message }
+
+    // 2. Create Lead Qualification
+    const { error: qualError } = await adminSupabase
+        .from('lead_qualifications')
+        .insert({
+            tenant_id: profile.tenant_id,
+            customer_id: customer.id,
+            status: 'new',
+            source,
+            campaign_name,
+            project_id: project_id || null,
+            call_notes: notes,
+            assigned_to: user.id
+        })
+
+    if (qualError) return { error: qualError.message }
+
+    // 3. Log Activity
+    await adminSupabase.from('activities').insert({
+        tenant_id: profile.tenant_id,
+        customer_id: customer.id,
+        user_id: user.id,
+        type: 'Note',
+        summary: 'Manuel Ön Değerlendirme Kaydı Açıldı',
+        notes: notes || 'Kayıt oluşturuldu.',
+        status: 'Completed'
+    })
+
+    revalidatePath('/[locale]/(dashboard)/lead-qualification', 'page')
+    return { success: true }
+}

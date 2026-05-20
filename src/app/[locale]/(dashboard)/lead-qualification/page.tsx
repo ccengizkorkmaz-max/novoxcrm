@@ -1,6 +1,7 @@
 import { getTranslations } from 'next-intl/server'
 import { createClient } from '@/lib/supabase/server'
 import QualificationBoard from './components/QualificationBoard'
+import { NewQualificationModal } from './components/NewQualificationModal'
 
 export const dynamic = 'force-dynamic'
 
@@ -123,6 +124,9 @@ export default async function LeadQualificationPage(props: {
                 <div>
                     <h1 className="text-xl md:text-2xl font-bold tracking-tight">Ön Değerlendirme (Lead Qualification)</h1>
                     <p className="text-sm text-muted-foreground">Potansiyel müşterileri satış hunisine (CRM) girmeden önce filtreleyin ve arama sonuçlarını girin.</p>
+                </div>
+                <div className="flex items-center gap-2">
+                    <NewQualificationModal projects={projects} />
                 </div>
             </div>
             

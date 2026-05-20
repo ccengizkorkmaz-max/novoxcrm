@@ -270,8 +270,8 @@ GİZLİ SİSTEM KOMUTLARI (SADECE ŞARTLAR SAĞLANDIĞINDA YANITININ EN SONUNA E
                                 if (recentMessages && recentMessages.length > 0) {
                                     conversationSummary = recentMessages
                                         .reverse()
-                                        .map((m: any) => `${m.role === 'user' ? '👤 Müşteri' : '🤖 AI'}: ${m.content.substring(0, 120)}`)
-                                        .join('\n');
+                                        .map((m: any) => `${m.role === 'user' ? 'Müşteri' : 'AI'}: ${m.content.substring(0, 120).replace(/\n/g, ' ')}`)
+                                        .join(' | ');
                                 }
 
                                 // Müşteri adını bul (CRM veya WhatsApp adı)
@@ -301,7 +301,7 @@ GİZLİ SİSTEM KOMUTLARI (SADECE ŞARTLAR SAĞLANDIĞINDA YANITININ EN SONUNA E
                                     customerName,
                                     normalizedPhone,
                                     new Date().toLocaleString('tr-TR'),
-                                    conversationSummary ? conversationSummary.substring(0, 500) : 'Özet oluşturulamadı'
+                                    conversationSummary ? conversationSummary.substring(0, 500).replace(/\n/g, ' ') : 'Özet oluşturulamadı'
                                 ];
 
                                 for (const manager of hotLeadManagers) {
