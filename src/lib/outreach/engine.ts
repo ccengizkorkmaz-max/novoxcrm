@@ -336,14 +336,30 @@ async function executeWhatsApp(execution: any, step: any, config: StepConfig, ph
     let result: { success: boolean; error?: string; data?: any }
     let messageContent: string = ''
 
-    if (config.template_name) {
+    if (config.template_name || config.template_map) {
+        // Resolve template name — either static or project-based mapping
+        let templateName = config.template_name || ''
+        if (config.template_map) {
+            // Fetch lead's project from lead_qualifications
+            const { data: lq } = await supabase
+                .from('lead_qualifications')
+                .select('projects(name)')
+                .eq('customer_id', execution.customer_id)
+                .order('id', { ascending: false })
+                .limit(1)
+                .single()
+            const projectName = (lq as any)?.projects?.name || ''
+            templateName = config.template_map[projectName] || config.template_map['_default'] || config.template_name || ''
+            console.log(`[Outreach] Template map: project="${projectName}" → template="${templateName}"`)
+        }
+
         // Send template message (for messages outside 24h window)
-        const params = (config.template_params || []).map(p =>
+        const params = (config.template_params || []).map((p: string) =>
             p.replace('{customer_name}', customer?.full_name || '')
                 .replace('{project_name}', execution.metadata?.project_name || '')
         )
-        result = await sendWhatsAppTemplate(phone, config.template_name, params)
-        messageContent = `Template: ${config.template_name} [${params.join(', ')}]`
+        result = await sendWhatsAppTemplate(phone, templateName, params)
+        messageContent = `Template: ${templateName} [${params.join(', ')}]`
     } else if (config.free_text) {
         // Send free-text message (only works within 24h window)
         let text = execution.metadata?.personalized_message || config.free_text
@@ -1003,7 +1019,7 @@ export async function resolveSegment(segmentId: string): Promise<string[]> {
     const filters = segment.filters as any
 
     // Lead Qualifications source → returns customer_id list
-    if (filters.source === 'lead_qualifications') {
+    if (filters.source === 'lead_qualifications' || filters.source === 'lead_qualification') {
         let query = supabase
             .from('lead_qualifications')
             .select('id, customer_id, customers!inner(phone)')
@@ -1014,11 +1030,17 @@ export async function resolveSegment(segmentId: string): Promise<string[]> {
             }
         }
         if (filters.project_id) query = query.eq('project_id', filters.project_id)
-        if (filters.assigned_to) query = query.eq('assigned_to', filters.assigned_to)
+        if (filters.assigned_to) {
+            if (Array.isArray(filters.assigned_to)) {
+                query = query.in('assigned_to', filters.assigned_to)
+            } else {
+                query = query.eq('assigned_to', filters.assigned_to)
+            }
+        }
         if (filters.unassigned) query = query.is('assigned_to', null)
         if (filters.date_from) query = query.gte('created_at', filters.date_from)
         if (filters.date_to) query = query.lte('created_at', filters.date_to + 'T23:59:59')
-        const { data: quals } = await query.limit(500)
+        const { data: quals } = await query.limit(5000)
         // Return customer IDs prefixed with 'lq:' to distinguish from sale IDs
         return quals?.map(q => `lq:${q.customer_id}`) || []
     }
