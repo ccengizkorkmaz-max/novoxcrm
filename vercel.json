@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/outreach-daily",
       "schedule": "0 9,12,15 * * 1-5"
+    },
+    {
+      "path": "/api/cron/outreach",
+      "schedule": "*/5 6-19 * * 1-5"
     }
   ]
 }
