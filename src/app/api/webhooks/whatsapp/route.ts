@@ -92,6 +92,47 @@ export async function POST(req: NextRequest) {
             console.log('✅ Mesaj kaydedildi:', payload.message.substring(0, 30));
         }
 
+        // ── 4.5. Kampanya Yanıt İşleme (Quick Reply butonları) ──────────
+        const msgLower = payload.message.toLowerCase().trim();
+        if (msgLower === 'evet arayin' || msgLower === 'evet, arayin' || msgLower === 'hayir tesekkurler' || msgLower === 'hayir, tesekkurler') {
+            try {
+                // Telefon ile müşteriyi bul
+                const { data: customer } = await supabase.from('customers')
+                    .select('id')
+                    .or(`phone.ilike.%${normalizedPhone.slice(-10)}%`)
+                    .limit(1)
+                    .single();
+
+                if (customer) {
+                    if (msgLower.startsWith('evet')) {
+                        // "Evet arayin" → call_requested olarak işaretle
+                        await supabase.from('lead_qualifications')
+                            .update({ status: 'call_requested' })
+                            .eq('customer_id', customer.id)
+                            .in('status', ['new', 'follow_up', 'unreachable']);
+                        console.log(`✅ Kampanya yanıtı: ${normalizedPhone} → call_requested`);
+                    } else {
+                        // "Hayir tesekkurler" → opted_out
+                        await supabase.from('lead_qualifications')
+                            .update({ status: 'disqualified', notes: 'WhatsApp kampanyasından aranmak istemedi' })
+                            .eq('customer_id', customer.id)
+                            .in('status', ['new', 'follow_up', 'unreachable']);
+                        // Opt-out kaydı
+                        await supabase.from('outreach_optouts').upsert({
+                            phone: normalizedPhone,
+                            channel: 'ai_call',
+                            reason: 'WhatsApp kampanyasından red',
+                        }, { onConflict: 'phone,channel' }).select();
+                        console.log(`🚫 Kampanya yanıtı: ${normalizedPhone} → opted_out`);
+                    }
+                }
+                // Kampanya yanıtı için AI chatbot'a girmesine gerek yok
+                return NextResponse.json({ status: 'campaign_reply_processed' }, { status: 200 });
+            } catch (err: any) {
+                console.error('❌ Kampanya yanıt hatası:', err.message);
+            }
+        }
+
         // ── 5. AI Chatbot Motoru ───────────────────────────────────────
         // Dinamik AI provider ve key çözümleme
         const resolvedAi = resolveAiProvider(tenantData);
