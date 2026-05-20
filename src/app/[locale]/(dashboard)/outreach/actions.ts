@@ -560,11 +560,13 @@ export async function removeOptout(id: string) {
 // ─── Workflow Monitor ────────────────────────────────────────
 
 export async function getWorkflowMonitor(workflowId: string) {
-    const { supabase, tenantId } = await getAuthContext()
+    const { tenantId } = await getAuthContext()
     if (!tenantId) return { error: 'No tenant' }
 
+    const adminDb = createAdminClient()
+
     // Get workflow info
-    const { data: workflow } = await supabase.from('outreach_workflows')
+    const { data: workflow } = await adminDb.from('outreach_workflows')
         .select('id, name, is_active, max_leads_per_day, total_executions, outreach_segments(name)')
         .eq('id', workflowId)
         .single()
@@ -572,7 +574,7 @@ export async function getWorkflowMonitor(workflowId: string) {
     if (!workflow) return { error: 'Workflow not found' }
 
     // Get all executions with customer info
-    const { data: executions, count: totalCount } = await supabase.from('outreach_executions')
+    const { data: executions, count: totalCount } = await adminDb.from('outreach_executions')
         .select(`
             id, status, current_step_order, next_action_at, created_at, completed_at,
             customers(id, full_name, phone),
@@ -586,7 +588,7 @@ export async function getWorkflowMonitor(workflowId: string) {
     const executionIds = executions?.map(e => e.id) || []
     let logs: any[] = []
     if (executionIds.length > 0) {
-        const { data: logData } = await supabase.from('outreach_step_logs')
+        const { data: logData } = await adminDb.from('outreach_step_logs')
             .select('execution_id, channel, status, call_duration_seconds, call_outcome, call_summary, cost_amount, executed_at, completed_at')
             .in('execution_id', executionIds)
             .order('executed_at', { ascending: false })
