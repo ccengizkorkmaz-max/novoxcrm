@@ -38,19 +38,28 @@ export function WorkflowMonitor({ workflowId, workflowName, onClose }: WorkflowM
     const [data, setData] = useState<any>(null)
     const [loading, setLoading] = useState(true)
     const [refreshing, setRefreshing] = useState(false)
+    const [error, setError] = useState<string | null>(null)
 
     const fetchData = useCallback(async () => {
         try {
             const result = await getWorkflowMonitor(workflowId)
-            if (!result.error) setData(result)
-        } catch { /* ignore */ }
+            if (result.error) {
+                setError(result.error)
+                console.error('[Monitor] Error:', result.error)
+            } else {
+                setData(result)
+                setError(null)
+            }
+        } catch (err: any) {
+            setError(err.message)
+            console.error('[Monitor] Fetch error:', err)
+        }
         setLoading(false)
         setRefreshing(false)
     }, [workflowId])
 
     useEffect(() => {
         fetchData()
-        // Auto-refresh every 15 seconds
         const interval = setInterval(fetchData, 15000)
         return () => clearInterval(interval)
     }, [fetchData])
@@ -65,6 +74,21 @@ export function WorkflowMonitor({ workflowId, workflowName, onClose }: WorkflowM
             <div className="flex items-center justify-center h-60 gap-3 text-muted-foreground">
                 <Loader2 className="h-5 w-5 animate-spin" />
                 Yükleniyor...
+            </div>
+        )
+    }
+
+    if (error) {
+        return (
+            <div className="space-y-4">
+                <Button variant="ghost" size="sm" onClick={onClose}>
+                    <ArrowLeft className="h-4 w-4 mr-2" /> Geri
+                </Button>
+                <Card className="p-6 text-center">
+                    <AlertTriangle className="h-8 w-8 text-amber-400 mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground">Monitor yüklenemedi: {error}</p>
+                    <Button size="sm" className="mt-3" onClick={handleRefresh}>Tekrar Dene</Button>
+                </Card>
             </div>
         )
     }
