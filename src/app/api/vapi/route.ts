@@ -152,9 +152,9 @@ export async function POST(request: NextRequest) {
     const { data: tenants } = await supabase.from('tenants').select('*').not('ai_knowledge_base', 'is', null).limit(1);
     let tenantData = tenants?.[0];
     if (!tenantData) {
-        // Fallback if no tenant has knowledge base
-        const { data: anyTenants } = await supabase.from('tenants').select('*').limit(1);
-        tenantData = anyTenants?.[0] || {};
+      // Fallback if no tenant has knowledge base
+      const { data: anyTenants } = await supabase.from('tenants').select('*').limit(1);
+      tenantData = anyTenants?.[0] || {};
     }
 
     if (crmCustomer) {
@@ -201,12 +201,12 @@ export async function POST(request: NextRequest) {
     // We append the CRM context so the AI knows exactly who they are talking to
     let basePrompt = customPrompt;
     if (!basePrompt) {
-        basePrompt = tenantData.ai_assistant_instructions || "Sen Novo Gayrimenkul danışmanısın. Müşteriyi arıyorsun.";
-        if (tenantData.ai_knowledge_base) {
-             basePrompt += `\n\n--- ŞİRKET BİLGİ BANKASI VE AKTİF PROJELER ---\n${tenantData.ai_knowledge_base}\n\nÖNEMLİ KURAL: Projeler hakkında SADECE yukarıdaki BİLGİ BANKASI'nda yazan bilgileri kullan. Bilmediğin veya bilgi bankasında yazmayan bir detay (fiyat, metrekare, teslim tarihi vb.) sorulursa ASLA uydurma, 'Bu detay şu an sistemimde mevcut değil, dilerseniz ilgili satış uzmanımızın size net bilgi vermesini sağlayabilirim' şeklinde yanıt ver.\n`;
-        }
+      basePrompt = tenantData.ai_assistant_instructions || "Sen Novo Gayrimenkul danışmanısın. Müşteriyi arıyorsun.";
+      if (tenantData.ai_knowledge_base) {
+        basePrompt += `\n\n--- ŞİRKET BİLGİ BANKASI VE AKTİF PROJELER ---\n${tenantData.ai_knowledge_base}\n\nÖNEMLİ KURAL: Projeler hakkında SADECE yukarıdaki BİLGİ BANKASI'nda yazan bilgileri kullan. Bilmediğin veya bilgi bankasında yazmayan bir detay (fiyat, metrekare, teslim tarihi vb.) sorulursa ASLA uydurma, 'Bu detay şu an sistemimde mevcut değil, dilerseniz ilgili satış uzmanımızın size net bilgi vermesini sağlayabilirim' şeklinde yanıt ver.\n`;
+      }
     }
-    
+
     const finalPrompt = `${TURKISH_VOICE_RULES}\n${basePrompt}\n\n=== CRM BİLGİSİ ===\n${crmContext}`;
 
     overrides.model = {
@@ -247,7 +247,7 @@ export async function POST(request: NextRequest) {
 
     // Optimize start speaking plan to reduce the silence delay
     overrides.startSpeakingPlan = {
-      waitSeconds: 0.1
+      waitSeconds: 0.05
     };
 
     // Voice override
