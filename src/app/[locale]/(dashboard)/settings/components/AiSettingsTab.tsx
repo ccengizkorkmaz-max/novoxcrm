@@ -38,6 +38,8 @@ interface AiSettingsTabProps {
         wa_auto_template_enabled?: boolean
         wa_auto_template_name?: string | null
         wa_auto_template_rule?: string | null
+        // Outreach
+        ai_outreach_settings?: { max_concurrent_calls?: number } | null
     }
 }
 
@@ -489,6 +491,38 @@ export default function AiSettingsTab({ tenant }: AiSettingsTabProps) {
                                 <Info className="h-3 w-3" />
                                 Bu kurallar her sesli aramada (Vapi) system prompt&apos;a otomatik enjekte edilir. Değiştirmek için geliştirici ile iletişime geçin.
                             </p>
+                        </div>
+
+                        {/* Outreach Ayarları */}
+                        <div className="p-4 rounded-xl border-2 border-blue-200 bg-blue-50/50 space-y-3">
+                            <div className="flex items-center gap-2">
+                                <Phone className="h-4 w-4 text-blue-600" />
+                                <Label className="text-base font-semibold text-blue-900">Outreach Arama Ayarları</Label>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs text-blue-800">Max Eşzamanlı Arama</Label>
+                                    <Input
+                                        type="number"
+                                        min={1}
+                                        max={10}
+                                        defaultValue={tenant?.ai_outreach_settings?.max_concurrent_calls || 5}
+                                        onChange={async (e) => {
+                                            const val = parseInt(e.target.value) || 5
+                                            if (val < 1 || val > 10) return
+                                            const supabase = (await import('@/lib/supabase/client')).createClient()
+                                            await supabase.from('tenants').update({
+                                                ai_outreach_settings: {
+                                                    ...tenant?.ai_outreach_settings,
+                                                    max_concurrent_calls: val
+                                                }
+                                            }).eq('id', tenant?.id)
+                                        }}
+                                        className="w-24 bg-white"
+                                    />
+                                    <p className="text-[10px] text-blue-700">Aynı anda kaç AI araması yapılabilir (1-10)</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
 

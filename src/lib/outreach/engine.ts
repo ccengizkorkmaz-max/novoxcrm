@@ -70,19 +70,31 @@ export async function processOutreachQueue() {
     }
 
     // ─── Eşzamanlı arama limiti kontrolü ─────────────────
+    // Get tenant-specific limit from first execution's tenant
+    const tenantId = dueExecutions[0]?.tenant_id
+    let maxConcurrent = MAX_CONCURRENT_CALLS
+    if (tenantId) {
+        const { data: tenantSettings } = await supabase
+            .from('tenants')
+            .select('ai_outreach_settings')
+            .eq('id', tenantId)
+            .single()
+        maxConcurrent = tenantSettings?.ai_outreach_settings?.max_concurrent_calls || MAX_CONCURRENT_CALLS
+    }
+
     const { count: activeCalls } = await supabase
         .from('outreach_step_logs')
         .select('id', { count: 'exact', head: true })
         .eq('status', 'in_progress')
         .eq('channel', 'ai_call')
 
-    const availableSlots = MAX_CONCURRENT_CALLS - (activeCalls || 0)
+    const availableSlots = maxConcurrent - (activeCalls || 0)
     if (availableSlots <= 0) {
-        console.log(`[Outreach] Eşzamanlı arama limiti doldu (${MAX_CONCURRENT_CALLS}). Bekleniyor...`)
+        console.log(`[Outreach] Eşzamanlı arama limiti doldu (${maxConcurrent}). Bekleniyor...`)
         return { processed: 0, reason: 'concurrency_limit' }
     }
 
-    console.log(`[Outreach] ${dueExecutions.length} bekleyen, ${availableSlots}/${MAX_CONCURRENT_CALLS} slot müsait`)
+    console.log(`[Outreach] ${dueExecutions.length} bekleyen, ${availableSlots}/${maxConcurrent} slot müsait`)
 
     let processed = 0
 
