@@ -228,6 +228,16 @@ async function executeAiCall(execution: any, step: any, config: StepConfig, phon
         return
     }
 
+    // Normalize & validate phone
+    let cleanPhone = phone.replace(/[^0-9+]/g, '') // Remove non-numeric except +
+    if (cleanPhone.startsWith('0')) cleanPhone = '+90' + cleanPhone.substring(1)
+    if (!cleanPhone.startsWith('+')) cleanPhone = '+90' + cleanPhone
+    // E.164: max 15 digits including country code
+    if (cleanPhone.length < 10 || cleanPhone.length > 16 || cleanPhone.includes('ifempty')) {
+        await logAndAdvance(execution, step, 'skipped', 'ai_call', `Geçersiz telefon: ${phone}`)
+        return
+    }
+
     // Check channel-specific opt-out
     const { data: optout } = await supabase
         .from('outreach_optouts')
@@ -258,7 +268,7 @@ async function executeAiCall(execution: any, step: any, config: StepConfig, phon
     }
 
     const result = await makeOutboundCall({
-        phoneNumber: phone,
+        phoneNumber: cleanPhone,
         // Always use the default Vapi assistant, override with script prompt
         systemPrompt: scriptPrompt,
         firstMessage: execution.metadata?.personalized_message || undefined,
