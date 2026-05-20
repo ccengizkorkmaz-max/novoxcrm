@@ -60,6 +60,28 @@ export async function deleteSegment(id: string) {
 
 export async function previewSegment(filters: any) {
     const { supabase, tenantId } = await getAuthContext()
+
+    // Lead Qualifications source
+    if (filters.source === 'lead_qualifications') {
+        let query = supabase.from('lead_qualifications')
+            .select('id, status, customers!inner(full_name, phone)', { count: 'exact', head: false })
+            .eq('tenant_id', tenantId)
+        if (filters.statuses?.length) query = query.in('status', filters.statuses)
+        if (filters.exclude_statuses?.length) {
+            for (const es of filters.exclude_statuses) {
+                query = query.neq('status', es)
+            }
+        }
+        if (filters.project_id) query = query.eq('project_id', filters.project_id)
+        if (filters.assigned_to) query = query.eq('assigned_to', filters.assigned_to)
+        if (filters.unassigned) query = query.is('assigned_to', null)
+        if (filters.date_from) query = query.gte('created_at', filters.date_from)
+        if (filters.date_to) query = query.lte('created_at', filters.date_to + 'T23:59:59')
+        const { data, count } = await query.limit(10)
+        return { count: count || 0, preview: data || [] }
+    }
+
+    // Default: Sales source
     let query = supabase.from('sales').select('id, customers!inner(full_name, phone)', { count: 'exact', head: false }).neq('status', 'Inbox')
     if (filters.statuses?.length) query = query.in('status', filters.statuses)
     if (filters.project_id) query = query.eq('project_id', filters.project_id)

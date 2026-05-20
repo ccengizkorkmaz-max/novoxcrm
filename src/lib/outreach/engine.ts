@@ -843,6 +843,28 @@ export async function resolveSegment(segmentId: string): Promise<string[]> {
     if (!segment) return []
 
     const filters = segment.filters as any
+
+    // Lead Qualifications source
+    if (filters.source === 'lead_qualifications') {
+        let query = supabase
+            .from('lead_qualifications')
+            .select('id, customer_id, customers!inner(phone)')
+        if (filters.statuses?.length) query = query.in('status', filters.statuses)
+        if (filters.exclude_statuses?.length) {
+            for (const es of filters.exclude_statuses) {
+                query = query.neq('status', es)
+            }
+        }
+        if (filters.project_id) query = query.eq('project_id', filters.project_id)
+        if (filters.assigned_to) query = query.eq('assigned_to', filters.assigned_to)
+        if (filters.unassigned) query = query.is('assigned_to', null)
+        if (filters.date_from) query = query.gte('created_at', filters.date_from)
+        if (filters.date_to) query = query.lte('created_at', filters.date_to + 'T23:59:59')
+        const { data: quals } = await query.limit(500)
+        return quals?.map(q => q.id) || []
+    }
+
+    // Default: Sales source
     let query = supabase
         .from('sales')
         .select('id, customer_id, customers!inner(phone)')

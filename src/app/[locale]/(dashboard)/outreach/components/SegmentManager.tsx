@@ -13,7 +13,13 @@ import {
 } from 'lucide-react'
 import { createSegment, updateSegment, deleteSegment, previewSegment } from '../actions'
 
-const STATUS_OPTIONS = ['Lead', 'Prospect', 'Potential', 'Lost', 'Customer', 'Contacted']
+const SALES_STATUS_OPTIONS = ['Lead', 'Prospect', 'Potential', 'Lost', 'Customer', 'Contacted']
+const LQ_STATUS_OPTIONS = ['new', 'follow_up', 'unreachable', 'qualified', 'disqualified']
+const LQ_STATUS_LABELS: Record<string, string> = { new: 'Yeni', follow_up: 'Takipte', unreachable: 'Ulaşılamadı', qualified: 'Uygun', disqualified: 'Elendi' }
+const SOURCE_OPTIONS = [
+    { value: 'sales', label: 'Satış Pipeline' },
+    { value: 'lead_qualifications', label: 'Ön Değerlendirme' },
+]
 
 interface SegmentManagerProps {
     segments: any[]
@@ -34,6 +40,7 @@ export function SegmentManager({ segments: initialSegments, projects, profiles, 
     // Form state
     const [name, setName] = useState('')
     const [description, setDescription] = useState('')
+    const [source, setSource] = useState('sales')
     const [statuses, setStatuses] = useState<string[]>(['Lead', 'Prospect'])
     const [projectId, setProjectId] = useState('')
     const [assignedTo, setAssignedTo] = useState('any')
@@ -50,6 +57,7 @@ export function SegmentManager({ segments: initialSegments, projects, profiles, 
     const resetForm = () => {
         setName('')
         setDescription('')
+        setSource('sales')
         setStatuses(['Lead', 'Prospect'])
         setProjectId('')
         setAssignedTo('any')
@@ -70,7 +78,8 @@ export function SegmentManager({ segments: initialSegments, projects, profiles, 
         const f = segment.filters || {}
         setName(segment.name || '')
         setDescription(segment.description || '')
-        setStatuses(f.statuses || ['Lead', 'Prospect'])
+        setSource(f.source || 'sales')
+        setStatuses(f.statuses || (f.source === 'lead_qualifications' ? ['new', 'follow_up'] : ['Lead', 'Prospect']))
         setProjectId(f.project_id || '')
         setAssignedTo(f.unassigned ? 'unassigned' : f.assigned_to || 'any')
         setDateFrom(f.date_from || '')
@@ -83,7 +92,7 @@ export function SegmentManager({ segments: initialSegments, projects, profiles, 
     }
 
     const buildFilters = () => {
-        const filters: any = { statuses }
+        const filters: any = { source, statuses }
         if (projectId && projectId !== 'all') filters.project_id = projectId
         if (assignedTo === 'unassigned') filters.unassigned = true
         else if (assignedTo && assignedTo !== 'any') filters.assigned_to = assignedTo
@@ -92,6 +101,18 @@ export function SegmentManager({ segments: initialSegments, projects, profiles, 
         if (daysInactive) filters.days_inactive = Number(daysInactive)
         return filters
     }
+
+    const handleSourceChange = (newSource: string) => {
+        setSource(newSource)
+        // Reset statuses to appropriate defaults for the new source
+        if (newSource === 'lead_qualifications') {
+            setStatuses(['new', 'follow_up', 'unreachable', 'qualified'])
+        } else {
+            setStatuses(['Lead', 'Prospect'])
+        }
+    }
+
+    const currentStatusOptions = source === 'lead_qualifications' ? LQ_STATUS_OPTIONS : SALES_STATUS_OPTIONS
 
     const handlePreview = useCallback(async () => {
         setPreviewing(true)
@@ -102,14 +123,14 @@ export function SegmentManager({ segments: initialSegments, projects, profiles, 
             setPreviewLeads(result.preview || [])
         } catch { /* ignore */ }
         setPreviewing(false)
-    }, [statuses, projectId, assignedTo, dateFrom, dateTo, daysInactive])
+    }, [statuses, projectId, assignedTo, dateFrom, dateTo, daysInactive, source])
 
     // Auto-preview on filter change (debounced)
     useEffect(() => {
         if (view !== 'create' && view !== 'edit') return
         const timer = setTimeout(() => { handlePreview() }, 600)
         return () => clearTimeout(timer)
-    }, [statuses, projectId, assignedTo, dateFrom, dateTo, daysInactive, view, handlePreview])
+    }, [statuses, projectId, assignedTo, dateFrom, dateTo, daysInactive, source, view, handlePreview])
 
     const handleSave = async () => {
         if (!name.trim()) return alert('Segment adı gerekli')
@@ -319,11 +340,28 @@ export function SegmentManager({ segments: initialSegments, projects, profiles, 
                             Filtreler
                         </h2>
 
+                        {/* Source Selector */}
+                        <div className="space-y-2">
+                            <Label className="text-xs font-medium">Kaynak</Label>
+                            <div className="flex gap-2">
+                                {SOURCE_OPTIONS.map(opt => (
+                                    <Badge key={opt.value} variant="outline"
+                                        className={`cursor-pointer text-xs px-4 py-2 transition-all hover:scale-105 ${source === opt.value
+                                            ? 'bg-blue-500/20 border-blue-500/40 text-blue-300 shadow-sm shadow-blue-500/10'
+                                            : 'hover:border-blue-500/30'
+                                            }`}
+                                        onClick={() => handleSourceChange(opt.value)}>
+                                        {source === opt.value && '✓ '}{opt.label}
+                                    </Badge>
+                                ))}
+                            </div>
+                        </div>
+
                         {/* Status Filter */}
                         <div className="space-y-2">
-                            <Label className="text-xs font-medium">Lead Statüleri</Label>
+                            <Label className="text-xs font-medium">{source === 'lead_qualifications' ? 'Ön Değerlendirme Statüleri' : 'Lead Statüleri'}</Label>
                             <div className="flex flex-wrap gap-2">
-                                {STATUS_OPTIONS.map(s => (
+                                {currentStatusOptions.map(s => (
                                     <Badge key={s} variant="outline"
                                         className={`cursor-pointer text-xs px-3 py-1.5 transition-all hover:scale-105 ${statuses.includes(s)
                                             ? 'bg-violet-500/20 border-violet-500/40 text-violet-300 shadow-sm shadow-violet-500/10'
@@ -332,7 +370,7 @@ export function SegmentManager({ segments: initialSegments, projects, profiles, 
                                         onClick={() => setStatuses(prev =>
                                             prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]
                                         )}>
-                                        {statuses.includes(s) && '✓ '}{s}
+                                        {statuses.includes(s) && '✓ '}{source === 'lead_qualifications' ? (LQ_STATUS_LABELS[s] || s) : s}
                                     </Badge>
                                 ))}
                             </div>
