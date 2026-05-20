@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { resolveSegment, startWorkflowForLeads } from '@/lib/outreach/engine'
+import { resolveSegment, startWorkflowForLeads, processOutreachQueue } from '@/lib/outreach/engine'
 
 // ─── Helpers ─────────────────────────────────────────────────
 
@@ -443,6 +443,14 @@ export async function launchWorkflow(workflowId: string) {
     const limited = saleIds.slice(0, workflow.max_leads_per_day || 50)
 
     const result = await startWorkflowForLeads(workflowId, limited, tenantId)
+
+    // Hemen aramalara başla — cron'u bekleme
+    if (result.started > 0) {
+        processOutreachQueue().catch(err => 
+            console.error('[Outreach] Queue processing error after launch:', err.message)
+        )
+    }
+
     revalidatePath('/outreach')
     return { success: true, ...result }
 }
