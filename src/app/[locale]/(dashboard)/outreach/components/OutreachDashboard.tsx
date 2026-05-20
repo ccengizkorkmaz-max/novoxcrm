@@ -19,6 +19,7 @@ import { ScriptManager } from './ScriptManager'
 import { SegmentManager } from './SegmentManager'
 import { CallResultsPanel } from './CallResultsPanel'
 import { TriggerManager } from './TriggerManager'
+import { WorkflowMonitor } from './WorkflowMonitor'
 
 interface OutreachDashboardProps {
     workflows: any[]
@@ -76,6 +77,7 @@ export function OutreachDashboard({
     const [localWorkflows, setLocalWorkflows] = useState(workflows)
     const router = useRouter()
     const [localSegments, setLocalSegments] = useState(segments)
+    const [monitoringWorkflow, setMonitoringWorkflow] = useState<{ id: string; name: string } | null>(null)
 
     // Prop değiştiğinde local state'i güncelle (router.refresh sonrası)
     useEffect(() => { setLocalWorkflows(workflows) }, [workflows])
@@ -224,6 +226,16 @@ export function OutreachDashboard({
         )
     }
 
+    if (monitoringWorkflow) {
+        return (
+            <WorkflowMonitor
+                workflowId={monitoringWorkflow.id}
+                workflowName={monitoringWorkflow.name}
+                onClose={() => setMonitoringWorkflow(null)}
+            />
+        )
+    }
+
     return (
         <div className="space-y-6">
             {/* Confirm Dialog */}
@@ -350,6 +362,7 @@ export function OutreachDashboard({
                                 onDelete={() => handleDelete(w.id, w.name)}
                                 onLaunch={() => handleLaunch(w.id)}
                                 onStop={() => handleStop(w.id, w.name)}
+                                onMonitor={() => setMonitoringWorkflow({ id: w.id, name: w.name })}
                                 isLaunching={launching === w.id}
                                 isStopping={stopping === w.id}
                             />
@@ -396,8 +409,8 @@ function StatCard({ icon: Icon, label, value, color }: { icon: any; label: strin
     )
 }
 
-function WorkflowCard({ workflow, hasTrigger, onToggle, onEdit, onDelete, onLaunch, onStop, isLaunching, isStopping }: {
-    workflow: any; hasTrigger: boolean; onToggle: () => void; onEdit: () => void; onDelete: () => void; onLaunch: () => void; onStop: () => void; isLaunching: boolean; isStopping: boolean
+function WorkflowCard({ workflow, hasTrigger, onToggle, onEdit, onDelete, onLaunch, onStop, onMonitor, isLaunching, isStopping }: {
+    workflow: any; hasTrigger: boolean; onToggle: () => void; onEdit: () => void; onDelete: () => void; onLaunch: () => void; onStop: () => void; onMonitor: () => void; isLaunching: boolean; isStopping: boolean
 }) {
     return (
         <Card className="hover:bg-muted/50 transition-colors">
@@ -463,6 +476,11 @@ function WorkflowCard({ workflow, hasTrigger, onToggle, onEdit, onDelete, onLaun
                         className="gap-1.5 text-xs">
                         <Eye className="h-3 w-3" />
                         Düzenle
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={onMonitor}
+                        className="gap-1.5 text-xs border-blue-500/30 text-blue-400 hover:bg-blue-500/10">
+                        <BarChart3 className="h-3 w-3" />
+                        Canlı Takip
                     </Button>
                     <div className="flex-1" />
                     <Button variant="ghost" size="sm" onClick={onDelete}
