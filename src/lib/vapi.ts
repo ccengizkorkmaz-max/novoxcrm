@@ -154,6 +154,8 @@ export async function makeOutboundCall(options: VapiCallOptions): Promise<VapiCa
         // to guarantee our prompt is used instead of the saved assistant's prompt
         if (options.systemPrompt) {
             payload.assistant = {
+                serverUrl: 'https://oikoscrm.com/api/webhooks/vapi',
+                serverMessages: ['end-of-call-report', 'status-update'],
                 model: {
                     provider: 'openai',
                     model: 'gpt-4o-mini',
@@ -174,6 +176,21 @@ export async function makeOutboundCall(options: VapiCallOptions): Promise<VapiCa
                     language: 'tr',
                 },
                 silenceTimeoutSeconds: 120,
+                analysisPlan: {
+                    structuredDataPrompt: 'Görüşme transkriptini analiz et ve aşağıdaki JSON yapısını doldur.',
+                    structuredDataSchema: {
+                        type: 'object',
+                        properties: {
+                            lead_score: { type: 'string', enum: ['hot', 'warm', 'follow_up', 'disqualified'], description: 'Müşterinin sıcaklık skoru' },
+                            interested: { type: 'boolean', description: 'Müşteri ilgileniyor mu?' },
+                            notes: { type: 'string', description: 'Görüşme hakkında kısa not (Türkçe)' },
+                        },
+                        required: ['lead_score', 'interested', 'notes'],
+                    },
+                    summaryPrompt: 'Bu telefon görüşmesini Türkçe olarak 2-3 cümleyle özetle.',
+                    successEvaluationPrompt: 'Müşteri randevu aldı veya detaylı bilgi talep etti ise başarılı say.',
+                    successEvaluationRubric: 'PassFail',
+                },
             }
             // Remove assistantId since we're using inline assistant
             delete payload.assistantId

@@ -162,6 +162,20 @@ export async function processOutreachQueue() {
 
         // Execute the step
         try {
+            // Eşzamanlı limit kontrolü — her arama öncesi tekrar kontrol et
+            if (step.action_type === 'ai_call') {
+                const { count: currentCalls } = await supabase
+                    .from('outreach_step_logs')
+                    .select('id', { count: 'exact', head: true })
+                    .eq('status', 'in_progress')
+                    .eq('channel', 'ai_call')
+                if ((currentCalls || 0) >= maxConcurrent) {
+                    console.log(`[Outreach] Slot dolu, ${execution.id} erteleniyor`)
+                    continue
+                }
+                // Aramalar arası gecikme — Vapi rate limit'i aşmamak için
+                if (processed > 0) await new Promise(r => setTimeout(r, 3000))
+            }
             await executeStep(execution, step)
             processed++
         } catch (err: any) {
