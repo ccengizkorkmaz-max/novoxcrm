@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 const VAPI_API_KEY = process.env.VAPI_API_KEY || '56495e99-0cdc-41d4-8bd8-964b50ac908d';
 const VAPI_BASE_URL = 'https://api.vapi.ai';
 const ASSISTANT_ID = process.env.VAPI_ASSISTANT_ID || '282a5b95-f9a7-43f0-b559-d469702021d7';
-const PHONE_NUMBER_ID = process.env.VAPI_PHONE_NUMBER_ID || '332d8dc6-ba02-404a-bb4d-44866957a2fa';
+const PHONE_NUMBER_ID = process.env.VAPI_PHONE_NUMBER_ID || 'a8f4c63c-cdcb-494e-90c0-0fc98a5289e5';
 
 // ─── Türkçe Sesli Arama Kuralları (her aramaya enjekte edilir) ───
 const TURKISH_VOICE_RULES = `
