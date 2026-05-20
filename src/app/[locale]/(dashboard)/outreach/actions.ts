@@ -429,18 +429,41 @@ export async function launchWorkflow(workflowId: string) {
     const { tenantId } = await getAuthContext()
     if (!tenantId) return { error: 'No tenant' }
 
-    const { data: workflow } = await (await createClient()).from('outreach_workflows')
+    const adminDb = createAdminClient()
+
+    const { data: workflow } = await adminDb.from('outreach_workflows')
         .select('segment_id, max_leads_per_day')
         .eq('id', workflowId)
         .single()
 
     if (!workflow?.segment_id) return { error: 'No segment configured for this workflow' }
 
-    const saleIds = await resolveSegment(workflow.segment_id)
-    if (!saleIds.length) return { error: 'No matching leads found for this segment' }
+    const allLeadIds = await resolveSegment(workflow.segment_id)
+    if (!allLeadIds.length) return { error: 'No matching leads found for this segment' }
 
-    // Limit to max_leads_per_day
-    const limited = saleIds.slice(0, workflow.max_leads_per_day || 50)
+    // Zaten işlenmiş olanları çıkar (completed, converted, active, waiting)
+    const isLqSource = allLeadIds.length > 0 && allLeadIds[0].startsWith('lq:')
+    const customerIds = isLqSource 
+        ? allLeadIds.map(id => id.replace('lq:', ''))
+        : allLeadIds
+
+    const { data: existing } = await adminDb
+        .from('outreach_executions')
+        .select('customer_id')
+        .eq('workflow_id', workflowId)
+        .in('customer_id', customerIds)
+
+    const processedIds = new Set(existing?.map(e => e.customer_id) || [])
+
+    const remainingIds = allLeadIds.filter(id => {
+        const custId = isLqSource ? id.replace('lq:', '') : id
+        return !processedIds.has(custId)
+    })
+
+    if (!remainingIds.length) return { error: 'Tüm leadler zaten işlenmiş — yeni kayıt yok' }
+
+    // Günlük limit uygula
+    const limited = remainingIds.slice(0, workflow.max_leads_per_day || 50)
 
     const result = await startWorkflowForLeads(workflowId, limited, tenantId)
 
