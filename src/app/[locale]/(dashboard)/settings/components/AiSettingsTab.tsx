@@ -456,6 +456,40 @@ export default function AiSettingsTab({ tenant }: AiSettingsTabProps) {
                             />
                             <p className="text-[10px] text-muted-foreground">Bu alana yazacağınız bilgiler, Vapi (sesli) ve WhatsApp asistanınız tarafından müşteri sorularını doğru cevaplamak için okunur.</p>
                         </div>
+
+                        {/* Sesli Arama Dil Kuralları */}
+                        <div className="p-4 rounded-xl border-2 border-amber-200 bg-amber-50/50 space-y-3">
+                            <div className="flex items-center gap-2">
+                                <Phone className="h-4 w-4 text-amber-600" />
+                                <Label className="text-base font-semibold text-amber-900">Sesli Arama Dil &amp; Telaffuz Kuralları</Label>
+                                <Badge variant="secondary" className="text-[10px] font-normal bg-amber-100 text-amber-700">Her aramaya otomatik eklenir</Badge>
+                            </div>
+                            <div className="text-xs text-amber-900/80 space-y-1 font-mono bg-white/60 p-3 rounded-lg border border-amber-200 max-h-[300px] overflow-y-auto whitespace-pre-wrap">
+{`1. SADECE TÜRKÇE KONUŞ. Hiçbir koşulda İngilizce kelime kullanma.
+2. Daire tipleri Türkçe okunmalıdır:
+   • "1+1" → "bir artı bir"
+   • "1+0" → "bir artı sıfır"  
+   • "2+1" → "iki artı bir"
+   • "3+1" → "üç artı bir"
+3. Rakamları ve birimleri Türkçe oku:
+   • "m²" → "metrekare"
+   • "2.000.000 TL" → "iki milyon TL"
+   • "%35" → "yüzde otuz beş"
+4. Proje isimlerini Türkçe aksanla söyle:
+   • "NOVO City İzmir" → "Novo Siti İzmir"
+5. Kısaltmaları açık söyle:
+   • "OSB" → "Organize Sanayi Bölgesi"
+   • "MİA" → "Merkezi İş Alanı"
+6. Tarih ve zamanları Türkçe söyle.
+7. Samimi ama profesyonel Türkçe kullan.
+8. "Efendim", "Buyurun", "Tabii ki" gibi nezaket kalıpları kullan.
+9. Teknik jargon kullanma, sade Türkçe tercih et.`}
+                            </div>
+                            <p className="text-[10px] text-amber-700 italic flex items-center gap-1">
+                                <Info className="h-3 w-3" />
+                                Bu kurallar her sesli aramada (Vapi) system prompt&apos;a otomatik enjekte edilir. Değiştirmek için geliştirici ile iletişime geçin.
+                            </p>
+                        </div>
                     </div>
 
                     <div className="flex justify-end">

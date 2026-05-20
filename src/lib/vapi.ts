@@ -7,6 +7,40 @@
 
 const VAPI_BASE_URL = 'https://api.vapi.ai'
 
+// ─── Türkçe Sesli Arama Kuralları (her aramaya enjekte edilir) ───
+export const TURKISH_VOICE_RULES = `
+=== DİL VE TELAFFUZ KURALLARI (KESİNLİKLE UYULMALIDIR) ===
+1. SADECE TÜRKÇE KONUŞ. Hiçbir koşulda İngilizce kelime, cümle veya ifade kullanma.
+2. Daire tipleri her zaman Türkçe okunmalıdır:
+   - "1+1" → "bir artı bir" olarak söyle
+   - "1+0" → "bir artı sıfır" olarak söyle
+   - "2+1" → "iki artı bir" olarak söyle
+   - "3+1" → "üç artı bir" olarak söyle
+   - "4+1" → "dört artı bir" olarak söyle
+   - "2+0" → "iki artı sıfır" olarak söyle
+3. Rakamları ve birimleri Türkçe oku:
+   - "m²" veya "metrekare" → "metrekare" olarak söyle
+   - "50 m²" → "elli metrekare" olarak söyle
+   - "2.000.000 TL" → "iki milyon TL" olarak söyle
+   - "3.990.000 TL" → "üç milyon dokuz yüz doksan bin TL" olarak söyle
+   - "%35" → "yüzde otuz beş" olarak söyle
+4. Proje isimlerini olduğu gibi Türkçe aksanla söyle:
+   - "NOVO Park Vista" → "Novo Park Vista" (Türkçe aksanla)
+   - "NOVO City İzmir" → "Novo Siti İzmir" (İngilizce aksanla "city" deme)
+   - "NOVO Park Montenegro" → "Novo Park Montenegro" (doğal Türkçe aksanla)
+5. Kısaltmaları açık söyle:
+   - "OSB" → "Organize Sanayi Bölgesi"
+   - "MİA" → "Merkezi İş Alanı"
+   - "AB" → "Avrupa Birliği"
+6. Tarih ve zamanları Türkçe söyle:
+   - "Haziran 2026" → "Haziran iki bin yirmi altı"
+   - "Aralık 2027" → "Aralık iki bin yirmi yedi"
+7. Samimi ama profesyonel bir Türkçe ile konuş. Doğal, akıcı cümleler kur.
+8. "Efendim", "Buyurun", "Tabii ki" gibi Türkçe nezaket kalıplarını kullan.
+9. Müşteriyle konuşurken kesinlikle teknik jargon kullanma, sade ve anlaşılır Türkçe tercih et.
+=== DİL KURALLARI SONU ===
+`;
+
 function getVapiHeaders(): Record<string, string> {
     const apiKey = process.env.VAPI_API_KEY
     if (!apiKey) throw new Error('VAPI_API_KEY is not configured in .env.local')
@@ -123,7 +157,7 @@ export async function makeOutboundCall(options: VapiCallOptions): Promise<VapiCa
                 model: {
                     provider: 'openai',
                     model: 'gpt-4o-mini',
-                    messages: [{ role: 'system', content: options.systemPrompt }],
+                    messages: [{ role: 'system', content: TURKISH_VOICE_RULES + '\n\n' + options.systemPrompt }],
                 },
                 voice: {
                     provider: '11labs',

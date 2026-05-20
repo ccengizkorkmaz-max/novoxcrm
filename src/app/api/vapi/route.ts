@@ -5,6 +5,40 @@ const VAPI_BASE_URL = 'https://api.vapi.ai';
 const ASSISTANT_ID = process.env.VAPI_ASSISTANT_ID || '282a5b95-f9a7-43f0-b559-d469702021d7';
 const PHONE_NUMBER_ID = process.env.VAPI_PHONE_NUMBER_ID || '332d8dc6-ba02-404a-bb4d-44866957a2fa';
 
+// ─── Türkçe Sesli Arama Kuralları (her aramaya enjekte edilir) ───
+const TURKISH_VOICE_RULES = `
+=== DİL VE TELAFFUZ KURALLARI (KESİNLİKLE UYULMALIDIR) ===
+1. SADECE TÜRKÇE KONUŞ. Hiçbir koşulda İngilizce kelime, cümle veya ifade kullanma.
+2. Daire tipleri her zaman Türkçe okunmalıdır:
+   - "1+1" → "bir artı bir" olarak söyle
+   - "1+0" → "bir artı sıfır" olarak söyle
+   - "2+1" → "iki artı bir" olarak söyle
+   - "3+1" → "üç artı bir" olarak söyle
+   - "4+1" → "dört artı bir" olarak söyle
+   - "2+0" → "iki artı sıfır" olarak söyle
+3. Rakamları ve birimleri Türkçe oku:
+   - "m²" veya "metrekare" → "metrekare" olarak söyle
+   - "50 m²" → "elli metrekare" olarak söyle
+   - "2.000.000 TL" → "iki milyon TL" olarak söyle
+   - "3.990.000 TL" → "üç milyon dokuz yüz doksan bin TL" olarak söyle
+   - "%35" → "yüzde otuz beş" olarak söyle
+4. Proje isimlerini olduğu gibi Türkçe aksanla söyle:
+   - "NOVO Park Vista" → "Novo Park Vista" (İngilizce aksanla değil, Türkçe aksanla söyle)
+   - "NOVO City İzmir" → "Novo Siti İzmir" (İngilizce aksanla "city" deme)
+   - "NOVO Park Montenegro" → "Novo Park Montenegro" (doğal Türkçe aksanla)
+5. Kısaltmaları açık söyle:
+   - "OSB" → "Organize Sanayi Bölgesi" olarak söyle
+   - "MİA" → "Merkezi İş Alanı" olarak söyle
+   - "AB" → "Avrupa Birliği" olarak söyle
+6. Tarih ve zamanları Türkçe söyle:
+   - "Haziran 2026" → "Haziran iki bin yirmi altı"
+   - "Aralık 2027" → "Aralık iki bin yirmi yedi"
+7. Samimi ama profesyonel bir Türkçe ile konuş. Doğal, akıcı cümleler kur.
+8. "Efendim", "Buyurun", "Tabii ki" gibi Türkçe nezaket kalıplarını kullan.
+9. Müşteriyle konuşurken kesinlikle teknik jargon kullanma, sade ve anlaşılır Türkçe tercih et.
+=== DİL KURALLARI SONU ===
+`;
+
 
 
 
@@ -173,7 +207,7 @@ export async function POST(request: NextRequest) {
         }
     }
     
-    const finalPrompt = `${basePrompt}\n\n=== CRM BİLGİSİ ===\n${crmContext}`;
+    const finalPrompt = `${TURKISH_VOICE_RULES}\n${basePrompt}\n\n=== CRM BİLGİSİ ===\n${crmContext}`;
 
     overrides.model = {
       provider: "openai",
