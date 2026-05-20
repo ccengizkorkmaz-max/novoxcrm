@@ -220,6 +220,31 @@ export async function POST(request: NextRequest) {
       ]
     };
 
+    // Lead scoring analysis — Vapi extracts structured data after call ends
+    overrides.analysisPlan = {
+      structuredDataPrompt: `Görüşme transkriptini analiz et ve aşağıdaki JSON yapısını doldur. Türkçe konuşma bağlamını dikkate al.`,
+      structuredDataSchema: {
+        type: 'object',
+        properties: {
+          lead_score: { type: 'string', enum: ['hot', 'warm', 'follow_up', 'disqualified'], description: 'Müşterinin sıcaklık skoru' },
+          interested: { type: 'boolean', description: 'Müşteri ilgileniyor mu?' },
+          investment_timeline: { type: 'string', enum: ['1-3_months', '3-6_months', '6plus_months', 'unknown'], description: 'Yatırım zamanlaması' },
+          purpose: { type: 'string', enum: ['investment', 'residence', 'both', 'unknown'], description: 'Yatırım mı oturum mu?' },
+          preferred_unit_type: { type: 'string', description: 'Tercih edilen daire tipi (1+1, 2+1, vb.)' },
+          budget_mentioned: { type: 'boolean', description: 'Bütçe konuşuldu mu?' },
+          wants_callback: { type: 'boolean', description: 'Tekrar aranmak istiyor mu?' },
+          wants_catalog: { type: 'boolean', description: 'Katalog/bilgi istiyor mu?' },
+          wants_appointment: { type: 'boolean', description: 'Randevu istiyor mu?' },
+          rejection_reason: { type: 'string', description: 'Red sebebi (varsa)' },
+          notes: { type: 'string', description: 'Görüşme hakkında kısa not (Türkçe)' },
+        },
+        required: ['lead_score', 'interested', 'notes'],
+      },
+      summaryPrompt: 'Bu telefon görüşmesini Türkçe olarak 2-3 cümleyle özetle. Müşterinin ilgi düzeyini ve sonraki adımı belirt.',
+      successEvaluationPrompt: 'Müşteri randevu aldı veya detaylı bilgi talep etti ise başarılı say.',
+      successEvaluationRubric: 'PassFail',
+    };
+
     // Optimize start speaking plan to reduce the silence delay
     overrides.startSpeakingPlan = {
       waitSeconds: 0.1
