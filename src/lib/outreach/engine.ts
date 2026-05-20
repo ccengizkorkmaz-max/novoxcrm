@@ -907,18 +907,18 @@ export async function handleVapiCallResult(callData: {
 
                         if (tenant?.wa_phone_number_id && tenant?.wa_access_token) {
                             const { sendWhatsAppTemplate } = await import('@/lib/whatsapp')
-                            await sendWhatsAppTemplate({
-                                phoneNumberId: tenant.wa_phone_number_id,
-                                accessToken: tenant.wa_access_token,
-                                to: rep.phone.replace(/\D/g, ''),
-                                templateName: 'hot_lead_notification',
-                                languageCode: 'tr',
-                                bodyParams: [
+                            await sendWhatsAppTemplate(
+                                rep.phone.replace(/\D/g, ''),
+                                'hot_lead_notification',
+                                [
                                     customer.full_name || 'Müşteri',
                                     structuredData.notes || 'AI arama sonucu HOT olarak değerlendirildi',
                                     customer.phone || '-',
                                 ],
-                            })
+                                'tr',
+                                tenant.wa_phone_number_id,
+                                tenant.wa_access_token
+                            )
                             console.log(`[Outreach] 🔥 HOT lead bildirim gönderildi → ${rep.full_name}`)
                         }
                     }
