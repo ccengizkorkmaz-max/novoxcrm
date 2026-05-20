@@ -948,7 +948,7 @@ export async function resolveSegment(segmentId: string): Promise<string[]> {
 
     const filters = segment.filters as any
 
-    // Lead Qualifications source
+    // Lead Qualifications source → returns customer_id list
     if (filters.source === 'lead_qualifications') {
         let query = supabase
             .from('lead_qualifications')
@@ -965,7 +965,8 @@ export async function resolveSegment(segmentId: string): Promise<string[]> {
         if (filters.date_from) query = query.gte('created_at', filters.date_from)
         if (filters.date_to) query = query.lte('created_at', filters.date_to + 'T23:59:59')
         const { data: quals } = await query.limit(500)
-        return quals?.map(q => q.id) || []
+        // Return customer IDs prefixed with 'lq:' to distinguish from sale IDs
+        return quals?.map(q => `lq:${q.customer_id}`) || []
     }
 
     // Default: Sales source
@@ -994,7 +995,7 @@ export async function resolveSegment(segmentId: string): Promise<string[]> {
 /**
  * Start a workflow for a list of sale IDs
  */
-export async function startWorkflowForLeads(workflowId: string, saleIds: string[], tenantId: string) {
+export async function startWorkflowForLeads(workflowId: string, leadIds: string[], tenantId: string) {
     const supabase = createAdminClient()
 
     // Get first step
@@ -1007,33 +1008,51 @@ export async function startWorkflowForLeads(workflowId: string, saleIds: string[
 
     if (!firstStep) throw new Error('Workflow has no steps')
 
-    // Get sale details
-    const { data: sales } = await supabase
-        .from('sales')
-        .select('id, customer_id')
-        .in('id', saleIds)
+    // Determine source: lead_qualifications (prefixed with 'lq:') vs sales
+    const isLqSource = leadIds.length > 0 && leadIds[0].startsWith('lq:')
 
-    if (!sales?.length) return { started: 0 }
+    let leads: { id: string; customer_id: string }[] = []
+
+    if (isLqSource) {
+        // Lead qualifications source — IDs are customer_ids
+        const customerIds = leadIds.map(id => id.replace('lq:', ''))
+        const { data: customers } = await supabase
+            .from('customers')
+            .select('id, phone')
+            .in('id', customerIds)
+            .not('phone', 'is', null)
+        leads = (customers || []).map(c => ({ id: c.id, customer_id: c.id }))
+    } else {
+        // Sales source — IDs are sale_ids
+        const { data: sales } = await supabase
+            .from('sales')
+            .select('id, customer_id')
+            .in('id', leadIds)
+        leads = sales || []
+    }
+
+    if (!leads.length) return { started: 0 }
 
     // Check for existing active executions
+    const leadIdList = leads.map(l => l.customer_id)
     const { data: existing } = await supabase
         .from('outreach_executions')
-        .select('sale_id')
+        .select('customer_id')
         .eq('workflow_id', workflowId)
-        .in('status', ['active', 'waiting'])
-        .in('sale_id', saleIds)
+        .in('status', ['active', 'waiting', 'completed', 'converted'])
+        .in('customer_id', leadIdList)
 
-    const existingIds = new Set(existing?.map(e => e.sale_id) || [])
-    const newSales = sales.filter(s => !existingIds.has(s.id))
+    const existingIds = new Set(existing?.map(e => e.customer_id) || [])
+    const newLeads = leads.filter(l => !existingIds.has(l.customer_id))
 
-    if (!newSales.length) return { started: 0, skipped: existingIds.size }
+    if (!newLeads.length) return { started: 0, skipped: existingIds.size }
 
     // Create executions
-    const executions = newSales.map(sale => ({
+    const executions = newLeads.map(lead => ({
         tenant_id: tenantId,
         workflow_id: workflowId,
-        sale_id: sale.id,
-        customer_id: sale.customer_id,
+        sale_id: isLqSource ? null : lead.id,
+        customer_id: lead.customer_id,
         current_step_id: firstStep.id,
         current_step_order: 1,
         status: 'active',
@@ -1048,7 +1067,7 @@ export async function startWorkflowForLeads(workflowId: string, saleIds: string[
         .update({ total_executions: (await supabase.from('outreach_executions').select('id', { count: 'exact', head: true }).eq('workflow_id', workflowId)).count || 0 })
         .eq('id', workflowId)
 
-    return { started: newSales.length, skipped: existingIds.size }
+    return { started: newLeads.length, skipped: existingIds.size }
 }
 
 // ─── Helpers ─────────────────────────────────────────────────
