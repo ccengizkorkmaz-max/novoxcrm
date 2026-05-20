@@ -346,7 +346,7 @@ async function executeWhatsApp(execution: any, step: any, config: StepConfig, ph
 
     if (result.success) {
         await touchSaleTimestamp(execution.sale_id)
-        
+
         await supabase.from('activities').insert({
             tenant_id: execution.tenant_id,
             customer_id: execution.customer_id,
@@ -515,14 +515,14 @@ async function executeCondition(execution: any, step: any, config: StepConfig) {
     const supabase = createAdminClient()
     const { field, operator, value } = config as any
     const sale = execution.sales
-    
+
     let isTrue = false
     const actualValue = sale?.[field]
-    
+
     if (operator === 'eq') isTrue = String(actualValue) === String(value)
     else if (operator === 'neq') isTrue = String(actualValue) !== String(value)
     else if (operator === 'contains') isTrue = String(actualValue).toLowerCase().includes(String(value).toLowerCase())
-    
+
     await supabase.from('outreach_step_logs').insert({
         execution_id: execution.id,
         step_id: step.id,
@@ -530,7 +530,7 @@ async function executeCondition(execution: any, step: any, config: StepConfig) {
         status: 'sent',
         message_content: `Condition evaluated: ${field} ${operator} ${value} -> ${isTrue}`,
     })
-    
+
     await advanceToNextStep(execution, step, isTrue ? 'condition_true' : 'condition_false')
 }
 
@@ -551,10 +551,10 @@ async function executeAiPersonalize(execution: any, step: any, config: StepConfi
     const context = activities?.map(a => `${a.summary}: ${a.description}`).join('\n') || 'Geçmiş görüşme kaydı yok.'
 
     // Call LLM
-    
+
     try {
         const prompt = `Müşteri Adı: ${customer.full_name}\nBağlam:\n${context}\n\nTalimat: ${instruction}\n\nLütfen müşteri için samimi, profesyonel bir mesaj taslağı hazırla.`
-        
+
         // Use Gemini for speed/cost
         const response = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/ai/generate`, {
             method: 'POST',
@@ -620,12 +620,12 @@ async function advanceToNextStep(execution: any, step: any, outcome: string) {
 
     // Determine next action based on outcome
     let nextStepId = null
-    
+
     if (outcome === 'condition_true') nextStepId = step.next_step_id_on_condition_true || step.next_step_id_on_success
     else if (outcome === 'condition_false') nextStepId = step.next_step_id_on_condition_false || step.next_step_id_on_failure
     else if (outcome === 'success') nextStepId = step.next_step_id_on_success
     else if (outcome === 'failure' || outcome === 'no_answer') nextStepId = step.next_step_id_on_failure
-    
+
     if (nextStepId === 'stop') {
         await supabase.from('outreach_executions')
             .update({ status: 'stopped', completed_at: new Date().toISOString() })
