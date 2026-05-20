@@ -5,6 +5,9 @@ import { makeOutboundCall } from '@/lib/vapi'
 import { sendWhatsAppTemplate, sendWhatsAppMessage } from '@/lib/whatsapp'
 import { sendPoliSms, normalizePhone } from '@/lib/sms'
 
+// ─── Eşzamanlı Arama Limiti ────────────────────────────────
+const MAX_CONCURRENT_CALLS = Number(process.env.MAX_CONCURRENT_CALLS) || 5
+
 // ─── Types ───────────────────────────────────────────────────
 
 export interface StepConfig {
@@ -65,6 +68,21 @@ export async function processOutreachQueue() {
         console.log(`[Outreach] No due executions. Error: ${error?.message || 'none'}`)
         return { processed: 0 }
     }
+
+    // ─── Eşzamanlı arama limiti kontrolü ─────────────────
+    const { count: activeCalls } = await supabase
+        .from('outreach_step_logs')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'in_progress')
+        .eq('channel', 'ai_call')
+
+    const availableSlots = MAX_CONCURRENT_CALLS - (activeCalls || 0)
+    if (availableSlots <= 0) {
+        console.log(`[Outreach] Eşzamanlı arama limiti doldu (${MAX_CONCURRENT_CALLS}). Bekleniyor...`)
+        return { processed: 0, reason: 'concurrency_limit' }
+    }
+
+    console.log(`[Outreach] ${dueExecutions.length} bekleyen, ${availableSlots}/${MAX_CONCURRENT_CALLS} slot müsait`)
 
     let processed = 0
 
