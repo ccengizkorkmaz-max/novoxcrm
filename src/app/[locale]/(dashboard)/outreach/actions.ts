@@ -599,12 +599,12 @@ export async function getWorkflowMonitor(workflowId: string) {
     // Get all executions with customer info
     const { data: executions, count: totalCount } = await adminDb.from('outreach_executions')
         .select(`
-            id, status, current_step_order, next_action_at, created_at, completed_at,
+            id, status, current_step_order, next_action_at, started_at, completed_at,
             customers(id, full_name, phone),
             outreach_workflows(name)
         `, { count: 'exact' })
         .eq('workflow_id', workflowId)
-        .order('created_at', { ascending: false })
+        .order('started_at', { ascending: false })
         .limit(100)
 
     // Get step logs for this workflow's executions
@@ -627,7 +627,7 @@ export async function getWorkflowMonitor(workflowId: string) {
     // Today's count
     const todayStart = new Date()
     todayStart.setHours(0, 0, 0, 0)
-    const todayCount = executions?.filter(e => new Date(e.created_at) >= todayStart).length || 0
+    const todayCount = executions?.filter(e => new Date(e.started_at) >= todayStart).length || 0
 
     return {
         workflow,
