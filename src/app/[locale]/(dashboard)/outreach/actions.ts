@@ -612,7 +612,7 @@ export async function getWorkflowMonitor(workflowId: string) {
     let logs: any[] = []
     if (executionIds.length > 0) {
         const { data: logData } = await adminDb.from('outreach_step_logs')
-            .select('execution_id, channel, status, call_duration_seconds, call_outcome, call_summary, cost_amount, executed_at, completed_at')
+            .select('execution_id, channel, status, template_name, message_content, call_duration_seconds, call_outcome, call_summary, cost_amount, executed_at, completed_at')
             .in('execution_id', executionIds)
             .order('executed_at', { ascending: false })
         logs = logData || []

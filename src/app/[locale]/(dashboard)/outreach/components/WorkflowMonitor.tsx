@@ -165,6 +165,7 @@ export function WorkflowMonitor({ workflowId, workflowName, onClose }: WorkflowM
                                 <th className="text-left p-2.5 font-medium text-muted-foreground">Müşteri</th>
                                 <th className="text-left p-2.5 font-medium text-muted-foreground">Telefon</th>
                                 <th className="text-center p-2.5 font-medium text-muted-foreground">Adım</th>
+                                <th className="text-left p-2.5 font-medium text-muted-foreground">Şablon</th>
                                 <th className="text-center p-2.5 font-medium text-muted-foreground">Durum</th>
                                 <th className="text-center p-2.5 font-medium text-muted-foreground">Sonuç</th>
                                 <th className="text-center p-2.5 font-medium text-muted-foreground">Süre</th>
@@ -174,7 +175,7 @@ export function WorkflowMonitor({ workflowId, workflowName, onClose }: WorkflowM
                         <tbody>
                             {executions.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="p-8 text-center text-muted-foreground">
+                                    <td colSpan={8} className="p-8 text-center text-muted-foreground">
                                         <div className="flex flex-col items-center gap-2">
                                             <Phone className="h-6 w-6 opacity-30" />
                                             <p>Henüz arama başlatılmadı</p>
@@ -203,6 +204,15 @@ export function WorkflowMonitor({ workflowId, workflowName, onClose }: WorkflowM
                                                 <Badge variant="outline" className="text-[10px]">
                                                     {exec.current_step_order}. adım
                                                 </Badge>
+                                            </td>
+                                            <td className="p-2.5 text-left text-muted-foreground">
+                                                {log?.template_name ? (
+                                                    <span className="text-[10px] bg-blue-500/10 text-blue-400 px-1.5 py-0.5 rounded">
+                                                        {log.template_name.replace('novo_kampanya_', '').replace('_v2', '')}
+                                                    </span>
+                                                ) : log?.channel === 'ai_call' ? (
+                                                    <span className="text-[10px] bg-purple-500/10 text-purple-400 px-1.5 py-0.5 rounded">AI Arama</span>
+                                                ) : '—'}
                                             </td>
                                             <td className="p-2.5 text-center">
                                                 <Badge variant="outline" className={`text-[10px] gap-1 ${statusConf.color}`}>
