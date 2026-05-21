@@ -393,9 +393,10 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
                                                             <Badge variant="outline" className={`text-[9px] px-1 py-0 border-none font-semibold ${
                                                                 qual.interest_level === 'hot' ? 'bg-red-100 text-red-700' :
                                                                 qual.interest_level === 'warm' ? 'bg-amber-100 text-amber-700' :
-                                                                qual.interest_level === 'cold' ? 'bg-sky-100 text-sky-700' : ''
+                                                                qual.interest_level === 'cold' ? 'bg-sky-100 text-sky-700' :
+                                                                qual.interest_level === 'call_requested' ? 'bg-emerald-100 text-emerald-700' : ''
                                                             }`}>
-                                                                {qual.interest_level === 'hot' ? '🔥' : qual.interest_level === 'warm' ? '🌤️' : '❄️'}
+                                                                {qual.interest_level === 'hot' ? '🔥' : qual.interest_level === 'warm' ? '🌤️' : qual.interest_level === 'cold' ? '❄️' : qual.interest_level === 'call_requested' ? '📞' : ''}
                                                             </Badge>
                                                         )}
                                                         {qual.customers?.customer_number && (
@@ -546,9 +547,10 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
                                                 <Badge variant="outline" className={`text-[9px] px-1 py-0 border-none font-semibold ${
                                                     qual.interest_level === 'hot' ? 'bg-red-100 text-red-700' :
                                                     qual.interest_level === 'warm' ? 'bg-amber-100 text-amber-700' :
-                                                    qual.interest_level === 'cold' ? 'bg-sky-100 text-sky-700' : ''
+                                                    qual.interest_level === 'cold' ? 'bg-sky-100 text-sky-700' :
+                                                    qual.interest_level === 'call_requested' ? 'bg-emerald-100 text-emerald-700' : ''
                                                 }`}>
-                                                    {qual.interest_level === 'hot' ? '🔥' : qual.interest_level === 'warm' ? '🌤️' : '❄️'}
+                                                    {qual.interest_level === 'hot' ? '🔥' : qual.interest_level === 'warm' ? '🌤️' : qual.interest_level === 'cold' ? '❄️' : qual.interest_level === 'call_requested' ? '📞' : ''}
                                                 </Badge>
                                             )}
                                             {STATUSES.find(s => s.id === qual.status) && (
@@ -854,11 +856,13 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
                                                 <Badge variant="outline" className={`text-[10px] px-1.5 py-0 border-none font-semibold ${
                                                     qual.interest_level === 'hot' ? 'bg-red-100 text-red-700' :
                                                     qual.interest_level === 'warm' ? 'bg-amber-100 text-amber-700' :
-                                                    qual.interest_level === 'cold' ? 'bg-sky-100 text-sky-700' : 'bg-slate-100 text-slate-500'
+                                                    qual.interest_level === 'cold' ? 'bg-sky-100 text-sky-700' :
+                                                    qual.interest_level === 'call_requested' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'
                                                 }`}>
                                                     {qual.interest_level === 'hot' ? '🔥 Sıcak' :
                                                      qual.interest_level === 'warm' ? '🌤️ Ilık' :
-                                                     qual.interest_level === 'cold' ? '❄️ Soğuk' : qual.interest_level}
+                                                     qual.interest_level === 'cold' ? '❄️ Soğuk' :
+                                                     qual.interest_level === 'call_requested' ? '📞 Arama İstiyor' : qual.interest_level}
                                                 </Badge>
                                             ) : <span className="text-slate-300">—</span>}
                                         </td>
