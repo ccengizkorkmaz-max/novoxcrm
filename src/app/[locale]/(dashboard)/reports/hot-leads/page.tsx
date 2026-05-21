@@ -76,7 +76,8 @@ export default function HotLeadsReportPage() {
         const matchesSearch = 
             lead.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
             lead.customerPhone.includes(searchTerm) ||
-            lead.summary.toLowerCase().includes(searchTerm.toLowerCase())
+            lead.summary.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (lead.projectName || '').toLowerCase().includes(searchTerm.toLowerCase())
 
         const matchesScore = scoreFilter === 'all' || lead.leadScore === scoreFilter
         
@@ -97,6 +98,7 @@ export default function HotLeadsReportPage() {
         const exportData = filteredLeads.map(lead => ({
             'Müşteri Adı': lead.customerName,
             'Telefon Numarası': lead.customerPhone,
+            'İlgilendiği Proje': lead.projectName || 'Genel',
             'Skor': lead.leadScore === 'hot' ? 'Sıcak (HOT)' : lead.leadScore === 'warm' ? 'Ilık (WARM)' : 'Arama Talebi',
             'Bildirim Durumu': lead.hotLeadNotified ? 'Yöneticiye İletildi' : 'Bekliyor',
             'Kanal': lead.customerSource || 'WhatsApp',
@@ -247,6 +249,7 @@ export default function HotLeadsReportPage() {
                             <TableHeader>
                                 <TableRow className="hover:bg-transparent bg-slate-50/30 border-slate-100">
                                     <TableHead className="pl-8 py-5 text-xs font-bold text-slate-400 uppercase tracking-widest">Müşteri Bilgileri</TableHead>
+                                    <TableHead className="text-xs font-bold text-slate-400 uppercase tracking-widest text-center">İlgilendiği Proje</TableHead>
                                     <TableHead className="text-xs font-bold text-slate-400 uppercase tracking-widest text-center">Skor</TableHead>
                                     <TableHead className="text-xs font-bold text-slate-400 uppercase tracking-widest text-center">Bildirim Durumu</TableHead>
                                     <TableHead className="text-xs font-bold text-slate-400 uppercase tracking-widest text-center">Kaynak</TableHead>
@@ -257,7 +260,7 @@ export default function HotLeadsReportPage() {
                             <TableBody>
                                 {loading ? (
                                     <TableRow>
-                                        <TableCell colSpan={6} className="h-64 text-center">
+                                        <TableCell colSpan={7} className="h-64 text-center">
                                             <div className="flex flex-col items-center justify-center gap-3">
                                                 <RefreshCw className="h-8 w-8 text-blue-600 animate-spin" />
                                                 <span className="text-slate-500 font-bold text-sm">Lead verileri yükleniyor...</span>
@@ -266,7 +269,7 @@ export default function HotLeadsReportPage() {
                                     </TableRow>
                                 ) : filteredLeads.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={6} className="h-48 text-center text-slate-400 font-semibold text-sm">
+                                        <TableCell colSpan={7} className="h-48 text-center text-slate-400 font-semibold text-sm">
                                             Aradığınız kriterlere uygun sıcak lead bulunamadı.
                                         </TableCell>
                                     </TableRow>
@@ -298,6 +301,19 @@ export default function HotLeadsReportPage() {
                                                             </button>
                                                         </div>
                                                     </div>
+                                                </TableCell>
+
+                                                {/* Interested Project */}
+                                                <TableCell className="text-center">
+                                                    {lead.projectName && lead.projectName !== 'Genel' ? (
+                                                        <Badge className="bg-indigo-50 hover:bg-indigo-50 text-indigo-700 border border-indigo-200/50 font-black text-[11px] px-2.5 py-0.5 rounded-md">
+                                                            {lead.projectName}
+                                                        </Badge>
+                                                    ) : (
+                                                        <Badge className="bg-slate-100 hover:bg-slate-100 text-slate-500 border border-slate-200/30 font-bold text-[11px] px-2.5 py-0.5 rounded-md">
+                                                            Genel
+                                                        </Badge>
+                                                    )}
                                                 </TableCell>
 
                                                 {/* Lead Score */}

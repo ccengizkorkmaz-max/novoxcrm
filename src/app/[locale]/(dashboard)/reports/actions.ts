@@ -745,6 +745,7 @@ export async function getHotLeadsReport() {
             created_at,
             updated_at,
             customers (
+                id,
                 full_name,
                 phone,
                 source
@@ -762,6 +763,7 @@ export async function getHotLeadsReport() {
     // Match unmatched sessions with customers table by last 10 digits
     const formattedConvs = []
     for (const c of (convs || [])) {
+        let customerId = (c.customers as any)?.id || null
         let customerName = (c.customers as any)?.full_name || ''
         let customerPhone = (c.customers as any)?.phone || c.phone_number
         let customerSource = (c.customers as any)?.source || 'WhatsApp'
@@ -771,13 +773,39 @@ export async function getHotLeadsReport() {
             if (last10.length >= 10) {
                 const { data: matches } = await supabase
                     .from('customers')
-                    .select('full_name, phone, source')
+                    .select('id, full_name, phone, source')
                     .ilike('phone', `%${last10}%`)
                     .limit(1)
                 if (matches && matches.length > 0) {
                     customerName = matches[0].full_name || ''
                     customerPhone = matches[0].phone || c.phone_number
                     customerSource = matches[0].source || 'WhatsApp'
+                    customerId = matches[0].id
+                }
+            }
+        }
+
+        // Fetch interested project from lead_qualifications
+        let projectName = 'Genel'
+        if (customerId) {
+            const { data: qual } = await supabase
+                .from('lead_qualifications')
+                .select(`
+                    projects:project_id (
+                        name
+                    )
+                `)
+                .eq('customer_id', customerId)
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle()
+
+            const projObj = qual?.projects as any
+            if (projObj) {
+                if (Array.isArray(projObj) && projObj.length > 0) {
+                    projectName = projObj[0].name || 'Genel'
+                } else if (projObj.name) {
+                    projectName = projObj.name
                 }
             }
         }
@@ -807,7 +835,8 @@ export async function getHotLeadsReport() {
             hotLeadNotified: c.hot_lead_notified,
             updatedAt: c.updated_at,
             createdAt: c.created_at,
-            summary: summary || '-'
+            summary: summary || '-',
+            projectName
         })
     }
 
