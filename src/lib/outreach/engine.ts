@@ -1031,52 +1031,96 @@ export async function resolveSegment(segmentId: string): Promise<string[]> {
 
     // Lead Qualifications source → returns customer_id list
     if (filters.source === 'lead_qualifications' || filters.source === 'lead_qualification') {
-        let query = supabase
-            .from('lead_qualifications')
-            .select('id, customer_id, customers!inner(phone)')
-        if (filters.statuses?.length) query = query.in('status', filters.statuses)
-        if (filters.exclude_statuses?.length) {
-            for (const es of filters.exclude_statuses) {
-                query = query.neq('status', es)
+        const allIds: string[] = []
+        let from = 0
+        let hasMore = true
+        while (hasMore && allIds.length < 50000) {
+            let query = supabase
+                .from('lead_qualifications')
+                .select('id, customer_id, customers!inner(phone)')
+                .range(from, from + 999)
+            if (filters.statuses?.length) query = query.in('status', filters.statuses)
+            if (filters.exclude_statuses?.length) {
+                for (const es of filters.exclude_statuses) {
+                    query = query.neq('status', es)
+                }
             }
-        }
-        if (filters.project_id) query = query.eq('project_id', filters.project_id)
-        if (filters.assigned_to) {
-            if (Array.isArray(filters.assigned_to)) {
-                query = query.in('assigned_to', filters.assigned_to)
+            if (filters.project_id) query = query.eq('project_id', filters.project_id)
+            if (filters.assigned_to) {
+                if (Array.isArray(filters.assigned_to)) {
+                    query = query.in('assigned_to', filters.assigned_to)
+                } else {
+                    query = query.eq('assigned_to', filters.assigned_to)
+                }
+            }
+            if (filters.unassigned) query = query.is('assigned_to', null)
+            if (filters.date_from) query = query.gte('created_at', filters.date_from)
+            if (filters.date_to) query = query.lte('created_at', filters.date_to + 'T23:59:59')
+
+            const { data: quals, error } = await query
+            if (error) {
+                console.error('[resolveSegment] error fetching quals:', error)
+                break
+            }
+            if (!quals || quals.length === 0) {
+                hasMore = false
             } else {
-                query = query.eq('assigned_to', filters.assigned_to)
+                for (const q of quals) {
+                    allIds.push(`lq:${q.customer_id}`)
+                }
+                if (quals.length < 1000) {
+                    hasMore = false
+                } else {
+                    from += 1000
+                }
             }
         }
-        if (filters.unassigned) query = query.is('assigned_to', null)
-        if (filters.date_from) query = query.gte('created_at', filters.date_from)
-        if (filters.date_to) query = query.lte('created_at', filters.date_to + 'T23:59:59')
-        const { data: quals } = await query.limit(50000)
-        // Return customer IDs prefixed with 'lq:' to distinguish from sale IDs
-        return quals?.map(q => `lq:${q.customer_id}`) || []
+        return allIds
     }
 
     // Default: Sales source
-    let query = supabase
-        .from('sales')
-        .select('id, customer_id, customers!inner(phone)')
-        .neq('status', 'Inbox')
+    const allIds: string[] = []
+    let from = 0
+    let hasMore = true
+    while (hasMore && allIds.length < 50000) {
+        let query = supabase
+            .from('sales')
+            .select('id, customer_id, customers!inner(phone)')
+            .neq('status', 'Inbox')
+            .range(from, from + 999)
 
-    // Apply filters
-    if (filters.statuses?.length) query = query.in('status', filters.statuses)
-    if (filters.project_id) query = query.eq('project_id', filters.project_id)
-    if (filters.assigned_to) query = query.eq('assigned_to', filters.assigned_to)
-    if (filters.unassigned) query = query.is('assigned_to', null)
-    if (filters.date_from) query = query.gte('created_at', filters.date_from)
-    if (filters.date_to) query = query.lte('created_at', filters.date_to + 'T23:59:59')
-    if (filters.days_inactive) {
-        const cutoff = new Date()
-        cutoff.setDate(cutoff.getDate() - filters.days_inactive)
-        query = query.lte('updated_at', cutoff.toISOString())
+        // Apply filters
+        if (filters.statuses?.length) query = query.in('status', filters.statuses)
+        if (filters.project_id) query = query.eq('project_id', filters.project_id)
+        if (filters.assigned_to) query = query.eq('assigned_to', filters.assigned_to)
+        if (filters.unassigned) query = query.is('assigned_to', null)
+        if (filters.date_from) query = query.gte('created_at', filters.date_from)
+        if (filters.date_to) query = query.lte('created_at', filters.date_to + 'T23:59:59')
+        if (filters.days_inactive) {
+            const cutoff = new Date()
+            cutoff.setDate(cutoff.getDate() - filters.days_inactive)
+            query = query.lte('updated_at', cutoff.toISOString())
+        }
+
+        const { data: sales, error } = await query
+        if (error) {
+            console.error('[resolveSegment] error fetching sales:', error)
+            break
+        }
+        if (!sales || sales.length === 0) {
+            hasMore = false
+        } else {
+            for (const s of sales) {
+                allIds.push(s.id)
+            }
+            if (sales.length < 1000) {
+                hasMore = false
+            } else {
+                from += 1000
+            }
+        }
     }
-
-    const { data: sales } = await query.limit(50000)
-    return sales?.map(s => s.id) || []
+    return allIds
 }
 
 /**

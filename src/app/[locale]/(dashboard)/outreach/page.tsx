@@ -4,6 +4,35 @@ import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
 import { OutreachDashboard } from './components/OutreachDashboard'
 
+async function getAllTenantExecutions(supabaseAdmin: any, tenantId: string) {
+    const allExecs: any[] = []
+    let from = 0
+    let hasMore = true
+    while (hasMore && allExecs.length < 50000) {
+        const { data, error } = await supabaseAdmin
+            .from('outreach_executions')
+            .select('workflow_id, status, started_at')
+            .eq('tenant_id', tenantId)
+            .range(from, from + 999)
+        
+        if (error) {
+            console.error('[getAllTenantExecutions] error:', error)
+            break
+        }
+        if (!data || data.length === 0) {
+            hasMore = false
+        } else {
+            allExecs.push(...data)
+            if (data.length < 1000) {
+                hasMore = false
+            } else {
+                from += 1000
+            }
+        }
+    }
+    return { data: allExecs }
+}
+
 export default async function OutreachPage() {
     const supabase = await createClient()
 
@@ -91,9 +120,7 @@ export default async function OutreachPage() {
             .select('id, workflow_id, event_type, is_active')
             .eq('tenant_id', tenantId),
         // Executions for stats
-        supabaseAdmin.from('outreach_executions')
-            .select('workflow_id, status, started_at')
-            .eq('tenant_id', tenantId),
+        getAllTenantExecutions(supabaseAdmin, tenantId),
     ])
 
     const workflows = workflowsRes.data || []

@@ -85,14 +85,39 @@ export async function GET(req: NextRequest) {
             }
 
             // Exclude already processed leads (any status except 'failed')
-            const { data: existingExecs } = await supabase
-                .from('outreach_executions')
-                .select('sale_id')
-                .eq('workflow_id', wf.id)
-                .in('status', ['active', 'waiting', 'completed', 'converted'])
+            const isLqSource = allLeadIds.length > 0 && allLeadIds[0].startsWith('lq:')
+            const matchIds = isLqSource 
+                ? allLeadIds.map(id => id.replace('lq:', ''))
+                : allLeadIds
 
-            const processedIds = new Set((existingExecs || []).map(e => e.sale_id))
-            const newLeadIds = allLeadIds.filter(id => !processedIds.has(id))
+            const chunkArray = <T>(arr: T[], size: number): T[][] => {
+                const chunks: T[][] = [];
+                for (let i = 0; i < arr.length; i += size) {
+                    chunks.push(arr.slice(i, i + size));
+                }
+                return chunks;
+            };
+
+            const chunks = chunkArray(matchIds, 150);
+            const existingPromises = chunks.map(chunk => 
+                supabase
+                    .from('outreach_executions')
+                    .select('customer_id, sale_id')
+                    .eq('workflow_id', wf.id)
+                    .in('status', ['active', 'waiting', 'completed', 'converted'])
+                    .in(isLqSource ? 'customer_id' : 'sale_id', chunk)
+            );
+            const dbResults = await Promise.all(existingPromises);
+            const existingExecs = dbResults.flatMap(r => r.data || []);
+
+            const processedIds = new Set(
+                existingExecs.map(e => isLqSource ? e.customer_id : e.sale_id).filter(Boolean)
+            );
+
+            const newLeadIds = allLeadIds.filter(id => {
+                const matchId = isLqSource ? id.replace('lq:', '') : id
+                return !processedIds.has(matchId)
+            });
 
             if (newLeadIds.length === 0) {
                 results.push({ workflow: wf.name, status: 'completed', reason: 'Tüm lead\'ler zaten işlendi' })

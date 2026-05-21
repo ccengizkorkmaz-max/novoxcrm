@@ -135,18 +135,38 @@ export async function getWorkflows() {
         .order('created_at', { ascending: false })
     // Sort steps by step_order within each workflow
     if (data) {
-        // Fetch execution stats for all workflows
+        // Fetch execution stats for all workflows (paginated to avoid 1000 limit)
         const wfIds = data.map((w: any) => w.id)
-        const { data: execStats } = await adminDb.from('outreach_executions')
-            .select('workflow_id, status, started_at')
-            .in('workflow_id', wfIds)
+        const execStats: any[] = []
+        let from = 0
+        let hasMore = true
+        while (hasMore && execStats.length < 50000) {
+            const { data: chunk, error } = await adminDb.from('outreach_executions')
+                .select('workflow_id, status, started_at')
+                .in('workflow_id', wfIds)
+                .range(from, from + 999)
+            if (error) {
+                console.error('[getWorkflows] error fetching executions chunk:', error)
+                break
+            }
+            if (!chunk || chunk.length === 0) {
+                hasMore = false
+            } else {
+                execStats.push(...chunk)
+                if (chunk.length < 1000) {
+                    hasMore = false
+                } else {
+                    from += 1000
+                }
+            }
+        }
         
         data.forEach((w: any) => {
             if (w.outreach_steps) {
                 w.outreach_steps.sort((a: any, b: any) => (a.step_order || 0) - (b.step_order || 0))
             }
             // Attach execution stats
-            const wfExecs = execStats?.filter((e: any) => e.workflow_id === w.id) || []
+            const wfExecs = execStats.filter((e: any) => e.workflow_id === w.id)
             w._exec_stats = {
                 total: wfExecs.length,
                 active: wfExecs.filter((e: any) => e.status === 'active' || e.status === 'waiting').length,
@@ -463,7 +483,7 @@ export async function launchWorkflow(workflowId: string) {
 
     // Zaten işlenmiş olanları çıkar (completed, converted, active, waiting)
     const isLqSource = allLeadIds.length > 0 && allLeadIds[0].startsWith('lq:')
-    const customerIds = isLqSource 
+    const matchIds = isLqSource 
         ? allLeadIds.map(id => id.replace('lq:', ''))
         : allLeadIds
 
@@ -475,22 +495,25 @@ export async function launchWorkflow(workflowId: string) {
         return chunks;
     };
 
-    const chunks = chunkArray(customerIds, 150);
+    const chunks = chunkArray(matchIds, 150);
     const existingPromises = chunks.map(chunk => 
         adminDb
             .from('outreach_executions')
-            .select('customer_id')
+            .select('customer_id, sale_id')
             .eq('workflow_id', workflowId)
-            .in('customer_id', chunk)
+            .in('status', ['active', 'waiting', 'completed', 'converted'])
+            .in(isLqSource ? 'customer_id' : 'sale_id', chunk)
     );
     const results = await Promise.all(existingPromises);
     const existing = results.flatMap(r => r.data || []);
 
-    const processedIds = new Set(existing.map(e => e.customer_id));
+    const processedIds = new Set(
+        existing.map(e => isLqSource ? e.customer_id : e.sale_id).filter(Boolean)
+    );
 
     const remainingIds = allLeadIds.filter(id => {
-        const custId = isLqSource ? id.replace('lq:', '') : id
-        return !processedIds.has(custId)
+        const matchId = isLqSource ? id.replace('lq:', '') : id
+        return !processedIds.has(matchId)
     })
 
     if (!remainingIds.length) return { error: 'Tüm leadler zaten işlenmiş — yeni kayıt yok' }
@@ -630,16 +653,36 @@ export async function getWorkflowMonitor(workflowId: string, page: number = 1) {
 
     if (!workflow) return { error: 'Workflow not found' }
 
-    // Get total counts by status (for header stats — always full)
-    const { data: allExecs } = await adminDb.from('outreach_executions')
-        .select('status', { count: 'exact' })
-        .eq('workflow_id', workflowId)
+    // Get total counts by status (for header stats — always full, paginated to avoid 1000 limit)
+    const allExecs: any[] = []
+    let fromExec = 0
+    let hasMoreExecs = true
+    while (hasMoreExecs && allExecs.length < 50000) {
+        const { data: chunk, error } = await adminDb.from('outreach_executions')
+            .select('status, started_at')
+            .eq('workflow_id', workflowId)
+            .range(fromExec, fromExec + 999)
+        if (error) {
+            console.error('[getWorkflowMonitor] error fetching executions chunk:', error)
+            break
+        }
+        if (!chunk || chunk.length === 0) {
+            hasMoreExecs = false
+        } else {
+            allExecs.push(...chunk)
+            if (chunk.length < 1000) {
+                hasMoreExecs = false
+            } else {
+                fromExec += 1000
+            }
+        }
+    }
 
     const statusCounts = { active: 0, waiting: 0, completed: 0, converted: 0, failed: 0 }
-    allExecs?.forEach((e: any) => {
+    allExecs.forEach((e: any) => {
         if (e.status in statusCounts) statusCounts[e.status as keyof typeof statusCounts]++
     })
-    const totalCount = allExecs?.length || 0
+    const totalCount = allExecs.length
 
     // Get paginated executions with customer info
     const from = (page - 1) * PAGE_SIZE
