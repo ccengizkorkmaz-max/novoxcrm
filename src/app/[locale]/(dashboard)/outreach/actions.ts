@@ -600,11 +600,12 @@ export async function removeOptout(id: string) {
 
 // ─── Workflow Monitor ────────────────────────────────────────
 
-export async function getWorkflowMonitor(workflowId: string) {
+export async function getWorkflowMonitor(workflowId: string, page: number = 1) {
     const { tenantId } = await getAuthContext()
     if (!tenantId) return { error: 'No tenant' }
 
     const adminDb = createAdminClient()
+    const PAGE_SIZE = 50
 
     // Get workflow info
     const { data: workflow } = await adminDb.from('outreach_workflows')
@@ -614,18 +615,32 @@ export async function getWorkflowMonitor(workflowId: string) {
 
     if (!workflow) return { error: 'Workflow not found' }
 
-    // Get all executions with customer info
-    const { data: executions, count: totalCount } = await adminDb.from('outreach_executions')
+    // Get total counts by status (for header stats — always full)
+    const { data: allExecs } = await adminDb.from('outreach_executions')
+        .select('status', { count: 'exact' })
+        .eq('workflow_id', workflowId)
+
+    const statusCounts = { active: 0, waiting: 0, completed: 0, converted: 0, failed: 0 }
+    allExecs?.forEach((e: any) => {
+        if (e.status in statusCounts) statusCounts[e.status as keyof typeof statusCounts]++
+    })
+    const totalCount = allExecs?.length || 0
+
+    // Get paginated executions with customer info
+    const from = (page - 1) * PAGE_SIZE
+    const to = from + PAGE_SIZE - 1
+
+    const { data: executions } = await adminDb.from('outreach_executions')
         .select(`
             id, status, current_step_order, next_action_at, started_at, completed_at,
             customers(id, full_name, phone),
             outreach_workflows(name)
-        `, { count: 'exact' })
+        `)
         .eq('workflow_id', workflowId)
         .order('started_at', { ascending: false })
-        .limit(100)
+        .range(from, to)
 
-    // Get step logs for this workflow's executions
+    // Get step logs for this page's executions
     const executionIds = executions?.map(e => e.id) || []
     let logs: any[] = []
     if (executionIds.length > 0) {
@@ -636,23 +651,20 @@ export async function getWorkflowMonitor(workflowId: string) {
         logs = logData || []
     }
 
-    // Stats
-    const statusCounts = { active: 0, waiting: 0, completed: 0, converted: 0, failed: 0 }
-    executions?.forEach(e => {
-        if (e.status in statusCounts) statusCounts[e.status as keyof typeof statusCounts]++
-    })
-
     // Today's count
     const todayStart = new Date()
     todayStart.setHours(0, 0, 0, 0)
-    const todayCount = executions?.filter(e => new Date(e.started_at) >= todayStart).length || 0
+    const todayCount = allExecs?.filter((e: any) => new Date(e.started_at) >= todayStart).length || 0
 
     return {
         workflow,
         executions: executions || [],
         logs,
         stats: statusCounts,
-        totalCount: totalCount || 0,
+        totalCount,
         todayCount,
+        page,
+        pageSize: PAGE_SIZE,
+        totalPages: Math.ceil(totalCount / PAGE_SIZE),
     }
 }

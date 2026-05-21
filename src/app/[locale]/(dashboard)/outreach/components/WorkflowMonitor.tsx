@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import {
     Activity, Phone, Users, Clock, CheckCircle2, XCircle,
     RefreshCw, ArrowLeft, Loader2, PhoneOff, PhoneIncoming,
-    Timer, TrendingUp, AlertTriangle
+    Timer, TrendingUp, AlertTriangle, ChevronLeft, ChevronRight
 } from 'lucide-react'
 import { getWorkflowMonitor } from '../actions'
 
@@ -39,10 +39,11 @@ export function WorkflowMonitor({ workflowId, workflowName, onClose }: WorkflowM
     const [loading, setLoading] = useState(true)
     const [refreshing, setRefreshing] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [page, setPage] = useState(1)
 
-    const fetchData = useCallback(async () => {
+    const fetchData = useCallback(async (p?: number) => {
         try {
-            const result = await getWorkflowMonitor(workflowId)
+            const result = await getWorkflowMonitor(workflowId, p ?? page)
             if (result.error) {
                 setError(result.error)
                 console.error('[Monitor] Error:', result.error)
@@ -56,7 +57,7 @@ export function WorkflowMonitor({ workflowId, workflowName, onClose }: WorkflowM
         }
         setLoading(false)
         setRefreshing(false)
-    }, [workflowId])
+    }, [workflowId, page])
 
     useEffect(() => {
         fetchData()
@@ -95,7 +96,7 @@ export function WorkflowMonitor({ workflowId, workflowName, onClose }: WorkflowM
 
     if (!data) return null
 
-    const { workflow, executions, logs, stats, totalCount, todayCount } = data
+    const { workflow, executions, logs, stats, totalCount, todayCount, totalPages, pageSize } = data
 
     // Build a map: execution_id → latest log
     const logMap = new Map<string, any>()
@@ -153,7 +154,7 @@ export function WorkflowMonitor({ workflowId, workflowName, onClose }: WorkflowM
                             Arama Listesi
                         </h3>
                         <Badge variant="outline" className="text-[10px]">
-                            {executions.length} / {totalCount} gösteriliyor
+                            {((page - 1) * (pageSize || 50)) + 1}–{Math.min(page * (pageSize || 50), totalCount)} / {totalCount}
                         </Badge>
                     </div>
                 </div>
@@ -244,6 +245,37 @@ export function WorkflowMonitor({ workflowId, workflowName, onClose }: WorkflowM
                         </tbody>
                     </table>
                 </div>
+
+                {/* Pagination */}
+                {(totalPages || 1) > 1 && (
+                    <div className="p-3 border-t bg-muted/20 flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">
+                            Sayfa {page} / {totalPages}
+                        </span>
+                        <div className="flex items-center gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={page <= 1}
+                                onClick={() => { const p = page - 1; setPage(p); fetchData(p) }}
+                                className="h-7 text-xs gap-1"
+                            >
+                                <ChevronLeft className="h-3.5 w-3.5" />
+                                Önceki
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={page >= (totalPages || 1)}
+                                onClick={() => { const p = page + 1; setPage(p); fetchData(p) }}
+                                className="h-7 text-xs gap-1"
+                            >
+                                Sonraki
+                                <ChevronRight className="h-3.5 w-3.5" />
+                            </Button>
+                        </div>
+                    </div>
+                )}
             </Card>
         </div>
     )
