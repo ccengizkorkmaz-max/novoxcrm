@@ -151,7 +151,7 @@ export async function POST(req: NextRequest) {
                                         customerName,
                                         new Date().toLocaleString('tr-TR'),
                                         `[ARAMA TALEBİ] Müşteri kampanya şablonuna "Evet arayın" yanıtını verdi. Arama talep ediyor.`
-                                    ];
+                                    ].map(p => typeof p === 'string' ? p.replace(/[\r\n\t]+/g, ' ').replace(/\s{2,}/g, ' ').trim() : p);
 
                                     const accessToken = tenantData.wa_access_token;
                                     for (const manager of hotLeadManagers) {
@@ -438,7 +438,7 @@ GİZLİ SİSTEM KOMUTLARI (SADECE ŞARTLAR SAĞLANDIĞINDA YANITININ EN SONUNA E
                                     customerName,
                                     new Date().toLocaleString('tr-TR'),
                                     leadLabel + (conversationSummary ? conversationSummary.substring(0, 480).replace(/\n/g, ' ') : 'Özet oluşturulamadı')
-                                ];
+                                ].map(p => typeof p === 'string' ? p.replace(/[\r\n\t]+/g, ' ').replace(/\s{2,}/g, ' ').trim() : p);
 
                                 for (const manager of hotLeadManagers) {
                                     if (manager.phone && accessToken && tenantData.wa_phone_number_id) {

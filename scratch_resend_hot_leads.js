@@ -125,8 +125,8 @@ async function main() {
     console.log('\n--- Active Hot Lead Managers ---');
     managers.forEach(m => console.log(`- ${m.full_name} (${m.phone})`));
 
-    // 3. Find all hot, warm, call_requested conversations since May 20th 00:00 Turkey time (May 19th 21:00 UTC)
-    const startDate = '2026-05-19T21:00:00.000Z';
+    // 3. Find all hot, warm, call_requested conversations since May 20th 00:00
+    const startDate = '2026-05-20T00:00:00.000Z';
 
     const { data: convs, error: cErr } = await supabase
         .from('whatsapp_conversations')
@@ -144,6 +144,7 @@ async function main() {
         `)
         .eq('tenant_id', tenantId)
         .in('lead_score', ['hot', 'warm', 'call_requested'])
+        .or('hot_lead_notified.is.null,hot_lead_notified.eq.false')
         .gte('updated_at', startDate)
         .order('updated_at', { ascending: true });
 
@@ -210,14 +211,14 @@ async function main() {
         console.log(`[${i + 1}/${leadsToSend.length}] Sending Lead: ${lead.customerName} (${lead.customerPhone}) - Score: ${lead.score}`);
 
         const formattedDate = new Date(lead.updatedAt).toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' });
-        
-        // Prepare 4 parameters
+        // Prepare 4 parameters (İşlem No/Kod, Referans/İrtibat, Oluşturulma Zamanı, Durum Açıklaması)
+        // Meta API disallows newlines, tabs, and >4 spaces in template params
         const params = [
-            lead.customerName,
             lead.customerPhone,
+            lead.customerName,
             formattedDate,
             lead.description
-        ];
+        ].map(p => typeof p === 'string' ? p.replace(/[\r\n\t]+/g, ' ').replace(/\s{2,}/g, ' ').trim() : p);
 
         let leadSuccess = true;
 
@@ -227,7 +228,7 @@ async function main() {
             console.log(`  -> Sending to Manager: ${manager.full_name} (${manager.phone})`);
             const res = await sendWhatsAppTemplate(
                 manager.phone,
-                'hot_lead_notification',
+                'crm_operasyonel_durum_bildirimi',
                 params,
                 'tr',
                 tenant.wa_phone_number_id,

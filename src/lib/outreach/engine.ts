@@ -996,7 +996,7 @@ export async function handleVapiCallResult(callData: {
                                     customer.full_name || 'Müşteri',
                                     new Date().toLocaleString('tr-TR'),
                                     structuredData.notes || 'AI arama sonucu HOT olarak değerlendirildi'
-                                ],
+                                ].map(p => typeof p === 'string' ? p.replace(/[\r\n\t]+/g, ' ').replace(/\s{2,}/g, ' ').trim() : p),
                                 'tr',
                                 tenant.wa_phone_number_id,
                                 tenant.wa_access_token
