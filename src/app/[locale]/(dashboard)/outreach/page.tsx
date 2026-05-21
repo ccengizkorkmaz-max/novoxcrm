@@ -34,6 +34,7 @@ export default async function OutreachPage() {
         profilesRes,
         detailedLogsRes,
         triggersRes,
+        executionsRes,
     ] = await Promise.all([
         supabaseAdmin.from('outreach_workflows')
             .select('*, outreach_segments(name), outreach_steps(*)')
@@ -89,13 +90,36 @@ export default async function OutreachPage() {
         supabaseAdmin.from('outreach_triggers')
             .select('id, workflow_id, event_type, is_active')
             .eq('tenant_id', tenantId),
+        // Executions for stats
+        supabaseAdmin.from('outreach_executions')
+            .select('workflow_id, status, started_at')
+            .eq('tenant_id', tenantId),
     ])
+
+    const workflows = workflowsRes.data || []
+    const executions = executionsRes?.data || []
+
+    workflows.forEach((w: any) => {
+        if (w.outreach_steps) {
+            w.outreach_steps.sort((a: any, b: any) => (a.step_order || 0) - (b.step_order || 0))
+        }
+        const wfExecs = executions.filter((e: any) => e.workflow_id === w.id)
+        w._exec_stats = {
+            total: wfExecs.length,
+            active: wfExecs.filter((e: any) => e.status === 'active' || e.status === 'waiting').length,
+            completed: wfExecs.filter((e: any) => e.status === 'completed').length,
+            failed: wfExecs.filter((e: any) => e.status === 'failed').length,
+            last_run: wfExecs.length > 0
+                ? wfExecs.reduce((max: string, e: any) => e.started_at > max ? e.started_at : max, '')
+                : null
+        }
+    })
 
     return (
         <div className="flex flex-col gap-6 pb-8">
             <Suspense fallback={<div className="flex items-center justify-center h-40 text-muted-foreground">Yükleniyor...</div>}>
                 <OutreachDashboard
-                    workflows={workflowsRes.data || []}
+                    workflows={workflows}
                     segments={segmentsRes.data || []}
                     scripts={scriptsRes.data || []}
                     activeCount={activeExecRes.count || 0}
@@ -111,3 +135,4 @@ export default async function OutreachPage() {
         </div>
     )
 }
+

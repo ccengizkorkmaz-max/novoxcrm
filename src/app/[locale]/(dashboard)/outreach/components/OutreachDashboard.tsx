@@ -140,7 +140,7 @@ export function OutreachDashboard({
         })
     }
 
-    const handleLaunch = async (id: string) => {
+    const handleLaunch = async (id: string, name: string) => {
         setLaunching(id)
         try {
             const result = await launchWorkflow(id)
@@ -148,6 +148,8 @@ export function OutreachDashboard({
                 toast.error(result.error as string)
             } else {
                 toast.success(`${result.started} lead için outreach başlatıldı! (${result.skipped || 0} atlandı)`)
+                // Automatically switch to live monitor so the user can track progress
+                setMonitoringWorkflow({ id, name })
             }
         } catch (err: any) {
             toast.error(`Hata: ${err.message}`)
@@ -360,7 +362,7 @@ export function OutreachDashboard({
                                 onToggle={() => handleToggle(w.id, w.is_active)}
                                 onEdit={() => { setEditingWorkflow(w); setShowBuilder(true) }}
                                 onDelete={() => handleDelete(w.id, w.name)}
-                                onLaunch={() => handleLaunch(w.id)}
+                                onLaunch={() => handleLaunch(w.id, w.name)}
                                 onStop={() => handleStop(w.id, w.name)}
                                 onMonitor={() => setMonitoringWorkflow({ id: w.id, name: w.name })}
                                 isLaunching={launching === w.id}
