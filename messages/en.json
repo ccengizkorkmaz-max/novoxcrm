@@ -2236,7 +2236,7 @@
             "Negotiation": "Negotiation",
             "Sold": "Sold",
             "Completed": "Won",
-            "Lost": "Total"
+            "Lost": "Lost"
         },
         "table": {
             "customer": "Customer",
