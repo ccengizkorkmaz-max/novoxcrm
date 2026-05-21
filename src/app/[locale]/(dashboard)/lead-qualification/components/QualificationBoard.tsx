@@ -10,11 +10,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
 import { updateQualificationStatus, addCallNote, convertToSale, bulkDisqualifyColdLeads } from '../actions'
-import { Calendar, Check, Clock, FileText, Info, Phone, PhoneMissed, X, Building2, User, LayoutGrid, List, Table, Undo2, MessageSquareText, AlertTriangle } from 'lucide-react'
+import { Calendar, Check, Clock, FileText, Info, Phone, PhoneMissed, X, Building2, User, LayoutGrid, List, Table, Undo2, MessageSquareText, AlertTriangle, Search, Filter, RotateCcw, Trash2, FilterX } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { tr } from 'date-fns/locale'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger, SheetClose } from '@/components/ui/sheet'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Separator } from '@/components/ui/separator'
 
 const getEkSoru = (notes?: string) => {
     if (!notes) return null
@@ -31,7 +35,7 @@ const STATUSES = [
     { id: 'qualified', label: 'Nitelikli', icon: Check, color: 'bg-green-100 text-green-700', border: 'border-green-200' }
 ]
 
-export default function QualificationBoard({ initialData, totalCount, currentPage = 1, pageSize = 100, statusCounts = {}, projects = [], availableUnits = [], activeTab = 'active' }: { initialData: any[], totalCount: number, currentPage?: number, pageSize?: number, statusCounts?: Record<string, number>, projects?: any[], availableUnits?: any[], activeTab?: string }) {
+export default function QualificationBoard({ initialData, totalCount, currentPage = 1, pageSize = 100, statusCounts = {}, projects = [], availableUnits = [], activeTab = 'active', profiles = [] }: { initialData: any[], totalCount: number, currentPage?: number, pageSize?: number, statusCounts?: Record<string, number>, projects?: any[], availableUnits?: any[], activeTab?: string, profiles?: any[] }) {
     const [qualifications, setQualifications] = useState(initialData)
     const [selectedQual, setSelectedQual] = useState<any>(null)
     const [viewMode, setViewMode] = useState<'kanban' | 'rapid' | 'table'>('table')
@@ -44,6 +48,18 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
     const [selectedStatuses, setSelectedStatuses] = useState<string[]>(
         searchParams.get('status') ? searchParams.get('status')!.split(',') : []
     )
+    const [selectedInterestLevels, setSelectedInterestLevels] = useState<string[]>(
+        searchParams.get('interest_level') ? searchParams.get('interest_level')!.split(',') : []
+    )
+    const [selectedProjects, setSelectedProjects] = useState<string[]>(
+        searchParams.get('project_id') ? searchParams.get('project_id')!.split(',') : []
+    )
+    const [selectedAssignees, setSelectedAssignees] = useState<string[]>(
+        searchParams.get('assigned_to') ? searchParams.get('assigned_to')!.split(',') : []
+    )
+    const [selectedSources, setSelectedSources] = useState<string[]>(
+        searchParams.get('source') ? searchParams.get('source')!.split(',') : []
+    )
     
     const [isBulkDisqualifyDialogOpen, setIsBulkDisqualifyDialogOpen] = useState(false)
     const [isBulkDisqualifying, setIsBulkDisqualifying] = useState(false)
@@ -53,6 +69,23 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
         setQualifications(initialData)
     }, [initialData])
     
+    // Sync external URL changes back to state (e.g. back button, reset)
+    useEffect(() => {
+        const urlSearch = searchParams.get('search') || ''
+        const urlStatus = searchParams.get('status') ? searchParams.get('status')!.split(',') : []
+        const urlInterest = searchParams.get('interest_level') ? searchParams.get('interest_level')!.split(',') : []
+        const urlProject = searchParams.get('project_id') ? searchParams.get('project_id')!.split(',') : []
+        const urlAssignee = searchParams.get('assigned_to') ? searchParams.get('assigned_to')!.split(',') : []
+        const urlSource = searchParams.get('source') ? searchParams.get('source')!.split(',') : []
+
+        if (urlSearch !== searchQuery) setSearchQuery(urlSearch)
+        if (urlStatus.join(',') !== selectedStatuses.join(',')) setSelectedStatuses(urlStatus)
+        if (urlInterest.join(',') !== selectedInterestLevels.join(',')) setSelectedInterestLevels(urlInterest)
+        if (urlProject.join(',') !== selectedProjects.join(',')) setSelectedProjects(urlProject)
+        if (urlAssignee.join(',') !== selectedAssignees.join(',')) setSelectedAssignees(urlAssignee)
+        if (urlSource.join(',') !== selectedSources.join(',')) setSelectedSources(urlSource)
+    }, [searchParams])
+
     // Update URL when filters change
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -72,6 +105,38 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
                 else params.delete('status')
                 changed = true
             }
+
+            const currentInterest = params.get('interest_level') || ''
+            const newInterest = selectedInterestLevels.join(',')
+            if (currentInterest !== newInterest) {
+                if (newInterest) params.set('interest_level', newInterest)
+                else params.delete('interest_level')
+                changed = true
+            }
+
+            const currentProject = params.get('project_id') || ''
+            const newProject = selectedProjects.join(',')
+            if (currentProject !== newProject) {
+                if (newProject) params.set('project_id', newProject)
+                else params.delete('project_id')
+                changed = true
+            }
+
+            const currentAssignee = params.get('assigned_to') || ''
+            const newAssignee = selectedAssignees.join(',')
+            if (currentAssignee !== newAssignee) {
+                if (newAssignee) params.set('assigned_to', newAssignee)
+                else params.delete('assigned_to')
+                changed = true
+            }
+
+            const currentSource = params.get('source') || ''
+            const newSource = selectedSources.join(',')
+            if (currentSource !== newSource) {
+                if (newSource) params.set('source', newSource)
+                else params.delete('source')
+                changed = true
+            }
             
             if (changed) {
                 params.delete('page') // reset page on filter
@@ -79,7 +144,7 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
             }
         }, 400)
         return () => clearTimeout(timer)
-    }, [searchQuery, selectedStatuses, router])
+    }, [searchQuery, selectedStatuses, selectedInterestLevels, selectedProjects, selectedAssignees, selectedSources, router])
     
     // Dialog states
     const [isNoteDialogOpen, setIsNoteDialogOpen] = useState(false)
@@ -263,6 +328,36 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
         })
     }
 
+    const activeFiltersCount = 
+        selectedStatuses.length + 
+        selectedInterestLevels.length + 
+        selectedProjects.length + 
+        selectedAssignees.length + 
+        selectedSources.length +
+        (searchQuery.trim() ? 1 : 0)
+
+    const handleClearAllFilters = () => {
+        setSelectedStatuses([])
+        setSelectedInterestLevels([])
+        setSelectedProjects([])
+        setSelectedAssignees([])
+        setSelectedSources([])
+        setSearchQuery('')
+        
+        // Reset URL
+        const params = new URLSearchParams(window.location.search)
+        params.delete('search')
+        params.delete('status')
+        params.delete('interest_level')
+        params.delete('project_id')
+        params.delete('assigned_to')
+        params.delete('source')
+        params.delete('page')
+        router.push(`?${params.toString()}`)
+        
+        toast.success('Tüm filtreler temizlendi')
+    }
+
     const displayedStatuses = activeTab === 'active'
         ? STATUSES.filter(s => s.id !== 'disqualified')
         : STATUSES.filter(s => s.id === 'disqualified')
@@ -317,6 +412,401 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
                     >
                         ❄️ Soğukları Toplu Ele
                     </Button>
+                )}
+            </div>
+
+            {/* Unified Search & Gelişmiş Filtreler Barı */}
+            <div className="bg-white p-4 border rounded-xl shadow-sm space-y-3">
+                <div className="flex flex-col sm:flex-row gap-3">
+                    {/* Search Input */}
+                    <div className="relative flex-1">
+                        <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                        <input
+                            type="text"
+                            placeholder="Müşteri ismi, telefon numarası veya notlarda arayın..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full pl-9 pr-9 py-2 h-10 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50/50"
+                        />
+                        {searchQuery && (
+                            <button
+                                onClick={() => setSearchQuery('')}
+                                className="absolute right-3 top-3 text-slate-400 hover:text-slate-600"
+                            >
+                                <X className="h-4 w-4" />
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Filter Sheet and Quick Clear */}
+                    <div className="flex items-center gap-2">
+                        <Sheet>
+                            <SheetTrigger asChild>
+                                <Button 
+                                    variant="outline" 
+                                    className={`h-10 px-4 font-bold flex items-center gap-2 transition-all duration-300 ${
+                                        activeFiltersCount > 0 
+                                            ? 'border-blue-200 bg-blue-50/50 text-blue-700 hover:bg-blue-100/70 shadow-sm ring-1 ring-blue-100' 
+                                            : 'border-slate-200 hover:bg-slate-50 text-slate-700'
+                                    }`}
+                                >
+                                    <Filter className={`h-4 w-4 ${activeFiltersCount > 0 ? 'text-blue-600' : 'text-slate-500'}`} />
+                                    Filtrele
+                                    {activeFiltersCount > 0 && (
+                                        <Badge className="ml-1 bg-blue-600 hover:bg-blue-600 text-white border-none font-extrabold text-[10px] h-5 px-1.5 min-w-5 justify-center rounded-full">
+                                            {activeFiltersCount}
+                                        </Badge>
+                                    )}
+                                </Button>
+                            </SheetTrigger>
+                            <SheetContent className="w-full sm:max-w-md flex flex-col p-0 bg-background border-l shadow-2xl">
+                                <div className="p-6 border-b bg-slate-50/50">
+                                    <div className="flex items-center justify-between">
+                                        <SheetHeader className="text-left p-0">
+                                            <div className="flex items-center gap-2">
+                                                <div className="p-2 bg-blue-50 rounded-lg">
+                                                    <Filter className="h-5 w-5 text-blue-600" />
+                                                </div>
+                                                <SheetTitle className="text-lg font-bold">Gelişmiş Filtreler</SheetTitle>
+                                            </div>
+                                            <SheetDescription className="text-xs">
+                                                Arama sonuçlarını daraltmak için kriterleri belirleyin.
+                                            </SheetDescription>
+                                        </SheetHeader>
+                                        {activeFiltersCount > 0 && (
+                                            <Button 
+                                                variant="ghost" 
+                                                size="sm" 
+                                                onClick={handleClearAllFilters}
+                                                className="text-xs h-8 text-slate-500 hover:text-red-600 transition-colors"
+                                            >
+                                                <FilterX className="w-3.5 h-3.5 mr-1" />
+                                                Temizle
+                                            </Button>
+                                        )}
+                                    </div>
+                                </div>
+                                
+                                <ScrollArea className="flex-1 px-6 py-4">
+                                    <div className="space-y-6">
+                                        {/* Status Filter */}
+                                        <div className="space-y-3">
+                                            <h3 className="font-bold text-sm text-slate-700">Aday Durumu</h3>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                {displayedStatuses.map((s) => {
+                                                    const isChecked = selectedStatuses.includes(s.id)
+                                                    return (
+                                                        <label
+                                                            key={s.id}
+                                                            className={`flex items-center gap-2 p-2.5 border rounded-lg cursor-pointer transition-colors text-xs font-semibold hover:bg-slate-50 ${
+                                                                isChecked ? 'border-blue-600 bg-blue-50/30' : 'border-slate-200'
+                                                            }`}
+                                                        >
+                                                            <Checkbox
+                                                                checked={isChecked}
+                                                                onCheckedChange={(checked) => {
+                                                                    if (checked) {
+                                                                        setSelectedStatuses([...selectedStatuses, s.id])
+                                                                    } else {
+                                                                        setSelectedStatuses(selectedStatuses.filter(id => id !== s.id))
+                                                                    }
+                                                                }}
+                                                            />
+                                                            <span className="truncate">{s.label}</span>
+                                                        </label>
+                                                    )
+                                                })}
+                                            </div>
+                                        </div>
+
+                                        <Separator />
+
+                                        {/* Interest Level Filter */}
+                                        <div className="space-y-3">
+                                            <h3 className="font-bold text-sm text-slate-700">Aday Skoru</h3>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                {[
+                                                    { id: 'hot', label: '🔥 Sıcak' },
+                                                    { id: 'warm', label: '🌤️ Ilık' },
+                                                    { id: 'cold', label: '❄️ Soğuk' },
+                                                    { id: 'call_requested', label: '📞 Arama İstiyor' }
+                                                ].map((opt) => {
+                                                    const isChecked = selectedInterestLevels.includes(opt.id)
+                                                    return (
+                                                        <label
+                                                            key={opt.id}
+                                                            className={`flex items-center gap-2 p-2.5 border rounded-lg cursor-pointer transition-colors text-xs font-semibold hover:bg-slate-50 ${
+                                                                isChecked ? 'border-blue-600 bg-blue-50/30' : 'border-slate-200'
+                                                            }`}
+                                                        >
+                                                            <Checkbox
+                                                                checked={isChecked}
+                                                                onCheckedChange={(checked) => {
+                                                                    if (checked) {
+                                                                        setSelectedInterestLevels([...selectedInterestLevels, opt.id])
+                                                                    } else {
+                                                                        setSelectedInterestLevels(selectedInterestLevels.filter(id => id !== opt.id))
+                                                                    }
+                                                                }}
+                                                            />
+                                                            <span>{opt.label}</span>
+                                                        </label>
+                                                    )
+                                                })}
+                                            </div>
+                                        </div>
+
+                                        <Separator />
+
+                                        {/* Project Filter */}
+                                        {projects.length > 0 && (
+                                            <>
+                                                <div className="space-y-3">
+                                                    <h3 className="font-bold text-sm text-slate-700">Proje İlgisi</h3>
+                                                    <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1">
+                                                        {projects.map((p: any) => {
+                                                            const isChecked = selectedProjects.includes(p.id)
+                                                            return (
+                                                                <label
+                                                                    key={p.id}
+                                                                    className={`flex items-center gap-2 p-2 border rounded-lg cursor-pointer transition-colors text-xs font-semibold hover:bg-slate-50 ${
+                                                                        isChecked ? 'border-blue-600 bg-blue-50/30' : 'border-slate-200'
+                                                                    }`}
+                                                                >
+                                                                    <Checkbox
+                                                                        checked={isChecked}
+                                                                        onCheckedChange={(checked) => {
+                                                                            if (checked) {
+                                                                                setSelectedProjects([...selectedProjects, p.id])
+                                                                            } else {
+                                                                                setSelectedProjects(selectedProjects.filter(id => id !== p.id))
+                                                                            }
+                                                                        }}
+                                                                    />
+                                                                    <span className="truncate">{p.name}</span>
+                                                                </label>
+                                                            )
+                                                        })}
+                                                    </div>
+                                                </div>
+                                                <Separator />
+                                            </>
+                                        )}
+
+                                        {/* Assignee Filter */}
+                                        {profiles.length > 0 && (
+                                            <>
+                                                <div className="space-y-3">
+                                                    <h3 className="font-bold text-sm text-slate-700">Sorumlu Temsilci</h3>
+                                                    <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1">
+                                                        {profiles.map((p: any) => {
+                                                            const isChecked = selectedAssignees.includes(p.id)
+                                                            return (
+                                                                <label
+                                                                    key={p.id}
+                                                                    className={`flex items-center gap-2 p-2 border rounded-lg cursor-pointer transition-colors text-xs font-semibold hover:bg-slate-50 ${
+                                                                        isChecked ? 'border-blue-600 bg-blue-50/30' : 'border-slate-200'
+                                                                    }`}
+                                                                >
+                                                                    <Checkbox
+                                                                        checked={isChecked}
+                                                                        onCheckedChange={(checked) => {
+                                                                            if (checked) {
+                                                                                setSelectedAssignees([...selectedAssignees, p.id])
+                                                                            } else {
+                                                                                setSelectedAssignees(selectedAssignees.filter(id => id !== p.id))
+                                                                            }
+                                                                        }}
+                                                                    />
+                                                                    <span className="truncate">{p.full_name}</span>
+                                                                </label>
+                                                            )
+                                                        })}
+                                                    </div>
+                                                </div>
+                                                <Separator />
+                                            </>
+                                        )}
+
+                                        {/* Lead Source Filter */}
+                                        <div className="space-y-3">
+                                            <h3 className="font-bold text-sm text-slate-700">Aday Kaynağı</h3>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                {[
+                                                    { id: 'meta_ads', label: 'Meta Reklamları' },
+                                                    { id: 'whatsapp', label: 'WhatsApp' },
+                                                    { id: 'phone', label: 'Telefon' },
+                                                    { id: 'website', label: 'Web Sitesi' },
+                                                    { id: 'manual', label: 'Manuel Giriş' },
+                                                    { id: 'instagram', label: 'Instagram' }
+                                                ].map((src) => {
+                                                    const isChecked = selectedSources.includes(src.id)
+                                                    return (
+                                                        <label
+                                                            key={src.id}
+                                                            className={`flex items-center gap-2 p-2.5 border rounded-lg cursor-pointer transition-colors text-xs font-semibold hover:bg-slate-50 ${
+                                                                isChecked ? 'border-blue-600 bg-blue-50/30' : 'border-slate-200'
+                                                            }`}
+                                                        >
+                                                            <Checkbox
+                                                                checked={isChecked}
+                                                                onCheckedChange={(checked) => {
+                                                                    if (checked) {
+                                                                        setSelectedSources([...selectedSources, src.id])
+                                                                    } else {
+                                                                        setSelectedSources(selectedSources.filter(id => id !== src.id))
+                                                                    }
+                                                                }}
+                                                            />
+                                                            <span className="truncate">{src.label}</span>
+                                                        </label>
+                                                    )
+                                                })}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </ScrollArea>
+
+                                <div className="p-6 border-t bg-slate-50/50 flex items-center justify-between gap-3 mt-auto shrink-0">
+                                    <Button
+                                        variant="outline"
+                                        onClick={handleClearAllFilters}
+                                        disabled={activeFiltersCount === 0}
+                                        className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 font-bold"
+                                    >
+                                        <Trash2 className="h-4 w-4 mr-2" />
+                                        Temizle
+                                    </Button>
+                                    <SheetClose asChild>
+                                        <Button className="bg-blue-600 hover:bg-blue-700 font-bold">
+                                            Filtreleri Uygula
+                                        </Button>
+                                    </SheetClose>
+                                </div>
+                            </SheetContent>
+                        </Sheet>
+
+                        {/* Highly visible quick clear button */}
+                        {activeFiltersCount > 0 && (
+                            <Button
+                                variant="outline"
+                                onClick={handleClearAllFilters}
+                                className="h-10 px-4 font-bold bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 border-red-200 hover:border-red-300 shadow-sm transition-all duration-300 flex items-center gap-1.5 rounded-lg active:scale-95 shrink-0"
+                                title="Tüm Filtreleri Kaldır"
+                            >
+                                <FilterX className="h-4 w-4" />
+                                <span>Filtreleri Kaldır</span>
+                            </Button>
+                        )}
+                    </div>
+                </div>
+
+                {/* Active Filter Chips */}
+                {activeFiltersCount > 0 && (
+                    <div className="flex flex-wrap items-center gap-1.5 pt-1 text-xs text-slate-500 border-t border-slate-100">
+                        <span className="font-bold text-slate-600 mr-1">Aktif Filtreler:</span>
+                        
+                        {/* Search Query Chip */}
+                        {searchQuery.trim() && (
+                            <Badge variant="secondary" className="bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center gap-1 pr-1 font-semibold text-xs border border-slate-200">
+                                Arama: "{searchQuery}"
+                                <button
+                                    onClick={() => setSearchQuery('')}
+                                    className="rounded-full p-0.5 hover:bg-slate-300 text-slate-400 hover:text-slate-600 transition-colors"
+                                >
+                                    <X className="h-3 w-3" />
+                                </button>
+                            </Badge>
+                        )}
+
+                        {/* Status Chips */}
+                        {selectedStatuses.map(id => {
+                            const label = STATUSES.find(s => s.id === id)?.label || id
+                            return (
+                                <Badge key={id} variant="secondary" className="bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center gap-1 pr-1 font-semibold text-xs border border-slate-200">
+                                    Durum: {label}
+                                    <button
+                                        onClick={() => setSelectedStatuses(selectedStatuses.filter(x => x !== id))}
+                                        className="rounded-full p-0.5 hover:bg-slate-300 text-slate-400 hover:text-slate-600 transition-colors"
+                                    >
+                                        <X className="h-3 w-3" />
+                                    </button>
+                                </Badge>
+                            )
+                        })}
+
+                        {/* Interest Level Chips */}
+                        {selectedInterestLevels.map(id => {
+                            const label = id === 'hot' ? '🔥 Sıcak' : id === 'warm' ? '🌤️ Ilık' : id === 'cold' ? '❄️ Soğuk' : id === 'call_requested' ? '📞 Arama İstiyor' : id
+                            return (
+                                <Badge key={id} variant="secondary" className="bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center gap-1 pr-1 font-semibold text-xs border border-slate-200">
+                                    Skor: {label}
+                                    <button
+                                        onClick={() => setSelectedInterestLevels(selectedInterestLevels.filter(x => x !== id))}
+                                        className="rounded-full p-0.5 hover:bg-slate-300 text-slate-400 hover:text-slate-600 transition-colors"
+                                    >
+                                        <X className="h-3 w-3" />
+                                    </button>
+                                </Badge>
+                            )
+                        })}
+
+                        {/* Project Chips */}
+                        {selectedProjects.map(id => {
+                            const label = projects.find((p: any) => p.id === id)?.name || id
+                            return (
+                                <Badge key={id} variant="secondary" className="bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center gap-1 pr-1 font-semibold text-xs border border-slate-200">
+                                    Proje: {label}
+                                    <button
+                                        onClick={() => setSelectedProjects(selectedProjects.filter(x => x !== id))}
+                                        className="rounded-full p-0.5 hover:bg-slate-300 text-slate-400 hover:text-slate-600 transition-colors"
+                                    >
+                                        <X className="h-3 w-3" />
+                                    </button>
+                                </Badge>
+                            )
+                        })}
+
+                        {/* Assignee Chips */}
+                        {selectedAssignees.map(id => {
+                            const label = profiles.find((p: any) => p.id === id)?.full_name || id
+                            return (
+                                <Badge key={id} variant="secondary" className="bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center gap-1 pr-1 font-semibold text-xs border border-slate-200">
+                                    Sorumlu: {label}
+                                    <button
+                                        onClick={() => setSelectedAssignees(selectedAssignees.filter(x => x !== id))}
+                                        className="rounded-full p-0.5 hover:bg-slate-300 text-slate-400 hover:text-slate-600 transition-colors"
+                                    >
+                                        <X className="h-3 w-3" />
+                                    </button>
+                                </Badge>
+                            )
+                        })}
+
+                        {/* Source Chips */}
+                        {selectedSources.map(id => {
+                            const label = id === 'meta_ads' ? 'Meta Reklamları' : id === 'whatsapp' ? 'WhatsApp' : id === 'phone' ? 'Telefon' : id === 'website' ? 'Web Sitesi' : id === 'manual' ? 'Manuel Giriş' : id === 'instagram' ? 'Instagram' : id
+                            return (
+                                <Badge key={id} variant="secondary" className="bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center gap-1 pr-1 font-semibold text-xs border border-slate-200">
+                                    Kaynak: {label}
+                                    <button
+                                        onClick={() => setSelectedSources(selectedSources.filter(x => x !== id))}
+                                        className="rounded-full p-0.5 hover:bg-slate-300 text-slate-400 hover:text-slate-600 transition-colors"
+                                    >
+                                        <X className="h-3 w-3" />
+                                    </button>
+                                </Badge>
+                            )
+                        })}
+
+                        {/* Quick clear link */}
+                        <button
+                            onClick={handleClearAllFilters}
+                            className="text-xs text-red-600 hover:text-red-700 font-bold hover:underline ml-1"
+                        >
+                            Tümünü Sıfırla
+                        </button>
+                    </div>
                 )}
             </div>
 

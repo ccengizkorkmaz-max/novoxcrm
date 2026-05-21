@@ -25,9 +25,15 @@ export default async function LeadQualificationPage(props: {
     const activeTab = typeof searchParams.tab === 'string' ? searchParams.tab : 'active'
     const pageSize = 100
 
+    const interestFilters = typeof searchParams.interest_level === 'string' && searchParams.interest_level ? searchParams.interest_level.split(',') : []
+    const projectFilters = typeof searchParams.project_id === 'string' && searchParams.project_id ? searchParams.project_id.split(',') : []
+    const assignedFilters = typeof searchParams.assigned_to === 'string' && searchParams.assigned_to ? searchParams.assigned_to.split(',') : []
+    const sourceFilters = typeof searchParams.source === 'string' && searchParams.source ? searchParams.source.split(',') : []
+
     let qualifications: any[] = []
     let totalCount = 0
     let statusCounts: Record<string, number> = {}
+    let tenantProfiles: any[] = []
     
     if (profile?.tenant_id) {
         // İlk olarak toplam kayıt sayısını alalım
@@ -50,18 +56,50 @@ export default async function LeadQualificationPage(props: {
             const sq = searchQuery.trim()
             queryCount = queryCount.or(`full_name.ilike.%${sq}%,phone.ilike.%${sq}%`, { foreignTable: 'customers' })
         }
+
+        if (interestFilters.length > 0) {
+            queryCount = queryCount.in('interest_level', interestFilters)
+        }
+        if (projectFilters.length > 0) {
+            queryCount = queryCount.in('project_id', projectFilters)
+        }
+        if (assignedFilters.length > 0) {
+            queryCount = queryCount.in('assigned_to', assignedFilters)
+        }
+        if (sourceFilters.length > 0) {
+            queryCount = queryCount.in('source', sourceFilters)
+        }
         
         const { count } = await queryCount
         totalCount = count || 0
 
-        // Get exact counts for all statuses
+        // Get exact counts for all statuses with current filters applied
         const statusKeys = ['new', 'contacted', 'follow_up', 'unreachable', 'disqualified', 'qualified']
         const countPromises = statusKeys.map(async (status) => {
-            const { count } = await supabase
+            let sQuery = supabase
                 .from('lead_qualifications')
-                .select('*', { count: 'exact', head: true })
+                .select('*, customers!inner(full_name, phone)', { count: 'exact', head: true })
                 .eq('tenant_id', profile.tenant_id)
                 .eq('status', status)
+
+            if (searchQuery) {
+                const sq = searchQuery.trim()
+                sQuery = sQuery.or(`full_name.ilike.%${sq}%,phone.ilike.%${sq}%`, { foreignTable: 'customers' })
+            }
+            if (interestFilters.length > 0) {
+                sQuery = sQuery.in('interest_level', interestFilters)
+            }
+            if (projectFilters.length > 0) {
+                sQuery = sQuery.in('project_id', projectFilters)
+            }
+            if (assignedFilters.length > 0) {
+                sQuery = sQuery.in('assigned_to', assignedFilters)
+            }
+            if (sourceFilters.length > 0) {
+                sQuery = sQuery.in('source', sourceFilters)
+            }
+
+            const { count } = await sQuery
             return { status, count: count || 0 }
         })
         
@@ -103,6 +141,19 @@ export default async function LeadQualificationPage(props: {
         if (searchQuery) {
             const sq = searchQuery.trim()
             queryData = queryData.or(`full_name.ilike.%${sq}%,phone.ilike.%${sq}%`, { foreignTable: 'customers' })
+        }
+
+        if (interestFilters.length > 0) {
+            queryData = queryData.in('interest_level', interestFilters)
+        }
+        if (projectFilters.length > 0) {
+            queryData = queryData.in('project_id', projectFilters)
+        }
+        if (assignedFilters.length > 0) {
+            queryData = queryData.in('assigned_to', assignedFilters)
+        }
+        if (sourceFilters.length > 0) {
+            queryData = queryData.in('source', sourceFilters)
         }
             
         const { data, error } = await queryData
@@ -154,6 +205,13 @@ export default async function LeadQualificationPage(props: {
             .in('status', ['Available', 'Müsait'])
             .order('unit_number')
         if (uData) units = uData
+
+        const { data: profData } = await supabase
+            .from('profiles')
+            .select('id, full_name')
+            .eq('tenant_id', profile.tenant_id)
+            .order('full_name')
+        if (profData) tenantProfiles = profData
     }
 
     return (
@@ -178,6 +236,7 @@ export default async function LeadQualificationPage(props: {
                     projects={projects} 
                     availableUnits={units}
                     activeTab={activeTab}
+                    profiles={tenantProfiles}
                 />
             </div>
         </div>
