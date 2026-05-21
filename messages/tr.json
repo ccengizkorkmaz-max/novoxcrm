@@ -2272,7 +2272,7 @@
             "Negotiation": "Pazarlık",
             "Sold": "Satıldı",
             "Completed": "Kazanıldı",
-            "Lost": "Kayıp"
+            "Lost": "Toplam"
         },
         "table": {
             "customer": "Müşteri",

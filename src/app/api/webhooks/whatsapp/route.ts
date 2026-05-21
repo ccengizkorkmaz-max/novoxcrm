@@ -159,9 +159,9 @@ export async function POST(req: NextRequest) {
                                             try {
                                                 await sendWhatsAppTemplate(
                                                     manager.phone,
-                                                    'hot_lead_notification',
-                                                    params,
-                                                    'tr',
+                                                    'hello_world',
+                                                    [],
+                                                    'en_US',
                                                     tenantData.wa_phone_number_id,
                                                     accessToken
                                                 );
@@ -445,9 +445,9 @@ GİZLİ SİSTEM KOMUTLARI (SADECE ŞARTLAR SAĞLANDIĞINDA YANITININ EN SONUNA E
                                         try {
                                             await sendWhatsAppTemplate(
                                                 manager.phone,
-                                                'hot_lead_notification',
-                                                params,
-                                                'tr',
+                                                'hello_world',
+                                                [],
+                                                'en_US',
                                                 tenantData.wa_phone_number_id,
                                                 accessToken
                                             );
