@@ -147,8 +147,8 @@ export async function POST(req: NextRequest) {
                                 if (hotLeadManagers && hotLeadManagers.length > 0) {
                                     const customerName = customer.full_name || payload.name || 'Bilinmiyor';
                                     const params = [
-                                        customerName,
                                         normalizedPhone,
+                                        customerName,
                                         new Date().toLocaleString('tr-TR'),
                                         `[ARAMA TALEBİ] Müşteri kampanya şablonuna "Evet arayın" yanıtını verdi. Arama talep ediyor.`
                                     ];
@@ -159,9 +159,9 @@ export async function POST(req: NextRequest) {
                                             try {
                                                 await sendWhatsAppTemplate(
                                                     manager.phone,
-                                                    'hello_world',
-                                                    [],
-                                                    'en_US',
+                                                    'crm_operasyonel_durum_bildirimi',
+                                                    params,
+                                                    'tr',
                                                     tenantData.wa_phone_number_id,
                                                     accessToken
                                                 );
@@ -434,8 +434,8 @@ GİZLİ SİSTEM KOMUTLARI (SADECE ŞARTLAR SAĞLANDIĞINDA YANITININ EN SONUNA E
                                 const accessToken = tenantData.wa_access_token;
                                 const leadLabel = leadScore === 'warm' ? '[ILIK LEAD] ' : '[SICAK LEAD] ';
                                 const params = [
-                                    customerName,
                                     normalizedPhone,
+                                    customerName,
                                     new Date().toLocaleString('tr-TR'),
                                     leadLabel + (conversationSummary ? conversationSummary.substring(0, 480).replace(/\n/g, ' ') : 'Özet oluşturulamadı')
                                 ];
@@ -445,9 +445,9 @@ GİZLİ SİSTEM KOMUTLARI (SADECE ŞARTLAR SAĞLANDIĞINDA YANITININ EN SONUNA E
                                         try {
                                             await sendWhatsAppTemplate(
                                                 manager.phone,
-                                                'hello_world',
-                                                [],
-                                                'en_US',
+                                                'crm_operasyonel_durum_bildirimi',
+                                                params,
+                                                'tr',
                                                 tenantData.wa_phone_number_id,
                                                 accessToken
                                             );

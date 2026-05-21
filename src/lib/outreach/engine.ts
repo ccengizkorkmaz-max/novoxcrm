@@ -990,9 +990,14 @@ export async function handleVapiCallResult(callData: {
                             const { sendWhatsAppTemplate } = await import('@/lib/whatsapp')
                             await sendWhatsAppTemplate(
                                 rep.phone.replace(/\D/g, ''),
-                                'hello_world',
-                                [],
-                                'en_US',
+                                'crm_operasyonel_durum_bildirimi',
+                                [
+                                    customer.phone || '-',
+                                    customer.full_name || 'Müşteri',
+                                    new Date().toLocaleString('tr-TR'),
+                                    structuredData.notes || 'AI arama sonucu HOT olarak değerlendirildi'
+                                ],
+                                'tr',
                                 tenant.wa_phone_number_id,
                                 tenant.wa_access_token
                             )

@@ -42,15 +42,15 @@ async function main() {
     // Test with 4 parameters (like route.ts uses)
     console.log('\nTesting with 4 parameters:');
     const params4 = [
-        'Test Müşteri',
         '+905321112233',
+        'Test Müşteri',
         new Date().toLocaleString('tr-TR'),
         'Bu bir test sıcak lead bildirim özetidir.'
     ];
 
     const result4 = await sendWhatsAppTemplate(
         manager.phone,
-        'hot_lead_notification',
+        'crm_operasyonel_durum_bildirimi',
         params4,
         'tr',
         tenant.wa_phone_number_id,
