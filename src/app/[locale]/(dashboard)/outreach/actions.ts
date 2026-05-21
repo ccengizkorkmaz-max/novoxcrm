@@ -876,6 +876,19 @@ export async function getWhatsAppResponses(filters: {
         workflowMap = new Map<string, string>(workflowsData?.map((w: any) => [w.id, w.name]) || [])
     }
 
+function normalizeTurkish(str: string): string {
+    return str
+        .toLowerCase()
+        .replace(/ı/g, 'i')
+        .replace(/ğ/g, 'g')
+        .replace(/ü/g, 'u')
+        .replace(/ş/g, 's')
+        .replace(/ö/g, 'o')
+        .replace(/ç/g, 'c')
+        .replace(/[^a-z0-9\s]/g, '')
+        .trim();
+}
+
     // Her müşteri için en güncel workflow bilgisini eşle
     const customerWorkflowMap = new Map<string, { id: string; name: string }>()
     ;(execsData || []).forEach((exec: any) => {
@@ -890,6 +903,14 @@ export async function getWhatsAppResponses(filters: {
         const workflow = customerWorkflowMap.get(conv.customer_id)
         const qual = qualMap.get(conv.customer_id)
 
+        let interestLevel = conv.lead_score || qual?.interest_level || 'unknown'
+        const lastMsgNormalized = normalizeTurkish(conv.last_message_preview || '')
+        if (lastMsgNormalized.includes('hayir tesekkurler')) {
+            interestLevel = 'disqualified'
+        } else if (lastMsgNormalized.includes('evet arayin')) {
+            interestLevel = 'call_requested'
+        }
+
         return {
             id: conv.id,
             customer_id: conv.customer_id,
@@ -897,7 +918,7 @@ export async function getWhatsAppResponses(filters: {
             customer_phone: customer?.phone || '-',
             workflow_id: workflow?.id || null,
             workflow_name: workflow?.name || '-',
-            interest_level: conv.lead_score || qual?.interest_level || 'unknown',
+            interest_level: interestLevel,
             call_notes: qual?.call_notes || '',
             last_message_preview: conv.last_message_preview || '-',
             last_message_at: conv.last_message_at || conv.updated_at || conv.created_at,

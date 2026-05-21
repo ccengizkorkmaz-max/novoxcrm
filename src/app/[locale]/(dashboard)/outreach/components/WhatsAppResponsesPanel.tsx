@@ -209,7 +209,7 @@ function ResponseCard({ item, isExpanded, onToggle }: { item: any; isExpanded: b
         hot: { label: 'Sıcak (Hot)', color: 'text-red-400', bg: 'bg-red-500/15 border-red-500/30', icon: Flame },
         warm: { label: 'Ilık (Warm)', color: 'text-orange-400', bg: 'bg-orange-500/15 border-orange-500/30', icon: Sparkles },
         cold: { label: 'Soğuk (Cold)', color: 'text-blue-400', bg: 'bg-blue-500/15 border-blue-500/30', icon: Snowflake },
-        disqualified: { label: 'Elendi', color: 'text-rose-400', bg: 'bg-rose-500/15 border-rose-500/30', icon: AlertTriangle },
+        disqualified: { label: 'Olumsuz', color: 'text-rose-400', bg: 'bg-rose-500/15 border-rose-500/30', icon: AlertTriangle },
         call_requested: { label: 'Arama İstiyor', color: 'text-emerald-400', bg: 'bg-emerald-500/15 border-emerald-500/30', icon: CheckCircle2 },
         unknown: { label: 'Belirsiz', color: 'text-slate-400', bg: 'bg-slate-500/15 border-slate-500/30', icon: AlertCircle }
     }
@@ -246,7 +246,12 @@ function ResponseCard({ item, isExpanded, onToggle }: { item: any; isExpanded: b
                     </Badge>
 
                     {/* Notification Status Badge */}
-                    {item.hot_lead_notified ? (
+                    {item.interest_level === 'call_requested' ? (
+                        <Badge variant="outline" className="gap-1 text-[10px] border border-amber-500/30 bg-amber-500/15 text-amber-400">
+                            <CheckCircle2 className="h-3 w-3 text-amber-400" />
+                            Ara, Bilgi İstiyor
+                        </Badge>
+                    ) : item.hot_lead_notified ? (
                         <Badge variant="outline" className="gap-1 text-[10px] border border-green-500/30 bg-green-500/15 text-green-400">
                             <CheckCircle2 className="h-3 w-3 text-green-400" />
                             Bildirildi

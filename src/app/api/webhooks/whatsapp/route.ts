@@ -107,9 +107,13 @@ export async function POST(req: NextRequest) {
                     if (msgLower.startsWith('evet')) {
                         // "Evet arayin" → call_requested olarak işaretle
                         await supabase.from('lead_qualifications')
-                            .update({ status: 'call_requested' })
-                            .eq('customer_id', customer.id)
-                            .in('status', ['new', 'follow_up', 'unreachable']);
+                            .update({ status: 'call_requested', interest_level: 'call_requested', updated_at: new Date().toISOString() })
+                            .eq('customer_id', customer.id);
+                        
+                        await supabase.from('whatsapp_conversations')
+                            .update({ lead_score: 'call_requested', updated_at: new Date().toISOString() })
+                            .eq('id', conversationId);
+
                         console.log(`✅ Kampanya yanıtı: ${normalizedPhone} → call_requested`);
 
                         // ── Hot Lead Manager WhatsApp Bildirimi Tetikle ──
@@ -180,9 +184,18 @@ export async function POST(req: NextRequest) {
                     } else {
                         // "Hayir tesekkurler" → opted_out
                         await supabase.from('lead_qualifications')
-                            .update({ status: 'disqualified', call_notes: 'WhatsApp kampanyasından aranmak istemedi' })
-                            .eq('customer_id', customer.id)
-                            .in('status', ['new', 'follow_up', 'unreachable']);
+                            .update({ 
+                                status: 'disqualified', 
+                                interest_level: 'disqualified', 
+                                call_notes: 'WhatsApp kampanyasından aranmak istemedi',
+                                updated_at: new Date().toISOString()
+                            })
+                            .eq('customer_id', customer.id);
+                        
+                        await supabase.from('whatsapp_conversations')
+                            .update({ lead_score: 'disqualified', updated_at: new Date().toISOString() })
+                            .eq('id', conversationId);
+
                         // Opt-out kaydı
                         await supabase.from('outreach_optouts').upsert({
                             phone: normalizedPhone,
