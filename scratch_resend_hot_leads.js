@@ -144,7 +144,6 @@ async function main() {
         `)
         .eq('tenant_id', tenantId)
         .in('lead_score', ['hot', 'warm', 'call_requested'])
-        .or('hot_lead_notified.is.null,hot_lead_notified.eq.false')
         .gte('updated_at', startDate)
         .order('updated_at', { ascending: true });
 

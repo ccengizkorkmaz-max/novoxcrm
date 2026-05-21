@@ -116,6 +116,23 @@ export async function POST(req: NextRequest) {
 
                         console.log(`✅ Kampanya yanıtı: ${normalizedPhone} → call_requested`);
 
+                        // ── Satış Panosuna (Ön Değerlendirme) Otomatik Ekle ──
+                        const { data: existingSale } = await supabase.from('sales')
+                            .select('id')
+                            .eq('customer_id', customer.id)
+                            .in('status', ['Lead', 'Prospect', 'Proposal', 'Reservation', 'Negotiation', 'Contract'])
+                            .maybeSingle();
+
+                        if (!existingSale) {
+                            await supabase.from('sales').insert({
+                                tenant_id: tenantId,
+                                customer_id: customer.id,
+                                status: 'Lead',
+                                lead_origin: 'whatsapp_campaign'
+                            });
+                            console.log(`✅ ${customer.full_name} otomatik satış panosuna eklendi (Lead).`);
+                        }
+
                         // ── Hot Lead Manager WhatsApp Bildirimi Tetikle ──
                         try {
                             const { data: convCheck } = await supabase
@@ -417,18 +434,40 @@ GİZLİ SİSTEM KOMUTLARI (SADECE ŞARTLAR SAĞLANDIĞINDA YANITININ EN SONUNA E
                                     phoneVariantsForLookup.push('+' + normalizedPhone);              // +90xxx
                                     phoneVariantsForLookup.push('0' + normalizedPhone.substring(2)); // 05xx
                                 }
+                                let customerId = null;
                                 for (const variant of phoneVariantsForLookup) {
                                     const { data: cust } = await supabase
                                         .from('customers')
-                                        .select('full_name')
+                                        .select('id, full_name')
                                         .eq('tenant_id', tenantId)
                                         .eq('phone', variant)
                                         .single();
                                     if (cust?.full_name) {
                                         customerName = cust.full_name;
+                                        customerId = cust.id;
                                         break;
                                     }
                                 }
+
+                                // ── Satış Panosuna (Ön Değerlendirme) Otomatik Ekle (AI Hot Lead) ──
+                                if (customerId) {
+                                    const { data: existingSale } = await supabase.from('sales')
+                                        .select('id')
+                                        .eq('customer_id', customerId)
+                                        .in('status', ['Lead', 'Prospect', 'Proposal', 'Reservation', 'Negotiation', 'Contract'])
+                                        .maybeSingle();
+
+                                    if (!existingSale) {
+                                        await supabase.from('sales').insert({
+                                            tenant_id: tenantId,
+                                            customer_id: customerId,
+                                            status: 'Lead',
+                                            lead_origin: 'whatsapp_ai'
+                                        });
+                                        console.log(`✅ ${customerName} (AI Hot Lead) otomatik satış panosuna eklendi (Lead).`);
+                                    }
+                                }
+
 
                                 // Her hot lead manager'a WhatsApp mesajı gönder
                                 const accessToken = tenantData.wa_access_token;
