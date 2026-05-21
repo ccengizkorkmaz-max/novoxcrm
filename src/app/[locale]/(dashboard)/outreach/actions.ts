@@ -736,7 +736,7 @@ export async function getWhatsAppResponses(filters: {
     limit?: number
 }) {
     const { supabase, tenantId } = await getAuthContext()
-    if (!tenantId) return { data: [], total: 0 }
+    if (!tenantId) return { data: [], total: 0, stats: { total: 0, hot: 0, warm: 0, notified: 0 } }
 
     const page = filters.page || 1
     const limit = filters.limit || 50
@@ -745,6 +745,7 @@ export async function getWhatsAppResponses(filters: {
 
     const filterSets: string[][] = []
 
+    // 1. Arama filtresi: eşleşen müşteri ID'leri
     if (filters.search) {
         const cleanSearch = filters.search.trim()
         const { data: customers } = await supabase
@@ -756,6 +757,7 @@ export async function getWhatsAppResponses(filters: {
         filterSets.push((customers || []).map((c: any) => c.id as string))
     }
 
+    // 2. Kampanya (Workflow) filtresi: bu kampanyada execution kaydı olan müşteri ID'leri
     if (filters.workflowId) {
         const { data: executions } = await supabase
             .from('outreach_executions')
@@ -766,17 +768,7 @@ export async function getWhatsAppResponses(filters: {
         filterSets.push((executions || []).map((e: any) => e.customer_id).filter(Boolean) as string[])
     }
 
-    if (filters.notified && filters.notified !== 'all') {
-        const notifiedBool = filters.notified === 'yes'
-        const { data: convs } = await supabase
-            .from('whatsapp_conversations')
-            .select('customer_id')
-            .eq('tenant_id', tenantId)
-            .eq('hot_lead_notified', notifiedBool)
-        
-        filterSets.push((convs || []).map((c: any) => c.customer_id).filter(Boolean) as string[])
-    }
-
+    // Kesişim kümesini hesapla
     let customerIds: string[] | null = null
     if (filterSets.length > 0) {
         customerIds = filterSets[0]
@@ -786,47 +778,92 @@ export async function getWhatsAppResponses(filters: {
         }
     }
 
+    // 3. Ana tablo olarak whatsapp_conversations üzerinden sorgula
     let query = supabase
-        .from('lead_qualifications')
+        .from('whatsapp_conversations')
         .select('*', { count: 'exact' })
         .eq('tenant_id', tenantId)
-        .order('created_at', { ascending: false })
+        .order('last_message_at', { ascending: false })
 
     if (customerIds !== null) {
         if (customerIds.length === 0) {
-            return { data: [], total: 0 }
+            return { data: [], total: 0, stats: { total: 0, hot: 0, warm: 0, notified: 0 } }
         }
         query = query.in('customer_id', customerIds.slice(0, 1000))
     }
 
     if (filters.interestLevel && filters.interestLevel !== 'all') {
-        query = query.eq('interest_level', filters.interestLevel)
+        query = query.eq('lead_score', filters.interestLevel)
     }
 
-    const { data: qualifications, count, error } = await query.range(from, to)
+    if (filters.notified && filters.notified !== 'all') {
+        const notifiedBool = filters.notified === 'yes'
+        query = query.eq('hot_lead_notified', notifiedBool)
+    }
+
+    // Sayfalanmış veriyi çek
+    const { data: conversations, count, error } = await query.range(from, to)
 
     if (error) {
-        console.error('[getWhatsAppResponses] error fetching qualifications:', error)
-        return { data: [], total: 0 }
+        console.error('[getWhatsAppResponses] error fetching conversations:', error)
+        return { data: [], total: 0, stats: { total: 0, hot: 0, warm: 0, notified: 0 } }
     }
 
-    if (!qualifications || qualifications.length === 0) {
-        return { data: [], total: count || 0 }
+    if (!conversations || conversations.length === 0) {
+        return { data: [], total: count || 0, stats: { total: 0, hot: 0, warm: 0, notified: 0 } }
     }
 
-    const resCustomerIds: string[] = qualifications.map((q: any) => q.customer_id).filter(Boolean) as string[]
+    // 4. İstatistikleri Filtrelenmiş Küme Üzerinden Hesapla (Sayfalamadan bağımsız)
+    let statsQuery = supabase
+        .from('whatsapp_conversations')
+        .select('lead_score, hot_lead_notified')
+        .eq('tenant_id', tenantId)
 
+    if (customerIds !== null) {
+        statsQuery = statsQuery.in('customer_id', customerIds.slice(0, 1000))
+    }
+
+    if (filters.interestLevel && filters.interestLevel !== 'all') {
+        statsQuery = statsQuery.eq('lead_score', filters.interestLevel)
+    }
+
+    if (filters.notified && filters.notified !== 'all') {
+        const notifiedBool = filters.notified === 'yes'
+        statsQuery = statsQuery.eq('hot_lead_notified', notifiedBool)
+    }
+
+    const { data: statsData } = await statsQuery
+    const stats = {
+        total: statsData?.length || 0,
+        hot: statsData?.filter((c: any) => c.lead_score === 'hot').length || 0,
+        warm: statsData?.filter((c: any) => c.lead_score === 'warm').length || 0,
+        notified: statsData?.filter((c: any) => c.hot_lead_notified).length || 0
+    }
+
+    const resCustomerIds: string[] = conversations.map((c: any) => c.customer_id).filter(Boolean) as string[]
+
+    // Müşteri kartvizit bilgilerini çek
     const { data: customersData } = await supabase
         .from('customers')
         .select('id, full_name, phone')
         .in('id', resCustomerIds)
     const customerMap = new Map<string, any>(customersData?.map((c: any) => [c.id, c]) || [])
 
-    const { data: execsData } = await supabase
-        .from('outreach_executions')
-        .select('customer_id, workflow_id')
+    // lead_qualifications bilgilerini çek (call_notes gerekçeleri için)
+    const { data: qualifications } = await supabase
+        .from('lead_qualifications')
+        .select('customer_id, call_notes, interest_level, status')
         .eq('tenant_id', tenantId)
         .in('customer_id', resCustomerIds)
+    const qualMap = new Map<string, any>(qualifications?.map((q: any) => [q.customer_id, q]) || [])
+
+    // Kampanya (Workflow) ilişkilerini bulmak için execution kayıtlarını çek (en yeniye göre sıralı)
+    const { data: execsData } = await supabase
+        .from('outreach_executions')
+        .select('customer_id, workflow_id, started_at')
+        .eq('tenant_id', tenantId)
+        .in('customer_id', resCustomerIds)
+        .order('started_at', { ascending: false })
     
     const workflowIds: string[] = Array.from(new Set((execsData || []).map((e: any) => e.workflow_id).filter(Boolean) as string[]))
     
@@ -839,45 +876,40 @@ export async function getWhatsAppResponses(filters: {
         workflowMap = new Map<string, string>(workflowsData?.map((w: any) => [w.id, w.name]) || [])
     }
 
-    const customerWorkflowMap = new Map<string, { id: string; name: string }>();
-    (execsData || []).forEach((exec: any) => {
-        if (exec.customer_id && exec.workflow_id) {
+    // Her müşteri için en güncel workflow bilgisini eşle
+    const customerWorkflowMap = new Map<string, { id: string; name: string }>()
+    ;(execsData || []).forEach((exec: any) => {
+        if (exec.customer_id && exec.workflow_id && !customerWorkflowMap.has(exec.customer_id)) {
             const wfName = workflowMap.get(exec.workflow_id) || 'Bilinmeyen Kampanya'
             customerWorkflowMap.set(exec.customer_id, { id: exec.workflow_id, name: wfName })
         }
     })
 
-    const { data: convsData } = await supabase
-        .from('whatsapp_conversations')
-        .select('customer_id, last_message_preview, last_message_at, hot_lead_notified, lead_score')
-        .eq('tenant_id', tenantId)
-        .in('customer_id', resCustomerIds)
-    const convMap = new Map<string, any>(convsData?.map((c: any) => [c.customer_id, c]) || [])
-
-    const mergedData = qualifications.map((q: any) => {
-        const customer = customerMap.get(q.customer_id)
-        const workflow = customerWorkflowMap.get(q.customer_id)
-        const conv = convMap.get(q.customer_id)
+    const mergedData = conversations.map((conv: any) => {
+        const customer = customerMap.get(conv.customer_id)
+        const workflow = customerWorkflowMap.get(conv.customer_id)
+        const qual = qualMap.get(conv.customer_id)
 
         return {
-            id: q.id,
-            customer_id: q.customer_id,
+            id: conv.id,
+            customer_id: conv.customer_id,
             customer_name: customer?.full_name || 'Bilinmeyen Müşteri',
             customer_phone: customer?.phone || '-',
             workflow_id: workflow?.id || null,
             workflow_name: workflow?.name || '-',
-            interest_level: q.interest_level || conv?.lead_score || 'unknown',
-            call_notes: q.call_notes || '',
-            last_message_preview: conv?.last_message_preview || '-',
-            last_message_at: conv?.last_message_at || q.updated_at || q.created_at,
-            hot_lead_notified: conv?.hot_lead_notified || false,
-            status: q.status
+            interest_level: conv.lead_score || qual?.interest_level || 'unknown',
+            call_notes: qual?.call_notes || '',
+            last_message_preview: conv.last_message_preview || '-',
+            last_message_at: conv.last_message_at || conv.updated_at || conv.created_at,
+            hot_lead_notified: conv.hot_lead_notified || false,
+            status: qual?.status || 'new'
         }
     })
 
     return {
         data: mergedData,
-        total: count || 0
+        total: count || 0,
+        stats
     }
 }
 

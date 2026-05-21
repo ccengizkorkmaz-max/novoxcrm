@@ -19,6 +19,7 @@ interface WhatsAppResponsesPanelProps {
 export function WhatsAppResponsesPanel({ workflows }: WhatsAppResponsesPanelProps) {
     const [responses, setResponses] = useState<any[]>([])
     const [total, setTotal] = useState(0)
+    const [stats, setStats] = useState({ total: 0, hot: 0, warm: 0, notified: 0 })
     const [loading, setLoading] = useState(false)
     const [expandedId, setExpandedId] = useState<string | null>(null)
 
@@ -43,6 +44,9 @@ export function WhatsAppResponsesPanel({ workflows }: WhatsAppResponsesPanelProp
             })
             setResponses(res.data)
             setTotal(res.total)
+            if (res.stats) {
+                setStats(res.stats)
+            }
         } catch (error) {
             console.error('Error fetching WhatsApp responses:', error)
         } finally {
@@ -68,22 +72,16 @@ export function WhatsAppResponsesPanel({ workflows }: WhatsAppResponsesPanelProp
         fetchResponses()
     }
 
-    // Stats
-    const totalCount = total
-    const hotCount = responses.filter(r => r.interest_level === 'hot').length
-    const warmCount = responses.filter(r => r.interest_level === 'warm').length
-    const notifiedCount = responses.filter(r => r.hot_lead_notified).length
-
     const totalPages = Math.ceil(total / limit)
 
     return (
         <div className="space-y-4">
             {/* Stats Row */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <MiniStat label="Geri Dönüş Yapan" value={totalCount} icon={MessageSquare} color="blue" />
-                <MiniStat label="Sıcak Lead (Hot) 🔥" value={hotCount} icon={Flame} color="red" />
-                <MiniStat label="Ilık Lead (Warm) 🌤️" value={warmCount} icon={Sparkles} color="orange" />
-                <MiniStat label="Bildirilen Hot" value={notifiedCount} icon={CheckCircle2} color="green" />
+                <MiniStat label="Geri Dönüş Yapan" value={stats.total} icon={MessageSquare} color="blue" />
+                <MiniStat label="Sıcak Lead (Hot) 🔥" value={stats.hot} icon={Flame} color="red" />
+                <MiniStat label="Ilık Lead (Warm) 🌤️" value={stats.warm} icon={Sparkles} color="orange" />
+                <MiniStat label="Bildirilen Hot" value={stats.notified} icon={CheckCircle2} color="green" />
             </div>
 
             {/* Filters */}
