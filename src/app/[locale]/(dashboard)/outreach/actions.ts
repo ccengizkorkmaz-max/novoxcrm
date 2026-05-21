@@ -579,6 +579,7 @@ export async function getWhatsAppTemplates() {
     return [
         { name: 'novo_talep_alindi', status: 'APPROVED', body: 'Merhaba {{1}}, talebiniz alındı. En kısa sürede sizinle iletişime geçeceğiz.', params: 1 },
         { name: 'novo_izmir_versiyon_a', status: 'APPROVED', body: 'Merhaba {{customer_name}}, NOVO City İzmir projemiz için talep bırakmıştınız...', params: 1 },
+        { name: 'novo_kampanya_genel_v2', status: 'APPROVED', body: 'Merhaba {{customer_name}}, {{project_name}} projemizdeki yeni fırsatlarla ilgilenir misiniz?', params: 2 },
     ]
 }
 
