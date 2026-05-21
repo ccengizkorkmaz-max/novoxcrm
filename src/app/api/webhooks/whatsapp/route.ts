@@ -93,8 +93,8 @@ export async function POST(req: NextRequest) {
         }
 
         // ── 4.5. Kampanya Yanıt İşleme (Quick Reply butonları) ──────────
-        const msgLower = payload.message.toLowerCase().trim();
-        if (msgLower === 'evet arayin' || msgLower === 'evet, arayin' || msgLower === 'hayir tesekkurler' || msgLower === 'hayir, tesekkurler') {
+        const msgNormalized = normalizeTurkish(payload.message);
+        if (msgNormalized === 'evet arayin' || msgNormalized === 'evet, arayin' || msgNormalized === 'hayir tesekkurler' || msgNormalized === 'hayir, tesekkurler') {
             try {
                 // Telefon ile müşteriyi bul
                 const { data: customer } = await supabase.from('customers')
@@ -104,7 +104,7 @@ export async function POST(req: NextRequest) {
                     .single();
 
                 if (customer) {
-                    if (msgLower.startsWith('evet')) {
+                    if (msgNormalized.startsWith('evet')) {
                         // "Evet arayin" → call_requested olarak işaretle
                         await supabase.from('lead_qualifications')
                             .update({ status: 'call_requested', interest_level: 'call_requested', updated_at: new Date().toISOString() })
@@ -626,6 +626,24 @@ interface IncomingPayload {
     timestamp: string;
     message_id: string;
     phoneNumberId: string;
+}
+
+/**
+ * Türkçe locale duyarlı normalizasyon
+ */
+function normalizeTurkish(str: string): string {
+    if (!str) return '';
+    return str
+        .replace(/I/g, 'ı')
+        .replace(/İ/g, 'i')
+        .toLowerCase()
+        .replace(/ğ/g, 'g')
+        .replace(/ü/g, 'u')
+        .replace(/ş/g, 's')
+        .replace(/ı/g, 'i')
+        .replace(/ö/g, 'o')
+        .replace(/ç/g, 'c')
+        .trim();
 }
 
 /**

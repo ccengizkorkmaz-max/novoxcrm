@@ -81,8 +81,7 @@ export default async function LeadQualificationPage(props: {
                 *,
                 customers!inner (
                     id, full_name, phone, email, customer_number, created_at, source, notes,
-                    customer_demands ( notes ),
-                    outreach_executions ( id )
+                    customer_demands ( notes )
                 ),
                 projects:project_id ( id, name ),
                 profiles!lead_qualifications_assigned_to_fkey ( id, full_name )
@@ -109,6 +108,30 @@ export default async function LeadQualificationPage(props: {
         const { data, error } = await queryData
         if (!error && data) {
             qualifications = data
+
+            const customerIds = data.map(q => q.customers?.id).filter(Boolean)
+            if (customerIds.length > 0) {
+                const { data: execs, error: execError } = await supabase
+                    .from('outreach_executions')
+                    .select('customer_id, id')
+                    .in('customer_id', customerIds)
+
+                if (!execError && execs) {
+                    const execsByCustomer = new Map<string, Array<{ id: string }>>()
+                    execs.forEach(e => {
+                        if (!execsByCustomer.has(e.customer_id)) {
+                            execsByCustomer.set(e.customer_id, [])
+                        }
+                        execsByCustomer.get(e.customer_id)!.push({ id: e.id })
+                    })
+
+                    qualifications.forEach(q => {
+                        if (q.customers) {
+                            q.customers.outreach_executions = execsByCustomer.get(q.customers.id) || []
+                        }
+                    })
+                }
+            }
         }
     }
 

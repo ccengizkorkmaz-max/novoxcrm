@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
         }
 
         // Source kontrolü: sadece bilinen dış kaynaklar tetikler
-        const source = (record.source || '').toLowerCase()
+        const source = (record.source || '').toLowerCase().replace(/\s+/g, '_')
         if (!EXTERNAL_SOURCES.includes(source)) {
             console.log(`[LeadTrigger] Dahili/bilinmeyen kaynak (${source || 'boş'}), atlanıyor: ${record.full_name}`)
             return NextResponse.json({ status: 'skipped', reason: 'not_external_source' })

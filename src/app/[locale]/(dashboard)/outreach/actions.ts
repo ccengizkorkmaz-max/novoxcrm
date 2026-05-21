@@ -731,6 +731,7 @@ export async function getWhatsAppResponses(filters: {
     search?: string
     workflowId?: string
     interestLevel?: string
+    interestLevels?: string[]
     notified?: string
     page?: number
     limit?: number
@@ -743,62 +744,65 @@ export async function getWhatsAppResponses(filters: {
     const from = (page - 1) * limit
     const to = from + limit - 1
 
-    const filterSets: string[][] = []
-
-    // 1. Arama filtresi: eşleşen müşteri ID'leri
-    if (filters.search) {
-        const cleanSearch = filters.search.trim()
-        const { data: customers } = await supabase
-            .from('customers')
-            .select('id')
-            .eq('tenant_id', tenantId)
-            .or(`full_name.ilike.%${cleanSearch}%,phone.ilike.%${cleanSearch}%`)
-        
-        filterSets.push((customers || []).map((c: any) => c.id as string))
-    }
-
-    // 2. Kampanya (Workflow) filtresi: bu kampanyada execution kaydı olan müşteri ID'leri
+    let selectString = '*'
     if (filters.workflowId) {
-        const { data: executions } = await supabase
-            .from('outreach_executions')
-            .select('customer_id')
-            .eq('tenant_id', tenantId)
-            .eq('workflow_id', filters.workflowId)
-        
-        filterSets.push((executions || []).map((e: any) => e.customer_id).filter(Boolean) as string[])
+        selectString = `
+            *,
+            customers!inner (
+                id,
+                full_name,
+                phone,
+                outreach_executions!inner (
+                    id,
+                    workflow_id
+                )
+            )
+        `
+    } else if (filters.search) {
+        selectString = `
+            *,
+            customers!inner (
+                id,
+                full_name,
+                phone
+            )
+        `
     }
 
-    // Kesişim kümesini hesapla
-    let customerIds: string[] | null = null
-    if (filterSets.length > 0) {
-        customerIds = filterSets[0]
-        for (let i = 1; i < filterSets.length; i++) {
-            const currentSet = filterSets[i]
-            customerIds = customerIds.filter(id => currentSet.includes(id))
-        }
-    }
-
-    // 3. Ana tablo olarak whatsapp_conversations üzerinden sorgula
     let query = supabase
         .from('whatsapp_conversations')
-        .select('*', { count: 'exact' })
+        .select(selectString, { count: 'exact' })
         .eq('tenant_id', tenantId)
         .order('last_message_at', { ascending: false })
 
-    if (customerIds !== null) {
-        if (customerIds.length === 0) {
-            return { data: [], total: 0, stats: { total: 0, hot: 0, warm: 0, notified: 0 } }
-        }
-        query = query.in('customer_id', customerIds.slice(0, 1000))
+    let statsQuery = supabase
+        .from('whatsapp_conversations')
+        .select(selectString)
+        .eq('tenant_id', tenantId)
+
+    if (filters.workflowId) {
+        query = query.eq('customers.outreach_executions.workflow_id', filters.workflowId)
+        statsQuery = statsQuery.eq('customers.outreach_executions.workflow_id', filters.workflowId)
     }
 
-    if (filters.interestLevel && filters.interestLevel !== 'all') {
+    if (filters.search) {
+        const cleanSearch = filters.search.trim()
+        query = query.or(`full_name.ilike.%${cleanSearch}%,phone.ilike.%${cleanSearch}%`, { foreignTable: 'customers' })
+        statsQuery = statsQuery.or(`full_name.ilike.%${cleanSearch}%,phone.ilike.%${cleanSearch}%`, { foreignTable: 'customers' })
+    }
+
+    if (filters.interestLevels && filters.interestLevels.length > 0 && !filters.interestLevels.includes('all')) {
+        query = query.in('lead_score', filters.interestLevels)
+        statsQuery = statsQuery.in('lead_score', filters.interestLevels)
+    } else if (filters.interestLevel && filters.interestLevel !== 'all') {
         query = query.eq('lead_score', filters.interestLevel)
+        statsQuery = statsQuery.eq('lead_score', filters.interestLevel)
     }
 
     if (filters.notified && filters.notified !== 'all') {
         const notifiedBool = filters.notified === 'yes'
         query = query.eq('hot_lead_notified', notifiedBool)
+        statsQuery = statsQuery.eq('hot_lead_notified', notifiedBool)
     }
 
     // Sayfalanmış veriyi çek
@@ -814,24 +818,6 @@ export async function getWhatsAppResponses(filters: {
     }
 
     // 4. İstatistikleri Filtrelenmiş Küme Üzerinden Hesapla (Sayfalamadan bağımsız)
-    let statsQuery = supabase
-        .from('whatsapp_conversations')
-        .select('lead_score, hot_lead_notified')
-        .eq('tenant_id', tenantId)
-
-    if (customerIds !== null) {
-        statsQuery = statsQuery.in('customer_id', customerIds.slice(0, 1000))
-    }
-
-    if (filters.interestLevel && filters.interestLevel !== 'all') {
-        statsQuery = statsQuery.eq('lead_score', filters.interestLevel)
-    }
-
-    if (filters.notified && filters.notified !== 'all') {
-        const notifiedBool = filters.notified === 'yes'
-        statsQuery = statsQuery.eq('hot_lead_notified', notifiedBool)
-    }
-
     const { data: statsData } = await statsQuery
     const stats = {
         total: statsData?.length || 0,
@@ -858,12 +844,18 @@ export async function getWhatsAppResponses(filters: {
     const qualMap = new Map<string, any>(qualifications?.map((q: any) => [q.customer_id, q]) || [])
 
     // Kampanya (Workflow) ilişkilerini bulmak için execution kayıtlarını çek (en yeniye göre sıralı)
-    const { data: execsData } = await supabase
+    let execsQuery = supabase
         .from('outreach_executions')
         .select('customer_id, workflow_id, started_at')
         .eq('tenant_id', tenantId)
         .in('customer_id', resCustomerIds)
         .order('started_at', { ascending: false })
+    
+    if (filters.workflowId) {
+        execsQuery = execsQuery.eq('workflow_id', filters.workflowId)
+    }
+
+    const { data: execsData } = await execsQuery
     
     const workflowIds: string[] = Array.from(new Set((execsData || []).map((e: any) => e.workflow_id).filter(Boolean) as string[]))
     

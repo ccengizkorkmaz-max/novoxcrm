@@ -236,7 +236,7 @@ export async function POST(req: Request) {
             console.log('✅ Facebook Ads lead created:', newSale.id)
 
             // ── 5. Otomatik WhatsApp şablon mesajı gönder (Tenant ayarlarından) ───────
-            if (phone && isNewCustomer) {
+            if (phone) {
                 try {
                     // Tenant'ın WhatsApp otomasyon ayarlarını kontrol et
                     const { data: tenantSettings } = await supabase

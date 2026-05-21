@@ -1,20 +1,31 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
     MessageSquare, Clock, Search, ChevronDown, ChevronUp,
-    RefreshCw, CheckCircle2, AlertCircle, Sparkles, Flame, Snowflake, AlertTriangle, ArrowRight, User
+    RefreshCw, CheckCircle2, AlertCircle, Sparkles, Flame, Snowflake, AlertTriangle, ArrowRight, User, ListFilter
 } from 'lucide-react'
 import { getWhatsAppResponses } from '../actions'
 
 interface WhatsAppResponsesPanelProps {
     workflows: any[]
 }
+
+const SCORE_OPTIONS = [
+    { value: 'hot', label: '🔥 Hot (Sıcak)', color: 'text-red-400' },
+    { value: 'warm', label: '🌤️ Warm (Ilık)', color: 'text-orange-400' },
+    { value: 'cold', label: '❄️ Cold (Soğuk)', color: 'text-blue-400' },
+    { value: 'call_requested', label: '📞 Arama İstiyor', color: 'text-emerald-400' },
+    { value: 'disqualified', label: '🚫 Olumsuz', color: 'text-rose-400' },
+    { value: 'unknown', label: '❓ Bilinmeyen', color: 'text-slate-400' },
+]
 
 export function WhatsAppResponsesPanel({ workflows }: WhatsAppResponsesPanelProps) {
     const [responses, setResponses] = useState<any[]>([])
@@ -26,10 +37,32 @@ export function WhatsAppResponsesPanel({ workflows }: WhatsAppResponsesPanelProp
     // Filtre durumları
     const [search, setSearch] = useState('')
     const [workflowId, setWorkflowId] = useState('all')
-    const [interestLevel, setInterestLevel] = useState('all')
+    const [interestLevels, setInterestLevels] = useState<string[]>([])
+    const [scorePopoverOpen, setScorePopoverOpen] = useState(false)
     const [notified, setNotified] = useState('all')
     const [page, setPage] = useState(1)
     const limit = 20
+
+    const toggleScoreOption = (value: string) => {
+        setInterestLevels(prev => {
+            const next = prev.includes(value)
+                ? prev.filter(v => v !== value)
+                : [...prev, value]
+            return next
+        })
+        setPage(1)
+    }
+
+    const clearScoreFilter = () => {
+        setInterestLevels([])
+        setPage(1)
+    }
+
+    const scoreFilterLabel = interestLevels.length === 0
+        ? 'Tüm Skorlar'
+        : interestLevels.length === 1
+            ? SCORE_OPTIONS.find(o => o.value === interestLevels[0])?.label || interestLevels[0]
+            : `${interestLevels.length} Skor Seçili`
 
     const fetchResponses = async () => {
         setLoading(true)
@@ -37,7 +70,7 @@ export function WhatsAppResponsesPanel({ workflows }: WhatsAppResponsesPanelProp
             const res = await getWhatsAppResponses({
                 search: search || undefined,
                 workflowId: workflowId === 'all' ? undefined : workflowId,
-                interestLevel: interestLevel === 'all' ? undefined : interestLevel,
+                interestLevels: interestLevels.length > 0 ? interestLevels : undefined,
                 notified: notified === 'all' ? undefined : notified,
                 page,
                 limit
@@ -57,7 +90,7 @@ export function WhatsAppResponsesPanel({ workflows }: WhatsAppResponsesPanelProp
     // Filtreler veya sayfa değiştiğinde verileri çek
     useEffect(() => {
         fetchResponses()
-    }, [page, workflowId, interestLevel, notified])
+    }, [page, workflowId, JSON.stringify(interestLevels), notified])
 
     // Arama için Enter tuşuna basıldığında tetikle
     const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -113,19 +146,54 @@ export function WhatsAppResponsesPanel({ workflows }: WhatsAppResponsesPanelProp
                     </SelectContent>
                 </Select>
 
-                {/* Interest Level Filter */}
-                <Select value={interestLevel} onValueChange={(val) => { setInterestLevel(val); setPage(1) }}>
-                    <SelectTrigger className="h-8 w-36 text-xs">
-                        <SelectValue placeholder="Skor Seçin" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">Tüm Skorlar</SelectItem>
-                        <SelectItem value="hot">🔥 Hot (Sıcak)</SelectItem>
-                        <SelectItem value="warm">🌤️ Warm (Ilık)</SelectItem>
-                        <SelectItem value="cold">❄️ Cold (Soğuk)</SelectItem>
-                        <SelectItem value="unknown">Bilinmeyen</SelectItem>
-                    </SelectContent>
-                </Select>
+                {/* Interest Level Multi-Select Filter */}
+                <Popover open={scorePopoverOpen} onOpenChange={setScorePopoverOpen}>
+                    <PopoverTrigger asChild>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className={`h-8 w-44 text-xs justify-between gap-1.5 ${interestLevels.length > 0 ? 'border-emerald-500/40 bg-emerald-500/5' : ''}`}
+                        >
+                            <ListFilter className="h-3 w-3 shrink-0" />
+                            <span className="truncate">{scoreFilterLabel}</span>
+                            {interestLevels.length > 0 && (
+                                <Badge variant="secondary" className="h-4 w-4 p-0 flex items-center justify-center text-[9px] rounded-full bg-emerald-500/20 text-emerald-400">
+                                    {interestLevels.length}
+                                </Badge>
+                            )}
+                            <ChevronDown className="h-3 w-3 shrink-0 opacity-50" />
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-52 p-2" align="start">
+                        <div className="space-y-1">
+                            {SCORE_OPTIONS.map((opt) => (
+                                <label
+                                    key={opt.value}
+                                    className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-muted/50 cursor-pointer transition-colors text-xs"
+                                >
+                                    <Checkbox
+                                        checked={interestLevels.includes(opt.value)}
+                                        onCheckedChange={() => toggleScoreOption(opt.value)}
+                                        className="h-3.5 w-3.5"
+                                    />
+                                    <span className={opt.color}>{opt.label}</span>
+                                </label>
+                            ))}
+                        </div>
+                        {interestLevels.length > 0 && (
+                            <div className="border-t mt-2 pt-2">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={clearScoreFilter}
+                                    className="w-full h-7 text-xs text-muted-foreground hover:text-foreground"
+                                >
+                                    Temizle
+                                </Button>
+                            </div>
+                        )}
+                    </PopoverContent>
+                </Popover>
 
                 {/* Notification Status Filter */}
                 <Select value={notified} onValueChange={(val) => { setNotified(val); setPage(1) }}>

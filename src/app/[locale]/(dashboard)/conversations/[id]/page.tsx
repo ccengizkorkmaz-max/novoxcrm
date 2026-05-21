@@ -111,17 +111,29 @@ export default async function ConversationDetailPage(props: { params: Promise<{ 
                             session.lead_score === 'hot' && 'bg-red-50 border-red-200',
                             session.lead_score === 'warm' && 'bg-orange-50 border-orange-200',
                             session.lead_score === 'cold' && 'bg-sky-50 border-sky-200',
+                            session.lead_score === 'call_requested' && 'bg-emerald-50 border-emerald-200',
+                            session.lead_score === 'disqualified' && 'bg-rose-50 border-rose-200',
                         )}>
                             <div className="text-2xl mb-1">
-                                {session.lead_score === 'hot' ? '🔥' : session.lead_score === 'warm' ? '🟠' : '🔵'}
+                                {session.lead_score === 'hot' && '🔥'}
+                                {session.lead_score === 'warm' && '🟠'}
+                                {session.lead_score === 'cold' && '🔵'}
+                                {session.lead_score === 'call_requested' && '📞'}
+                                {session.lead_score === 'disqualified' && '🚫'}
                             </div>
                             <div className={cn(
                                 "text-[10px] font-black uppercase tracking-widest",
                                 session.lead_score === 'hot' && 'text-red-700',
                                 session.lead_score === 'warm' && 'text-orange-700',
                                 session.lead_score === 'cold' && 'text-sky-700',
+                                session.lead_score === 'call_requested' && 'text-emerald-700',
+                                session.lead_score === 'disqualified' && 'text-rose-700',
                             )}>
-                                {session.lead_score === 'hot' ? 'Sıcak Lead' : session.lead_score === 'warm' ? 'Ilık Lead' : 'Soğuk Lead'}
+                                {session.lead_score === 'hot' && 'Sıcak Lead'}
+                                {session.lead_score === 'warm' && 'Ilık Lead'}
+                                {session.lead_score === 'cold' && 'Soğuk Lead'}
+                                {session.lead_score === 'call_requested' && 'Arama İstiyor'}
+                                {session.lead_score === 'disqualified' && 'Olumsuz'}
                             </div>
                         </div>
                     )}
