@@ -180,7 +180,7 @@ export async function POST(req: NextRequest) {
                     } else {
                         // "Hayir tesekkurler" → opted_out
                         await supabase.from('lead_qualifications')
-                            .update({ status: 'disqualified', notes: 'WhatsApp kampanyasından aranmak istemedi' })
+                            .update({ status: 'disqualified', call_notes: 'WhatsApp kampanyasından aranmak istemedi' })
                             .eq('customer_id', customer.id)
                             .in('status', ['new', 'follow_up', 'unreachable']);
                         // Opt-out kaydı

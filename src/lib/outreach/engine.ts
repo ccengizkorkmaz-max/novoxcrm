@@ -930,7 +930,7 @@ export async function handleVapiCallResult(callData: {
                 .from('lead_qualifications')
                 .update({
                     status: newStatus,
-                    notes: `🤖 AI Skor: ${structuredData.lead_score.toUpperCase()}` +
+                    call_notes: `🤖 AI Skor: ${structuredData.lead_score.toUpperCase()}` +
                         (structuredData.notes ? ` — ${structuredData.notes}` : '') +
                         (structuredData.purpose ? ` | Amaç: ${structuredData.purpose}` : '') +
                         (structuredData.investment_timeline ? ` | Zamanlama: ${structuredData.investment_timeline}` : '') +
@@ -993,8 +993,9 @@ export async function handleVapiCallResult(callData: {
                                 'hot_lead_notification',
                                 [
                                     customer.full_name || 'Müşteri',
-                                    structuredData.notes || 'AI arama sonucu HOT olarak değerlendirildi',
                                     customer.phone || '-',
+                                    new Date().toLocaleString('tr-TR'),
+                                    structuredData.notes || 'AI arama sonucu HOT olarak değerlendirildi'
                                 ],
                                 'tr',
                                 tenant.wa_phone_number_id,

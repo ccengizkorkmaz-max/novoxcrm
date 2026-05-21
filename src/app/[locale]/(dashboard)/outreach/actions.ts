@@ -726,3 +726,158 @@ export async function getWorkflowMonitor(workflowId: string, page: number = 1) {
         totalPages: Math.ceil(totalCount / PAGE_SIZE),
     }
 }
+
+export async function getWhatsAppResponses(filters: {
+    search?: string
+    workflowId?: string
+    interestLevel?: string
+    notified?: string
+    page?: number
+    limit?: number
+}) {
+    const { supabase, tenantId } = await getAuthContext()
+    if (!tenantId) return { data: [], total: 0 }
+
+    const page = filters.page || 1
+    const limit = filters.limit || 50
+    const from = (page - 1) * limit
+    const to = from + limit - 1
+
+    const filterSets: string[][] = []
+
+    if (filters.search) {
+        const cleanSearch = filters.search.trim()
+        const { data: customers } = await supabase
+            .from('customers')
+            .select('id')
+            .eq('tenant_id', tenantId)
+            .or(`full_name.ilike.%${cleanSearch}%,phone.ilike.%${cleanSearch}%`)
+        
+        filterSets.push((customers || []).map((c: any) => c.id as string))
+    }
+
+    if (filters.workflowId) {
+        const { data: executions } = await supabase
+            .from('outreach_executions')
+            .select('customer_id')
+            .eq('tenant_id', tenantId)
+            .eq('workflow_id', filters.workflowId)
+        
+        filterSets.push((executions || []).map((e: any) => e.customer_id).filter(Boolean) as string[])
+    }
+
+    if (filters.notified && filters.notified !== 'all') {
+        const notifiedBool = filters.notified === 'yes'
+        const { data: convs } = await supabase
+            .from('whatsapp_conversations')
+            .select('customer_id')
+            .eq('tenant_id', tenantId)
+            .eq('hot_lead_notified', notifiedBool)
+        
+        filterSets.push((convs || []).map((c: any) => c.customer_id).filter(Boolean) as string[])
+    }
+
+    let customerIds: string[] | null = null
+    if (filterSets.length > 0) {
+        customerIds = filterSets[0]
+        for (let i = 1; i < filterSets.length; i++) {
+            const currentSet = filterSets[i]
+            customerIds = customerIds.filter(id => currentSet.includes(id))
+        }
+    }
+
+    let query = supabase
+        .from('lead_qualifications')
+        .select('*', { count: 'exact' })
+        .eq('tenant_id', tenantId)
+        .order('created_at', { ascending: false })
+
+    if (customerIds !== null) {
+        if (customerIds.length === 0) {
+            return { data: [], total: 0 }
+        }
+        query = query.in('customer_id', customerIds.slice(0, 1000))
+    }
+
+    if (filters.interestLevel && filters.interestLevel !== 'all') {
+        query = query.eq('interest_level', filters.interestLevel)
+    }
+
+    const { data: qualifications, count, error } = await query.range(from, to)
+
+    if (error) {
+        console.error('[getWhatsAppResponses] error fetching qualifications:', error)
+        return { data: [], total: 0 }
+    }
+
+    if (!qualifications || qualifications.length === 0) {
+        return { data: [], total: count || 0 }
+    }
+
+    const resCustomerIds: string[] = qualifications.map((q: any) => q.customer_id).filter(Boolean) as string[]
+
+    const { data: customersData } = await supabase
+        .from('customers')
+        .select('id, full_name, phone')
+        .in('id', resCustomerIds)
+    const customerMap = new Map<string, any>(customersData?.map((c: any) => [c.id, c]) || [])
+
+    const { data: execsData } = await supabase
+        .from('outreach_executions')
+        .select('customer_id, workflow_id')
+        .eq('tenant_id', tenantId)
+        .in('customer_id', resCustomerIds)
+    
+    const workflowIds: string[] = Array.from(new Set((execsData || []).map((e: any) => e.workflow_id).filter(Boolean) as string[]))
+    
+    let workflowMap = new Map<string, string>()
+    if (workflowIds.length > 0) {
+        const { data: workflowsData } = await supabase
+            .from('outreach_workflows')
+            .select('id, name')
+            .in('id', workflowIds)
+        workflowMap = new Map<string, string>(workflowsData?.map((w: any) => [w.id, w.name]) || [])
+    }
+
+    const customerWorkflowMap = new Map<string, { id: string; name: string }>();
+    (execsData || []).forEach((exec: any) => {
+        if (exec.customer_id && exec.workflow_id) {
+            const wfName = workflowMap.get(exec.workflow_id) || 'Bilinmeyen Kampanya'
+            customerWorkflowMap.set(exec.customer_id, { id: exec.workflow_id, name: wfName })
+        }
+    })
+
+    const { data: convsData } = await supabase
+        .from('whatsapp_conversations')
+        .select('customer_id, last_message_preview, last_message_at, hot_lead_notified, lead_score')
+        .eq('tenant_id', tenantId)
+        .in('customer_id', resCustomerIds)
+    const convMap = new Map<string, any>(convsData?.map((c: any) => [c.customer_id, c]) || [])
+
+    const mergedData = qualifications.map((q: any) => {
+        const customer = customerMap.get(q.customer_id)
+        const workflow = customerWorkflowMap.get(q.customer_id)
+        const conv = convMap.get(q.customer_id)
+
+        return {
+            id: q.id,
+            customer_id: q.customer_id,
+            customer_name: customer?.full_name || 'Bilinmeyen Müşteri',
+            customer_phone: customer?.phone || '-',
+            workflow_id: workflow?.id || null,
+            workflow_name: workflow?.name || '-',
+            interest_level: q.interest_level || conv?.lead_score || 'unknown',
+            call_notes: q.call_notes || '',
+            last_message_preview: conv?.last_message_preview || '-',
+            last_message_at: conv?.last_message_at || q.updated_at || q.created_at,
+            hot_lead_notified: conv?.hot_lead_notified || false,
+            status: q.status
+        }
+    })
+
+    return {
+        data: mergedData,
+        total: count || 0
+    }
+}
+

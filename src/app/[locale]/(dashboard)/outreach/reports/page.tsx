@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
 import { CallResultsPanel } from '../components/CallResultsPanel'
+import { WhatsAppResponsesPanel } from '../components/WhatsAppResponsesPanel'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 export default async function OutreachReportsPage() {
     const supabase = await createClient()
@@ -16,6 +18,7 @@ export default async function OutreachReportsPage() {
 
     const tenantId = profile?.tenant_id
 
+    // Fetch call/sms/whatsapp step logs
     const { data: detailedLogs } = await supabase.from('outreach_step_logs')
         .select(`
             *,
@@ -32,6 +35,13 @@ export default async function OutreachReportsPage() {
         .order('executed_at', { ascending: false })
         .limit(100)
 
+    // Fetch workflows for WhatsApp filter
+    const { data: workflows } = await supabase
+        .from('outreach_workflows')
+        .select('id, name')
+        .eq('tenant_id', tenantId)
+        .order('name')
+
     return (
         <div className="flex flex-col gap-6 pb-8">
             <Suspense fallback={<div className="flex items-center justify-center h-40 text-muted-foreground">Yükleniyor...</div>}>
@@ -47,9 +57,24 @@ export default async function OutreachReportsPage() {
                             </p>
                         </div>
                     </div>
-                    <CallResultsPanel initialLogs={detailedLogs || []} />
+
+                    <Tabs defaultValue="calls" className="w-full">
+                        <TabsList className="grid w-full grid-cols-2 max-w-[400px]">
+                            <TabsTrigger value="calls" className="text-xs">Arama & SMS Logları</TabsTrigger>
+                            <TabsTrigger value="whatsapp" className="text-xs">WhatsApp Geri Dönüşleri</TabsTrigger>
+                        </TabsList>
+                        
+                        <TabsContent value="calls" className="mt-4">
+                            <CallResultsPanel initialLogs={detailedLogs || []} />
+                        </TabsContent>
+                        
+                        <TabsContent value="whatsapp" className="mt-4">
+                            <WhatsAppResponsesPanel workflows={workflows || []} />
+                        </TabsContent>
+                    </Tabs>
                 </div>
             </Suspense>
         </div>
     )
 }
+
