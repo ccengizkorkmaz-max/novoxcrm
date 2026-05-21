@@ -30,7 +30,8 @@ import {
     Medal,
     Globe,
     Phone,
-    MessageCircle
+    MessageCircle,
+    Flame
 } from 'lucide-react'
 import {
     Accordion,
@@ -376,6 +377,9 @@ export function NovoxSidebar({
                             </NavItem>
                             <NavItem href="/reports/marketing" icon={BarChart3} onClick={onElementClick} isSubItem>
                                 {labels.reports?.marketing || 'Marketing Analytics'}
+                            </NavItem>
+                            <NavItem href="/reports/hot-leads" icon={Flame} onClick={onElementClick} isSubItem>
+                                {labels.reports?.hotLeads || 'Sıcak Lead Analizi'}
                             </NavItem>
                         </AccordionContent>
                     </AccordionItem>

@@ -14,7 +14,8 @@ import {
     Building2,
     CalendarCheck,
     ArrowRight,
-    Megaphone
+    Megaphone,
+    Flame
 } from "lucide-react"
 import Link from "next/link"
 import { getTranslations } from 'next-intl/server'
@@ -68,6 +69,13 @@ const reportCards = [
         icon: Megaphone,
         color: "text-pink-600",
         bgColor: "bg-pink-100"
+    },
+    {
+        id: "hot-leads",
+        href: "/reports/hot-leads",
+        icon: Flame,
+        color: "text-red-500",
+        bgColor: "bg-red-50"
     }
 ]
 

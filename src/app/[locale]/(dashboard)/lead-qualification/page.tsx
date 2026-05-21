@@ -215,11 +215,11 @@ export default async function LeadQualificationPage(props: {
     }
 
     return (
-        <div className="flex flex-col h-[calc(100vh-6rem)] gap-4">
+        <div className="flex flex-col h-[calc(100vh-4.5rem)] gap-2">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-xl md:text-2xl font-bold tracking-tight">Ön Değerlendirme (Lead Qualification)</h1>
-                    <p className="text-sm text-muted-foreground">Potansiyel müşterileri satış hunisine (CRM) girmeden önce filtreleyin ve arama sonuçlarını girin.</p>
+                    <h1 className="text-lg md:text-xl font-bold tracking-tight">Ön Değerlendirme (Lead Qualification)</h1>
+                    <p className="text-xs text-muted-foreground">Potansiyel müşterileri satış hunisine (CRM) girmeden önce filtreleyin ve arama sonuçlarını girin.</p>
                 </div>
                 <div className="flex items-center gap-2">
                     <NewQualificationModal projects={projects} />

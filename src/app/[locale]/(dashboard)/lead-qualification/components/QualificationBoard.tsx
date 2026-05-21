@@ -17,7 +17,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMe
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger, SheetClose } from '@/components/ui/sheet'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 
 const getEkSoru = (notes?: string) => {
@@ -371,33 +370,33 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
     const filteredRapidItems = qualifications
 
     return (
-        <div className="flex flex-col h-full space-y-4">
+        <div className="flex flex-col h-full space-y-2">
             {/* Tab Seçimi ve Toplu İşlemler */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 border rounded-xl shadow-sm">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 bg-white px-3 py-1.5 border rounded-lg shadow-sm shrink-0">
                 <div className="flex border-b border-slate-100 w-full sm:w-auto">
                     <button
                         onClick={() => handleTabChange('active')}
-                        className={`pb-3 text-sm font-bold border-b-2 transition-all px-4 relative ${
+                        className={`pb-1.5 text-xs font-bold border-b-2 transition-all px-3 relative ${
                             activeTab === 'active'
                                 ? 'border-blue-600 text-blue-600'
                                 : 'border-transparent text-slate-500 hover:text-slate-700'
                         }`}
                     >
                         Aktif Süreçler
-                        <Badge variant="secondary" className="ml-2 bg-blue-50 text-blue-700 border-blue-200 font-semibold">
+                        <Badge variant="secondary" className="ml-1.5 bg-blue-50 text-blue-700 border-blue-200 font-semibold py-0 text-[10px]">
                             {activeCount}
                         </Badge>
                     </button>
                     <button
                         onClick={() => handleTabChange('disqualified')}
-                        className={`pb-3 text-sm font-bold border-b-2 transition-all px-4 relative ${
+                        className={`pb-1.5 text-xs font-bold border-b-2 transition-all px-3 relative ${
                             activeTab === 'disqualified'
                                 ? 'border-red-600 text-red-600'
                                 : 'border-transparent text-slate-500 hover:text-slate-700'
                         }`}
                     >
                         Elenenler
-                        <Badge variant="secondary" className="ml-2 bg-red-50 text-red-700 border-red-200 font-semibold">
+                        <Badge variant="secondary" className="ml-1.5 bg-red-50 text-red-700 border-red-200 font-semibold py-0 text-[10px]">
                             {disqualifiedCount}
                         </Badge>
                     </button>
@@ -408,32 +407,32 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
                         variant="outline"
                         size="sm"
                         onClick={() => setIsBulkDisqualifyDialogOpen(true)}
-                        className="bg-red-50 text-red-600 border-red-200 hover:bg-red-100 hover:text-red-700 font-semibold h-9"
+                        className="bg-red-50 text-red-600 border-red-200 hover:bg-red-100 hover:text-red-700 font-semibold h-7 text-xs px-2.5"
                     >
-                        ❄️ Soğukları Toplu Ele
+                        Soğukları Toplu Ele
                     </Button>
                 )}
             </div>
 
             {/* Unified Search & Gelişmiş Filtreler Barı */}
-            <div className="bg-white p-4 border rounded-xl shadow-sm space-y-3">
-                <div className="flex flex-col sm:flex-row gap-3">
+            <div className="bg-white px-3 py-2 border rounded-lg shadow-sm space-y-2 shrink-0">
+                <div className="flex flex-col sm:flex-row gap-2">
                     {/* Search Input */}
                     <div className="relative flex-1">
-                        <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                        <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400" />
                         <input
                             type="text"
                             placeholder="Müşteri ismi, telefon numarası veya notlarda arayın..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-9 pr-9 py-2 h-10 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50/50"
+                            className="w-full pl-9 pr-9 py-1 h-8 text-xs border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50/50"
                         />
                         {searchQuery && (
                             <button
                                 onClick={() => setSearchQuery('')}
-                                className="absolute right-3 top-3 text-slate-400 hover:text-slate-600"
+                                className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600"
                             >
-                                <X className="h-4 w-4" />
+                                <X className="h-3.5 w-3.5" />
                             </button>
                         )}
                     </div>
@@ -444,16 +443,16 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
                             <SheetTrigger asChild>
                                 <Button 
                                     variant="outline" 
-                                    className={`h-10 px-4 font-bold flex items-center gap-2 transition-all duration-300 ${
+                                    className={`h-8 px-3 font-bold text-xs flex items-center gap-1.5 transition-all duration-300 ${
                                         activeFiltersCount > 0 
                                             ? 'border-blue-200 bg-blue-50/50 text-blue-700 hover:bg-blue-100/70 shadow-sm ring-1 ring-blue-100' 
                                             : 'border-slate-200 hover:bg-slate-50 text-slate-700'
                                     }`}
                                 >
-                                    <Filter className={`h-4 w-4 ${activeFiltersCount > 0 ? 'text-blue-600' : 'text-slate-500'}`} />
+                                    <Filter className={`h-3.5 w-3.5 ${activeFiltersCount > 0 ? 'text-blue-600' : 'text-slate-500'}`} />
                                     Filtrele
                                     {activeFiltersCount > 0 && (
-                                        <Badge className="ml-1 bg-blue-600 hover:bg-blue-600 text-white border-none font-extrabold text-[10px] h-5 px-1.5 min-w-5 justify-center rounded-full">
+                                        <Badge className="ml-1 bg-blue-600 hover:bg-blue-600 text-white border-none font-extrabold text-[10px] h-4.5 px-1 min-w-4.5 justify-center rounded-full">
                                             {activeFiltersCount}
                                         </Badge>
                                     )}
@@ -487,7 +486,7 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
                                     </div>
                                 </div>
                                 
-                                <ScrollArea className="flex-1 px-6 py-4">
+                                <div className="flex-1 overflow-y-auto px-6 py-4 min-h-0">
                                     <div className="space-y-6">
                                         {/* Status Filter */}
                                         <div className="space-y-3">
@@ -665,7 +664,7 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
                                             </div>
                                         </div>
                                     </div>
-                                </ScrollArea>
+                                </div>
 
                                 <div className="p-6 border-t bg-slate-50/50 flex items-center justify-between gap-3 mt-auto shrink-0">
                                     <Button
@@ -810,31 +809,31 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
                 )}
             </div>
 
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-2 border rounded-xl shadow-sm">
-                <div className="flex items-center bg-slate-100 rounded-lg p-1 w-full sm:w-auto">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 bg-white px-2 py-1 border rounded-lg shadow-sm shrink-0">
+                <div className="flex items-center bg-slate-100 rounded-md p-0.5 w-full sm:w-auto">
                     {activeTab !== 'disqualified' && (
                         <button 
                             onClick={() => setViewMode('kanban')}
-                            className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${viewMode === 'kanban' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-600 hover:text-slate-900'}`}
+                            className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-sm text-xs font-semibold transition-colors ${viewMode === 'kanban' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
                         >
-                            <LayoutGrid className="w-4 h-4" /> Kanban Panosu
+                            <LayoutGrid className="w-3.5 h-3.5" /> Kanban Panosu
                         </button>
                     )}
                     <button 
                         onClick={() => setViewMode('rapid')}
-                        className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${viewMode === 'rapid' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-600 hover:text-slate-900'}`}
+                        className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-sm text-xs font-semibold transition-colors ${viewMode === 'rapid' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
                     >
-                        <List className="w-4 h-4" /> Hızlı Çalışma Listesi
+                        <List className="w-3.5 h-3.5" /> Hızlı Çalışma Listesi
                     </button>
                     <button 
                         onClick={() => setViewMode('table')}
-                        className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${viewMode === 'table' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-600 hover:text-slate-900'}`}
+                        className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-sm text-xs font-semibold transition-colors ${viewMode === 'table' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
                     >
-                        <Table className="w-4 h-4" /> Liste Görünümü
+                        <Table className="w-3.5 h-3.5" /> Liste Görünümü
                     </button>
                 </div>
                 
-                <div className="flex items-center gap-2 px-2 text-sm text-slate-500">
+                <div className="flex items-center gap-2 px-2 text-xs text-slate-500">
                     <p>Toplam <span className="font-bold text-slate-900">{totalCount}</span> kayıttan <span className="font-bold text-slate-900">{qualifications.length}</span> tanesi gösteriliyor.</p>
                 </div>
             </div>
@@ -1211,23 +1210,23 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
                     </div>
                 </div>
             ) : (
-                <div className="flex-1 flex flex-col bg-white border rounded-xl shadow-sm overflow-hidden">
-                    <div className="p-3 border-b bg-slate-50/50 flex justify-between items-center">
+                <div className="flex-1 flex flex-col bg-white border rounded-lg shadow-sm overflow-hidden min-h-0">
+                    <div className="px-3 py-1.5 border-b bg-slate-50/50 flex justify-between items-center shrink-0">
                         <div className="flex items-center gap-2">
                             <input 
                                 type="text" 
                                 placeholder="Tabloda ara..." 
                                 value={searchQuery}
                                 onChange={e => setSearchQuery(e.target.value)}
-                                className="w-64 px-3 py-1.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="w-48 px-2.5 py-1 text-xs border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                    <Button variant="outline" className="w-[180px] h-9 justify-between">
+                                    <Button variant="outline" className="w-[150px] h-7 text-xs px-2 justify-between">
                                         {selectedStatuses.length === 0 ? "Tüm Durumlar" : `${selectedStatuses.length} Durum Seçili`}
                                     </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent className="w-[180px]">
+                                <DropdownMenuContent className="w-[150px]">
                                     <DropdownMenuCheckboxItem
                                         checked={selectedStatuses.length === 0}
                                         onSelect={(e) => e.preventDefault()}
@@ -1251,7 +1250,7 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
                                 </DropdownMenuContent>
                             </DropdownMenu>
                         </div>
-                        <div className="flex items-center gap-2 overflow-x-auto px-2 hide-scrollbar">
+                        <div className="flex items-center gap-1.5 overflow-x-auto px-2 hide-scrollbar">
                             {displayedStatuses.map(status => {
                                 const count = statusCounts[status.id] || 0;
                                 if (count === 0) return null;
@@ -1267,7 +1266,7 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
                                 return (
                                     <div 
                                         key={status.id} 
-                                        className={`flex items-center gap-1.5 px-2.5 py-1 bg-white border rounded-md text-xs whitespace-nowrap shadow-sm cursor-pointer transition-colors ${isSelected ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:bg-slate-50'}`} 
+                                        className={`flex items-center gap-1 px-2 py-0.5 bg-white border rounded-md text-[11px] whitespace-nowrap shadow-sm cursor-pointer transition-colors ${isSelected ? 'ring-1.5 ring-blue-500 bg-blue-50' : 'hover:bg-slate-50'}`} 
                                         onClick={() => {
                                             if (isSelected) {
                                                 setSelectedStatuses(selectedStatuses.filter(id => id !== status.id))
@@ -1276,74 +1275,74 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
                                             }
                                         }}
                                     >
-                                        <div className={`w-2 h-2 rounded-full ${bulletColor}`} />
-                                        <span className="text-slate-600 font-medium">{status.label}</span>
-                                        <span className="font-bold text-slate-900 ml-0.5">{count}</span>
+                                        <div className={`w-1.5 h-1.5 rounded-full ${bulletColor}`} />
+                                        <span className="text-slate-600 font-medium text-[11px]">{status.label}</span>
+                                        <span className="font-bold text-slate-900 ml-0.5 text-[11px]">{count}</span>
                                     </div>
                                 )
                             })}
                         </div>
                     </div>
                     <div className="flex-1 overflow-auto">
-                        <table className="w-full text-sm text-left">
-                            <thead className="text-xs text-slate-500 bg-slate-50 sticky top-0 z-10 shadow-sm">
+                        <table className="w-full text-xs text-left">
+                            <thead className="text-[11px] uppercase tracking-wider text-slate-500 bg-slate-50 sticky top-0 z-10 shadow-sm">
                                 <tr>
-                                    <th className="px-4 py-3 font-semibold border-b">Müşteri</th>
-                                    <th className="px-4 py-3 font-semibold border-b">İletişim</th>
-                                    <th className="px-4 py-3 font-semibold border-b">Proje İlgisi</th>
-                                    <th className="px-4 py-3 font-semibold border-b">Durum</th>
-                                    <th className="px-4 py-3 font-semibold border-b">Skor</th>
-                                    <th className="px-4 py-3 font-semibold border-b">Sorumlu</th>
-                                    <th className="px-4 py-3 font-semibold border-b">Notlar</th>
-                                    <th className="px-4 py-3 font-semibold border-b text-right">Aksiyon</th>
+                                    <th className="px-3 py-1.5 font-bold border-b">Müşteri</th>
+                                    <th className="px-3 py-1.5 font-bold border-b">İletişim</th>
+                                    <th className="px-3 py-1.5 font-bold border-b">Proje İlgisi</th>
+                                    <th className="px-3 py-1.5 font-bold border-b">Durum</th>
+                                    <th className="px-3 py-1.5 font-bold border-b">Skor</th>
+                                    <th className="px-3 py-1.5 font-bold border-b">Sorumlu</th>
+                                    <th className="px-3 py-1.5 font-bold border-b">Notlar</th>
+                                    <th className="px-3 py-1.5 font-bold border-b text-right">Aksiyon</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
                                 {filteredRapidItems.map(qual => (
                                     <tr key={qual.id} className="hover:bg-slate-50 transition-colors group">
-                                        <td className="px-4 py-3 font-medium text-slate-900">
-                                            <div className="flex items-center gap-1.5">
+                                        <td className="px-3 py-1 text-xs font-semibold text-slate-900">
+                                            <div className="flex items-center gap-1">
                                                 {qual.customers?.full_name}
                                                 {qual.customers?.outreach_executions?.length > 0 && (
-                                                    <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_4px_rgba(34,197,94,0.6)]" title="Otomatik WP Mesajı Gönderildi"></div>
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_3px_rgba(34,197,94,0.6)]" title="Otomatik WP Mesajı Gönderildi"></div>
                                                 )}
                                             </div>
-                                            <div className="text-[10px] text-slate-500 font-normal">{new Date(qual.created_at).toLocaleDateString('tr-TR')}</div>
+                                            <div className="text-[9px] text-slate-500 font-normal">{new Date(qual.created_at).toLocaleDateString('tr-TR')}</div>
                                         </td>
-                                        <td className="px-4 py-3">
+                                        <td className="px-3 py-1 text-xs">
                                             <a href={`tel:${qual.customers?.phone}`} className="text-blue-600 hover:underline">{qual.customers?.phone}</a>
-                                            {qual.customers?.email && <div className="text-[10px] text-slate-500">{qual.customers.email}</div>}
+                                            {qual.customers?.email && <div className="text-[9px] text-slate-500">{qual.customers.email}</div>}
                                         </td>
-                                        <td className="px-4 py-3 text-slate-600">
-                                            <div className="flex flex-col gap-1">
+                                        <td className="px-3 py-1 text-xs text-slate-600">
+                                            <div className="flex flex-col gap-0.5">
                                                 {qual.projects?.name ? (
-                                                    <span className="text-indigo-600 truncate max-w-[150px] font-medium inline-flex items-center gap-1">
-                                                        <Building2 className="w-3 h-3" /> {qual.projects.name}
+                                                    <span className="text-indigo-600 truncate max-w-[130px] font-semibold inline-flex items-center gap-0.5">
+                                                        <Building2 className="w-2.5 h-2.5" /> {qual.projects.name}
                                                     </span>
                                                 ) : qual.campaign_name && qual.source !== 'meta_ads' ? (
-                                                    <span className="text-slate-500 truncate max-w-[150px] inline-flex items-center gap-1">
-                                                        <Info className="w-3 h-3" /> {qual.campaign_name}
+                                                    <span className="text-slate-500 truncate max-w-[130px] inline-flex items-center gap-0.5">
+                                                        <Info className="w-2.5 h-2.5" /> {qual.campaign_name}
                                                     </span>
                                                 ) : '-'}
                                                 
                                                 {qual.source === 'meta_ads' && (
-                                                    <div className="text-[10px] text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 inline-flex items-center gap-1 w-max max-w-[150px] truncate" title={qual.campaign_name || qual.customers?.notes}>
-                                                        <Info className="w-3 h-3 flex-shrink-0" />
+                                                    <div className="text-[9px] text-blue-600 bg-blue-50 px-1 py-0.2 rounded border border-blue-100 inline-flex items-center gap-0.5 w-max max-w-[130px] truncate" title={qual.campaign_name || qual.customers?.notes}>
+                                                        <Info className="w-2.5 h-2.5 flex-shrink-0" />
                                                         <span className="truncate">{qual.campaign_name || qual.customers?.notes || 'Meta Lead'}</span>
                                                     </div>
                                                 )}
                                             </div>
                                         </td>
-                                        <td className="px-4 py-3">
+                                        <td className="px-3 py-1 text-xs">
                                             {STATUSES.find(s => s.id === qual.status) && (
-                                                <Badge variant="outline" className={`text-[10px] px-1.5 py-0 border-none ${STATUSES.find(s => s.id === qual.status)?.color}`}>
+                                                <Badge variant="outline" className={`text-[9px] px-1 py-0 border-none ${STATUSES.find(s => s.id === qual.status)?.color}`}>
                                                     {STATUSES.find(s => s.id === qual.status)?.label}
                                                 </Badge>
                                             )}
                                         </td>
-                                        <td className="px-4 py-3">
+                                        <td className="px-3 py-1 text-xs">
                                             {qual.interest_level ? (
-                                                <Badge variant="outline" className={`text-[10px] px-1.5 py-0 border-none font-semibold ${
+                                                <Badge variant="outline" className={`text-[9px] px-1 py-0 border-none font-semibold ${
                                                     qual.interest_level === 'hot' ? 'bg-red-100 text-red-700' :
                                                     qual.interest_level === 'warm' ? 'bg-amber-100 text-amber-700' :
                                                     qual.interest_level === 'cold' ? 'bg-sky-100 text-sky-700' :
@@ -1356,40 +1355,40 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
                                                 </Badge>
                                             ) : <span className="text-slate-300">—</span>}
                                         </td>
-                                        <td className="px-4 py-3 text-slate-600">
+                                        <td className="px-3 py-1 text-xs text-slate-600">
                                             {qual.profiles?.full_name ? (
-                                                <div className="flex items-center gap-1.5 text-xs font-medium bg-slate-100 w-fit px-2 py-0.5 rounded-md">
-                                                    <User className="w-3 h-3 text-slate-400" />
+                                                <div className="flex items-center gap-1 text-[11px] font-medium bg-slate-100 w-fit px-1.5 py-0.2 rounded-md">
+                                                    <User className="w-2.5 h-2.5 text-slate-400" />
                                                     {qual.profiles.full_name}
                                                 </div>
                                             ) : '-'}
                                         </td>
-                                        <td className="px-4 py-3 text-xs text-slate-500 max-w-[200px]">
+                                        <td className="px-3 py-1 text-xs text-slate-500 max-w-[150px]">
                                             <div className="truncate" title={qual.call_notes}>
                                                 {qual.call_notes || '-'}
                                             </div>
                                         </td>
-                                        <td className="px-4 py-3 text-right space-x-1.5 whitespace-nowrap">
+                                        <td className="px-3 py-1 text-right space-x-1 whitespace-nowrap">
                                             {qual.status !== 'qualified' && qual.status !== 'disqualified' && (
                                                 <>
-                                                    <Button size="sm" variant="outline" className="h-7 px-2 bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100" onClick={() => handleAction(qual, 'note')} title="Ara / Not Gir">
-                                                        <Phone className="w-3 h-3 mr-1" /> Ara/Not
+                                                    <Button size="sm" variant="outline" className="h-6 px-1.5 text-[10px] bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100" onClick={() => handleAction(qual, 'note')} title="Ara / Not Gir">
+                                                        <Phone className="w-2.5 h-2.5 mr-0.5" /> Ara/Not
                                                     </Button>
-                                                    <Button size="sm" variant="outline" className="h-7 px-2 text-red-600 border-red-200 hover:bg-red-50" onClick={() => handleAction(qual, 'disqualify')} title="Ele (Olumsuz)">
-                                                        <X className="w-3 h-3 mr-1" /> Ele
+                                                    <Button size="sm" variant="outline" className="h-6 px-1.5 text-[10px] text-red-600 border-red-200 hover:bg-red-50" onClick={() => handleAction(qual, 'disqualify')} title="Ele (Olumsuz)">
+                                                        <X className="w-2.5 h-2.5 mr-0.5" /> Ele
                                                     </Button>
-                                                    <Button size="sm" variant="default" className="h-7 px-2 bg-green-600 hover:bg-green-700" onClick={() => handleAction(qual, 'qualify')} title="Satışa Aktar">
-                                                        <Check className="w-3 h-3 mr-1" /> Satış
+                                                    <Button size="sm" variant="default" className="h-6 px-1.5 text-[10px] bg-green-600 hover:bg-green-700" onClick={() => handleAction(qual, 'qualify')} title="Satışa Aktar">
+                                                        <Check className="w-2.5 h-2.5 mr-0.5" /> Satış
                                                     </Button>
                                                 </>
                                             )}
                                             {qual.status === 'disqualified' && (
-                                                <Button size="sm" variant="outline" className="h-7 px-2 text-slate-600 border-slate-200 hover:bg-slate-100" onClick={() => handleAction(qual, 'note')} title="Tekrar Değerlendir">
-                                                    <Undo2 className="w-3 h-3 mr-1" /> Geri Al
+                                                <Button size="sm" variant="outline" className="h-6 px-1.5 text-[10px] text-slate-600 border-slate-200 hover:bg-slate-100" onClick={() => handleAction(qual, 'note')} title="Tekrar Değerlendir">
+                                                    <Undo2 className="w-2.5 h-2.5 mr-0.5" /> Geri Al
                                                 </Button>
                                             )}
-                                            <Button size="sm" variant="outline" className="h-7 px-2" onClick={() => handleAction(qual, 'details')}>
-                                                <Info className="w-3 h-3 mr-1" /> Detay
+                                            <Button size="sm" variant="outline" className="h-6 px-1.5 text-[10px]" onClick={() => handleAction(qual, 'details')}>
+                                                <Info className="w-2.5 h-2.5 mr-0.5" /> Detay
                                             </Button>
                                         </td>
                                     </tr>
@@ -1407,11 +1406,11 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
 
             {/* Global Pagination Controls */}
             {totalCount > pageSize && (
-                <div className="p-4 bg-white border rounded-xl shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4 mt-auto shrink-0">
-                    <div className="text-sm text-slate-600">
+                <div className="py-2 px-3 bg-white border rounded-lg shadow-sm flex flex-col sm:flex-row items-center justify-between gap-2 mt-auto shrink-0">
+                    <div className="text-xs text-slate-600">
                         Toplam <span className="font-bold text-slate-900">{totalCount}</span> kayıttan <span className="font-bold text-slate-900">{(currentPage - 1) * pageSize + 1} - {Math.min(currentPage * pageSize, totalCount)}</span> arası gösteriliyor.
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
                         <Button
                             variant="outline"
                             size="sm"
@@ -1421,11 +1420,11 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
                                 params.set('page', (currentPage - 1).toString())
                                 router.push(`?${params.toString()}`)
                             }}
-                            className="h-9 px-4 hover:bg-slate-50"
+                            className="h-7 px-3 text-xs hover:bg-slate-50"
                         >
                             Önceki
                         </Button>
-                        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 rounded-md border text-sm font-medium text-slate-700">
+                        <div className="flex items-center gap-1 px-2.5 py-1 bg-slate-50 rounded-md border text-xs font-medium text-slate-700">
                             Sayfa {currentPage} <span className="text-slate-400">/</span> {Math.ceil(totalCount / pageSize)}
                         </div>
                         <Button
@@ -1437,7 +1436,7 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
                                 params.set('page', (currentPage + 1).toString())
                                 router.push(`?${params.toString()}`)
                             }}
-                            className="h-9 px-4 hover:bg-slate-50"
+                            className="h-7 px-3 text-xs hover:bg-slate-50"
                         >
                             Sonraki
                         </Button>

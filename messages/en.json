@@ -503,7 +503,8 @@
             "finance": "Financial Analysis",
             "efficiency": "Field & Team Efficiency",
             "publicLinks": "Catalog & Link Tracking",
-            "marketing": "Marketing Analytics"
+            "marketing": "Marketing Analytics",
+            "hotLeads": "Hot Lead Analysis"
         },
         "Inbox": {
             "title": "Inbox",
@@ -928,6 +929,10 @@
             "marketing": {
                 "title": "Marketing Analytics",
                 "description": "Form and ad sourced lead pipeline performance and conversions."
+            },
+            "hot-leads": {
+                "title": "Hot Lead Analysis",
+                "description": "WhatsApp interactions, ad forms, and AI scored hot leads with manager notification status."
             }
         }
     },

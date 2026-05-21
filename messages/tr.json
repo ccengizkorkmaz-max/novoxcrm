@@ -531,7 +531,8 @@
             "finance": "Finansal Analiz",
             "efficiency": "Saha & Ekip Verimliliği",
             "publicLinks": "Katalog & Link Takibi",
-            "marketing": "Pazarlama Analitiği"
+            "marketing": "Pazarlama Analitiği",
+            "hotLeads": "Sıcak Lead Analizi"
         },
         "Inbox": {
             "title": "Gelen Kutusu",
@@ -954,6 +955,10 @@
             "marketing": {
                 "title": "Pazarlama Analizi",
                 "description": "Form ve reklam kaynaklı lead'lerin pipeline içerisindeki performans ve dönüşümleri."
+            },
+            "hot-leads": {
+                "title": "Sıcak (Hot) Lead Analizi",
+                "description": "WhatsApp, reklam formları ve AI skorlama ile iletilen sıcak lead'ler ve yönetici bildirim durumu."
             }
         }
     },
