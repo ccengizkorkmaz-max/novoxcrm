@@ -299,9 +299,20 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
                                                     <div className="font-bold text-sm text-slate-900 group-hover:text-blue-600 transition-colors">
                                                         {qual.customers?.full_name}
                                                     </div>
-                                                    {qual.customers?.customer_number && (
-                                                        <Badge variant="outline" className="text-[10px] px-1 py-0">{qual.customers.customer_number}</Badge>
-                                                    )}
+                                                    <div className="flex gap-1">
+                                                        {qual.interest_level && (
+                                                            <Badge variant="outline" className={`text-[9px] px-1 py-0 border-none font-semibold ${
+                                                                qual.interest_level === 'hot' ? 'bg-red-100 text-red-700' :
+                                                                qual.interest_level === 'warm' ? 'bg-amber-100 text-amber-700' :
+                                                                qual.interest_level === 'cold' ? 'bg-sky-100 text-sky-700' : ''
+                                                            }`}>
+                                                                {qual.interest_level === 'hot' ? '🔥' : qual.interest_level === 'warm' ? '🌤️' : '❄️'}
+                                                            </Badge>
+                                                        )}
+                                                        {qual.customers?.customer_number && (
+                                                            <Badge variant="outline" className="text-[10px] px-1 py-0">{qual.customers.customer_number}</Badge>
+                                                        )}
+                                                    </div>
                                                 </div>
                                                 
                                                 <div className="flex flex-col gap-1 text-xs text-slate-500">
@@ -441,11 +452,22 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
                                 >
                                     <div className="flex justify-between items-start mb-1">
                                         <div className="font-bold text-sm text-slate-900 line-clamp-1">{qual.customers?.full_name}</div>
-                                        {STATUSES.find(s => s.id === qual.status) && (
-                                            <Badge variant="outline" className={`text-[10px] px-1.5 py-0 border-none ${STATUSES.find(s => s.id === qual.status)?.color}`}>
-                                                {STATUSES.find(s => s.id === qual.status)?.label}
-                                            </Badge>
-                                        )}
+                                        <div className="flex gap-1">
+                                            {qual.interest_level && (
+                                                <Badge variant="outline" className={`text-[9px] px-1 py-0 border-none font-semibold ${
+                                                    qual.interest_level === 'hot' ? 'bg-red-100 text-red-700' :
+                                                    qual.interest_level === 'warm' ? 'bg-amber-100 text-amber-700' :
+                                                    qual.interest_level === 'cold' ? 'bg-sky-100 text-sky-700' : ''
+                                                }`}>
+                                                    {qual.interest_level === 'hot' ? '🔥' : qual.interest_level === 'warm' ? '🌤️' : '❄️'}
+                                                </Badge>
+                                            )}
+                                            {STATUSES.find(s => s.id === qual.status) && (
+                                                <Badge variant="outline" className={`text-[10px] px-1.5 py-0 border-none ${STATUSES.find(s => s.id === qual.status)?.color}`}>
+                                                    {STATUSES.find(s => s.id === qual.status)?.label}
+                                                </Badge>
+                                            )}
+                                        </div>
                                     </div>
                                     <div className="text-xs text-slate-500 font-medium flex justify-between mt-1">
                                         <span>{qual.customers?.phone}</span>
@@ -689,6 +711,7 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
                                     <th className="px-4 py-3 font-semibold border-b">İletişim</th>
                                     <th className="px-4 py-3 font-semibold border-b">Proje İlgisi</th>
                                     <th className="px-4 py-3 font-semibold border-b">Durum</th>
+                                    <th className="px-4 py-3 font-semibold border-b">Skor</th>
                                     <th className="px-4 py-3 font-semibold border-b">Sorumlu</th>
                                     <th className="px-4 py-3 font-semibold border-b">Notlar</th>
                                     <th className="px-4 py-3 font-semibold border-b text-right">Aksiyon</th>
@@ -737,6 +760,19 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
                                                 </Badge>
                                             )}
                                         </td>
+                                        <td className="px-4 py-3">
+                                            {qual.interest_level ? (
+                                                <Badge variant="outline" className={`text-[10px] px-1.5 py-0 border-none font-semibold ${
+                                                    qual.interest_level === 'hot' ? 'bg-red-100 text-red-700' :
+                                                    qual.interest_level === 'warm' ? 'bg-amber-100 text-amber-700' :
+                                                    qual.interest_level === 'cold' ? 'bg-sky-100 text-sky-700' : 'bg-slate-100 text-slate-500'
+                                                }`}>
+                                                    {qual.interest_level === 'hot' ? '🔥 Sıcak' :
+                                                     qual.interest_level === 'warm' ? '🌤️ Ilık' :
+                                                     qual.interest_level === 'cold' ? '❄️ Soğuk' : qual.interest_level}
+                                                </Badge>
+                                            ) : <span className="text-slate-300">—</span>}
+                                        </td>
                                         <td className="px-4 py-3 text-slate-600">
                                             {qual.profiles?.full_name ? (
                                                 <div className="flex items-center gap-1.5 text-xs font-medium bg-slate-100 w-fit px-2 py-0.5 rounded-md">
@@ -777,7 +813,7 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
                                 ))}
                                 {filteredRapidItems.length === 0 && (
                                     <tr>
-                                        <td colSpan={7} className="px-4 py-8 text-center text-slate-500">Sonuç bulunamadı.</td>
+                                        <td colSpan={8} className="px-4 py-8 text-center text-slate-500">Sonuç bulunamadı.</td>
                                     </tr>
                                 )}
                             </tbody>

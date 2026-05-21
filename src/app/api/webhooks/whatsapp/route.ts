@@ -256,6 +256,21 @@ GİZLİ SİSTEM KOMUTLARI (SADECE ŞARTLAR SAĞLANDIĞINDA YANITININ EN SONUNA E
                         await supabase.from('whatsapp_conversations').update({
                             lead_score: leadScore,
                         }).eq('id', conversationId);
+
+                        // Öndeğerlendirme kaydının interest_level'ını da güncelle
+                        const { data: convData } = await supabase
+                            .from('whatsapp_conversations')
+                            .select('customer_id')
+                            .eq('id', conversationId)
+                            .single();
+                        
+                        if (convData?.customer_id) {
+                            await supabase.from('lead_qualifications')
+                                .update({ interest_level: leadScore, updated_at: new Date().toISOString() })
+                                .eq('customer_id', convData.customer_id)
+                                .eq('tenant_id', tenantId);
+                            console.log(`📊 Lead qualification interest_level güncellendi: ${leadScore} (customer: ${convData.customer_id})`);
+                        }
                     }
 
                     // 2. HOT LEAD tespiti (eski format uyumluluğu + yeni skor)
