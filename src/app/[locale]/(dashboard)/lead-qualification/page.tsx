@@ -22,6 +22,7 @@ export default async function LeadQualificationPage(props: {
     const page = typeof searchParams.page === 'string' ? parseInt(searchParams.page) : 1
     const searchQuery = typeof searchParams.search === 'string' ? searchParams.search : ''
     const statusFilters = typeof searchParams.status === 'string' && searchParams.status ? searchParams.status.split(',') : []
+    const activeTab = typeof searchParams.tab === 'string' ? searchParams.tab : 'active'
     const pageSize = 100
 
     let qualifications: any[] = []
@@ -35,9 +36,16 @@ export default async function LeadQualificationPage(props: {
             .select('*, customers!inner(full_name, phone)', { count: 'exact', head: true })
             .eq('tenant_id', profile.tenant_id)
             
-        if (statusFilters.length > 0) {
-            queryCount = queryCount.in('status', statusFilters)
+        if (activeTab === 'disqualified') {
+            queryCount = queryCount.eq('status', 'disqualified')
+        } else {
+            if (statusFilters.length > 0) {
+                queryCount = queryCount.in('status', statusFilters.filter(s => s !== 'disqualified'))
+            } else {
+                queryCount = queryCount.neq('status', 'disqualified')
+            }
         }
+
         if (searchQuery) {
             const sq = searchQuery.trim()
             queryCount = queryCount.or(`full_name.ilike.%${sq}%,phone.ilike.%${sq}%`, { foreignTable: 'customers' })
@@ -83,9 +91,16 @@ export default async function LeadQualificationPage(props: {
             .order('created_at', { ascending: false })
             .range(from, to)
 
-        if (statusFilters.length > 0) {
-            queryData = queryData.in('status', statusFilters)
+        if (activeTab === 'disqualified') {
+            queryData = queryData.eq('status', 'disqualified')
+        } else {
+            if (statusFilters.length > 0) {
+                queryData = queryData.in('status', statusFilters.filter(s => s !== 'disqualified'))
+            } else {
+                queryData = queryData.neq('status', 'disqualified')
+            }
         }
+
         if (searchQuery) {
             const sq = searchQuery.trim()
             queryData = queryData.or(`full_name.ilike.%${sq}%,phone.ilike.%${sq}%`, { foreignTable: 'customers' })
@@ -138,7 +153,8 @@ export default async function LeadQualificationPage(props: {
                     pageSize={pageSize}
                     statusCounts={statusCounts}
                     projects={projects} 
-                    availableUnits={units} 
+                    availableUnits={units}
+                    activeTab={activeTab}
                 />
             </div>
         </div>

@@ -9,8 +9,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
-import { updateQualificationStatus, addCallNote, convertToSale } from '../actions'
-import { Calendar, Check, Clock, FileText, Info, Phone, PhoneMissed, X, Building2, User, LayoutGrid, List, Table, Undo2, MessageSquareText } from 'lucide-react'
+import { updateQualificationStatus, addCallNote, convertToSale, bulkDisqualifyColdLeads } from '../actions'
+import { Calendar, Check, Clock, FileText, Info, Phone, PhoneMissed, X, Building2, User, LayoutGrid, List, Table, Undo2, MessageSquareText, AlertTriangle } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { tr } from 'date-fns/locale'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
@@ -31,10 +31,10 @@ const STATUSES = [
     { id: 'qualified', label: 'Nitelikli', icon: Check, color: 'bg-green-100 text-green-700', border: 'border-green-200' }
 ]
 
-export default function QualificationBoard({ initialData, totalCount, currentPage = 1, pageSize = 100, statusCounts = {}, projects = [], availableUnits = [] }: { initialData: any[], totalCount: number, currentPage?: number, pageSize?: number, statusCounts?: Record<string, number>, projects?: any[], availableUnits?: any[] }) {
+export default function QualificationBoard({ initialData, totalCount, currentPage = 1, pageSize = 100, statusCounts = {}, projects = [], availableUnits = [], activeTab = 'active' }: { initialData: any[], totalCount: number, currentPage?: number, pageSize?: number, statusCounts?: Record<string, number>, projects?: any[], availableUnits?: any[], activeTab?: string }) {
     const [qualifications, setQualifications] = useState(initialData)
     const [selectedQual, setSelectedQual] = useState<any>(null)
-    const [viewMode, setViewMode] = useState<'kanban' | 'rapid' | 'table'>('rapid')
+    const [viewMode, setViewMode] = useState<'kanban' | 'rapid' | 'table'>('table')
     
     const searchParams = useSearchParams()
     const router = useRouter()
@@ -45,6 +45,9 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
         searchParams.get('status') ? searchParams.get('status')!.split(',') : []
     )
     
+    const [isBulkDisqualifyDialogOpen, setIsBulkDisqualifyDialogOpen] = useState(false)
+    const [isBulkDisqualifying, setIsBulkDisqualifying] = useState(false)
+
     // Sync external data changes (pagination) to local state
     useEffect(() => {
         setQualifications(initialData)
@@ -223,7 +226,48 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
         })
     }
 
-    const columns = STATUSES.map(status => ({
+    const activeCount = (statusCounts.new || 0) + 
+                        (statusCounts.contacted || 0) + 
+                        (statusCounts.follow_up || 0) + 
+                        (statusCounts.unreachable || 0) + 
+                        (statusCounts.qualified || 0)
+    const disqualifiedCount = statusCounts.disqualified || 0
+
+    const handleTabChange = (tabName: string) => {
+        const params = new URLSearchParams(window.location.search)
+        params.set('tab', tabName)
+        params.delete('page')
+        params.delete('status')
+        if (tabName === 'disqualified' && viewMode === 'kanban') {
+            setViewMode('table')
+        }
+        router.push(`?${params.toString()}`)
+    }
+
+    const handleBulkDisqualify = async () => {
+        setIsBulkDisqualifying(true)
+        const promise = bulkDisqualifyColdLeads()
+        toast.promise(promise, {
+            loading: 'Soğuk leadler eleniyor...',
+            success: (data) => {
+                setIsBulkDisqualifying(false)
+                setIsBulkDisqualifyDialogOpen(false)
+                if (data?.error) throw new Error(data.error)
+                router.refresh()
+                return `${data?.count || 0} adet soğuk lead başarıyla elendi.`
+            },
+            error: (err) => {
+                setIsBulkDisqualifying(false)
+                return err.message || 'Toplu eleme işlemi başarısız oldu'
+            }
+        })
+    }
+
+    const displayedStatuses = activeTab === 'active'
+        ? STATUSES.filter(s => s.id !== 'disqualified')
+        : STATUSES.filter(s => s.id === 'disqualified')
+
+    const columns = displayedStatuses.map(status => ({
         ...status,
         items: qualifications.filter(q => q.status === status.id)
     }))
@@ -233,14 +277,59 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
 
     return (
         <div className="flex flex-col h-full space-y-4">
+            {/* Tab Seçimi ve Toplu İşlemler */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 border rounded-xl shadow-sm">
+                <div className="flex border-b border-slate-100 w-full sm:w-auto">
+                    <button
+                        onClick={() => handleTabChange('active')}
+                        className={`pb-3 text-sm font-bold border-b-2 transition-all px-4 relative ${
+                            activeTab === 'active'
+                                ? 'border-blue-600 text-blue-600'
+                                : 'border-transparent text-slate-500 hover:text-slate-700'
+                        }`}
+                    >
+                        Aktif Süreçler
+                        <Badge variant="secondary" className="ml-2 bg-blue-50 text-blue-700 border-blue-200 font-semibold">
+                            {activeCount}
+                        </Badge>
+                    </button>
+                    <button
+                        onClick={() => handleTabChange('disqualified')}
+                        className={`pb-3 text-sm font-bold border-b-2 transition-all px-4 relative ${
+                            activeTab === 'disqualified'
+                                ? 'border-red-600 text-red-600'
+                                : 'border-transparent text-slate-500 hover:text-slate-700'
+                        }`}
+                    >
+                        Elenenler
+                        <Badge variant="secondary" className="ml-2 bg-red-50 text-red-700 border-red-200 font-semibold">
+                            {disqualifiedCount}
+                        </Badge>
+                    </button>
+                </div>
+
+                {activeTab === 'active' && (
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setIsBulkDisqualifyDialogOpen(true)}
+                        className="bg-red-50 text-red-600 border-red-200 hover:bg-red-100 hover:text-red-700 font-semibold h-9"
+                    >
+                        ❄️ Soğukları Toplu Ele
+                    </Button>
+                )}
+            </div>
+
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-2 border rounded-xl shadow-sm">
                 <div className="flex items-center bg-slate-100 rounded-lg p-1 w-full sm:w-auto">
-                    <button 
-                        onClick={() => setViewMode('kanban')}
-                        className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${viewMode === 'kanban' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-600 hover:text-slate-900'}`}
-                    >
-                        <LayoutGrid className="w-4 h-4" /> Kanban Panosu
-                    </button>
+                    {activeTab !== 'disqualified' && (
+                        <button 
+                            onClick={() => setViewMode('kanban')}
+                            className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${viewMode === 'kanban' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-600 hover:text-slate-900'}`}
+                        >
+                            <LayoutGrid className="w-4 h-4" /> Kanban Panosu
+                        </button>
+                    )}
                     <button 
                         onClick={() => setViewMode('rapid')}
                         className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${viewMode === 'rapid' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-600 hover:text-slate-900'}`}
@@ -422,7 +511,7 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
                                 >
                                     Tümü ({totalCount})
                                 </button>
-                                {STATUSES.map(s => {
+                                {displayedStatuses.map(s => {
                                     const count = statusCounts[s.id] || 0
                                     return (
                                         <button 
@@ -654,7 +743,7 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
                                     >
                                         Tüm Durumlar
                                     </DropdownMenuCheckboxItem>
-                                    {STATUSES.map(s => (
+                                    {displayedStatuses.map(s => (
                                         <DropdownMenuCheckboxItem
                                             key={s.id}
                                             checked={selectedStatuses.includes(s.id)}
@@ -671,7 +760,7 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
                             </DropdownMenu>
                         </div>
                         <div className="flex items-center gap-2 overflow-x-auto px-2 hide-scrollbar">
-                            {STATUSES.map(status => {
+                            {displayedStatuses.map(status => {
                                 const count = statusCounts[status.id] || 0;
                                 if (count === 0) return null;
                                 const bulletColor = status.color.includes('blue') ? 'bg-blue-500' :
@@ -1085,6 +1174,27 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsQualifyDialogOpen(false)}>İptal</Button>
                         <Button variant="default" className="bg-green-600 hover:bg-green-700" onClick={submitQualify} disabled={!selectedProject}>Satışa Aktar</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Toplu Eleme Dialog */}
+            <Dialog open={isBulkDisqualifyDialogOpen} onOpenChange={setIsBulkDisqualifyDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-red-600">
+                            <AlertTriangle className="w-5 h-5" /> Soğuk Leadleri Toplu Ele
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="py-4 space-y-2 text-sm text-slate-600">
+                        <p>AI tarafından <strong>Soğuk (❄️)</strong> olarak skorlanmış ve henüz elenmemiş tüm aktif adayları toplu olarak <strong>Elendi</strong> durumuna getirmek istediğinizden emin misiniz?</p>
+                        <p className="text-xs text-red-500 font-medium">Bu işlem tüm aktif soğuk adayları toplu olarak güncelleyecektir.</p>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsBulkDisqualifyDialogOpen(false)} disabled={isBulkDisqualifying}>İptal</Button>
+                        <Button variant="destructive" onClick={handleBulkDisqualify} disabled={isBulkDisqualifying}>
+                            {isBulkDisqualifying ? 'Eleniyor...' : 'Evet, Soğukları Ele'}
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

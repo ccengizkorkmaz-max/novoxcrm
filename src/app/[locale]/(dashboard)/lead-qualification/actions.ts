@@ -294,3 +294,33 @@ export async function createLeadQualification(formData: FormData) {
     revalidatePath('/[locale]/(dashboard)/lead-qualification', 'page')
     return { success: true }
 }
+
+export async function bulkDisqualifyColdLeads() {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    
+    if (!user) return { error: 'Not authenticated' }
+
+    const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single()
+    if (!profile) return { error: 'Profile not found' }
+
+    // Only update active leads (new, contacted, follow_up, unreachable) that are marked as cold
+    const { data, error } = await supabase
+        .from('lead_qualifications')
+        .update({
+            status: 'disqualified',
+            disqualify_reason: 'Soğuk Lead (AI Skoru)'
+        })
+        .eq('tenant_id', profile.tenant_id)
+        .eq('interest_level', 'cold')
+        .in('status', ['new', 'contacted', 'follow_up', 'unreachable'])
+        .select('id')
+
+    if (error) {
+        return { error: error.message }
+    }
+    
+    revalidatePath('/[locale]/(dashboard)/lead-qualification', 'page')
+    return { error: null, count: data?.length || 0 }
+}
+

@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
             try {
                 // Telefon ile müşteriyi bul
                 const { data: customer } = await supabase.from('customers')
-                    .select('id')
+                    .select('id, full_name')
                     .or(`phone.ilike.%${normalizedPhone.slice(-10)}%`)
                     .limit(1)
                     .single();
@@ -111,6 +111,72 @@ export async function POST(req: NextRequest) {
                             .eq('customer_id', customer.id)
                             .in('status', ['new', 'follow_up', 'unreachable']);
                         console.log(`✅ Kampanya yanıtı: ${normalizedPhone} → call_requested`);
+
+                        // ── Hot Lead Manager WhatsApp Bildirimi Tetikle ──
+                        try {
+                            const { data: convCheck } = await supabase
+                                .from('whatsapp_conversations')
+                                .select('hot_lead_notified')
+                                .eq('id', conversationId)
+                                .single();
+
+                            if (convCheck && !convCheck.hot_lead_notified) {
+                                // Yüksek öncelikli bildirim/aktivite oluştur
+                                await supabase.from('activities').insert({
+                                    tenant_id: tenantId,
+                                    type: 'Call',
+                                    topic: 'Sales',
+                                    summary: '📞 ARAMA TALEBİ (Evet Arayın)',
+                                    description: `Müşteri kampanya şablonundaki "Evet arayın" butonuna tıkladı. Telefon: ${normalizedPhone}`,
+                                    status: 'Pending',
+                                    priority: 'High',
+                                });
+
+                                // Tüm hot lead manager'ları bul
+                                const { data: hotLeadManagers } = await supabase
+                                    .from('profiles')
+                                    .select('id, full_name, phone')
+                                    .eq('tenant_id', tenantId)
+                                    .eq('is_hot_lead_manager', true)
+                                    .eq('is_active', true);
+
+                                if (hotLeadManagers && hotLeadManagers.length > 0) {
+                                    const customerName = customer.full_name || payload.name || 'Bilinmiyor';
+                                    const params = [
+                                        customerName,
+                                        normalizedPhone,
+                                        new Date().toLocaleString('tr-TR'),
+                                        `[ARAMA TALEBİ] Müşteri kampanya şablonuna "Evet arayın" yanıtını verdi. Arama talep ediyor.`
+                                    ];
+
+                                    const accessToken = tenantData.wa_access_token;
+                                    for (const manager of hotLeadManagers) {
+                                        if (manager.phone && accessToken && tenantData.wa_phone_number_id) {
+                                            try {
+                                                await sendWhatsAppTemplate(
+                                                    manager.phone,
+                                                    'hot_lead_notification',
+                                                    params,
+                                                    'tr',
+                                                    tenantData.wa_phone_number_id,
+                                                    accessToken
+                                                );
+                                                console.log(`🔥 Hot Lead (Arama Talebi) bildirimi gönderildi: ${manager.full_name} (${manager.phone})`);
+                                            } catch (sendErr) {
+                                                console.error(`Hot Lead (Arama Talebi) bildirim hatası (${manager.full_name}):`, sendErr);
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // Bu konuşma için bildirim gönderildiğini işaretle
+                                await supabase.from('whatsapp_conversations').update({
+                                    hot_lead_notified: true,
+                                }).eq('id', conversationId);
+                            }
+                        } catch (notifyErr) {
+                            console.error('Evet arayın bildirim hatası:', notifyErr);
+                        }
                     } else {
                         // "Hayir tesekkurler" → opted_out
                         await supabase.from('lead_qualifications')
@@ -273,8 +339,8 @@ GİZLİ SİSTEM KOMUTLARI (SADECE ŞARTLAR SAĞLANDIĞINDA YANITININ EN SONUNA E
                         }
                     }
 
-                    // 2. HOT LEAD tespiti (eski format uyumluluğu + yeni skor)
-                    let isHotLead = leadScore === 'hot' || aiReply.includes('[HOT_LEAD]');
+                    // 2. HOT veya WARM LEAD tespiti (eski format uyumluluğu + yeni skor)
+                    let isHotLead = leadScore === 'hot' || leadScore === 'warm' || aiReply.includes('[HOT_LEAD]');
                     if (aiReply.includes('[HOT_LEAD]')) {
                         aiReply = aiReply.replace('[HOT_LEAD]', '').trim();
                     }
@@ -296,8 +362,8 @@ GİZLİ SİSTEM KOMUTLARI (SADECE ŞARTLAR SAĞLANDIĞINDA YANITININ EN SONUNA E
                             tenant_id: tenantId,
                             type: 'Call',
                             topic: 'Sales',
-                            summary: '🔥 ACİL SATIŞ (HOT LEAD)',
-                            description: `Novo AI bir satış kapatmak üzere! Müşteri hemen satın almak istiyor. Telefon: ${normalizedPhone}`,
+                            summary: leadScore === 'warm' ? '🌤️ ILIK SATIŞ (WARM LEAD)' : '🔥 ACİL SATIŞ (HOT LEAD)',
+                            description: leadScore === 'warm' ? `Novo AI ılık bir potansiyel tespit etti! Telefon: ${normalizedPhone}` : `Novo AI bir satış kapatmak üzere! Müşteri hemen satın almak istiyor. Telefon: ${normalizedPhone}`,
                             status: 'Pending',
                             priority: 'High',
                         });
@@ -353,11 +419,12 @@ GİZLİ SİSTEM KOMUTLARI (SADECE ŞARTLAR SAĞLANDIĞINDA YANITININ EN SONUNA E
 
                                 // Her hot lead manager'a WhatsApp mesajı gönder
                                 const accessToken = tenantData.wa_access_token;
+                                const leadLabel = leadScore === 'warm' ? '[ILIK LEAD] ' : '[SICAK LEAD] ';
                                 const params = [
                                     customerName,
                                     normalizedPhone,
                                     new Date().toLocaleString('tr-TR'),
-                                    conversationSummary ? conversationSummary.substring(0, 500).replace(/\n/g, ' ') : 'Özet oluşturulamadı'
+                                    leadLabel + (conversationSummary ? conversationSummary.substring(0, 480).replace(/\n/g, ' ') : 'Özet oluşturulamadı')
                                 ];
 
                                 for (const manager of hotLeadManagers) {
