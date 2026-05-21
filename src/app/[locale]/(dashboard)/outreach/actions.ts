@@ -129,14 +129,32 @@ export async function deleteScript(id: string) {
 
 export async function getWorkflows() {
     const { supabase } = await getAuthContext()
+    const adminDb = createAdminClient()
     const { data } = await supabase.from('outreach_workflows')
         .select('*, outreach_segments(name), outreach_steps(*)')
         .order('created_at', { ascending: false })
     // Sort steps by step_order within each workflow
     if (data) {
+        // Fetch execution stats for all workflows
+        const wfIds = data.map((w: any) => w.id)
+        const { data: execStats } = await adminDb.from('outreach_executions')
+            .select('workflow_id, status, started_at')
+            .in('workflow_id', wfIds)
+        
         data.forEach((w: any) => {
             if (w.outreach_steps) {
                 w.outreach_steps.sort((a: any, b: any) => (a.step_order || 0) - (b.step_order || 0))
+            }
+            // Attach execution stats
+            const wfExecs = execStats?.filter((e: any) => e.workflow_id === w.id) || []
+            w._exec_stats = {
+                total: wfExecs.length,
+                active: wfExecs.filter((e: any) => e.status === 'active' || e.status === 'waiting').length,
+                completed: wfExecs.filter((e: any) => e.status === 'completed').length,
+                failed: wfExecs.filter((e: any) => e.status === 'failed').length,
+                last_run: wfExecs.length > 0
+                    ? wfExecs.reduce((max: string, e: any) => e.started_at > max ? e.started_at : max, '')
+                    : null
             }
         })
     }

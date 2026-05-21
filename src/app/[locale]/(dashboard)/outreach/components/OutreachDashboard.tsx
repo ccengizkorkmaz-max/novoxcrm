@@ -453,6 +453,42 @@ function WorkflowCard({ workflow, hasTrigger, onToggle, onEdit, onDelete, onLaun
                                     </Badge>
                                 )}
                             </div>
+                            {/* Execution Stats */}
+                            {workflow._exec_stats?.total > 0 && (
+                                <div className="mt-2 space-y-1.5">
+                                    <div className="flex items-center gap-3 text-xs">
+                                        {workflow._exec_stats.active > 0 ? (
+                                            <span className="flex items-center gap-1.5 text-amber-400">
+                                                <span className="relative flex h-2 w-2">
+                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-400" />
+                                                </span>
+                                                {workflow._exec_stats.active} devam ediyor
+                                            </span>
+                                        ) : (
+                                            <span className="text-muted-foreground">⏸ Beklemede</span>
+                                        )}
+                                        <span className="text-emerald-400">{workflow._exec_stats.completed} tamamlandı</span>
+                                        {workflow._exec_stats.failed > 0 && (
+                                            <span className="text-red-400">{workflow._exec_stats.failed} başarısız</span>
+                                        )}
+                                        <span className="text-muted-foreground">/ {workflow._exec_stats.total} toplam</span>
+                                        {workflow._exec_stats.last_run && (
+                                            <span className="text-muted-foreground ml-auto">
+                                                Son: {getTimeAgo(workflow._exec_stats.last_run)}
+                                            </span>
+                                        )}
+                                    </div>
+                                    {workflow._exec_stats.total > 0 && (
+                                        <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
+                                            <div
+                                                className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-500"
+                                                style={{ width: `${Math.round((workflow._exec_stats.completed / workflow._exec_stats.total) * 100)}%` }}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
                     <div className="flex items-center gap-2 ml-4">
