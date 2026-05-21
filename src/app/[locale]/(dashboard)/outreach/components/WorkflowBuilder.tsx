@@ -59,6 +59,8 @@ export function WorkflowBuilder({ segments, scripts, projects, profiles, tenantI
     const [hoursEnd, setHoursEnd] = useState(editingWorkflow?.working_hours_end?.substring(0, 5) || '19:00')
     const [workingDays, setWorkingDays] = useState<number[]>(editingWorkflow?.working_days || [1, 2, 3, 4, 5])
     const [maxPerDay, setMaxPerDay] = useState(editingWorkflow?.max_leads_per_day || 50)
+    const [batchSize, setBatchSize] = useState(editingWorkflow?.batch_size || 100)
+    const [batchInterval, setBatchInterval] = useState(editingWorkflow?.batch_interval_seconds || 60)
     const [conversionGoal, setConversionGoal] = useState(editingWorkflow?.conversion_goal_status || 'Prospect')
     const [stopOnResponse, setStopOnResponse] = useState(editingWorkflow?.stop_on_customer_response ?? true)
     const [steps, setSteps] = useState<Step[]>((editingWorkflow?.outreach_steps || []).sort((a: any, b: any) => a.step_order - b.step_order))
@@ -112,6 +114,8 @@ export function WorkflowBuilder({ segments, scripts, projects, profiles, tenantI
                     is_auto_detect: false,
                     auto_detect_days: 0,
                     max_leads_per_day: maxPerDay,
+                    batch_size: batchSize,
+                    batch_interval_seconds: batchInterval,
                     stop_on_customer_response: stopOnResponse,
                 }
                 // segment_id: sadece değer varsa ekle
@@ -155,6 +159,8 @@ export function WorkflowBuilder({ segments, scripts, projects, profiles, tenantI
                     working_days: workingDays,
                     is_auto_detect: false, auto_detect_days: 0,
                     max_leads_per_day: maxPerDay,
+                    batch_size: batchSize,
+                    batch_interval_seconds: batchInterval,
                     conversion_goal_status: conversionGoal,
                     stop_on_customer_response: stopOnResponse,
                     steps: steps.map(s => ({
@@ -300,6 +306,19 @@ export function WorkflowBuilder({ segments, scripts, projects, profiles, tenantI
                         <div className="flex items-center justify-between">
                             <Label className="text-xs">Günlük max lead</Label>
                             <Input type="number" value={maxPerDay} onChange={e => setMaxPerDay(Number(e.target.value))} className="h-8 w-20 text-xs text-right" />
+                        </div>
+                        <div className="pt-2 border-t space-y-2">
+                            <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">İşleme Hızı</p>
+                            <div className="flex items-center justify-between">
+                                <Label className="text-xs">Batch boyutu</Label>
+                                <Input type="number" value={batchSize} onChange={e => setBatchSize(Number(e.target.value))} className="h-8 w-20 text-xs text-right" />
+                            </div>
+                            <p className="text-[9px] text-muted-foreground">Her cron döngüsünde kaç mesaj gönderilecek</p>
+                            <div className="flex items-center justify-between">
+                                <Label className="text-xs">Cron aralığı (sn)</Label>
+                                <Input type="number" value={batchInterval} onChange={e => setBatchInterval(Number(e.target.value))} className="h-8 w-20 text-xs text-right" />
+                            </div>
+                            <p className="text-[9px] text-muted-foreground">Vercel cron çalışma sıklığı (global: 60sn)</p>
                         </div>
                     </Card>
                 </div>

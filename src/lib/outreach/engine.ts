@@ -56,14 +56,14 @@ export async function processOutreachQueue() {
         .select(`
             *,
             outreach_workflows!inner(
-                id, working_hours_start, working_hours_end, working_days, timezone, is_active, conversion_goal_status
+                id, working_hours_start, working_hours_end, working_days, timezone, is_active, conversion_goal_status, batch_size, batch_interval_seconds
             ),
             customers(id, full_name, phone, email),
             sales(id, status, project_id, unit_id)
         `)
         .in('status', ['active', 'waiting'])
         .lte('next_action_at', now)
-        .limit(500)
+        .limit(1000)
 
     if (error || !dueExecutions?.length) {
         console.log(`[Outreach] No due executions. Error: ${error?.message || 'none'}`)
@@ -99,7 +99,16 @@ export async function processOutreachQueue() {
 
     let processed = 0
 
+    // Track batch counts per workflow
+    const workflowBatchCounts = new Map<string, number>()
+
     for (const execution of dueExecutions) {
+        // Enforce per-workflow batch_size limit
+        const wfId = execution.workflow_id
+        const batchSize = execution.outreach_workflows?.batch_size || 100
+        const currentCount = workflowBatchCounts.get(wfId) || 0
+        if (currentCount >= batchSize) continue
+
         // Check workflow still active
         if (!execution.outreach_workflows?.is_active) {
             await supabase.from('outreach_executions')
@@ -179,6 +188,7 @@ export async function processOutreachQueue() {
             }
             await executeStep(execution, step)
             processed++
+            workflowBatchCounts.set(wfId, (workflowBatchCounts.get(wfId) || 0) + 1)
         } catch (err: any) {
             console.error(`[Outreach] Step execution error for ${execution.id}:`, err.message)
             // Log the error but continue with other executions

@@ -181,6 +181,8 @@ export async function createWorkflow(payload: {
     is_auto_detect?: boolean
     auto_detect_days?: number
     max_leads_per_day?: number
+    batch_size?: number
+    batch_interval_seconds?: number
     conversion_goal_status?: string
     stop_on_customer_response?: boolean
     steps: Array<{
