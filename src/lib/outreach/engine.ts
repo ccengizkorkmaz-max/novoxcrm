@@ -21,6 +21,7 @@ export interface StepConfig {
     // WhatsApp
     template_name?: string
     template_params?: string[]
+    template_map?: Record<string, string>
     free_text?: string
     // SMS
     sms_template_key?: string
