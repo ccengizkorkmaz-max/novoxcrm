@@ -63,7 +63,7 @@ export async function processOutreachQueue() {
         `)
         .in('status', ['active', 'waiting'])
         .lte('next_action_at', now)
-        .limit(100)
+        .limit(500)
 
     if (error || !dueExecutions?.length) {
         console.log(`[Outreach] No due executions. Error: ${error?.message || 'none'}`)
