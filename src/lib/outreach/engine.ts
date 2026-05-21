@@ -1051,7 +1051,7 @@ export async function resolveSegment(segmentId: string): Promise<string[]> {
         if (filters.unassigned) query = query.is('assigned_to', null)
         if (filters.date_from) query = query.gte('created_at', filters.date_from)
         if (filters.date_to) query = query.lte('created_at', filters.date_to + 'T23:59:59')
-        const { data: quals } = await query.limit(5000)
+        const { data: quals } = await query.limit(50000)
         // Return customer IDs prefixed with 'lq:' to distinguish from sale IDs
         return quals?.map(q => `lq:${q.customer_id}`) || []
     }
@@ -1075,7 +1075,7 @@ export async function resolveSegment(segmentId: string): Promise<string[]> {
         query = query.lte('updated_at', cutoff.toISOString())
     }
 
-    const { data: sales } = await query.limit(500)
+    const { data: sales } = await query.limit(50000)
     return sales?.map(s => s.id) || []
 }
 
