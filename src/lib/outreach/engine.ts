@@ -1095,6 +1095,15 @@ export async function startWorkflowForLeads(workflowId: string, leadIds: string[
 
     if (!firstStep) throw new Error('Workflow has no steps')
 
+    // Helper to chunk arrays
+    const chunkArray = <T>(arr: T[], size: number): T[][] => {
+        const chunks: T[][] = [];
+        for (let i = 0; i < arr.length; i += size) {
+            chunks.push(arr.slice(i, i + size));
+        }
+        return chunks;
+    };
+
     // Determine source: lead_qualifications (prefixed with 'lq:') vs sales
     const isLqSource = leadIds.length > 0 && leadIds[0].startsWith('lq:')
 
@@ -1103,18 +1112,28 @@ export async function startWorkflowForLeads(workflowId: string, leadIds: string[
     if (isLqSource) {
         // Lead qualifications source — IDs are customer_ids
         const customerIds = leadIds.map(id => id.replace('lq:', ''))
-        const { data: customers } = await supabase
-            .from('customers')
-            .select('id, phone')
-            .in('id', customerIds)
-            .not('phone', 'is', null)
-        leads = (customers || []).map(c => ({ id: c.id, customer_id: c.id }))
+        const chunks = chunkArray(customerIds, 150)
+        const promises = chunks.map(chunk =>
+            supabase
+                .from('customers')
+                .select('id, phone')
+                .in('id', chunk)
+                .not('phone', 'is', null)
+        )
+        const results = await Promise.all(promises)
+        const customers = results.flatMap(r => r.data || [])
+        leads = customers.map(c => ({ id: c.id, customer_id: c.id }))
     } else {
         // Sales source — IDs are sale_ids
-        const { data: sales } = await supabase
-            .from('sales')
-            .select('id, customer_id')
-            .in('id', leadIds)
+        const chunks = chunkArray(leadIds, 150)
+        const promises = chunks.map(chunk =>
+            supabase
+                .from('sales')
+                .select('id, customer_id')
+                .in('id', chunk)
+        )
+        const results = await Promise.all(promises)
+        const sales = results.flatMap(r => r.data || [])
         leads = sales || []
     }
 
@@ -1122,12 +1141,17 @@ export async function startWorkflowForLeads(workflowId: string, leadIds: string[
 
     // Check for existing active executions
     const leadIdList = leads.map(l => l.customer_id)
-    const { data: existing } = await supabase
-        .from('outreach_executions')
-        .select('customer_id')
-        .eq('workflow_id', workflowId)
-        .in('status', ['active', 'waiting', 'completed', 'converted'])
-        .in('customer_id', leadIdList)
+    const leadIdChunks = chunkArray(leadIdList, 150)
+    const existingPromises = leadIdChunks.map(chunk =>
+        supabase
+            .from('outreach_executions')
+            .select('customer_id')
+            .eq('workflow_id', workflowId)
+            .in('status', ['active', 'waiting', 'completed', 'converted'])
+            .in('customer_id', chunk)
+    )
+    const existingResults = await Promise.all(existingPromises)
+    const existing = existingResults.flatMap(r => r.data || [])
 
     const existingIds = new Set(existing?.map(e => e.customer_id) || [])
     const newLeads = leads.filter(l => !existingIds.has(l.customer_id))

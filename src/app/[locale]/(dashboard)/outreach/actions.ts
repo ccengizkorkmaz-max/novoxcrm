@@ -467,13 +467,26 @@ export async function launchWorkflow(workflowId: string) {
         ? allLeadIds.map(id => id.replace('lq:', ''))
         : allLeadIds
 
-    const { data: existing } = await adminDb
-        .from('outreach_executions')
-        .select('customer_id')
-        .eq('workflow_id', workflowId)
-        .in('customer_id', customerIds)
+    const chunkArray = <T>(arr: T[], size: number): T[][] => {
+        const chunks: T[][] = [];
+        for (let i = 0; i < arr.length; i += size) {
+            chunks.push(arr.slice(i, i + size));
+        }
+        return chunks;
+    };
 
-    const processedIds = new Set(existing?.map(e => e.customer_id) || [])
+    const chunks = chunkArray(customerIds, 150);
+    const existingPromises = chunks.map(chunk => 
+        adminDb
+            .from('outreach_executions')
+            .select('customer_id')
+            .eq('workflow_id', workflowId)
+            .in('customer_id', chunk)
+    );
+    const results = await Promise.all(existingPromises);
+    const existing = results.flatMap(r => r.data || []);
+
+    const processedIds = new Set(existing.map(e => e.customer_id));
 
     const remainingIds = allLeadIds.filter(id => {
         const custId = isLqSource ? id.replace('lq:', '') : id
