@@ -120,7 +120,7 @@ export default function HotLeadsReportPage() {
         : 0
 
     return (
-        <div className="space-y-6 md:space-y-8 p-4 md:p-6 max-w-[1600px] mx-auto animate-in fade-in duration-700">
+        <div className="space-y-4 md:space-y-8 p-2 md:p-6 max-w-[1600px] mx-auto animate-in fade-in duration-700 w-full overflow-x-hidden">
             {/* Header section with Action Buttons */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
@@ -133,15 +133,15 @@ export default function HotLeadsReportPage() {
                     </p>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                     <Button 
                         variant="outline" 
                         size="lg" 
                         onClick={() => loadData(true)} 
                         disabled={refreshing || loading}
-                        className="rounded-2xl border-slate-200 hover:bg-slate-50 h-12 shadow-sm font-semibold gap-2"
+                        className="rounded-2xl border-slate-200 hover:bg-slate-50 h-11 md:h-12 shadow-sm font-semibold gap-2 text-xs md:text-sm"
                     >
-                        <RefreshCw className={`h-4.5 w-4.5 text-slate-500 ${refreshing ? 'animate-spin' : ''}`} />
+                        <RefreshCw className={`h-4 w-4 text-slate-500 ${refreshing ? 'animate-spin' : ''}`} />
                         Yenile
                     </Button>
                     
@@ -149,46 +149,46 @@ export default function HotLeadsReportPage() {
                         size="lg" 
                         onClick={handleExport}
                         disabled={loading || filteredLeads.length === 0}
-                        className="bg-blue-600 hover:bg-blue-700 text-white font-bold h-12 px-6 rounded-2xl shadow-lg shadow-blue-500/20 gap-2"
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-bold h-11 md:h-12 px-4 md:px-6 rounded-2xl shadow-lg shadow-blue-500/20 gap-2 text-xs md:text-sm"
                     >
-                        <Download className="h-4.5 w-4.5" />
+                        <Download className="h-4 w-4" />
                         Excel&apos;e Aktar
                     </Button>
                 </div>
             </div>
 
             {/* KPI Cards Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-md flex flex-col items-center justify-center min-w-[130px] transition-transform hover:scale-102 duration-300">
-                    <Flame className="h-6 w-6 text-red-500 mb-2" />
-                    <span className="text-3xl font-black text-slate-900">{hotCount}</span>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 text-center">Sıcak Lead (HOT)</span>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4">
+                <div className="bg-white rounded-3xl p-3 md:p-6 border border-slate-100 shadow-md flex flex-col items-center justify-center min-w-0 w-full transition-transform hover:scale-102 duration-300">
+                    <Flame className="h-5 w-5 md:h-6 md:w-6 text-red-500 mb-1 md:mb-2" />
+                    <span className="text-2xl md:text-3xl font-black text-slate-900">{hotCount}</span>
+                    <span className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 text-center">Sıcak (HOT)</span>
                 </div>
-                <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-md flex flex-col items-center justify-center min-w-[130px] transition-transform hover:scale-102 duration-300">
-                    <Thermometer className="h-6 w-6 text-orange-500 mb-2" />
-                    <span className="text-3xl font-black text-slate-900">{warmCount}</span>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 text-center">Ilık Lead (WARM)</span>
+                <div className="bg-white rounded-3xl p-3 md:p-6 border border-slate-100 shadow-md flex flex-col items-center justify-center min-w-0 w-full transition-transform hover:scale-102 duration-300">
+                    <Thermometer className="h-5 w-5 md:h-6 md:w-6 text-orange-500 mb-1 md:mb-2" />
+                    <span className="text-2xl md:text-3xl font-black text-slate-900">{warmCount}</span>
+                    <span className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 text-center">Ilık (WARM)</span>
                 </div>
-                <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-md flex flex-col items-center justify-center min-w-[130px] transition-transform hover:scale-102 duration-300">
-                    <Phone className="h-6 w-6 text-purple-500 mb-2" />
-                    <span className="text-3xl font-black text-slate-900">{callReqCount}</span>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 text-center">Arama Talebi</span>
+                <div className="bg-white rounded-3xl p-3 md:p-6 border border-slate-100 shadow-md flex flex-col items-center justify-center min-w-0 w-full transition-transform hover:scale-102 duration-300">
+                    <Phone className="h-5 w-5 md:h-6 md:w-6 text-purple-500 mb-1 md:mb-2" />
+                    <span className="text-2xl md:text-3xl font-black text-slate-900">{callReqCount}</span>
+                    <span className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 text-center">Arama</span>
                 </div>
-                <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-md flex flex-col items-center justify-center min-w-[130px] transition-transform hover:scale-102 duration-300">
-                    <CheckCircle2 className="h-6 w-6 text-emerald-500 mb-2" />
-                    <span className="text-3xl font-black text-slate-900">%{notifiedPercent}</span>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 text-center">İletim Başarısı</span>
+                <div className="bg-white rounded-3xl p-3 md:p-6 border border-slate-100 shadow-md flex flex-col items-center justify-center min-w-0 w-full transition-transform hover:scale-102 duration-300">
+                    <CheckCircle2 className="h-5 w-5 md:h-6 md:w-6 text-emerald-500 mb-1 md:mb-2" />
+                    <span className="text-2xl md:text-3xl font-black text-slate-900">%{notifiedPercent}</span>
+                    <span className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 text-center">İletim</span>
                 </div>
-                <div className="col-span-2 md:col-span-1 bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-3xl p-6 shadow-md flex flex-col items-center justify-center min-w-[130px] transition-transform hover:scale-102 duration-300">
-                    <MessageSquare className="h-6 w-6 text-blue-400 mb-2" />
-                    <span className="text-3xl font-black">{totalCount}</span>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 text-center">Toplam Listelenen</span>
+                <div className="col-span-2 md:col-span-1 bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-3xl p-3 md:p-6 shadow-md flex flex-col items-center justify-center min-w-0 w-full transition-transform hover:scale-102 duration-300">
+                    <MessageSquare className="h-5 w-5 md:h-6 md:w-6 text-blue-400 mb-1 md:mb-2" />
+                    <span className="text-2xl md:text-3xl font-black">{totalCount}</span>
+                    <span className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 text-center">Toplam</span>
                 </div>
             </div>
 
             {/* Filter controls card */}
-            <Card className="border-none shadow-xl shadow-slate-100/40 rounded-3xl overflow-hidden bg-white/70 backdrop-blur-md">
-                <CardContent className="p-6">
+            <Card className="border-none shadow-xl shadow-slate-100/40 rounded-3xl overflow-hidden bg-white/70 backdrop-blur-md w-full">
+                <CardContent className="p-4 md:p-6">
                     <div className="flex flex-col lg:flex-row gap-4 items-center">
                         <div className="relative w-full lg:flex-1">
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4.5 w-4.5 text-slate-400" />
@@ -234,8 +234,8 @@ export default function HotLeadsReportPage() {
             </Card>
 
             {/* Leads Table Card */}
-            <Card className="border-none shadow-2xl shadow-slate-200/50 rounded-3xl overflow-hidden bg-white">
-                <CardHeader className="bg-slate-50/50 border-b border-slate-100 px-8 py-6">
+            <Card className="border-none shadow-2xl shadow-slate-200/50 rounded-3xl overflow-hidden bg-white w-full">
+                <CardHeader className="bg-slate-50/50 border-b border-slate-100 px-4 py-4 md:px-8 md:py-6">
                     <div className="flex items-center justify-between">
                         <div>
                             <CardTitle className="text-xl font-bold text-slate-800">Sıcak Lead Bildirimleri</CardTitle>
@@ -385,7 +385,7 @@ export default function HotLeadsReportPage() {
                     </div>
 
                     {/* Mobile Card View */}
-                    <div className="md:hidden flex flex-col gap-4 p-4 bg-slate-50/50">
+                    <div className="md:hidden flex flex-col gap-3 p-2 bg-slate-50/50 w-full overflow-x-hidden">
                         {loading ? (
                             <div className="flex flex-col items-center justify-center gap-3 py-10">
                                 <RefreshCw className="h-8 w-8 text-blue-600 animate-spin" />
@@ -397,48 +397,55 @@ export default function HotLeadsReportPage() {
                             </div>
                         ) : (
                             filteredLeads.map((lead) => (
-                                <Card key={`mobile-${lead.id}`} className="overflow-hidden border border-slate-200 shadow-sm">
-                                    <CardContent className="p-4 flex flex-col gap-3">
-                                        <div className="flex justify-between items-start gap-2">
-                                            <div className="flex flex-col gap-1.5 min-w-0">
-                                                <span className="font-extrabold text-slate-800 text-[15px] flex items-center gap-1.5 truncate">
-                                                    <User className="h-4 w-4 text-slate-400 shrink-0" />
-                                                    <span className="truncate">{lead.customerName}</span>
-                                                </span>
-                                                <div className="flex items-center gap-2 mt-0.5">
-                                                    <a href={`tel:${lead.customerPhone.replace(/\s+/g, '')}`} className="text-blue-600 bg-blue-50 px-2.5 py-1 rounded-md text-sm font-bold tracking-wide flex items-center gap-1.5 shadow-sm border border-blue-100 hover:bg-blue-100 transition-colors">
-                                                        <Phone className="h-3.5 w-3.5" />
-                                                        {lead.customerPhone}
-                                                    </a>
-                                                    <button 
-                                                        onClick={() => handleCopy(lead.customerPhone, lead.id)}
-                                                        className="text-slate-400 hover:text-slate-600 transition-colors p-1.5 bg-slate-100 rounded-md shadow-sm border border-slate-200 hover:bg-slate-200"
-                                                    >
-                                                        {copiedId === lead.id ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
-                                                    </button>
-                                                </div>
+                                <Card key={`mobile-${lead.id}`} className="overflow-hidden border border-slate-200 shadow-sm w-full bg-white">
+                                    <CardContent className="p-3 flex flex-col gap-2.5">
+                                        {/* Row 1: Customer name and Score Badge */}
+                                        <div className="flex justify-between items-center gap-2">
+                                            <span className="font-extrabold text-slate-800 text-[14px] flex items-center gap-1.5 min-w-0 flex-1">
+                                                <User className="h-4 w-4 text-slate-400 shrink-0" />
+                                                <span className="truncate">{lead.customerName}</span>
+                                            </span>
+                                            <div className="shrink-0 flex items-center">
+                                                {lead.leadScore === 'hot' && <Badge className="bg-red-50 text-red-600 border-red-200 border text-[9px] px-1.5 py-0.5"><Flame className="h-3 w-3 mr-0.5 fill-red-500" />Sıcak</Badge>}
+                                                {lead.leadScore === 'warm' && <Badge className="bg-orange-50 text-orange-600 border-orange-200 border text-[9px] px-1.5 py-0.5"><Thermometer className="h-3 w-3 mr-0.5" />Ilık</Badge>}
+                                                {lead.leadScore === 'call_requested' && <Badge className="bg-purple-50 text-purple-600 border-purple-200 border text-[9px] px-1.5 py-0.5"><Phone className="h-3 w-3 mr-0.5" />Arama</Badge>}
                                             </div>
-                                            <div className="flex flex-col gap-2 items-end shrink-0">
-                                                {lead.leadScore === 'hot' && <Badge className="bg-red-50 text-red-600 border-red-200 border text-[10px] px-1.5 py-0"><Flame className="h-3 w-3 mr-0.5" />Sıcak</Badge>}
-                                                {lead.leadScore === 'warm' && <Badge className="bg-orange-50 text-orange-600 border-orange-200 border text-[10px] px-1.5 py-0"><Thermometer className="h-3 w-3 mr-0.5" />Ilık</Badge>}
-                                                {lead.leadScore === 'call_requested' && <Badge className="bg-purple-50 text-purple-600 border-purple-200 border text-[10px] px-1.5 py-0"><Phone className="h-3 w-3 mr-0.5" />Arama</Badge>}
-                                                
+                                        </div>
+                                        
+                                        {/* Row 2: Phone number and Project Badge */}
+                                        <div className="flex justify-between items-center gap-2 mt-0.5">
+                                            <div className="flex items-center gap-1.5 min-w-0">
+                                                <a href={`tel:${lead.customerPhone.replace(/\s+/g, '')}`} className="text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md text-xs font-bold tracking-wide flex items-center gap-1 shadow-sm border border-blue-100 hover:bg-blue-100 transition-colors">
+                                                    <Phone className="h-3 w-3" />
+                                                    {lead.customerPhone}
+                                                </a>
+                                                <button 
+                                                    onClick={() => handleCopy(lead.customerPhone, lead.id)}
+                                                    className="text-slate-400 hover:text-slate-600 transition-colors p-1 bg-slate-100 rounded-md shadow-sm border border-slate-200 hover:bg-slate-200"
+                                                    title="Kopyala"
+                                                >
+                                                    {copiedId === lead.id ? <Check className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
+                                                </button>
+                                            </div>
+                                            <div className="shrink-0">
                                                 {lead.projectName && lead.projectName !== 'Genel' ? (
-                                                    <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 border text-[9px] max-w-[80px] truncate block px-1.5 py-0" title={lead.projectName}>{lead.projectName}</Badge>
+                                                    <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 border text-[9px] max-w-[100px] truncate block px-1.5 py-0.5" title={lead.projectName}>{lead.projectName}</Badge>
                                                 ) : (
-                                                    <Badge className="bg-slate-100 text-slate-500 border-slate-200 border text-[9px] px-1.5 py-0">Genel</Badge>
+                                                    <Badge className="bg-slate-100 text-slate-500 border-slate-200 border text-[9px] px-1.5 py-0.5">Genel</Badge>
                                                 )}
                                             </div>
                                         </div>
                                         
-                                        <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100 mt-1">
-                                            <p className="text-[13px] text-slate-600 font-medium line-clamp-3 leading-relaxed">
+                                        {/* Row 3: Conversation summary */}
+                                        <div className="bg-slate-50/70 p-2.5 rounded-lg border border-slate-100 mt-1">
+                                            <p className="text-[12px] text-slate-600 font-medium line-clamp-3 leading-relaxed">
                                                 {lead.summary}
                                             </p>
                                         </div>
 
-                                        <div className="flex justify-between items-center mt-1 border-t border-slate-100 pt-3">
-                                            <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-bold">
+                                        {/* Row 4: Updated date and notification status */}
+                                        <div className="flex justify-between items-center mt-1 border-t border-slate-100 pt-2.5">
+                                            <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-bold">
                                                 <Calendar className="h-3.5 w-3.5" />
                                                 {format(new Date(lead.updatedAt), 'd MMM HH:mm', { locale: tr })}
                                             </div>
