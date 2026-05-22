@@ -29,6 +29,7 @@ import { format } from 'date-fns'
 import { tr } from 'date-fns/locale'
 import { exportToExcel } from '@/lib/report-export'
 import { toast } from 'sonner'
+import ShareHotLeadsButton from './ShareHotLeadsButton'
 
 export default function HotLeadsReportPage() {
     const [leads, setLeads] = useState<any[]>([])
@@ -134,6 +135,8 @@ export default function HotLeadsReportPage() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                    <ShareHotLeadsButton />
+
                     <Button 
                         variant="outline" 
                         size="lg" 

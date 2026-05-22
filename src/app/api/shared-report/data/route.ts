@@ -50,6 +50,115 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Yanlış şifre' }, { status: 401 })
     }
 
+    if (share.report_type === 'hot-leads') {
+        const { data: convs, error: convsError } = await supabase
+            .from('whatsapp_conversations')
+            .select(`
+                id,
+                phone_number,
+                lead_score,
+                hot_lead_notified,
+                created_at,
+                updated_at,
+                customers (
+                    id,
+                    full_name,
+                    phone,
+                    source
+                )
+            `)
+            .eq('tenant_id', share.tenant_id)
+            .in('lead_score', ['hot', 'warm', 'call_requested'])
+            .order('updated_at', { ascending: false })
+
+        if (convsError) {
+            console.error('getSharedHotLeadsReport error:', convsError)
+            return NextResponse.json({ error: 'Veriler alınamadı' }, { status: 500 })
+        }
+
+        const formattedConvs = []
+        for (const c of (convs || [])) {
+            let customerId = (c.customers as any)?.id || null
+            let customerName = (c.customers as any)?.full_name || ''
+            let customerPhone = (c.customers as any)?.phone || c.phone_number
+            let customerSource = (c.customers as any)?.source || 'WhatsApp'
+
+            if (!customerName && c.phone_number) {
+                const last10 = c.phone_number.replace(/\D/g, '').slice(-10)
+                if (last10.length >= 10) {
+                    const { data: matches } = await supabase
+                        .from('customers')
+                        .select('id, full_name, phone, source')
+                        .ilike('phone', `%${last10}%`)
+                        .limit(1)
+                    if (matches && matches.length > 0) {
+                        customerName = matches[0].full_name || ''
+                        customerPhone = matches[0].phone || c.phone_number
+                        customerSource = matches[0].source || 'WhatsApp'
+                        customerId = matches[0].id
+                    }
+                }
+            }
+
+            let projectName = 'Genel'
+            if (customerId) {
+                const { data: qual } = await supabase
+                    .from('lead_qualifications')
+                    .select(`
+                        projects:project_id (
+                            name
+                        )
+                    `)
+                    .eq('customer_id', customerId)
+                    .order('created_at', { ascending: false })
+                    .limit(1)
+                    .maybeSingle()
+
+                const projObj = qual?.projects as any
+                if (projObj) {
+                    if (Array.isArray(projObj) && projObj.length > 0) {
+                        projectName = projObj[0].name || 'Genel'
+                    } else if (projObj.name) {
+                        projectName = projObj.name
+                    }
+                }
+            }
+
+            const { data: recentMessages } = await supabase
+                .from('whatsapp_messages')
+                .select('role, content, created_at')
+                .eq('conversation_id', c.id)
+                .order('created_at', { ascending: false })
+                .limit(5)
+
+            let summary = ''
+            if (recentMessages && recentMessages.length > 0) {
+                summary = recentMessages
+                    .reverse()
+                    .map(m => `${m.role === 'user' ? 'Müşteri' : 'AI'}: ${m.content.substring(0, 100).replace(/\n/g, ' ')}`)
+                    .join(' | ')
+            }
+
+            formattedConvs.push({
+                id: c.id,
+                customerName: customerName || 'Bilinmeyen Müşteri',
+                customerPhone,
+                customerSource,
+                leadScore: c.lead_score,
+                hotLeadNotified: c.hot_lead_notified,
+                updatedAt: c.updated_at,
+                createdAt: c.created_at,
+                summary: summary || '-',
+                projectName
+            })
+        }
+
+        return NextResponse.json({
+            reportType: 'hot-leads',
+            leads: formattedConvs
+        })
+    }
+
     // Fetch marketing data for this tenant
     const statusLabels: Record<string, string> = {
         'Lead': 'Aday', 'Prospect': 'Fırsat', 'Reservation': 'Opsiyonlu',
