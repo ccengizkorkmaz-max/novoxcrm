@@ -120,11 +120,11 @@ export default function HotLeadsReportPage() {
         : 0
 
     return (
-        <div className="space-y-8 p-6 max-w-[1600px] mx-auto animate-in fade-in duration-700">
+        <div className="space-y-6 md:space-y-8 p-4 md:p-6 max-w-[1600px] mx-auto animate-in fade-in duration-700">
             {/* Header section with Action Buttons */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
-                    <h1 className="text-4xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+                    <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight flex items-center gap-3">
                         <Flame className="h-10 w-10 text-red-500 animate-pulse" />
                         Sıcak (Hot) Lead Raporu
                     </h1>
@@ -244,7 +244,8 @@ export default function HotLeadsReportPage() {
                     </div>
                 </CardHeader>
                 <CardContent className="p-0">
-                    <div className="overflow-x-auto">
+                    {/* Desktop Table View */}
+                    <div className="hidden md:block overflow-x-auto">
                         <Table>
                             <TableHeader>
                                 <TableRow className="hover:bg-transparent bg-slate-50/30 border-slate-100">
@@ -285,9 +286,10 @@ export default function HotLeadsReportPage() {
                                                             {lead.customerName}
                                                         </span>
                                                         <div className="flex items-center gap-2">
-                                                            <span className="text-xs text-slate-500 font-bold tracking-tight bg-slate-100 px-2 py-0.5 rounded-md">
+                                                            <a href={`tel:${lead.customerPhone.replace(/\s+/g, '')}`} className="text-xs text-blue-600 font-bold tracking-tight bg-blue-50 hover:bg-blue-100 transition-colors px-2 py-1 rounded-md flex items-center gap-1 cursor-pointer">
+                                                                <Phone className="h-3 w-3" />
                                                                 {lead.customerPhone}
-                                                            </span>
+                                                            </a>
                                                             <button 
                                                                 onClick={() => handleCopy(lead.customerPhone, lead.id)}
                                                                 className="text-slate-400 hover:text-slate-600 transition-colors p-1"
@@ -380,6 +382,78 @@ export default function HotLeadsReportPage() {
                                 )}
                             </TableBody>
                         </Table>
+                    </div>
+
+                    {/* Mobile Card View */}
+                    <div className="md:hidden flex flex-col gap-4 p-4 bg-slate-50/50">
+                        {loading ? (
+                            <div className="flex flex-col items-center justify-center gap-3 py-10">
+                                <RefreshCw className="h-8 w-8 text-blue-600 animate-spin" />
+                                <span className="text-slate-500 font-bold text-sm">Lead verileri yükleniyor...</span>
+                            </div>
+                        ) : filteredLeads.length === 0 ? (
+                            <div className="text-center text-slate-400 font-semibold text-sm py-10">
+                                Aradığınız kriterlere uygun sıcak lead bulunamadı.
+                            </div>
+                        ) : (
+                            filteredLeads.map((lead) => (
+                                <Card key={`mobile-${lead.id}`} className="overflow-hidden border border-slate-200 shadow-sm">
+                                    <CardContent className="p-4 flex flex-col gap-3">
+                                        <div className="flex justify-between items-start gap-2">
+                                            <div className="flex flex-col gap-1.5 min-w-0">
+                                                <span className="font-extrabold text-slate-800 text-[15px] flex items-center gap-1.5 truncate">
+                                                    <User className="h-4 w-4 text-slate-400 shrink-0" />
+                                                    <span className="truncate">{lead.customerName}</span>
+                                                </span>
+                                                <div className="flex items-center gap-2 mt-0.5">
+                                                    <a href={`tel:${lead.customerPhone.replace(/\s+/g, '')}`} className="text-blue-600 bg-blue-50 px-2.5 py-1 rounded-md text-sm font-bold tracking-wide flex items-center gap-1.5 shadow-sm border border-blue-100 hover:bg-blue-100 transition-colors">
+                                                        <Phone className="h-3.5 w-3.5" />
+                                                        {lead.customerPhone}
+                                                    </a>
+                                                    <button 
+                                                        onClick={() => handleCopy(lead.customerPhone, lead.id)}
+                                                        className="text-slate-400 hover:text-slate-600 transition-colors p-1.5 bg-slate-100 rounded-md shadow-sm border border-slate-200 hover:bg-slate-200"
+                                                    >
+                                                        {copiedId === lead.id ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div className="flex flex-col gap-2 items-end shrink-0">
+                                                {lead.leadScore === 'hot' && <Badge className="bg-red-50 text-red-600 border-red-200 border text-[10px] px-1.5 py-0"><Flame className="h-3 w-3 mr-0.5" />Sıcak</Badge>}
+                                                {lead.leadScore === 'warm' && <Badge className="bg-orange-50 text-orange-600 border-orange-200 border text-[10px] px-1.5 py-0"><Thermometer className="h-3 w-3 mr-0.5" />Ilık</Badge>}
+                                                {lead.leadScore === 'call_requested' && <Badge className="bg-purple-50 text-purple-600 border-purple-200 border text-[10px] px-1.5 py-0"><Phone className="h-3 w-3 mr-0.5" />Arama</Badge>}
+                                                
+                                                {lead.projectName && lead.projectName !== 'Genel' ? (
+                                                    <Badge className="bg-indigo-50 text-indigo-700 border-indigo-200 border text-[9px] max-w-[80px] truncate block px-1.5 py-0" title={lead.projectName}>{lead.projectName}</Badge>
+                                                ) : (
+                                                    <Badge className="bg-slate-100 text-slate-500 border-slate-200 border text-[9px] px-1.5 py-0">Genel</Badge>
+                                                )}
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100 mt-1">
+                                            <p className="text-[13px] text-slate-600 font-medium line-clamp-3 leading-relaxed">
+                                                {lead.summary}
+                                            </p>
+                                        </div>
+
+                                        <div className="flex justify-between items-center mt-1 border-t border-slate-100 pt-3">
+                                            <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-bold">
+                                                <Calendar className="h-3.5 w-3.5" />
+                                                {format(new Date(lead.updatedAt), 'd MMM HH:mm', { locale: tr })}
+                                            </div>
+                                            <div>
+                                                {lead.hotLeadNotified ? (
+                                                    <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-1"><CheckCircle2 className="h-3 w-3" />İletildi</span>
+                                                ) : (
+                                                    <span className="text-[10px] font-bold text-amber-600 flex items-center gap-1"><AlertTriangle className="h-3 w-3" />Bekliyor</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            ))
+                        )}
                     </div>
                 </CardContent>
             </Card>
