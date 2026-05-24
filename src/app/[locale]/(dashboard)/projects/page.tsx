@@ -160,7 +160,7 @@ export default async function ProjectsPage(props: {
                                     </div>
                                 )}
                                 <CardHeader className="pb-3">
-                                    <CardTitle className="text-lg line-clamp-1">{project.name}</CardTitle>
+                                    <CardTitle className="text-lg font-bold break-words">{project.name}</CardTitle>
                                     <CardDescription className="flex items-center gap-1.5 font-medium">
                                         <MapPin className="h-3.5 w-3.5 text-blue-500" /> {project.city || t('card.location')}
                                     </CardDescription>

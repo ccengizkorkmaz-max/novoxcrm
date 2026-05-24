@@ -15,9 +15,10 @@ import { AiMatchWidget } from '@/components/customers/AiMatchWidget'
 interface AiMatchDialogProps {
     customerId: string
     customerName: string
+    triggerClassName?: string
 }
 
-export function AiMatchDialog({ customerId, customerName }: AiMatchDialogProps) {
+export function AiMatchDialog({ customerId, customerName, triggerClassName }: AiMatchDialogProps) {
     const [open, setOpen] = useState(false)
 
     return (
@@ -26,10 +27,10 @@ export function AiMatchDialog({ customerId, customerName }: AiMatchDialogProps) 
                 <Button
                     variant="outline"
                     size="icon"
-                    className="h-8 w-8 text-indigo-600 border-indigo-100 hover:bg-indigo-50 hover:border-indigo-200 transition-all active:scale-90"
+                    className={triggerClassName || "h-8 w-8 text-indigo-600 border-indigo-100 hover:bg-indigo-50 hover:border-indigo-200 transition-all active:scale-90"}
                     title="AI Akıllı Eşleşme"
                 >
-                    <Sparkles className="h-4 w-4" />
+                    <Sparkles className={triggerClassName?.includes('h-6') ? "h-3 w-3" : "h-4 w-4"} />
                 </Button>
             </DialogTrigger>
             <DialogContent className="max-w-md w-[95vw] rounded-2xl p-0 overflow-hidden border-none shadow-2xl">

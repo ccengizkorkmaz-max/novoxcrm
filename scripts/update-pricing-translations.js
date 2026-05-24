@@ -44,7 +44,7 @@ tr.PricingSection = {
                 "Finans & HR Modülü",
                 "Sınırsız Proje",
                 "Gelişmiş Raporlar",
-                "500 AI Kredi/Ay"
+                "500 AI İşlem Limiti/Ay"
             ],
             cta: "Ücretsiz Deneyin"
         },
@@ -62,7 +62,7 @@ tr.PricingSection = {
                 "Broker Ağı Yönetimi",
                 "Komisyon Planları",
                 "Lead Pool & Leaderboard",
-                "2.000 AI Kredi/Ay",
+                "2.000 AI İşlem Limiti/Ay",
                 "Öncelikli Destek"
             ],
             cta: "Ücretsiz Deneyin"
@@ -79,7 +79,7 @@ tr.PricingSection = {
                 "Özel AI Model Eğitimi",
                 "ERP & API Entegrasyonları",
                 "SLA Garantisi (%99.9)",
-                "Sınırsız AI Kredi",
+                "Sınırsız AI İşlem Limiti",
                 "Özel Sunucu Seçeneği",
                 "Sınırsız Kullanıcı",
                 "Dedicated Account Manager"
@@ -131,7 +131,7 @@ en.PricingSection = {
                 "Finance & HR Module",
                 "Unlimited Projects",
                 "Advanced Reports",
-                "500 AI Credits/Month"
+                "500 AI Operation Limit/Month"
             ],
             cta: "Start Free Trial"
         },
@@ -149,7 +149,7 @@ en.PricingSection = {
                 "Broker Network Management",
                 "Commission Plans",
                 "Lead Pool & Leaderboard",
-                "2,000 AI Credits/Month",
+                "2,000 AI Operation Limit/Month",
                 "Priority Support"
             ],
             cta: "Start Free Trial"
@@ -166,7 +166,7 @@ en.PricingSection = {
                 "Custom AI Model Training",
                 "ERP & API Integrations",
                 "SLA Guarantee (99.9%)",
-                "Unlimited AI Credits",
+                "Unlimited AI Operation Limit",
                 "Dedicated Server Option",
                 "Unlimited Users",
                 "Dedicated Account Manager"

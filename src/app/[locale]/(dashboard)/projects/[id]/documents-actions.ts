@@ -115,3 +115,49 @@ export async function deleteDocument(documentId: string, projectId: string) {
     revalidatePath(`/projects/${projectId}`)
     return { success: true }
 }
+
+export async function saveDocumentMetadata(metadata: {
+    projectId: string
+    fileName: string
+    fileUrl: string
+    fileType: string
+    fileSize: number
+    documentName: string
+    description: string
+}) {
+    const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    // Get tenant_id
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', user.id)
+        .single()
+
+    if (!profile?.tenant_id) return { error: 'No tenant found' }
+
+    const { error: dbError } = await supabase
+        .from('project_documents')
+        .insert({
+            tenant_id: profile.tenant_id,
+            project_id: metadata.projectId,
+            file_name: metadata.fileName,
+            file_url: metadata.fileUrl,
+            file_type: metadata.fileType,
+            file_size: metadata.fileSize,
+            document_name: metadata.documentName,
+            description: metadata.description,
+            uploaded_by: user.id
+        })
+
+    if (dbError) {
+        console.error('Database Error:', dbError)
+        return { error: 'Failed to save document metadata' }
+    }
+
+    revalidatePath(`/projects/${metadata.projectId}`)
+    return { success: true }
+}

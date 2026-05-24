@@ -464,7 +464,7 @@ export default function PipelineList({
             {/* Desktop Table View */}
             <div className="hidden md:block relative group">
                 {/* Column hint bar */}
-                <div className="flex items-center gap-2 px-4 py-1.5 bg-slate-50/80 border border-border rounded-t-xl border-b-0 text-[10px] font-bold text-slate-400 uppercase tracking-widest flex-wrap">
+                <div className="flex items-center gap-2 px-3 py-1 bg-slate-50/80 border border-border rounded-t-xl border-b-0 text-[10px] font-bold text-slate-400 uppercase tracking-widest flex-wrap">
                     <span className="whitespace-nowrap">Sütunları sürükle &amp; bırak ile sırala</span>
                     {colOrder.join(',') !== DEFAULT_PIPELINE_COL_ORDER.join(',') && (
                         <button onClick={() => { setColOrder(DEFAULT_PIPELINE_COL_ORDER); try { localStorage.removeItem(PIPELINE_COL_ORDER_KEY) } catch {} }} className="text-blue-500 hover:text-blue-700 underline underline-offset-2">
@@ -505,7 +505,7 @@ export default function PipelineList({
                         )}
                     </Button>
                 </div>
-                <div className="rounded-b-xl border bg-card shadow-sm relative w-full overflow-auto lg:max-h-[calc(100vh-270px)] max-w-[calc(100vw-1rem)] lg:max-w-full print:max-h-none print:overflow-visible">
+                <div className="rounded-b-xl border bg-card shadow-sm relative w-full overflow-auto lg:max-h-[calc(100vh-185px)] max-w-[calc(100vw-1rem)] lg:max-w-full print:max-h-none print:overflow-visible">
                     <table className="min-w-[1000px] w-full caption-bottom text-sm border-collapse">
                         <TableHeader className="sticky top-0 z-10 bg-slate-100/95 dark:bg-slate-800/95 backdrop-blur shadow-sm supports-[backdrop-filter]:bg-slate-100/60 font-sans">
                             <TableRow className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
@@ -520,7 +520,7 @@ export default function PipelineList({
                                         onDragEnd: handleColDragEnd,
                                     }
                                     const headCls = cn(
-                                        "relative h-12 px-4 text-center align-middle font-medium text-muted-foreground transition-all duration-75 border-r border-gray-300 dark:border-gray-700 select-none cursor-grab active:cursor-grabbing",
+                                        "relative h-9 px-2 text-center align-middle font-semibold text-muted-foreground transition-all duration-75 border-r border-gray-300 dark:border-gray-700 select-none cursor-grab active:cursor-grabbing text-xs",
                                         isOver && "border-l-2 border-l-blue-500 bg-blue-50/60"
                                     )
                                     return (
@@ -584,12 +584,12 @@ export default function PipelineList({
                                             className={`transition-colors border-b hover:bg-muted/30 ${isCompleted ? 'bg-emerald-50/30' : ''} ${isLost ? 'bg-red-50/20' : ''}`}
                                         >
                                             {colOrder.filter(colId => !(isBroker && (colId === 'project' || colId === 'unit')) && !hiddenCols.includes(colId)).map(colId => {
-                                                const cellCls = "px-3 py-2 align-middle border-r border-border/50"
+                                                const cellCls = "px-2.5 py-1 align-middle border-r border-border/50 text-xs"
                                                 if (colId === 'customer') return (
                                                     <TableCell key="customer" className={cellCls}>
                                                         <div className="flex flex-col gap-0.5">
                                                             <div className="flex items-center gap-2">
-                                                                <button type="button" onClick={() => handleOpenCustomerProfile(sale.customers)} className="font-semibold text-foreground text-sm hover:text-blue-600 hover:underline transition-colors text-left">
+                                                                <button type="button" onClick={() => handleOpenCustomerProfile(sale.customers)} className="font-semibold text-foreground text-xs hover:text-blue-600 hover:underline transition-colors text-left">
                                                                     {sale.customers?.full_name}
                                                                 </button>
                                                                 {sale.wa_first_message_sent && (
@@ -645,12 +645,12 @@ export default function PipelineList({
                                                 if (colId === 'status') return (
                                                     <TableCell key="status" className={cellCls}>
                                                         {isCompleted ? (
-                                                            <div className="inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold bg-emerald-100 text-emerald-700 border-emerald-200 gap-1">
+                                                            <div className="inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-semibold bg-emerald-100 text-emerald-700 border-emerald-200 gap-1">
                                                                 <Sparkles className="w-3 h-3" /> {t('actions.won')}
                                                             </div>
                                                         ) : (
                                                             <Select value={sale.status} onValueChange={(val) => handleStatusChange(sale.id, val)} disabled={sale.status === 'Lost'}>
-                                                                <SelectTrigger className={`w-full h-8 border text-xs font-medium ${getStatusColor(sale.status)}`}><SelectValue /></SelectTrigger>
+                                                                <SelectTrigger className={`w-full h-7 border text-xs font-medium ${getStatusColor(sale.status)}`}><SelectValue /></SelectTrigger>
                                                                 <SelectContent>
                                                                     {isBroker ? (
                                                                         <>
@@ -681,16 +681,16 @@ export default function PipelineList({
                                                     </TableCell>
                                                 )
                                                 if (colId === 'date') return (
-                                                    <TableCell key="date" className="px-3 py-2 align-middle text-muted-foreground font-medium text-sm border-r border-border/50">
+                                                    <TableCell key="date" className="px-2.5 py-1 align-middle text-muted-foreground font-medium text-xs border-r border-border/50">
                                                         <span suppressHydrationWarning>
                                                             {new Date(sale.created_at).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
                                                         </span>
                                                     </TableCell>
                                                 )
                                                 if (colId === 'amount') return (
-                                                    <TableCell key="amount" className="px-3 py-2 align-middle text-right border-r border-border/50">
+                                                    <TableCell key="amount" className="px-2.5 py-1 align-middle text-right border-r border-border/50">
                                                         {sale.final_price || sale.units?.price ? (
-                                                            <span className="font-bold text-foreground font-mono tracking-tight">
+                                                            <span className="font-bold text-foreground font-mono tracking-tight text-xs">
                                                                 {sale.final_price ? formatCurrency(sale.final_price, sale.currency || sale.units?.currency) : formatCurrency(sale.units.price, sale.units.currency)}
                                                             </span>
                                                         ) : <span className="text-muted-foreground">-</span>}
@@ -700,9 +700,9 @@ export default function PipelineList({
                                                     <TableCell key="rep" className={cellCls}>
                                                         <div className="flex items-center gap-2">
                                                             {sale.profiles?.full_name ? (
-                                                                <div className="flex items-center gap-2 text-sm bg-muted/30 pl-1 pr-2 py-1 rounded-full border border-transparent hover:border-border transition-colors group/rep">
-                                                                    <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-primary text-[10px] font-bold">{sale.profiles.full_name.substring(0, 2).toUpperCase()}</div>
-                                                                    <span className="font-medium text-foreground text-xs">{sale.profiles.full_name}</span>
+                                                                <div className="flex items-center gap-1.5 text-xs bg-muted/30 pl-1 pr-1.5 py-0.5 rounded-full border border-transparent hover:border-border transition-colors group/rep">
+                                                                    <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center text-primary text-[9px] font-bold">{sale.profiles.full_name.substring(0, 2).toUpperCase()}</div>
+                                                                    <span className="font-medium text-foreground text-[11px] leading-none">{sale.profiles.full_name}</span>
                                                                     {isAdmin && (
                                                                         <Popover open={assignPopoverOpen === sale.id} onOpenChange={(open) => setAssignPopoverOpen(open ? sale.id : null)}>
                                                                             <PopoverTrigger asChild>
@@ -729,12 +729,12 @@ export default function PipelineList({
                                                                 <div className="flex items-center gap-1">
                                                                     {isAdmin ? (
                                                                         <>
-                                                                            <Button variant="ghost" size="sm" className="h-7 text-blue-600 hover:text-blue-700 hover:bg-blue-50 text-[11px] px-2 border border-blue-200 dashed bg-blue-50/30" onClick={() => handleAutoAssign(sale.id)} disabled={isAssigning === sale.id} title={t('actions.assignTooltip')}>
-                                                                                {isAssigning === sale.id ? t('actions.assigning') : <><Sparkles className="w-3 h-3 mr-1" /> {t('actions.autoAssign')}</>}
+                                                                            <Button variant="ghost" size="sm" className="h-6 text-blue-600 hover:text-blue-700 hover:bg-blue-50 text-[10px] px-1.5 border border-blue-200 dashed bg-blue-50/30" onClick={() => handleAutoAssign(sale.id)} disabled={isAssigning === sale.id} title={t('actions.assignTooltip')}>
+                                                                                {isAssigning === sale.id ? t('actions.assigning') : <><Sparkles className="w-2.5 h-2.5 mr-1" /> {t('actions.autoAssign')}</>}
                                                                             </Button>
                                                                             <Popover open={assignPopoverOpen === sale.id} onOpenChange={(open) => setAssignPopoverOpen(open ? sale.id : null)}>
                                                                                 <PopoverTrigger asChild>
-                                                                                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-blue-600 border border-transparent hover:border-border rounded-full"><Pencil className="h-3 w-3" /></Button>
+                                                                                    <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-blue-600 border border-transparent hover:border-border rounded-full"><Pencil className="h-3 w-3" /></Button>
                                                                                 </PopoverTrigger>
                                                                                 <PopoverContent className="p-0" align="start">
                                                                                     <Command>
@@ -752,10 +752,10 @@ export default function PipelineList({
                                                                             </Popover>
                                                                         </>
                                                                     ) : (
-                                                                        <Button variant="outline" size="sm" className="h-7 text-blue-600 hover:text-blue-700 hover:bg-blue-50 text-[11px] px-2 border-blue-200"
+                                                                        <Button variant="outline" size="sm" className="h-6 text-blue-600 hover:text-blue-700 hover:bg-blue-50 text-[10px] px-1.5 border-blue-200"
                                                                             onClick={async () => { const { data: { user } } = await (await import('@/lib/supabase/client')).createClient().auth.getUser(); if (user) handleManualAssign(sale.id, user.id) }}
                                                                             disabled={isAssigning === sale.id}>
-                                                                            <User className="w-3 h-3 mr-1" /> Üzerine Al
+                                                                            <User className="w-2.5 h-2.5 mr-1" /> Üzerine Al
                                                                         </Button>
                                                                     )}
                                                                 </div>
@@ -764,51 +764,51 @@ export default function PipelineList({
                                                     </TableCell>
                                                 )
                                                 if (colId === 'actions') return (
-                                                    <TableCell key="actions" className="px-3 py-2 align-middle">
-                                                        <div className="flex items-center gap-1.5">
-                                                            {!isCompleted && (
-                                                                <>
-                                                                    {!isBroker && (['Lead', 'Prospect', 'Reservation', 'Reserved', 'Opsiyon - Kapora Bekleniyor'].includes(sale.status)) && (
-                                                                        <PipelineReservationDialog saleId={sale.id} currentUnitId={sale.unit_id} availableUnits={availableUnits} customerName={sale.customers?.full_name} status={sale.status} expiryDate={sale.reservation_expiry} />
-                                                                    )}
-                                                                    {!isBroker && ['Lead', 'Prospect'].includes(sale.status) && (
-                                                                        <MatchUnitDialog saleId={sale.id} currentUnitId={sale.unit_id} availableUnits={availableUnits} customerName={sale.customers?.full_name} />
-                                                                    )}
-                                                                    {sale.status === 'Lost' && !sale.restarted_at && <RestartSaleButton saleId={sale.id} />}
-                                                                    {['Lead', 'Prospect'].includes(sale.status) && (
-                                                                        <Button variant="outline" size="icon" className="h-7 w-7 text-orange-600 border-orange-100 hover:bg-orange-50" onClick={() => openRevertDialog(sale.id)} title="Ön Değerlendirmeye Geri Gönder">
-                                                                            <Undo2 className="h-3.5 w-3.5" />
-                                                                        </Button>
-                                                                    )}
-                                                                </>
-                                                            )}
-                                                        </div>
-                                                    </TableCell>
-                                                )
-                                                if (colId === 'quickicons') return (
-                                                    <TableCell key="quickicons" className="px-2 py-2 align-middle">
-                                                        <div className="flex items-center justify-center gap-1">
-                                                            {!isCompleted && (
-                                                                <>
-                                                                    <AiMatchDialog customerId={sale.customers?.id} customerName={sale.customers?.full_name} />
-                                                                    <Button variant="outline" size="icon" className="h-7 w-7 border-slate-200 hover:bg-slate-50 transition-all active:scale-95" onClick={() => handlePlanClick(sale.id)} title="Ödeme Planı">
-                                                                        <Calculator className="h-3.5 w-3.5 text-muted-foreground" />
-                                                                    </Button>
-                                                                    <Button variant="outline" size="icon" className="h-7 w-7 text-blue-600 border-blue-100 hover:bg-blue-50" onClick={() => handleCreateActivity(sale.customers)} title="Aktivite Ekle">
-                                                                        <CalendarPlus className="h-3.5 w-3.5" />
-                                                                    </Button>
-                                                                </>
-                                                            )}
-                                                            {isAdmin && (
-                                                                <Button variant="ghost" size="icon" className="h-7 w-7 text-red-400 hover:text-red-600 hover:bg-red-50" onClick={() => handleDeleteClick(sale)} title="Sil (Admin)">
-                                                                    <Trash className="h-3.5 w-3.5" />
-                                                                </Button>
-                                                            )}
-                                                        </div>
-                                                    </TableCell>
-                                                )
-                                                return null
-                                            })}
+                                                    <TableCell key="actions" className="px-2.5 py-1 align-middle border-r border-border/50">
+                                                        <div className="flex items-center gap-1">
+                                                             {!isCompleted && (
+                                                                 <>
+                                                                     {!isBroker && (['Lead', 'Prospect', 'Reservation', 'Reserved', 'Opsiyon - Kapora Bekleniyor'].includes(sale.status)) && (
+                                                                         <PipelineReservationDialog saleId={sale.id} currentUnitId={sale.unit_id} availableUnits={availableUnits} customerName={sale.customers?.full_name} status={sale.status} expiryDate={sale.reservation_expiry} triggerSize="xs" />
+                                                                     )}
+                                                                     {!isBroker && ['Lead', 'Prospect'].includes(sale.status) && (
+                                                                         <MatchUnitDialog saleId={sale.id} currentUnitId={sale.unit_id} availableUnits={availableUnits} customerName={sale.customers?.full_name} triggerSize="xs" />
+                                                                     )}
+                                                                     {sale.status === 'Lost' && !sale.restarted_at && <RestartSaleButton saleId={sale.id} triggerSize="xs" />}
+                                                                     {['Lead', 'Prospect'].includes(sale.status) && (
+                                                                         <Button variant="outline" size="icon" className="h-6 w-6 text-orange-600 border-orange-100 hover:bg-orange-50" onClick={() => openRevertDialog(sale.id)} title="Ön Değerlendirmeye Geri Gönder">
+                                                                             <Undo2 className="h-3 w-3" />
+                                                                         </Button>
+                                                                     )}
+                                                                 </>
+                                                             )}
+                                                         </div>
+                                                     </TableCell>
+                                                 )
+                                                 if (colId === 'quickicons') return (
+                                                     <TableCell key="quickicons" className="px-2 py-1 align-middle border-r border-border/50">
+                                                         <div className="flex items-center justify-center gap-1">
+                                                             {!isCompleted && (
+                                                                 <>
+                                                                     <AiMatchDialog customerId={sale.customers?.id} customerName={sale.customers?.full_name} triggerClassName="h-6 w-6 text-indigo-600 border-indigo-100 hover:bg-indigo-50 hover:border-indigo-200 transition-all active:scale-90 flex items-center justify-center" />
+                                                                     <Button variant="outline" size="icon" className="h-6 w-6 border-slate-200 hover:bg-slate-50 transition-all active:scale-95" onClick={() => handlePlanClick(sale.id)} title="Ödeme Planı">
+                                                                         <Calculator className="h-3 w-3 text-muted-foreground" />
+                                                                     </Button>
+                                                                     <Button variant="outline" size="icon" className="h-6 w-6 text-blue-600 border-blue-100 hover:bg-blue-50" onClick={() => handleCreateActivity(sale.customers)} title="Aktivite Ekle">
+                                                                         <CalendarPlus className="h-3 w-3" />
+                                                                     </Button>
+                                                                 </>
+                                                             )}
+                                                             {isAdmin && (
+                                                                 <Button variant="ghost" size="icon" className="h-6 w-6 text-red-400 hover:text-red-600 hover:bg-red-50" onClick={() => handleDeleteClick(sale)} title="Sil (Admin)">
+                                                                     <Trash className="h-3 w-3" />
+                                                                 </Button>
+                                                             )}
+                                                         </div>
+                                                     </TableCell>
+                                                 )
+                                                 return null
+                                             })}
                                         </TableRow>
                                     )
                                 })

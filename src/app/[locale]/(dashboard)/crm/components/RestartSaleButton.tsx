@@ -19,9 +19,10 @@ import { restartSale } from '../actions'
 
 interface RestartSaleButtonProps {
     saleId: string
+    triggerSize?: 'xs'
 }
 
-export function RestartSaleButton({ saleId }: RestartSaleButtonProps) {
+export function RestartSaleButton({ saleId, triggerSize }: RestartSaleButtonProps) {
     const [loading, setLoading] = useState(false)
 
     const handleRestart = async () => {
@@ -46,10 +47,10 @@ export function RestartSaleButton({ saleId }: RestartSaleButtonProps) {
                 <Button
                     variant="ghost"
                     size="sm"
-                    className="text-primary hover:bg-primary/10"
+                    className={triggerSize === 'xs' ? "text-primary hover:bg-primary/10 h-6 text-[10px] px-1.5" : "text-primary hover:bg-primary/10"}
                     disabled={loading}
                 >
-                    <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                    <RefreshCw className={triggerSize === 'xs' ? `mr-1 h-3 w-3 ${loading ? 'animate-spin' : ''}` : `mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                     Yeniden Başlat
                 </Button>
             </AlertDialogTrigger>

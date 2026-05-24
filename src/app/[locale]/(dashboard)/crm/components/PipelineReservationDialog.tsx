@@ -25,9 +25,10 @@ interface PipelineReservationDialogProps {
     customerName: string
     status?: string
     expiryDate?: string
+    triggerSize?: 'default' | 'sm' | 'xs'
 }
 
-export default function PipelineReservationDialog({ saleId, currentUnitId, availableUnits, customerName, status, expiryDate: initialExpiryDate }: PipelineReservationDialogProps) {
+export default function PipelineReservationDialog({ saleId, currentUnitId, availableUnits, customerName, status, expiryDate: initialExpiryDate, triggerSize }: PipelineReservationDialogProps) {
     const t = useTranslations('CRM.reservation')
     const locale = useLocale()
     const [isOpen, setIsOpen] = useState(false)
@@ -103,18 +104,18 @@ export default function PipelineReservationDialog({ saleId, currentUnitId, avail
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
                 {isReserved ? (
-                    <Button variant="outline" size="sm" className="gap-2 border-emerald-500 text-emerald-600 hover:bg-emerald-50">
-                        <CalendarClock className="h-4 w-4" />
+                    <Button variant="outline" size={triggerSize === 'xs' ? "sm" : "sm"} className={triggerSize === 'xs' ? "gap-1 border-emerald-500 text-emerald-600 hover:bg-emerald-50 h-6 text-[10px] px-1.5" : "gap-2 border-emerald-500 text-emerald-600 hover:bg-emerald-50"}>
+                        <CalendarClock className={triggerSize === 'xs' ? "h-3.5 w-3.5" : "h-4 w-4"} />
                         {t('buttonReserved')} {initialExpiryDate && `(${new Date(initialExpiryDate).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US')})`}
                     </Button>
                 ) : status === (locale === 'tr' ? 'Opsiyon - Kapora Bekleniyor' : 'Option - Deposit Pending') ? (
-                    <Button variant="outline" size="sm" className="gap-2 border-orange-400 text-orange-600 hover:bg-orange-50">
-                        <CalendarClock className="h-4 w-4" />
+                    <Button variant="outline" size={triggerSize === 'xs' ? "sm" : "sm"} className={triggerSize === 'xs' ? "gap-1 border-orange-400 text-orange-600 hover:bg-orange-50 h-6 text-[10px] px-1.5" : "gap-2 border-orange-400 text-orange-600 hover:bg-orange-50"}>
+                        <CalendarClock className={triggerSize === 'xs' ? "h-3.5 w-3.5" : "h-4 w-4"} />
                         {t('statusPending')} {initialExpiryDate && `(${new Date(initialExpiryDate).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US')})`}
                     </Button>
                 ) : (
-                    <Button variant="outline" size="sm" className="gap-2">
-                        <CalendarClock className="h-4 w-4" /> {t('buttonReserve')}
+                    <Button variant="outline" size={triggerSize === 'xs' ? "sm" : "sm"} className={triggerSize === 'xs' ? "gap-1 h-6 text-[10px] px-1.5" : "gap-2"}>
+                        <CalendarClock className={triggerSize === 'xs' ? "h-3.5 w-3.5" : "h-4 w-4"} /> {t('buttonReserve')}
                     </Button>
                 )}
             </DialogTrigger>

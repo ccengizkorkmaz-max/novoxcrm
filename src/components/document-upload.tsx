@@ -6,6 +6,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Upload, Loader2 } from 'lucide-react'
+import toast from 'react-hot-toast'
+import { createClient } from '@/lib/supabase/client'
+import { saveDocumentMetadata } from '@/app/[locale]/(dashboard)/projects/[id]/documents-actions'
 import {
     Dialog,
     DialogContent,
@@ -18,10 +21,9 @@ import {
 
 interface DocumentUploadProps {
     projectId: string
-    onUpload: (formData: FormData) => Promise<any>
 }
 
-export function DocumentUpload({ projectId, onUpload }: DocumentUploadProps) {
+export function DocumentUpload({ projectId }: DocumentUploadProps) {
     const [open, setOpen] = useState(false)
     const [loading, setLoading] = useState(false)
     const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -31,27 +33,68 @@ export function DocumentUpload({ projectId, onUpload }: DocumentUploadProps) {
         setLoading(true)
 
         const formData = new FormData(e.currentTarget)
-        formData.append('project_id', projectId)
+        const file = formData.get('file') as File
+        const documentName = formData.get('document_name') as string
+        const description = formData.get('description') as string
+
+        if (!file || !documentName) {
+            toast.error('Dosya ve döküman adı zorunludur.')
+            setLoading(false)
+            return
+        }
 
         try {
-            const result = await onUpload(formData)
+            // 1. Upload to Supabase Storage directly from client (bypasses Vercel 4.5MB function limit)
+            const supabase = createClient()
+            const fileExt = file.name.split('.').pop()
+            const fileName = `${Date.now()}-${Math.random()}.${fileExt}`
+            const filePath = `project-documents/${projectId}/${fileName}`
+
+            const { error: uploadError } = await supabase.storage
+                .from('crm-images')
+                .upload(filePath, file)
+
+            if (uploadError) {
+                console.error('Storage upload error:', uploadError)
+                toast.error('Dosya yükleme başarısız. Lütfen tekrar deneyin.')
+                setLoading(false)
+                return
+            }
+
+            // 2. Get public URL
+            const { data: urlData } = supabase.storage
+                .from('crm-images')
+                .getPublicUrl(filePath)
+
+            // 3. Save metadata to database via Server Action (passes only small metadata object)
+            const result = await saveDocumentMetadata({
+                projectId,
+                fileName: file.name,
+                fileUrl: urlData.publicUrl,
+                fileType: file.type,
+                fileSize: file.size,
+                documentName,
+                description
+            })
 
             setLoading(false)
 
             if (result?.success) {
-                alert('Döküman başarıyla yüklendi!')
+                toast.success('Döküman başarıyla yüklendi!')
                 setOpen(false)
                 setSelectedFile(null)
-                    ; (e.target as HTMLFormElement).reset()
-                // Force page reload to show new document
-                window.location.reload()
+                ; (e.target as HTMLFormElement).reset()
+                // Force page reload to show new document after toast is displayed
+                setTimeout(() => {
+                    window.location.reload()
+                }, 1000)
             } else {
-                alert(result?.error || 'Yükleme başarısız. Lütfen tekrar deneyin.')
+                toast.error(result?.error || 'Yükleme başarısız. Lütfen tekrar deneyin.')
             }
         } catch (error) {
             setLoading(false)
             console.error('Upload error:', error)
-            alert('Bir hata oluştu. Lütfen konsolu kontrol edin.')
+            toast.error('Bir hata oluştu. Lütfen tekrar deneyin.')
         }
     }
 

@@ -50,13 +50,13 @@ export function PipelineStats({ stats, tenantType = 'developer' }: PipelineStats
     const items = isBroker ? brokerItems : devItems
 
     return (
-        <div className="flex gap-1 mb-3 overflow-hidden">
+        <div className="flex gap-1 mb-1 overflow-hidden">
             {items.map((item) => (
                 <Card key={item.label} className={`flex-1 border-none shadow-sm overflow-hidden ${item.bg}`}>
-                    <CardContent className="px-2 py-1.5 flex items-center justify-between gap-1">
+                    <CardContent className="px-2 py-1 flex items-center justify-between gap-1">
                         <div className="flex flex-col space-y-0 min-w-0">
                             <span className="text-[8px] font-black uppercase tracking-wider text-slate-500 truncate" title={item.label}>{item.label}</span>
-                            <span className={`text-base font-black leading-tight ${item.color}`}>{item.count}</span>
+                            <span className={`text-sm font-black leading-tight ${item.color}`}>{item.count}</span>
                         </div>
                         <div className={`h-5 w-5 rounded flex-shrink-0 flex items-center justify-center bg-white/60`}>
                             <item.icon className={`h-3 w-3 ${item.color}`} />

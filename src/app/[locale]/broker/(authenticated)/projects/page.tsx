@@ -67,7 +67,7 @@ export default async function BrokerProjectsPage(props: {
                             </div>
                             <div className="p-3 flex-1 flex flex-col gap-2">
                                 <div>
-                                    <h3 className="text-sm font-bold truncate text-slate-900 leading-tight">{project.name}</h3>
+                                    <h3 className="text-sm font-bold break-words text-slate-900 leading-tight">{project.name}</h3>
                                     <div className="flex items-center gap-1 text-slate-500 text-[10px] mt-0.5">
                                         <MapPin className="h-3 w-3" />
                                         {project.city}

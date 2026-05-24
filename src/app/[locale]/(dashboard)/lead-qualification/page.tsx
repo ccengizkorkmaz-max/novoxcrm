@@ -29,6 +29,8 @@ export default async function LeadQualificationPage(props: {
     const projectFilters = typeof searchParams.project_id === 'string' && searchParams.project_id ? searchParams.project_id.split(',') : []
     const assignedFilters = typeof searchParams.assigned_to === 'string' && searchParams.assigned_to ? searchParams.assigned_to.split(',') : []
     const sourceFilters = typeof searchParams.source === 'string' && searchParams.source ? searchParams.source.split(',') : []
+    const dateFrom = typeof searchParams.date_from === 'string' ? searchParams.date_from : ''
+    const dateTo = typeof searchParams.date_to === 'string' ? searchParams.date_to : ''
 
     let qualifications: any[] = []
     let totalCount = 0
@@ -69,6 +71,12 @@ export default async function LeadQualificationPage(props: {
         if (sourceFilters.length > 0) {
             queryCount = queryCount.in('source', sourceFilters)
         }
+        if (dateFrom) {
+            queryCount = queryCount.gte('created_at', dateFrom)
+        }
+        if (dateTo) {
+            queryCount = queryCount.lte('created_at', dateTo + 'T23:59:59')
+        }
         
         const { count } = await queryCount
         totalCount = count || 0
@@ -97,6 +105,12 @@ export default async function LeadQualificationPage(props: {
             }
             if (sourceFilters.length > 0) {
                 sQuery = sQuery.in('source', sourceFilters)
+            }
+            if (dateFrom) {
+                sQuery = sQuery.gte('created_at', dateFrom)
+            }
+            if (dateTo) {
+                sQuery = sQuery.lte('created_at', dateTo + 'T23:59:59')
             }
 
             const { count } = await sQuery
@@ -154,6 +168,12 @@ export default async function LeadQualificationPage(props: {
         }
         if (sourceFilters.length > 0) {
             queryData = queryData.in('source', sourceFilters)
+        }
+        if (dateFrom) {
+            queryData = queryData.gte('created_at', dateFrom)
+        }
+        if (dateTo) {
+            queryData = queryData.lte('created_at', dateTo + 'T23:59:59')
         }
             
         const { data, error } = await queryData

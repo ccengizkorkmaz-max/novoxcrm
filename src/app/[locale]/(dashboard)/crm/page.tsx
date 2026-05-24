@@ -131,11 +131,11 @@ export default async function CRMPage(props: {
 
     // Pipeline stats skeleton (shown while real stats load)
     const statsSkeleton = (
-        <div className="flex gap-1 mb-3 animate-pulse">
+        <div className="flex gap-1 mb-1 animate-pulse">
             {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
-                <div key={i} className="flex-1 rounded-lg bg-muted/50 p-2.5">
-                    <div className="h-2 w-12 bg-muted rounded mb-2" />
-                    <div className="h-5 w-8 bg-muted rounded" />
+                <div key={i} className="flex-1 rounded-lg bg-muted/50 p-1.5">
+                    <div className="h-2 w-10 bg-muted rounded mb-1" />
+                    <div className="h-4 w-6 bg-muted rounded" />
                 </div>
             ))}
         </div>
@@ -151,10 +151,10 @@ export default async function CRMPage(props: {
 
     // Sales List — renders IMMEDIATELY with first 50 records
     return (
-        <div className="flex flex-col gap-6">
-            <div className="sticky top-0 z-30 bg-background/95 backdrop-blur pb-2 pt-1 border-b mb-2">
-                <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-4 px-1">
+        <div className="flex flex-col gap-2">
+            <div className="sticky top-0 z-30 bg-background/95 backdrop-blur pb-1 pt-0.5 border-b mb-1">
+                <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3 px-1">
                         <h1 className="text-xl md:text-2xl font-bold tracking-tight whitespace-nowrap">{isBroker ? 'İşlem Yönetimi' : t('title')}</h1>
                         
                         {/* Filter + NewSale — heavy data streams in via Suspense */}

@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { updateProject, batchCreateUnits, addBrokerAccess, removeBrokerAccess, deleteAllUnits } from './actions'
-import { uploadDocument, deleteDocument } from './documents-actions'
+import { deleteDocument } from './documents-actions'
 import { importUnitsFromExcel } from './import-actions'
 import { deleteUnit } from '../../inventory/[id]/actions'
 import { Plus, Globe, ExternalLink, MapPin, FileText, Download, Trash2, Home, Users } from 'lucide-react'
@@ -529,7 +529,7 @@ export default async function ProjectDetailPage(props: {
                                     Projeye ait tüm dokümanları buradan yönetebilirsiniz.
                                 </p>
                             </div>
-                            {isAdmin && <DocumentUpload projectId={project.id} onUpload={uploadDocument} />}
+                            {isAdmin && <DocumentUpload projectId={project.id} />}
                         </CardHeader>
                         <CardContent>
                             <Table>
@@ -537,7 +537,6 @@ export default async function ProjectDetailPage(props: {
                                     <TableRow>
                                         <TableHead>Döküman Adı</TableHead>
                                         <TableHead>Açıklama</TableHead>
-                                        <TableHead>Dosya Tipi</TableHead>
                                         <TableHead>Yükleme Tarihi</TableHead>
                                         <TableHead>Yükleyen</TableHead>
                                         <TableHead className="text-right">İşlemler</TableHead>
@@ -549,9 +548,6 @@ export default async function ProjectDetailPage(props: {
                                             <TableRow key={doc.id}>
                                                 <TableCell className="font-medium">{doc.document_name}</TableCell>
                                                 <TableCell className="max-w-xs truncate">{doc.description || '-'}</TableCell>
-                                                <TableCell>
-                                                    <Badge variant="outline">{doc.file_type || 'Unknown'}</Badge>
-                                                </TableCell>
                                                 <TableCell>{new Date(doc.created_at).toLocaleDateString('tr-TR')}</TableCell>
                                                 <TableCell>{doc.uploader_name || 'Unknown'}</TableCell>
                                                 <TableCell className="text-right">
@@ -574,7 +570,7 @@ export default async function ProjectDetailPage(props: {
                                         ))
                                     ) : (
                                         <TableRow>
-                                            <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
+                                            <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">
                                                 Henüz döküman yüklenmemiş.
                                             </TableCell>
                                         </TableRow>

@@ -59,6 +59,8 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
     const [selectedSources, setSelectedSources] = useState<string[]>(
         searchParams.get('source') ? searchParams.get('source')!.split(',') : []
     )
+    const [dateFrom, setDateFrom] = useState(searchParams.get('date_from') || '')
+    const [dateTo, setDateTo] = useState(searchParams.get('date_to') || '')
     
     const [isBulkDisqualifyDialogOpen, setIsBulkDisqualifyDialogOpen] = useState(false)
     const [isBulkDisqualifying, setIsBulkDisqualifying] = useState(false)
@@ -76,6 +78,8 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
         const urlProject = searchParams.get('project_id') ? searchParams.get('project_id')!.split(',') : []
         const urlAssignee = searchParams.get('assigned_to') ? searchParams.get('assigned_to')!.split(',') : []
         const urlSource = searchParams.get('source') ? searchParams.get('source')!.split(',') : []
+        const urlDateFrom = searchParams.get('date_from') || ''
+        const urlDateTo = searchParams.get('date_to') || ''
 
         if (urlSearch !== searchQuery) setSearchQuery(urlSearch)
         if (urlStatus.join(',') !== selectedStatuses.join(',')) setSelectedStatuses(urlStatus)
@@ -83,6 +87,8 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
         if (urlProject.join(',') !== selectedProjects.join(',')) setSelectedProjects(urlProject)
         if (urlAssignee.join(',') !== selectedAssignees.join(',')) setSelectedAssignees(urlAssignee)
         if (urlSource.join(',') !== selectedSources.join(',')) setSelectedSources(urlSource)
+        if (urlDateFrom !== dateFrom) setDateFrom(urlDateFrom)
+        if (urlDateTo !== dateTo) setDateTo(urlDateTo)
     }, [searchParams])
 
     // Update URL when filters change
@@ -136,6 +142,18 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
                 else params.delete('source')
                 changed = true
             }
+
+            if (dateFrom !== (params.get('date_from') || '')) {
+                if (dateFrom) params.set('date_from', dateFrom)
+                else params.delete('date_from')
+                changed = true
+            }
+
+            if (dateTo !== (params.get('date_to') || '')) {
+                if (dateTo) params.set('date_to', dateTo)
+                else params.delete('date_to')
+                changed = true
+            }
             
             if (changed) {
                 params.delete('page') // reset page on filter
@@ -143,7 +161,7 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
             }
         }, 400)
         return () => clearTimeout(timer)
-    }, [searchQuery, selectedStatuses, selectedInterestLevels, selectedProjects, selectedAssignees, selectedSources, router])
+    }, [searchQuery, selectedStatuses, selectedInterestLevels, selectedProjects, selectedAssignees, selectedSources, dateFrom, dateTo, router])
     
     // Dialog states
     const [isNoteDialogOpen, setIsNoteDialogOpen] = useState(false)
@@ -333,7 +351,9 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
         selectedProjects.length + 
         selectedAssignees.length + 
         selectedSources.length +
-        (searchQuery.trim() ? 1 : 0)
+        (searchQuery.trim() ? 1 : 0) +
+        (dateFrom ? 1 : 0) +
+        (dateTo ? 1 : 0)
 
     const handleClearAllFilters = () => {
         setSelectedStatuses([])
@@ -342,6 +362,8 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
         setSelectedAssignees([])
         setSelectedSources([])
         setSearchQuery('')
+        setDateFrom('')
+        setDateTo('')
         
         // Reset URL
         const params = new URLSearchParams(window.location.search)
@@ -351,6 +373,8 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
         params.delete('project_id')
         params.delete('assigned_to')
         params.delete('source')
+        params.delete('date_from')
+        params.delete('date_to')
         params.delete('page')
         router.push(`?${params.toString()}`)
         
@@ -663,6 +687,33 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
                                                 })}
                                             </div>
                                         </div>
+
+                                        <Separator />
+
+                                        {/* Kayıt Tarihi Aralığı Filtresi */}
+                                        <div className="space-y-3">
+                                            <h3 className="font-bold text-sm text-slate-700">Kayıt Tarihi</h3>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div className="space-y-1">
+                                                    <Label className="text-[10px] font-semibold text-slate-500">Başlangıç</Label>
+                                                    <input
+                                                        type="date"
+                                                        value={dateFrom}
+                                                        onChange={(e) => setDateFrom(e.target.value)}
+                                                        className="w-full px-2.5 py-1.5 text-xs border rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 bg-background"
+                                                    />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <Label className="text-[10px] font-semibold text-slate-500">Bitiş</Label>
+                                                    <input
+                                                        type="date"
+                                                        value={dateTo}
+                                                        onChange={(e) => setDateTo(e.target.value)}
+                                                        className="w-full px-2.5 py-1.5 text-xs border rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 bg-background"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -798,6 +849,32 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
                             )
                         })}
 
+                        {/* Date From Chip */}
+                        {dateFrom && (
+                            <Badge variant="secondary" className="bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center gap-1 pr-1 font-semibold text-xs border border-slate-200">
+                                Başlangıç: {dateFrom}
+                                <button
+                                    onClick={() => setDateFrom('')}
+                                    className="rounded-full p-0.5 hover:bg-slate-300 text-slate-400 hover:text-slate-600 transition-colors"
+                                >
+                                    <X className="h-3 w-3" />
+                                </button>
+                            </Badge>
+                        )}
+
+                        {/* Date To Chip */}
+                        {dateTo && (
+                            <Badge variant="secondary" className="bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center gap-1 pr-1 font-semibold text-xs border border-slate-200">
+                                Bitiş: {dateTo}
+                                <button
+                                    onClick={() => setDateTo('')}
+                                    className="rounded-full p-0.5 hover:bg-slate-300 text-slate-400 hover:text-slate-600 transition-colors"
+                                >
+                                    <X className="h-3 w-3" />
+                                </button>
+                            </Badge>
+                        )}
+                        
                         {/* Quick clear link */}
                         <button
                             onClick={handleClearAllFilters}

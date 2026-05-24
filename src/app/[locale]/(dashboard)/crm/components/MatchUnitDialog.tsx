@@ -23,9 +23,10 @@ interface MatchUnitDialogProps {
     availableUnits: any[]
     customerName: string
     projects?: any[]
+    triggerSize?: 'default' | 'sm' | 'xs'
 }
 
-export default function MatchUnitDialog({ saleId, currentUnitId, availableUnits, customerName, projects: projectsProp }: MatchUnitDialogProps) {
+export default function MatchUnitDialog({ saleId, currentUnitId, availableUnits, customerName, projects: projectsProp, triggerSize }: MatchUnitDialogProps) {
     const t = useTranslations('CRM.matchUnit')
     const [isOpen, setIsOpen] = useState(false)
     const [selectedProjectId, setSelectedProjectId] = useState("")
@@ -89,12 +90,12 @@ export default function MatchUnitDialog({ saleId, currentUnitId, availableUnits,
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
                 {currentUnitId ? (
-                    <Button variant="ghost" size="icon" title={t('tooltipChange')}>
-                        <Link2 className="h-4 w-4 text-primary" />
+                    <Button variant="ghost" size="icon" className={triggerSize === 'xs' ? "h-6 w-6" : ""} title={t('tooltipChange')}>
+                        <Link2 className={triggerSize === 'xs' ? "h-3.5 w-3.5 text-primary" : "h-4 w-4 text-primary"} />
                     </Button>
                 ) : (
-                    <Button variant="outline" size="sm" className="gap-2">
-                        <Link2 className="h-4 w-4" /> {t('buttonMatch')}
+                    <Button variant="outline" size={triggerSize === 'xs' ? "sm" : "sm"} className={triggerSize === 'xs' ? "gap-1 h-6 text-[10px] px-1.5" : "gap-2"}>
+                        <Link2 className={triggerSize === 'xs' ? "h-3.5 w-3.5" : "h-4 w-4"} /> {t('buttonMatch')}
                     </Button>
                 )}
             </DialogTrigger>

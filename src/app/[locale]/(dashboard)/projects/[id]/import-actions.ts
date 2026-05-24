@@ -156,3 +156,79 @@ export async function importUnitsFromExcel(formData: FormData) {
         return { error: 'Dosya okunurken bir hata oluştu. Lütfen dosyanın bozuk olmadığından emin olun.' }
     }
 }
+
+export async function importUnitsMapped(projectId: string, units: any[]) {
+    const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    // Get tenant_id
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', user.id)
+        .single()
+
+    if (!profile?.tenant_id) return { error: 'No tenant found' }
+
+    if (!units || units.length === 0) {
+        return { error: 'Aktarılacak veri bulunamadı.' }
+    }
+
+    const parseNumber = (value: any): number | null => {
+        if (value === undefined || value === null || value === '') return null
+        if (typeof value === 'number') return value
+        const cleanStr = String(value).replace(/\s/g, '') // remove spaces
+        if (!cleanStr) return null
+
+        let parsed
+        if (cleanStr.includes(',') && cleanStr.includes('.')) {
+            parsed = parseFloat(cleanStr.replace(/\./g, '').replace(',', '.'))
+        } else if (cleanStr.includes(',')) {
+            parsed = parseFloat(cleanStr.replace(',', '.'))
+        } else {
+            parsed = parseFloat(cleanStr)
+        }
+        return isNaN(parsed) ? null : parsed
+    }
+
+    const parseInteger = (value: any): number | null => {
+        const num = parseNumber(value)
+        return num !== null ? Math.round(num) : null
+    }
+
+    // Attach tenant_id and project_id server-side for security
+    const sanitizedUnits = units.map(u => {
+        const rawPrice = parseNumber(u.price)
+        const price = rawPrice !== null ? rawPrice : 0
+
+        return {
+            tenant_id: profile.tenant_id,
+            project_id: projectId,
+            unit_number: String(u.unit_number || '').trim(),
+            type: String(u.type || '').trim(),
+            unit_category: u.unit_category ? String(u.unit_category).trim() : null,
+            block: u.block ? String(u.block).trim() : null,
+            floor: parseInteger(u.floor),
+            price: price,
+            currency: u.currency ? String(u.currency).trim() : 'TRY',
+            area_gross: parseNumber(u.area_gross),
+            area_net: parseNumber(u.area_net),
+            status: u.status ? String(u.status).trim() : 'For Sale',
+            direction: u.direction ? String(u.direction).trim() : null
+        }
+    })
+
+    const { error } = await supabase
+        .from('units')
+        .insert(sanitizedUnits)
+
+    if (error) {
+        console.error('Import Mapped Units Error:', error)
+        return { error: 'Üniteler aktarılamadı: ' + error.message }
+    }
+
+    revalidatePath(`/projects/${projectId}`)
+    return { success: true, count: sanitizedUnits.length }
+}

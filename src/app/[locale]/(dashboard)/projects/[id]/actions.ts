@@ -9,7 +9,7 @@ export async function updateProject(formData: FormData) {
 
     const amenities = formData.getAll('amenities')
 
-    const updates = {
+    const updates: Record<string, any> = {
         project_code: formData.get('project_code') as string,
         name: formData.get('name') as string,
         manager_name: formData.get('manager_name') as string,
@@ -34,6 +34,23 @@ export async function updateProject(formData: FormData) {
         amenities: amenities, // Stored as JSONB array of strings
         visibility_type: formData.get('visibility_type') as string || 'public',
         min_broker_level_id: formData.get('min_broker_level_id') as string || null
+    }
+
+    // Dynamic filtering based on existing columns in the database
+    const { data: columnCheck } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle()
+
+    if (columnCheck) {
+        const dbColumns = Object.keys(columnCheck)
+        for (const key of Object.keys(updates)) {
+            if (!dbColumns.includes(key)) {
+                console.warn(`Column '${key}' does not exist in 'projects' table. Skipping from update payload.`);
+                delete updates[key]
+            }
+        }
     }
 
     const { error } = await supabase
