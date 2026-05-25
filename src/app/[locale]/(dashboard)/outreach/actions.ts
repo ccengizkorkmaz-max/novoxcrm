@@ -654,13 +654,55 @@ export async function getWorkflowMonitor(workflowId: string, page: number = 1) {
 
     if (!workflow) return { error: 'Workflow not found' }
 
-    // Get total counts by status (for header stats — always full, paginated to avoid 1000 limit)
+    // 1. Get currently active phone calls (AI calls where status = 'sent' and completed_at is null)
+    // We fetch these across the entire table to show at the top of the monitor
+    const { data: activeLogs } = await adminDb.from('outreach_step_logs')
+        .select(`
+            execution_id, channel, status, template_name, message_content, call_duration_seconds, call_outcome, call_summary, cost_amount, executed_at, completed_at,
+            outreach_executions (
+                id, workflow_id, status, current_step_order, next_action_at, started_at, completed_at, current_retry_count,
+                customers(id, full_name, phone),
+                outreach_workflows(name)
+            )
+        `)
+        .eq('channel', 'ai_call')
+        .eq('status', 'sent')
+        .is('completed_at', null)
+
+    const activeExecutions: any[] = []
+    const activeLogData: any[] = []
+    const activeIds = new Set<string>()
+
+    if (activeLogs) {
+        activeLogs.forEach((l: any) => {
+            const exec = l.outreach_executions
+            if (exec && exec.id && exec.workflow_id === workflowId) {
+                activeExecutions.push(exec)
+                activeIds.add(exec.id)
+                activeLogData.push({
+                    execution_id: l.execution_id,
+                    channel: l.channel,
+                    status: l.status,
+                    template_name: l.template_name,
+                    message_content: l.message_content,
+                    call_duration_seconds: l.call_duration_seconds,
+                    call_outcome: l.call_outcome,
+                    call_summary: l.call_summary,
+                    cost_amount: l.cost_amount,
+                    executed_at: l.executed_at,
+                    completed_at: l.completed_at
+                })
+            }
+        })
+    }
+
+    // 2. Get total counts by status (always full, paginated to avoid 1000 limit)
     const allExecs: any[] = []
     let fromExec = 0
     let hasMoreExecs = true
     while (hasMoreExecs && allExecs.length < 50000) {
         const { data: chunk, error } = await adminDb.from('outreach_executions')
-            .select('status, started_at')
+            .select('status, started_at, current_step_order, current_retry_count')
             .eq('workflow_id', workflowId)
             .range(fromExec, fromExec + 999)
         if (error) {
@@ -679,19 +721,56 @@ export async function getWorkflowMonitor(workflowId: string, page: number = 1) {
         }
     }
 
-    const statusCounts = { active: 0, waiting: 0, completed: 0, converted: 0, failed: 0 }
+    const statusCounts = { 
+        active: 0, 
+        waiting: 0, 
+        completed: 0, 
+        converted: 0, 
+        failed: 0,
+        stopped: 0,
+        // Detailed breakdowns for live view:
+        firstCallPending: 0,
+        secondCallPending: 0,
+        inWaitStep: 0,
+        whatsappPending: 0,
+        calledAtLeastOnce: 0,
+        activeCallsCount: activeExecutions.length
+    }
+
     allExecs.forEach((e: any) => {
-        if (e.status in statusCounts) statusCounts[e.status as keyof typeof statusCounts]++
+        if (e.status in statusCounts) {
+            statusCounts[e.status as keyof typeof statusCounts]++
+        }
+        
+        // Is this a brand new run waiting for its first dial?
+        const isNeverCalled = (e.status === 'active' || e.status === 'waiting') && 
+                              e.current_step_order === 1 && 
+                              (!e.current_retry_count || e.current_retry_count === 0);
+                              
+        if (isNeverCalled) {
+            statusCounts.firstCallPending++
+        } else {
+            statusCounts.calledAtLeastOnce++
+            if (e.status === 'active' || e.status === 'waiting') {
+                if (e.current_step_order === 1) {
+                    statusCounts.secondCallPending++
+                } else if (e.current_step_order === 2) {
+                    statusCounts.inWaitStep++
+                } else if (e.current_step_order === 3) {
+                    statusCounts.whatsappPending++
+                }
+            }
+        }
     })
     const totalCount = allExecs.length
 
-    // Get paginated executions with customer info
+    // 3. Get paginated executions with customer info
     const from = (page - 1) * PAGE_SIZE
     const to = from + PAGE_SIZE - 1
 
     const { data: executions } = await adminDb.from('outreach_executions')
         .select(`
-            id, status, current_step_order, next_action_at, started_at, completed_at,
+            id, status, current_step_order, next_action_at, started_at, completed_at, current_retry_count,
             customers(id, full_name, phone),
             outreach_workflows(name)
         `)
@@ -715,10 +794,24 @@ export async function getWorkflowMonitor(workflowId: string, page: number = 1) {
     todayStart.setHours(0, 0, 0, 0)
     const todayCount = allExecs?.filter((e: any) => new Date(e.started_at) >= todayStart).length || 0
 
+    // Combine active executions and paginated executions (preventing duplication)
+    let combinedExecutions = executions || []
+    let combinedLogs = logs || []
+
+    if (page === 1) {
+        const filteredPaginated = combinedExecutions.filter(e => !activeIds.has(e.id))
+        combinedExecutions = [...activeExecutions, ...filteredPaginated]
+        
+        // Remove duplicate logs
+        const logIdSet = new Set(combinedLogs.map(l => `${l.execution_id}-${l.channel}-${l.status}`))
+        const uniqueActiveLogs = activeLogData.filter(l => !logIdSet.has(`${l.execution_id}-${l.channel}-${l.status}`))
+        combinedLogs = [...uniqueActiveLogs, ...combinedLogs]
+    }
+
     return {
         workflow,
-        executions: executions || [],
-        logs,
+        executions: combinedExecutions,
+        logs: combinedLogs,
         stats: statusCounts,
         totalCount,
         todayCount,

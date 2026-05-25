@@ -23,6 +23,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }>
     completed: { label: 'Tamamlandı', color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30', icon: CheckCircle2 },
     converted: { label: 'Dönüştü', color: 'text-violet-400 bg-violet-500/10 border-violet-500/30', icon: TrendingUp },
     failed: { label: 'Başarısız', color: 'text-red-400 bg-red-500/10 border-red-500/30', icon: XCircle },
+    stopped: { label: 'Tamamlandı (Akış Bitti)', color: 'text-emerald-500 bg-emerald-600/10 border-emerald-500/30', icon: CheckCircle2 },
 }
 
 const CALL_OUTCOME_CONFIG: Record<string, { label: string; emoji: string }> = {
@@ -61,7 +62,7 @@ export function WorkflowMonitor({ workflowId, workflowName, onClose }: WorkflowM
 
     useEffect(() => {
         fetchData()
-        const interval = setInterval(fetchData, 15000)
+        const interval = setInterval(fetchData, 5000)
         return () => clearInterval(interval)
     }, [fetchData])
 
@@ -119,7 +120,7 @@ export function WorkflowMonitor({ workflowId, workflowName, onClose }: WorkflowM
                         Canlı Takip — {workflowName}
                     </h1>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                        {workflow?.is_active ? '🟢 Aktif' : '⏸️ Duraklatıldı'} · Günlük max: {workflow?.max_leads_per_day || 50} · 15 sn'de bir yenilenir
+                        {workflow?.is_active ? '🟢 Aktif' : '⏸️ Duraklatıldı'} · Günlük max: {workflow?.max_leads_per_day || 50} · 5 sn'de bir yenilenir (Anlık Canlı Veri)
                     </p>
                 </div>
                 <Button size="sm" variant="outline" onClick={handleRefresh} disabled={refreshing}
@@ -132,18 +133,48 @@ export function WorkflowMonitor({ workflowId, workflowName, onClose }: WorkflowM
             {/* Stats Cards */}
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                 {[
-                    { label: 'Toplam', value: totalCount, color: 'text-slate-300', bg: 'from-slate-500/10' },
-                    { label: 'Bugün', value: todayCount, color: 'text-blue-400', bg: 'from-blue-500/10' },
-                    { label: 'Tamamlanan', value: stats.completed + stats.converted, color: 'text-emerald-400', bg: 'from-emerald-500/10' },
-                    { label: 'Dönüşüm', value: stats.converted, color: 'text-violet-400', bg: 'from-violet-500/10' },
-                    { label: 'Bekleyen', value: stats.active + stats.waiting, color: 'text-amber-400', bg: 'from-amber-500/10' },
+                    { label: 'Toplam Segment', value: totalCount, color: 'text-slate-300', bg: 'from-slate-500/10' },
+                    { label: 'Bugün İşlenen', value: todayCount, color: 'text-blue-400', bg: 'from-blue-500/10' },
+                    { label: 'Tamamlanan', value: (stats.completed || 0) + (stats.converted || 0) + (stats.stopped || 0), color: 'text-emerald-400', bg: 'from-emerald-500/10' },
+                    { label: 'En Az 1 Kez Aranan', value: stats.calledAtLeastOnce || 0, color: 'text-violet-400', bg: 'from-violet-500/10' },
+                    { label: 'Aktif Çağrı', value: stats.activeCallsCount || 0, color: (stats.activeCallsCount || 0) > 0 ? 'text-emerald-400 animate-pulse font-bold' : 'text-slate-500', bg: (stats.activeCallsCount || 0) > 0 ? 'from-emerald-500/20' : 'from-slate-500/5' },
                 ].map((stat, i) => (
-                    <Card key={i} className={`p-3 bg-gradient-to-b ${stat.bg} to-transparent border-white/5`}>
+                    <Card key={i} className={`p-3 bg-gradient-to-b ${stat.bg} to-transparent border-white/5 border`}>
                         <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{stat.label}</p>
-                        <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
+                        <div className="flex items-center justify-between mt-1">
+                            <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
+                            {stat.label === 'Aktif Çağrı' && (stats.activeCallsCount || 0) > 0 && (
+                                <span className="flex h-3 w-3 relative">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                                </span>
+                            )}
+                        </div>
                     </Card>
                 ))}
             </div>
+
+            {/* Detailed Breakdowns */}
+            <Card className="p-3 bg-muted/10 border-white/5">
+                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                    <Clock className="h-3.5 w-3.5 text-blue-400" />
+                    Kuyruk ve Süreç Adım Detayları (Bekleyenler Kırılımı)
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {[
+                        { label: '1. Telefon Araması Bekleyen', value: stats.firstCallPending || 0, sub: 'Henüz hiç aranmadı', color: 'text-amber-500', bg: 'bg-amber-500/5' },
+                        { label: '2. Arama Bekleyen (Tekrar)', value: stats.secondCallPending || 0, sub: 'Açmayanların 30dk bekleyenleri', color: 'text-orange-500', bg: 'bg-orange-500/5' },
+                        { label: 'Bekleme Süresinde Olanlar', value: stats.inWaitStep || 0, sub: 'Arananların 1 saatlik beklemesi', color: 'text-blue-500', bg: 'bg-blue-500/5' },
+                        { label: 'WhatsApp Mesaj Sırasında', value: stats.whatsappPending || 0, sub: 'Bekleme sonrası WP bekleyenler', color: 'text-emerald-500', bg: 'bg-emerald-500/5' },
+                    ].map((step, i) => (
+                        <div key={i} className={`p-2.5 rounded-lg border border-white/5 ${step.bg}`}>
+                            <p className="text-[10px] text-muted-foreground font-medium">{step.label}</p>
+                            <p className={`text-xl font-bold mt-0.5 ${step.color}`}>{step.value}</p>
+                            <p className="text-[9px] text-muted-foreground/75 mt-0.5">{step.sub}</p>
+                        </div>
+                    ))}
+                </div>
+            </Card>
 
             {/* Execution Table */}
             <Card className="overflow-hidden">
@@ -187,13 +218,32 @@ export function WorkflowMonitor({ workflowId, workflowName, onClose }: WorkflowM
                             ) : (
                                 executions.map((exec: any) => {
                                     const log = logMap.get(exec.id)
-                                    const statusConf = STATUS_CONFIG[exec.status] || STATUS_CONFIG.active
+                                    const isCallActive = log?.channel === 'ai_call' && log?.status === 'sent' && !log?.completed_at;
+                                    
+                                    // Custom status styling for active calls
+                                    const statusConf = isCallActive 
+                                        ? { label: 'Arama Yapılıyor...', color: 'text-emerald-400 bg-emerald-500/20 border-emerald-500 animate-pulse', icon: PhoneIncoming }
+                                        : (STATUS_CONFIG[exec.status] || STATUS_CONFIG.active)
+                                    
                                     const outcomeConf = log?.call_outcome ? CALL_OUTCOME_CONFIG[log.call_outcome] : null
                                     const StatusIcon = statusConf.icon
 
                                     return (
-                                        <tr key={exec.id} className="border-t border-white/5 hover:bg-muted/20 transition-colors">
-                                            <td className="p-2.5 font-medium">
+                                        <tr 
+                                            key={exec.id} 
+                                            className={`border-t border-white/5 hover:bg-muted/20 transition-colors ${
+                                                isCallActive 
+                                                    ? 'bg-emerald-500/5 border-l-2 border-l-emerald-500 font-semibold' 
+                                                    : ''
+                                            }`}
+                                        >
+                                            <td className="p-2.5 font-medium flex items-center gap-1.5">
+                                                {isCallActive && (
+                                                    <span className="flex h-2 w-2 relative">
+                                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                                    </span>
+                                                )}
                                                 {exec.customers?.full_name || 'İsimsiz'}
                                             </td>
                                             <td className="p-2.5 text-muted-foreground font-mono">
@@ -209,7 +259,7 @@ export function WorkflowMonitor({ workflowId, workflowName, onClose }: WorkflowM
                                             <td className="p-2.5 text-left text-muted-foreground">
                                                 {log?.template_name ? (
                                                     <span className="text-[10px] bg-blue-500/10 text-blue-400 px-1.5 py-0.5 rounded">
-                                                        {log.template_name.replace('novo_kampanya_', '').replace('_v2', '')}
+                                                        {log.template_name.replace('novo_campaign_', '').replace('novo_kampanya_', '').replace('_v2', '')}
                                                     </span>
                                                 ) : log?.channel === 'ai_call' ? (
                                                     <span className="text-[10px] bg-purple-500/10 text-purple-400 px-1.5 py-0.5 rounded">AI Arama</span>
@@ -222,7 +272,9 @@ export function WorkflowMonitor({ workflowId, workflowName, onClose }: WorkflowM
                                                 </Badge>
                                             </td>
                                             <td className="p-2.5 text-center">
-                                                {outcomeConf ? (
+                                                {isCallActive ? (
+                                                    <span className="text-xs text-emerald-400 animate-pulse font-medium">Bağlanıyor...</span>
+                                                ) : outcomeConf ? (
                                                     <span className="text-xs">
                                                         {outcomeConf.emoji} {outcomeConf.label}
                                                     </span>
@@ -236,7 +288,9 @@ export function WorkflowMonitor({ workflowId, workflowName, onClose }: WorkflowM
                                                     : '—'}
                                             </td>
                                             <td className="p-2.5 max-w-[200px] truncate text-muted-foreground">
-                                                {log?.call_summary || '—'}
+                                                {isCallActive ? (
+                                                    <span className="text-xs text-emerald-400/80 animate-pulse italic">Müşteri aranıyor, santralde hat çalan durumunda...</span>
+                                                ) : (log?.call_summary || '—')}
                                             </td>
                                         </tr>
                                     )
