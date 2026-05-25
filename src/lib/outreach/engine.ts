@@ -296,7 +296,7 @@ async function executeAiCall(execution: any, step: any, config: StepConfig, phon
         phoneNumber: cleanPhone,
         // Always use the default Vapi assistant, override with script prompt
         systemPrompt: scriptPrompt,
-        firstMessage: execution.metadata?.personalized_message || undefined,
+        firstMessage: execution.metadata?.personalized_message || (customer?.full_name ? `Merhaba ${customer.full_name}, size Novo İnşaat’tan ulaşıyorum. Ben Çiçek, nasılsınız?` : "Merhaba, size Novo İnşaat’tan ulaşıyorum. Ben Çiçek, nasılsınız?"),
         metadata: {
             execution_id: execution.id,
             sale_id: execution.sale_id,
@@ -1229,11 +1229,38 @@ export async function startWorkflowForLeads(workflowId: string, leadIds: string[
 // ─── Helpers ─────────────────────────────────────────────────
 
 function isWithinWorkingHours(workflow: any): boolean {
+    const timezone = workflow.timezone || 'Europe/Istanbul'
     const now = new Date()
-    const hours = now.getHours()
-    const minutes = now.getMinutes()
+
+    // Get current time in workflow's timezone
+    const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: timezone,
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: 'numeric',
+        second: 'numeric',
+        hour12: false
+    })
+
+    const parts = formatter.formatToParts(now)
+    const partMap: Record<string, string> = {}
+    parts.forEach(p => {
+        partMap[p.type] = p.value
+    })
+
+    const hours = Number(partMap.hour)
+    const minutes = Number(partMap.minute)
     const currentMinutes = hours * 60 + minutes
-    const dayOfWeek = now.getDay() || 7 // 1=Mon...7=Sun
+
+    // Day of week: Sunday is 0 in JS. We want 1=Mon...7=Sun.
+    // Construct local date in that timezone to find day of week
+    const y = Number(partMap.year)
+    const m = Number(partMap.month) - 1
+    const d = Number(partMap.day)
+    const localDateInTz = new Date(y, m, d)
+    const dayOfWeek = localDateInTz.getDay() || 7
 
     const [startH, startM] = (workflow.working_hours_start || '09:00').split(':').map(Number)
     const [endH, endM] = (workflow.working_hours_end || '19:00').split(':').map(Number)
@@ -1246,22 +1273,93 @@ function isWithinWorkingHours(workflow: any): boolean {
 }
 
 function getNextWorkingTime(workflow: any): string {
-    const now = new Date()
+    const timezone = workflow.timezone || 'Europe/Istanbul'
     const [startH, startM] = (workflow.working_hours_start || '09:00').split(':').map(Number)
     const workingDays: number[] = workflow.working_days || [1, 2, 3, 4, 5]
 
-    // Try next hours today or tomorrow
-    const candidate = new Date(now)
-    candidate.setHours(startH, startM, 0, 0)
+    const now = new Date()
 
+    // Get current date parts in target timezone
+    const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: timezone,
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: 'numeric',
+        second: 'numeric',
+        hour12: false
+    })
+    const parts = formatter.formatToParts(now)
+    const partMap: Record<string, string> = {}
+    parts.forEach(p => {
+        partMap[p.type] = p.value
+    })
+
+    const y = Number(partMap.year)
+    const m = Number(partMap.month)
+    const d = Number(partMap.day)
+
+    // Helper to get UTC time corresponding to y-m-d H:M:00 in target timezone
+    const getUtcTimeForTz = (year: number, month: number, day: number, hour: number, minute: number) => {
+        const guess = new Date(Date.UTC(year, month - 1, day, hour, minute))
+        const checkParts = new Intl.DateTimeFormat('en-US', {
+            timeZone: timezone,
+            year: 'numeric', month: 'numeric', day: 'numeric',
+            hour: 'numeric', minute: 'numeric', second: 'numeric',
+            hour12: false
+        }).formatToParts(guess)
+
+        const checkMap: Record<string, string> = {}
+        checkParts.forEach(p => checkMap[p.type] = p.value)
+
+        const checkDate = new Date(Date.UTC(
+            Number(checkMap.year),
+            Number(checkMap.month) - 1,
+            Number(checkMap.day),
+            Number(checkMap.hour),
+            Number(checkMap.minute)
+        ))
+
+        const diff = guess.getTime() - checkDate.getTime()
+        return new Date(guess.getTime() + diff)
+    }
+
+    let candidate = getUtcTimeForTz(y, m, d, startH, startM)
     if (candidate <= now) {
-        candidate.setDate(candidate.getDate() + 1)
+        const tomorrow = new Date(now)
+        tomorrow.setDate(tomorrow.getDate() + 1)
+
+        const tomParts = new Intl.DateTimeFormat('en-US', {
+            timeZone: timezone,
+            year: 'numeric', month: 'numeric', day: 'numeric'
+        }).formatToParts(tomorrow)
+
+        const tomMap: Record<string, string> = {}
+        tomParts.forEach(p => tomMap[p.type] = p.value)
+
+        candidate = getUtcTimeForTz(Number(tomMap.year), Number(tomMap.month), Number(tomMap.day), startH, startM)
     }
 
     // Skip non-working days
     let attempts = 0
-    while (!workingDays.includes(candidate.getDay() || 7) && attempts < 7) {
-        candidate.setDate(candidate.getDate() + 1)
+    while (attempts < 7) {
+        const candParts = new Intl.DateTimeFormat('en-US', {
+            timeZone: timezone,
+            year: 'numeric', month: 'numeric', day: 'numeric'
+        }).formatToParts(candidate)
+
+        const candMap: Record<string, string> = {}
+        candParts.forEach(p => candMap[p.type] = p.value)
+
+        const localDate = new Date(Number(candMap.year), Number(candMap.month) - 1, Number(candMap.day))
+        const dayOfWeek = localDate.getDay() || 7
+
+        if (workingDays.includes(dayOfWeek)) {
+            break
+        }
+
+        candidate.setTime(candidate.getTime() + 24 * 60 * 60 * 1000)
         attempts++
     }
 

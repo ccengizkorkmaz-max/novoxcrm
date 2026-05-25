@@ -156,6 +156,11 @@ export async function makeOutboundCall(options: VapiCallOptions): Promise<VapiCa
             payload.assistant = {
                 serverUrl: 'https://oikoscrm.com/api/webhooks/vapi',
                 serverMessages: ['end-of-call-report', 'status-update'],
+                firstMessage: options.firstMessage || undefined,
+                firstMessageMode: options.firstMessage ? 'assistant-speaks-first' : 'assistant-waits-for-user',
+                startSpeakingPlan: {
+                    waitSeconds: 0.1
+                },
                 model: {
                     provider: 'openai',
                     model: 'gpt-4o-mini',

@@ -1030,7 +1030,7 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
                                                 )}
 
                                                 <div className="pt-2 mt-1 border-t border-slate-100 flex gap-1.5 flex-wrap">
-                                                    {col.id !== 'qualified' && col.id !== 'disqualified' && (
+                                                    {col.id !== 'disqualified' && (col.id !== 'qualified' || !qual.sale_id) && (
                                                         <>
                                                             <Button size="sm" variant="outline" className="h-7 text-xs flex-1 bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100" onClick={(e) => { e.stopPropagation(); handleAction(qual, 'note'); }}>
                                                                 <Phone className="w-3 h-3 mr-1" /> Ara/Not
@@ -1218,7 +1218,7 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
                                     )}
                                     
                                     {/* Aksiyon Alanı */}
-                                    {selectedQual.status !== 'qualified' && selectedQual.status !== 'disqualified' && (
+                                    {selectedQual.status !== 'disqualified' && (selectedQual.status !== 'qualified' || !selectedQual.sale_id) && (
                                         <div className="space-y-6">
                                             <div className="space-y-3">
                                                 <Label className="text-sm font-bold text-slate-700">Yeni Görüşme Notu</Label>
@@ -1446,7 +1446,7 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
                                             </div>
                                         </td>
                                         <td className="px-3 py-1 text-right space-x-1 whitespace-nowrap">
-                                            {qual.status !== 'qualified' && qual.status !== 'disqualified' && (
+                                            {qual.status !== 'disqualified' && (qual.status !== 'qualified' || !qual.sale_id) && (
                                                 <>
                                                     <Button size="sm" variant="outline" className="h-6 px-1.5 text-[10px] bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100" onClick={() => handleAction(qual, 'note')} title="Ara / Not Gir">
                                                         <Phone className="w-2.5 h-2.5 mr-0.5" /> Ara/Not
