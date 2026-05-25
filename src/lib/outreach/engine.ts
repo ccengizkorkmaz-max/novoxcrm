@@ -198,8 +198,8 @@ export async function processOutreachQueue() {
         try {
             // Eşzamanlı limit kontrolü — her arama öncesi tekrar kontrol et
             if (step.action_type === 'ai_call') {
-                if (processed >= 5) {
-                    console.log(`[Outreach] Arama limitine ulaşıldı (5), bu tetikleme sonlandırılıyor.`)
+                if (processed >= 8) {
+                    console.log(`[Outreach] Arama limitine ulaşıldı (8), bu tetikleme sonlandırılıyor.`)
                     break
                 }
                 const { count: currentCalls } = await supabase
