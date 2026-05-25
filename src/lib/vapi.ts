@@ -216,7 +216,13 @@ export async function makeOutboundCall(options: VapiCallOptions): Promise<VapiCa
             body: JSON.stringify(payload),
         })
 
-        const data = await response.json()
+        let data: any = {}
+        const text = await response.text()
+        try {
+            data = JSON.parse(text)
+        } catch (e) {
+            data = { error: text || `HTTP ${response.status}` }
+        }
 
         if (!response.ok) {
             console.error('[Vapi] Call initiation failed:', data)

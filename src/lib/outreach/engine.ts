@@ -319,11 +319,15 @@ async function executeAiCall(execution: any, step: any, config: StepConfig, phon
 
     if (result.success) {
         // Call initiated — wait for webhook to report result
-        // Set execution to 'waiting' state
+        // Set execution to 'waiting' state with a 10-minute timeout
+        const timeoutAt = new Date()
+        timeoutAt.setMinutes(timeoutAt.getMinutes() + 10)
+
         await supabase.from('outreach_executions')
             .update({
                 status: 'waiting',
                 current_step_id: step.id,
+                next_action_at: timeoutAt.toISOString(),
                 metadata: {
                     ...execution.metadata,
                     pending_call_id: result.callId,
