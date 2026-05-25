@@ -92,8 +92,10 @@ export async function processOutreachQueue() {
     const { count: activeCalls } = await supabase
         .from('outreach_step_logs')
         .select('id', { count: 'exact', head: true })
-        .eq('status', 'in_progress')
+        .eq('status', 'sent')
+        .is('completed_at', null)
         .eq('channel', 'ai_call')
+
 
     const availableSlots = maxConcurrent - (activeCalls || 0)
     if (availableSlots <= 0) {
@@ -198,14 +200,15 @@ export async function processOutreachQueue() {
         try {
             // Eşzamanlı limit kontrolü — her arama öncesi tekrar kontrol et
             if (step.action_type === 'ai_call') {
-                if (processed >= 8) {
-                    console.log(`[Outreach] Arama limitine ulaşıldı (8), bu tetikleme sonlandırılıyor.`)
+                if (processed >= maxConcurrent) {
+                    console.log(`[Outreach] Arama limitine ulaşıldı (${maxConcurrent}), bu tetikleme sonlandırılıyor.`)
                     break
                 }
                 const { count: currentCalls } = await supabase
                     .from('outreach_step_logs')
                     .select('id', { count: 'exact', head: true })
-                    .eq('status', 'in_progress')
+                    .eq('status', 'sent')
+                    .is('completed_at', null)
                     .eq('channel', 'ai_call')
                 if ((currentCalls || 0) >= maxConcurrent) {
                     console.log(`[Outreach] Slot dolu, ${execution.id} erteleniyor`)
