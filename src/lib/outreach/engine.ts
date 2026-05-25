@@ -70,6 +70,12 @@ export async function processOutreachQueue() {
         return { processed: 0 }
     }
 
+
+    // ─── Pessimistic Locking (Moved inside loop) ─────────
+    // Batch locking here was removed to avoid locking records that are skipped or causing
+    // concurrent runs to step on each other. We lock records atomically inside the loop instead.
+
+
     // ─── Eşzamanlı arama limiti kontrolü ─────────────────
     // Get tenant-specific limit from first execution's tenant
     const tenantId = dueExecutions[0]?.tenant_id
@@ -108,6 +114,24 @@ export async function processOutreachQueue() {
         const batchSize = execution.outreach_workflows?.batch_size || 100
         const currentCount = workflowBatchCounts.get(wfId) || 0
         if (currentCount >= batchSize) continue
+
+        // ─── Individual Pessimistic Locking ───────────────────
+        // Lock this specific execution by updating its next_action_at.
+        // It must still have next_action_at <= now, ensuring no concurrent worker has processed it.
+        const lockTime = new Date(Date.now() + 2 * 60 * 1000).toISOString()
+        const { data: lockedExec, error: lockErr } = await supabase
+            .from('outreach_executions')
+            .update({ next_action_at: lockTime })
+            .eq('id', execution.id)
+            .lte('next_action_at', now)
+            .select('id')
+            .maybeSingle()
+
+        if (lockErr || !lockedExec) {
+            console.log(`[Outreach] Execution ${execution.id} already locked by another runner. Skipping.`)
+            continue
+        }
+
 
         // Check workflow still active
         if (!execution.outreach_workflows?.is_active) {
@@ -174,6 +198,10 @@ export async function processOutreachQueue() {
         try {
             // Eşzamanlı limit kontrolü — her arama öncesi tekrar kontrol et
             if (step.action_type === 'ai_call') {
+                if (processed >= 5) {
+                    console.log(`[Outreach] Arama limitine ulaşıldı (5), bu tetikleme sonlandırılıyor.`)
+                    break
+                }
                 const { count: currentCalls } = await supabase
                     .from('outreach_step_logs')
                     .select('id', { count: 'exact', head: true })
@@ -798,7 +826,7 @@ export async function handleVapiCallResult(callData: {
     }
 
     // Update the step log
-    await supabase.from('outreach_step_logs')
+    const { data: updatedLogs, error: updateErr } = await supabase.from('outreach_step_logs')
         .update({
             status: logStatus,
             call_duration_seconds: callData.duration,
@@ -811,6 +839,13 @@ export async function handleVapiCallResult(callData: {
         })
         .eq('execution_id', executionId)
         .eq('external_id', callData.callId)
+        .select('*')
+
+    if (updateErr) {
+        console.error(`[Outreach] Error updating step log for call ${callData.callId}:`, updateErr.message)
+    }
+
+    const logEntry = updatedLogs?.[0]
 
     // Get execution and step
     const { data: execution } = await supabase
@@ -820,6 +855,19 @@ export async function handleVapiCallResult(callData: {
         .single()
 
     if (!execution) return
+
+    // Safety checks:
+    // 1. If this is an old webhook from a call that isn't the active pending call anymore
+    if (execution.metadata?.pending_call_id && execution.metadata.pending_call_id !== callData.callId) {
+        console.log(`[Outreach] Webhook callId ${callData.callId} doesn't match execution pending_call_id ${execution.metadata.pending_call_id}. Skipping execution update.`)
+        return
+    }
+
+    // 2. If the execution has already moved to a different step
+    if (logEntry && execution.current_step_id !== logEntry.step_id) {
+        console.log(`[Outreach] Webhook step mismatch. Log step: ${logEntry.step_id}, Execution current step: ${execution.current_step_id}. Skipping execution update.`)
+        return
+    }
 
     const step = execution.outreach_steps || execution.current_step_id
     const stepData = await supabase.from('outreach_steps')
