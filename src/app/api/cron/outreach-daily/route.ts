@@ -66,7 +66,7 @@ export async function GET(req: NextRequest) {
                 .from('outreach_executions')
                 .select('id', { count: 'exact', head: true })
                 .eq('workflow_id', wf.id)
-                .gte('created_at', todayStart.toISOString())
+                .gte('started_at', todayStart.toISOString())
 
             const maxPerDay = wf.max_leads_per_day || 50
             const remaining = maxPerDay - (todayCount || 0)
