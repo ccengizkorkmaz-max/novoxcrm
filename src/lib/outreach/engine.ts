@@ -50,7 +50,7 @@ export async function processOutreachQueue() {
     const supabase = createAdminClient()
     const now = new Date().toISOString()
 
-    // Find executions that are due
+    // Find executions that are due, sorted by next_action_at ascending to prevent starvation
     const { data: dueExecutions, error } = await supabase
         .from('outreach_executions')
         .select(`
@@ -63,6 +63,7 @@ export async function processOutreachQueue() {
         `)
         .in('status', ['active', 'waiting'])
         .lte('next_action_at', now)
+        .order('next_action_at', { ascending: true })
         .limit(1000)
 
     if (error || !dueExecutions?.length) {
