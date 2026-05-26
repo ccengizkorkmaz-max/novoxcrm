@@ -159,18 +159,19 @@ export function WorkflowMonitor({ workflowId, workflowName, onClose }: WorkflowM
             <Card className="p-3 bg-muted/10 border-white/5">
                 <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
                     <Clock className="h-3.5 w-3.5 text-blue-400" />
-                    Kuyruk ve Süreç Adım Detayları (Bekleyenler Kırılımı)
+                    Müşteri Durum Kırılımı (Toplam: {totalCount.toLocaleString('tr-TR')})
                 </h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                     {[
-                        { label: '1. Telefon Araması Bekleyen', value: stats.firstCallPending || 0, sub: 'Henüz hiç aranmadı', color: 'text-amber-500', bg: 'bg-amber-500/5' },
-                        { label: '2. Arama Bekleyen (Tekrar)', value: stats.secondCallPending || 0, sub: 'Açmayanların 30dk bekleyenleri', color: 'text-orange-500', bg: 'bg-orange-500/5' },
-                        { label: 'Bekleme Süresinde Olanlar', value: stats.inWaitStep || 0, sub: 'Arananların 1 saatlik beklemesi', color: 'text-blue-500', bg: 'bg-blue-500/5' },
-                        { label: 'WhatsApp Mesaj Sırasında', value: stats.whatsappPending || 0, sub: 'Bekleme sonrası WP bekleyenler', color: 'text-emerald-500', bg: 'bg-emerald-500/5' },
+                        { label: 'Arama Bekleyen', value: stats.firstCallPending || 0, sub: 'Henüz hiç aranmadı', color: 'text-amber-500', bg: 'bg-amber-500/5' },
+                        { label: 'Tekrar Arama Bekleyen', value: stats.secondCallPending || 0, sub: 'Açmayanların 30dk bekleyenleri', color: 'text-orange-500', bg: 'bg-orange-500/5' },
+                        { label: 'Bekleme Süresinde', value: stats.inWaitStep || 0, sub: 'Arananların 1 saatlik beklemesi', color: 'text-blue-500', bg: 'bg-blue-500/5' },
+                        { label: 'WhatsApp Sırasında', value: stats.whatsappPending || 0, sub: 'Bekleme sonrası WP bekleyenler', color: 'text-emerald-500', bg: 'bg-emerald-500/5' },
+                        { label: 'Tamamlanan', value: (stats.completed || 0) + (stats.converted || 0) + (stats.stopped || 0), sub: 'Akışını tamamlamış müşteriler', color: 'text-slate-400', bg: 'bg-slate-500/5' },
                     ].map((step, i) => (
                         <div key={i} className={`p-2.5 rounded-lg border border-white/5 ${step.bg}`}>
                             <p className="text-[10px] text-muted-foreground font-medium">{step.label}</p>
-                            <p className={`text-xl font-bold mt-0.5 ${step.color}`}>{step.value}</p>
+                            <p className={`text-xl font-bold mt-0.5 ${step.color}`}>{step.value.toLocaleString('tr-TR')}</p>
                             <p className="text-[9px] text-muted-foreground/75 mt-0.5">{step.sub}</p>
                         </div>
                     ))}
