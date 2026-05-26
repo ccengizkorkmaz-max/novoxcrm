@@ -940,10 +940,10 @@ export async function handleVapiCallResult(callData: {
 
     const logEntry = updatedLogs?.[0]
 
-    // Get execution and step
+    // Get execution, step and workflow
     const { data: execution } = await supabase
         .from('outreach_executions')
-        .select('*, outreach_steps(*)')
+        .select('*, outreach_steps(*), outreach_workflows(*)')
         .eq('id', executionId)
         .single()
 
@@ -1046,7 +1046,14 @@ export async function handleVapiCallResult(callData: {
         // Update sales.updated_at so lead exits "inactive" segments
         await touchSaleTimestamp(execution.sale_id)
 
-        if (stepData?.data) {
+        // If the customer answered and we had a successful conversation, stop the execution if workflow is configured to do so
+        const stopOnResponse = execution?.outreach_workflows?.stop_on_customer_response !== false
+        if (outcome === 'success' && stopOnResponse) {
+            console.log(`[Outreach] Successful call conversation: stopping execution ${executionId} (stop_on_customer_response=true)`)
+            await supabase.from('outreach_executions')
+                .update({ status: 'completed', completed_at: new Date().toISOString() })
+                .eq('id', executionId)
+        } else if (stepData?.data) {
             await handleRetryOrAdvance(execution, stepData.data, stepData.data.config || {}, outcome, callData.duration)
         }
     }
