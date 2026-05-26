@@ -874,7 +874,7 @@ export async function getOutreachCeoReportData() {
         const { data, error } = await supabase
             .from('outreach_step_logs')
             .select(`
-                id, channel, status, call_duration_seconds, call_outcome, executed_at,
+                id, channel, status, call_duration_seconds, call_outcome, call_summary, call_recording_url, external_id, executed_at,
                 outreach_executions!inner(workflow_id)
             `)
             .eq('outreach_executions.workflow_id', workflowId)
@@ -885,51 +885,33 @@ export async function getOutreachCeoReportData() {
         logsPage++
     }
 
-    // Calculate outcomes — use status-based classification
-    // (call_duration_seconds is not populated by Vapi webhook for most calls)
-    const callLogs = allLogs.filter(l => l.channel === 'ai_call')
+    // Calculate outcomes — use RELIABLE proxy fields
+    // Vapi webhook does NOT populate call_duration_seconds, and status classification is unreliable.
+    // Instead, use:
+    //   - call_summary filled → real conversation happened (matches NetGSM >10s data)
+    //   - call_recording_url filled but no summary → phone answered briefly then hung up
+    //   - external_id NULL → call never reached Vapi (API failure) — EXCLUDED from counts
+    //   - everything else with external_id → call placed but not answered (busy/no_answer)
+    const allCallLogs = allLogs.filter(l => l.channel === 'ai_call')
     const whatsappLogs = allLogs.filter(l => l.channel === 'whatsapp')
 
-    let answeredAndSpoke = 0
-    let pickedUpAndHungUp = 0
-    let neverAnswered = 0
-    let busy = 0
-    let callFailed = 0
-    let converted = 0
+    // Only count calls that actually reached the telco (have external_id)
+    const callLogs = allCallLogs.filter(l => l.external_id)
+
+    let konusulan = 0       // Real conversation (call_summary filled)
+    let acipKapatan = 0     // Phone answered but hung up quickly (recording exists, no summary)
+    let cevapsiz = 0        // No answer
+    let mesgul = 0          // Busy signal
 
     callLogs.forEach(l => {
-        const duration = l.call_duration_seconds
-        const hasDuration = duration !== null && duration !== undefined && duration > 0
-
-        if (hasDuration) {
-            // Duration data available — use duration-based classification
-            if (duration > 30) {
-                answeredAndSpoke++
-            } else if (duration > 5) {
-                pickedUpAndHungUp++
-            } else {
-                // < 5 seconds = accidental pickup
-                neverAnswered++
-            }
+        if (l.call_summary) {
+            konusulan++
+        } else if (l.call_recording_url) {
+            acipKapatan++
+        } else if (l.status === 'busy' || l.call_outcome === 'busy') {
+            mesgul++
         } else {
-            // No duration data — use status/outcome-based classification
-            if (l.status === 'converted') {
-                converted++
-                answeredAndSpoke++ // converted implies a real conversation
-            } else if (l.status === 'answered') {
-                answeredAndSpoke++
-            } else if (l.status === 'hung_up') {
-                pickedUpAndHungUp++
-            } else if (l.status === 'busy' || l.call_outcome === 'busy') {
-                busy++
-            } else if (l.status === 'no_answer' || l.call_outcome === 'no_answer') {
-                neverAnswered++
-            } else if (l.status === 'failed') {
-                callFailed++
-            } else {
-                // sent, pending, or other
-                callFailed++
-            }
+            cevapsiz++
         }
     })
 
@@ -975,7 +957,7 @@ export async function getOutreachCeoReportData() {
         }
     })
 
-    // Date distribution for calls
+    // Date distribution — only real calls (with external_id)
     const dateDist: Record<string, number> = {}
     callLogs.forEach(l => {
         const date = l.executed_at ? l.executed_at.substring(0, 10) : 'unknown'
@@ -991,12 +973,10 @@ export async function getOutreachCeoReportData() {
         retryPending,
         resumptionCalls: callLogs.length,
         resumptionWhatsapp: whatsappLogs.length,
-        resumptionBusy: busy,
-        resumptionNoAnswer: neverAnswered,
-        resumptionSpoke: answeredAndSpoke,
-        resumptionHungUp: pickedUpAndHungUp,
-        resumptionConverted: converted,
-        resumptionFailed: callFailed,
+        resumptionBusy: mesgul,
+        resumptionNoAnswer: cevapsiz,
+        resumptionSpoke: konusulan,
+        resumptionHungUp: acipKapatan,
         callDateDistribution: dateDist,
         segmentActiveTargets: uniqueCustomersCount
     }

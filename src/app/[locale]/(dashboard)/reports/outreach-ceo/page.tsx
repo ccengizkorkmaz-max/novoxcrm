@@ -80,11 +80,11 @@ export default function OutreachCeoReportPage() {
     const spokeCount = data.resumptionSpoke || 0
     const hungUpCount = data.resumptionHungUp || 0
     const totalAnswered = spokeCount + hungUpCount
-    const answerRate = data.resumptionCalls > 0 ? (totalAnswered / data.resumptionCalls) * 100 : 0
+    const spokeRate = data.resumptionCalls > 0 ? (spokeCount / data.resumptionCalls) * 100 : 0
+    const hungUpRate = data.resumptionCalls > 0 ? (hungUpCount / data.resumptionCalls) * 100 : 0
     const conversionRate = data.uniqueCustomers > 0 ? (data.statusCounts.converted / data.uniqueCustomers) * 100 : 0
     const busyRate = data.resumptionCalls > 0 ? (data.resumptionBusy / data.resumptionCalls) * 100 : 0
     const noAnswerRate = data.resumptionCalls > 0 ? (data.resumptionNoAnswer / data.resumptionCalls) * 100 : 0
-    const failedRate = data.resumptionCalls > 0 ? (data.resumptionFailed / data.resumptionCalls) * 100 : 0
 
     // Date distribution for chart
     const dateDist = data.callDateDistribution || {}
@@ -230,7 +230,7 @@ export default function OutreachCeoReportPage() {
                                 <PhoneIncoming className="h-5 w-5 text-emerald-500 mx-auto mb-1.5" />
                                 <span className="text-xs text-muted-foreground font-bold uppercase">Konuşulan</span>
                                 <div className="text-3xl font-black tracking-tight text-emerald-500 mt-1">{spokeCount}</div>
-                                <span className="text-[10px] text-emerald-500/70 font-semibold">%{answerRate.toFixed(1)}</span>
+                                <span className="text-[10px] text-emerald-500/70 font-semibold">%{spokeRate.toFixed(1)}</span>
                             </div>
                             <div className="p-4 rounded-xl bg-amber-500/5 border border-amber-500/10 text-center">
                                 <PhoneOff className="h-5 w-5 text-amber-500 mx-auto mb-1.5" />
@@ -247,14 +247,11 @@ export default function OutreachCeoReportPage() {
                         </div>
 
                         {/* Additional metrics row */}
-                        <div className="grid grid-cols-3 gap-4">
+                        <div className="grid grid-cols-2 gap-4">
                             <div className="p-3 rounded-lg bg-orange-500/5 border border-orange-500/10 text-center">
-                                <span className="text-xs text-muted-foreground font-bold">Açıp Kapatan</span>
-                                <div className="text-xl font-black mt-0.5">{hungUpCount}</div>
-                            </div>
-                            <div className="p-3 rounded-lg bg-slate-500/5 border border-slate-500/10 text-center">
-                                <span className="text-xs text-muted-foreground font-bold">Başarısız/Hata</span>
-                                <div className="text-xl font-black mt-0.5">{data.resumptionFailed}</div>
+                                <span className="text-xs text-muted-foreground font-bold">Açıp Kısa Kapatan</span>
+                                <div className="text-xl font-black mt-0.5 text-orange-500">{hungUpCount}</div>
+                                <span className="text-[10px] text-orange-500/70 font-semibold">%{hungUpRate.toFixed(1)}</span>
                             </div>
                             <div className="p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/10 text-center">
                                 <span className="text-xs text-muted-foreground font-bold">WhatsApp Gönderilen</span>
@@ -268,9 +265,16 @@ export default function OutreachCeoReportPage() {
                             <div className="h-6 w-full rounded-full bg-muted flex overflow-hidden">
                                 {spokeCount > 0 && (
                                     <div
-                                        style={{ width: `${(spokeCount / data.resumptionCalls) * 100}%` }}
+                                        style={{ width: `${spokeRate}%` }}
                                         className="bg-emerald-500 h-full transition-all"
                                         title={`Konuşulan: ${spokeCount}`}
+                                    />
+                                )}
+                                {hungUpCount > 0 && (
+                                    <div
+                                        style={{ width: `${hungUpRate}%` }}
+                                        className="bg-orange-500 h-full transition-all"
+                                        title={`Açıp Kapatan: ${hungUpCount}`}
                                     />
                                 )}
                                 {data.resumptionBusy > 0 && (
@@ -287,18 +291,15 @@ export default function OutreachCeoReportPage() {
                                         title={`Cevapsız: ${data.resumptionNoAnswer}`}
                                     />
                                 )}
-                                {data.resumptionFailed > 0 && (
-                                    <div
-                                        style={{ width: `${failedRate}%` }}
-                                        className="bg-slate-400 h-full transition-all"
-                                        title={`Hata: ${data.resumptionFailed}`}
-                                    />
-                                )}
                             </div>
                             <div className="flex flex-wrap gap-x-6 gap-y-2 text-xs font-medium text-muted-foreground justify-center">
                                 <div className="flex items-center gap-1.5">
                                     <span className="h-3 w-3 rounded bg-emerald-500" />
-                                    Konuşulan: %{answerRate.toFixed(1)}
+                                    Konuşulan: %{spokeRate.toFixed(1)}
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                    <span className="h-3 w-3 rounded bg-orange-500" />
+                                    Açıp Kapatan: %{hungUpRate.toFixed(1)}
                                 </div>
                                 <div className="flex items-center gap-1.5">
                                     <span className="h-3 w-3 rounded bg-amber-500" />
@@ -307,10 +308,6 @@ export default function OutreachCeoReportPage() {
                                 <div className="flex items-center gap-1.5">
                                     <span className="h-3 w-3 rounded bg-rose-500" />
                                     Cevapsız: %{noAnswerRate.toFixed(1)}
-                                </div>
-                                <div className="flex items-center gap-1.5">
-                                    <span className="h-3 w-3 rounded bg-slate-400" />
-                                    Hata: %{failedRate.toFixed(1)}
                                 </div>
                             </div>
                         </div>
