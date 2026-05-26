@@ -536,7 +536,7 @@ function StepConfigEditor({ step, scripts, onConfigChange, onFieldChange }: {
                                                                 }
                                                             }
                                                         })}
-                                                        className="h-6 w-12 text-[10px] text-center" 
+                                                        className="h-7 w-16 text-xs text-center" 
                                                     />
                                                     <span className="text-[10px] text-muted-foreground">sn ve altı konuşmaları tekrar ara</span>
                                                 </div>
