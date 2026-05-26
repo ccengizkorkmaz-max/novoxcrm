@@ -959,6 +959,10 @@
             "hot-leads": {
                 "title": "Sıcak (Hot) Lead Analizi",
                 "description": "WhatsApp, reklam formları ve AI skorlama ile iletilen sıcak lead'ler ve yönetici bildirim durumu."
+            },
+            "outreach-ceo": {
+                "title": "Outreach CEO Raporu",
+                "description": "Temmuz-Aralık 2025 Olumsuz & Ulaşılamayanlar geri kazanım kampanyası detaylı performans raporu."
             }
         }
     },

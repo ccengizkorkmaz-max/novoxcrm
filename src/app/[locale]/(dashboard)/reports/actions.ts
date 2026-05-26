@@ -842,3 +842,122 @@ export async function getHotLeadsReport() {
 
     return formattedConvs
 }
+
+export async function getOutreachCeoReportData() {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    const workflowId = 'ea62719d-198e-4d1d-83c1-f008c9e2d583'
+
+    // 1. Fetch all executions for this workflow
+    const executions: any[] = []
+    let page = 0
+    const limit = 1000
+    while (true) {
+        const { data, error } = await supabase
+            .from('outreach_executions')
+            .select('status, customer_id, started_at, completed_at, current_step_order, current_retry_count')
+            .eq('workflow_id', workflowId)
+            .range(page * limit, (page + 1) * limit - 1)
+        if (error || !data || data.length === 0) break
+        executions.push(...data)
+        if (data.length < limit) break
+        page++
+    }
+
+    // 2. Fetch logs since today's restart at 13:58 TRT (10:58 UTC)
+    const restartTime = '2026-05-26T10:58:00Z'
+    const recentLogs: any[] = []
+    let logsPage = 0
+    const logsLimit = 1000
+    while (true) {
+        const { data, error } = await supabase
+            .from('outreach_step_logs')
+            .select(`
+                id, channel, status, call_duration_seconds, call_outcome, executed_at,
+                outreach_executions!inner(workflow_id)
+            `)
+            .eq('outreach_executions.workflow_id', workflowId)
+            .gte('executed_at', restartTime)
+            .range(logsPage * logsLimit, (logsPage + 1) * logsLimit - 1)
+        if (error || !data || data.length === 0) break
+        recentLogs.push(...data)
+        if (data.length < logsLimit) break
+        logsPage++
+    }
+
+    // Calculate outcomes
+    const callLogs = recentLogs.filter(l => l.channel === 'ai_call')
+    const whatsappLogs = recentLogs.filter(l => l.channel === 'whatsapp')
+
+    let answeredAndSpoke = 0
+    let pickedUpAndHungUp = 0
+    let accidentalPickup = 0
+    let neverAnswered = 0
+    let busy = 0
+    let callFailed = 0
+
+    callLogs.forEach(l => {
+        const duration = l.call_duration_seconds
+        if (duration !== null && duration !== undefined) {
+            if (duration > 30) {
+                answeredAndSpoke++
+            } else if (duration > 5) {
+                pickedUpAndHungUp++
+            } else if (duration > 0) {
+                accidentalPickup++
+            } else {
+                if (l.call_outcome === 'busy') busy++
+                else if (l.call_outcome === 'no_answer') neverAnswered++
+                else callFailed++
+            }
+        } else {
+            if (l.call_outcome === 'busy') busy++
+            else if (l.call_outcome === 'no_answer') neverAnswered++
+            else callFailed++
+        }
+    })
+
+    // Segment stats
+    const totalExecutionsCount = executions.length
+    const uniqueCustomerIds = new Set(executions.map(e => e.customer_id).filter(Boolean))
+    const uniqueCustomersCount = uniqueCustomerIds.size
+
+    // Status distributions
+    const statusCounts: Record<string, number> = {
+        active: 0,
+        completed: 0,
+        stopped: 0,
+        converted: 0,
+        waiting: 0
+    }
+    executions.forEach(e => {
+        if (e.status in statusCounts) {
+            statusCounts[e.status]++
+        }
+    })
+
+    // Queues
+    const firstCallPending = executions.filter(e => e.status === 'active' && e.current_step_order === 1 && (!e.current_retry_count || e.current_retry_count === 0)).length
+    const retryPending = executions.filter(e => e.status === 'active' && e.current_step_order === 1 && e.current_retry_count > 0).length
+
+    return {
+        totalExecutions: totalExecutionsCount,
+        uniqueCustomers: uniqueCustomersCount,
+        statusCounts,
+        firstCallPending,
+        retryPending,
+        resumptionCalls: callLogs.length,
+        resumptionWhatsapp: whatsappLogs.length,
+        resumptionBusy: busy,
+        resumptionNoAnswer: neverAnswered,
+        resumptionSpoke: answeredAndSpoke,
+        resumptionHungUp: pickedUpAndHungUp,
+        resumptionFailed: callFailed,
+        segmentOriginalSize: 3549,
+        segmentExcludedOverlaps: 307,
+        segmentActiveTargets: 3242
+    }
+}
+

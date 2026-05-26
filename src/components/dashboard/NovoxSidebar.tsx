@@ -381,6 +381,9 @@ export function NovoxSidebar({
                             <NavItem href="/reports/hot-leads" icon={Flame} onClick={onElementClick} isSubItem>
                                 {labels.reports?.hotLeads || 'Sıcak Lead Analizi'}
                             </NavItem>
+                            <NavItem href="/reports/outreach-ceo" icon={BarChart3} onClick={onElementClick} isSubItem>
+                                Outreach CEO Raporu
+                            </NavItem>
                         </AccordionContent>
                     </AccordionItem>
                 </Accordion>

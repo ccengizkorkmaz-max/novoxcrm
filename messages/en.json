@@ -933,6 +933,10 @@
             "hot-leads": {
                 "title": "Hot Lead Analysis",
                 "description": "WhatsApp interactions, ad forms, and AI scored hot leads with manager notification status."
+            },
+            "outreach-ceo": {
+                "title": "Outreach CEO Report",
+                "description": "Detailed performance analysis of the July-Dec 2025 outreach recovery campaign."
             }
         }
     },
