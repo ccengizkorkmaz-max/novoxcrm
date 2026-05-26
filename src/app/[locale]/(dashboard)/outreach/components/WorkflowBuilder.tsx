@@ -55,6 +55,8 @@ export function WorkflowBuilder({ segments, scripts, projects, profiles, tenantI
     const [name, setName] = useState(editingWorkflow?.name || '')
     const [description, setDescription] = useState(editingWorkflow?.description || '')
     const [segmentId, setSegmentId] = useState(editingWorkflow?.segment_id || '')
+    const [startDate, setStartDate] = useState(editingWorkflow?.start_date || '')
+    const [endDate, setEndDate] = useState(editingWorkflow?.end_date || '')
     const [hoursStart, setHoursStart] = useState(editingWorkflow?.working_hours_start?.substring(0, 5) || '09:00')
     const [hoursEnd, setHoursEnd] = useState(editingWorkflow?.working_hours_end?.substring(0, 5) || '19:00')
     const [workingDays, setWorkingDays] = useState<number[]>(editingWorkflow?.working_days || [1, 2, 3, 4, 5])
@@ -107,6 +109,8 @@ export function WorkflowBuilder({ segments, scripts, projects, profiles, tenantI
                 const updatePayload: any = {
                     name,
                     description,
+                    start_date: startDate || undefined,
+                    end_date: endDate || undefined,
                     working_hours_start: hoursStart,
                     working_hours_end: hoursEnd,
                     working_days: workingDays,
@@ -155,6 +159,7 @@ export function WorkflowBuilder({ segments, scripts, projects, profiles, tenantI
                 // ── Yeni oluşturma modu ──
                 const result = await createWorkflow({
                     name, description, segment_id: segmentId || undefined,
+                    start_date: startDate || undefined, end_date: endDate || undefined,
                     working_hours_start: hoursStart, working_hours_end: hoursEnd,
                     working_days: workingDays,
                     is_auto_detect: false, auto_detect_days: 0,
@@ -293,8 +298,10 @@ export function WorkflowBuilder({ segments, scripts, projects, profiles, tenantI
                             <Clock className="h-4 w-4 text-amber-400" /> Zamanlama
                         </h2>
                         <div className="grid grid-cols-2 gap-2">
-                            <div><Label className="text-xs">Başlangıç</Label><Input type="time" value={hoursStart} onChange={e => setHoursStart(e.target.value)} className="h-8 text-xs" /></div>
-                            <div><Label className="text-xs">Bitiş</Label><Input type="time" value={hoursEnd} onChange={e => setHoursEnd(e.target.value)} className="h-8 text-xs" /></div>
+                            <div><Label className="text-xs">Başlama Tarihi</Label><Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="h-8 text-xs" /></div>
+                            <div><Label className="text-xs">Bitiş Tarihi</Label><Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="h-8 text-xs" /></div>
+                            <div><Label className="text-xs">Saat (Başlangıç)</Label><Input type="time" value={hoursStart} onChange={e => setHoursStart(e.target.value)} className="h-8 text-xs" /></div>
+                            <div><Label className="text-xs">Saat (Bitiş)</Label><Input type="time" value={hoursEnd} onChange={e => setHoursEnd(e.target.value)} className="h-8 text-xs" /></div>
                         </div>
                         <div className="flex gap-1">
                             {dayNames.map((d, i) => (

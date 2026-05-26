@@ -194,6 +194,8 @@ export async function createWorkflow(payload: {
     name: string
     description?: string
     segment_id?: string
+    start_date?: string
+    end_date?: string
     working_hours_start?: string
     working_hours_end?: string
     working_days?: number[]
@@ -255,6 +257,8 @@ export async function updateWorkflow(id: string, payload: Partial<{
     name: string
     description: string
     segment_id: string
+    start_date: string
+    end_date: string
     working_hours_start: string
     working_hours_end: string
     working_days: number[]
