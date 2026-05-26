@@ -57,7 +57,7 @@ export async function fireLeadCreatedTrigger(tenantId: string, customerId: strin
                 .select('id')
                 .eq('workflow_id', trigger.workflow_id)
                 .eq('customer_id', customerId)
-                .in('status', ['active', 'waiting'])
+                .in('status', ['active', 'waiting', 'completed', 'converted', 'stopped'])
                 .limit(1)
 
             if (existing?.length) {

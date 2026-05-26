@@ -122,6 +122,8 @@ export async function processOutreachQueue() {
 
     // Track batch counts per workflow
     const workflowBatchCounts = new Map<string, number>()
+    // Track customers already processed in this batch to prevent parallel calls
+    const processedCustomerIds = new Set<string>()
 
     for (const execution of dueExecutions) {
         // Enforce per-workflow batch_size limit
@@ -129,6 +131,15 @@ export async function processOutreachQueue() {
         const batchSize = execution.outreach_workflows?.batch_size || 100
         const currentCount = workflowBatchCounts.get(wfId) || 0
         if (currentCount >= batchSize) continue
+
+        // ─── Same-customer dedup guard ─────────────────────
+        // Prevent processing multiple executions for the same customer in this batch
+        // (this happens when restart creates duplicate executions)
+        const customerId = execution.customer_id
+        if (customerId && processedCustomerIds.has(customerId)) {
+            console.log(`[Outreach] Customer ${customerId} already processed in this batch. Skipping execution ${execution.id}`)
+            continue
+        }
 
         // ─── Individual Pessimistic Locking ───────────────────
         // Lock this specific execution by updating its next_action_at.
@@ -227,11 +238,45 @@ export async function processOutreachQueue() {
                     console.log(`[Outreach] Slot dolu, ${execution.id} erteleniyor`)
                     continue
                 }
+
+                // ─── Same-phone active call guard ─────────────────
+                // Check if there's already an active call to this phone number
+                const customerPhone = execution.customers?.phone
+                if (customerPhone) {
+                    const { count: activeCallsToPhone } = await supabase
+                        .from('outreach_step_logs')
+                        .select('id', { count: 'exact', head: true })
+                        .eq('status', 'sent')
+                        .is('completed_at', null)
+                        .eq('channel', 'ai_call')
+                        .eq('execution_id', execution.id)
+                    // More broadly, check via customer_id across all executions
+                    if (customerId) {
+                        const { data: activeExecsForCustomer } = await supabase
+                            .from('outreach_step_logs')
+                            .select('id, outreach_executions!inner(customer_id)')
+                            .eq('outreach_executions.customer_id', customerId)
+                            .eq('status', 'sent')
+                            .is('completed_at', null)
+                            .eq('channel', 'ai_call')
+                            .limit(1)
+                        if (activeExecsForCustomer && activeExecsForCustomer.length > 0) {
+                            console.log(`[Outreach] Customer ${customerId} already has an active call. Skipping.`)
+                            // Unlock: reset next_action_at to 2 minutes from now
+                            await supabase.from('outreach_executions')
+                                .update({ next_action_at: new Date(Date.now() + 2 * 60 * 1000).toISOString() })
+                                .eq('id', execution.id)
+                            continue
+                        }
+                    }
+                }
+
                 // Aramalar arası gecikme — Vapi rate limit'i aşmamak için
                 if (processed > 0) await new Promise(r => setTimeout(r, 3000))
             }
             await executeStep(execution, step)
             processed++
+            if (customerId) processedCustomerIds.add(customerId)
             workflowBatchCounts.set(wfId, (workflowBatchCounts.get(wfId) || 0) + 1)
         } catch (err: any) {
             console.error(`[Outreach] Step execution error for ${execution.id}:`, err.message)
@@ -1292,7 +1337,7 @@ export async function startWorkflowForLeads(workflowId: string, leadIds: string[
             .from('outreach_executions')
             .select('customer_id')
             .eq('workflow_id', workflowId)
-            .in('status', ['active', 'waiting', 'completed', 'converted'])
+            .in('status', ['active', 'waiting', 'completed', 'converted', 'stopped'])
             .in('customer_id', chunk)
     )
     const existingResults = await Promise.all(existingPromises)
