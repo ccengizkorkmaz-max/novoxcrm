@@ -133,7 +133,7 @@ export function WorkflowMonitor({ workflowId, workflowName, onClose }: WorkflowM
             {/* Stats Cards */}
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
                 {[
-                    { label: 'Toplam Segment', value: totalCount, color: 'text-slate-300', bg: 'from-slate-500/10' },
+                    { label: 'Tekil Müşteri', value: totalCount, color: 'text-slate-300', bg: 'from-slate-500/10' },
                     { label: 'Bugün Başlayan', value: todayCount, color: 'text-blue-400', bg: 'from-blue-500/10' },
                     { label: 'Tamamlanan', value: (stats.completed || 0) + (stats.converted || 0) + (stats.stopped || 0), color: 'text-emerald-400', bg: 'from-emerald-500/10' },
                     { label: 'Dönüşüm (İlgilendi)', value: stats.converted || 0, color: 'text-rose-400', bg: 'from-rose-500/10' },

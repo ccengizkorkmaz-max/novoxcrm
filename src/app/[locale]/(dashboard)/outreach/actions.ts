@@ -702,7 +702,7 @@ export async function getWorkflowMonitor(workflowId: string, page: number = 1) {
     let hasMoreExecs = true
     while (hasMoreExecs && allExecs.length < 50000) {
         const { data: chunk, error } = await adminDb.from('outreach_executions')
-            .select('status, started_at, current_step_order, current_retry_count')
+            .select('status, customer_id, started_at, current_step_order, current_retry_count')
             .eq('workflow_id', workflowId)
             .range(fromExec, fromExec + 999)
         if (error) {
@@ -721,6 +721,16 @@ export async function getWorkflowMonitor(workflowId: string, page: number = 1) {
         }
     }
 
+    // De-duplicate: for each customer, keep only the LATEST execution
+    const customerLatest = new Map<string, any>()
+    allExecs.forEach((e: any) => {
+        if (!e.customer_id) return
+        const existing = customerLatest.get(e.customer_id)
+        if (!existing || (e.started_at && e.started_at > (existing.started_at || ''))) {
+            customerLatest.set(e.customer_id, e)
+        }
+    })
+
     const statusCounts = { 
         active: 0, 
         waiting: 0, 
@@ -737,7 +747,7 @@ export async function getWorkflowMonitor(workflowId: string, page: number = 1) {
         activeCallsCount: activeExecutions.length
     }
 
-    allExecs.forEach((e: any) => {
+    customerLatest.forEach((e: any) => {
         if (e.status in statusCounts) {
             statusCounts[e.status as keyof typeof statusCounts]++
         }
@@ -762,7 +772,7 @@ export async function getWorkflowMonitor(workflowId: string, page: number = 1) {
             }
         }
     })
-    const totalCount = allExecs.length
+    const totalCount = customerLatest.size
 
     // 3. Get paginated executions with customer info
     const from = (page - 1) * PAGE_SIZE
@@ -789,10 +799,13 @@ export async function getWorkflowMonitor(workflowId: string, page: number = 1) {
         logs = logData || []
     }
 
-    // Today's count
+    // Today's count — based on unique customers
     const todayStart = new Date()
     todayStart.setHours(0, 0, 0, 0)
-    const todayCount = allExecs?.filter((e: any) => new Date(e.started_at) >= todayStart).length || 0
+    let todayCount = 0
+    customerLatest.forEach((e: any) => {
+        if (e.started_at && new Date(e.started_at) >= todayStart) todayCount++
+    })
 
     // Combine active executions and paginated executions (preventing duplication)
     let combinedExecutions = executions || []
