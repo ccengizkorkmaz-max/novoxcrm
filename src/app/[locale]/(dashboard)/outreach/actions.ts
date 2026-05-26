@@ -738,7 +738,7 @@ export async function getWorkflowMonitor(workflowId: string, page: number = 1) {
         converted: 0, 
         failed: 0,
         stopped: 0,
-        // Detailed breakdowns for live view:
+        // Detailed breakdowns — will be recalculated after call log fetch
         firstCallPending: 0,
         secondCallPending: 0,
         inWaitStep: 0,
@@ -747,29 +747,10 @@ export async function getWorkflowMonitor(workflowId: string, page: number = 1) {
         activeCallsCount: activeExecutions.length
     }
 
+    // First pass: count statuses only
     customerLatest.forEach((e: any) => {
         if (e.status in statusCounts) {
             statusCounts[e.status as keyof typeof statusCounts]++
-        }
-        
-        // Is this a brand new run waiting for its first dial?
-        const isNeverCalled = (e.status === 'active' || e.status === 'waiting') && 
-                              e.current_step_order === 1 && 
-                              (!e.current_retry_count || e.current_retry_count === 0);
-                              
-        if (isNeverCalled) {
-            statusCounts.firstCallPending++
-        } else {
-            statusCounts.calledAtLeastOnce++
-            if (e.status === 'active' || e.status === 'waiting') {
-                if (e.current_step_order === 1) {
-                    statusCounts.secondCallPending++
-                } else if (e.current_step_order === 2) {
-                    statusCounts.inWaitStep++
-                } else if (e.current_step_order === 3) {
-                    statusCounts.whatsappPending++
-                }
-            }
         }
     })
     const totalCount = customerLatest.size
@@ -842,6 +823,27 @@ export async function getWorkflowMonitor(workflowId: string, page: number = 1) {
         spokeCustomers: spokeCustomerIds.size,
         pickedUpBriefCustomers: pickedUpCustomerIds.size,
     }
+
+    // Now calculate queue breakdowns using call logs as source of truth
+    // A customer is "firstCallPending" ONLY if they have NO call logs AND are active/waiting at step 1
+    customerLatest.forEach((e: any) => {
+        const cId = e.customer_id
+        const wasCalled = cId && calledCustomerIds.has(cId)
+
+        if ((e.status === 'active' || e.status === 'waiting') && !wasCalled) {
+            statusCounts.firstCallPending++
+        } else if (e.status === 'active' || e.status === 'waiting') {
+            // Active/waiting but already called — queue step breakdown
+            if (e.current_step_order === 1) {
+                statusCounts.secondCallPending++
+            } else if (e.current_step_order === 2) {
+                statusCounts.inWaitStep++
+            } else if (e.current_step_order === 3) {
+                statusCounts.whatsappPending++
+            }
+        }
+    })
+    statusCounts.calledAtLeastOnce = calledCustomerIds.size
 
     // Combine active executions and paginated executions (preventing duplication)
     let combinedExecutions = executions || []
