@@ -19,7 +19,10 @@ import {
     HelpCircle,
     Zap,
     TrendingUp,
-    Timer
+    Timer,
+    PhoneOff,
+    PhoneIncoming,
+    Calendar
 } from 'lucide-react'
 
 export default function OutreachCeoReportPage() {
@@ -74,11 +77,19 @@ export default function OutreachCeoReportPage() {
     }
 
     // Calculations
-    const answeredCount = data.resumptionSpoke || 0
+    const spokeCount = data.resumptionSpoke || 0
     const hungUpCount = data.resumptionHungUp || 0
-    const answeredTotal = answeredCount + hungUpCount
-    const answerRate = data.resumptionCalls > 0 ? (answeredTotal / data.resumptionCalls) * 100 : 0
+    const totalAnswered = spokeCount + hungUpCount
+    const answerRate = data.resumptionCalls > 0 ? (totalAnswered / data.resumptionCalls) * 100 : 0
     const conversionRate = data.uniqueCustomers > 0 ? (data.statusCounts.converted / data.uniqueCustomers) * 100 : 0
+    const busyRate = data.resumptionCalls > 0 ? (data.resumptionBusy / data.resumptionCalls) * 100 : 0
+    const noAnswerRate = data.resumptionCalls > 0 ? (data.resumptionNoAnswer / data.resumptionCalls) * 100 : 0
+    const failedRate = data.resumptionCalls > 0 ? (data.resumptionFailed / data.resumptionCalls) * 100 : 0
+
+    // Date distribution for chart
+    const dateDist = data.callDateDistribution || {}
+    const sortedDates = Object.entries(dateDist).sort(([a], [b]) => a.localeCompare(b))
+    const maxDateCount = Math.max(...Object.values(dateDist).map(v => v as number), 1)
 
     return (
         <div className="flex flex-col gap-8 pb-12">
@@ -96,7 +107,7 @@ export default function OutreachCeoReportPage() {
                             </Badge>
                         </div>
                         <p className="text-sm text-muted-foreground mt-0.5">
-                            Temmuz-Aralık 2025 Dönemi Geri Kazanım AI Kampanyası Operasyonel Analizi
+                            Temmuz-Aralık 2025 Dönemi Geri Kazanım AI Kampanyası — Tüm Zamanlar Raporu
                         </p>
                     </div>
                 </div>
@@ -123,48 +134,42 @@ export default function OutreachCeoReportPage() {
                 </div>
             </div>
 
-            {/* Explanation Alert Box - Explains the discrepancy directly */}
-            <div className="rounded-2xl border border-indigo-500/20 bg-gradient-to-r from-indigo-500/5 to-blue-500/5 p-6 relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-8 opacity-5">
-                    <Info className="h-32 w-32" />
-                </div>
-                <div className="flex gap-4">
-                    <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-500 h-10 w-10 flex items-center justify-center shrink-0">
-                        <Info className="h-5 w-5" />
-                    </div>
-                    <div className="space-y-2">
-                        <h4 className="text-sm font-bold text-indigo-950 dark:text-indigo-200">
-                            Yönetici Açıklaması: Veritabanı Kayıtları ve Segment Boyutu Uyuşumu
-                        </h4>
-                        <div className="text-sm text-muted-foreground space-y-2 leading-relaxed">
-                            <p>
-                                <strong>Temmuz-Aralık 2025 Olumsuz & Ulaşılamayanlar</strong> kampanyasında toplam hedef kitle büyüklüğü <strong>3.260 tekil müşteridir</strong> (3.549 orijinal kayıttan 307'si Burak'ın WhatsApp kampanyasındaki çakışmalar nedeniyle dışarıda bırakılmıştır).
-                            </p>
-                            <p>
-                                Sistem veritabanında görünen <strong>{data.totalExecutions}</strong> toplam işlem kaydı (execution), <strong>kampanyanın durdurulup yeniden başlatılmasından (restart)</strong> kaynaklanmaktadır. Yeniden başlatma sırasında <code>stopped</code> statüsündeki kayıtlar sistem tarafından otomatik olarak filtreden çıkarılmadığı için, aynı müşteriler için yeni aktif süreçler (kuyruklar) oluşturulmuş ve bu durum işlem satırı sayısını artırmıştır.
-                            </p>
-                            <p className="font-semibold text-indigo-600 dark:text-indigo-400">
-                                Kampanya fiilen 3.260 tekil müşteriyi hedeflemekte olup, şu ana kadar 1.999 arama denemesi yapılmıştır.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             {/* Top Stats Cards */}
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
                 <Card className="border border-border/40 bg-card/60 backdrop-blur-xl">
                     <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                         <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                            Hedef Segment Boyutu
+                            Hedef Segment
                         </CardTitle>
                         <Users className="h-4 w-4 text-indigo-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-black tracking-tight">{data.segmentActiveTargets}</div>
+                        <div className="text-2xl font-black tracking-tight">{data.uniqueCustomers.toLocaleString('tr-TR')}</div>
                         <div className="flex items-center gap-1.5 mt-1">
                             <span className="text-[10px] text-muted-foreground font-medium">
-                                {data.segmentOriginalSize} Orijinal • -{data.segmentExcludedOverlaps} Çakışma
+                                Tekil Müşteri
+                            </span>
+                            {data.duplicateExecutions > 0 && (
+                                <span className="text-[10px] text-amber-500 font-medium">
+                                    ({data.duplicateExecutions} mükerrer kayıt filtrelendi)
+                                </span>
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card className="border border-border/40 bg-card/60 backdrop-blur-xl">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                        <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                            Toplam AI Arama
+                        </CardTitle>
+                        <Phone className="h-4 w-4 text-blue-500" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-black tracking-tight">{data.resumptionCalls.toLocaleString('tr-TR')}</div>
+                        <div className="flex items-center gap-1.5 mt-1">
+                            <span className="text-[10px] text-muted-foreground font-medium">
+                                Tüm zamanlar toplamı
                             </span>
                         </div>
                     </CardContent>
@@ -173,22 +178,7 @@ export default function OutreachCeoReportPage() {
                 <Card className="border border-border/40 bg-card/60 backdrop-blur-xl">
                     <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                         <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                            Toplam İşlem Kaydı
-                        </CardTitle>
-                        <RefreshCw className="h-4 w-4 text-blue-500" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-black tracking-tight">{data.totalExecutions}</div>
-                        <div className="flex items-center gap-1.5 mt-1 text-amber-600 dark:text-amber-400 font-semibold text-[10px]">
-                            <span>Restart Kaynaklı Mükerrer Dahil</span>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card className="border border-border/40 bg-card/60 backdrop-blur-xl">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                            Geri Kazanılan Aday
+                            Geri Kazanılan
                         </CardTitle>
                         <CheckCircle2 className="h-4 w-4 text-emerald-500" />
                     </CardHeader>
@@ -208,7 +198,7 @@ export default function OutreachCeoReportPage() {
                 <Card className="border border-border/40 bg-card/60 backdrop-blur-xl">
                     <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                         <CardTitle className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                            Arama Kuyruğu Durumu
+                            Arama Kuyruğu
                         </CardTitle>
                         <Timer className="h-4 w-4 text-purple-500" />
                     </CardHeader>
@@ -223,73 +213,104 @@ export default function OutreachCeoReportPage() {
                 </Card>
             </div>
 
-            {/* Campaign Metrics Section */}
+            {/* Call Performance + Workflow Rules */}
             <div className="grid gap-6 md:grid-cols-3">
-                {/* Real-time Call Performance */}
+                {/* Call Performance */}
                 <Card className="md:col-span-2 border border-border/40 bg-card/60 backdrop-blur-xl">
                     <CardHeader>
-                        <CardTitle className="text-lg font-bold">Resumption Call Performance (Today)</CardTitle>
+                        <CardTitle className="text-lg font-bold">Arama Sonuçları — Tüm Kampanya</CardTitle>
                         <CardDescription>
-                            Session stats since credits were reloaded today at 13:58 TRT
+                            Toplam {data.resumptionCalls.toLocaleString('tr-TR')} arama denemesinin sonuç dağılımı
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                        <div className="grid grid-cols-3 gap-4 text-center">
-                            <div className="p-4 rounded-xl bg-slate-500/5 border border-slate-500/10">
-                                <span className="text-xs text-muted-foreground font-bold uppercase">Yapılan Arama</span>
-                                <div className="text-3xl font-black tracking-tight mt-1">{data.resumptionCalls}</div>
+                        {/* Main Metrics */}
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/10 text-center">
+                                <PhoneIncoming className="h-5 w-5 text-emerald-500 mx-auto mb-1.5" />
+                                <span className="text-xs text-muted-foreground font-bold uppercase">Konuşulan</span>
+                                <div className="text-3xl font-black tracking-tight text-emerald-500 mt-1">{spokeCount}</div>
+                                <span className="text-[10px] text-emerald-500/70 font-semibold">%{answerRate.toFixed(1)}</span>
                             </div>
-                            <div className="p-4 rounded-xl bg-amber-500/5 border border-amber-500/10">
-                                <span className="text-xs text-muted-foreground font-bold uppercase">Meşgul Sayısı</span>
-                                <div className="text-3xl font-black tracking-tight text-amber-600 dark:text-amber-400 mt-1">{data.resumptionBusy}</div>
+                            <div className="p-4 rounded-xl bg-amber-500/5 border border-amber-500/10 text-center">
+                                <PhoneOff className="h-5 w-5 text-amber-500 mx-auto mb-1.5" />
+                                <span className="text-xs text-muted-foreground font-bold uppercase">Meşgul</span>
+                                <div className="text-3xl font-black tracking-tight text-amber-600 dark:text-amber-400 mt-1">{data.resumptionBusy.toLocaleString('tr-TR')}</div>
+                                <span className="text-[10px] text-amber-500/70 font-semibold">%{busyRate.toFixed(1)}</span>
                             </div>
-                            <div className="p-4 rounded-xl bg-red-500/5 border border-red-500/10">
-                                <span className="text-xs text-muted-foreground font-bold uppercase">Cevapsız Sayısı</span>
-                                <div className="text-3xl font-black tracking-tight text-red-500 mt-1">{data.resumptionNoAnswer}</div>
+                            <div className="p-4 rounded-xl bg-rose-500/5 border border-rose-500/10 text-center">
+                                <Phone className="h-5 w-5 text-rose-500 mx-auto mb-1.5" />
+                                <span className="text-xs text-muted-foreground font-bold uppercase">Cevapsız</span>
+                                <div className="text-3xl font-black tracking-tight text-rose-500 mt-1">{data.resumptionNoAnswer.toLocaleString('tr-TR')}</div>
+                                <span className="text-[10px] text-rose-500/70 font-semibold">%{noAnswerRate.toFixed(1)}</span>
                             </div>
                         </div>
 
-                        {/* Custom visual charts representation using simple styled divs */}
+                        {/* Additional metrics row */}
+                        <div className="grid grid-cols-3 gap-4">
+                            <div className="p-3 rounded-lg bg-orange-500/5 border border-orange-500/10 text-center">
+                                <span className="text-xs text-muted-foreground font-bold">Açıp Kapatan</span>
+                                <div className="text-xl font-black mt-0.5">{hungUpCount}</div>
+                            </div>
+                            <div className="p-3 rounded-lg bg-slate-500/5 border border-slate-500/10 text-center">
+                                <span className="text-xs text-muted-foreground font-bold">Başarısız/Hata</span>
+                                <div className="text-xl font-black mt-0.5">{data.resumptionFailed}</div>
+                            </div>
+                            <div className="p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/10 text-center">
+                                <span className="text-xs text-muted-foreground font-bold">WhatsApp Gönderilen</span>
+                                <div className="text-xl font-black mt-0.5 text-emerald-500">{data.resumptionWhatsapp}</div>
+                            </div>
+                        </div>
+
+                        {/* Visual bar chart */}
                         <div className="space-y-3">
-                            <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Çağrı Sonuçları Yüzdesel Dağılımı</h4>
+                            <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Çağrı Sonuçları Dağılımı</h4>
                             <div className="h-6 w-full rounded-full bg-muted flex overflow-hidden">
-                                <div
-                                    style={{ width: `${(data.resumptionBusy / data.resumptionCalls) * 100}%` }}
-                                    className="bg-amber-500 h-full transition-all"
-                                    title="Meşgul"
-                                />
-                                <div
-                                    style={{ width: `${(data.resumptionNoAnswer / data.resumptionCalls) * 100}%` }}
-                                    className="bg-rose-500 h-full transition-all"
-                                    title="Cevapsız"
-                                />
-                                <div
-                                    style={{ width: `${(answeredCount / data.resumptionCalls) * 100}%` }}
-                                    className="bg-emerald-500 h-full transition-all"
-                                    title="Konuşuldu"
-                                />
-                                <div
-                                    style={{ width: `${(data.resumptionFailed / data.resumptionCalls) * 100}%` }}
-                                    className="bg-slate-400 h-full transition-all"
-                                    title="Hatalı/Kredi"
-                                />
+                                {spokeCount > 0 && (
+                                    <div
+                                        style={{ width: `${(spokeCount / data.resumptionCalls) * 100}%` }}
+                                        className="bg-emerald-500 h-full transition-all"
+                                        title={`Konuşulan: ${spokeCount}`}
+                                    />
+                                )}
+                                {data.resumptionBusy > 0 && (
+                                    <div
+                                        style={{ width: `${busyRate}%` }}
+                                        className="bg-amber-500 h-full transition-all"
+                                        title={`Meşgul: ${data.resumptionBusy}`}
+                                    />
+                                )}
+                                {data.resumptionNoAnswer > 0 && (
+                                    <div
+                                        style={{ width: `${noAnswerRate}%` }}
+                                        className="bg-rose-500 h-full transition-all"
+                                        title={`Cevapsız: ${data.resumptionNoAnswer}`}
+                                    />
+                                )}
+                                {data.resumptionFailed > 0 && (
+                                    <div
+                                        style={{ width: `${failedRate}%` }}
+                                        className="bg-slate-400 h-full transition-all"
+                                        title={`Hata: ${data.resumptionFailed}`}
+                                    />
+                                )}
                             </div>
                             <div className="flex flex-wrap gap-x-6 gap-y-2 text-xs font-medium text-muted-foreground justify-center">
                                 <div className="flex items-center gap-1.5">
+                                    <span className="h-3 w-3 rounded bg-emerald-500" />
+                                    Konuşulan: %{answerRate.toFixed(1)}
+                                </div>
+                                <div className="flex items-center gap-1.5">
                                     <span className="h-3 w-3 rounded bg-amber-500" />
-                                    Meşgul: %{((data.resumptionBusy / data.resumptionCalls) * 100 || 0).toFixed(1)}
+                                    Meşgul: %{busyRate.toFixed(1)}
                                 </div>
                                 <div className="flex items-center gap-1.5">
                                     <span className="h-3 w-3 rounded bg-rose-500" />
-                                    Cevapsız: %{((data.resumptionNoAnswer / data.resumptionCalls) * 100 || 0).toFixed(1)}
-                                </div>
-                                <div className="flex items-center gap-1.5">
-                                    <span className="h-3 w-3 rounded bg-emerald-500" />
-                                    Konuşulan: %{(answerRate || 0).toFixed(1)}
+                                    Cevapsız: %{noAnswerRate.toFixed(1)}
                                 </div>
                                 <div className="flex items-center gap-1.5">
                                     <span className="h-3 w-3 rounded bg-slate-400" />
-                                    Hata/Kredi: %{((data.resumptionFailed / data.resumptionCalls) * 100 || 0).toFixed(1)}
+                                    Hata: %{failedRate.toFixed(1)}
                                 </div>
                             </div>
                         </div>
@@ -328,15 +349,83 @@ export default function OutreachCeoReportPage() {
                             <div>
                                 <h4 className="text-sm font-semibold">WhatsApp Butonlu Takip</h4>
                                 <p className="text-xs text-muted-foreground mt-0.5">
-                                    Açmayanlara teklif detay butonlu şablon gider. 'Evet' diyenler anında satış temsilcisine düşer.
+                                    Açmayanlara teklif detay butonlu şablon gider. &apos;Evet&apos; diyenler anında satış temsilcisine düşer.
                                 </p>
+                            </div>
+                        </div>
+
+                        {/* Execution Status Summary */}
+                        <div className="mt-4 pt-4 border-t space-y-2">
+                            <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Müşteri Durum Dağılımı</h4>
+                            <div className="space-y-1.5">
+                                {Object.entries(data.statusCounts)
+                                    .filter(([, v]) => (v as number) > 0)
+                                    .sort(([, a], [, b]) => (b as number) - (a as number))
+                                    .map(([status, count]) => {
+                                        const colors: Record<string, string> = {
+                                            active: 'bg-blue-500',
+                                            completed: 'bg-slate-400',
+                                            stopped: 'bg-red-400',
+                                            converted: 'bg-emerald-500',
+                                            waiting: 'bg-amber-500'
+                                        }
+                                        const labels: Record<string, string> = {
+                                            active: 'Aktif',
+                                            completed: 'Tamamlandı',
+                                            stopped: 'Durduruldu',
+                                            converted: 'Dönüştü',
+                                            waiting: 'Bekliyor'
+                                        }
+                                        return (
+                                            <div key={status} className="flex items-center justify-between text-xs">
+                                                <div className="flex items-center gap-2">
+                                                    <span className={`h-2 w-2 rounded-full ${colors[status] || 'bg-slate-400'}`} />
+                                                    <span className="text-muted-foreground">{labels[status] || status}</span>
+                                                </div>
+                                                <span className="font-bold tabular-nums">{(count as number).toLocaleString('tr-TR')}</span>
+                                            </div>
+                                        )
+                                    })}
                             </div>
                         </div>
                     </CardContent>
                 </Card>
             </div>
 
-            {/* Stratejik Kararlar ve Teknik İyileştirmeler */}
+            {/* Daily Call Distribution */}
+            {sortedDates.length > 0 && (
+                <Card className="border border-border/40 bg-card/60 backdrop-blur-xl">
+                    <CardHeader>
+                        <CardTitle className="text-lg font-bold flex items-center gap-2">
+                            <Calendar className="h-5 w-5 text-indigo-500" /> Günlük Arama Dağılımı
+                        </CardTitle>
+                        <CardDescription>Kampanya boyunca günlük yapılan arama sayıları</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-2">
+                            {sortedDates.map(([date, count]) => (
+                                <div key={date} className="flex items-center gap-3">
+                                    <span className="text-xs font-mono text-muted-foreground w-24 shrink-0">
+                                        {new Date(date + 'T00:00:00').toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                    </span>
+                                    <div className="flex-1 h-6 bg-muted rounded-full overflow-hidden">
+                                        <div
+                                            className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-blue-500 transition-all flex items-center justify-end pr-2"
+                                            style={{ width: `${((count as number) / maxDateCount) * 100}%`, minWidth: '40px' }}
+                                        >
+                                            <span className="text-[10px] font-bold text-white">
+                                                {(count as number).toLocaleString('tr-TR')}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+
+            {/* Stratejik Kararlar ve SSS */}
             <div className="grid gap-6 md:grid-cols-2">
                 <Card className="border border-border/40 bg-card/60 backdrop-blur-xl">
                     <CardHeader>
@@ -349,7 +438,7 @@ export default function OutreachCeoReportPage() {
                             <strong>1. Kapatma Süresi Filtresi (Hemen Kapananlar):</strong> Telefonu açıp robot olduğunu duyduktan hemen sonra 10 saniye içinde kapatan kişilerin 2. kez aranarak rahatsız edilmesini engellemek için filtre geliştirildi.
                         </p>
                         <p>
-                            <strong>2. Parametrik Retry Arayüzü:</strong> Workflow adımları içerisine görsel anahtarlar (switch) yerleştirildi. Artık "hattı meşgul olanlar, cevapsızlar ve hemen kapatanlar" için tekrar arama kuralları dinamik olarak panelden yönetilebiliyor.
+                            <strong>2. Parametrik Retry Arayüzü:</strong> Workflow adımları içerisine görsel anahtarlar (switch) yerleştirildi. Artık &quot;hattı meşgul olanlar, cevapsızlar ve hemen kapatanlar&quot; için tekrar arama kuralları dinamik olarak panelden yönetilebiliyor.
                         </p>
                         <p>
                             <strong>3. Bütçe ve Kredi Durumu:</strong> ElevenLabs ses sentezleme bütçe limiti kaldırıldı, 300.000 yeni kredi yüklenerek tüm çağrıların sıfır gecikmeyle yapılması sağlandı.
@@ -367,7 +456,13 @@ export default function OutreachCeoReportPage() {
                         <div>
                             <h4 className="font-bold text-indigo-950 dark:text-indigo-200">Soru: Nitelikli/İlgilenenler sayısına WhatsApp mesajı evet diyenler dahil mi?</h4>
                             <p className="mt-1">
-                                <strong>Cevap:</strong> Evet, 'Converted' (Dönüşüm Sağlanan) statüsüne hem telefonla konuşup detaylı bilgi isteyenler hem de WhatsApp takip mesajındaki 'Evet, bilgi istiyorum' butonuna basanlar dahildir.
+                                <strong>Cevap:</strong> Evet, &apos;Converted&apos; (Dönüşüm Sağlanan) statüsüne hem telefonla konuşup detaylı bilgi isteyenler hem de WhatsApp takip mesajındaki &apos;Evet, bilgi istiyorum&apos; butonuna basanlar dahildir.
+                            </p>
+                        </div>
+                        <div>
+                            <h4 className="font-bold text-indigo-950 dark:text-indigo-200">Soru: Konuşulan sayısı nasıl hesaplanıyor?</h4>
+                            <p className="mt-1">
+                                <strong>Cevap:</strong> Vapi AI tarafından &apos;answered&apos; veya &apos;converted&apos; olarak işaretlenen aramalar konuşulan olarak sayılır. Telefonu açıp hızlıca kapatan kişiler &apos;Açıp Kapatan&apos; kategorisinde gösterilir.
                             </p>
                         </div>
                         <div>

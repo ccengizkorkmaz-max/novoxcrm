@@ -866,9 +866,8 @@ export async function getOutreachCeoReportData() {
         page++
     }
 
-    // 2. Fetch logs since today's restart at 13:58 TRT (10:58 UTC)
-    const restartTime = '2026-05-26T10:58:00Z'
-    const recentLogs: any[] = []
+    // 2. Fetch ALL logs for this workflow (no date filter — full campaign view)
+    const allLogs: any[] = []
     let logsPage = 0
     const logsLimit = 1000
     while (true) {
@@ -879,52 +878,77 @@ export async function getOutreachCeoReportData() {
                 outreach_executions!inner(workflow_id)
             `)
             .eq('outreach_executions.workflow_id', workflowId)
-            .gte('executed_at', restartTime)
             .range(logsPage * logsLimit, (logsPage + 1) * logsLimit - 1)
         if (error || !data || data.length === 0) break
-        recentLogs.push(...data)
+        allLogs.push(...data)
         if (data.length < logsLimit) break
         logsPage++
     }
 
-    // Calculate outcomes
-    const callLogs = recentLogs.filter(l => l.channel === 'ai_call')
-    const whatsappLogs = recentLogs.filter(l => l.channel === 'whatsapp')
+    // Calculate outcomes — use status-based classification
+    // (call_duration_seconds is not populated by Vapi webhook for most calls)
+    const callLogs = allLogs.filter(l => l.channel === 'ai_call')
+    const whatsappLogs = allLogs.filter(l => l.channel === 'whatsapp')
 
     let answeredAndSpoke = 0
     let pickedUpAndHungUp = 0
-    let accidentalPickup = 0
     let neverAnswered = 0
     let busy = 0
     let callFailed = 0
+    let converted = 0
 
     callLogs.forEach(l => {
         const duration = l.call_duration_seconds
-        if (duration !== null && duration !== undefined) {
+        const hasDuration = duration !== null && duration !== undefined && duration > 0
+
+        if (hasDuration) {
+            // Duration data available — use duration-based classification
             if (duration > 30) {
                 answeredAndSpoke++
             } else if (duration > 5) {
                 pickedUpAndHungUp++
-            } else if (duration > 0) {
-                accidentalPickup++
             } else {
-                if (l.call_outcome === 'busy') busy++
-                else if (l.call_outcome === 'no_answer') neverAnswered++
-                else callFailed++
+                // < 5 seconds = accidental pickup
+                neverAnswered++
             }
         } else {
-            if (l.call_outcome === 'busy') busy++
-            else if (l.call_outcome === 'no_answer') neverAnswered++
-            else callFailed++
+            // No duration data — use status/outcome-based classification
+            if (l.status === 'converted') {
+                converted++
+                answeredAndSpoke++ // converted implies a real conversation
+            } else if (l.status === 'answered') {
+                answeredAndSpoke++
+            } else if (l.status === 'hung_up') {
+                pickedUpAndHungUp++
+            } else if (l.status === 'busy' || l.call_outcome === 'busy') {
+                busy++
+            } else if (l.status === 'no_answer' || l.call_outcome === 'no_answer') {
+                neverAnswered++
+            } else if (l.status === 'failed') {
+                callFailed++
+            } else {
+                // sent, pending, or other
+                callFailed++
+            }
         }
     })
 
-    // Segment stats
+    // Segment stats — use UNIQUE customers, not total execution rows
     const totalExecutionsCount = executions.length
     const uniqueCustomerIds = new Set(executions.map(e => e.customer_id).filter(Boolean))
     const uniqueCustomersCount = uniqueCustomerIds.size
+    const duplicateExecutions = totalExecutionsCount - uniqueCustomersCount
 
-    // Status distributions
+    // De-duplicate status counts: for each unique customer, use the LATEST execution status
+    const customerLatest = new Map<string, { status: string; started_at: string; current_step_order: number; current_retry_count: number }>()
+    executions.forEach(e => {
+        if (!e.customer_id) return
+        const existing = customerLatest.get(e.customer_id)
+        if (!existing || (e.started_at && e.started_at > (existing.started_at || ''))) {
+            customerLatest.set(e.customer_id, e)
+        }
+    })
+
     const statusCounts: Record<string, number> = {
         active: 0,
         completed: 0,
@@ -932,19 +956,36 @@ export async function getOutreachCeoReportData() {
         converted: 0,
         waiting: 0
     }
-    executions.forEach(e => {
+    customerLatest.forEach(e => {
         if (e.status in statusCounts) {
             statusCounts[e.status]++
         }
     })
 
-    // Queues
-    const firstCallPending = executions.filter(e => e.status === 'active' && e.current_step_order === 1 && (!e.current_retry_count || e.current_retry_count === 0)).length
-    const retryPending = executions.filter(e => e.status === 'active' && e.current_step_order === 1 && e.current_retry_count > 0).length
+    // Queues — based on de-duplicated latest executions
+    let firstCallPending = 0
+    let retryPending = 0
+    customerLatest.forEach(e => {
+        if (e.status === 'active' && e.current_step_order === 1) {
+            if (!e.current_retry_count || e.current_retry_count === 0) {
+                firstCallPending++
+            } else {
+                retryPending++
+            }
+        }
+    })
+
+    // Date distribution for calls
+    const dateDist: Record<string, number> = {}
+    callLogs.forEach(l => {
+        const date = l.executed_at ? l.executed_at.substring(0, 10) : 'unknown'
+        dateDist[date] = (dateDist[date] || 0) + 1
+    })
 
     return {
         totalExecutions: totalExecutionsCount,
         uniqueCustomers: uniqueCustomersCount,
+        duplicateExecutions,
         statusCounts,
         firstCallPending,
         retryPending,
@@ -954,10 +995,10 @@ export async function getOutreachCeoReportData() {
         resumptionNoAnswer: neverAnswered,
         resumptionSpoke: answeredAndSpoke,
         resumptionHungUp: pickedUpAndHungUp,
+        resumptionConverted: converted,
         resumptionFailed: callFailed,
-        segmentOriginalSize: 3549,
-        segmentExcludedOverlaps: 307,
-        segmentActiveTargets: 3242
+        callDateDistribution: dateDist,
+        segmentActiveTargets: uniqueCustomersCount
     }
 }
 
