@@ -167,7 +167,7 @@ export function WorkflowMonitor({ workflowId, workflowName, onClose }: WorkflowM
                         { label: 'Tekrar Arama Bekleyen', value: stats.secondCallPending || 0, sub: 'Açmayanların 30dk bekleyenleri', color: 'text-orange-500', bg: 'bg-orange-500/5' },
                         { label: 'Bekleme Süresinde', value: stats.inWaitStep || 0, sub: 'Arananların 1 saatlik beklemesi', color: 'text-blue-500', bg: 'bg-blue-500/5' },
                         { label: 'WhatsApp Sırasında', value: stats.whatsappPending || 0, sub: 'Bekleme sonrası WP bekleyenler', color: 'text-emerald-500', bg: 'bg-emerald-500/5' },
-                        { label: 'Tamamlanan', value: (stats.completed || 0) + (stats.converted || 0) + (stats.stopped || 0), sub: 'Akışını tamamlamış müşteriler', color: 'text-slate-400', bg: 'bg-slate-500/5' },
+                        { label: 'Tamamlanan', value: stats.completedCalled || 0, sub: 'Aranıp akışını tamamlamış', color: 'text-slate-400', bg: 'bg-slate-500/5' },
                     ].map((step, i) => (
                         <div key={i} className={`p-2.5 rounded-lg border border-white/5 ${step.bg}`}>
                             <p className="text-[10px] text-muted-foreground font-medium">{step.label}</p>

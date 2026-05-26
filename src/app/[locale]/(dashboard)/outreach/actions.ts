@@ -825,12 +825,13 @@ export async function getWorkflowMonitor(workflowId: string, page: number = 1) {
     }
 
     // Now calculate queue breakdowns using call logs as source of truth
-    // A customer is "firstCallPending" ONLY if they have NO call logs AND are active/waiting at step 1
+    // "firstCallPending" = ALL customers NOT in calledCustomerIds (regardless of status)
+    let completedCalled = 0
     customerLatest.forEach((e: any) => {
         const cId = e.customer_id
         const wasCalled = cId && calledCustomerIds.has(cId)
 
-        if ((e.status === 'active' || e.status === 'waiting') && !wasCalled) {
+        if (!wasCalled) {
             statusCounts.firstCallPending++
         } else if (e.status === 'active' || e.status === 'waiting') {
             // Active/waiting but already called — queue step breakdown
@@ -841,6 +842,8 @@ export async function getWorkflowMonitor(workflowId: string, page: number = 1) {
             } else if (e.current_step_order === 3) {
                 statusCounts.whatsappPending++
             }
+        } else if (e.status === 'completed' || e.status === 'converted' || e.status === 'stopped') {
+            completedCalled++
         }
     })
     statusCounts.calledAtLeastOnce = calledCustomerIds.size
@@ -863,7 +866,7 @@ export async function getWorkflowMonitor(workflowId: string, page: number = 1) {
         workflow,
         executions: combinedExecutions,
         logs: combinedLogs,
-        stats: { ...statusCounts, ...callStats },
+        stats: { ...statusCounts, ...callStats, completedCalled },
         totalCount,
         todayCount,
         page,
