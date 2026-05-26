@@ -387,9 +387,36 @@ GİZLİ SİSTEM KOMUTLARI (SADECE ŞARTLAR SAĞLANDIĞINDA YANITININ EN SONUNA E
                     }
 
                     if (isHotLead && !alreadyNotified) {
-                        // Yüksek öncelikli bildirim/aktivite oluştur
+                        // 1. Müşteri adını ve ID'sini bul (CRM veya WhatsApp adı) - Duplicate kayıtları önlemek için order ve limit(1) kullanıyoruz
+                        let customerName = payload.name || 'Bilinmiyor';
+                        const phoneVariantsForLookup = [normalizedPhone];
+                        if (normalizedPhone.startsWith('90') && normalizedPhone.length > 10) {
+                            phoneVariantsForLookup.push(normalizedPhone.substring(2));       // 5xx
+                            phoneVariantsForLookup.push('+' + normalizedPhone);              // +90xxx
+                            phoneVariantsForLookup.push('0' + normalizedPhone.substring(2)); // 05xx
+                        }
+                        let customerId = null;
+                        for (const variant of phoneVariantsForLookup) {
+                            const { data: custs } = await supabase
+                                .from('customers')
+                                .select('id, full_name')
+                                .eq('tenant_id', tenantId)
+                                .eq('phone', variant)
+                                .order('created_at', { ascending: false })
+                                .limit(1);
+                            
+                            const cust = custs && custs.length > 0 ? custs[0] : null;
+                            if (cust?.full_name) {
+                                customerName = cust.full_name;
+                                customerId = cust.id;
+                                break;
+                            }
+                        }
+
+                        // Yüksek öncelikli bildirim/aktivite oluştur (müşteri ile ilişkilendirerek)
                         await supabase.from('activities').insert({
                             tenant_id: tenantId,
+                            customer_id: customerId,
                             type: 'Call',
                             topic: 'Sales',
                             summary: leadScore === 'warm' ? '🌤️ ILIK SATIŞ (WARM LEAD)' : '🔥 ACİL SATIŞ (HOT LEAD)',
@@ -424,29 +451,6 @@ GİZLİ SİSTEM KOMUTLARI (SADECE ŞARTLAR SAĞLANDIĞINDA YANITININ EN SONUNA E
                                         .reverse()
                                         .map((m: any) => `${m.role === 'user' ? 'Müşteri' : 'AI'}: ${m.content.substring(0, 120).replace(/\n/g, ' ')}`)
                                         .join(' | ');
-                                }
-
-                                // Müşteri adını bul (CRM veya WhatsApp adı)
-                                let customerName = payload.name || 'Bilinmiyor';
-                                const phoneVariantsForLookup = [normalizedPhone];
-                                if (normalizedPhone.startsWith('90') && normalizedPhone.length > 10) {
-                                    phoneVariantsForLookup.push(normalizedPhone.substring(2));       // 5xx
-                                    phoneVariantsForLookup.push('+' + normalizedPhone);              // +90xxx
-                                    phoneVariantsForLookup.push('0' + normalizedPhone.substring(2)); // 05xx
-                                }
-                                let customerId = null;
-                                for (const variant of phoneVariantsForLookup) {
-                                    const { data: cust } = await supabase
-                                        .from('customers')
-                                        .select('id, full_name')
-                                        .eq('tenant_id', tenantId)
-                                        .eq('phone', variant)
-                                        .single();
-                                    if (cust?.full_name) {
-                                        customerName = cust.full_name;
-                                        customerId = cust.id;
-                                        break;
-                                    }
                                 }
 
                                 // ── Satış Panosuna (Ön Değerlendirme) Otomatik Ekle (AI Hot Lead) ──
