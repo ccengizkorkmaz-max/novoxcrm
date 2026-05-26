@@ -134,16 +134,16 @@ export function WorkflowMonitor({ workflowId, workflowName, onClose }: WorkflowM
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
                 {[
                     { label: 'Tekil Müşteri', value: totalCount, color: 'text-slate-300', bg: 'from-slate-500/10' },
-                    { label: 'Bugün Başlayan', value: todayCount, color: 'text-blue-400', bg: 'from-blue-500/10' },
-                    { label: 'Tamamlanan', value: (stats.completed || 0) + (stats.converted || 0) + (stats.stopped || 0), color: 'text-emerald-400', bg: 'from-emerald-500/10' },
+                    { label: 'Gerçek Arama', value: stats.totalRealCalls || 0, color: 'text-blue-400', bg: 'from-blue-500/10' },
+                    { label: 'Aranan Kişi', value: stats.uniqueCalledCustomers || 0, color: 'text-violet-400', bg: 'from-violet-500/10' },
+                    { label: 'Konuşulan', value: stats.spokeCustomers || 0, color: 'text-emerald-400', bg: 'from-emerald-500/10' },
                     { label: 'Dönüşüm (İlgilendi)', value: stats.converted || 0, color: 'text-rose-400', bg: 'from-rose-500/10' },
-                    { label: 'En Az 1 Kez Aranan', value: stats.calledAtLeastOnce || 0, color: 'text-violet-400', bg: 'from-violet-500/10' },
                     { label: 'Aktif Çağrı', value: stats.activeCallsCount || 0, color: (stats.activeCallsCount || 0) > 0 ? 'text-emerald-400 animate-pulse font-bold' : 'text-slate-500', bg: (stats.activeCallsCount || 0) > 0 ? 'from-emerald-500/20' : 'from-slate-500/5' },
                 ].map((stat, i) => (
                     <Card key={i} className={`p-3 bg-gradient-to-b ${stat.bg} to-transparent border-white/5 border`}>
                         <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{stat.label}</p>
                         <div className="flex items-center justify-between mt-1">
-                            <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
+                            <p className={`text-2xl font-bold ${stat.color}`}>{typeof stat.value === 'number' ? stat.value.toLocaleString('tr-TR') : stat.value}</p>
                             {stat.label === 'Aktif Çağrı' && (stats.activeCallsCount || 0) > 0 && (
                                 <span className="flex h-3 w-3 relative">
                                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>

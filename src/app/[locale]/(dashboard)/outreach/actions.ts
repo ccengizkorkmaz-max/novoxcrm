@@ -807,6 +807,42 @@ export async function getWorkflowMonitor(workflowId: string, page: number = 1) {
         if (e.started_at && new Date(e.started_at) >= todayStart) todayCount++
     })
 
+    // 3.5 Get REAL call stats from step logs (only calls that reached telco = external_id not null)
+    // This gives us numbers that match NetGSM ground truth
+    const allCallLogs: any[] = []
+    let clPage = 0
+    while (true) {
+        const { data: clData, error: clErr } = await adminDb.from('outreach_step_logs')
+            .select('execution_id, channel, external_id, call_summary, call_recording_url, outreach_executions!inner(workflow_id, customer_id)')
+            .eq('outreach_executions.workflow_id', workflowId)
+            .eq('channel', 'ai_call')
+            .not('external_id', 'is', null)
+            .range(clPage * 1000, (clPage + 1) * 1000 - 1)
+        if (clErr || !clData || clData.length === 0) break
+        allCallLogs.push(...clData)
+        if (clData.length < 1000) break
+        clPage++
+    }
+
+    // Count unique customers from real call logs
+    const calledCustomerIds = new Set<string>()
+    const spokeCustomerIds = new Set<string>()
+    const pickedUpCustomerIds = new Set<string>()
+    allCallLogs.forEach((l: any) => {
+        const custId = (l.outreach_executions as any)?.customer_id
+        if (!custId) return
+        calledCustomerIds.add(custId)
+        if (l.call_summary) spokeCustomerIds.add(custId)
+        else if (l.call_recording_url) pickedUpCustomerIds.add(custId)
+    })
+
+    const callStats = {
+        totalRealCalls: allCallLogs.length,
+        uniqueCalledCustomers: calledCustomerIds.size,
+        spokeCustomers: spokeCustomerIds.size,
+        pickedUpBriefCustomers: pickedUpCustomerIds.size,
+    }
+
     // Combine active executions and paginated executions (preventing duplication)
     let combinedExecutions = executions || []
     let combinedLogs = logs || []
@@ -825,7 +861,7 @@ export async function getWorkflowMonitor(workflowId: string, page: number = 1) {
         workflow,
         executions: combinedExecutions,
         logs: combinedLogs,
-        stats: statusCounts,
+        stats: { ...statusCounts, ...callStats },
         totalCount,
         todayCount,
         page,
