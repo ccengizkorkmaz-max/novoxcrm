@@ -461,15 +461,89 @@ function StepConfigEditor({ step, scripts, onConfigChange, onFieldChange }: {
                             <span className="text-[11px] font-medium">Cevap yoksa tekrar dene</span>
                         </div>
                         {c.retry?.enabled && (
-                            <div className="flex items-center gap-2 pl-1">
-                                <Input type="number" value={c.retry?.max_attempts || 3}
-                                    onChange={e => onConfigChange('retry', { ...c.retry, max_attempts: Number(e.target.value) })}
-                                    className="h-7 w-16 text-xs text-center" />
-                                <span className="text-xs text-muted-foreground">kez,</span>
-                                <Input type="number" value={c.retry?.interval_minutes || 15}
-                                    onChange={e => onConfigChange('retry', { ...c.retry, interval_minutes: Number(e.target.value) })}
-                                    className="h-7 w-16 text-xs text-center" />
-                                <span className="text-xs text-muted-foreground">dk arayla</span>
+                            <div className="space-y-3 pl-1">
+                                <div className="flex items-center gap-2">
+                                    <Input type="number" value={c.retry?.max_attempts || 3}
+                                        onChange={e => onConfigChange('retry', { ...c.retry, max_attempts: Number(e.target.value) })}
+                                        className="h-7 w-16 text-xs text-center" />
+                                    <span className="text-xs text-muted-foreground">kez,</span>
+                                    <Input type="number" value={c.retry?.interval_minutes || 15}
+                                        onChange={e => onConfigChange('retry', { ...c.retry, interval_minutes: Number(e.target.value) })}
+                                        className="h-7 w-16 text-xs text-center" />
+                                    <span className="text-xs text-muted-foreground">dk arayla</span>
+                                </div>
+                                <div className="space-y-2 pt-2 border-t border-white/5">
+                                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Tekrar Arama Kriterleri</p>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div className="flex items-center gap-1.5">
+                                            <Switch 
+                                                checked={c.retry?.criteria?.busy !== false}
+                                                onCheckedChange={(v) => onConfigChange('retry', {
+                                                    ...c.retry,
+                                                    criteria: {
+                                                        ...(c.retry?.criteria || {}),
+                                                        busy: v
+                                                    }
+                                                })}
+                                                className="scale-75"
+                                            />
+                                            <span className="text-[10px]">Meşgul ise</span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5">
+                                            <Switch 
+                                                checked={c.retry?.criteria?.no_answer !== false}
+                                                onCheckedChange={(v) => onConfigChange('retry', {
+                                                    ...c.retry,
+                                                    criteria: {
+                                                        ...(c.retry?.criteria || {}),
+                                                        no_answer: v
+                                                    }
+                                                })}
+                                                className="scale-75"
+                                            />
+                                            <span className="text-[10px]">Cevapsız ise</span>
+                                        </div>
+                                        <div className="col-span-2 space-y-1.5 pt-1">
+                                            <div className="flex items-center gap-1.5">
+                                                <Switch 
+                                                    checked={c.retry?.criteria?.hung_up?.enabled || false}
+                                                    onCheckedChange={(v) => onConfigChange('retry', {
+                                                        ...c.retry,
+                                                        criteria: {
+                                                            ...(c.retry?.criteria || {}),
+                                                            hung_up: {
+                                                                enabled: v,
+                                                                max_seconds: c.retry?.criteria?.hung_up?.max_seconds || 10
+                                                            }
+                                                        }
+                                                    })}
+                                                    className="scale-75"
+                                                />
+                                                <span className="text-[10px]">Hemen Kapatanları Ara</span>
+                                            </div>
+                                            {c.retry?.criteria?.hung_up?.enabled && (
+                                                <div className="flex items-center gap-1.5 pl-7">
+                                                    <Input 
+                                                        type="number" 
+                                                        value={c.retry?.criteria?.hung_up?.max_seconds || 10}
+                                                        onChange={e => onConfigChange('retry', {
+                                                            ...c.retry,
+                                                            criteria: {
+                                                                ...(c.retry?.criteria || {}),
+                                                                hung_up: {
+                                                                    enabled: true,
+                                                                    max_seconds: Number(e.target.value)
+                                                                }
+                                                            }
+                                                        })}
+                                                        className="h-6 w-12 text-[10px] text-center" 
+                                                    />
+                                                    <span className="text-[10px] text-muted-foreground">sn ve altı konuşmaları tekrar ara</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         )}
                     </div>
