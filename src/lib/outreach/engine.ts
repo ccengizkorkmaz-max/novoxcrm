@@ -16,7 +16,19 @@ export interface StepConfig {
     script_prompt?: string
     first_message?: string
     max_duration_seconds?: number
-    retry?: { enabled: boolean; interval_minutes: number; max_attempts: number }
+    retry?: { 
+        enabled: boolean; 
+        interval_minutes: number; 
+        max_attempts: number;
+        criteria?: {
+            busy?: boolean;
+            no_answer?: boolean;
+            hung_up?: {
+                enabled: boolean;
+                max_seconds?: number;
+            };
+        };
+    }
     time_window?: { start: string; end: string }
     // WhatsApp
     template_name?: string
@@ -668,14 +680,46 @@ async function executeAiPersonalize(execution: any, step: any, config: StepConfi
 
 // ─── Retry & Advance Logic ──────────────────────────────────
 
-async function handleRetryOrAdvance(execution: any, step: any, config: StepConfig, outcome: string) {
+async function handleRetryOrAdvance(execution: any, step: any, config: StepConfig, outcome: string, duration?: number) {
     const supabase = createAdminClient()
     const retry = config.retry
 
+    let shouldRetry = false
+
     if (retry?.enabled && (execution.current_retry_count || 0) < (retry.max_attempts || 3)) {
+        if (retry.criteria) {
+            const criteria = retry.criteria
+            if (outcome === 'busy') {
+                shouldRetry = criteria.busy !== false;
+            } else if (outcome === 'no_answer') {
+                if (duration !== undefined && duration !== null && duration > 0) {
+                    // Call answered but hung up quickly (duration <= 30 seconds)
+                    if (criteria.hung_up?.enabled) {
+                        const maxSecs = criteria.hung_up.max_seconds || 10;
+                        shouldRetry = duration <= maxSecs;
+                    } else {
+                        // If hung_up is disabled or not set, we do not retry answered calls
+                        shouldRetry = false;
+                    }
+                } else {
+                    // Unanswered call (no duration)
+                    shouldRetry = criteria.no_answer !== false;
+                }
+            } else if (outcome === 'success') {
+                shouldRetry = false; // Never retry successful conversations
+            } else {
+                shouldRetry = true; // Fallback for other steps/channels
+            }
+        } else {
+            // Default legacy behavior: retry anything that is not a success
+            shouldRetry = outcome !== 'success';
+        }
+    }
+
+    if (shouldRetry) {
         // Schedule retry
         const retryAt = new Date()
-        retryAt.setMinutes(retryAt.getMinutes() + (retry.interval_minutes || 15))
+        retryAt.setMinutes(retryAt.getMinutes() + (retry?.interval_minutes || 15))
 
         await supabase.from('outreach_executions')
             .update({
@@ -958,7 +1002,7 @@ export async function handleVapiCallResult(callData: {
         await touchSaleTimestamp(execution.sale_id)
 
         if (stepData?.data) {
-            await handleRetryOrAdvance(execution, stepData.data, stepData.data.config || {}, outcome)
+            await handleRetryOrAdvance(execution, stepData.data, stepData.data.config || {}, outcome, callData.duration)
         }
     }
 
