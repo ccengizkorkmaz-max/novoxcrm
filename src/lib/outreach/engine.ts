@@ -94,7 +94,7 @@ async function handleCriticalSystemFailure(tenantId: string, reason: string, wor
     const { createNotification } = await import('@/lib/notifications/create');
     await createNotification({
         tenant_id: tenantId,
-        type: 'Error',
+        type: 'Alert',
         category: 'System',
         title: '🚨 DİKKAT: Yapay Zeka Servisi Durduruldu',
         message: `Kredi veya bakiye sorunu nedeniyle çağrılar durduruldu. Hata: ${reason}`,
