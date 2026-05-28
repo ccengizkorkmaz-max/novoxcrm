@@ -27,7 +27,7 @@ function extractProjectFromMessage(message: string): string | null {
     // Match "Konu: ..." or "Proje: ..." or "Subject: ..."
     const patterns = [
         /Konu:\s*(.+?)(?=\s*(?:Ad\s+Soyad|E-posta|Telefon|Mesaj|Not|$))/i,
-        /Proje:\s*(.+?)(?=\s*(?:Ad\s+Soyad|E-posta|Telefon|Konu|Mesaj|$))/i,
+        /(?:Seçilen Proje|İlgilenilen Proje|Seçtiği Proje|Proje):\s*(.+?)(?=\s*(?:Ad\s+Soyad|E-posta|Telefon|Konu|Mesaj|$))/i,
         /Subject:\s*(.+?)(?=\s*(?:Name|Email|Phone|Message|$))/i,
     ]
     
