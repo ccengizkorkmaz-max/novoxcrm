@@ -218,15 +218,22 @@
 | **Proje Adı** | NOVO City İzmir |
 | **Konum** | İzmir / Torbalı / Pancar OSB yakını |
 | **Başlangıç Tarihi** | Haziran 2026 |
-| **Bitiş Tarihi** | Aralık 2027 |
+| **Bitiş Tarihi** | Haziran 2028 |
 | **Daire Tipleri** | 1+0 ve 1+1 |
 
 ### Fiyatlar ve Ödeme Planı
 
-| Daire Tipi | Peşin Fiyat | Vadeli Fiyat | Peşinat | Taksit |
-|-----------|-------------|-------------|---------|--------|
-| 1+0 | 1.500.000 TL | 1.990.000 TL | %35 | 24 ay vade farksız sabit taksit |
-| 1+1 | 2.000.000 TL | 2.490.000 TL | %35 | 24 ay vade farksız sabit taksit |
+**24 Ay Vadeli Seçenek (Şirket İçi Taksit):**
+| Daire Tipi | Peşin Fiyat | Vadeli Fiyat | Peşinat | Taksit (24 Ay) | Son Ödeme (24. Ay) |
+|-----------|-------------|-------------|---------|----------------|-------------------|
+| 1+0 | 1.500.000 TL | 1.990.000 TL | 790.000 TL | 20.000 TL | 720.000 TL |
+| 1+1 | 2.000.000 TL | 2.490.000 TL | 990.000 TL | 25.000 TL | 900.000 TL |
+
+**60 Ay Vadeli Seçenek (Tasarruf Şirketi):**
+| Daire Tipi | Peşinat | Taksit (60 Ay) |
+|-----------|---------|----------------|
+| 1+0 | 790.000 TL | 20.000 TL |
+| 1+1 | 990.000 TL | 25.000 TL |
 
 ### Lokasyon Özellikleri
 - Pancar Organize Sanayi Bölgesi'ne komşu
@@ -235,16 +242,10 @@
 - Sürdürülebilir kiralama talebi
 
 ### Sosyal Donatılar
-- Kapalı otopark
-- Yüzme havuzu
-- 7/24 güvenlik
-- Tenis kortu
-- Basketbol sahası
-- Market
-- Kuaför
-- Hamam & sauna
-- Sosyal tesis
-- Restoran
+- Açık otopark
+- Peyzaj alanları
+- Çocuk oyun parkı
+- Açık havuz
 
 ### Öne Çıkan Özellikler
 - Lansmana özel fiyatlar (sınırlı sayıda)

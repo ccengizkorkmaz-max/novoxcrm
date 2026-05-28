@@ -36,6 +36,7 @@ export interface Activity {
     reminder_at?: string
     owner_id?: string
     previous_activity_id?: string
+    call_recording_url?: string
 }
 
 interface ActivityCardProps {
@@ -142,6 +143,11 @@ export function ActivityCard({ activity, customers, profiles, projects, onComple
                             <p className="text-[10px] text-slate-500 leading-snug line-clamp-2 mb-1">
                                 {activity.description}
                             </p>
+                        )}
+                        {activity.call_recording_url && (
+                            <div className="mt-2 mb-2" onClick={(e) => e.stopPropagation()}>
+                                <audio controls className="w-full h-8" src={activity.call_recording_url} preload="none"></audio>
+                            </div>
                         )}
                         {activity.customers?.full_name && (
                             <Link href={`/customers/${activity.customer_id}`} onClick={(e: React.MouseEvent) => e.stopPropagation()}>

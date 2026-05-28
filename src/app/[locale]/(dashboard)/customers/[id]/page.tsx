@@ -26,11 +26,45 @@ export default async function CustomerPage({ params }: CustomerPageProps) {
     }
 
     // Fetch activities for this customer
-    const { data: activities } = await supabase
+    const { data: dbActivities } = await supabase
         .from('activities')
         .select('*')
         .eq('customer_id', id)
         .order('due_date', { ascending: false })
+
+    // Fetch AI call logs
+    const { data: callLogs } = await supabase
+        .from('outreach_step_logs')
+        .select(`
+            id,
+            executed_at,
+            call_summary,
+            call_recording_url,
+            call_duration_seconds,
+            outreach_executions!inner (
+                customer_id,
+                workflows:outreach_workflows ( name )
+            )
+        `)
+        .eq('outreach_executions.customer_id', id)
+        .not('call_summary', 'is', null) // only fetch completed calls
+
+    // Map AI call logs to Activity format
+    const aiActivities = (callLogs || []).map((log: any) => ({
+        id: `ai-${log.id}`,
+        customer_id: id,
+        type: 'Call',
+        topic: 'Outreach',
+        summary: 'AI Araması: ' + (log.outreach_executions?.workflows?.name || 'Genel'),
+        description: log.call_summary || 'Arama özeti bulunmuyor.',
+        due_date: log.executed_at,
+        created_at: log.executed_at,
+        status: 'Completed',
+        call_recording_url: log.call_recording_url,
+    }))
+
+    // Combine both
+    const activities = [...(dbActivities || []), ...aiActivities]
 
     // Fetch contracts for this customer
     const { data: contracts } = await supabase

@@ -32,7 +32,8 @@ export function ActivityTimeline({ activities, customer, profiles = [] }: Activi
         outcome: a.outcome,
         notes: a.notes,
         description: a.description,
-        previous_activity_id: a.previous_activity_id
+        previous_activity_id: a.previous_activity_id,
+        call_recording_url: a.call_recording_url
     }))
 
     // Slice
