@@ -1915,3 +1915,132 @@ export async function mergeDuplicateGroup(masterId: string, duplicateIds: string
         return { error: e.message }
     }
 }
+
+// ----------------------------------------------------
+// AI VOICE CALL ACTIONS
+// ----------------------------------------------------
+export async function getAiCallModalData(saleId: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    const { data: sale, error: saleErr } = await supabase
+        .from('sales')
+        .select('*, customers(*), projects(*)')
+        .eq('id', saleId)
+        .single()
+
+    if (saleErr || !sale) {
+        return { error: 'Sale record not found' }
+    }
+
+    const { data: lastCall } = await supabase
+        .from('activities')
+        .select('*')
+        .eq('customer_id', sale.customer_id)
+        .eq('type', 'Call')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+    return {
+        success: true,
+        customerName: sale.customers?.full_name,
+        customerPhone: sale.customers?.phone,
+        projectName: sale.projects?.name,
+        lastCall: lastCall ? {
+            created_at: lastCall.created_at,
+            summary: lastCall.summary,
+            description: lastCall.description,
+            outcome: lastCall.outcome
+        } : null
+    }
+}
+
+export async function initiateAiCall(saleId: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', user.id)
+        .single()
+    if (!profile) return { error: 'Profile not found' }
+
+    const { data: sale } = await supabase
+        .from('sales')
+        .select('*, customers(*), projects(*)')
+        .eq('id', saleId)
+        .single()
+
+    if (!sale || !sale.customers) return { error: 'Customer or sale not found' }
+    if (!sale.customers.phone) return { error: 'Customer phone number is missing' }
+
+    const { data: tenant } = await supabase
+        .from('tenants')
+        .select('ai_knowledge_base')
+        .eq('id', profile.tenant_id)
+        .single()
+
+    const customerName = sale.customers.full_name || 'Değerli Müşterimiz'
+    const projectName = sale.projects?.name || 'Novo Projeleri'
+    const projectDetails = tenant?.ai_knowledge_base || ''
+
+    const systemPrompt = `
+Sen Novo'da çalışan deneyimli bir satış danışmanısın. Adın İrem.
+Karşındaki müşteri: ${customerName}.
+İlgilendiği Proje: ${projectName}.
+
+GÖREV:
+1. Müşteriye nazikçe kendini tanıt ve daha önce ilgilenmiş olduğu "${projectName}" projesi hakkında aradığını belirt.
+2. Müşteriye "${projectName}" projesi hakkında detaylı bilgi vermek için aradığını söyle ve "Müsaitseniz projeden kısaca bahsedebilir miyim?" diye sor.
+3. Müşteri olumlu yaklaşırsa, projenin öne çıkan özelliklerinden kısaca bahset. (Aşağıdaki BİLGİ BANKASI'ndaki verileri kullan).
+4. Müşterinin proje hakkındaki düşüncelerini ve geri bildirimlerini öğrenmeye çalış. Yatırım amaçlı mı yoksa oturum amaçlı mı ilgilendiğini sor.
+5. Müşteri detaylı bilgi veya randevu talep ederse, "Sizi hemen ilgili satış uzmanımıza yönlendiriyorum" diyerek görüşmeyi tamamla.
+6. Müşteri ilgilenmiyorum veya istemiyorum derse, zorlama, kibarca teşekkür et ve aramayı sonlandır.
+
+PROJE BİLGİ BANKASI:
+${projectDetails || 'Detaylar sistemde mevcut değil.'}
+
+Müşterinin adı: ${customerName}. Ona ismiyle hitap et (Örn: "${customerName}" erkek ise "... Bey", kadın ise "... Hanım").
+`
+
+    const firstMessage = `Merhaba ${customerName}, ben Novo'dan İrem. Daha önce ilgilenmiş olduğunuz ${projectName} projesi hakkında görüşmek için aramıştım, müsaitseniz kısaca bilgi aktarabilir miyim?`
+
+    const { makeOutboundCall } = await import('@/lib/vapi')
+    const result = await makeOutboundCall({
+        phoneNumber: sale.customers.phone,
+        systemPrompt,
+        firstMessage,
+        metadata: {
+            sale_id: saleId,
+            customer_id: sale.customer_id,
+            tenant_id: profile.tenant_id,
+            type: 'manual_call'
+        }
+    })
+
+    if (!result.success) {
+        return { error: result.error || 'Arama başlatılamadı' }
+    }
+
+    return { success: true, callId: result.callId }
+}
+
+export async function getCallDetails(callId: string) {
+    const { getCallStatus } = await import('@/lib/vapi')
+    const status = await getCallStatus(callId)
+    if (!status) return { error: 'Call status not found' }
+
+    return {
+        success: true,
+        status: status.status,
+        transcript: status.transcript,
+        summary: status.summary || status.analysis?.summary,
+        recordingUrl: status.recordingUrl,
+        endedReason: status.endedReason,
+        analysis: status.analysis
+    }
+}

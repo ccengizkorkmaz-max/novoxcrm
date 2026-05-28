@@ -473,3 +473,160 @@ KURALLAR:
 - Yeniden başlama fırsatı olarak sun
 - Nazik ve kısa tut`,
 }
+
+/**
+ * Called by the Vapi webhook when a manual call ends.
+ * Logs the call to the customer's timeline and updates CRM lead states.
+ */
+export async function handleManualVapiCallResult(callData: {
+    callId: string
+    status: string
+    endedReason?: string
+    transcript?: string
+    summary?: string
+    recordingUrl?: string
+    duration?: number
+    cost?: number
+    analysis?: any
+    metadata?: Record<string, any>
+}) {
+    const { createAdminClient } = await import('@/lib/supabase/admin')
+    const supabase = createAdminClient()
+    const customerId = callData.metadata?.customer_id
+    const saleId = callData.metadata?.sale_id
+    const tenantId = callData.metadata?.tenant_id
+
+    if (!customerId || !tenantId) {
+        console.warn('[Vapi Webhook] Manual call finished but missing customer_id or tenant_id in metadata')
+        return
+    }
+
+    console.log(`[Vapi Webhook] Processing manual call result for customer: ${customerId}, sale: ${saleId}`)
+
+    // Determine call outcome/status
+    let outcome: string = 'no_answer'
+    let logStatus: string = 'no_answer'
+
+    if (callData.endedReason === 'customer-ended-call' || callData.endedReason === 'assistant-ended-call') {
+        if (callData.duration && callData.duration > 30) {
+            outcome = 'success'
+            logStatus = 'answered'
+        } else if (callData.duration && callData.duration > 5) {
+            outcome = 'no_answer'
+            logStatus = 'hung_up'
+        }
+    } else if (callData.endedReason === 'customer-did-not-answer') {
+        outcome = 'no_answer'
+        logStatus = 'no_answer'
+    } else if (callData.endedReason === 'customer-busy') {
+        outcome = 'busy'
+        logStatus = 'busy'
+    }
+
+    // Check structured data
+    const structuredData = callData.analysis?.structuredData
+    const interested = structuredData?.interested
+    const leadScore = structuredData?.lead_score // hot, warm, follow_up, disqualified
+    const notes = structuredData?.notes
+
+    if (interested === true || leadScore === 'hot' || leadScore === 'warm') {
+        outcome = 'success'
+        logStatus = 'answered'
+    }
+
+    // ─── 1. Log to Customer Timeline (Activities) ─────────
+    const durationText = callData.duration ? `${Math.floor(callData.duration / 60)}dk ${callData.duration % 60}sn` : ''
+    const transcriptBlock = callData.transcript
+        ? `\n\n📝 Transkript:\n${callData.transcript}`
+        : ''
+    const recordingBlock = callData.recordingUrl
+        ? `\n\n🎙️ Kayıt Dinle: ${callData.recordingUrl}`
+        : ''
+    const summaryBlock = callData.summary || notes || 'Görüşme tamamlandı.'
+
+    const { error: actError } = await supabase.from('activities').insert({
+        tenant_id: tenantId,
+        customer_id: customerId,
+        type: 'Call',
+        topic: 'Sales',
+        summary: `🤖 AI Arama: ${leadScore ? 'Skor ' + leadScore.toUpperCase() : 'Görüşme Tamamlandı'} (${durationText})`,
+        description: summaryBlock + transcriptBlock + recordingBlock,
+        status: 'Completed',
+        due_date: new Date().toISOString(),
+        completed_at: new Date().toISOString(),
+        outcome: logStatus,
+        priority: leadScore === 'hot' ? 'High' : 'Medium'
+    })
+
+    if (actError) {
+        console.error('[Vapi Webhook] Error saving manual call activity:', actError)
+    }
+
+    // ─── 2. Update Lead (Sale) Status if interested ─────────
+    if (saleId) {
+        const updates: any = {}
+        
+        // If customer is highly interested, promote to Prospect (Fırsat)
+        if (interested === true || leadScore === 'hot') {
+            updates.status = 'Prospect'
+        }
+        
+        if (Object.keys(updates).length > 0) {
+            await supabase.from('sales').update(updates).eq('id', saleId)
+        }
+    }
+
+    // ─── 3. AI Lead Scoring → lead_qualifications güncelleme ─────
+    if (leadScore) {
+        const scoreMap: Record<string, string> = {
+            hot: 'qualified',
+            warm: 'follow_up',
+            follow_up: 'follow_up',
+            disqualified: 'disqualified',
+        }
+        const newLqStatus = scoreMap[leadScore] || 'follow_up'
+
+        // Check if lead_qualifications record exists
+        const { data: lqRecord } = await supabase
+            .from('lead_qualifications')
+            .select('id')
+            .eq('customer_id', customerId)
+            .limit(1)
+            .maybeSingle()
+
+        const lqData = {
+            tenant_id: tenantId,
+            customer_id: customerId,
+            status: newLqStatus,
+            interest_level: leadScore,
+            call_notes: `🤖 AI Arama Skoru: ${leadScore.toUpperCase()}` + (notes ? ` - ${notes}` : ''),
+            last_call_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+        }
+
+        if (lqRecord) {
+            const { data: currentLq } = await supabase.from('lead_qualifications').select('call_count').eq('id', lqRecord.id).single()
+            const currentCount = currentLq?.call_count || 0
+            
+            await supabase
+                .from('lead_qualifications')
+                .update({
+                    status: newLqStatus,
+                    interest_level: leadScore,
+                    call_notes: lqData.call_notes,
+                    last_call_at: lqData.last_call_at,
+                    call_count: currentCount + 1,
+                    updated_at: lqData.updated_at
+                })
+                .eq('id', lqRecord.id)
+        } else {
+            await supabase
+                .from('lead_qualifications')
+                .insert({
+                    ...lqData,
+                    call_count: 1
+                })
+        }
+        console.log(`[Vapi Webhook] 📊 Manual lead scored: ${customerId} → ${leadScore} (${newLqStatus})`)
+    }
+}

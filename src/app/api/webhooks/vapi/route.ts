@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { parseVapiWebhook } from '@/lib/vapi'
+import { parseVapiWebhook, handleManualVapiCallResult } from '@/lib/vapi'
 import { handleVapiCallResult } from '@/lib/outreach/engine'
 
 /**
@@ -29,18 +29,34 @@ export async function POST(req: NextRequest) {
             case 'end-of-call-report':
             case 'call.ended':
                 console.log(`[Vapi Webhook] Call ended: ${parsed.callId}, reason: ${parsed.endedReason}`)
-                await handleVapiCallResult({
-                    callId: parsed.callId,
-                    status: parsed.status || 'ended',
-                    endedReason: parsed.endedReason,
-                    transcript: parsed.transcript,
-                    summary: parsed.summary,
-                    recordingUrl: parsed.recordingUrl,
-                    duration: parsed.duration,
-                    cost: parsed.cost,
-                    analysis: parsed.analysis,
-                    metadata: parsed.metadata,
-                })
+                
+                if (parsed.metadata?.type === 'manual_call') {
+                    await handleManualVapiCallResult({
+                        callId: parsed.callId,
+                        status: parsed.status || 'ended',
+                        endedReason: parsed.endedReason,
+                        transcript: parsed.transcript,
+                        summary: parsed.summary,
+                        recordingUrl: parsed.recordingUrl,
+                        duration: parsed.duration,
+                        cost: parsed.cost,
+                        analysis: parsed.analysis,
+                        metadata: parsed.metadata,
+                    })
+                } else {
+                    await handleVapiCallResult({
+                        callId: parsed.callId,
+                        status: parsed.status || 'ended',
+                        endedReason: parsed.endedReason,
+                        transcript: parsed.transcript,
+                        summary: parsed.summary,
+                        recordingUrl: parsed.recordingUrl,
+                        duration: parsed.duration,
+                        cost: parsed.cost,
+                        analysis: parsed.analysis,
+                        metadata: parsed.metadata,
+                    })
+                }
                 break
 
             case 'status-update':

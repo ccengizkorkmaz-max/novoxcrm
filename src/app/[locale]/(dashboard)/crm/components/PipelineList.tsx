@@ -45,6 +45,7 @@ const PipelineReservationDialog = dynamic(() => import('./PipelineReservationDia
 const CustomerEditDialog = dynamic(() => import('./CustomerEditDialog').then(m => m.CustomerEditDialog), { ssr: false })
 const AiMatchDialog = dynamic(() => import('@/components/customers/AiMatchDialog').then(m => m.AiMatchDialog), { ssr: false })
 const ActivityForm = dynamic(() => import('@/components/activities/activity-form').then(m => m.ActivityForm), { ssr: false })
+const AiCallDialog = dynamic(() => import('./AiCallDialog'), { ssr: false })
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { CustomerView } from '@/components/customers/customer-view'
 import { getCustomerFullProfile } from '../actions'
@@ -110,6 +111,7 @@ export default function PipelineList({
 
     const [selectedSaleId, setSelectedSaleId] = useState<string | null>(null)
     const [isPlanOpen, setIsPlanOpen] = useState(false)
+    const [activeAiCallSaleId, setActiveAiCallSaleId] = useState<string | null>(null)
 
     const [isAssigning, setIsAssigning] = useState<string | null>(null)
     const [assignPopoverOpen, setAssignPopoverOpen] = useState<string | null>(null)
@@ -609,10 +611,21 @@ export default function PipelineList({
                                                                     <span className="text-[10px] font-black px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded-md border border-blue-100 flex-shrink-0">{sale.customers.customer_number}</span>
                                                                 )}
                                                                 {sale.customers?.phone && (
-                                                                    <a href={`tel:${sale.customers.phone}`} className="inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 bg-slate-50 text-slate-500 rounded-md border border-slate-200 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-colors flex-shrink-0" title="Telefon">
-                                                                        <Phone className="h-2.5 w-2.5" />
-                                                                        {sale.customers.phone}
-                                                                    </a>
+                                                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                                                        <a href={`tel:${sale.customers.phone}`} className="inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 bg-slate-50 text-slate-500 rounded-md border border-slate-200 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-colors flex-shrink-0" title="Telefon">
+                                                                            <Phone className="h-2.5 w-2.5" />
+                                                                            {sale.customers.phone}
+                                                                        </a>
+                                                                        <Button 
+                                                                            variant="ghost" 
+                                                                            size="sm" 
+                                                                            className="h-5 px-1 py-0 text-[10px] font-semibold text-purple-600 hover:text-purple-700 hover:bg-purple-50 rounded border border-purple-200 gap-0.5 flex-shrink-0"
+                                                                            onClick={(e) => { e.stopPropagation(); setActiveAiCallSaleId(sale.id); }}
+                                                                        >
+                                                                            <Sparkles className="h-2.5 w-2.5 animate-pulse" />
+                                                                            AI Ara
+                                                                        </Button>
+                                                                    </div>
                                                                 )}
                                                                 {!sale.customers?.customer_number && !sale.customers?.phone && (
                                                                     <span className="text-xs text-muted-foreground hidden lg:inline-block">ID: {sale.id.slice(0, 8)}...</span>
@@ -868,6 +881,23 @@ export default function PipelineList({
                                             </span>
                                         ) : (
                                             <span className="text-[10px] text-muted-foreground font-mono">ID: {sale.id.slice(0, 8)}</span>
+                                        )}
+                                        {sale.customers?.phone && (
+                                            <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                                                <a href={`tel:${sale.customers.phone}`} className="inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 bg-slate-50 text-slate-500 rounded-md border border-slate-200 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-colors flex-shrink-0" title="Telefon">
+                                                    <Phone className="h-2.5 w-2.5" />
+                                                    {sale.customers.phone}
+                                                </a>
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="sm" 
+                                                    className="h-5 px-1 py-0 text-[10px] font-semibold text-purple-600 hover:text-purple-700 hover:bg-purple-50 rounded border border-purple-200 gap-0.5 flex-shrink-0"
+                                                    onClick={(e) => { e.stopPropagation(); setActiveAiCallSaleId(sale.id); }}
+                                                >
+                                                    <Sparkles className="h-2.5 w-2.5 animate-pulse" />
+                                                    AI Ara
+                                                </Button>
+                                            </div>
                                         )}
                                     </div>
                                     <div className={cn(
@@ -1338,6 +1368,13 @@ export default function PipelineList({
                     </div>
                 </DialogContent>
             </Dialog>
+
+            {activeAiCallSaleId && (
+                <AiCallDialog
+                    saleId={activeAiCallSaleId}
+                    onClose={() => setActiveAiCallSaleId(null)}
+                />
+            )}
         </div >
     )
 }
