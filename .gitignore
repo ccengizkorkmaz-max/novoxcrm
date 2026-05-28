@@ -53,3 +53,35 @@ google-indexer-key.json
 # scratch scripts (may contain secrets)
 scratch/
 .env*.local
+
+# ============================================
+# Root debug/test scripts (not part of the app)
+# ============================================
+/*.js
+/*.cjs
+/*.mjs
+/*.ts
+# Keep config files
+!next.config.ts
+!next-env.d.ts
+
+# ============================================
+# Data files - must never be in repo (PII risk)
+# ============================================
+*.xlsx
+*.csv
+*.sql
+*.log
+*.png
+/burak.json
+/calls_output.json
+/data.json
+/error_log.json
+/kubra_assigned.json
+/kubra_source.json
+/missing_contacts.json
+/missing_leads_from_excel.json
+/sales_assignment_backup.json
+
+# Reports (generated, not source code)
+/reports/

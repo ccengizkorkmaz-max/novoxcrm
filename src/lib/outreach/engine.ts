@@ -406,6 +406,29 @@ async function executeStep(execution: any, step: any) {
 
 // ─── Channel Executors ───────────────────────────────────────
 
+/**
+ * Müşteri isminin sesli aramada telaffuz edilebilir olup olmadığını kontrol eder.
+ * Sosyal medya kaynaklı leadlerde kullanıcı adları (ör: tknbzy48, MetinNKılıçeR MetinNKılıçeR)
+ * AI tarafından anlamsız okunuyordu. Bu filtre ile geçersiz isimler tespit edilir.
+ */
+function isValidTurkishName(name: string | undefined | null): boolean {
+    if (!name || name.trim().length === 0) return false;
+    const trimmed = name.trim();
+    // Rakam veya özel karakter içeriyorsa geçersiz (sosyal medya kullanıcı adı)
+    if (/[0-9_@#$%^&*(){}\[\]|\\<>]/.test(trimmed)) return false;
+    // 3 karakterden kısa isim geçersiz
+    if (trimmed.length < 3) return false;
+    // 50 karakterden uzun isim geçersiz
+    if (trimmed.length > 50) return false;
+    // Tekrar eden isim: "MetinNKılıçeR MetinNKılıçeR"
+    const words = trimmed.split(/\s+/);
+    if (words.length === 2 && words[0].toLowerCase() === words[1].toLowerCase()) return false;
+    // Sadece ünsüzlerden oluşan anlamsız diziler (ör: tknbzy, fzt)
+    const vowelRatio = (trimmed.match(/[aeıioöuüAEIİOÖUÜ]/g) || []).length / trimmed.replace(/\s/g, '').length;
+    if (vowelRatio < 0.15) return false;
+    return true;
+}
+
 async function executeAiCall(execution: any, step: any, config: StepConfig, phone: string, customer: any) {
     const supabase = createAdminClient()
 
@@ -457,7 +480,7 @@ async function executeAiCall(execution: any, step: any, config: StepConfig, phon
         phoneNumber: cleanPhone,
         // Always use the default Vapi assistant, override with script prompt
         systemPrompt: scriptPrompt,
-        firstMessage: execution.metadata?.personalized_message || (customer?.full_name ? `Merhaba ${customer.full_name}, size Novo İnşaat’tan ulaşıyorum. Ben Çiçek, nasılsınız?` : "Merhaba, size Novo İnşaat’tan ulaşıyorum. Ben Çiçek, nasılsınız?"),
+        firstMessage: execution.metadata?.personalized_message || (isValidTurkishName(customer?.full_name) ? `Merhaba ${customer.full_name.trim()}, size Novo İnşaat'tan ulaşıyorum. Ben Çiçek, nasılsınız?` : "Merhaba, size Novo İnşaat'tan ulaşıyorum. Ben Çiçek, nasılsınız?"),
         metadata: {
             execution_id: execution.id,
             sale_id: execution.sale_id,

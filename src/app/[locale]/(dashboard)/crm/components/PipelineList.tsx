@@ -34,15 +34,17 @@ import {
     PopoverTrigger,
 } from "@/components/ui/popover"
 import { Pencil } from 'lucide-react'
-import PaymentPlanCalculator from './PaymentPlanCalculator'
-import MatchUnitDialog from './MatchUnitDialog'
-import PipelineReservationDialog from './PipelineReservationDialog'
+import dynamic from 'next/dynamic'
 import { RestartSaleButton } from './RestartSaleButton'
 import { toast } from 'sonner'
-import { CustomerEditDialog } from './CustomerEditDialog'
-import { AiMatchDialog } from '@/components/customers/AiMatchDialog'
-import { ActivityForm } from '@/components/activities/activity-form'
 import { useRouter, useSearchParams } from 'next/navigation'
+
+const PaymentPlanCalculator = dynamic(() => import('./PaymentPlanCalculator'), { ssr: false })
+const MatchUnitDialog = dynamic(() => import('./MatchUnitDialog'), { ssr: false })
+const PipelineReservationDialog = dynamic(() => import('./PipelineReservationDialog'), { ssr: false })
+const CustomerEditDialog = dynamic(() => import('./CustomerEditDialog').then(m => m.CustomerEditDialog), { ssr: false })
+const AiMatchDialog = dynamic(() => import('@/components/customers/AiMatchDialog').then(m => m.AiMatchDialog), { ssr: false })
+const ActivityForm = dynamic(() => import('@/components/activities/activity-form').then(m => m.ActivityForm), { ssr: false })
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { CustomerView } from '@/components/customers/customer-view'
 import { getCustomerFullProfile } from '../actions'
@@ -67,7 +69,6 @@ const PIPELINE_COL_LABELS: Record<PipelineColId, string> = {
 export default function PipelineList({
     sales,
     customers,
-    availableUnits,
     templates = [],
     totalSalesCount = 0,
     initialPage = 1,
@@ -78,7 +79,6 @@ export default function PipelineList({
 }: {
     sales: any[],
     customers: any[],
-    availableUnits: any[],
     templates?: any[],
     totalSalesCount?: number,
     initialPage?: number,
@@ -769,10 +769,10 @@ export default function PipelineList({
                                                              {!isCompleted && (
                                                                  <>
                                                                      {!isBroker && (['Lead', 'Prospect', 'Reservation', 'Reserved', 'Opsiyon - Kapora Bekleniyor'].includes(sale.status)) && (
-                                                                         <PipelineReservationDialog saleId={sale.id} currentUnitId={sale.unit_id} availableUnits={availableUnits} customerName={sale.customers?.full_name} status={sale.status} expiryDate={sale.reservation_expiry} triggerSize="xs" />
+                                                                         <PipelineReservationDialog saleId={sale.id} currentUnitId={sale.unit_id} projects={projects} customerName={sale.customers?.full_name} status={sale.status} expiryDate={sale.reservation_expiry} triggerSize="xs" />
                                                                      )}
                                                                      {!isBroker && ['Lead', 'Prospect'].includes(sale.status) && (
-                                                                         <MatchUnitDialog saleId={sale.id} currentUnitId={sale.unit_id} availableUnits={availableUnits} customerName={sale.customers?.full_name} triggerSize="xs" />
+                                                                         <MatchUnitDialog saleId={sale.id} currentUnitId={sale.unit_id} projects={projects} customerName={sale.customers?.full_name} triggerSize="xs" />
                                                                      )}
                                                                      {sale.status === 'Lost' && !sale.restarted_at && <RestartSaleButton saleId={sale.id} triggerSize="xs" />}
                                                                      {['Lead', 'Prospect'].includes(sale.status) && (
@@ -974,7 +974,7 @@ export default function PipelineList({
                                                         <PipelineReservationDialog
                                                             saleId={sale.id}
                                                             currentUnitId={sale.unit_id}
-                                                            availableUnits={availableUnits}
+                                                            projects={projects}
                                                             customerName={sale.customers?.full_name}
                                                             status={sale.status}
                                                             expiryDate={sale.reservation_expiry}
@@ -984,7 +984,6 @@ export default function PipelineList({
                                                         <MatchUnitDialog
                                                             saleId={sale.id}
                                                             currentUnitId={sale.unit_id}
-                                                            availableUnits={availableUnits}
                                                             customerName={sale.customers?.full_name}
                                                             projects={projects}
                                                         />

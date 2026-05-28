@@ -21,19 +21,21 @@ import { useTranslations, useLocale } from 'next-intl'
 interface PipelineReservationDialogProps {
     saleId: string
     currentUnitId?: string | null
-    availableUnits: any[]
     customerName: string
+    projects: any[]
     status?: string
     expiryDate?: string
     triggerSize?: 'default' | 'sm' | 'xs'
 }
 
-export default function PipelineReservationDialog({ saleId, currentUnitId, availableUnits, customerName, status, expiryDate: initialExpiryDate, triggerSize }: PipelineReservationDialogProps) {
+export default function PipelineReservationDialog({ saleId, currentUnitId, customerName, projects: projectsProp = [], status, expiryDate: initialExpiryDate, triggerSize }: PipelineReservationDialogProps) {
     const t = useTranslations('CRM.reservation')
     const locale = useLocale()
     const [isOpen, setIsOpen] = useState(false)
     const [selectedProjectId, setSelectedProjectId] = useState("")
     const [selectedUnitId, setSelectedUnitId] = useState(currentUnitId || "")
+    const [units, setUnits] = useState<any[]>([])
+    const [isLoadingUnits, setIsLoadingUnits] = useState(false)
     const isReserved = status === 'Reservation'
 
     const defaultDate = new Date()
@@ -43,38 +45,77 @@ export default function PipelineReservationDialog({ saleId, currentUnitId, avail
 
     // Pre-fill project if unit is already matched
     useEffect(() => {
-        if (currentUnitId && availableUnits.length > 0) {
-            const unit = availableUnits.find(u => u.id === currentUnitId)
-            if (unit?.projects?.id) {
-                setSelectedProjectId(unit.projects.id)
+        if (!currentUnitId || !isOpen) return
+
+        const fetchMatchedUnitProject = async () => {
+            try {
+                const { createClient } = await import('@/lib/supabase/client')
+                const supabase = createClient()
+                const { data, error } = await supabase
+                    .from('units')
+                    .select('project_id')
+                    .eq('id', currentUnitId)
+                    .single()
+                
+                if (error) throw error
+                if (data?.project_id) {
+                    setSelectedProjectId(data.project_id)
+                }
+            } catch (err) {
+                console.error('Error pre-filling matched unit project:', err)
             }
         }
-    }, [currentUnitId, availableUnits, isOpen])
 
-    // Extract unique projects from available units
+        fetchMatchedUnitProject()
+    }, [currentUnitId, isOpen])
+
+    // Map projects list directly from props
     const projects = useMemo(() => {
-        const projectMap = new Map()
-        availableUnits.forEach(u => {
-            if (u.projects && !projectMap.has(u.projects.id)) {
-                projectMap.set(u.projects.id, u.projects.name)
-            }
-        })
-        return Array.from(projectMap.entries()).map(([id, name]) => ({
-            value: id,
-            label: name
+        return projectsProp.map(p => ({
+            value: p.id,
+            label: p.name
         }))
-    }, [availableUnits])
+    }, [projectsProp])
 
-    // Filter units based on selected project
+    // Load units on demand when project changes
+    useEffect(() => {
+        if (!selectedProjectId || !isOpen) {
+            setUnits([])
+            return
+        }
+
+        const loadUnits = async () => {
+            setIsLoadingUnits(true)
+            try {
+                const { createClient } = await import('@/lib/supabase/client')
+                const supabase = createClient()
+                const { data, error } = await supabase
+                    .from('units')
+                    .select('id, unit_number')
+                    .eq('project_id', selectedProjectId)
+                    .in('status', ['For Sale', 'Stock', 'Available'])
+                    .order('unit_number')
+                
+                if (error) throw error
+                setUnits(data || [])
+            } catch (err) {
+                console.error('Error fetching units for project:', err)
+                toast.error('Birimler yüklenirken bir hata oluştu.')
+            } finally {
+                setIsLoadingUnits(false)
+            }
+        }
+
+        loadUnits()
+    }, [selectedProjectId, isOpen])
+
+    // Filter units based on selected project (loaded dynamically)
     const filteredUnits = useMemo(() => {
-        if (!selectedProjectId) return []
-        return availableUnits
-            .filter(u => u.projects?.id === selectedProjectId)
-            .map(u => ({
-                value: u.id,
-                label: u.unit_number
-            }))
-    }, [selectedProjectId, availableUnits])
+        return units.map(u => ({
+            value: u.id,
+            label: u.unit_number
+        }))
+    }, [units])
 
     const handleReserve = async () => {
         if (!selectedUnitId || !expiryDate) {
@@ -155,10 +196,16 @@ export default function PipelineReservationDialog({ saleId, currentUnitId, avail
                             items={filteredUnits}
                             value={selectedUnitId}
                             onChange={setSelectedUnitId}
-                            placeholder={selectedProjectId ? t('unitPlaceholder', { defaultValue: 'Ünite Seçiniz...' }) : t('selectProjectFirst', { defaultValue: 'Önce Proje Seçiniz' })}
+                            placeholder={
+                                isLoadingUnits 
+                                    ? "Birimler yükleniyor..." 
+                                    : selectedProjectId 
+                                        ? t('unitPlaceholder', { defaultValue: 'Ünite Seçiniz...' }) 
+                                        : t('selectProjectFirst', { defaultValue: 'Önce Proje Seçiniz' })
+                            }
                             searchPlaceholder={t('unitSearch', { defaultValue: 'Ünite Ara...' })}
-                            emptyText={t('unitEmpty', { defaultValue: 'Aradığınız ünite bulunamadı.' })}
-                            disabled={!selectedProjectId}
+                            emptyText={isLoadingUnits ? "Yükleniyor..." : t('unitEmpty', { defaultValue: 'Aradığınız ünite bulunamadı.' })}
+                            disabled={!selectedProjectId || isLoadingUnits}
                         />
                     </div>
 

@@ -168,80 +168,80 @@ export async function POST(req: NextRequest) {
         'Lost': 'Kaybedildi', 'Cancelled': 'İptal', 'Transferred': 'Devredildi', 'Reserved': 'Rezerve'
     }
 
-    let allSales: any[] = []
-    let page = 0
-    const batchSize = 1000
-    while (true) {
-        const { data: batch } = await supabase
-            .from('sales')
-            .select('id, status, description, created_at, customer_id')
+    // Fetch aggregated summaries from marketing database views (zero loops, extremely fast)
+    const [channelSummaryRes, projectSummaryRes, campaignGroupedRes] = await Promise.all([
+        supabase
+            .from('marketing_channel_summary')
+            .select('name, total, today, this_week, this_month')
             .eq('tenant_id', share.tenant_id)
-            .or('description.ilike.%Form:%,description.ilike.%Lead from%')
-            .order('created_at', { ascending: false })
-            .range(page * batchSize, (page + 1) * batchSize - 1)
-        if (!batch || batch.length === 0) break
-        allSales = allSales.concat(batch)
-        if (batch.length < batchSize) break
-        page++
-    }
+            .order('total', { ascending: false }),
+        supabase
+            .from('marketing_project_summary')
+            .select('name, total, today, this_week, this_month')
+            .eq('tenant_id', share.tenant_id)
+            .order('total', { ascending: false }),
+        supabase
+            .from('marketing_form_campaign_grouped')
+            .select('form_name, channel, campaign, total, today, this_week, this_month, statuses')
+            .eq('tenant_id', share.tenant_id)
+    ])
 
-    // Build source map
-    const customerIds = [...new Set(allSales.map(s => s.customer_id).filter(Boolean))]
-    const sourceMap: Record<string, string> = {}
-    for (let i = 0; i < customerIds.length; i += batchSize) {
-        const batch = customerIds.slice(i, i + batchSize)
-        const { data: custs } = await supabase.from('customers').select('id, source').in('id', batch)
-        custs?.forEach(c => { sourceMap[c.id] = c.source || '' })
-    }
+    const channelSummary = channelSummaryRes.data || []
+    const projectSummary = projectSummaryRes.data || []
+    const campaignRows = campaignGroupedRes.data || []
 
-    // Aggregate
-    const channelSummary: Record<string, any> = {}
-    const projectSummary: Record<string, any> = {}
+    const channelData = channelSummary.map(row => ({
+        name: row.name,
+        total: row.total,
+        today: row.today,
+        thisWeek: row.this_week,
+        thisMonth: row.this_month
+    }))
+
+    const projectData = projectSummary.map(row => ({
+        name: row.name,
+        total: row.total,
+        today: row.today,
+        thisWeek: row.this_week,
+        thisMonth: row.this_month
+    }))
+
+    // Group and aggregate campaigns/statuses on Next.js side from the grouped SQL rows
     const campaignDetail: Record<string, any> = {}
+    let totalMarketingLeads = 0
 
-    allSales.forEach(sale => {
-        const desc = sale.description || ''
-        const source = sourceMap[sale.customer_id] || ''
-        const parsed = parseDescription(desc)
-        const saleDate = new Date(sale.created_at)
+    campaignRows.forEach(row => {
+        const formName = row.form_name || 'Diğer'
+        totalMarketingLeads += row.total
 
-        let ch = parsed.channel || source || 'Bilinmiyor'
-        if (['Facebook Ads', 'Facebook', 'fb'].includes(source) || ch.includes('Facebook')) ch = 'Facebook Ads'
-        else if (['Instagram', 'ig'].includes(source)) ch = 'Instagram'
-        else if (source === 'WEB Form') ch = 'Web Sitesi'
-        else if (['Email', 'E-Posta'].includes(source)) ch = 'E-Posta'
-        else if (source === 'Whatsapp&Call Center') ch = 'WhatsApp'
+        if (!campaignDetail[formName]) {
+            campaignDetail[formName] = {
+                formName,
+                total: 0, today: 0, thisWeek: 0, thisMonth: 0,
+                channel: row.channel,
+                statuses: {}
+            }
+        }
 
-        // Channel
-        if (!channelSummary[ch]) channelSummary[ch] = { total: 0, today: 0, thisWeek: 0, thisMonth: 0 }
-        channelSummary[ch].total++
-        if (isToday(saleDate)) channelSummary[ch].today++
-        if (isThisWeek(saleDate, { weekStartsOn: 1 })) channelSummary[ch].thisWeek++
-        if (isThisMonth(saleDate)) channelSummary[ch].thisMonth++
+        const form = campaignDetail[formName]
+        form.total += row.total
+        form.today += row.today
+        form.thisWeek += row.this_week
+        form.thisMonth += row.this_month
 
-        // Project
-        const proj = parsed.project || 'Belirtilmemiş'
-        if (!projectSummary[proj]) projectSummary[proj] = { total: 0, today: 0, thisWeek: 0, thisMonth: 0 }
-        projectSummary[proj].total++
-        if (isToday(saleDate)) projectSummary[proj].today++
-        if (isThisWeek(saleDate, { weekStartsOn: 1 })) projectSummary[proj].thisWeek++
-        if (isThisMonth(saleDate)) projectSummary[proj].thisMonth++
-
-        // Campaign detail
-        let key = parsed.project && parsed.campaign ? `${parsed.project} — ${parsed.campaign}` : parsed.project || parsed.campaign || 'Genel'
-        if (!campaignDetail[key]) campaignDetail[key] = { channel: ch, project: parsed.project, campaign: parsed.campaign, total: 0, today: 0, thisWeek: 0, thisMonth: 0, statuses: {} }
-        campaignDetail[key].total++
-        if (isToday(saleDate)) campaignDetail[key].today++
-        if (isThisWeek(saleDate, { weekStartsOn: 1 })) campaignDetail[key].thisWeek++
-        if (isThisMonth(saleDate)) campaignDetail[key].thisMonth++
-        const label = statusLabels[sale.status] || sale.status || 'Diğer'
-        campaignDetail[key].statuses[label] = (campaignDetail[key].statuses[label] || 0) + 1
+        // Aggregate statuses
+        if (row.statuses && typeof row.statuses === 'object') {
+            Object.entries(row.statuses).forEach(([status, count]) => {
+                const label = statusLabels[status] || status || 'Diğer'
+                form.statuses[label] = (form.statuses[label] || 0) + Number(count)
+            })
+        }
     })
 
     return NextResponse.json({
-        totalMarketingLeads: allSales.length,
-        channelData: Object.entries(channelSummary).map(([name, d]) => ({ name, ...d })).sort((a: any, b: any) => b.total - a.total),
-        projectData: Object.entries(projectSummary).map(([name, d]) => ({ name, ...d })).sort((a: any, b: any) => b.total - a.total),
+        totalMarketingLeads,
+        channelData,
+        projectData,
         formData: Object.entries(campaignDetail).map(([formName, d]) => ({ formName, ...d })).sort((a: any, b: any) => b.total - a.total),
     })
 }

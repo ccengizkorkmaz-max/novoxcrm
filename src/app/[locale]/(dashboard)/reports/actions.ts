@@ -20,7 +20,8 @@ export async function getSalesAnalytics() {
             created_at,
             assigned_to,
             customer_id,
-            profiles:assigned_to(full_name)
+            profiles:assigned_to(full_name),
+            customers(source)
         `)
         .limit(10000)
 
@@ -97,17 +98,9 @@ export async function getSalesAnalytics() {
     const activeProspects = sales.filter(s => s.status === 'Prospect').length
     const conversionRate = sales.length > 0 ? (sales.filter(s => s.status === 'Sold' || s.status === 'Completed').length / sales.length) * 100 : 0
 
-    // 5. Channel Distribution (Lead Source)
-    // We need to fetch customer sources for this
-    const { data: customers } = await supabase
-        .from('customers')
-        .select('id, source')
-
-    const sourceMap: Record<string, string> = {}
-    customers?.forEach(c => sourceMap[c.id] = c.source || 'Bilinmiyor')
-
+    // 5. Channel Distribution (Lead Source) - Calculated directly from joined customer source
     const channelDistribution = sales.reduce((acc: Record<string, number>, sale) => {
-        const source = sourceMap[sale.customer_id] || 'Bilinmiyor'
+        const source = (sale.customers as any)?.source || 'Bilinmiyor'
         acc[source] = (acc[source] || 0) + 1
         return acc
     }, {})
@@ -120,7 +113,7 @@ export async function getSalesAnalytics() {
     // 6. Enriched Sales List for Table View
     const enrichedSales = sales.map(s => ({
         ...s,
-        customer_source: sourceMap[s.customer_id] || 'Bilinmiyor',
+        customer_source: (s.customers as any)?.source || 'Bilinmiyor',
         sales_rep: (s.profiles as any)?.full_name || 'Atanmamış'
     })).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 
@@ -426,66 +419,77 @@ export async function getMarketingAnalytics() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: 'Unauthorized' }
 
-    // Fetch ALL marketing sales using DB-level filter (description contains 'Form:' or 'Lead from')
-    // Paginate through batches of 1000 to avoid Supabase row limits
-    let allSales: any[] = []
-    let page = 0
-    const batchSize = 1000
-    while (true) {
-        const { data: batch, error } = await supabase
-            .from('sales')
-            .select('id, status, description, created_at, customer_id')
-            .or('description.ilike.%Form:%,description.ilike.%Lead from%')
-            .order('created_at', { ascending: false })
-            .range(page * batchSize, (page + 1) * batchSize - 1)
-        
-        if (error || !batch || batch.length === 0) break
-        allSales = allSales.concat(batch)
-        if (batch.length < batchSize) break
-        page++
-    }
+    // Fetch aggregated summaries from marketing database views (zero loops, extremely fast)
+    const [channelSummaryRes, projectSummaryRes, campaignGroupedRes] = await Promise.all([
+        supabase
+            .from('marketing_channel_summary')
+            .select('name, total, today, this_week, this_month')
+            .order('total', { ascending: false }),
+        supabase
+            .from('marketing_project_summary')
+            .select('name, total, today, this_week, this_month')
+            .order('total', { ascending: false }),
+        supabase
+            .from('marketing_form_campaign_grouped')
+            .select('form_name, channel, campaign, total, today, this_week, this_month, statuses')
+    ])
 
-    if (allSales.length === 0) return { error: 'No sales data' }
+    const channelSummary = channelSummaryRes.data || []
+    const projectSummary = projectSummaryRes.data || []
+    const campaignRows = campaignGroupedRes.data || []
 
-    // Also include sales whose customer source is a marketing channel (but has no description)
-    const marketingSources = ['Facebook Ads', 'Facebook', 'fb', 'Instagram', 'ig', 'WEB Form', 'Email', 'E-Posta', 'Whatsapp&Call Center']
+    const channelData = channelSummary.map(row => ({
+        name: row.name,
+        total: row.total,
+        today: row.today,
+        thisWeek: row.this_week,
+        thisMonth: row.this_month
+    }))
 
-    // Get sales that have marketing source but NO description match (to fill the gap)
-    const existingIds = new Set(allSales.map(s => s.id))
-    let extraPage = 0
-    while (true) {
-        const { data: batch, error } = await supabase
-            .from('sales')
-            .select('id, status, description, created_at, customer_id, customers!inner(source)')
-            .in('customers.source', marketingSources)
-            .order('created_at', { ascending: false })
-            .range(extraPage * batchSize, (extraPage + 1) * batchSize - 1)
+    const projectData = projectSummary.map(row => ({
+        name: row.name,
+        total: row.total,
+        today: row.today,
+        thisWeek: row.this_week,
+        thisMonth: row.this_month
+    }))
 
-        if (error || !batch || batch.length === 0) break
-        batch.forEach((s: any) => {
-            if (!existingIds.has(s.id)) {
-                allSales.push(s)
-                existingIds.add(s.id)
+    // Group and aggregate campaigns/statuses on Next.js side from the grouped SQL rows
+    const leadsByForm: Record<string, any> = {}
+    let totalMarketingLeads = 0
+
+    campaignRows.forEach(row => {
+        const formName = row.form_name || 'Diğer'
+        totalMarketingLeads += row.total
+
+        if (!leadsByForm[formName]) {
+            leadsByForm[formName] = {
+                formName,
+                total: 0, today: 0, thisWeek: 0, thisMonth: 0,
+                channel: row.channel,
+                campaigns: {},
+                statuses: {}
             }
-        })
-        if (batch.length < batchSize) break
-        extraPage++
-    }
+        }
 
-    const marketingSales = allSales
+        const form = leadsByForm[formName]
+        form.total += row.total
+        form.today += row.today
+        form.thisWeek += row.this_week
+        form.thisMonth += row.this_month
 
-    // Build a minimal source map for the customers in our dataset
-    const customerIds = [...new Set(marketingSales.map(s => s.customer_id).filter(Boolean))]
-    const sourceMap: Record<string, string> = {}
-    // Batch fetch customer sources
-    for (let i = 0; i < customerIds.length; i += batchSize) {
-        const batch = customerIds.slice(i, i + batchSize)
-        const { data: custs } = await supabase
-            .from('customers')
-            .select('id, source')
-            .in('id', batch)
-        custs?.forEach(c => { sourceMap[c.id] = c.source || '' })
-    }
+        // Aggregate campaigns
+        if (row.campaign) {
+            form.campaigns[row.campaign] = (form.campaigns[row.campaign] || 0) + row.total
+        }
+
+        // Aggregate statuses
+        if (row.statuses && typeof row.statuses === 'object') {
+            Object.entries(row.statuses).forEach(([status, count]) => {
+                form.statuses[status] = (form.statuses[status] || 0) + Number(count)
+            })
+        }
+    })
 
     const statusLabels: Record<string, string> = {
         'Lead': 'Aday',
@@ -504,99 +508,22 @@ export async function getMarketingAnalytics() {
         'Reserved': 'Rezerve'
     }
 
-    // Parse description → Kanal, Proje, Kampanya
-    // Pattern: "Lead from Facebook Ads (Form: NOVO CITY İZMİR) (Campaign: 1504 / City İzmir / Potansiyel Müşteri Form Kampanyası)"
-    function parseDescription(desc: string) {
-        let channel = ''
-        let project = ''
-        let campaign = ''
+    const formData = Object.values(leadsByForm).map((data: any) => {
+        // Map status keys to Turkish labels
+        const mappedStatuses: Record<string, number> = {}
+        Object.entries(data.statuses).forEach(([status, count]) => {
+            const label = statusLabels[status] || status || 'Diğer'
+            mappedStatuses[label] = (mappedStatuses[label] || 0) + Number(count)
+        })
 
-        const channelMatch = desc.match(/Lead from\s+([^(]+?)(?:\s*\(|$)/i)
-        if (channelMatch) channel = channelMatch[1].trim()
-
-        const formMatch = desc.match(/\(Form:\s*([^)]+)\)/i)
-        if (formMatch) project = formMatch[1].trim()
-
-        const campaignMatch = desc.match(/\(Campaign:\s*([^)]+)\)/i)
-        if (campaignMatch) campaign = campaignMatch[1].trim()
-
-        return { channel, project, campaign }
-    }
-
-    const leadsByForm = marketingSales.reduce((acc: Record<string, any>, sale) => {
-        const source = sourceMap[sale.customer_id] || ''
-        const desc = sale.description || ''
-        const parsed = parseDescription(desc)
-
-        // Determine channel
-        let channel = parsed.channel || source || 'Bilinmiyor'
-        if (['Facebook Ads', 'Facebook', 'fb'].includes(source) || channel.includes('Facebook')) channel = 'Facebook Ads'
-        else if (['Instagram', 'ig'].includes(source)) channel = 'Instagram'
-        else if (['WEB Form'].includes(source)) channel = 'Web Sitesi'
-        else if (['Email', 'E-Posta'].includes(source)) channel = 'E-Posta'
-        else if (source === 'Whatsapp&Call Center') channel = 'WhatsApp & Çağrı Merkezi'
-
-        // Form name = Facebook form name from Make.com (e.g. "Novo City İzmir - Elemeli - Ek")
-        let formName = parsed.project || ''
-        let campaignName = parsed.campaign || ''
-
-        // Group by FORM NAME (primary key)
-        let sourceName = ''
-        if (formName) {
-            sourceName = formName
-        } else if (['Facebook Ads', 'Facebook', 'fb'].includes(source)) {
-            sourceName = 'Facebook Reklamları (Genel)'
-        } else if (['Instagram', 'ig'].includes(source)) {
-            sourceName = 'Instagram Reklamları (Genel)'
-        } else if (source === 'WEB Form') {
-            sourceName = 'Web Sitesi İletişim Formu'
-        } else if (['Email', 'E-Posta'].includes(source)) {
-            sourceName = 'Gelen E-posta'
-        } else if (source === 'Whatsapp&Call Center') {
-            sourceName = 'WhatsApp & Çağrı Merkezi'
-        } else if (source) {
-            sourceName = source
-        } else {
-            sourceName = 'Diğer'
-        }
-
-        if (!acc[sourceName]) {
-            acc[sourceName] = {
-                total: 0, today: 0, thisWeek: 0, thisMonth: 0,
-                channel,
-                formName: formName,
-                campaigns: {},
-                statuses: {}
-            }
-        }
-
-        acc[sourceName].total += 1
-
-        // Track campaigns under this form
-        if (campaignName) {
-            acc[sourceName].campaigns[campaignName] = (acc[sourceName].campaigns[campaignName] || 0) + 1
-        }
-
-        const saleDate = new Date(sale.created_at);
-        if (isToday(saleDate)) acc[sourceName].today += 1;
-        if (isThisWeek(saleDate, { weekStartsOn: 1 })) acc[sourceName].thisWeek += 1;
-        if (isThisMonth(saleDate)) acc[sourceName].thisMonth += 1;
-
-        const label = statusLabels[sale.status] || sale.status || 'Diğer'
-        acc[sourceName].statuses[label] = (acc[sourceName].statuses[label] || 0) + 1
-
-        return acc
-    }, {})
-
-    const formData = Object.entries(leadsByForm).map(([formName, data]: [string, any]) => {
         // Pick the most common campaign for display
-        const topCampaign = Object.entries(data.campaigns || {})
+        const topCampaign = Object.entries(data.campaigns)
             .sort((a: any, b: any) => b[1] - a[1])
             .map(([name]) => name)[0] || ''
-        const campaignCount = Object.keys(data.campaigns || {}).length
+        const campaignCount = Object.keys(data.campaigns).length
 
         return {
-            formName,
+            formName: data.formName,
             total: data.total,
             today: data.today,
             thisWeek: data.thisWeek,
@@ -606,59 +533,12 @@ export async function getMarketingAnalytics() {
                 ? `${topCampaign} (+${campaignCount - 1} diğer)` 
                 : topCampaign,
             campaigns: data.campaigns,
-            statuses: data.statuses
+            statuses: mappedStatuses
         }
     }).sort((a, b) => b.total - a.total)
 
-    // Channel-level summary
-    const channelSummary = marketingSales.reduce((acc: Record<string, { total: number, today: number, thisWeek: number, thisMonth: number }>, sale) => {
-        const desc = sale.description || ''
-        const source = sourceMap[sale.customer_id] || ''
-        const parsed = parseDescription(desc)
-
-        let ch = parsed.channel || source || 'Bilinmiyor'
-        if (['Facebook Ads', 'Facebook', 'fb'].includes(source) || ch.includes('Facebook')) ch = 'Facebook Ads'
-        else if (['Instagram', 'ig'].includes(source)) ch = 'Instagram'
-        else if (['WEB Form'].includes(source)) ch = 'Web Sitesi'
-        else if (['Email', 'E-Posta'].includes(source)) ch = 'E-Posta'
-        else if (source === 'Whatsapp&Call Center') ch = 'WhatsApp & Çağrı Merkezi'
-
-        if (!acc[ch]) acc[ch] = { total: 0, today: 0, thisWeek: 0, thisMonth: 0 }
-        acc[ch].total += 1
-        const saleDate = new Date(sale.created_at)
-        if (isToday(saleDate)) acc[ch].today += 1
-        if (isThisWeek(saleDate, { weekStartsOn: 1 })) acc[ch].thisWeek += 1
-        if (isThisMonth(saleDate)) acc[ch].thisMonth += 1
-
-        return acc
-    }, {})
-
-    const channelData = Object.entries(channelSummary)
-        .map(([name, data]) => ({ name, ...data }))
-        .sort((a, b) => b.total - a.total)
-
-    // Project-level summary
-    const projectSummary = marketingSales.reduce((acc: Record<string, { total: number, today: number, thisWeek: number, thisMonth: number }>, sale) => {
-        const desc = sale.description || ''
-        const parsed = parseDescription(desc)
-        const proj = parsed.project || 'Proje Belirtilmemiş'
-
-        if (!acc[proj]) acc[proj] = { total: 0, today: 0, thisWeek: 0, thisMonth: 0 }
-        acc[proj].total += 1
-        const saleDate = new Date(sale.created_at)
-        if (isToday(saleDate)) acc[proj].today += 1
-        if (isThisWeek(saleDate, { weekStartsOn: 1 })) acc[proj].thisWeek += 1
-        if (isThisMonth(saleDate)) acc[proj].thisMonth += 1
-
-        return acc
-    }, {})
-
-    const projectData = Object.entries(projectSummary)
-        .map(([name, data]) => ({ name, ...data }))
-        .sort((a, b) => b.total - a.total)
-
     return {
-        totalMarketingLeads: marketingSales.length,
+        totalMarketingLeads,
         formData,
         channelData,
         projectData,

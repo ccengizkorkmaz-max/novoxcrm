@@ -1,6 +1,4 @@
-'use client'
-
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import {
     Dialog,
@@ -11,7 +9,7 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog"
 import { Label } from '@/components/ui/label'
-import { Link2, Link2Off } from 'lucide-react'
+import { Link2, Link2Off, Loader2 } from 'lucide-react'
 import { matchUnitToSale, unmatchUnitFromSale } from '../actions'
 import { toast } from 'sonner'
 import { Combobox } from '@/components/ui/combobox'
@@ -20,49 +18,66 @@ import { useTranslations } from 'next-intl'
 interface MatchUnitDialogProps {
     saleId: string
     currentUnitId?: string | null
-    availableUnits: any[]
     customerName: string
-    projects?: any[]
+    projects: any[]
     triggerSize?: 'default' | 'sm' | 'xs'
 }
 
-export default function MatchUnitDialog({ saleId, currentUnitId, availableUnits, customerName, projects: projectsProp, triggerSize }: MatchUnitDialogProps) {
+export default function MatchUnitDialog({ saleId, currentUnitId, customerName, projects: projectsProp = [], triggerSize }: MatchUnitDialogProps) {
     const t = useTranslations('CRM.matchUnit')
     const [isOpen, setIsOpen] = useState(false)
     const [selectedProjectId, setSelectedProjectId] = useState("")
     const [selectedUnitId, setSelectedUnitId] = useState(currentUnitId || "")
+    const [units, setUnits] = useState<any[]>([])
+    const [isLoadingUnits, setIsLoadingUnits] = useState(false)
 
-    // Extract unique projects from available units OR use passed string
+    // Map projects list directly from props
     const projects = useMemo(() => {
-        if (projectsProp && projectsProp.length > 0) {
-            return projectsProp.map(p => ({
-                value: p.id,
-                label: p.name
-            }))
+        return projectsProp.map(p => ({
+            value: p.id,
+            label: p.name
+        }))
+    }, [projectsProp])
+
+    // Load units on demand when project changes
+    useEffect(() => {
+        if (!selectedProjectId || !isOpen) {
+            setUnits([])
+            return
         }
 
-        const projectMap = new Map()
-        availableUnits.forEach(u => {
-            if (u.projects && !projectMap.has(u.projects.id)) {
-                projectMap.set(u.projects.id, u.projects.name)
+        const loadUnits = async () => {
+            setIsLoadingUnits(true)
+            try {
+                const { createClient } = await import('@/lib/supabase/client')
+                const supabase = createClient()
+                const { data, error } = await supabase
+                    .from('units')
+                    .select('id, unit_number')
+                    .eq('project_id', selectedProjectId)
+                    .in('status', ['For Sale', 'Stock', 'Available'])
+                    .order('unit_number')
+                
+                if (error) throw error
+                setUnits(data || [])
+            } catch (err) {
+                console.error('Error fetching units for project:', err)
+                toast.error('Birimler yüklenirken bir hata oluştu.')
+            } finally {
+                setIsLoadingUnits(false)
             }
-        })
-        return Array.from(projectMap.entries()).map(([id, name]) => ({
-            value: id,
-            label: name
-        }))
-    }, [availableUnits, projectsProp])
+        }
 
-    // Filter units based on selected project
+        loadUnits()
+    }, [selectedProjectId, isOpen])
+
+    // Filter units based on selected project (loaded dynamically)
     const filteredUnits = useMemo(() => {
-        if (!selectedProjectId) return []
-        return availableUnits
-            .filter(u => u.projects?.id === selectedProjectId)
-            .map(u => ({
-                value: u.id,
-                label: u.unit_number
-            }))
-    }, [selectedProjectId, availableUnits])
+        return units.map(u => ({
+            value: u.id,
+            label: u.unit_number
+        }))
+    }, [units])
 
     const handleMatch = async () => {
         // Allow match if project is selected. Unit is optional.
@@ -126,10 +141,16 @@ export default function MatchUnitDialog({ saleId, currentUnitId, availableUnits,
                             items={filteredUnits}
                             value={selectedUnitId}
                             onChange={setSelectedUnitId}
-                            placeholder={selectedProjectId ? t('unitPlaceholder') : t('selectProjectFirst')}
+                            placeholder={
+                                isLoadingUnits 
+                                    ? "Birimler yükleniyor..." 
+                                    : selectedProjectId 
+                                        ? t('unitPlaceholder') 
+                                        : t('selectProjectFirst')
+                            }
                             searchPlaceholder={t('unitSearch')}
-                            emptyText={t('unitEmpty')}
-                            disabled={!selectedProjectId}
+                            emptyText={isLoadingUnits ? "Yükleniyor..." : t('unitEmpty')}
+                            disabled={!selectedProjectId || isLoadingUnits}
                         />
                     </div>
                 </div>

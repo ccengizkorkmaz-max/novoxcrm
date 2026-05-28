@@ -658,6 +658,18 @@ export async function getWorkflowMonitor(workflowId: string, page: number = 1) {
 
     if (!workflow) return { error: 'Workflow not found' }
 
+    // Detect which channels this workflow uses from its steps
+    const { data: steps } = await adminDb.from('outreach_steps')
+        .select('action_type')
+        .eq('workflow_id', workflowId)
+        .eq('is_active', true)
+    const workflowChannels = new Set<string>()
+    steps?.forEach((s: any) => {
+        if (['ai_call', 'whatsapp', 'sms'].includes(s.action_type)) {
+            workflowChannels.add(s.action_type)
+        }
+    })
+
     // 1. Get currently active phone calls (AI calls where status = 'sent' and completed_at is null)
     // We fetch these across the entire table to show at the top of the monitor
     const { data: activeLogs } = await adminDb.from('outreach_step_logs')
@@ -792,24 +804,24 @@ export async function getWorkflowMonitor(workflowId: string, page: number = 1) {
         if (e.started_at && new Date(e.started_at) >= todayStart) todayCount++
     })
 
-    // 3.5 Get REAL call stats from step logs (only calls that reached telco = external_id not null)
-    // This gives us numbers that match NetGSM ground truth
-    const allCallLogs: any[] = []
+    // 3.5 Get channel-specific stats from step logs
+    // Fetch ALL communication logs for this workflow (ai_call, whatsapp, sms)
+    const allChannelLogs: any[] = []
     let clPage = 0
     while (true) {
         const { data: clData, error: clErr } = await adminDb.from('outreach_step_logs')
-            .select('execution_id, channel, external_id, call_summary, call_recording_url, outreach_executions!inner(workflow_id, customer_id)')
+            .select('execution_id, channel, status, external_id, call_summary, call_recording_url, call_outcome, outreach_executions!inner(workflow_id, customer_id)')
             .eq('outreach_executions.workflow_id', workflowId)
-            .eq('channel', 'ai_call')
-            .not('external_id', 'is', null)
+            .in('channel', ['ai_call', 'whatsapp', 'sms'])
             .range(clPage * 1000, (clPage + 1) * 1000 - 1)
         if (clErr || !clData || clData.length === 0) break
-        allCallLogs.push(...clData)
+        allChannelLogs.push(...clData)
         if (clData.length < 1000) break
         clPage++
     }
 
-    // Count unique customers from real call logs
+    // ── AI Call Stats ──
+    const allCallLogs = allChannelLogs.filter(l => l.channel === 'ai_call' && l.external_id)
     const calledCustomerIds = new Set<string>()
     const spokeCustomerIds = new Set<string>()
     const pickedUpCustomerIds = new Set<string>()
@@ -826,6 +838,33 @@ export async function getWorkflowMonitor(workflowId: string, page: number = 1) {
         uniqueCalledCustomers: calledCustomerIds.size,
         spokeCustomers: spokeCustomerIds.size,
         pickedUpBriefCustomers: pickedUpCustomerIds.size,
+    }
+
+    // ── WhatsApp Stats ──
+    const waLogs = allChannelLogs.filter(l => l.channel === 'whatsapp')
+    const waSentCustomers = new Set<string>()
+    const waFailedCount = waLogs.filter(l => l.status === 'failed').length
+    waLogs.filter(l => l.status === 'sent').forEach((l: any) => {
+        const custId = (l.outreach_executions as any)?.customer_id
+        if (custId) waSentCustomers.add(custId)
+    })
+    const waStats = {
+        waTotalSent: waLogs.filter(l => l.status === 'sent').length,
+        waUniqueSent: waSentCustomers.size,
+        waTotalFailed: waFailedCount,
+    }
+
+    // ── SMS Stats ──
+    const smsLogs = allChannelLogs.filter(l => l.channel === 'sms')
+    const smsSentCustomers = new Set<string>()
+    smsLogs.filter(l => l.status === 'sent').forEach((l: any) => {
+        const custId = (l.outreach_executions as any)?.customer_id
+        if (custId) smsSentCustomers.add(custId)
+    })
+    const smsStats = {
+        smsTotalSent: smsLogs.filter(l => l.status === 'sent').length,
+        smsUniqueSent: smsSentCustomers.size,
+        smsTotalFailed: smsLogs.filter(l => l.status === 'failed').length,
     }
 
     // Now calculate queue breakdowns using call logs as source of truth
@@ -868,7 +907,8 @@ export async function getWorkflowMonitor(workflowId: string, page: number = 1) {
         workflow,
         executions: combinedExecutions,
         logs: combinedLogs,
-        stats: { ...statusCounts, ...callStats, completedCalled },
+        stats: { ...statusCounts, ...callStats, ...waStats, ...smsStats, completedCalled },
+        channels: Array.from(workflowChannels),
         totalCount,
         todayCount,
         page,

@@ -1,55 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import CustomerList from '@/app/[locale]/(dashboard)/crm/components/CustomerList'
 import { getTranslations } from 'next-intl/server'
-import React, { Suspense } from 'react'
-
-// Deferred component — source stats load in background
-async function DeferredSourceStats({
-    children,
-    sourceCounts,
-    profiles,
-    isManager
-}: {
-    children: React.ReactNode
-    sourceCounts: Record<string, number>
-    profiles: any[]
-    isManager: boolean
-}) {
-    return <>{children}</>
-}
-
-// Async server component for source stats (streams in via Suspense)
-async function SourceStatsLoader({ tenantId }: { tenantId?: string }) {
-    const supabase = await createClient()
-    let allSources: { source: string }[] = []
-    const batchSize = 1000
-    let batchPage = 0
-    while (true) {
-        const { data } = await supabase
-            .from('customers')
-            .select('source')
-            .range(batchPage * batchSize, (batchPage + 1) * batchSize - 1)
-        if (!data || data.length === 0) break
-        allSources = allSources.concat(data)
-        if (data.length < batchSize) break
-        batchPage++
-    }
-
-    const sourceCounts = allSources.reduce((acc: Record<string, number>, c) => {
-        const src = c.source || 'Belirtilmemiş'
-        acc[src] = (acc[src] || 0) + 1
-        return acc
-    }, {})
-
-    // Return stats as JSON script for client hydration
-    return (
-        <script
-            id="source-stats-data"
-            type="application/json"
-            dangerouslySetInnerHTML={{ __html: JSON.stringify(sourceCounts) }}
-        />
-    )
-}
+import React from 'react'
 
 export default async function CustomersPage(props: {
     params: Promise<{ locale: string }>
@@ -85,41 +37,28 @@ export default async function CustomersPage(props: {
         query = query.or(`full_name.ilike.%${filterSearch}%,phone.ilike.%${filterSearch}%,email.ilike.%${filterSearch}%`)
     }
 
-    // Fetch customer list + profiles + user role in parallel
+    // Fetch customer list + profiles + user role + source stats in parallel (single roundtrip)
     const [
         customerResult,
         profilesResult,
-        currentProfileResult
+        currentProfileResult,
+        sourceStatsResult
     ] = await Promise.all([
         // Critical: Customer list (50 records)
         query.order(sortKey as 'full_name' | 'created_at', { ascending: sortOrder }).range(from, to),
         // Secondary: Profiles for Activity assignment
         supabase.from('profiles').select('id, full_name, role').order('full_name'),
         // Secondary: Current user role
-        user ? supabase.from('profiles').select('role').eq('id', user.id).single() : Promise.resolve({ data: null })
+        user ? supabase.from('profiles').select('role').eq('id', user.id).single() : Promise.resolve({ data: null }),
+        // Performance View: Fetch source counts in a single aggregated DB query!
+        supabase.from('tenant_customer_source_stats').select('source, count')
     ])
 
     const allCustomers = customerResult.data || []
     const totalCount = customerResult.count || 0
 
-    // Fetch ALL sources with pagination (Supabase caps at 1000 per request)
-    let allSources: { source: string }[] = []
-    const batchSize = 1000
-    let batchPage = 0
-    while (true) {
-        const { data } = await supabase
-            .from('customers')
-            .select('source')
-            .range(batchPage * batchSize, (batchPage + 1) * batchSize - 1)
-        if (!data || data.length === 0) break
-        allSources = allSources.concat(data)
-        if (data.length < batchSize) break
-        batchPage++
-    }
-
-    const sourceCounts = allSources.reduce((acc: Record<string, number>, c) => {
-        const src = c.source || 'Belirtilmemiş'
-        acc[src] = (acc[src] || 0) + 1
+    const sourceCounts = (sourceStatsResult.data || []).reduce((acc: Record<string, number>, item: any) => {
+        acc[item.source] = item.count
         return acc
     }, {})
 

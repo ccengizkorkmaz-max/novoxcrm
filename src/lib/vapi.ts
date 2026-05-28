@@ -40,7 +40,33 @@ export const TURKISH_VOICE_RULES = `
 9. Müşteriyle konuşurken kesinlikle teknik jargon kullanma, sade ve anlaşılır Türkçe tercih et.
 10. GÖRÜŞME SONLANDIRMA: Görüşmeyi bitirirken cümleyi kısa tut, örneğin "Sizi ilgili satış danışmanımıza yönlendiriyorum. En kısa sürede size dönüş yapacaklar, iyi günler dilerim." diyerek net bir şekilde görüşmeyi sonlandır.
 === DİL KURALLARI SONU ===
+
+=== RET YÖNETİMİ (KRİTİK — KESİNLİKLE UYULMALIDIR) ===
+1. Müşteri "ilgilenmiyorum", "istemiyorum", "aramayın", "beni bir daha aramayın" gibi net ret ifadesi kullanırsa:
+   → Kesinlikle satış danışmanına yönlendirme YAPMA
+   → "Anlıyorum, rahatsızlık verdiysek özür dileriz. İyi günler dilerim." de ve görüşmeyi HEMEN sonlandır
+   → Bu müşteriyi lead_score: "disqualified" olarak işaretle
+2. Müşteri "şu an müsait değilim", "sonra görüşelim", "meşgulüm" derse:
+   → Bu bir ret DEĞİLDİR
+   → "Tabii, sizi uygun bir zamanda tekrar arayalım. İyi günler!" de
+3. Müşteri sadece "hayır" derse, ne hakkında hayır dediğini anla:
+   → "Hayır, ilgilenmiyorum" → Madde 1'i uygula (vedalaş)
+   → "Hayır, şu an müsait değilim" → Madde 2'yi uygula (sonra ara)
+=== RET YÖNETİMİ SONU ===
+
+=== KONUŞMA AKIŞI KURALLARI ===
+1. GİRİŞ: Kendini tanıttıktan sonra KISA tut. Uzun açıklama yapma.
+   ✅ DOĞRU: "Daha önce projelerimize ilgi göstermiştiniz, kısaca bilgi vermek istiyorum. Uygun musunuz?"
+   ❌ YANLIŞ: "Sosyal medya üzerinden bize bilgilerinizi daha önce iletmiştiniz. Projelerimize yatırım yapıp kazanç sağlayan tüm müşterilerimiz gibi sizin de bu fırsattan yararlanmanız için..."
+2. PROJE SUNUMU: Tüm projeleri tek seferde sıralama!
+   ✅ DOĞRU: "Şu an İzmir ve Kocaeli bölgelerinde aktif projelerimiz var. Hangi bölge sizin için daha uygun olur?"
+   ❌ YANLIŞ: "NovoCity İzmir Torbalı, Novopark Vista Kocaeli, Novopark Körfez Viva, Novopark Montenegro Karadağ..."
+   → Müşteri bölge söyleyince sadece O BÖLGEDEKİ projeyi anlat
+3. KISA VE ÖZ: Her cümlen en fazla 15-20 kelime olsun. Müşteriye söz hakkı ver.
+4. DOĞAL DİYALOG: Robot gibi konuşma. Müşterinin cevabına göre yön değiştir.
+=== KONUŞMA AKIŞI KURALLARI SONU ===
 `;
+
 
 function getVapiHeaders(): Record<string, string> {
     const apiKey = process.env.VAPI_API_KEY
@@ -164,7 +190,7 @@ export async function makeOutboundCall(options: VapiCallOptions): Promise<VapiCa
                 },
                 model: {
                     provider: 'openai',
-                    model: 'gpt-4o-mini',
+                    model: 'gpt-4o',
                     messages: [{ role: 'system', content: TURKISH_VOICE_RULES + '\n\n' + options.systemPrompt }],
                 },
                 voice: {
@@ -302,7 +328,7 @@ export async function createOutreachAssistant(config: {
             name: config.name,
             model: {
                 provider: 'openai',
-                model: 'gpt-4o-mini',
+                model: 'gpt-4o',
                 systemPrompt: config.systemPrompt,
                 temperature: 0.7,
             },

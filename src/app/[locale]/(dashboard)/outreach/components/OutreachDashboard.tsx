@@ -9,7 +9,7 @@ import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { OctagonX, Phone, MessageSquare, Mail, Zap, Plus, Play, Pause, Trash2,
-    BarChart3, Clock, Users, CheckCircle2, XCircle, PhoneOff,
+    BarChart3, Clock, Users, XCircle, PhoneOff,
     ArrowRight, Settings2, Eye, Bot, FileText, Target
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -94,11 +94,7 @@ export function OutreachDashboard({
         onConfirm: () => Promise<void>
     }>({ open: false, title: '', description: '', confirmLabel: '', onConfirm: async () => {} })
 
-    // Stats from recent logs
-    const totalCalls = recentLogs.filter(l => l.channel === 'ai_call').length
-    const totalWhatsApp = recentLogs.filter(l => l.channel === 'whatsapp').length
-    const totalSms = recentLogs.filter(l => l.channel === 'sms').length
-    const totalConverted = recentLogs.filter(l => l.status === 'converted').length
+
 
     const handleToggle = async (id: string, current: boolean) => {
         const result = await toggleWorkflow(id, !current)
@@ -296,25 +292,6 @@ export function OutreachDashboard({
                 </div>
             </div>
 
-            {/* Stats Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <StatCard
-                    icon={Zap} label="Aktif Outreach"
-                    value={activeCount} color="violet"
-                />
-                <StatCard
-                    icon={Phone} label="AI Arama"
-                    value={totalCalls} color="purple"
-                />
-                <StatCard
-                    icon={MessageSquare} label="WhatsApp"
-                    value={totalWhatsApp} color="emerald"
-                />
-                <StatCard
-                    icon={CheckCircle2} label="Dönüşüm"
-                    value={totalConverted} color="green"
-                />
-            </div>
 
             {/* Tabs: Workflows & Activity */}
             <Tabs defaultValue="workflows" className="space-y-4">
@@ -390,26 +367,7 @@ export function OutreachDashboard({
 
 // ─── Sub-components ──────────────────────────────────────────
 
-function StatCard({ icon: Icon, label, value, color }: { icon: any; label: string; value: number; color: string }) {
-    const colors: Record<string, string> = {
-        violet: 'from-violet-500/15 to-violet-600/5 border-violet-500/20 text-violet-400',
-        purple: 'from-purple-500/15 to-purple-600/5 border-purple-500/20 text-purple-400',
-        emerald: 'from-emerald-500/15 to-emerald-600/5 border-emerald-500/20 text-emerald-400',
-        green: 'from-green-500/15 to-green-600/5 border-green-500/20 text-green-400',
-        blue: 'from-blue-500/15 to-blue-600/5 border-blue-500/20 text-blue-400',
-    }
-    return (
-        <Card className={`bg-gradient-to-br ${colors[color]} border p-4`}>
-            <div className="flex items-center justify-between">
-                <div>
-                    <p className="text-xs text-muted-foreground">{label}</p>
-                    <p className="text-2xl font-bold mt-1">{value}</p>
-                </div>
-                <Icon className="h-8 w-8 opacity-40" />
-            </div>
-        </Card>
-    )
-}
+
 
 function WorkflowCard({ workflow, hasTrigger, onToggle, onEdit, onDelete, onLaunch, onStop, onMonitor, isLaunching, isStopping }: {
     workflow: any; hasTrigger: boolean; onToggle: () => void; onEdit: () => void; onDelete: () => void; onLaunch: () => void; onStop: () => void; onMonitor: () => void; isLaunching: boolean; isStopping: boolean

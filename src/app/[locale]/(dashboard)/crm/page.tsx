@@ -88,7 +88,7 @@ export default async function CRMPage(props: {
     }
 
     // Fetch ONLY the sales list + profiles for the list (fast queries)
-    const [salesListRes, profilesRes, projectsRes, templatesRes, availableUnitsRes] = await Promise.all([
+    const [salesListRes, profilesRes, projectsRes, templatesRes] = await Promise.all([
         baseQuery.order('created_at', { ascending: false }).range(from, to),
         supabase.from('profiles')
             .select('id, full_name')
@@ -101,15 +101,13 @@ export default async function CRMPage(props: {
             .in('role', ['admin', 'owner', 'manager', 'sales'])
             .order('full_name'),
         supabase.from('projects').select('id, name').order('name'),
-        supabase.from('payment_plan_templates').select('*, project_id').order('name', { ascending: true }),
-        supabase.from('units').select('id, unit_number, projects(id, name)').in('status', ['For Sale', 'Stock', 'Available']).limit(2000)
+        supabase.from('payment_plan_templates').select('*, project_id').order('name', { ascending: true })
     ])
 
     const profilesData = profilesRes.data || []
     const projectsData = projectsRes.data || []
     const templates = templatesRes.data || []
     const sales = salesListRes.data || []
-    const availableUnitsData = availableUnitsRes.data || []
     const totalSalesCount = salesListRes.count || 0
 
     // ============================================================
@@ -204,7 +202,6 @@ export default async function CRMPage(props: {
             <PipelineList
                 sales={sales || []}
                 customers={[]}
-                availableUnits={availableUnitsData}
                 templates={templates || []}
                 profiles={profilesData || []}
                 projects={projectsData || []}

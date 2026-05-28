@@ -7,7 +7,8 @@ import { Badge } from '@/components/ui/badge'
 import {
     Activity, Phone, Users, Clock, CheckCircle2, XCircle,
     RefreshCw, ArrowLeft, Loader2, PhoneOff, PhoneIncoming,
-    Timer, TrendingUp, AlertTriangle, ChevronLeft, ChevronRight
+    Timer, TrendingUp, AlertTriangle, ChevronLeft, ChevronRight,
+    MessageSquare
 } from 'lucide-react'
 import { getWorkflowMonitor } from '../actions'
 
@@ -97,13 +98,92 @@ export function WorkflowMonitor({ workflowId, workflowName, onClose }: WorkflowM
 
     if (!data) return null
 
-    const { workflow, executions, logs, stats, totalCount, todayCount, totalPages, pageSize } = data
+    const { workflow, executions, logs, stats, channels, totalCount, todayCount, totalPages, pageSize } = data
 
     // Build a map: execution_id → latest log
     const logMap = new Map<string, any>()
     logs.forEach((log: any) => {
         if (!logMap.has(log.execution_id)) logMap.set(log.execution_id, log)
     })
+
+    // Determine which channels this workflow uses
+    const hasCall = channels?.includes('ai_call')
+    const hasWhatsApp = channels?.includes('whatsapp')
+    const hasSms = channels?.includes('sms')
+
+    // Build dynamic stat cards based on workflow channels
+    const statCards: { label: string; value: number; color: string; bg: string }[] = [
+        { label: 'Tekil Müşteri', value: totalCount, color: 'text-slate-300', bg: 'from-slate-500/10' },
+    ]
+
+    if (hasCall) {
+        statCards.push(
+            { label: 'Gerçek Arama', value: stats.totalRealCalls || 0, color: 'text-blue-400', bg: 'from-blue-500/10' },
+            { label: 'Aranan Kişi', value: stats.uniqueCalledCustomers || 0, color: 'text-violet-400', bg: 'from-violet-500/10' },
+            { label: 'Konuşulan', value: stats.spokeCustomers || 0, color: 'text-emerald-400', bg: 'from-emerald-500/10' },
+        )
+    }
+
+    if (hasWhatsApp) {
+        statCards.push(
+            { label: 'WA Gönderildi', value: stats.waTotalSent || 0, color: 'text-green-400', bg: 'from-green-500/10' },
+            { label: 'WA Kişi', value: stats.waUniqueSent || 0, color: 'text-emerald-400', bg: 'from-emerald-500/10' },
+        )
+        if ((stats.waTotalFailed || 0) > 0) {
+            statCards.push(
+                { label: 'WA Başarısız', value: stats.waTotalFailed || 0, color: 'text-red-400', bg: 'from-red-500/10' },
+            )
+        }
+    }
+
+    if (hasSms) {
+        statCards.push(
+            { label: 'SMS Gönderildi', value: stats.smsTotalSent || 0, color: 'text-sky-400', bg: 'from-sky-500/10' },
+            { label: 'SMS Kişi', value: stats.smsUniqueSent || 0, color: 'text-cyan-400', bg: 'from-cyan-500/10' },
+        )
+        if ((stats.smsTotalFailed || 0) > 0) {
+            statCards.push(
+                { label: 'SMS Başarısız', value: stats.smsTotalFailed || 0, color: 'text-red-400', bg: 'from-red-500/10' },
+            )
+        }
+    }
+
+    statCards.push(
+        { label: 'Dönüşüm (İlgilendi)', value: stats.converted || 0, color: 'text-rose-400', bg: 'from-rose-500/10' },
+    )
+
+    if (hasCall) {
+        statCards.push(
+            { label: 'Aktif Çağrı', value: stats.activeCallsCount || 0, color: (stats.activeCallsCount || 0) > 0 ? 'text-emerald-400 animate-pulse font-bold' : 'text-slate-500', bg: (stats.activeCallsCount || 0) > 0 ? 'from-emerald-500/20' : 'from-slate-500/5' },
+        )
+    }
+
+    // Build dynamic breakdown items
+    const breakdownItems: { label: string; value: number; sub: string; color: string; bg: string }[] = []
+    if (hasCall) {
+        breakdownItems.push(
+            { label: 'Arama Bekleyen', value: stats.firstCallPending || 0, sub: 'Henüz hiç aranmadı', color: 'text-amber-500', bg: 'bg-amber-500/5' },
+            { label: 'Tekrar Arama Bekleyen', value: stats.secondCallPending || 0, sub: 'Açmayanların 30dk bekleyenleri', color: 'text-orange-500', bg: 'bg-orange-500/5' },
+        )
+    }
+    if (hasCall || hasWhatsApp) {
+        breakdownItems.push(
+            { label: 'Bekleme Süresinde', value: stats.inWaitStep || 0, sub: 'Adımlar arası bekleme', color: 'text-blue-500', bg: 'bg-blue-500/5' },
+        )
+    }
+    if (hasWhatsApp) {
+        breakdownItems.push(
+            { label: 'WhatsApp Sırasında', value: stats.whatsappPending || 0, sub: 'WP gönderim bekleyenler', color: 'text-emerald-500', bg: 'bg-emerald-500/5' },
+        )
+    }
+    if (hasSms) {
+        breakdownItems.push(
+            { label: 'SMS Sırasında', value: stats.smsTotalSent || 0, sub: 'SMS gönderilmiş', color: 'text-sky-500', bg: 'bg-sky-500/5' },
+        )
+    }
+    breakdownItems.push(
+        { label: 'Tamamlanan', value: stats.completedCalled || 0, sub: 'Akışını tamamlamış', color: 'text-slate-400', bg: 'bg-slate-500/5' },
+    )
 
     return (
         <div className="space-y-4">
@@ -121,6 +201,11 @@ export function WorkflowMonitor({ workflowId, workflowName, onClose }: WorkflowM
                     </h1>
                     <p className="text-xs text-muted-foreground mt-0.5">
                         {workflow?.is_active ? '🟢 Aktif' : '⏸️ Duraklatıldı'} · Günlük max: {workflow?.max_leads_per_day || 50} · 5 sn'de bir yenilenir (Anlık Canlı Veri)
+                        {channels?.length > 0 && (
+                            <span className="ml-2">
+                                · Kanallar: {channels.map((c: string) => c === 'ai_call' ? '📞 Arama' : c === 'whatsapp' ? '💬 WhatsApp' : c === 'sms' ? '📱 SMS' : c).join(', ')}
+                            </span>
+                        )}
                     </p>
                 </div>
                 <Button size="sm" variant="outline" onClick={handleRefresh} disabled={refreshing}
@@ -130,16 +215,9 @@ export function WorkflowMonitor({ workflowId, workflowName, onClose }: WorkflowM
                 </Button>
             </div>
 
-            {/* Stats Cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-                {[
-                    { label: 'Tekil Müşteri', value: totalCount, color: 'text-slate-300', bg: 'from-slate-500/10' },
-                    { label: 'Gerçek Arama', value: stats.totalRealCalls || 0, color: 'text-blue-400', bg: 'from-blue-500/10' },
-                    { label: 'Aranan Kişi', value: stats.uniqueCalledCustomers || 0, color: 'text-violet-400', bg: 'from-violet-500/10' },
-                    { label: 'Konuşulan', value: stats.spokeCustomers || 0, color: 'text-emerald-400', bg: 'from-emerald-500/10' },
-                    { label: 'Dönüşüm (İlgilendi)', value: stats.converted || 0, color: 'text-rose-400', bg: 'from-rose-500/10' },
-                    { label: 'Aktif Çağrı', value: stats.activeCallsCount || 0, color: (stats.activeCallsCount || 0) > 0 ? 'text-emerald-400 animate-pulse font-bold' : 'text-slate-500', bg: (stats.activeCallsCount || 0) > 0 ? 'from-emerald-500/20' : 'from-slate-500/5' },
-                ].map((stat, i) => (
+            {/* Dynamic Stats Cards */}
+            <div className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-${Math.min(statCards.length, 6)} gap-3`}>
+                {statCards.map((stat, i) => (
                     <Card key={i} className={`p-3 bg-gradient-to-b ${stat.bg} to-transparent border-white/5 border`}>
                         <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{stat.label}</p>
                         <div className="flex items-center justify-between mt-1">
@@ -155,20 +233,14 @@ export function WorkflowMonitor({ workflowId, workflowName, onClose }: WorkflowM
                 ))}
             </div>
 
-            {/* Detailed Breakdowns */}
+            {/* Dynamic Breakdowns */}
             <Card className="p-3 bg-muted/10 border-white/5">
                 <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
                     <Clock className="h-3.5 w-3.5 text-blue-400" />
                     Müşteri Durum Kırılımı (Toplam: {totalCount.toLocaleString('tr-TR')})
                 </h3>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                    {[
-                        { label: 'Arama Bekleyen', value: stats.firstCallPending || 0, sub: 'Henüz hiç aranmadı', color: 'text-amber-500', bg: 'bg-amber-500/5' },
-                        { label: 'Tekrar Arama Bekleyen', value: stats.secondCallPending || 0, sub: 'Açmayanların 30dk bekleyenleri', color: 'text-orange-500', bg: 'bg-orange-500/5' },
-                        { label: 'Bekleme Süresinde', value: stats.inWaitStep || 0, sub: 'Arananların 1 saatlik beklemesi', color: 'text-blue-500', bg: 'bg-blue-500/5' },
-                        { label: 'WhatsApp Sırasında', value: stats.whatsappPending || 0, sub: 'Bekleme sonrası WP bekleyenler', color: 'text-emerald-500', bg: 'bg-emerald-500/5' },
-                        { label: 'Tamamlanan', value: stats.completedCalled || 0, sub: 'Aranıp akışını tamamlamış', color: 'text-slate-400', bg: 'bg-slate-500/5' },
-                    ].map((step, i) => (
+                <div className={`grid grid-cols-2 md:grid-cols-${Math.min(breakdownItems.length, 5)} gap-3`}>
+                    {breakdownItems.map((step, i) => (
                         <div key={i} className={`p-2.5 rounded-lg border border-white/5 ${step.bg}`}>
                             <p className="text-[10px] text-muted-foreground font-medium">{step.label}</p>
                             <p className={`text-xl font-bold mt-0.5 ${step.color}`}>{step.value.toLocaleString('tr-TR')}</p>
@@ -184,7 +256,7 @@ export function WorkflowMonitor({ workflowId, workflowName, onClose }: WorkflowM
                     <div className="flex items-center justify-between">
                         <h3 className="text-sm font-semibold flex items-center gap-2">
                             <Users className="h-4 w-4 text-blue-400" />
-                            Arama Listesi
+                            {hasCall ? 'Arama Listesi' : hasWhatsApp ? 'Mesaj Listesi' : hasSms ? 'SMS Listesi' : 'Müşteri Listesi'}
                         </h3>
                         <Badge variant="outline" className="text-[10px]">
                             {((page - 1) * (pageSize || 50)) + 1}–{Math.min(page * (pageSize || 50), totalCount)} / {totalCount}
@@ -211,9 +283,9 @@ export function WorkflowMonitor({ workflowId, workflowName, onClose }: WorkflowM
                                 <tr>
                                     <td colSpan={8} className="p-8 text-center text-muted-foreground">
                                         <div className="flex flex-col items-center gap-2">
-                                            <Phone className="h-6 w-6 opacity-30" />
-                                            <p>Henüz arama başlatılmadı</p>
-                                            <p className="text-[10px]">Workflow aktifleştirildiğinde aramalar burada görünecek</p>
+                                            {hasCall ? <Phone className="h-6 w-6 opacity-30" /> : hasWhatsApp ? <MessageSquare className="h-6 w-6 opacity-30" /> : <Phone className="h-6 w-6 opacity-30" />}
+                                            <p>{hasCall ? 'Henüz arama başlatılmadı' : 'Henüz mesaj gönderilmedi'}</p>
+                                            <p className="text-[10px]">Workflow aktifleştirildiğinde işlemler burada görünecek</p>
                                         </div>
                                     </td>
                                 </tr>
