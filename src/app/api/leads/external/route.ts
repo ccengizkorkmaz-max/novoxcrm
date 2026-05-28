@@ -83,7 +83,7 @@ export async function POST(req: Request) {
             const emailMatch = bodyMessage.match(/(?:E-posta Adresi|E-posta):\s*([^:\n\r\s]+?)(?=\s*(?:Ad Soyad|Telefon|Konu|Proje|$)|\r|\n)/i)
             if (emailMatch && !email) email = emailMatch[1].trim()
 
-            const phoneMatch = bodyMessage.match(/Telefon:\s*([^:\n\r\s]+?)(?=\s*(?:Ad Soyad|E-posta|Konu|Proje|$)|\r|\n)/i)
+            const phoneMatch = bodyMessage.match(/(?:Telefon Numarası|Telefon No|Telefon|Tel):\s*([^:\n\r\s]+?)(?=\s*(?:Ad Soyad|E-posta|Konu|Proje|$)|\r|\n)/i)
             if (phoneMatch && !phone) phone = phoneMatch[1].trim()
         }
 

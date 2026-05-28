@@ -138,7 +138,7 @@ export function InboxList({ initialItems, archivedItems = [] }: InboxListProps) 
         const emailMatch = message.match(/(?:E-posta Adresi|E-posta):\s*([^:\n\r\s]+?)(?=\s*(?:Ad Soyad|Telefon|Konu|Proje|$)|\r|\n)/i)
         const parsedEmail = emailMatch ? emailMatch[1].trim() : null
 
-        const phoneMatch = message.match(/Telefon:\s*([\d\s\+\-\(\)\.]+?)(?=\s*(?:Ad\s+Soyad|E-posta|Konu|Proje|Mesaj|$)|\r|\n)/i)
+        const phoneMatch = message.match(/(?:Telefon Numarası|Telefon No|Telefon|Tel):\s*([\d\s\+\-\(\)\.]+?)(?=\s*(?:Ad\s+Soyad|E-posta|Konu|Proje|Mesaj|$)|\r|\n)/i)
         const parsedPhone = phoneMatch ? phoneMatch[1].trim() : null
 
         return {
@@ -167,7 +167,7 @@ export function InboxList({ initialItems, archivedItems = [] }: InboxListProps) 
         const emailMatch = message.match(/(?:E-posta Adresi|E-posta):\s*([^:\n\r\s]+?)(?=\s*(?:Ad Soyad|Telefon|Konu|Proje|$)|\r|\n)/i)
         if (emailMatch) setEditEmail(emailMatch[1].trim())
 
-        const phoneMatch = message.match(/Telefon:\s*([\d\s\+\-\(\)\.]+?)(?=\s*(?:Ad\s+Soyad|E-posta|Konu|Proje|Mesaj|$)|\r|\n)/i)
+        const phoneMatch = message.match(/(?:Telefon Numarası|Telefon No|Telefon|Tel):\s*([\d\s\+\-\(\)\.]+?)(?=\s*(?:Ad\s+Soyad|E-posta|Konu|Proje|Mesaj|$)|\r|\n)/i)
         if (phoneMatch) setEditPhone(phoneMatch[1].trim())
 
         toast.success('Bilgiler mesajdan ayıklandı')

@@ -54,7 +54,7 @@ function extractPhoneFromMessage(message: string): string | null {
     } catch { /* not JSON */ }
 
     // Match "Telefon: +44 7800656460" — capture everything up to next field label or end
-    const phoneMatch = text.match(/Telefon:\s*([\d\s\+\-\(\)\.]+?)(?=\s*(?:Ad\s+Soyad|E-posta|Konu|Proje|Mesaj|Not|$))/i)
+    const phoneMatch = text.match(/(?:Telefon Numarası|Telefon No|Telefon|Tel):\s*([\d\s\+\-\(\)\.]+?)(?=\s*(?:Ad\s+Soyad|E-posta|Konu|Proje|Mesaj|Not|$))/i)
     if (phoneMatch) return phoneMatch[1].trim()
 
     // Fallback: look for Phone: pattern
