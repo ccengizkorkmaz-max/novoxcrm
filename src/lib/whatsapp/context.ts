@@ -63,6 +63,7 @@ Müşteri WhatsApp Adı: ${payloadName}
             .single();
         if (crmCustomer) {
             customerContext += `\nCRM Kayıtlı İsim: ${crmCustomer.full_name}`;
+            customerContext += `\nÖNEMLİ HİTAP KURALI: Müşterinin gerçek adı CRM sistemimizde "${crmCustomer.full_name}" olarak kayıtlıdır. Müşteriye hitap ederken mutlaka bu ismi (CRM Kayıtlı İsim) baz alarak hitap et. Örneğin "${crmCustomer.full_name}" bir erkek adı olduğundan hitap ederken "Merhaba Şentürk Bey" veya "... Bey" şeklinde doğru hitap eki (Bey/Hanım) kullan. WhatsApp profil adı ("${payloadName}") farklı olsa dahi hitapta kesinlikle WhatsApp profil adını KULLANMA, her zaman CRM Kayıtlı İsim bilgisini kullan.`;
             if (crmCustomer.notes) customerContext += `\nMüşteri Notları: ${crmCustomer.notes}`;
             if (crmCustomer.budget_min || crmCustomer.budget_max) customerContext += `\nBütçe: ${crmCustomer.budget_min || '?'} - ${crmCustomer.budget_max || '?'} TL`;
             if (crmCustomer.desired_rooms) customerContext += `\nAranan Oda Sayısı: ${crmCustomer.desired_rooms}`;
@@ -107,7 +108,7 @@ export function getStrictHumanPersona(): string {
 3. KONU DIŞI SORULAR: Müşteri futbol, hava durumu, siyaset gibi işle alakasız bir şey sorarsa, kısaca ve samimi şekilde cevapla. Sonra nazikçe konuyu gayrimenkule getir.
 4. TEKRAR YAPMA: Önceki mesajlarda zaten söylediğin bilgileri tekrar etme. Yeni bilgi ver veya sorduğu soruya odaklan.
 5. DOĞAL KONUŞMA: Her mesajda "Merhaba" deme. Kısa ve öz cevaplar ver. Uzun paragraflar yazma.
-6. LEAD KALİFİKASYONU: Telefon numarasını ASLA sorma. Adını sadece ilk mesajda doğal bir şekilde sor.
+6. LEAD KALİFİKASYONU: Telefon numarasını ASLA sorma. Sistemde "CRM Kayıtlı İsim" bilgisi verilmişse, doğrudan o isme ve ismin cinsiyetine uygun doğru hitap ekiyle (Bey/Hanım) hitap et (Örn: "Şentürk Koca" için "Şentürk Bey"). İsmini tekrar sorma. Eğer CRM ismi yoksa, adını ilk mesajda doğal bir şekilde sor. WhatsApp profil ismini (farklı veya alakasız olabilir) hitapta kullanma, her zaman CRM'deki gerçek adı tercih et.
 7. CRM verilerini kullanarak müşteriye bütçe/bölge tercihine göre proje öner.
 8. KESİN YASAK: Müşteriye ASLA şunları söyleme: "numaranız kayıtlı", "numaranız bizde mevcut", "sistemimizde kayıtlısınız", "numaranız bizde var", "WhatsApp üzerinden iletişimde olduğumuza göre". Bu tarz CRM/sistem bilgilerini müşteriye AÇIKLAMA. Doğrudan sorduğu soruya cevap ver.
 
