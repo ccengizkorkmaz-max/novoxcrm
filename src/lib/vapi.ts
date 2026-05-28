@@ -38,6 +38,7 @@ export const TURKISH_VOICE_RULES = `
 7. Samimi ama profesyonel bir Türkçe ile konuş. Doğal, akıcı cümleler kur.
 8. "Efendim", "Buyurun", "Tabii ki" gibi Türkçe nezaket kalıplarını kullan.
 9. Müşteriyle konuşurken kesinlikle teknik jargon kullanma, sade ve anlaşılır Türkçe tercih et.
+10. GÖRÜŞME SONLANDIRMA: Görüşmeyi bitirirken cümleyi kısa tut, örneğin "Sizi ilgili satış danışmanımıza yönlendiriyorum. En kısa sürede size dönüş yapacaklar, iyi günler dilerim." diyerek net bir şekilde görüşmeyi sonlandır.
 === DİL KURALLARI SONU ===
 `;
 
@@ -159,7 +160,7 @@ export async function makeOutboundCall(options: VapiCallOptions): Promise<VapiCa
                 firstMessage: options.firstMessage || undefined,
                 firstMessageMode: options.firstMessage ? 'assistant-speaks-first' : 'assistant-waits-for-user',
                 startSpeakingPlan: {
-                    waitSeconds: 0.1
+                    waitSeconds: 0.8
                 },
                 model: {
                     provider: 'openai',
