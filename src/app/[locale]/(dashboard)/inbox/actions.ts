@@ -26,9 +26,9 @@ function extractProjectFromMessage(message: string): string | null {
 
     // Match "Konu: ..." or "Proje: ..." or "Subject: ..."
     const patterns = [
-        /Konu:\s*(.+?)(?=\s*(?:Ad\s+Soyad|E-posta|Telefon|Mesaj|Not|$))/i,
-        /(?:Seçilen Proje|İlgilenilen Proje|Seçtiği Proje|Proje):\s*(.+?)(?=\s*(?:Ad\s+Soyad|E-posta|Telefon|Konu|Mesaj|$))/i,
-        /Subject:\s*(.+?)(?=\s*(?:Name|Email|Phone|Message|$))/i,
+        /Konu:\s*(.+?)(?=\s*(?:Ad\s+Soyad|E-posta|Telefon|Mesaj|Not|$)|[\r\n])/i,
+        /(?:Seçilen Proje|İlgilenilen Proje|Seçtiği Proje|Proje):\s*(.+?)(?=\s*(?:Ad\s+Soyad|E-posta|Telefon|Konu|Mesaj|$)|[\r\n])/i,
+        /Subject:\s*(.+?)(?=\s*(?:Name|Email|Phone|Message|$)|[\r\n])/i,
     ]
     
     for (const pattern of patterns) {
@@ -54,11 +54,11 @@ function extractPhoneFromMessage(message: string): string | null {
     } catch { /* not JSON */ }
 
     // Match "Telefon: +44 7800656460" — capture everything up to next field label or end
-    const phoneMatch = text.match(/(?:Telefon Numarası|Telefon No|Telefon|Tel):\s*([\d\s\+\-\(\)\.]+?)(?=\s*(?:Ad\s+Soyad|E-posta|Konu|Proje|Mesaj|Not|$))/i)
+    const phoneMatch = text.match(/(?:Telefon Numarası|Telefon No|Telefon|Tel):\s*([\d\s\+\-\(\)\.]+?)(?=\s*(?:Ad\s+Soyad|E-posta|Konu|Proje|Mesaj|Not|$)|[\r\n])/i)
     if (phoneMatch) return phoneMatch[1].trim()
 
     // Fallback: look for Phone: pattern
-    const phoneMatch2 = text.match(/Phone:\s*([\d\s\+\-\(\)\.]+?)(?=\s*(?:Name|Email|Subject|Message|$))/i)
+    const phoneMatch2 = text.match(/Phone:\s*([\d\s\+\-\(\)\.]+?)(?=\s*(?:Name|Email|Subject|Message|$)|[\r\n])/i)
     if (phoneMatch2) return phoneMatch2[1].trim()
 
     return null
