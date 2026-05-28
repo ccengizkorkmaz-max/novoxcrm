@@ -226,9 +226,16 @@ export async function makeOutboundCall(options: VapiCallOptions): Promise<VapiCa
 
         if (!response.ok) {
             console.error('[Vapi] Call initiation failed:', data)
+            let errorMessage = data.message || data.error || `HTTP ${response.status}`
+            
+            // Detect billing / insufficient funds errors (402 or keyword match)
+            if (response.status === 402 || (typeof errorMessage === 'string' && errorMessage.toLowerCase().match(/billing|balance|funds|payment|credit/))) {
+                errorMessage = 'INSUFFICIENT_FUNDS: ' + errorMessage
+            }
+
             return {
                 success: false,
-                error: data.message || data.error || `HTTP ${response.status}`,
+                error: errorMessage,
             }
         }
 

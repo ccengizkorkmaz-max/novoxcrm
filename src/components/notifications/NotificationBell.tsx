@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { Bell, Check, ExternalLink, DollarSign, Users, Settings, Package, Clock, AlertTriangle, CheckCircle2, Info, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { toast } from 'sonner'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { formatDistanceToNow } from 'date-fns'
 import { tr } from 'date-fns/locale'
@@ -78,9 +79,17 @@ export default function NotificationBell() {
                     schema: 'public',
                     table: 'system_notifications'
                 },
-                () => {
+                (payload) => {
                     // When a new notification arrives, refresh the list
                     fetchNotifications()
+                    
+                    const newNotif = payload.new as Notification
+                    if (newNotif && (newNotif.type === 'Alert' || newNotif.type === 'Error')) {
+                        toast.error(newNotif.title, {
+                            description: newNotif.message,
+                            duration: Infinity
+                        })
+                    }
                 }
             )
             .subscribe()

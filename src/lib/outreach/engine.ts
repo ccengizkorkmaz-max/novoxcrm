@@ -52,6 +52,63 @@ export interface StepConfig {
     notify_message?: string
 }
 
+// ─── System Health & Early Warning ────────────────────────────
+
+async function checkSystemHealth(tenantId: string): Promise<{ isHealthy: boolean; reason?: string }> {
+    // Check ElevenLabs Quota
+    const elApiKey = process.env.ELEVENLABS_API_KEY;
+    if (elApiKey) {
+        try {
+            const res = await fetch('https://api.elevenlabs.io/v1/user/subscription', {
+                headers: { 'xi-api-key': elApiKey }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                if (data.character_count !== undefined && data.character_limit !== undefined) {
+                    const ratio = data.character_limit > 0 ? data.character_count / data.character_limit : 0;
+                    if (ratio >= 0.99) {
+                        return { isHealthy: false, reason: `INSUFFICIENT_FUNDS: ElevenLabs character limit reached (${data.character_count}/${data.character_limit})` };
+                    }
+                }
+            }
+        } catch (e) {
+            console.error('[SystemHealth] ElevenLabs check failed:', e);
+        }
+    }
+    return { isHealthy: true };
+}
+
+async function handleCriticalSystemFailure(tenantId: string, reason: string, workflowId?: string) {
+    const supabase = createAdminClient();
+    console.error(`[CRITICAL] System failure detected: ${reason}`);
+
+    // Pause workflow
+    if (workflowId) {
+        await supabase.from('outreach_workflows').update({ is_active: false }).eq('id', workflowId);
+    } else {
+        // Pause all workflows for this tenant as a precaution
+        await supabase.from('outreach_workflows').update({ is_active: false }).eq('tenant_id', tenantId);
+    }
+
+    // Create system notification
+    const { createNotification } = await import('@/lib/notifications/create');
+    await createNotification({
+        tenant_id: tenantId,
+        type: 'Error',
+        category: 'System',
+        title: '🚨 DİKKAT: Yapay Zeka Servisi Durduruldu',
+        message: `Kredi veya bakiye sorunu nedeniyle çağrılar durduruldu. Hata: ${reason}`,
+        link: '/settings',
+    });
+
+    // Find admin user to send WA message
+    const { data: admins } = await supabase.from('profiles').select('phone').eq('tenant_id', tenantId).in('role', ['admin', 'owner']).limit(1);
+    if (admins && admins.length > 0 && admins[0].phone) {
+        const adminPhone = admins[0].phone;
+        await sendWhatsAppMessage(adminPhone, `⚠️ DİKKAT: Novo CRM Outreach sistemi kredi/bakiye yetersizliği sebebiyle durduruldu.\nDetay: ${reason.substring(0, 100)}\nLütfen panelden kontrol ediniz.`);
+    }
+}
+
 // ─── Engine: Process Due Executions ──────────────────────────
 
 /**
@@ -88,10 +145,19 @@ export async function processOutreachQueue() {
     // Batch locking here was removed to avoid locking records that are skipped or causing
     // concurrent runs to step on each other. We lock records atomically inside the loop instead.
 
+    const tenantId = dueExecutions[0]?.tenant_id
+
+    // ─── System Health Check (ElevenLabs vb.) ────────────
+    if (tenantId) {
+        const health = await checkSystemHealth(tenantId);
+        if (!health.isHealthy) {
+            await handleCriticalSystemFailure(tenantId, health.reason || 'Bilinmeyen sistem hatası');
+            return { processed: 0, reason: 'system_health_failure' };
+        }
+    }
 
     // ─── Eşzamanlı arama limiti kontrolü ─────────────────
     // Get tenant-specific limit from first execution's tenant
-    const tenantId = dueExecutions[0]?.tenant_id
     let maxConcurrent = MAX_CONCURRENT_CALLS
     if (tenantId) {
         const { data: tenantSettings } = await supabase
@@ -280,7 +346,7 @@ export async function processOutreachQueue() {
             workflowBatchCounts.set(wfId, (workflowBatchCounts.get(wfId) || 0) + 1)
         } catch (err: any) {
             console.error(`[Outreach] Step execution error for ${execution.id}:`, err.message)
-            // Log the error but continue with other executions
+            // Log the error
             await supabase.from('outreach_step_logs').insert({
                 execution_id: execution.id,
                 step_id: step.id,
@@ -288,6 +354,12 @@ export async function processOutreachQueue() {
                 status: 'failed',
                 error_message: err.message,
             })
+
+            // Critical failure check
+            if (err.message.includes('INSUFFICIENT_FUNDS')) {
+                await handleCriticalSystemFailure(execution.tenant_id, err.message, execution.workflow_id);
+                return { processed, reason: 'critical_system_failure' };
+            }
         }
     }
 
@@ -424,6 +496,10 @@ async function executeAiCall(execution: any, step: any, config: StepConfig, phon
             })
             .eq('id', execution.id)
     } else {
+        // Critical failure check
+        if (result.error && result.error.includes('INSUFFICIENT_FUNDS')) {
+            throw new Error(`Critical System Failure: ${result.error}`);
+        }
         // Call failed — check retry logic
         await handleRetryOrAdvance(execution, step, config, 'no_answer')
     }
