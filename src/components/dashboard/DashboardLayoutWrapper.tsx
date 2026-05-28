@@ -75,7 +75,13 @@ export function DashboardLayoutWrapper({
                     )}
                     style={{ backgroundColor: brand.sidebarBg, borderColor: brand.sidebarBorder }}
                 >
-                    <div className="flex flex-col px-4 py-3 h-[73px] justify-center relative" style={{ borderBottomWidth: '1px', borderColor: brand.sidebarBorder }}>
+                    <div 
+                        className={cn(
+                            "flex flex-col px-4 relative transition-all duration-300",
+                            isCollapsed ? "h-[73px] justify-center py-2" : "py-4 justify-between min-h-[90px]"
+                        )} 
+                        style={{ borderBottomWidth: '1px', borderColor: brand.sidebarBorder }}
+                    >
                         <div className="flex items-center justify-between">
                             <Link href="/" className="flex items-center gap-2 font-bold text-white overflow-hidden">
                                 {brand.logoUrl ? (
@@ -94,9 +100,9 @@ export function DashboardLayoutWrapper({
                             </Link>
                         </div>
                         {!isCollapsed && (
-                            <div className="mt-1 flex flex-col overflow-hidden">
+                            <div className="mt-1.5 flex flex-col overflow-hidden leading-tight">
                                 <span className="text-xs font-bold text-slate-200 truncate">{tenantName}</span>
-                                <span className="text-[10px] text-slate-400 truncate">{profile?.full_name || userEmail}</span>
+                                <span className="text-[10px] text-slate-400 truncate mt-0.5">{profile?.full_name || userEmail}</span>
                             </div>
                         )}
                         
@@ -113,7 +119,7 @@ export function DashboardLayoutWrapper({
                             )}
                         </button>
                     </div>
-                    <div className="flex-1 overflow-auto py-2">
+                    <div className="flex-1 overflow-auto py-2 scrollbar-premium">
                         <NovoxSidebar 
                             role={profile?.role || 'sales'} 
                             labels={sidebarLabels} 
@@ -170,7 +176,7 @@ export function DashboardLayoutWrapper({
                                         <span className="text-[10px] text-slate-400">{profile?.full_name}</span>
                                     </div>
                                 </div>
-                                <div className="flex-1 overflow-auto py-2">
+                                <div className="flex-1 overflow-auto py-2 scrollbar-premium">
                                     <NovoxSidebar role={profile?.role || 'sales'} labels={sidebarLabels} tenantType={tenantType} hasBrokerModule={hasBrokerModule} hasOutreachModule={hasOutreachModule} isCollapsed={false} />
                                 </div>
                                 <div className="px-4 py-2">

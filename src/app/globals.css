@@ -291,3 +291,27 @@
         background: #cbd5e1;
     }
 }
+
+/* Premium scrollbar styling for sidebar */
+.scrollbar-premium {
+  scrollbar-width: none; /* Firefox default hide */
+}
+
+.scrollbar-premium::-webkit-scrollbar {
+  width: 4px;
+  background: transparent;
+}
+
+.scrollbar-premium::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 10px;
+  transition: background 0.3s ease;
+}
+
+.scrollbar-premium:hover::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15); /* Dark mod sidebar arka planında beyazımsı yarı şeffaf parıltı */
+}
+
+.scrollbar-premium:hover::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
