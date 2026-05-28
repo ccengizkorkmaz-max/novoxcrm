@@ -275,7 +275,7 @@ export function WorkflowMonitor({ workflowId, workflowName, onClose }: WorkflowM
                                             </td>
                                             <td className="p-2.5 text-center">
                                                 {isCallActive ? (
-                                                    <span className="text-xs text-emerald-400 animate-pulse font-medium">Bağlanıyor...</span>
+                                                    <span className="text-xs text-emerald-400 animate-pulse font-medium">Bağlandı, Konuşuluyor...</span>
                                                 ) : outcomeConf ? (
                                                     <span className="text-xs">
                                                         {outcomeConf.emoji} {outcomeConf.label}
@@ -291,7 +291,7 @@ export function WorkflowMonitor({ workflowId, workflowName, onClose }: WorkflowM
                                             </td>
                                             <td className="p-2.5 max-w-[200px] truncate text-muted-foreground">
                                                 {isCallActive ? (
-                                                    <span className="text-xs text-emerald-400/80 animate-pulse italic">Müşteri aranıyor, santralde hat çalan durumunda...</span>
+                                                    <span className="text-xs text-emerald-400/80 animate-pulse italic">Müşteri ile bağlantı kuruldu, görüşme devam ediyor...</span>
                                                 ) : (log?.call_summary || '—')}
                                             </td>
                                         </tr>
