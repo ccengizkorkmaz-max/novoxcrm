@@ -1,6 +1,6 @@
 import { getSessionMessages, getMessagingSession } from '../actions'
 import { Badge } from "@/components/ui/badge"
-import { MessageSquare, User, Bot, Sparkles, Activity, CalendarCheck } from 'lucide-react'
+import { MessageSquare, User, Bot, Sparkles, Activity, CalendarCheck, ArrowLeft } from 'lucide-react'
 import { Link } from '@/i18n/routing'
 import { format } from 'date-fns'
 import { tr } from 'date-fns/locale'
@@ -35,7 +35,10 @@ export default async function ConversationDetailPage(props: { params: Promise<{ 
         <div className="flex flex-col h-full bg-[#f8fafc]">
             {/* Header */}
             <div className="flex items-center justify-between bg-white/80 backdrop-blur-md p-4 border-b border-slate-200 sticky top-0 z-10">
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 md:gap-4">
+                    <Link href="/conversations" className="lg:hidden p-1.5 -ml-2 text-slate-500 hover:text-slate-900 transition-colors mr-1">
+                        <ArrowLeft className="h-5 w-5" />
+                    </Link>
                     <div className="relative">
                         <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white shadow-xl shadow-blue-100">
                             {session.customers ? <User className="h-6 w-6" /> : <MessageSquare className="h-6 w-6" />}

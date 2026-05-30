@@ -151,24 +151,29 @@ export default async function CRMPage(props: {
     return (
         <div className="flex flex-col gap-2">
             <div className="sticky top-0 z-30 bg-background/95 backdrop-blur pb-1 pt-0.5 border-b mb-1">
-                <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-3 px-1">
+                <div className="flex flex-col gap-2.5 md:flex-row md:items-center md:justify-between px-1 mb-2">
+                    <div className="flex items-center justify-between md:justify-start gap-3 w-full md:w-auto">
                         <h1 className="text-xl md:text-2xl font-bold tracking-tight whitespace-nowrap">{isBroker ? 'İşlem Yönetimi' : t('title')}</h1>
                         
                         {/* Filter + NewSale — heavy data streams in via Suspense */}
-                        <Suspense fallback={toolbarSkeleton}>
-                            <DeferredCRMToolbar
-                                userTenantId={userTenantId || ''}
-                                isBroker={isBroker}
-                                tenantType={tenantType}
-                                params={params}
-                            />
-                        </Suspense>
+                        <div className="flex items-center gap-1.5 md:gap-3">
+                            <Suspense fallback={toolbarSkeleton}>
+                                <DeferredCRMToolbar
+                                    userTenantId={userTenantId || ''}
+                                    isBroker={isBroker}
+                                    tenantType={tenantType}
+                                    params={params}
+                                />
+                            </Suspense>
+                        </div>
+                    </div>
 
-                        <Suspense fallback={<div className="h-10 w-64 bg-muted animate-pulse rounded" />}>
-                            <CRMSearch />
-                        </Suspense>
-
+                    <div className="flex items-center gap-2 md:gap-3 w-full md:w-auto">
+                        <div className="flex-1 md:flex-initial">
+                            <Suspense fallback={<div className="h-10 w-full md:w-64 bg-muted animate-pulse rounded" />}>
+                                <CRMSearch />
+                            </Suspense>
+                        </div>
                         <SalesExportButton 
                             filters={{
                                 project: filterProject,

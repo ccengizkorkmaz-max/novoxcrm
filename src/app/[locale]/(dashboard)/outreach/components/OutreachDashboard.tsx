@@ -256,7 +256,7 @@ export function OutreachDashboard({
             </AlertDialog>
 
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight flex items-center gap-3">
                         <div className="p-2 rounded-xl bg-gradient-to-br from-violet-500/20 to-blue-500/20 border border-violet-500/20">
@@ -268,24 +268,24 @@ export function OutreachDashboard({
                         AI telefon, WhatsApp ve SMS ile otomatik lead takibi
                     </p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2 w-full md:w-auto">
                     <Button variant="outline" size="sm" onClick={() => setShowSegments(true)}
-                        className="gap-2 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10">
+                        className="gap-2 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 flex-1 sm:flex-initial">
                         <Target className="h-4 w-4" />
                         Segmentler ({localSegments.length})
                     </Button>
                     <Button variant="outline" size="sm" onClick={() => setShowScripts(true)}
-                        className="gap-2 border-violet-500/30 text-violet-400 hover:bg-violet-500/10">
+                        className="gap-2 border-violet-500/30 text-violet-400 hover:bg-violet-500/10 flex-1 sm:flex-initial">
                         <Bot className="h-4 w-4" />
                         AI Script&apos;ler
                     </Button>
                     <Button variant="outline" size="sm" onClick={() => setShowTriggers(true)}
-                        className="gap-2 border-amber-500/30 text-amber-400 hover:bg-amber-500/10">
+                        className="gap-2 border-amber-500/30 text-amber-400 hover:bg-amber-500/10 flex-1 sm:flex-initial">
                         <Zap className="h-4 w-4" />
                         Tetikleyiciler
                     </Button>
                     <Button size="sm" onClick={() => setShowBuilder(true)}
-                        className="gap-2 bg-gradient-to-r from-violet-600 to-blue-600 hover:from-violet-700 hover:to-blue-700">
+                        className="gap-2 bg-gradient-to-r from-violet-600 to-blue-600 hover:from-violet-700 hover:to-blue-700 w-full sm:w-auto">
                         <Plus className="h-4 w-4" />
                         Yeni Workflow
                     </Button>
@@ -295,16 +295,16 @@ export function OutreachDashboard({
 
             {/* Tabs: Workflows & Activity */}
             <Tabs defaultValue="workflows" className="space-y-4">
-                <TabsList className="bg-muted/50 border">
-                    <TabsTrigger value="workflows" className="data-[state=active]:bg-violet-600 data-[state=active]:text-white gap-2">
+                <TabsList className="flex flex-wrap md:flex-nowrap h-auto p-1 bg-muted/50 border rounded-xl gap-1 w-full md:w-max">
+                    <TabsTrigger value="workflows" className="data-[state=active]:bg-violet-600 data-[state=active]:text-white gap-2 flex-1 md:flex-initial py-1.5 text-xs">
                         <Settings2 className="h-3.5 w-3.5" />
                         Workflow&apos;lar
                     </TabsTrigger>
-                    <TabsTrigger value="activity" className="data-[state=active]:bg-violet-600 data-[state=active]:text-white gap-2">
+                    <TabsTrigger value="activity" className="data-[state=active]:bg-violet-600 data-[state=active]:text-white gap-2 flex-1 md:flex-initial py-1.5 text-xs">
                         <BarChart3 className="h-3.5 w-3.5" />
                         Son Aktivite
                     </TabsTrigger>
-                    <TabsTrigger value="triggers" className="data-[state=active]:bg-amber-600 data-[state=active]:text-white gap-2">
+                    <TabsTrigger value="triggers" className="data-[state=active]:bg-amber-600 data-[state=active]:text-white gap-2 flex-1 md:flex-initial py-1.5 text-xs">
                         <Zap className="h-3.5 w-3.5" />
                         Tetikleyiciler
                     </TabsTrigger>
