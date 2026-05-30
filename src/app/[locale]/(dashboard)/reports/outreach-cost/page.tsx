@@ -8,6 +8,13 @@ import { Button } from "@/components/ui/button"
 import { toast } from 'sonner'
 import { BackButton } from "@/components/back-button"
 import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue
+} from "@/components/ui/select"
+import {
     DollarSign,
     Phone,
     MessageCircle,
@@ -42,13 +49,14 @@ export default function OutreachCostReportPage() {
     const [data, setData] = useState<any>(null)
     const [loading, setLoading] = useState(true)
     const [refreshing, setRefreshing] = useState(false)
+    const [selectedWorkflow, setSelectedWorkflow] = useState<string>('all')
 
-    const loadData = async (isRefresh = false) => {
+    const loadData = async (workflowId: string, isRefresh = false) => {
         if (isRefresh) setRefreshing(true)
         else setLoading(true)
 
         try {
-            const res = await getOutreachCostReportData()
+            const res = await getOutreachCostReportData(workflowId)
             if ('error' in res) {
                 toast.error('Yetkisiz erişim veya veri hatası!')
             } else {
@@ -67,8 +75,8 @@ export default function OutreachCostReportPage() {
     }
 
     useEffect(() => {
-        loadData()
-    }, [])
+        loadData(selectedWorkflow)
+    }, [selectedWorkflow])
 
     if (loading) {
         return (
@@ -134,20 +142,42 @@ export default function OutreachCostReportPage() {
                             </Badge>
                         </div>
                         <p className="text-sm text-muted-foreground mt-0.5">
-                            {data.campaignName} — Harcama ve Yatırım Getirisi Analiz Raporu
+                            {data.campaignName} — Harcama ve Erişim Maliyeti Raporu
                         </p>
                     </div>
                 </div>
-                <div className="flex items-center gap-2 print:hidden">
+
+                {/* Dropdown Selector + Print Actions */}
+                <div className="flex flex-wrap items-center gap-3 print:hidden">
+                    <div className="w-[280px]">
+                        <Select
+                            value={selectedWorkflow}
+                            onValueChange={(val) => setSelectedWorkflow(val)}
+                        >
+                            <SelectTrigger className="w-full bg-card/50 backdrop-blur-sm border-border/40 text-xs font-semibold h-9 rounded-lg">
+                                <SelectValue placeholder="Rapor Filtresi Seçin" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-card/95 border-border/45">
+                                <SelectItem value="all" className="text-xs font-semibold cursor-pointer">🌐 Tüm Kampanyalar (Toplam)</SelectItem>
+                                <SelectItem value="manual" className="text-xs font-semibold cursor-pointer">📞 Tekil Aramalar (Manuel AI)</SelectItem>
+                                {data.workflows?.map((w: any) => (
+                                    <SelectItem key={w.id} value={w.id} className="text-xs font-semibold cursor-pointer">
+                                        🚀 {w.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
                     <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => loadData(true)}
+                        onClick={() => loadData(selectedWorkflow, true)}
                         disabled={refreshing}
                         className="h-9 gap-2"
                     >
                         <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-                        {refreshing ? 'Güncelleniyor...' : 'Verileri Yenile'}
+                        {refreshing ? 'Güncelleniyor...' : 'Yenile'}
                     </Button>
                     <Button
                         variant="default"
@@ -165,7 +195,7 @@ export default function OutreachCostReportPage() {
             <div className="rounded-2xl border border-indigo-500/20 bg-gradient-to-r from-indigo-500/10 via-purple-500/5 to-emerald-500/10 p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-6 backdrop-blur-md">
                 <div className="space-y-1">
                     <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
-                        <Activity className="h-5 w-5 text-indigo-500" /> Kampanya Toplam Özet
+                        <Activity className="h-5 w-5 text-indigo-500" /> Rapor Harcama Özeti ({data.campaignName})
                     </h3>
                     <p className="text-xs text-muted-foreground max-w-xl">
                         Yapay Zeka Sesli Arama platform maliyetleri ve Meta WhatsApp Cloud API mesajlaşma harcamalarının canlı döviz ve sabit tarife üzerinden hesaplanmış detayları.
@@ -235,7 +265,7 @@ export default function OutreachCostReportPage() {
                     <CardContent>
                         <div className="text-3xl font-black tracking-tight text-foreground">{formatUSD(data.costPerUniqueReach)}</div>
                         <div className="flex flex-col gap-0.5 mt-2 text-[10px] text-muted-foreground font-semibold">
-                            <span className="flex items-center justify-between">Hedef Başma Ort: <strong className="text-teal-400">{formatUSD(data.costPerTargetCustomer)}</strong></span>
+                            <span className="flex items-center justify-between">Hedef Başına Ort: <strong className="text-teal-400">{formatUSD(data.costPerTargetCustomer)}</strong></span>
                             <span className="flex items-center justify-between">Temas Edilen Tekil: <strong className="text-teal-400">{data.totalUniqueReached.toLocaleString('tr-TR')} Müşteri</strong></span>
                         </div>
                     </CardContent>
@@ -271,38 +301,44 @@ export default function OutreachCostReportPage() {
                         <CardDescription>AI Sesli Arama ve WhatsApp bütçe kırılımları</CardDescription>
                     </CardHeader>
                     <CardContent className="flex-1 flex flex-col justify-center items-center h-64 relative pb-4">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                                <Pie
-                                    data={pieData}
-                                    cx="50%"
-                                    cy="50%"
-                                    innerRadius={60}
-                                    outerRadius={80}
-                                    paddingAngle={5}
-                                    dataKey="value"
-                                >
-                                    {pieData.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={entry.color} />
-                                    ))}
-                                </Pie>
-                                <Legend 
-                                    verticalAlign="bottom" 
-                                    height={36} 
-                                    iconType="circle"
-                                    formatter={(value) => <span className="text-xs font-semibold text-muted-foreground">{value}</span>}
-                                />
-                                <RechartsTooltip 
-                                    formatter={(value: any) => [formatUSD(value), 'Harcama']}
-                                    contentStyle={{ background: 'rgba(30, 30, 40, 0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
-                                    itemStyle={{ color: '#fff', fontSize: '12px', fontWeight: 'bold' }}
-                                />
-                            </PieChart>
-                        </ResponsiveContainer>
-                        <div className="absolute top-[41%] text-center">
-                            <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Toplam</span>
-                            <div className="text-lg font-black tracking-tight">{formatUSD(data.totalCost)}</div>
-                        </div>
+                        {pieData.length === 0 ? (
+                            <div className="text-center text-xs text-muted-foreground">Harcama verisi bulunamadı.</div>
+                        ) : (
+                            <>
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <PieChart>
+                                        <Pie
+                                            data={pieData}
+                                            cx="50%"
+                                            cy="50%"
+                                            innerRadius={60}
+                                            outerRadius={80}
+                                            paddingAngle={5}
+                                            dataKey="value"
+                                        >
+                                            {pieData.map((entry, index) => (
+                                                <Cell key={`cell-${index}`} fill={entry.color} />
+                                            ))}
+                                        </Pie>
+                                        <Legend 
+                                            verticalAlign="bottom" 
+                                            height={36} 
+                                            iconType="circle"
+                                            formatter={(value) => <span className="text-xs font-semibold text-muted-foreground">{value}</span>}
+                                        />
+                                        <RechartsTooltip 
+                                            formatter={(value: any) => [formatUSD(value), 'Harcama']}
+                                            contentStyle={{ background: 'rgba(30, 30, 40, 0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
+                                            itemStyle={{ color: '#fff', fontSize: '12px', fontWeight: 'bold' }}
+                                        />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                                <div className="absolute top-[41%] text-center">
+                                    <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Toplam</span>
+                                    <div className="text-lg font-black tracking-tight">{formatUSD(data.totalCost)}</div>
+                                </div>
+                            </>
+                        )}
                     </CardContent>
                 </Card>
 
@@ -310,71 +346,77 @@ export default function OutreachCostReportPage() {
                 <Card className="border border-border/40 bg-card/60 backdrop-blur-xl md:col-span-2">
                     <CardHeader>
                         <CardTitle className="text-lg font-bold">Günlük Harcama Trendi</CardTitle>
-                        <CardDescription>Kampanya boyunca günlük harcama seyri (USD)</CardDescription>
+                        <CardDescription>Zaman bazında günlük harcama seyri (USD)</CardDescription>
                     </CardHeader>
                     <CardContent className="h-64">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart
-                                data={data.dailySpend}
-                                margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-                            >
-                                <defs>
-                                    <linearGradient id="colorCall" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.4}/>
-                                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
-                                    </linearGradient>
-                                    <linearGradient id="colorWhatsapp" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.4}/>
-                                        <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                                <XAxis 
-                                    dataKey="date" 
-                                    stroke="rgba(255,255,255,0.3)"
-                                    fontSize={10}
-                                    tickLine={false}
-                                    tickFormatter={(str) => {
-                                        if (!str) return '';
-                                        const d = new Date(str + 'T00:00:00');
-                                        return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
-                                    }}
-                                />
-                                <YAxis 
-                                    stroke="rgba(255,255,255,0.3)"
-                                    fontSize={10}
-                                    tickLine={false}
-                                    tickFormatter={(val) => `$${val}`}
-                                />
-                                <RechartsTooltip 
-                                    formatter={(value: any) => [formatUSD(value), '']}
-                                    labelFormatter={(label) => {
-                                        const d = new Date(label + 'T00:00:00');
-                                        return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
-                                    }}
-                                    contentStyle={{ background: 'rgba(30, 30, 40, 0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
-                                    itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
-                                />
-                                <Area 
-                                    type="monotone" 
-                                    name="AI Arama Harcaması"
-                                    dataKey="callCost" 
-                                    stackId="1"
-                                    stroke="#6366f1" 
-                                    fillOpacity={1} 
-                                    fill="url(#colorCall)" 
-                                />
-                                <Area 
-                                    type="monotone" 
-                                    name="WhatsApp Harcaması"
-                                    dataKey="whatsappCost" 
-                                    stackId="1"
-                                    stroke="#10b981" 
-                                    fillOpacity={1} 
-                                    fill="url(#colorWhatsapp)" 
-                                />
-                            </AreaChart>
-                        </ResponsiveContainer>
+                        {data.dailySpend.length === 0 ? (
+                            <div className="flex items-center justify-center h-full text-xs text-muted-foreground">Erişim trend verisi bulunamadı.</div>
+                        ) : (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart
+                                    data={data.dailySpend}
+                                    margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                                >
+                                    <defs>
+                                        <linearGradient id="colorCall" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#6366f1" stopOpacity={0.4}/>
+                                            <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                                        </linearGradient>
+                                        <linearGradient id="colorWhatsapp" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.4}/>
+                                            <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                                    <XAxis 
+                                        dataKey="date" 
+                                        stroke="rgba(255,255,255,0.3)"
+                                        fontSize={10}
+                                        tickLine={false}
+                                        tickFormatter={(str) => {
+                                            if (!str) return '';
+                                            const d = new Date(str + 'T00:00:00');
+                                            return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
+                                        }}
+                                    />
+                                    <YAxis 
+                                        stroke="rgba(255,255,255,0.3)"
+                                        fontSize={10}
+                                        tickLine={false}
+                                        tickFormatter={(val) => `$${val}`}
+                                    />
+                                    <RechartsTooltip 
+                                        formatter={(value: any) => [formatUSD(value), '']}
+                                        labelFormatter={(label) => {
+                                            const d = new Date(label + 'T00:00:00');
+                                            return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
+                                        }}
+                                        contentStyle={{ background: 'rgba(30, 30, 40, 0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
+                                        itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
+                                    />
+                                    <Area 
+                                        type="monotone" 
+                                        name="AI Arama Harcaması"
+                                        dataKey="callCost" 
+                                        stackId="1"
+                                        stroke="#6366f1" 
+                                        fillOpacity={1} 
+                                        fill="url(#colorCall)" 
+                                    />
+                                    {selectedWorkflow !== 'manual' && (
+                                        <Area 
+                                            type="monotone" 
+                                            name="WhatsApp Harcaması"
+                                            dataKey="whatsappCost" 
+                                            stackId="1"
+                                            stroke="#10b981" 
+                                            fillOpacity={1} 
+                                            fill="url(#colorWhatsapp)" 
+                                        />
+                                    )}
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        )}
                     </CardContent>
                 </Card>
             </div>
@@ -429,15 +471,15 @@ export default function OutreachCostReportPage() {
                 <Card className="border border-border/40 bg-card/60 backdrop-blur-xl md:col-span-1">
                     <CardHeader>
                         <CardTitle className="text-lg font-bold flex items-center gap-2">
-                            <Info className="h-5 w-5 text-indigo-500" /> Hesaplama Yöntemi
+                            <Info className="h-5 w-5 text-indigo-500" /> Rapor Parametreleri
                         </CardTitle>
-                        <CardDescription>Maliyetlerin nasıl hesaplandığına dair detaylar</CardDescription>
+                        <CardDescription>Maliyet hesaplama ve veri kaynakları</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4 text-xs leading-relaxed text-muted-foreground">
                         <div className="space-y-2">
                             <h4 className="font-bold text-indigo-200">1. AI Telefon Arama Maliyetleri</h4>
                             <p>
-                                Vapi webhook entegrasyonu üzerinden doğrudan dönen gerçek çağrı maliyetleri (`cost_amount`) baz alınır.
+                                Vapi webhook entegrasyonu üzerinden dönen gerçek çağrı maliyetleri (`cost_amount`) baz alınır.
                             </p>
                             <p className="bg-muted/50 p-2.5 rounded-lg border border-border/20 text-muted-foreground">
                                 💡 <strong>Geriye Dönük Null Düzeltmeleri:</strong><br />
@@ -448,14 +490,23 @@ export default function OutreachCostReportPage() {
                                 <br />• Cevapsız/Ulaşılamayan arama kurulumu: <code className="text-indigo-400">sabit $0.01</code>
                             </p>
                         </div>
+                        {selectedWorkflow === 'manual' ? (
+                            <div className="space-y-2">
+                                <h4 className="font-bold text-indigo-200">2. Tekil Arama Maliyetleri</h4>
+                                <p>
+                                    CRM kartlarından doğrudan başlatılan manuel AI aramalarıdır. Veriler, müşteri zaman tüneline (`activities`) işlenen arama süreleri üzerinden analiz edilerek platform ve şebeke maliyeti formülüyle tahmin edilir.
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="space-y-2">
+                                <h4 className="font-bold text-indigo-200">2. WhatsApp Mesajlaşma Maliyeti</h4>
+                                <p>
+                                    Meta Cloud API şablon ve oturum maliyetleri veritabanında anlık tutulmadığı için, Meta standart tarifesinden mesaj başına <strong className="text-emerald-400">$0.03</strong> flat maliyet uygulanır.
+                                </p>
+                            </div>
+                        )}
                         <div className="space-y-2">
-                            <h4 className="font-bold text-indigo-200">2. WhatsApp Mesajlaşma Maliyeti</h4>
-                            <p>
-                                Meta Cloud API şablon ve oturum maliyetleri veritabanında anlık tutulmadığı için, Meta standart tarifesinden mesaj başına <strong className="text-emerald-400">$0.03</strong> flat maliyet uygulanır.
-                            </p>
-                        </div>
-                        <div className="space-y-2">
-                            <h4 className="font-bold text-indigo-200">3. Erişim Başına Maliyet (Cost Per Reach)</h4>
+                            <h4 className="font-bold text-indigo-200">3. Erişim Başına Maliyet</h4>
                             <p>
                                 Toplam harcamanın, kampanya boyunca aranan veya WhatsApp takip mesajı gönderilen **tekil müşteri** sayısına bölünmesiyle elde edilir. Mükerrer aramalar bu hesaba katılmaz.
                             </p>

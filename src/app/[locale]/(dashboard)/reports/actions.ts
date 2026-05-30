@@ -867,53 +867,201 @@ export async function getOutreachCostReportData(workflowIdParam?: string) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: 'Unauthorized' }
 
-    const workflowId = workflowIdParam || 'ea62719d-198e-4d1d-83c1-f008c9e2d583'
-
-    // 1. Fetch workflow metadata
-    const { data: workflow } = await supabase
-        .from('outreach_workflows')
-        .select('name')
-        .eq('id', workflowId)
+    // Fetch tenant configuration
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', user.id)
         .single()
 
-    // 2. Fetch executions to get target segment size
-    const executions: any[] = []
-    let execPage = 0
-    const execLimit = 1000
-    while (true) {
-        const { data, error } = await supabase
-            .from('outreach_executions')
-            .select('status, customer_id, started_at')
-            .eq('workflow_id', workflowId)
-            .range(execPage * execLimit, (execPage + 1) * execLimit - 1)
-        if (error || !data || data.length === 0) break
-        executions.push(...data)
-        if (data.length < execLimit) break
-        execPage++
-    }
+    const tenantId = profile?.tenant_id
+    if (!tenantId) return { error: 'Tenant not found' }
 
-    const uniqueCustomerIds = new Set(executions.map(e => e.customer_id).filter(Boolean))
-    const totalUniqueCustomers = uniqueCustomerIds.size
+    // Fetch all campaigns/workflows for the dropdown selector
+    const { data: workflows } = await supabase
+        .from('outreach_workflows')
+        .select('id, name')
+        .eq('tenant_id', tenantId)
+        .order('name')
 
-    // 3. Fetch step logs for this campaign
-    const logs: any[] = []
-    let page = 0
-    const limit = 1000
-    while (true) {
-        const { data, error } = await supabase
-            .from('outreach_step_logs')
-            .select(`
-                id, channel, status, call_duration_seconds, call_outcome, 
-                call_recording_url, call_summary, cost_amount, executed_at, external_id,
-                outreach_executions!inner(customer_id)
-            `)
-            .eq('outreach_executions.workflow_id', workflowId)
-            .range(page * limit, (page + 1) * limit - 1)
+    const workflowId = workflowIdParam || 'all'
+    let campaignName = 'Tüm Kampanyalar (Toplam)'
+    let logs: any[] = []
+    let totalUniqueCustomers = 0
 
-        if (error || !data || data.length === 0) break
-        logs.push(...data)
-        if (data.length < limit) break
-        page++
+    if (workflowId === 'all') {
+        campaignName = 'Tüm Kampanyalar (Toplam)'
+
+        // Fetch executions to count unique segment size
+        const executions: any[] = []
+        let execPage = 0
+        const execLimit = 1000
+        while (true) {
+            const { data, error } = await supabase
+                .from('outreach_executions')
+                .select('status, customer_id, started_at')
+                .eq('tenant_id', tenantId)
+                .range(execPage * execLimit, (execPage + 1) * execLimit - 1)
+            if (error || !data || data.length === 0) break
+            executions.push(...data)
+            if (data.length < execLimit) break
+            execPage++
+        }
+        const uniqueCustomerIds = new Set(executions.map(e => e.customer_id).filter(Boolean))
+        totalUniqueCustomers = uniqueCustomerIds.size
+
+        // Fetch all outreach step logs for the tenant
+        let page = 0
+        const limit = 1000
+        while (true) {
+            const { data, error } = await supabase
+                .from('outreach_step_logs')
+                .select(`
+                    id, channel, status, call_duration_seconds, call_outcome, 
+                    call_recording_url, call_summary, cost_amount, executed_at, external_id,
+                    outreach_executions!inner(customer_id, tenant_id)
+                `)
+                .eq('outreach_executions.tenant_id', tenantId)
+                .range(page * limit, (page + 1) * limit - 1)
+
+            if (error || !data || data.length === 0) break
+            logs.push(...data)
+            if (data.length < limit) break
+            page++
+        }
+    } else if (workflowId === 'manual') {
+        campaignName = 'Tekil Aramalar (Manuel AI)'
+
+        // Fetch manual call activities
+        const { data: activities, error } = await supabase
+            .from('activities')
+            .select('id, summary, description, created_at, customer_id, outcome')
+            .eq('tenant_id', tenantId)
+            .eq('type', 'Call')
+            .ilike('summary', '%AI Arama%')
+            .limit(10000)
+
+        if (error) {
+            console.error('Error fetching manual call activities:', error.message)
+        }
+
+        const uniqueCustomerIds = new Set((activities || []).map(a => a.customer_id).filter(Boolean))
+        totalUniqueCustomers = uniqueCustomerIds.size
+
+        // Map activities to the logs interface
+        logs = (activities || []).map(act => {
+            const summary = act.summary || ''
+            const desc = act.description || ''
+            
+            let duration = 0
+            let outcome = 'no_answer'
+            let status = 'no_answer'
+            
+            if (summary.includes('Meşgul')) {
+                outcome = 'busy'
+                status = 'busy'
+            } else if (summary.includes('Cevapsız') || summary.includes('Cevap Yok')) {
+                outcome = 'no_answer'
+                status = 'no_answer'
+            } else if (summary.includes('Ulaşılamadı') || summary.includes('Başarısız')) {
+                outcome = 'failed'
+                status = 'failed'
+            } else {
+                outcome = 'success'
+                status = 'answered'
+                
+                // Regex parsing for duration
+                const dkMatch = summary.match(/(\d+)\s*dk/)
+                const snMatch = summary.match(/(\d+)\s*sn/)
+                
+                let mins = 0
+                let secs = 0
+                
+                if (dkMatch) mins = parseInt(dkMatch[1])
+                if (snMatch) secs = parseInt(snMatch[1])
+                
+                duration = mins * 60 + secs
+                if (duration === 0) {
+                    duration = 30 // assume 30s default
+                }
+            }
+            
+            let cost = 0
+            if (duration > 0) {
+                cost = duration * (0.15 / 60)
+            } else if (outcome === 'busy' || outcome === 'no_answer') {
+                cost = 0.01
+            }
+
+            // Extract call recording URL from description if possible
+            let recordingUrl = null
+            const recMatch = desc.match(/Kayıt Dinle:\s*(https:\/\/[^\s]+)/)
+            if (recMatch) {
+                recordingUrl = recMatch[1]
+            }
+            
+            return {
+                id: act.id,
+                channel: 'ai_call',
+                status,
+                call_duration_seconds: duration,
+                call_outcome: outcome,
+                call_recording_url: recordingUrl,
+                call_summary: summary,
+                cost_amount: cost,
+                executed_at: act.created_at,
+                external_id: 'manual',
+                outreach_executions: {
+                    customer_id: act.customer_id
+                }
+            }
+        })
+    } else {
+        // Fetch specific campaign metadata
+        const { data: workflow } = await supabase
+            .from('outreach_workflows')
+            .select('name')
+            .eq('id', workflowId)
+            .single()
+        campaignName = workflow?.name || 'Seçili Kampanya'
+
+        // Fetch executions to get target segment size
+        const executions: any[] = []
+        let execPage = 0
+        const execLimit = 1000
+        while (true) {
+            const { data, error } = await supabase
+                .from('outreach_executions')
+                .select('status, customer_id, started_at')
+                .eq('workflow_id', workflowId)
+                .range(execPage * execLimit, (execPage + 1) * execLimit - 1)
+            if (error || !data || data.length === 0) break
+            executions.push(...data)
+            if (data.length < execLimit) break
+            execPage++
+        }
+        const uniqueCustomerIds = new Set(executions.map(e => e.customer_id).filter(Boolean))
+        totalUniqueCustomers = uniqueCustomerIds.size
+
+        // Fetch step logs for this campaign
+        let page = 0
+        const limit = 1000
+        while (true) {
+            const { data, error } = await supabase
+                .from('outreach_step_logs')
+                .select(`
+                    id, channel, status, call_duration_seconds, call_outcome, 
+                    call_recording_url, call_summary, cost_amount, executed_at, external_id,
+                    outreach_executions!inner(customer_id)
+                `)
+                .eq('outreach_executions.workflow_id', workflowId)
+                .range(page * limit, (page + 1) * limit - 1)
+
+            if (error || !data || data.length === 0) break
+            logs.push(...data)
+            if (data.length < limit) break
+            page++
+        }
     }
 
     const callLogs = logs.filter(l => l.channel === 'ai_call')
@@ -983,7 +1131,7 @@ export async function getOutreachCostReportData(workflowIdParam?: string) {
     const avgCallDurationSeconds = answeredCallsCount > 0 ? totalDurationSeconds / answeredCallsCount : 0
 
     // Unique reached customers from logs
-    const uniqueReachedCustomerIds = new Set(logs.map(l => l.outreach_executions?.customer_id).filter(Boolean))
+    const uniqueReachedCustomerIds = new Set(logs.map(l => l.outreach_executions?.customer_id || (l as any).outreach_executions?.customer_id).filter(Boolean))
     const totalUniqueReached = uniqueReachedCustomerIds.size
     const costPerUniqueReach = totalUniqueReached > 0 ? totalCost / totalUniqueReached : 0
     const costPerTargetCustomer = totalUniqueCustomers > 0 ? totalCost / totalUniqueCustomers : 0
@@ -1036,7 +1184,8 @@ export async function getOutreachCostReportData(workflowIdParam?: string) {
     })).sort((a, b) => a.date.localeCompare(b.date))
 
     return {
-        campaignName: workflow?.name || 'Temmuz-Aralık Geri Kazanım AI Kampanyası',
+        campaignName,
+        workflows: workflows || [],
         totalUniqueCustomers,
         totalUniqueReached,
         totalLogsCount: logs.length,
