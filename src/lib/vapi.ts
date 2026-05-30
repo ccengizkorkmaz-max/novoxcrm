@@ -229,6 +229,52 @@ export async function makeOutboundCall(options: VapiCallOptions): Promise<VapiCa
                     tools: [
                         {
                             type: 'endCall'
+                        },
+                        {
+                            type: 'function',
+                            name: 'bookAppointment',
+                            description: 'Müşteri satış uzmanı ile görüşmek için randevu talep ettiğinde bu fonksiyonu çağır. Tarih ve saat tercihlerini kaydet.',
+                            parameters: {
+                                type: 'object',
+                                properties: {
+                                    date: {
+                                        type: 'string',
+                                        description: 'Müşterinin randevu istediği tarih veya gün (Örn: yarın, Pazartesi, 3 Haziran)'
+                                    },
+                                    time: {
+                                        type: 'string',
+                                        description: 'Müşterinin randevu istediği saat veya zaman dilimi (Örn: öğleden sonra, saat 14:00, sabah)'
+                                    },
+                                    notes: {
+                                        type: 'string',
+                                        description: 'Randevu ile ilgili diğer notlar veya müşteri talepleri'
+                                    }
+                                },
+                                required: ['date']
+                            }
+                        },
+                        {
+                            type: 'function',
+                            name: 'scheduleAppointment',
+                            description: 'Müşteri randevu talep ettiğinde bu fonksiyonu çağır. Tarih ve saat tercihlerini kaydet.',
+                            parameters: {
+                                type: 'object',
+                                properties: {
+                                    date: {
+                                        type: 'string',
+                                        description: 'Müşterinin randevu istediği tarih veya gün (Örn: yarın, Pazartesi, 3 Haziran)'
+                                    },
+                                    time: {
+                                        type: 'string',
+                                        description: 'Müşterinin randevu istediği saat veya zaman dilimi (Örn: öğleden sonra, saat 14:00, sabah)'
+                                    },
+                                    notes: {
+                                        type: 'string',
+                                        description: 'Randevu ile ilgili diğer notlar veya müşteri talepleri'
+                                    }
+                                },
+                                required: ['date']
+                            }
                         }
                     ],
                 },

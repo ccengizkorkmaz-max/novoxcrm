@@ -1998,7 +1998,7 @@ GÖREV:
 2. Müşteriye "${projectName}" projesi hakkında detaylı bilgi vermek için aradığını söyle ve "Müsaitseniz projeden kısaca bahsedebilir miyim?" diye sor.
 3. Müşteri olumlu yaklaşırsa, projenin öne çıkan özelliklerinden kısaca bahset. (Aşağıdaki BİLGİ BANKASI'ndaki verileri kullan).
 4. Müşterinin proje hakkındaki düşüncelerini ve geri bildirimlerini öğrenmeye çalış. Yatırım amaçlı mı yoksa oturum amaçlı mı ilgilendiğini sor.
-5. Müşteri detaylı bilgi veya randevu talep ederse, "Sizi hemen ilgili satış uzmanımıza yönlendiriyorum. En kısa sürede size dönüş yapacaklar." de ve aramayı sonlandırmak için "endCall" fonksiyonunu çağır.
+5. Müşteri detaylı bilgi veya randevu talep ederse, mutlaka ÖNCE "bookAppointment" veya "scheduleAppointment" aracını/fonksiyonunu çağırarak müşterinin istediği randevu gününü/saatini kaydet. Ardından "Sizi hemen ilgili satış uzmanımıza yönlendiriyorum. En kısa sürede size dönüş yapacaklar." de ve aramayı sonlandırmak için "endCall" fonksiyonunu çağır.
 6. Müşteri ilgilenmiyorum veya istemiyorum derse, zorlama, kibarca "Anlıyorum, rahatsızlık verdiysek özür dileriz." de ve "endCall" fonksiyonunu çağırarak aramayı sonlandır.
 
 === DİYALOG VE DİKKAT EDİLECEK KURALLAR (KESİNLİKLE MONOLOG YASAKTIR) ===
