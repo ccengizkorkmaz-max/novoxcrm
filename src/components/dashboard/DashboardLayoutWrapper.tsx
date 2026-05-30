@@ -144,7 +144,7 @@ export function DashboardLayoutWrapper({
                 {/* Main Content */}
                 <div 
                     className={cn(
-                        "flex-1 min-w-0 flex flex-col md:gap-4 md:py-4 print:pl-0 transition-all duration-300",
+                        "flex-1 min-w-0 flex flex-col md:py-2 print:pl-0 transition-all duration-300 relative",
                         isCollapsed ? "md:pl-[70px]" : "md:pl-64"
                     )}
                 >
@@ -210,7 +210,9 @@ export function DashboardLayoutWrapper({
                             </div>
                         </div>
                     </header>
-                    <div className="hidden md:flex items-center justify-end gap-2 px-6 py-2 sticky top-0 z-20 bg-muted/40 print:hidden">
+
+                    {/* Top Right Utilities */}
+                    <div className="hidden md:flex items-center justify-end gap-2 absolute top-2 right-4 z-50 print:hidden">
                         <LanguageSwitcher />
                         {isAuthorizedForSettings && (
                             <Link href="/settings">
@@ -221,7 +223,8 @@ export function DashboardLayoutWrapper({
                         )}
                         <NotificationBell />
                     </div>
-                    <main className="grid flex-1 items-start gap-4 p-3 sm:px-6 sm:py-0 md:gap-8 overflow-auto">
+
+                    <main className="flex-1 items-start p-2 sm:px-4 sm:py-0 overflow-auto">
                         {children}
                     </main>
                 </div>

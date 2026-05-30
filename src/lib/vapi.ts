@@ -21,8 +21,7 @@ export const TURKISH_VOICE_RULES = `
 3. Rakamları ve birimleri Türkçe oku:
    - "m²" veya "metrekare" → "metrekare" olarak söyle
    - "50 m²" → "elli metrekare" olarak söyle
-   - "2.000.000 TL" → "iki milyon TL" olarak söyle
-   - "3.990.000 TL" → "üç milyon dokuz yüz doksan bin TL" olarak söyle
+   - "TL" kısaltmasını konuşma metninde KESİNLİKLE kullanma! Her zaman "Türk Lirası" veya "lira" şeklinde açık olarak yaz. (Örn: "2.000.000 TL" → "iki milyon Türk Lirası" veya "iki milyon lira" olarak yaz ve oku).
    - "%35" → "yüzde otuz beş" olarak söyle
 4. Proje isimlerini olduğu gibi Türkçe aksanla söyle:
    - "NOVO Park Vista" → "Novo Park Vista" (Türkçe aksanla)
@@ -39,8 +38,9 @@ export const TURKISH_VOICE_RULES = `
 8. "Efendim", "Buyurun", "Tabii ki" gibi Türkçe nezaket kalıplarını kullan.
 9. Müşteriyle konuşurken kesinlikle teknik jargon kullanma, sade ve anlaşılır Türkçe tercih et.
 10. GÖRÜŞME SONLANDIRMA VE TELEFONU KAPATMA: Görüşmeyi sonlandırırken mutlaka vedalaş ve ardından HEMEN "endCall" fonksiyonunu/aracını (tool) çağırarak aramayı sonlandır. Vedalaşma cümlesini ("Sizi ilgili satış danışmanımıza yönlendiriyorum. En kısa sürede size dönüş yapacaklar, iyi günler dilerim." veya "İyi günler dilerim.") söyledikten sonra beklemeden aramayı kapatmalısın.
-11. "daire" kelimesini telaffuz ederken "dayır" veya "deyr" gibi yabancı aksanlardan kaçınmak için konuşma metninde "da-ire" veya "daire" şeklinde temiz Türkçe heceleme ile oku.
-12. "dubleks" kelimesini "dabl-eks" gibi İngilizce okuma. Türkçe fonetik kurallarına uygun olarak "dub-leks" şeklinde oku.
+11. "daire" kelimesini telaffuz ederken "dayır" veya "deyr" gibi yabancı aksanlardan kaçınmak için kendi iç sesinde ve çıktında DİKKAT ET: "daire" yazmak yerine doğrudan "da-ire" şeklinde heceleyerek veya "daire" kelimesini net bir Türkçeyle yazarak telaffuzun doğru çıkmasını sağla.
+12. "dubleks" kelimesini "dabl-eks" gibi İngilizce okuma. Mutlaka "dub-leks" şeklinde Türkçe fonetikle telaffuz et.
+13. Görüşme Sonlandırma: Görüşmeyi bitirirken her zaman nezaketle "İyi günler dilerim, görüşmek üzere" diyerek telefonu kapat.
 === DİL KURALLARI SONU ===
 
 === RET YÖNETİMİ (KRİTİK — KESİNLİKLE UYULMALIDIR) ===
@@ -188,13 +188,17 @@ export async function makeOutboundCall(options: VapiCallOptions): Promise<VapiCa
         // If we have a custom system prompt, use a transient (inline) assistant
         // to guarantee our prompt is used instead of the saved assistant's prompt
         if (options.systemPrompt) {
-            let siteUrl = 'https://oikoscrm.com'
+            let siteUrl = 'https://www.novoxcrm.com'
             try {
                 const { headers } = await import('next/headers')
                 const host = (await headers()).get('host')
                 if (host) {
-                    const protocol = host.includes('localhost') || host.includes('127.0.0.1') ? 'http' : 'https'
-                    siteUrl = `${protocol}://${host}`
+                    if (host.includes('localhost') || host.includes('127.0.0.1')) {
+                        siteUrl = 'https://www.novoxcrm.com'
+                    } else {
+                        const protocol = host.includes('localhost') ? 'http' : 'https'
+                        siteUrl = `${protocol}://${host}`
+                    }
                 }
             } catch {
                 if (process.env.NEXT_PUBLIC_SITE_URL) {
@@ -205,7 +209,7 @@ export async function makeOutboundCall(options: VapiCallOptions): Promise<VapiCa
 
             payload.assistant = {
                 serverUrl: resolvedServerUrl,
-                serverMessages: ['end-of-call-report', 'status-update'],
+                serverMessages: ['end-of-call-report', 'status-update', 'function-call'],
                 firstMessage: options.firstMessage || undefined,
                 endCallMessage: options.endCallMessage || 'İyi günler, görüşmek üzere. Hoşçakalın.',
                 firstMessageMode: options.firstMessage ? 'assistant-speaks-first' : 'assistant-waits-for-user',
@@ -228,57 +232,13 @@ export async function makeOutboundCall(options: VapiCallOptions): Promise<VapiCa
                     messages: [{ role: 'system', content: TURKISH_VOICE_RULES + '\n\n' + options.systemPrompt }],
                     tools: [
                         {
-                            type: 'endCall'
-                        },
-                        {
-                            type: 'function',
-                            function: {
-                                name: 'bookAppointment',
-                                description: 'Müşteri satış uzmanı ile görüşmek için randevu talep ettiğinde bu fonksiyonu çağır. Tarih ve saat tercihlerini kaydet.',
-                                parameters: {
-                                    type: 'object',
-                                    properties: {
-                                        date: {
-                                            type: 'string',
-                                            description: 'Müşterinin randevu istediği tarih veya gün (Örn: yarın, Pazartesi, 3 Haziran)'
-                                        },
-                                        time: {
-                                            type: 'string',
-                                            description: 'Müşterinin randevu istediği saat veya zaman dilimi (Örn: öğleden sonra, saat 14:00, sabah)'
-                                        },
-                                        notes: {
-                                            type: 'string',
-                                            description: 'Randevu ile ilgili diğer notlar veya müşteri talepleri'
-                                        }
-                                    },
-                                    required: ['date']
+                            type: 'endCall',
+                            messages: [
+                                {
+                                    type: "request-start",
+                                    content: "Görüşmek üzere, iyi günler dilerim."
                                 }
-                            }
-                        },
-                        {
-                            type: 'function',
-                            function: {
-                                name: 'scheduleAppointment',
-                                description: 'Müşteri randevu talep ettiğinde bu fonksiyonu çağır. Tarih ve saat tercihlerini kaydet.',
-                                parameters: {
-                                    type: 'object',
-                                    properties: {
-                                        date: {
-                                            type: 'string',
-                                            description: 'Müşterinin randevu istediği tarih veya gün (Örn: yarın, Pazartesi, 3 Haziran)'
-                                        },
-                                        time: {
-                                            type: 'string',
-                                            description: 'Müşterinin randevu istediği saat veya zaman dilimi (Örn: öğleden sonra, saat 14:00, sabah)'
-                                        },
-                                        notes: {
-                                            type: 'string',
-                                            description: 'Randevu ile ilgili diğer notlar veya müşteri talepleri'
-                                        }
-                                    },
-                                    required: ['date']
-                                }
-                            }
+                            ]
                         }
                     ],
                 },
@@ -653,22 +613,22 @@ export async function handleManualVapiCallResult(callData: {
     console.log(`[Vapi Webhook] Processing manual call result for customer: ${customerId}, sale: ${saleId}`)
 
     // Determine call outcome/status
-    let outcome: string = 'no_answer'
+    let outcome: 'Success' | 'Failed' | 'Busy' | 'No Answer' = 'No Answer'
     let logStatus: string = 'no_answer'
 
     if (callData.endedReason === 'customer-ended-call' || callData.endedReason === 'assistant-ended-call') {
         if (callData.duration && callData.duration > 30) {
-            outcome = 'success'
+            outcome = 'Success'
             logStatus = 'answered'
         } else if (callData.duration && callData.duration > 5) {
-            outcome = 'no_answer'
+            outcome = 'Failed'
             logStatus = 'hung_up'
         }
     } else if (callData.endedReason === 'customer-did-not-answer') {
-        outcome = 'no_answer'
+        outcome = 'No Answer'
         logStatus = 'no_answer'
     } else if (callData.endedReason === 'customer-busy') {
-        outcome = 'busy'
+        outcome = 'Busy'
         logStatus = 'busy'
     }
 
@@ -679,7 +639,7 @@ export async function handleManualVapiCallResult(callData: {
     const notes = structuredData?.notes
 
     if (interested === true || leadScore === 'hot' || leadScore === 'warm') {
-        outcome = 'success'
+        outcome = 'Success'
         logStatus = 'answered'
     }
 
@@ -688,24 +648,61 @@ export async function handleManualVapiCallResult(callData: {
     const transcriptBlock = callData.transcript
         ? `\n\n📝 Transkript:\n${callData.transcript}`
         : ''
-    const recordingBlock = callData.recordingUrl
-        ? `\n\n🎙️ Kayıt Dinle: ${callData.recordingUrl}`
-        : ''
     const summaryBlock = callData.summary || notes || 'Görüşme tamamlandı.'
 
-    const { error: actError } = await supabase.from('activities').insert({
-        tenant_id: tenantId,
-        customer_id: customerId,
-        type: 'Call',
-        topic: 'Sales',
+    const activityPayload = {
         summary: `🤖 AI Arama: ${leadScore ? 'Skor ' + leadScore.toUpperCase() : 'Görüşme Tamamlandı'} (${durationText})`,
-        description: `${summaryBlock}${transcriptBlock}${recordingBlock}\n\n[Call ID: ${callData.callId}]`,
-        status: 'Completed',
-        due_date: new Date().toISOString(),
+        description: `${summaryBlock}${transcriptBlock}`,
+        notes: callData.transcript || '',
+        status: 'Completed' as const,
         completed_at: new Date().toISOString(),
-        outcome: logStatus,
-        priority: leadScore === 'hot' ? 'High' : 'Medium'
-    })
+        outcome: outcome,
+        priority: leadScore === 'hot' ? 'High' : 'Medium',
+        call_recording_url: callData.recordingUrl || null
+    }
+
+    // Try to UPDATE the existing "AI Arama başlatıldı" placeholder activity first
+    let actError: any = null
+    if (callData.callId) {
+        const { data: existingAct } = await supabase
+            .from('activities')
+            .select('id')
+            .eq('customer_id', customerId)
+            .ilike('description', `%[Call ID: ${callData.callId}]%`)
+            .limit(1)
+            .single()
+
+        if (existingAct) {
+            console.log(`[Vapi Webhook] Updating existing activity ${existingAct.id} for callId ${callData.callId}`)
+            const { error } = await supabase
+                .from('activities')
+                .update(activityPayload)
+                .eq('id', existingAct.id)
+            actError = error
+        } else {
+            // No existing placeholder found → insert new
+            const { error } = await supabase.from('activities').insert({
+                tenant_id: tenantId,
+                customer_id: customerId,
+                type: 'Call',
+                topic: 'Sales',
+                due_date: new Date().toISOString(),
+                ...activityPayload
+            })
+            actError = error
+        }
+    } else {
+        // No callId → insert new
+        const { error } = await supabase.from('activities').insert({
+            tenant_id: tenantId,
+            customer_id: customerId,
+            type: 'Call',
+            topic: 'Sales',
+            due_date: new Date().toISOString(),
+            ...activityPayload
+        })
+        actError = error
+    }
 
     if (actError) {
         console.error('[Vapi Webhook] Error saving manual call activity:', actError)

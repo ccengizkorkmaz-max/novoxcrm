@@ -151,26 +151,27 @@ export default async function CRMPage(props: {
     return (
         <div className="flex flex-col gap-2">
             <div className="sticky top-0 z-30 bg-background/95 backdrop-blur pb-1 pt-0.5 border-b mb-1">
-                <div className="flex flex-col gap-2.5 md:flex-row md:items-center md:justify-between px-1 mb-2">
-                    <div className="flex items-center justify-between md:justify-start gap-3 w-full md:w-auto">
-                        <h1 className="text-xl md:text-2xl font-bold tracking-tight whitespace-nowrap">{isBroker ? 'İşlem Yönetimi' : t('title')}</h1>
-                        
-                        {/* Filter + NewSale — heavy data streams in via Suspense */}
-                        <div className="flex items-center gap-1.5 md:gap-3">
-                            <Suspense fallback={toolbarSkeleton}>
-                                <DeferredCRMToolbar
-                                    userTenantId={userTenantId || ''}
-                                    isBroker={isBroker}
-                                    tenantType={tenantType}
-                                    params={params}
-                                />
-                            </Suspense>
-                        </div>
-                    </div>
+                {/* 1. Row: Title */}
+                <div className="flex items-center px-1 mb-2">
+                    <h1 className="text-xl font-bold tracking-tight whitespace-nowrap">{isBroker ? 'İşlem Yönetimi' : t('title')}</h1>
+                </div>
 
-                    <div className="flex items-center gap-2 md:gap-3 w-full md:w-auto">
-                        <div className="flex-1 md:flex-initial">
-                            <Suspense fallback={<div className="h-10 w-full md:w-64 bg-muted animate-pulse rounded" />}>
+                {/* 2. Row: Actions */}
+                <div className="flex items-center gap-2 px-1 mb-1 flex-wrap">
+                    {/* Filter + NewSale */}
+                    <Suspense fallback={toolbarSkeleton}>
+                        <DeferredCRMToolbar
+                            userTenantId={userTenantId || ''}
+                            isBroker={isBroker}
+                            tenantType={tenantType}
+                            params={params}
+                        />
+                    </Suspense>
+
+                    {/* Search + Export + AutoAssign */}
+                    <div className="flex items-center gap-1.5 shrink-0 ml-1">
+                        <div className="w-48 lg:w-56">
+                            <Suspense fallback={<div className="h-9 w-full bg-muted animate-pulse rounded" />}>
                                 <CRMSearch />
                             </Suspense>
                         </div>
@@ -189,7 +190,7 @@ export default async function CRMPage(props: {
                     </div>
                 </div>
 
-                {/* Pipeline Stats — streams in via Suspense after list renders */}
+                {/* Pipeline Stats */}
                 <div className="hidden lg:block">
                     <Suspense fallback={statsSkeleton}>
                         <DeferredPipelineStats {...statsFilterProps} />

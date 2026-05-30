@@ -28,10 +28,22 @@ export async function generateMetadata(): Promise<Metadata> {
   // Each domain is self-canonical for independent SEO indexing
   const baseUrl = getCanonicalBaseUrl(host)
 
+  // Double-dipping strategy: target different search intents with the two brands
+  let title = `${brandName} | İnşaat & Gayrimenkul CRM - Konut Projeleri İçin Satış Yönetimi`;
+  let description = `${brandName}, inşaat ve gayrimenkul firmaları için özel geliştirilmiş CRM yazılımıdır. Konut projeleri, stok takibi, broker yönetimi ve satış süreçlerini tek platformda yönetin.`;
+
+  if (brandName === 'Oikos CRM') {
+    title = `Oikos CRM | Emlak Danışmanları ve Acenteler İçin Hızlı Gayrimenkul CRM`;
+    description = `Oikos CRM, hızlı büyüyen emlak ofisleri ve danışmanlar için pratik ve uygun fiyatlı gayrimenkul CRM yazılımıdır. Yapay zeka destekli müşteri takibi ve portföy yönetimi.`;
+  } else if (brandName === 'Novox CRM') {
+    title = `Novox CRM | Kurumsal İnşaat Firmaları ve Geliştiriciler İçin Gayrimenkul CRM`;
+    description = `Novox CRM, büyük ölçekli inşaat ve gayrimenkul geliştirme firmaları için ERP entegrasyonlu, gelişmiş proje ve satış yönetimi çözümüdür.`;
+  }
+
   return {
     metadataBase: new URL(baseUrl),
-    title: `${brandName} | Insaat & Gayrimenkul CRM - Konut Projeleri icin Satis Yonetimi`,
-    description: `${brandName}, insaat ve gayrimenkul firmalari icin ozel gelistirilmis CRM yazilimidir. Konut projeleri, stok takibi, broker yonetimi ve satis sureclerini tek platformda yonetin.`,
+    title: title,
+    description: description,
     manifest: '/manifest.json',
     appleWebApp: {
       capable: true,

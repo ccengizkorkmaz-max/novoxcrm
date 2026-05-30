@@ -43,6 +43,7 @@ export async function POST(req: NextRequest) {
                     const { count } = await adminSupabase
                         .from('activities')
                         .select('*', { count: 'exact', head: true })
+                        .eq('type', 'Call')
                         .ilike('description', `%[Call ID: ${parsed.callId}]%`)
                     if (count && count > 0) {
                         console.log(`[Vapi Webhook] Duplicate webhook for callId ${parsed.callId} — atlanıyor`)
@@ -87,39 +88,71 @@ export async function POST(req: NextRequest) {
 
             case 'function-call':
                 // AI agent wants to execute a function
-                console.log(`[Vapi Webhook] Function call:`, JSON.stringify(body.message?.functionCall || body.functionCall || {}).substring(0, 300))
+                console.log(`[Vapi Webhook] Function call payload:`, JSON.stringify(body.message?.toolCalls || body.toolCalls || {}).substring(0, 300))
                 
-                const functionCall = body.message?.functionCall || body.functionCall || {}
-                const functionName = functionCall.name || ''
-                const functionParams = functionCall.parameters || {}
-
-                if (functionName === 'endCall') {
-                    // Arama sonlandırma — Vapi bunu otomatik işler
-                    console.log(`[Vapi Webhook] endCall triggered for ${parsed.callId}`)
-                } else if (functionName === 'scheduleAppointment' || functionName === 'bookAppointment') {
-                    // Randevu talebi — CRM'e Meeting aktivitesi olarak kaydet
-                    try {
-                        const adminSupabase = createAdminClient()
-                        const metadata = parsed.metadata || {}
-                        
-                        await adminSupabase.from('activities').insert({
-                            tenant_id: metadata.tenant_id,
-                            customer_id: metadata.customer_id,
-                            type: 'Meeting',
-                            topic: 'Sales',
-                            summary: `📅 AI aramasında randevu talebi — ${functionParams.date || 'Tarih belirtilmedi'}`,
-                            description: `AI arama sırasında müşteri randevu istedi. Tercih: ${functionParams.date || '-'} ${functionParams.time || '-'}. Not: ${functionParams.notes || '-'}. Vapi Call ID: ${parsed.callId}`,
-                            status: 'Pending',
-                            project_id: metadata.project_id,
-                        })
-                        console.log(`[Vapi Webhook] Randevu kaydı oluşturuldu: ${metadata.customer_id}`)
-                    } catch (fnErr: any) {
-                        console.error(`[Vapi Webhook] Randevu kayıt hatası:`, fnErr.message)
-                    }
-                } else {
-                    console.log(`[Vapi Webhook] Unknown function: ${functionName}`)
+                const toolCalls = body.message?.toolCalls || body.toolCalls || []
+                
+                // Fallback for older Vapi webhook formats that might send single functionCall
+                const singleFunctionCall = body.message?.functionCall || body.functionCall
+                if (toolCalls.length === 0 && singleFunctionCall) {
+                    toolCalls.push({
+                        id: body.message?.toolCallId || 'unknown_id',
+                        function: singleFunctionCall
+                    })
                 }
-                break
+
+                if (toolCalls.length > 0) {
+                    const results = []
+                    
+                    for (const tc of toolCalls) {
+                        const functionName = tc.function?.name || ''
+                        let functionParams: any = {}
+                        try {
+                            functionParams = typeof tc.function?.arguments === 'string' 
+                                ? JSON.parse(tc.function.arguments) 
+                                : (tc.function?.arguments || tc.function?.parameters || {})
+                        } catch(e) {}
+                        
+                        let resultMessage = "İşlem başarıyla tamamlandı."
+
+                        if (functionName === 'endCall') {
+                            console.log(`[Vapi Webhook] endCall triggered for ${parsed.callId}`)
+                            resultMessage = "Görüşme sonlandırılıyor."
+                        } else if (functionName === 'scheduleAppointment' || functionName === 'bookAppointment') {
+                            try {
+                                const adminSupabase = createAdminClient()
+                                const metadata = parsed.metadata || {}
+                                
+                                await adminSupabase.from('activities').insert({
+                                    tenant_id: metadata.tenant_id,
+                                    customer_id: metadata.customer_id,
+                                    type: 'Meeting',
+                                    topic: 'Sales',
+                                    summary: `📅 AI aramasında randevu talebi — ${functionParams.date || 'Tarih belirtilmedi'}`,
+                                    description: `AI arama sırasında müşteri randevu istedi. Tercih: ${functionParams.date || '-'} ${functionParams.time || '-'}. Not: ${functionParams.notes || '-'}. Vapi Call ID: ${parsed.callId}`,
+                                    status: 'Pending',
+                                    project_id: metadata.project_id,
+                                })
+                                console.log(`[Vapi Webhook] Randevu kaydı oluşturuldu: ${metadata.customer_id}`)
+                                resultMessage = "Randevu başarıyla kaydedildi. Müşteriye randevusunun alındığını söyle ve görüşmeyi sonlandır."
+                            } catch (fnErr: any) {
+                                console.error(`[Vapi Webhook] Randevu kayıt hatası:`, fnErr.message)
+                                resultMessage = "Randevu kaydedilirken bir hata oluştu."
+                            }
+                        } else {
+                            console.log(`[Vapi Webhook] Unknown function: ${functionName}`)
+                        }
+                        
+                        results.push({
+                            toolCallId: tc.id,
+                            result: resultMessage
+                        })
+                    }
+                    
+                    return NextResponse.json({ results }, { status: 200 })
+                }
+                
+                return NextResponse.json({ results: [] }, { status: 200 })
 
             case 'hang':
                 // Hang notification

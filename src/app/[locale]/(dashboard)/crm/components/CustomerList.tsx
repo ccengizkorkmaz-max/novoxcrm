@@ -66,6 +66,7 @@ export default function CustomerList({
     initialPage = 1,
     sourceStats = {},
     profiles = [],
+    projects = [],
     isManager = false,
     initialSort = { key: 'created_at' as const, order: 'desc' as const }
 }: {
@@ -74,6 +75,7 @@ export default function CustomerList({
     initialPage?: number,
     sourceStats?: Record<string, number>,
     profiles?: any[],
+    projects?: any[],
     isManager?: boolean,
     initialSort?: { key: 'full_name' | 'created_at'; order: 'asc' | 'desc' }
 }) {
@@ -90,7 +92,7 @@ export default function CustomerList({
     const [isPending, setIsPending] = useState(false)
     const [customerType, setCustomerType] = useState<'individual' | 'corporate'>('individual')
 
-    const [searchQuery, setSearchQuery] = useState('')
+    const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '')
     const [sortConfig, setSortConfig] = useState<{ key: SortKey; order: SortOrder }>({
         key: initialSort.key,
         order: initialSort.order
@@ -1139,6 +1141,7 @@ export default function CustomerList({
                 activity={{ customer_id: selectedCustomerForActivity?.id }}
                 customers={customers}
                 profiles={profiles}
+                projects={projects}
             />
 
             {/* Delete Confirmation */}

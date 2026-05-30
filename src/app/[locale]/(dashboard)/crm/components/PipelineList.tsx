@@ -1314,6 +1314,7 @@ export default function PipelineList({
                 }}
                 customers={customers}
                 profiles={profiles}
+                projects={projects}
             />
 
             {/* Revert To Qualification Dialog */}

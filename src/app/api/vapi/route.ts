@@ -92,8 +92,19 @@ export async function POST(request: NextRequest) {
     }
 
     // Webhook URL'i belirle
-    const host = request.headers.get('host') || 'oikoscrm.com';
-    const protocol = host.includes('localhost') || host.includes('127.0.0.1') ? 'http' : 'https';
+    let host = request.headers.get('host') || 'www.novoxcrm.com';
+    let protocol = host.includes('localhost') || host.includes('127.0.0.1') ? 'http' : 'https';
+    
+    // Eğer localhost'ta çalışıyorsa, Vapi'nin ulaşabilmesi için webhook'u production'a yönlendir.
+    // Çünkü Vapi bulut sunucuları localhost'a istek atamaz (function-call ve end-of-call webhook'ları çalışmaz).
+    if (host.includes('localhost') || host.includes('127.0.0.1')) {
+        host = 'www.novoxcrm.com';
+        protocol = 'https';
+    }
+
+    if (host === 'novoxcrm.com') host = 'www.novoxcrm.com';
+    if (host === 'oikoscrm.com') host = 'www.oikoscrm.com';
+    
     const serverUrl = `${protocol}://${host}/api/webhooks/vapi`;
 
     const { makeOutboundCall, getTurkishNameTitle } = await import('@/lib/vapi');

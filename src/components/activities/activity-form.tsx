@@ -61,26 +61,31 @@ function UpcomingActivitiesInfo({ customerId }: { customerId: string }) {
     if (activities.length === 0) return null
 
     return (
-        <div className="bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 rounded-md p-3 mt-3 text-sm shadow-sm transition-all animate-in fade-in slide-in-from-top-2">
-            <p className="font-medium text-amber-800 dark:text-amber-400 flex items-center gap-2 mb-2 text-xs">
-                <CalendarClock className="h-4 w-4" />
-                Müşterinin Yaklaşan {activities.length} Planlı Aktivitesi Var
+        <div className="bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 rounded-md p-2.5 mt-2 text-sm shadow-sm transition-all animate-in fade-in slide-in-from-top-2">
+            <p className="font-medium text-amber-800 dark:text-amber-400 flex items-center gap-1.5 mb-1.5 text-[11px]">
+                <CalendarClock className="h-3.5 w-3.5 shrink-0" />
+                Yaklaşan {activities.length} Planlı Aktivite
             </p>
-            <ul className="space-y-2">
-                {activities.map(act => (
-                    <li key={act.id} className="flex flex-col text-amber-900 dark:text-amber-300 bg-white/60 dark:bg-black/20 p-2 rounded-md border border-amber-100 dark:border-amber-900/30 text-xs shadow-sm">
-                        <div className="flex justify-between items-center mb-1">
-                            <span className="font-semibold truncate pr-2" title={act.summary}>{act.summary}</span>
-                            <span className="flex items-center gap-1 whitespace-nowrap text-[10px] bg-amber-100 dark:bg-amber-900/40 px-1.5 py-0.5 rounded text-amber-800 dark:text-amber-200">
-                                <Clock className="h-3 w-3" />
-                                {new Date(act.due_date).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+            <ul className="space-y-1 max-h-[100px] overflow-y-auto">
+                {activities.map(act => {
+                    // Clean up long Call IDs from summary display
+                    let displaySummary = act.summary || ''
+                    displaySummary = displaySummary.replace(/\s*\(CallID:\s*[a-f0-9-]+\)/gi, '').trim()
+                    if (displaySummary.length > 50) displaySummary = displaySummary.substring(0, 50) + '…'
+                    
+                    return (
+                        <li key={act.id} className="flex items-center justify-between text-amber-900 dark:text-amber-300 bg-white/60 dark:bg-black/20 px-2 py-1.5 rounded border border-amber-100 dark:border-amber-900/30 text-[11px] gap-2">
+                            <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                                <span className="capitalize text-[10px] font-medium text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/40 px-1 py-0.5 rounded shrink-0">{act.type === 'Site Visit' ? 'Ziyaret' : act.type === 'Call' ? 'Arama' : act.type === 'Meeting' ? 'Toplantı' : act.type}</span>
+                                <span className="truncate font-medium" title={act.summary}>{displaySummary}</span>
+                            </div>
+                            <span className="flex items-center gap-0.5 whitespace-nowrap text-[10px] text-amber-600 dark:text-amber-300 shrink-0">
+                                <Clock className="h-2.5 w-2.5" />
+                                {new Date(act.due_date).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short' })}
                             </span>
-                        </div>
-                        <div className="flex items-center gap-2 opacity-80 text-[10px] font-medium">
-                            <span className="capitalize">{act.type}</span> &bull; <span>{act.status}</span>
-                        </div>
-                    </li>
-                ))}
+                        </li>
+                    )
+                })}
             </ul>
         </div>
     )

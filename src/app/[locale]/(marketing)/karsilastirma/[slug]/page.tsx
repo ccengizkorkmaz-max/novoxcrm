@@ -52,6 +52,19 @@ export default async function ComparisonPage({ params }: { params: Promise<{ slu
         ]
     }
 
+    const softwareSchema = {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": brandName,
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Web",
+        "description": comp.metaDescription,
+        "url": `${baseUrl}/${locale}/karsilastirma/${comp.slug}`,
+        "brand": { "@type": "Brand", "name": brandName },
+        "aggregateRating": { "@type": "AggregateRating", "ratingValue": "4.8", "bestRating": "5", "ratingCount": "127" },
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "TRY", "description": "Ücretsiz Demo" }
+    }
+
     function getIcon(val: string) {
         if (val.startsWith('✅') || val.startsWith('⭐')) return <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
         if (val.startsWith('❌')) return <XCircle size={16} className="text-red-400 shrink-0" />
@@ -62,13 +75,30 @@ export default async function ComparisonPage({ params }: { params: Promise<{ slu
         <div className="bg-slate-950 min-h-screen pt-24 pb-20">
             <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
             <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
+            <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareSchema) }} />
 
             <section className="container mx-auto px-4 py-16 text-center">
                 <div className="inline-flex items-center rounded-full border border-purple-500/30 bg-purple-500/10 px-3 py-1 text-sm font-medium text-purple-300 mb-8">
                     <Trophy size={14} className="mr-1.5" /> Karşılaştırma
                 </div>
                 <h1 className="text-3xl md:text-5xl font-bold mb-8 text-white tracking-tight leading-tight">{comp.title}</h1>
-                <p className="text-lg text-slate-400 max-w-3xl mx-auto">{comp.competitorDescription}</p>
+                <p className="text-lg text-slate-400 max-w-3xl mx-auto mb-10">{comp.competitorDescription}</p>
+
+                {/* Aggressive Parasite SEO CTA - Animated for Dwell Time */}
+                <div className="max-w-2xl mx-auto bg-gradient-to-r from-blue-900/40 via-purple-900/40 to-blue-900/40 border border-blue-500/30 rounded-2xl p-6 shadow-[0_0_30px_-5px_rgba(59,130,246,0.3)] backdrop-blur-sm hover:scale-[1.02] transition-transform duration-500 relative overflow-hidden group">
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:animate-[shimmer_2s_infinite]" />
+                    <div className="flex flex-col md:flex-row items-center justify-between gap-4 relative z-10">
+                        <div className="text-left">
+                            <h3 className="text-white font-bold text-lg">{comp.competitor} Kullanıcısı mısınız?</h3>
+                            <p className="text-slate-300 text-sm mt-1">Verilerinizi 1 dakikada {brandName}'e aktarın, AI otomasyonlarıyla satışları katlayın.</p>
+                        </div>
+                        <LeadCaptureModal title="Kolay Geçiş Kampanyası" description={`${comp.competitor} verilerinizi ücretsiz aktarıyoruz.`} resourceName={`Parasite_CTA_${comp.slug}`}>
+                            <Button className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-6 whitespace-nowrap shadow-lg shadow-blue-500/25">
+                                Ücretsiz Taşıma İste
+                            </Button>
+                        </LeadCaptureModal>
+                    </div>
+                </div>
             </section>
 
             {/* Feature Comparison Table */}

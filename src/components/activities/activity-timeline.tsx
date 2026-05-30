@@ -1,20 +1,37 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ActivityCard, Activity } from './activity-card'
 import { Button } from '@/components/ui/button'
 import { Plus, CornerDownRight, ChevronDown } from 'lucide-react'
 import { ActivityForm } from './activity-form'
+import { createClient } from '@/lib/supabase/client'
 
 interface ActivityTimelineProps {
     activities: any[]
     customer: any
     profiles?: any[]
+    projects?: any[]
 }
 
-export function ActivityTimeline({ activities, customer, profiles = [] }: ActivityTimelineProps) {
+export function ActivityTimeline({ activities, customer, profiles = [], projects: propProjects }: ActivityTimelineProps) {
     const [showCreate, setShowCreate] = useState(false)
     const [visibleCount, setVisibleCount] = useState(5)
+    const [projects, setProjects] = useState<any[]>(propProjects || [])
+
+    // Fetch projects client-side if not provided via props
+    useEffect(() => {
+        if (propProjects && propProjects.length > 0) {
+            setProjects(propProjects)
+            return
+        }
+        async function fetchProjects() {
+            const supabase = createClient()
+            const { data } = await supabase.from('projects').select('id, name').order('name')
+            if (data) setProjects(data)
+        }
+        fetchProjects()
+    }, [propProjects])
 
     // Ensure activities are sorted desc
     const sortedActivities = [...activities].sort((a, b) => new Date(b.due_date).getTime() - new Date(a.due_date).getTime())
@@ -26,7 +43,7 @@ export function ActivityTimeline({ activities, customer, profiles = [] }: Activi
         topic: a.topic,
         summary: a.summary,
         customer_id: a.customer_id,
-        customers: a.customers || { full_name: customer.full_name }, // Fallback to prop customer
+        customers: a.customers || { full_name: customer.full_name },
         due_date: a.due_date,
         status: a.status,
         outcome: a.outcome,
@@ -63,7 +80,6 @@ export function ActivityTimeline({ activities, customer, profiles = [] }: Activi
                                 <div className={`w-1.5 h-1.5 rounded-full mb-0 ${activity.status === 'Completed' ? 'bg-green-500' : 'bg-primary'}`}></div>
                             </div>
 
-                            {/* Connector Line if previous activity exists in the FULL list (parent) */}
                             {parent && (
                                 <div className="absolute -left-[22px] h-full top-6 w-0.5 bg-border z-0" />
                             )}
@@ -78,7 +94,7 @@ export function ActivityTimeline({ activities, customer, profiles = [] }: Activi
                                 </div>
                             )}
 
-                            <ActivityCard activity={activity} profiles={profiles} />
+                            <ActivityCard activity={activity} profiles={profiles} projects={projects} />
                         </div>
                     )
                 })}
@@ -103,6 +119,7 @@ export function ActivityTimeline({ activities, customer, profiles = [] }: Activi
                 activity={{ customer_id: customer.id }}
                 customers={[customer]}
                 profiles={profiles}
+                projects={projects}
             />
         </div>
     )

@@ -42,7 +42,8 @@ export default async function CustomersPage(props: {
         customerResult,
         profilesResult,
         currentProfileResult,
-        sourceStatsResult
+        sourceStatsResult,
+        projectsResult
     ] = await Promise.all([
         // Critical: Customer list (50 records)
         query.order(sortKey as 'full_name' | 'created_at', { ascending: sortOrder }).range(from, to),
@@ -51,7 +52,9 @@ export default async function CustomersPage(props: {
         // Secondary: Current user role
         user ? supabase.from('profiles').select('role').eq('id', user.id).single() : Promise.resolve({ data: null }),
         // Performance View: Fetch source counts in a single aggregated DB query!
-        supabase.from('tenant_customer_source_stats').select('source, count')
+        supabase.from('tenant_customer_source_stats').select('source, count'),
+        // Secondary: Projects for Activity creation
+        supabase.from('projects').select('id, name').order('name')
     ])
 
     const allCustomers = customerResult.data || []
@@ -79,6 +82,7 @@ export default async function CustomersPage(props: {
                     initialPage={page}
                     sourceStats={sourceCounts}
                     profiles={profiles || []}
+                    projects={projectsResult?.data || []}
                     isManager={isManager}
                     initialSort={{ key: sortKey as 'full_name' | 'created_at', order: sortOrder ? 'asc' : 'desc' }}
                 />

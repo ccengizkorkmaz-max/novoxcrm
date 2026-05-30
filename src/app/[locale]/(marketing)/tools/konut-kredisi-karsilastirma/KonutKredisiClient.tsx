@@ -4,16 +4,15 @@ import { useState, useMemo } from "react"
 import { TrendingUp, Info } from "lucide-react"
 
 const banks = [
-    { name: "Ziraat Bankası", rate: 2.89, maxTerm: 120, minDown: 25 },
-    { name: "Halkbank", rate: 2.95, maxTerm: 120, minDown: 25 },
-    { name: "Vakıfbank", rate: 2.99, maxTerm: 120, minDown: 20 },
-    { name: "İş Bankası", rate: 3.19, maxTerm: 120, minDown: 20 },
-    { name: "Garanti BBVA", rate: 3.29, maxTerm: 120, minDown: 20 },
-    { name: "Yapı Kredi", rate: 3.35, maxTerm: 120, minDown: 20 },
-    { name: "Akbank", rate: 3.39, maxTerm: 120, minDown: 25 },
-    { name: "QNB Finansbank", rate: 3.45, maxTerm: 96, minDown: 25 },
-    { name: "Denizbank", rate: 3.49, maxTerm: 120, minDown: 20 },
-    { name: "TEB", rate: 3.55, maxTerm: 120, minDown: 25 },
+    { name: "Ziraat Bankası", rate: 2.49, maxTerm: 120, minDown: 20 },
+    { name: "Ziraat Katılım", rate: 2.59, maxTerm: 120, minDown: 20 },
+    { name: "Vakıf Katılım", rate: 2.63, maxTerm: 120, minDown: 20 },
+    { name: "QNB", rate: 2.78, maxTerm: 120, minDown: 20 },
+    { name: "TEB", rate: 2.96, maxTerm: 120, minDown: 25 },
+    { name: "Garanti BBVA", rate: 2.99, maxTerm: 120, minDown: 20 },
+    { name: "Akbank", rate: 2.99, maxTerm: 120, minDown: 25 },
+    { name: "ING", rate: 3.19, maxTerm: 120, minDown: 20 },
+    { name: "ICBC Turkey", rate: 3.83, maxTerm: 120, minDown: 20 },
 ]
 
 export default function KonutKredisiClient() {

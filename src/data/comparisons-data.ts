@@ -140,4 +140,64 @@ export const comparisons: ComparisonData[] = [
             { question: 'Salesforce veya HubSpot gayrimenkul için kullanılabilir mi?', answer: 'Genel amaçlı CRM\'ler gayrimenkul sektörüne uyarlanabilir ancak daire stok yönetimi, ödeme planı ve broker portalı gibi sektörel modüller için yüksek maliyetli özelleştirme gerekir.' },
         ]
     },
+    {
+        slug: 'oikos-crm-vs-fizbot',
+        title: 'Oikos CRM vs Fizbot: Hangi Emlak Danışmanı Aracı Daha İyi?',
+        metaTitle: 'Oikos CRM vs Fizbot Karşılaştırma 2026 | Emlak CRM',
+        metaDescription: 'Oikos CRM ve Fizbot emlak danışmanlığı araçlarının karşılaştırması. Portföy yönetimi, yapay zeka özellikleri ve değerleme araçları.',
+        competitor: 'Fizbot',
+        competitorDescription: 'Fizbot, emlak danışmanları için otomatik değerleme, bölge raporları ve ilan eşleştirme özellikleri sunan bir portföy ve müşteri takip aracıdır.',
+        features: [
+            { name: 'Odak Noktası', oikos: '✅ Tam kapsamlı CRM & Satış Otomasyonu', competitor: '⚠️ Değerleme ve İlan Eşleştirme' },
+            { name: 'AI Sesli Arama', oikos: '✅ Vapi entegreli outbound', competitor: '❌ Yok' },
+            { name: 'WhatsApp Bot', oikos: '✅ 7/24 Lead yakalama', competitor: '❌ Yok' },
+            { name: 'Proje (Sıfır Konut) Satışı', oikos: '✅ İnteraktif stok ve blok yönetimi', competitor: '❌ İkinci el odaklı' },
+            { name: 'Müşteri Yolculuğu', oikos: '✅ Pipeline & Kanban yönetimi', competitor: '⚠️ Sınırlı' },
+            { name: 'Dijital Pazarlama', oikos: '✅ Facebook Ads & Lead Entegrasyonu', competitor: '❌ Yok' },
+        ],
+        verdict: 'Fizbot bölgesel fiyat analizi ve ilan eşleştirme konularında uzmanlaşmış bir araçtır. Oikos CRM ise müşteri takibi, WhatsApp/Sesli yapay zeka otomasyonları ve sıfır proje satışı yapmak isteyenler için uçtan uca bir CRM platformudur.',
+        faq: [
+            { question: 'Fizbot alternatifi ne olabilir?', answer: 'Müşterilerinizle WhatsApp ve Sesli aramalar üzerinden otomatik iletişim kurmak ve satış süreçlerinizi (pipeline) yönetmek istiyorsanız Oikos CRM mükemmel bir Fizbot alternatifidir.' },
+            { question: 'İnşaat projeleri için Fizbot mu Oikos mu?', answer: 'Kesinlikle Oikos CRM. Sıfır konut projeleri, blok bazlı envanter ve ödeme planı yönetimi sadece Oikos CRM\'de bulunur.' }
+        ]
+    },
+    {
+        slug: 'oikos-crm-vs-re-os',
+        title: 'Oikos CRM vs Re-os Emlak MLS: Hangisi Daha Kapsamlı?',
+        metaTitle: 'Oikos CRM vs Re-os Karşılaştırma 2026 | Emlak Programı',
+        metaDescription: 'Oikos CRM ve Re-os emlak yazılımlarının karşılaştırması. Portföy paylaşımı (MLS), sözleşme yönetimi ve CRM yetenekleri.',
+        competitor: 'Re-os',
+        competitorDescription: 'Re-os, emlak ofisleri arasında portföy paylaşım ağı (MLS), sözleşme yönetimi ve portföy yayınlama araçları sunan bir platformdur.',
+        features: [
+            { name: 'Temel Özellik', oikos: '✅ Uçtan uca CRM ve AI Otomasyon', competitor: '⚠️ MLS (Portföy Paylaşımı) ve İlan Yayını' },
+            { name: 'Modern Arayüz', oikos: '✅ 2026 standartlarında, çok hızlı', competitor: '⚠️ Eski nesil arayüz' },
+            { name: 'Otomatik İletişim', oikos: '✅ WhatsApp AI, SMS, Mail', competitor: '❌ Yok' },
+            { name: 'İnşaat & Proje Takibi', oikos: '✅ Blok ve daire bazlı stok', competitor: '❌ Sadece 2. el tekil portföy' },
+            { name: 'Mobil Uyumluluk', oikos: '✅ Kusursuz PWA deneyimi', competitor: '⚠️ Geliştirilmeye açık' },
+        ],
+        verdict: 'Eğer diğer emlakçılarla portföy paylaşmak (MLS) sizin için en önemli kriterse Re-os mantıklı bir tercih olabilir. Ancak kendi müşterilerinizi profesyonel bir arayüzde, yapay zeka araçlarıyla takip edip satış kapatma hızınızı artırmak istiyorsanız Oikos CRM tartışmasız liderdir.',
+        faq: [
+            { question: 'Re-os mu kullanmalıyım Oikos CRM mi?', answer: 'Geleneksel ilan paylaşımına odaklanıyorsanız Re-os, ancak satış süreçlerini modernize edip yapay zeka ile müşterilere otomatik ulaşmak istiyorsanız Oikos CRM tercih etmelisiniz.' }
+        ]
+    },
+    {
+        slug: 'oikos-crm-vs-zoho',
+        title: 'Oikos CRM vs Zoho CRM: Gayrimenkul İçin Karşılaştırma',
+        metaTitle: 'Oikos CRM vs Zoho CRM Karşılaştırması 2026',
+        metaDescription: 'Zoho CRM gayrimenkul sektörü için uygun mu? Oikos CRM ile Zoho CRM özellik, fiyat ve kullanım kolaylığı karşılaştırması.',
+        competitor: 'Zoho CRM',
+        competitorDescription: 'Zoho CRM, dünyada çok yaygın kullanılan, her sektöre uyarlanabilen genel amaçlı ve uygun fiyatlı bir CRM aracıdır.',
+        features: [
+            { name: 'Sektörel Uyumluluk', oikos: '✅ Gayrimenkule özel inşa edildi', competitor: '⚠️ Genel amaçlı, konfigürasyon gerekir' },
+            { name: 'Portföy/Envanter', oikos: '✅ Yerleşik gayrimenkul stoğu', competitor: '❌ Ek modül (Zoho Creator) gerekir' },
+            { name: 'Kurulum Süresi', oikos: '✅ 5 Dakika', competitor: '⚠️ Günler veya haftalar' },
+            { name: 'Yapay Zeka (Türkçe)', oikos: '✅ Sektöre özel Türkçe asistan', competitor: '⚠️ İngilizce ağırlıklı genel AI (Zia)' },
+            { name: 'Maliyet Predictability', oikos: '✅ Her şey dahil şeffaf', competitor: '⚠️ Eklentilerle maliyet artar' },
+        ],
+        verdict: 'Zoho CRM harika bir yazılım olsa da gayrimenkul sektörünün "Portföy, Mal Sahibi, Ödeme Planı" gibi spesifik ihtiyaçları için ağır özelleştirmeler gerektirir. Oikos CRM ise ilk günden kullanıma hazırdır.',
+        faq: [
+            { question: 'Zoho CRM emlakçılar için iyi bir tercih mi?', answer: 'Zoho ucuz bir giriş noktasıdır ancak portföy resimleri, harita konumları ve projeler gibi gayrimenkul dinamiklerini sisteme öğretmek için bir danışmana ihtiyaç duyabilirsiniz. Oikos CRM ise bu özelliklerle hazır gelir.' },
+            { question: 'Zoho\'dan Oikos CRM\'e veri aktarılır mı?', answer: 'Evet, Zoho CRM\'den alacağınız CSV/Excel dosyalarını Oikos CRM\'e saniyeler içinde aktarabilirsiniz.' }
+        ]
+    }
 ]

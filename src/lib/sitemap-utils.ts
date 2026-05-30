@@ -3,6 +3,7 @@ import { MetadataRoute } from 'next'
 import { wikiArticles } from '@/data/wiki-data'
 import { turkishCities } from '@/data/cities-data'
 import { comparisons } from '@/data/comparisons-data'
+import { sectors } from '@/data/sectors-data'
 import { createClient } from '@/lib/supabase/server'
 import { getHostFromHeaders } from '@/lib/tenant/resolve-brand-from-host'
 import { getCanonicalBaseUrl } from '@/lib/seo-constants'
@@ -139,11 +140,21 @@ export async function getSitemapUrls(): Promise<MetadataRoute.Sitemap> {
         )
     )
 
+    // ── 3.1 Sector pages (programmatic SEO) ──
+    const sectorRoutes = sectors.flatMap((sector) =>
+        generateVariants(
+            `/sektor/${sector.slug}`,
+            new Date('2026-05-30T00:00:00.000Z'),
+            'monthly',
+            0.7
+        )
+    )
+
     // ── 4. Comparison pages ──
     const comparisonRoutes = comparisons.flatMap((comp) =>
         generateVariants(
             `/karsilastirma/${comp.slug}`,
-            new Date('2026-05-15T00:00:00.000Z'),
+            new Date('2026-05-20T00:00:00.000Z'),
             'monthly',
             0.7
         )
@@ -166,7 +177,7 @@ export async function getSitemapUrls(): Promise<MetadataRoute.Sitemap> {
     )
 
     // ── 4. Combine and add i18n alternates ──
-    const allRoutes = [...marketingRoutes, ...wikiRoutes, ...cityRoutes, ...comparisonRoutes, ...profileRoutes]
+    const allRoutes = [...marketingRoutes, ...wikiRoutes, ...cityRoutes, ...sectorRoutes, ...comparisonRoutes, ...profileRoutes]
 
     return allRoutes.map((route) => {
         const { _path, ...rest } = route

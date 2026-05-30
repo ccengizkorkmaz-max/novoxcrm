@@ -15,12 +15,61 @@ export async function getCustomerFullProfile(customerId: string) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: 'Not authenticated' }
 
-    const { data: customer } = await supabase.from('customers').select('*, customer_demands(*)').eq('id', customerId).single()
-    const { data: activities } = await supabase.from('activities').select('*, profiles(full_name)').eq('customer_id', customerId).order('created_at', { ascending: false })
-    const { data: contracts } = await supabase.from('contracts').select('*, project:projects(name), unit:units(block, unit_number)').eq('customer_id', customerId)
-    const { data: sales } = await supabase.from('sales').select('*, profiles(full_name), project:projects(name), unit:units(block, unit_number)').eq('customer_id', customerId)
+    console.log('[getCustomerFullProfile] customerId:', customerId)
 
-    return { customer, activities, contracts, sales }
+    const { data: customer, error: customerError } = await supabase.from('customers').select('*, customer_demands(*)').eq('id', customerId).single()
+    if (customerError) console.error('[getCustomerFullProfile] customer error:', customerError.message)
+
+    const { data: activities, error: activitiesError } = await supabase.from('activities').select('*').eq('customer_id', customerId).order('created_at', { ascending: false })
+    if (activitiesError) console.error('[getCustomerFullProfile] activities error:', activitiesError.message)
+    console.log('[getCustomerFullProfile] activities count:', activities?.length)
+
+    const { data: contracts } = await supabase.from('contracts').select('*, project:projects(name), unit:units(block, unit_number), contract_customers!inner(customer_id)').eq('contract_customers.customer_id', customerId)
+    const { data: sales } = await supabase.from('sales').select('*, project:projects(name), unit:units(block, unit_number)').eq('customer_id', customerId)
+
+    const { data: callLogs } = await supabase
+        .from('outreach_step_logs')
+        .select(`
+            id,
+            executed_at,
+            call_summary,
+            call_transcript,
+            call_recording_url,
+            call_duration_seconds,
+            call_outcome,
+            outreach_executions!inner (
+                customer_id,
+                workflows:outreach_workflows ( name )
+            )
+        `)
+        .eq('outreach_executions.customer_id', customerId)
+        .not('call_summary', 'is', null)
+
+    const aiActivities = (callLogs || []).map((log: any) => {
+        const durationText = log.call_duration_seconds ? `${Math.floor(log.call_duration_seconds / 60)}dk ${log.call_duration_seconds % 60}sn` : ''
+        const transcriptBlock = log.call_transcript ? `\n\n📝 Transkript:\n${log.call_transcript}` : ''
+        return {
+            id: `ai-${log.id}`,
+            customer_id: customerId,
+            type: 'Call',
+            topic: 'Outreach',
+            summary: `🤖 AI Araması: ${log.outreach_executions?.workflows?.name || 'Genel'}${durationText ? ` (${durationText})` : ''}`,
+            description: (log.call_summary || 'Arama özeti bulunmuyor.') + transcriptBlock,
+            due_date: log.executed_at,
+            created_at: log.executed_at,
+            status: 'Completed',
+            call_recording_url: log.call_recording_url,
+            notes: log.call_transcript || '',
+            outcome: log.call_outcome || '',
+            profiles: { full_name: 'AI Asistan' }
+        }
+    })
+
+    const allActivities = [...(activities || []), ...aiActivities].sort((a, b) => 
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    )
+
+    return { customer, activities: allActivities, contracts, sales }
 }
 
 export async function createCustomer(formData: FormData) {
@@ -2041,9 +2090,11 @@ Müşterinin adı: ${customerName}. Ona ismiyle hitap et (Örn: "${customerName}
             user_id: user.id,
             type: 'Call',
             topic: 'Sales',
-            summary: `📞 AI Arama başlatıldı — ${projectName} (CallID: ${result.callId})`,
-            description: `AI arama başlatıldı. Vapi Call ID: ${result.callId}. Webhook ile güncellenecek.`,
-            status: 'In Progress',
+            summary: `📞 AI Arama başlatıldı — ${projectName}`,
+            description: `AI arama başlatıldı. Webhook ile güncellenecek.\n\n[Call ID: ${result.callId}]`,
+            status: 'Completed',
+            due_date: new Date().toISOString(),
+            completed_at: new Date().toISOString(),
             project_id: sale.project_id,
         })
     } catch (logErr) {
