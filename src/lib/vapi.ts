@@ -94,6 +94,10 @@ export interface VapiCallOptions {
     firstMessage?: string
     /** Override the system prompt */
     systemPrompt?: string
+    /** Override the voice (ElevenLabs voiceId) */
+    voiceId?: string
+    /** Override the server/webhook URL */
+    serverUrl?: string
 }
 
 export interface VapiAssistantConfig {
@@ -193,7 +197,7 @@ export async function makeOutboundCall(options: VapiCallOptions): Promise<VapiCa
                     siteUrl = process.env.NEXT_PUBLIC_SITE_URL
                 }
             }
-            const resolvedServerUrl = `${siteUrl}/api/webhooks/vapi`
+            const resolvedServerUrl = options.serverUrl || `${siteUrl}/api/webhooks/vapi`
 
             payload.assistant = {
                 serverUrl: resolvedServerUrl,
@@ -202,6 +206,11 @@ export async function makeOutboundCall(options: VapiCallOptions): Promise<VapiCa
                 firstMessageMode: options.firstMessage ? 'assistant-speaks-first' : 'assistant-waits-for-user',
                 startSpeakingPlan: {
                     waitSeconds: 0.8
+                },
+                stopSpeakingPlan: {
+                    numWords: 1, // Require at least 1 word to stop speaking, avoiding stopping on mere breath/ambient clicks
+                    voiceSeconds: 0.25,
+                    backoffSeconds: 0.8
                 },
                 backgroundSpeechDenoisingPlan: {
                     smartDenoisingPlan: {
@@ -220,7 +229,7 @@ export async function makeOutboundCall(options: VapiCallOptions): Promise<VapiCa
                 },
                 voice: {
                     provider: '11labs',
-                    voiceId: 'uvU9jrgGLWNPeNA4NgNT', // İrem - aktif kadın sesi
+                    voiceId: options.voiceId || 'uvU9jrgGLWNPeNA4NgNT', // İrem - aktif kadın sesi
                     model: 'eleven_multilingual_v2',
                     stability: 0.40,
                     similarityBoost: 0.85,
@@ -232,7 +241,7 @@ export async function makeOutboundCall(options: VapiCallOptions): Promise<VapiCa
                     model: 'nova-3',
                     language: 'tr',
                 },
-                silenceTimeoutSeconds: 120,
+                silenceTimeoutSeconds: 45,
                 analysisPlan: {
                     structuredDataPrompt: 'Görüşme transkriptini analiz et ve aşağıdaki JSON yapısını doldur.',
                     structuredDataSchema: {
@@ -322,6 +331,23 @@ export async function getCallStatus(callId: string): Promise<VapiCallStatus | nu
 }
 
 /**
+ * Aktif bir aramayı durdur / sonlandır
+ */
+export async function stopCall(callId: string): Promise<boolean> {
+    try {
+        const response = await fetch(`${VAPI_BASE_URL}/call/${callId}/stop`, {
+            method: 'POST',
+            headers: getVapiHeaders(),
+        })
+        return response.ok
+    } catch (error) {
+        console.error('[Vapi] Stop call error:', error)
+        return false
+    }
+}
+
+
+/**
  * List all assistants for the account
  */
 export async function listAssistants(): Promise<any[]> {
@@ -359,12 +385,26 @@ export async function createOutreachAssistant(config: {
             },
             voice: {
                 provider: 'elevenlabs',
-                voiceId: config.voice || 'turkish_female_default',
+                voiceId: config.voice || 'uvU9jrgGLWNPeNA4NgNT', // İrem - aktif kadın sesi
             },
             firstMessage: config.firstMessage,
             endCallMessage: 'İyi günler, görüşmek üzere.',
             maxDurationSeconds: config.maxDurationSeconds || 180,
             language: 'tr',
+            startSpeakingPlan: {
+                waitSeconds: 0.8
+            },
+            stopSpeakingPlan: {
+                numWords: 1,
+                voiceSeconds: 0.25,
+                backoffSeconds: 0.8
+            },
+            backgroundSpeechDenoisingPlan: {
+                smartDenoisingPlan: {
+                    enabled: true
+                }
+            },
+            silenceTimeoutSeconds: 45,
             ...(config.serverUrl ? { serverUrl: config.serverUrl } : {}),
         }
 
@@ -421,82 +461,111 @@ export function parseVapiWebhook(body: any): {
     analysis?: any
     metadata?: Record<string, any>
 } {
+    const startedAt = body.message?.call?.startedAt || body.call?.startedAt || body.startedAt
+    const endedAt = body.message?.call?.endedAt || body.call?.endedAt || body.endedAt
+    let duration = body.message?.call?.duration || body.call?.duration || body.duration
+    if (!duration && startedAt && endedAt) {
+        duration = Math.round((new Date(endedAt).getTime() - new Date(startedAt).getTime()) / 1000)
+    }
+
     return {
         type: body.message?.type || body.type || 'unknown',
-        callId: body.message?.call?.id || body.call?.id || '',
-        status: body.message?.call?.status || body.call?.status,
-        endedReason: body.message?.endedReason || body.endedReason,
-        transcript: body.message?.transcript || body.transcript,
-        summary: body.message?.summary || body.summary || body.message?.analysis?.summary,
-        recordingUrl: body.message?.recordingUrl || body.recordingUrl,
-        duration: body.message?.call?.duration || body.duration,
-        cost: body.message?.call?.cost || body.cost,
-        analysis: body.message?.analysis || body.analysis,
-        metadata: body.message?.call?.metadata || body.metadata,
+        callId: body.message?.call?.id || body.call?.id || body.id || '',
+        status: body.message?.call?.status || body.call?.status || body.status,
+        endedReason: body.message?.endedReason || body.endedReason || body.message?.call?.endedReason || body.call?.endedReason,
+        transcript: body.message?.transcript || body.transcript || body.message?.call?.transcript || body.call?.transcript,
+        summary: body.message?.summary || body.summary || body.message?.analysis?.summary || body.message?.call?.summary || body.call?.summary,
+        recordingUrl: body.message?.recordingUrl || body.recordingUrl || body.message?.call?.recordingUrl || body.call?.recordingUrl,
+        duration: duration ? Number(duration) : undefined,
+        cost: body.message?.call?.cost || body.call?.cost || body.cost || body.message?.call?.costBreakdown?.total || body.costBreakdown?.total || body.costBreakdown?.total,
+        analysis: body.message?.analysis || body.analysis || body.message?.call?.analysis || body.call?.analysis,
+        metadata: body.message?.call?.metadata || body.call?.metadata || body.metadata,
     }
 }
 
 // ─── Default Prompts ─────────────────────────────────────────
 
 export const DEFAULT_OUTREACH_PROMPTS = {
-    standard: `Sen bir emlak danışmanlık asistanısın. Adın Elif.
-Amacın, daha önce projelerimize ilgi gösteren potansiyel müşterilerle nazik ve profesyonel bir şekilde iletişime geçmek.
+    standard: `Sen Novo İnşaat için çalışan profesyonel sesli yapay zeka asistanısın. Adın Çiçek.
+Amacın, daha önce projelerimizle ilgilendiğini belirten potansiyel müşterilerle nazik, profesyonel ve etkileşimli (diyalog-bazlı) bir ön görüşme yapmak.
 
-GÖREV:
-1. Kendini tanıt: "Merhaba, ben Elif, Novo Emlak'tan arıyorum."
-2. Müşteriye daha önce ilgilendiği projeyi hatırlat (metadata'dan al)
-3. Güncel durumu sor: "Hâlâ konut bakmaya devam ediyor musunuz?"
-4. İlgi varsa: Randevu teklif et (Hafta içi/sonu seçenekleri sun)
-5. İlgi yoksa: Nazikçe teşekkür et
+=== KONUŞMA AKIŞI (KESİNLİKLE DİYALOG-BAZLI OLMALIDIR) ===
+1. GİRİŞ: Karşı tarafı adıyla ve cinsiyetine uygun hitapla (Erkek ise "Bey", Kadın ise "Hanım" ekleyerek) nazikçe selamla. Kendini ve firmayı tanıt.
+   "Merhaba {customer_name}, size Novo İnşaat'tan ulaşıyorum. Ben Çiçek. Nasılsınız?"
+2. UYGUNLUK TEYİDİ: Müşteri yanıt verdikten sonra, projemizle ilgili bilgi vermek için uygun olup olmadığını mutlaka sor.
+   "Daha önce {project_name} projemize ilgi göstermiştiniz. Kısaca bilgi vermek istiyorum, uygun musunuz?"
+   - Müşteri meşgul veya müsait değilse: "Tabii, sizi uygun bir zamanda tekrar arayalım. İyi günler!" de ve "endCall" fonksiyonunu çağırarak aramayı sonlandır.
+3. KISA VE ETKİLEŞİMLİ BİLGİLENDİRME:
+   - Kesinlikle upuzun paragraflar (monolog) okuma! Bilgileri adım adım ver ve müşterinin araya girmesine, soru sormasına fırsat tanı.
+   - Her cümleden sonra müşterinin tepkisini bekle. Cümlelerin en fazla 15-20 kelime olsun.
+   - Örnek: "Projemiz İzmir Torbalı'da, sanayi aksına çok yakın bir konumda yer alıyor. Yatırım veya oturum amacıyla mı ilgilenmiştiniz?"
+4. FİYAT VE ÖDEME DETAYLARI:
+   - Fiyatları müşteriye sormadan tek seferde dökme. Önce ilgi seviyesini ölç.
+   - Müşteri fiyat sorduğunda ya da ödeme koşullarını merak ettiğinde:
+     "Vadeli fiyatlarımız 1+0 daireler için 1 milyon 990 bin TL'den başlıyor. Yüzde 35 peşinat ve 24 ay faizsiz taksit seçeneğimiz var. Ödeme koşulları sizin için uygun görünyor mu?"
+5. YÖNLENDİRME VE SONLANDIRMA:
+   - Müşteri daha detaylı görüşmek istediğini veya ilgilendiğini belirttiğinde, onu satış uzmanına yönlendireceğini söyle:
+     "Sizi bu projeyle ilgilenen satış danışmanımıza yönlendiriyorum. Kendisi size detaylı bilgi sunacaktır. İyi günler dilerim."
+     Vedalaşmanın ardından HEMEN "endCall" aracını çağırarak telefonu kapat.
 
-KURALLAR:
-- Kısa ve öz konuş, max 2-3 dakika
-- Fiyat verme, detay için danışmana yönlendir
-- Müşteri meşgulse: "Sizi uygun bir zamanda arayabilir miyiz?" de
-- Adı kullanarak hitap et
-- Samimi ama profesyonel ol`,
+=== İLAVE HİTAP VE DAVRANIŞ KURALLARI ===
+- Karşı taraf "ilgilenmiyorum", "istemiyorum" gibi kesin ret ifadeleri kullanırsa satış yapmaya çalışma! "Anlıyorum, rahatsızlık verdiysek özür dileriz. İyi günler dilerim." de ve HEMEN "endCall" aracıyla görüşmeyi bitir.
+- Müşterinin sözünü kesme, araya girmesine ve cevap vermesine izin ver.`,
 
-    secondAttempt: `Sen bir emlak danışmanlık asistanısın. Adın Kaan.
-Müşteri daha önce aranmış ancak ulaşılamamış. Bu ikinci arama denemesi.
+    secondAttempt: `Sen Novo İnşaat için çalışan profesyonel sesli yapay zeka asistanısın. Adın Çiçek.
+Müşteri daha önce aranmış ancak ulaşılamamış. Bu ikinci arama denemesi. Amacın, nazikçe bağlantı kurup ilgisini anlamak.
 
-GÖREV:
-1. "Merhaba, ben Kaan, Novo Emlak'tan arıyorum. Daha önce size ulaşmaya çalışmıştık."
-2. Kısaca neden aradığını açıkla
-3. İlgilenip ilgilenmediğini sor
-4. İlgi varsa danışman randevusu teklif et
+=== KONUŞMA AKIŞI ===
+1. GİRİŞ: Karşı tarafı adıyla ve cinsiyetine uygun hitapla (Erkek ise "Bey", Kadın ise "Hanım" ekleyerek) nazikçe selamla.
+   "Merhaba {customer_name}, size Novo İnşaat'tan ulaşıyorum. Ben Çiçek. Daha önce size ulaşmaya çalışmıştık, nasılsınız?"
+2. UYGUNLUK VE İLGİ TEYİDİ:
+   "Daha önce ilgilendiğiniz {project_name} projemiz hakkında bilgi vermek istiyoruz. Müsait misiniz?"
+   - Müşteri müsait değilse: "Tabii, daha sonra tekrar iletişime geçelim. İyi günler!" de ve "endCall" ile kapat.
+3. KISA DİYALOG:
+   - "Aramamızın sebebi, {project_name} projemizdeki son fırsatları paylaşmak. Konut arayışınız hâlâ devam ediyor mu?"
+   - Müşteri ilgileniyorsa, detaylı bilgi veya danışman randevusu teklif et.
+   - Müşteri ilgilenmiyorsa: "Anlıyorum, ilginiz için teşekkürler. İyi günler!" de ve kapat.
+4. SONLANDIRMA:
+   "Sizi ilgili satış uzmanımıza yönlendiriyorum, en kısa sürede size dönüş sağlayacaktır. İyi günler dilerim." de ve "endCall" aracıyla telefonu kapat.
 
-KURALLAR:
-- Çok kısa tut, max 2 dakika
-- Nazik ve anlayışlı ol
-- "Rahatsız ettiysem özür dilerim" ile başlayabilirsin`,
+=== KURALLAR ===
+- Asla monolog okuma! Kısa tut, max 1.5-2 dakika konuş.
+- Müşteri meşgulse ısrarcı olma.
+- Ret durumunda anında vedalaş ve kapat.`,
 
-    campaign: `Sen bir emlak danışmanlık asistanısın.
-Yeni bir kampanya veya proje lansmanı hakkında bilgi vermek için arıyorsun.
+    campaign: `Sen Novo İnşaat için çalışan profesyonel sesli yapay zeka asistanısın. Adın Çiçek.
+Müşteriyi yeni lansman/kampanya veya özel fırsatlar hakkında bilgilendirmek için arıyorsun.
 
-GÖREV:
-1. Kendini tanıt
-2. Kampanyayı / yeni projeyi kısaca anlat (metadata'dan bilgi al)
-3. İlgi varsa detaylı bilgi için randevu teklif et
-4. İlgi yoksa teşekkür et
+=== KONUŞMA AKIŞI ===
+1. GİRİŞ: Karşı tarafı adıyla ve cinsiyetine uygun hitapla (Erkek ise "Bey", Kadın ise "Hanım" ekleyerek) nazikçe selamla.
+   "Merhaba {customer_name}, size Novo İnşaat'tan ulaşıyorum. Ben Çiçek, nasılsınız?"
+2. KAMPANYA TANITIMI (İNTERAKTİF):
+   - Kampanyayı bir kerede upuzun anlatma. Önce ilgi teyidi al.
+   - "Lansmana özel yüzde 24 ay faizsiz taksit ve peşin alımlarda özel indirimlerin olduğu yeni bir kampanya başlattık. Kısa bir bilgi aktarmam için uygun musunuz?"
+   - Uygun değilse, daha sonra arayacağını belirtip kapat.
+3. DETAYLARI PARÇA PARÇA SUNMA:
+   - Müşteri "nedir kampanya?" dediğinde sadece en can alıcı noktayı söyle:
+     "Örneğin, 1+0 dairelerimizde peşin fiyatlar 1 milyon 500 bin TL'den başlıyor veya kredi kartına vade farksız 12 taksit yapabiliyoruz. Bu alternatifler bütçenize hitap ediyor mu?"
+4. SONLANDIRMA:
+   - Müşteri ilgilendiğinde: "Detayları size hemen WhatsApp'tan da gönderip satış danışmanımıza yönlendiriyorum. İyi günler dilerim." de ve "endCall" aracıyla kapat.
 
-KURALLAR:
-- Satış baskısı yapma
-- Kısa ve ilgi çekici ol
-- Özel fırsat varsa vurgula`,
+=== KURALLAR ===
+- Satış baskısı yapma, kampanya heyecanını doğal bir tonla yansıt.
+- Müşteriye söz hakkı tanı. Her sorudan sonra müşterinin cevabını bekle.`,
 
-    lostRecovery: `Sen bir emlak danışmanlık asistanısın. Adın Elif.
-Müşteri daha önce ilgilenmiş ancak süreç tamamlanamamıştı. Amacın tekrar ilgiyi canlandırmak.
+    lostRecovery: `Sen Novo İnşaat için çalışan profesyonel sesli yapay zeka asistanısın. Adın Çiçek.
+Müşteri daha önce projelerimizle ilgilenmiş ancak süreç tamamlanamamıştı. Amacın, nazik ve samimi bir diyalogla ilgiyi yeniden canlandırmak.
 
-GÖREV:
-1. "Merhaba, ben Elif, Novo Emlak'tan. Bir süre önce bizimle iletişimde olmuştunuz."
-2. Yeni projeler/fırsatlar olduğunu belirt
-3. Konut arayışının devam edip etmediğini sor
-4. Olumlu yanıtsa danışman bağlantısı teklif et
-
-KURALLAR:
-- Eski sürece referans verirken eleştirel olma
-- Yeniden başlama fırsatı olarak sun
-- Nazik ve kısa tut`,
+=== KONUŞMA AKIŞI ===
+1. GİRİŞ: Karşı tarafı adıyla ve cinsiyetine uygun hitapla (Erkek ise "Bey", Kadın ise "Hanım" ekleyerek) nazikçe selamla.
+   "Merhaba {customer_name}, size Novo İnşaat'tan ulaşıyorum. Ben Çiçek. Nasılsınız?"
+2. DURUM GÜNCELLEMESİ (İNTERAKTİF):
+   - "Bir süre önce projelerimizle ilgilenmiştiniz. Konut arayışınız veya yatırım planlarınız hâlâ devam ediyor mu?"
+   - Müşteri "hayır, aldım" veya "ilgilenmiyorum" derse: "Anlıyorum, hayırlı olsun. İyi günler dilerim!" de ve kapat.
+   - Müşteri "evet, devam ediyor" derse:
+     "Çok sevinirim. {project_name} projemizde teslimler Aralık 2027'de başlıyor ve şu an kaçırılmayacak ödeme kolaylıkları var. Güncel fiyatları aktarmamı ister misiniz?"
+3. SONLANDIRMA:
+   - Müşteri ilgi gösterirse satış uzmanına yönlendir ve "endCall" ile kapat.`
 }
 
 /**
@@ -575,7 +644,7 @@ export async function handleManualVapiCallResult(callData: {
         type: 'Call',
         topic: 'Sales',
         summary: `🤖 AI Arama: ${leadScore ? 'Skor ' + leadScore.toUpperCase() : 'Görüşme Tamamlandı'} (${durationText})`,
-        description: summaryBlock + transcriptBlock + recordingBlock,
+        description: `${summaryBlock}${transcriptBlock}${recordingBlock}\n\n[Call ID: ${callData.callId}]`,
         status: 'Completed',
         due_date: new Date().toISOString(),
         completed_at: new Date().toISOString(),
@@ -654,4 +723,89 @@ export async function handleManualVapiCallResult(callData: {
         }
         console.log(`[Vapi Webhook] 📊 Manual lead scored: ${customerId} → ${leadScore} (${newLqStatus})`)
     }
+}
+
+/**
+ * Predicts the gender title (Bey/Hanım) for a Turkish full name
+ */
+export function getTurkishNameTitle(fullName: string | undefined | null): string {
+    if (!fullName) return '';
+    const cleanName = fullName.trim();
+    if (cleanName.length === 0) return '';
+    
+    // Get the first word as the first name
+    const firstName = cleanName.split(/\s+/)[0].toLowerCase()
+        .replace(/i̇/g, 'i') // normalize dotted uppercase I to lowercase i
+        .replace(/ı/g, 'i');
+    
+    const femaleNames = new Set([
+        'ayse', 'ayşe', 'fatma', 'emine', 'hatice', 'zeynep', 'elif', 'meryem', 'serife', 'şerife', 'zehra', 
+        'sultan', 'hanife', 'merve', 'selma', 'esra', 'asiye', 'hayriye', 'cemile', 'kadriye', 'songul', 'songül', 
+        'gulay', 'gülay', 'melike', 'yasemin', 'sennur', 'şennur', 'nurten', 'nurcan', 'ayten', 'figen', 'ceyda', 
+        'aytul', 'aytül', 'tugba', 'tuğba', 'kubra', 'kübra', 'busra', 'büşra', 'gamze', 'gizem', 'derya', 'seda', 
+        'nihal', 'didem', 'sinem', 'banu', 'canan', 'hande', 'ozge', 'özge', 'burcu', 'pinar', 'pınar', 'demet', 
+        'ece', 'ebru', 'asli', 'aslı', 'pelin', 'melis', 'irem', 'i̇rem', 'ceren', 'dilara', 'bengu', 'bengü', 
+        'begum', 'begüm', 'damla', 'sule', 'şule', 'hale', 'jale', 'lale', 'sibel', 'arzum', 'arzu', 'asuman',
+        'berna', 'betul', 'betül', 'burcin', 'burçin', 'cansu', 'deniz', 'duygu', 'ebru', 'eda', 'elvan', 'esma',
+        'eylul', 'eylül', 'filiz', 'gonca', 'gul', 'gül', 'guzin', 'güzin', 'handan', 'hilal', 'hulya', 'hülya',
+        'ipek', 'i̇pek', 'ilknur', 'leyla', 'mine', 'mualla', 'naciye', 'nermin', 'nesrin', 'nilgun', 'nilgün',
+        'nur', 'nuran', 'sabiha', 'sanem', 'secil', 'seçil', 'selin', 'sevgi', 'sevim', 'seval', 'sezen', 'simge',
+        'songul', 'songül', 'sukran', 'şükran', 'tulin', 'tülin', 'umran', 'ümran', 'vildan', 'yonca', 'zuhal'
+    ]);
+    
+    const maleNames = new Set([
+        'mehmet', 'mustafa', 'ahmet', 'ali', 'huseyin', 'hüseyin', 'hasan', 'ibrahim', 'i̇brahim', 'halil', 
+        'osman', 'yusuf', 'omer', 'ömer', 'ramazan', 'salih', 'hakan', 'murat', 'murad', 'gokhan', 'gökhan', 
+        'fatih', 'suat', 'bekir', 'emre', 'arda', 'efe', 'burak', 'baris', 'barış', 'cem', 'erkan', 'serkan', 
+        'volkan', 'onur', 'alper', 'mert', 'tolga', 'kaan', 'kerem', 'can', 'engin', 'sinan', 'tarkan', 'bulent', 
+        'bülent', 'levent', 'yavuz', 'selim', 'tarik', 'tarık', 'zafer', 'orhan', 'kemal', 'kenan', 'ayhan', 
+        'erhan', 'metin', 'cetin', 'çetin', 'cengiz', 'abdullah', 'adem', 'adnan', 'ahmet', 'akif', 'akin', 'akın',
+        'altan', 'anil', 'anıl', 'aslan', 'asim', 'asım', 'atilla', 'avni', 'aydın', 'aykut', 'bahadir', 'bahadır',
+        'baha', 'baki', 'barbaros', 'batuhan', 'bedri', 'behçet', 'behcet', 'berat', 'berk', 'berkan', 'birol',
+        'bora', 'bulut', 'bunyamin', 'bünyamin', 'bulent', 'bülent', 'cahit', 'caner', 'celal', 'cemal', 'cemil',
+        'cenk', 'cihad', 'cihat', 'cihan', 'coskun', 'coşkun', 'cuneyt', 'cüneyt', 'davut', 'dursun', 'ekrem',
+        'elvan', 'emin', 'ender', 'enes', 'enver', 'ercan', 'erdal', 'erdem', 'erdogan', 'erdoğan', 'eren', 'ergin',
+        'ergun', 'ergün', 'erhan', 'erkan', 'erol', 'ersin', 'ertan', 'ertugrul', 'ertuğrul', 'esref', 'eşref',
+        'eyup', 'eyüp', 'fahri', 'faruk', 'ferhat', 'feridun', 'ferit', 'fevzi', 'furkan', 'galip', 'gencer',
+        'gokay', 'gökay', 'goksel', 'göksel', 'gurkan', 'gürkan', 'guven', 'güven', 'haluk', 'hamdi', 'hamit',
+        'harun', 'haydar', 'hayri', 'hikmet', 'hilmi', 'huseyin', 'hüseyin', 'hüsrev', 'husrev', 'ihsan', 'i̇hsan',
+        'ilker', 'ilhan', 'isa', 'i̇sa', 'ismail', 'i̇smail', 'ismet', 'i̇smet', 'izzet', 'kadir', 'kadri', 'kahraman',
+        'kartal', 'kasim', 'kasım', 'kaya', 'kazim', 'kazım', 'koray', 'kamil', 'kursat', 'kürşat', 'latif',
+        'lutfi', 'lütfi', 'mahmut', 'mazhar', 'melih', 'memduh', 'menderes', 'mengu', 'mengü', 'mercan', 'meriç',
+        'meric', 'mert', 'mesut', 'mete', 'mithat', 'muammer', 'muammer', 'muhammed', 'muhammet', 'muharrem',
+        'muhsin', 'muhtar', 'mukrimin', 'müjdat', 'mujdat', 'mumin', 'mümin', 'munir', 'münir', 'musa', 'muzaffer',
+        'naci', 'nadir', 'nail', 'namik', 'namık', 'nasuh', 'nazif', 'nazmi', 'necati', 'necip', 'necmettin',
+        'nedim', 'necat', 'nehir', 'nihat', 'niyazi', 'nuri', 'nurettin', 'oguz', 'oğuz', 'oguzhan', 'oğuzhan',
+        'okay', 'oktay', 'olcay', 'omer', 'ömer', 'onder', 'önder', 'onur', 'orhan', 'osman', 'ozan', 'ozgur',
+        'özgür', 'ozkan', 'özkan', 'recai', 'recep', 'refik', 'resat', 'reşat', 'resul', 'riza', 'rıza', 'ruhi',
+        'rusen', 'ruşen', 'rustu', 'rüştü', 'sabri', 'sadik', 'sadık', 'sadri', 'sahan', 'şahan', 'sahin', 'şahin',
+        'sait', 'samet', 'sami', 'savas', 'savaş', 'secgin', 'seçgin', 'sedat', 'sefa', 'selahattin', 'selami',
+        'selcuk', 'selçuk', 'selim', 'semih', 'senol', 'şenol', 'serdar', 'serhat', 'serkan', 'servet', 'seyfi',
+        'seyhan', 'seyit', 'sezer', 'sinan', 'soner', 'suat', 'suleyman', 'süleyman', 'taha', 'tahir', 'talat',
+        'talha', 'taner', 'tarik', 'tarık', 'tayfun', 'taylan', 'tekin', 'temel', 'teoman', 'tufan', 'tugrul',
+        'tuğrul', 'tunc', 'tunç', 'tuncay', 'turan', 'turgay', 'turgut', 'turhan', 'ufuk', 'ugur', 'uğur', 'ulas',
+        'ulaş', 'umit', 'ümit', 'umut', 'unal', 'ünal', 'utku', 'uygar', 'uzay', 'vahap', 'vahit', 'veli', 'volkan',
+        'yasin', 'yasar', 'yaşar', 'yakup', 'yavuz', 'yekta', 'yiğit', 'yigit', 'yunus', 'yusuf', 'zafer', 'zekeriya',
+        'zeki', 'ziya'
+    ]);
+    
+    // Split name words to find first word
+    const words = cleanName.split(/\s+/);
+    const originalFirstName = words[0];
+    
+    if (femaleNames.has(firstName)) {
+        return `${originalFirstName} Hanım`;
+    } else if (maleNames.has(firstName)) {
+        return `${originalFirstName} Bey`;
+    }
+    
+    // Heuristic suffix matching for female names ending with a/e/i/o/ö/u/ü/ı + certain clusters
+    const femaleSuffixes = ['gul', 'gül', 'nur', 'naz', 'su', 'sen', 'şen', 'ten', 'bel'];
+    for (const suffix of femaleSuffixes) {
+        if (firstName.endsWith(suffix)) {
+            return `${originalFirstName} Hanım`;
+        }
+    }
+    
+    return originalFirstName; // Fallback to just first name without title if unknown
 }

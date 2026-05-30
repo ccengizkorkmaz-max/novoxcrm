@@ -1,7 +1,7 @@
 'use server'
 
 import { createAdminClient } from '@/lib/supabase/admin'
-import { makeOutboundCall } from '@/lib/vapi'
+import { makeOutboundCall, getTurkishNameTitle } from '@/lib/vapi'
 import { sendWhatsAppTemplate, sendWhatsAppMessage } from '@/lib/whatsapp'
 import { sendPoliSms, normalizePhone } from '@/lib/sms'
 
@@ -119,6 +119,40 @@ export async function processOutreachQueue() {
     const supabase = createAdminClient()
     const now = new Date().toISOString()
 
+    // ─── Global Lock: Eşzamanlı cron çalışmalarını engelle ─────
+    // Tenants tablosunda ilk tenant'ın ai_outreach_settings alanında lock tutuyoruz
+    const LOCK_TIMEOUT_MS = 5 * 60 * 1000 // 5 dakika
+    const { data: lockTenant } = await supabase.from('tenants').select('id, ai_outreach_settings').limit(1).single()
+    
+    if (lockTenant) {
+        const settings = lockTenant.ai_outreach_settings || {}
+        const lockTime = settings.queue_lock_at ? new Date(settings.queue_lock_at).getTime() : 0
+        const isLocked = lockTime > 0 && (Date.now() - lockTime) < LOCK_TIMEOUT_MS
+
+        if (isLocked) {
+            console.log(`[Outreach] Kuyruk zaten işleniyor (lock: ${settings.queue_lock_at}). Atlanıyor.`)
+            return { processed: 0, reason: 'already_processing' }
+        }
+
+        // Lock al
+        await supabase.from('tenants').update({
+            ai_outreach_settings: { ...settings, queue_lock_at: now }
+        }).eq('id', lockTenant.id)
+    }
+
+    // Lock temizleme helper
+    const releaseLock = async () => {
+        if (lockTenant) {
+            const { data: latest } = await supabase.from('tenants').select('ai_outreach_settings').eq('id', lockTenant.id).single()
+            const settings = latest?.ai_outreach_settings || {}
+            await supabase.from('tenants').update({
+                ai_outreach_settings: { ...settings, queue_lock_at: null }
+            }).eq('id', lockTenant.id)
+        }
+    }
+
+    try {
+
     // Find executions that are due, sorted by next_action_at ascending to prevent starvation
     const { data: dueExecutions, error } = await supabase
         .from('outreach_executions')
@@ -137,8 +171,10 @@ export async function processOutreachQueue() {
 
     if (error || !dueExecutions?.length) {
         console.log(`[Outreach] No due executions. Error: ${error?.message || 'none'}`)
+        await releaseLock()
         return { processed: 0 }
     }
+
 
 
     // ─── Pessimistic Locking (Moved inside loop) ─────────
@@ -152,6 +188,7 @@ export async function processOutreachQueue() {
         const health = await checkSystemHealth(tenantId);
         if (!health.isHealthy) {
             await handleCriticalSystemFailure(tenantId, health.reason || 'Bilinmeyen sistem hatası');
+            await releaseLock()
             return { processed: 0, reason: 'system_health_failure' };
         }
     }
@@ -179,6 +216,7 @@ export async function processOutreachQueue() {
     const availableSlots = maxConcurrent - (activeCalls || 0)
     if (availableSlots <= 0) {
         console.log(`[Outreach] Eşzamanlı arama limiti doldu (${maxConcurrent}). Bekleniyor...`)
+        await releaseLock()
         return { processed: 0, reason: 'concurrency_limit' }
     }
 
@@ -358,12 +396,20 @@ export async function processOutreachQueue() {
             // Critical failure check
             if (err.message.includes('INSUFFICIENT_FUNDS')) {
                 await handleCriticalSystemFailure(execution.tenant_id, err.message, execution.workflow_id);
+                await releaseLock()
                 return { processed, reason: 'critical_system_failure' };
             }
         }
     }
 
+    await releaseLock()
     return { processed }
+
+    } catch (outerError: any) {
+        console.error('[Outreach] processOutreachQueue beklenmeyen hata:', outerError.message)
+        await releaseLock()
+        return { processed: 0, reason: 'unexpected_error' }
+    }
 }
 
 // ─── Step Executor ───────────────────────────────────────────
@@ -476,11 +522,14 @@ async function executeAiCall(execution: any, step: any, config: StepConfig, phon
         }
     }
 
+    const nameWithTitle = getTurkishNameTitle(customer?.full_name);
+    const resolvedFirstMessage = execution.metadata?.personalized_message || (nameWithTitle ? `Merhaba ${nameWithTitle}, size Novo İnşaat'tan ulaşıyorum. Ben Çiçek, nasılsınız?` : "Merhaba, size Novo İnşaat'tan ulaşıyorum. Ben Çiçek, nasılsınız?");
+
     const result = await makeOutboundCall({
         phoneNumber: cleanPhone,
         // Always use the default Vapi assistant, override with script prompt
         systemPrompt: scriptPrompt,
-        firstMessage: execution.metadata?.personalized_message || (isValidTurkishName(customer?.full_name) ? `Merhaba ${customer.full_name.trim()}, size Novo İnşaat'tan ulaşıyorum. Ben Çiçek, nasılsınız?` : "Merhaba, size Novo İnşaat'tan ulaşıyorum. Ben Çiçek, nasılsınız?"),
+        firstMessage: resolvedFirstMessage,
         metadata: {
             execution_id: execution.id,
             sale_id: execution.sale_id,
@@ -1095,8 +1144,7 @@ export async function handleVapiCallResult(callData: {
             type: 'Call',
             topic: 'Sales',
             summary: `🤖 AI Arama — Müşteri İlgilendi ✅ (${durationText})`,
-            description: (callData.summary || 'Müşteri ilgi gösterdi.')
-                + transcriptBlock + recordingBlock,
+            description: `${callData.summary || 'Müşteri ilgi gösterdi.'}${transcriptBlock}${recordingBlock}\n\n[Call ID: ${callData.callId}]`,
             due_date: new Date().toISOString(),
             status: 'Completed',
             priority: 'High',
@@ -1135,8 +1183,7 @@ export async function handleVapiCallResult(callData: {
             type: 'Call',
             topic: 'Sales',
             summary: summaryMap[logStatus] || `🤖 AI Arama — ${logStatus} (${durationText})`,
-            description: (callData.summary || `Arama sonucu: ${logStatus}`)
-                + transcriptBlock + recordingBlock,
+            description: `${callData.summary || `Arama sonucu: ${logStatus}`}${transcriptBlock}${recordingBlock}\n\n[Call ID: ${callData.callId}]`,
             due_date: new Date().toISOString(),
             status: 'Completed',
             priority: priorityMap[logStatus] || 'Low',

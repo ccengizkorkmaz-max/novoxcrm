@@ -2026,6 +2026,23 @@ Müşterinin adı: ${customerName}. Ona ismiyle hitap et (Örn: "${customerName}
         return { error: result.error || 'Arama başlatılamadı' }
     }
 
+    // Arama başlatıldığında hemen log kaydı oluştur (webhook gelmese bile iz kalsın)
+    try {
+        await supabase.from('activities').insert({
+            tenant_id: profile.tenant_id,
+            customer_id: sale.customer_id,
+            user_id: user.id,
+            type: 'Call',
+            topic: 'Sales',
+            summary: `📞 AI Arama başlatıldı — ${projectName} (CallID: ${result.callId})`,
+            description: `AI arama başlatıldı. Vapi Call ID: ${result.callId}. Webhook ile güncellenecek.`,
+            status: 'In Progress',
+            project_id: sale.project_id,
+        })
+    } catch (logErr) {
+        console.error('[initiateAiCall] Aktivite log hatası:', logErr)
+    }
+
     return { success: true, callId: result.callId }
 }
 
@@ -2043,4 +2060,11 @@ export async function getCallDetails(callId: string) {
         endedReason: status.endedReason,
         analysis: status.analysis
     }
+}
+
+export async function stopAiCall(callId: string) {
+    const { stopCall } = await import('@/lib/vapi')
+    const success = await stopCall(callId)
+    if (!success) return { error: 'Arama durdurulamadı' }
+    return { success: true }
 }

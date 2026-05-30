@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import {
     Phone, MessageSquare, Mail, Clock, Users, ChevronDown, ChevronUp,
     PlayCircle, FileText, ThumbsUp, ThumbsDown, Minus, ArrowRight,
-    PhoneOff, PhoneIncoming, RefreshCw, AlertCircle, CheckCircle2, XCircle
+    PhoneOff, PhoneIncoming, RefreshCw, AlertCircle, CheckCircle2, XCircle, DollarSign
 } from 'lucide-react'
 import { getDetailedCallLogs } from '../actions'
 
@@ -110,15 +110,17 @@ export function CallResultsPanel({ initialLogs }: { initialLogs: any[] }) {
     const totalCalls = logs.filter(l => l.channel === 'ai_call').length
     const answered = logs.filter(l => l.status === 'answered' || l.status === 'converted').length
     const avgDuration = logs.filter(l => l.call_duration_seconds > 0).reduce((sum, l) => sum + l.call_duration_seconds, 0) / (logs.filter(l => l.call_duration_seconds > 0).length || 1)
+    const totalCost = logs.reduce((sum, l) => sum + (l.cost_amount || 0), 0)
 
     return (
         <div className="space-y-4">
             {/* Stats Row */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                 <MiniStat label="Toplam İletişim" value={logs.length} icon={Phone} color="violet" />
                 <MiniStat label="Cevaplanan" value={answered} icon={PhoneIncoming} color="emerald" />
                 <MiniStat label="Ort. Süre" value={formatDuration(Math.round(avgDuration))} icon={Clock} color="blue" />
                 <MiniStat label="Dönüşüm" value={logs.filter(l => l.status === 'converted').length} icon={CheckCircle2} color="green" />
+                <MiniStat label="Toplam Maliyet" value={`$${totalCost.toFixed(2)}`} icon={DollarSign} color="amber" />
             </div>
 
             {/* Filters */}
@@ -330,6 +332,7 @@ function MiniStat({ label, value, icon: Icon, color }: { label: string; value: s
         emerald: 'from-emerald-500/10 border-emerald-500/20 text-emerald-400',
         blue: 'from-blue-500/10 border-blue-500/20 text-blue-400',
         green: 'from-green-500/10 border-green-500/20 text-green-400',
+        amber: 'from-amber-500/10 border-amber-500/20 text-amber-400',
     }
     return (
         <Card className={`bg-gradient-to-br ${colors[color]} border p-3`}>

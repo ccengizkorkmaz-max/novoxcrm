@@ -26,7 +26,7 @@ import {
     ThumbsUp,
     Volume2
 } from 'lucide-react'
-import { getAiCallModalData, initiateAiCall, getCallDetails } from '../actions'
+import { getAiCallModalData, initiateAiCall, getCallDetails, stopAiCall } from '../actions'
 import toast from 'react-hot-toast'
 import { Badge } from '@/components/ui/badge'
 
@@ -49,6 +49,8 @@ export default function AiCallDialog({ saleId, onClose }: AiCallDialogProps) {
     const [analysis, setAnalysis] = useState<any>(null)
     const [initiating, setInitiating] = useState(false)
     const [polling, setPolling] = useState(false)
+    const [stopping, setStopping] = useState(false)
+    const pollingStartRef = useRef<number>(0)
 
     const transcriptEndRef = useRef<HTMLDivElement>(null)
 
@@ -70,11 +72,21 @@ export default function AiCallDialog({ saleId, onClose }: AiCallDialogProps) {
         }
     }, [transcript])
 
-    // Poll call details during call
+    // Poll call details during call (max 5 dakika timeout)
     useEffect(() => {
         let interval: any = null
+        const MAX_POLLING_MS = 5 * 60 * 1000 // 5 dakika
         if (polling && callId) {
+            pollingStartRef.current = Date.now()
             interval = setInterval(async () => {
+                // Timeout kontrolü
+                if (Date.now() - pollingStartRef.current > MAX_POLLING_MS) {
+                    console.warn('Polling timeout — 5dk aşıldı')
+                    setCallStatus('failed')
+                    setPolling(false)
+                    return
+                }
+
                 const res = await getCallDetails(callId)
                 if (res.error) {
                     console.error('Error polling call status:', res.error)
@@ -136,10 +148,15 @@ export default function AiCallDialog({ saleId, onClose }: AiCallDialogProps) {
         setAnalysis(null)
         setInitiating(false)
         setPolling(false)
+        setStopping(false)
     }
 
     const handleStartCall = async () => {
-        if (!saleId) return
+        if (!saleId || initiating) return
+        
+        const customerName = modalData?.customerName || 'müşteri'
+        if (!window.confirm(`${customerName} adlı müşteriyi AI ile aramak istediğinizden emin misiniz?`)) return
+
         setInitiating(true)
         setCallStatus('ringing')
         try {
@@ -157,6 +174,25 @@ export default function AiCallDialog({ saleId, onClose }: AiCallDialogProps) {
             setCallStatus('idle')
         } finally {
             setInitiating(false)
+        }
+    }
+
+    const handleStopCall = async () => {
+        if (!callId || stopping) return
+        setStopping(true)
+        try {
+            const res = await stopAiCall(callId)
+            if (res.error) {
+                toast.error(res.error)
+            } else {
+                toast.success('Arama durduruldu')
+                setCallStatus('ended')
+                setPolling(false)
+            }
+        } catch {
+            toast.error('Arama durdurulamadı.')
+        } finally {
+            setStopping(false)
         }
     }
 
@@ -389,7 +425,7 @@ export default function AiCallDialog({ saleId, onClose }: AiCallDialogProps) {
                 ) : null}
 
                 <DialogFooter className="border-t pt-4 gap-2">
-                    <Button variant="outline" onClick={() => { setIsOpen(false); onClose() }} disabled={callStatus === 'ringing' || callStatus === 'in-progress'}>
+                    <Button variant="outline" onClick={() => { setIsOpen(false); onClose() }}>
                         Kapat
                     </Button>
                     
@@ -414,8 +450,12 @@ export default function AiCallDialog({ saleId, onClose }: AiCallDialogProps) {
                     )}
 
                     {(callStatus === 'ringing' || callStatus === 'in-progress') && (
-                        <Button variant="destructive" className="font-bold flex items-center gap-1.5">
-                            <PhoneOff className="h-4 w-4" /> Aramayı Durdur
+                        <Button variant="destructive" className="font-bold flex items-center gap-1.5" onClick={handleStopCall} disabled={stopping}>
+                            {stopping ? (
+                                <><Loader2 className="h-4 w-4 animate-spin" /> Durduruluyor...</>
+                            ) : (
+                                <><PhoneOff className="h-4 w-4" /> Aramayı Durdur</>
+                            )}
                         </Button>
                     )}
                 </DialogFooter>

@@ -862,3 +862,208 @@ export async function getOutreachCeoReportData() {
     }
 }
 
+export async function getOutreachCostReportData(workflowIdParam?: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    const workflowId = workflowIdParam || 'ea62719d-198e-4d1d-83c1-f008c9e2d583'
+
+    // 1. Fetch workflow metadata
+    const { data: workflow } = await supabase
+        .from('outreach_workflows')
+        .select('name')
+        .eq('id', workflowId)
+        .single()
+
+    // 2. Fetch executions to get target segment size
+    const executions: any[] = []
+    let execPage = 0
+    const execLimit = 1000
+    while (true) {
+        const { data, error } = await supabase
+            .from('outreach_executions')
+            .select('status, customer_id, started_at')
+            .eq('workflow_id', workflowId)
+            .range(execPage * execLimit, (execPage + 1) * execLimit - 1)
+        if (error || !data || data.length === 0) break
+        executions.push(...data)
+        if (data.length < execLimit) break
+        execPage++
+    }
+
+    const uniqueCustomerIds = new Set(executions.map(e => e.customer_id).filter(Boolean))
+    const totalUniqueCustomers = uniqueCustomerIds.size
+
+    // 3. Fetch step logs for this campaign
+    const logs: any[] = []
+    let page = 0
+    const limit = 1000
+    while (true) {
+        const { data, error } = await supabase
+            .from('outreach_step_logs')
+            .select(`
+                id, channel, status, call_duration_seconds, call_outcome, 
+                call_recording_url, call_summary, cost_amount, executed_at, external_id,
+                outreach_executions!inner(customer_id)
+            `)
+            .eq('outreach_executions.workflow_id', workflowId)
+            .range(page * limit, (page + 1) * limit - 1)
+
+        if (error || !data || data.length === 0) break
+        logs.push(...data)
+        if (data.length < limit) break
+        page++
+    }
+
+    const callLogs = logs.filter(l => l.channel === 'ai_call')
+    const whatsappLogs = logs.filter(l => l.channel === 'whatsapp')
+    const smsLogs = logs.filter(l => l.channel === 'sms')
+
+    // AI Call Cost calculations
+    let recordedVapiCost = 0
+    let estimatedVapiCost = 0
+    let nullCostCallsCount = 0
+    let answeredCallsCount = 0
+    let unansweredCallsCount = 0
+    let busyCallsCount = 0
+    let failedCallsCount = 0
+    let totalDurationSeconds = 0
+
+    callLogs.forEach(l => {
+        const cost = l.cost_amount
+        if (cost !== null && cost !== undefined) {
+            recordedVapiCost += cost
+        } else {
+            nullCostCallsCount++
+            let est = 0
+            if (l.call_duration_seconds && l.call_duration_seconds > 0) {
+                est = l.call_duration_seconds * (0.15 / 60)
+            } else if (l.call_summary) {
+                est = 60 * (0.15 / 60) // 1 min estimate
+            } else if (l.call_recording_url) {
+                est = 30 * (0.15 / 60) // 30 sec estimate
+            } else if (l.external_id) {
+                est = 0.01 // flat 1 cent for call setups
+            }
+            estimatedVapiCost += est
+        }
+
+        // Duration accumulation
+        if (l.call_duration_seconds && l.call_duration_seconds > 0) {
+            totalDurationSeconds += l.call_duration_seconds
+        } else if (l.call_summary) {
+            totalDurationSeconds += 60 // assume 60s
+        } else if (l.call_recording_url) {
+            totalDurationSeconds += 30 // assume 30s
+        }
+
+        // Answered status check
+        const wasAnswered = (l.call_duration_seconds && l.call_duration_seconds > 0) || l.call_recording_url != null || l.call_summary != null || l.status === 'answered' || l.status === 'converted' || l.call_outcome === 'success'
+        if (wasAnswered) {
+            answeredCallsCount++
+        } else if (l.status === 'busy' || l.call_outcome === 'busy') {
+            busyCallsCount++
+        } else if (l.status === 'failed' || l.call_outcome === 'failed') {
+            failedCallsCount++
+        } else {
+            unansweredCallsCount++
+        }
+    })
+
+    const totalCallCost = recordedVapiCost + estimatedVapiCost
+    const totalWhatsAppCost = whatsappLogs.length * 0.03
+    const totalSmsCost = smsLogs.length * 0.01
+
+    const totalCost = totalCallCost + totalWhatsAppCost + totalSmsCost
+
+    // Cost Per Call calculations
+    const avgCostPerCallAttempt = callLogs.length > 0 ? totalCallCost / callLogs.length : 0
+    const avgCostPerAnsweredCall = answeredCallsCount > 0 ? totalCallCost / answeredCallsCount : 0
+    const avgCallDurationSeconds = answeredCallsCount > 0 ? totalDurationSeconds / answeredCallsCount : 0
+
+    // Unique reached customers from logs
+    const uniqueReachedCustomerIds = new Set(logs.map(l => l.outreach_executions?.customer_id).filter(Boolean))
+    const totalUniqueReached = uniqueReachedCustomerIds.size
+    const costPerUniqueReach = totalUniqueReached > 0 ? totalCost / totalUniqueReached : 0
+    const costPerTargetCustomer = totalUniqueCustomers > 0 ? totalCost / totalUniqueCustomers : 0
+
+    // Daily distribution of costs for charting
+    const dailySpendMap = new Map<string, { callCost: number, whatsappCost: number, smsCost: number, callCount: number, whatsappCount: number }>()
+
+    logs.forEach(l => {
+        const date = l.executed_at ? l.executed_at.substring(0, 10) : 'unknown'
+        if (date === 'unknown') return
+
+        if (!dailySpendMap.has(date)) {
+            dailySpendMap.set(date, { callCost: 0, whatsappCost: 0, smsCost: 0, callCount: 0, whatsappCount: 0 })
+        }
+        const current = dailySpendMap.get(date)!
+
+        if (l.channel === 'ai_call') {
+            current.callCount++
+            let cost = l.cost_amount
+            if (cost === null || cost === undefined) {
+                if (l.call_duration_seconds && l.call_duration_seconds > 0) {
+                    cost = l.call_duration_seconds * (0.15 / 60)
+                } else if (l.call_summary) {
+                    cost = 60 * (0.15 / 60)
+                } else if (l.call_recording_url) {
+                    cost = 30 * (0.15 / 60)
+                } else if (l.external_id) {
+                    cost = 0.01
+                } else {
+                    cost = 0
+                }
+            }
+            current.callCost += cost
+        } else if (l.channel === 'whatsapp') {
+            current.whatsappCount++
+            current.whatsappCost += 0.03
+        } else if (l.channel === 'sms') {
+            current.smsCost += 0.01
+        }
+    })
+
+    const dailySpend = Array.from(dailySpendMap.entries()).map(([date, data]) => ({
+        date,
+        callCost: parseFloat(data.callCost.toFixed(4)),
+        whatsappCost: parseFloat(data.whatsappCost.toFixed(4)),
+        smsCost: parseFloat(data.smsCost.toFixed(4)),
+        totalCost: parseFloat((data.callCost + data.whatsappCost + data.smsCost).toFixed(4)),
+        callCount: data.callCount,
+        whatsappCount: data.whatsappCount
+    })).sort((a, b) => a.date.localeCompare(b.date))
+
+    return {
+        campaignName: workflow?.name || 'Temmuz-Aralık Geri Kazanım AI Kampanyası',
+        totalUniqueCustomers,
+        totalUniqueReached,
+        totalLogsCount: logs.length,
+        totalCallsCount: callLogs.length,
+        totalWhatsAppCount: whatsappLogs.length,
+        totalSmsCount: smsLogs.length,
+        answeredCallsCount,
+        unansweredCallsCount,
+        busyCallsCount,
+        failedCallsCount,
+        recordedVapiCost,
+        estimatedVapiCost,
+        totalCallCost,
+        totalWhatsAppCost,
+        totalSmsCost,
+        totalCost,
+        avgCostPerCallAttempt,
+        avgCostPerAnsweredCall,
+        avgCallDurationSeconds,
+        costPerUniqueReach,
+        costPerTargetCustomer,
+        dailySpend,
+        statusCounts: logs.reduce((acc: Record<string, number>, l) => {
+            acc[l.status] = (acc[l.status] || 0) + 1
+            return acc
+        }, {})
+    }
+}
+
+

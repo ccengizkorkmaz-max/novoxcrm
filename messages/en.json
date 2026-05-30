@@ -937,6 +937,10 @@
             "outreach-ceo": {
                 "title": "Outreach CEO Report",
                 "description": "Detailed performance analysis of the July-Dec 2025 outreach recovery campaign."
+            },
+            "outreach-cost": {
+                "title": "Outreach Cost Analysis",
+                "description": "Campaign spend by AI Call and WhatsApp channels, cost per reach, and ROI reports."
             }
         }
     },

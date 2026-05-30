@@ -83,6 +83,13 @@ const reportCards = [
         icon: BarChart3,
         color: "text-indigo-600",
         bgColor: "bg-indigo-100"
+    },
+    {
+        id: "outreach-cost",
+        href: "/reports/outreach-cost",
+        icon: DollarSign,
+        color: "text-purple-600",
+        bgColor: "bg-purple-100"
     }
 ]
 

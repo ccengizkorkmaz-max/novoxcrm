@@ -963,6 +963,10 @@
             "outreach-ceo": {
                 "title": "Outreach CEO Raporu",
                 "description": "Temmuz-Aralık 2025 Olumsuz & Ulaşılamayanlar geri kazanım kampanyası detaylı performans raporu."
+            },
+            "outreach-cost": {
+                "title": "Outreach Maliyet Analizi",
+                "description": "AI Arama ve WhatsApp kanalları bazında kampanya harcamaları, erişim başına maliyet ve yatırım getirisi raporu."
             }
         }
     },

@@ -8,16 +8,16 @@ import { resolveSegment, startWorkflowForLeads } from '@/lib/outreach/engine'
  * Her gün çalışma saatlerinde aktif workflow'ları kontrol eder ve
  * henüz aranmamış lead'ler için yeni execution oluşturur.
  * 
- * Çalıştırma: GET /api/cron/outreach-daily?secret=YOUR_CRON_SECRET
+ * Security: Protected by CRON_SECRET Authorization header
  * 
  * Vercel Cron: vercel.json'a ekle:
  * { "cron": "0 9,12,15 * * 1-5" }  // Her hafta içi 09:00, 12:00, 15:00
  */
 export async function GET(req: NextRequest) {
-    // Auth check
-    const secret = req.nextUrl.searchParams.get('secret')
-    const expectedSecret = process.env.CRON_SECRET || process.env.VAPI_WEBHOOK_SECRET
-    if (expectedSecret && secret !== expectedSecret) {
+    // Auth check — Authorization header (Vercel cron uyumlu)
+    const authHeader = req.headers.get('authorization')
+    const cronSecret = process.env.CRON_SECRET || process.env.OUTREACH_CRON_SECRET
+    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
