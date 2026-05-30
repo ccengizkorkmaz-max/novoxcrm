@@ -532,7 +532,9 @@
             "efficiency": "Saha & Ekip Verimliliği",
             "publicLinks": "Katalog & Link Takibi",
             "marketing": "Pazarlama Analitiği",
-            "hotLeads": "Sıcak Lead Analizi"
+            "hotLeads": "Sıcak Lead Analizi",
+            "outreachCeo": "Outreach CEO Raporu",
+            "outreachCost": "Outreach Maliyet Analizi"
         },
         "Inbox": {
             "title": "Gelen Kutusu",

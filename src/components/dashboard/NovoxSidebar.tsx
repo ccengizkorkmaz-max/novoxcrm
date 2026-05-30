@@ -14,6 +14,7 @@ import {
     Package,
     FileText,
     Banknote,
+    DollarSign,
     Trophy,
     CalendarCheck,
     Briefcase,
@@ -472,7 +473,10 @@ export function NovoxSidebar({
                             {labels.reports?.hotLeads || 'Sıcak Lead Analizi'}
                         </NavItem>
                         <NavItem href="/reports/outreach-ceo" icon={BarChart3} onClick={onElementClick} isCollapsed={isCollapsed} isSubItem>
-                            Outreach CEO Raporu
+                            {labels.reports?.outreachCeo || 'Outreach CEO Raporu'}
+                        </NavItem>
+                        <NavItem href="/reports/outreach-cost" icon={DollarSign} onClick={onElementClick} isCollapsed={isCollapsed} isSubItem>
+                            {labels.reports?.outreachCost || 'Outreach Maliyet Analizi'}
                         </NavItem>
                     </>
                 ) : (
@@ -542,7 +546,10 @@ export function NovoxSidebar({
                                     {labels.reports?.hotLeads || 'Sıcak Lead Analizi'}
                                 </NavItem>
                                 <NavItem href="/reports/outreach-ceo" icon={BarChart3} onClick={onElementClick} isSubItem>
-                                    Outreach CEO Raporu
+                                    {labels.reports?.outreachCeo || 'Outreach CEO Raporu'}
+                                </NavItem>
+                                <NavItem href="/reports/outreach-cost" icon={DollarSign} onClick={onElementClick} isSubItem>
+                                    {labels.reports?.outreachCost || 'Outreach Maliyet Analizi'}
                                 </NavItem>
                             </AccordionContent>
                         </AccordionItem>

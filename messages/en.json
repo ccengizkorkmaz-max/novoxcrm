@@ -504,7 +504,9 @@
             "efficiency": "Field & Team Efficiency",
             "publicLinks": "Catalog & Link Tracking",
             "marketing": "Marketing Analytics",
-            "hotLeads": "Hot Lead Analysis"
+            "hotLeads": "Hot Lead Analysis",
+            "outreachCeo": "Outreach CEO Report",
+            "outreachCost": "Outreach Cost Analysis"
         },
         "Inbox": {
             "title": "Inbox",

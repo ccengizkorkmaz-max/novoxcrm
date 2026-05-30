@@ -108,7 +108,9 @@ export default async function DashboardLayout(props: {
             finance: sidebarT('reports.finance'),
             publicLinks: sidebarT('reports.publicLinks'),
             marketing: sidebarT('reports.marketing'),
-            hotLeads: sidebarT('reports.hotLeads')
+            hotLeads: sidebarT('reports.hotLeads'),
+            outreachCeo: sidebarT('reports.outreachCeo'),
+            outreachCost: sidebarT('reports.outreachCost')
         }
     }
 
