@@ -92,6 +92,8 @@ export interface VapiCallOptions {
     phoneNumberId?: string
     /** Override the first message (greeting) */
     firstMessage?: string
+    /** Override the end call message */
+    endCallMessage?: string
     /** Override the system prompt */
     systemPrompt?: string
     /** Override the voice (ElevenLabs voiceId) */
