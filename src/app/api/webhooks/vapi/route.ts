@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
                     const { count } = await adminSupabase
                         .from('activities')
                         .select('*', { count: 'exact', head: true })
-                        .ilike('description', `%${parsed.callId}%`)
+                        .ilike('description', `%[Call ID: ${parsed.callId}]%`)
                     if (count && count > 0) {
                         console.log(`[Vapi Webhook] Duplicate webhook for callId ${parsed.callId} — atlanıyor`)
                         return NextResponse.json({ status: 'duplicate_skipped' }, { status: 200 })
