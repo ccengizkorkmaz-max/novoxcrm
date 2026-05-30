@@ -34,7 +34,7 @@ export default async function ConversationDetailPage(props: { params: Promise<{ 
     return (
         <div className="flex flex-col h-full bg-[#f8fafc]">
             {/* Header */}
-            <div className="flex items-center justify-between bg-white/80 backdrop-blur-md p-4 border-b border-slate-200 sticky top-0 z-10">
+            <div className="flex items-start justify-between bg-white/80 backdrop-blur-md p-4 border-b border-slate-200 sticky top-0 z-10">
                 <div className="flex items-center gap-2 md:gap-4">
                     <Link href="/conversations" className="lg:hidden p-1.5 -ml-2 text-slate-500 hover:text-slate-900 transition-colors mr-1">
                         <ArrowLeft className="h-5 w-5" />
@@ -61,7 +61,9 @@ export default async function ConversationDetailPage(props: { params: Promise<{ 
                     </div>
                 </div>
 
-                <AiToggle sessionId={id} initialAiEnabled={session.ai_enabled ?? true} />
+                <div className="mt-8 pr-2">
+                    <AiToggle sessionId={id} initialAiEnabled={session.ai_enabled ?? true} />
+                </div>
             </div>
 
             <div className="flex-1 flex overflow-hidden lg:max-h-[calc(100vh-140px)]">
