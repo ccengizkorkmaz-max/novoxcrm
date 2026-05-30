@@ -80,7 +80,7 @@ export default async function ConversationDetailPage(props: { params: Promise<{ 
                 </div>
 
                 {/* Info Sidebar */}
-                <div className="hidden xl:block w-72 border-l border-slate-200 bg-white overflow-y-auto custom-scrollbar p-4 space-y-4">
+                <div className="hidden xl:block w-56 border-l border-slate-200 bg-white overflow-y-auto custom-scrollbar p-3 space-y-4">
                     {/* Customer Card */}
                     {session.customers ? (
                         <Link
