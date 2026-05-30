@@ -90,20 +90,20 @@ export default function ConversationSidebar({ sessions }: ConversationSidebarPro
                                 key={session.id}
                                 href={`/conversations/${session.id}`}
                                 className={cn(
-                                    "flex items-start gap-4 p-4 rounded-2xl transition-all duration-300 group relative overflow-hidden active:scale-[0.98]",
+                                    "flex items-start gap-3 p-3 rounded-xl transition-all duration-300 group relative overflow-hidden active:scale-[0.98]",
                                     isActive
                                         ? "bg-blue-600 text-white shadow-xl shadow-blue-500/20 active:bg-blue-700"
                                         : "hover:bg-white text-slate-600 border border-transparent hover:border-slate-100 hover:shadow-md"
                                 )}
                             >
                                 <div className={cn(
-                                    "h-12 w-12 rounded-xl flex items-center justify-center shrink-0 border transition-all duration-300 shadow-sm font-semibold",
+                                    "h-8 w-8 rounded-lg flex items-center justify-center shrink-0 border transition-all duration-300 shadow-sm font-semibold",
                                     isActive
                                         ? "bg-white/10 border-white/20 text-white"
                                         : session.ai_enabled ? "bg-blue-50 border-blue-100 text-blue-600" :
                                                 "bg-amber-50 border-amber-100 text-amber-600"
                                 )}>
-                                    {session.ai_enabled ? <MessageSquare className="h-6 w-6" /> : <User className="h-6 w-6" />}
+                                    {session.ai_enabled ? <MessageSquare className="h-4 w-4" /> : <User className="h-4 w-4" />}
                                 </div>
 
                                 <div className="flex-1 min-w-0 pr-2 text-left">
