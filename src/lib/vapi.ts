@@ -217,15 +217,15 @@ export async function makeOutboundCall(options: VapiCallOptions): Promise<VapiCa
                         enabled: true
                     }
                 },
-                tools: [
-                    {
-                        type: 'endCall'
-                    }
-                ],
                 model: {
                     provider: 'openai',
                     model: 'gpt-4o',
                     messages: [{ role: 'system', content: TURKISH_VOICE_RULES + '\n\n' + options.systemPrompt }],
+                    tools: [
+                        {
+                            type: 'endCall'
+                        }
+                    ],
                 },
                 voice: {
                     provider: '11labs',
