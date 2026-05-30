@@ -46,7 +46,7 @@ export default async function ActivitiesReportsPage(props: {
                 />
                 <AnalyticsMetricCard
                     title="Tamamlama Oranı"
-                    value={`%${completionRate.toFixed(1)}`}
+                    value={`%${completionRate.toLocaleString('tr-TR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}`}
                     description="Planlanan vs Tamamlanan"
                     icon={BarChart3}
                     color="text-purple-600"

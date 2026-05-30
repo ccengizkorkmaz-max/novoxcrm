@@ -31,28 +31,28 @@ export default async function FinanceReportsPage(props: {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <AnalyticsMetricCard
                     title="Toplam Tahsilat"
-                    value={`${(totalCollected / 1000000).toFixed(2)} M ₺`}
+                    value={`${(totalCollected / 1000000).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} M ₺`}
                     description="Bugüne kadar ödenenler"
                     icon={Wallet}
                     color="text-green-600"
                 />
                 <AnalyticsMetricCard
                     title="Tahsil Edilen KDV"
-                    value={`${(vatMetrics.totalVat / 1000000).toFixed(2)} M ₺`}
+                    value={`${(vatMetrics.totalVat / 1000000).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} M ₺`}
                     description="Ödenen taksitlerin KDV'si"
                     icon={TrendingUp}
                     color="text-blue-600"
                 />
                 <AnalyticsMetricCard
                     title="Vadesi Geçmiş"
-                    value={`${(totalOverdue / 1000000).toFixed(2)} M ₺`}
+                    value={`${(totalOverdue / 1000000).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} M ₺`}
                     description="Gecikmiş ödemeler"
                     icon={AlertCircle}
                     color="text-red-600"
                 />
                 <AnalyticsMetricCard
                     title="Bekleyen KDV"
-                    value={`${(vatMetrics.pendingVat / 1000000).toFixed(2)} M ₺`}
+                    value={`${(vatMetrics.pendingVat / 1000000).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} M ₺`}
                     description="Gelecek taksitlerin KDV'si"
                     icon={Clock}
                     color="text-purple-600"
@@ -74,7 +74,7 @@ export default async function FinanceReportsPage(props: {
                 <div className="rounded-xl border bg-primary/5 p-6 border-primary/20">
                     <h3 className="font-semibold mb-2 text-primary">📈 Tahsilat Oranı</h3>
                     <div className="flex items-end gap-2">
-                        <span className="text-3xl font-bold">%${((totalCollected / (totalCollected + totalPending)) * 100).toFixed(1)}</span>
+                        <span className="text-3xl font-bold">%${((totalCollected / (totalCollected + totalPending)) * 100).toLocaleString('tr-TR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</span>
                         <span className="text-sm text-muted-foreground pb-1">Genel Performans</span>
                     </div>
                 </div>

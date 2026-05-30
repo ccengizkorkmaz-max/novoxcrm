@@ -49,8 +49,8 @@ export function CustomerEditDialog({ customer, isOpen, onOpenChange }: CustomerE
 
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-lg w-[95vw] rounded-2xl">
-                <DialogHeader>
+            <DialogContent className="max-w-lg w-full sm:w-[95vw] h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[90dvh] rounded-none sm:rounded-2xl flex flex-col p-0 overflow-hidden">
+                <DialogHeader className="p-4 sm:p-6 pb-2 shrink-0 border-b">
                     <DialogTitle className="flex items-center gap-2">
                         {customer.customer_number && (
                             <span className="text-xs font-black px-2 py-0.5 bg-blue-100 text-blue-700 rounded-lg">
@@ -60,12 +60,14 @@ export function CustomerEditDialog({ customer, isOpen, onOpenChange }: CustomerE
                         {t('editCustomer')}
                     </DialogTitle>
                 </DialogHeader>
-                <Tabs defaultValue="details" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="details">{t('tabs.details')}</TabsTrigger>
-                        <TabsTrigger value="demands">{t('tabs.demands')}</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="details" forceMount={true} className="data-[state=inactive]:hidden">
+                <Tabs defaultValue="details" className="w-full flex-1 flex flex-col min-h-0">
+                    <div className="px-4 sm:px-6 py-2 shrink-0 border-b">
+                        <TabsList className="grid w-full grid-cols-2">
+                            <TabsTrigger value="details">{t('tabs.details')}</TabsTrigger>
+                            <TabsTrigger value="demands">{t('tabs.demands')}</TabsTrigger>
+                        </TabsList>
+                    </div>
+                    <TabsContent value="details" forceMount={true} className="flex-1 min-h-0 data-[state=inactive]:hidden flex flex-col">
                         <form action={async (formData) => {
                             const res = await updateCustomer(formData)
                             if (res?.error) toast.error(res.error)
@@ -73,9 +75,9 @@ export function CustomerEditDialog({ customer, isOpen, onOpenChange }: CustomerE
                                 toast.success(t('messages.updated') || 'Müşteri güncellendi')
                                 onOpenChange(false)
                             }
-                        }}>
+                        }} className="flex flex-col flex-1 min-h-0">
                             <input type="hidden" name="id" value={customer.id} />
-                            <div className="grid gap-4 py-4">
+                            <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 space-y-4">
                                 <div className="grid gap-2">
                                     <Label>{t('form.fullName')}</Label>
                                     <Input name="full_name" defaultValue={customer.full_name} required className="h-11 border-slate-200" />
@@ -130,12 +132,12 @@ export function CustomerEditDialog({ customer, isOpen, onOpenChange }: CustomerE
                                     </div>
                                 </div>
                             </div>
-                            <DialogFooter>
-                                <Button type="submit" className="w-full md:w-auto">{t('createModal.update')}</Button>
+                            <DialogFooter className="p-4 sm:p-6 border-t bg-slate-50 dark:bg-slate-900/50 shrink-0">
+                                <Button type="submit" className="w-full sm:w-auto">{t('createModal.update')}</Button>
                             </DialogFooter>
                         </form>
                     </TabsContent>
-                    <TabsContent value="demands" forceMount={true} className="data-[state=inactive]:hidden">
+                    <TabsContent value="demands" forceMount={true} className="flex-1 min-h-0 data-[state=inactive]:hidden flex flex-col">
                         <CustomerDemands
                             customerId={customer.id}
                             demand={Array.isArray(customer.customer_demands) ? customer.customer_demands[0] : customer.customer_demands}

@@ -36,7 +36,7 @@ export default async function SalesReportsPage() {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
                 <AnalyticsMetricCard
                     title="Toplam Ciro"
-                    value={`${(totalRevenue / 1000000).toFixed(2)}M ₺`}
+                    value={`${(totalRevenue / 1000000).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}M ₺`}
                     description="Kapatılan satışlar toplamı"
                     icon={DollarSign}
                 />
@@ -63,7 +63,7 @@ export default async function SalesReportsPage() {
                 />
                 <AnalyticsMetricCard
                     title="Dönüşüm Oranı"
-                    value={`%${conversionRate.toFixed(1)}`}
+                    value={`%${conversionRate.toLocaleString('tr-TR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}`}
                     description="Lead'den satışa dönüş"
                     icon={TrendingUp}
                     color="text-purple-600"
@@ -118,7 +118,7 @@ export default async function SalesReportsPage() {
                                     }</span>
                                 </TableCell>
                                 <TableCell className="text-right font-semibold">
-                                    {(Number(sale.final_price) / 1000).toFixed(0)}K ₺
+                                    {(Number(sale.final_price) / 1000).toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}K ₺
                                 </TableCell>
                             </TableRow>
                         ))}

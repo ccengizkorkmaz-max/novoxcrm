@@ -105,7 +105,7 @@ export default function OutreachCostReportPage() {
 
     // Format currencies
     const formatUSD = (val: number) => {
-        return new Intl.NumberFormat('en-US', {
+        return new Intl.NumberFormat('tr-TR', {
             style: 'currency',
             currency: 'USD',
             minimumFractionDigits: 2,
@@ -283,7 +283,7 @@ export default function OutreachCostReportPage() {
                         <TrendingUp className="h-4 w-4 text-emerald-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-black tracking-tight text-emerald-500">%{reachRate.toFixed(1)}</div>
+                        <div className="text-3xl font-black tracking-tight text-emerald-500">%{reachRate.toLocaleString('tr-TR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</div>
                         <div className="flex flex-col gap-0.5 mt-2 text-[10px] text-muted-foreground font-semibold">
                             <span className="flex items-center justify-between">Toplam Ulaşılan: <strong className="text-emerald-400">{data.totalUniqueReached} / {data.totalUniqueCustomers}</strong></span>
                             <span className="flex items-center justify-between">Dönüşüm Sağlanan: <strong className="text-emerald-400">{data.statusCounts.converted || 0} Aday</strong></span>

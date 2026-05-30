@@ -43,7 +43,7 @@ export default async function InventoryReportsPage(props: {
                 <AnalyticsMetricCard
                     title="Satılan Ünite"
                     value={totalSold.toString()}
-                    description={`${((totalSold / totalUnits) * 100).toFixed(1)}% Satıldı`}
+                    description={`%${((totalSold / totalUnits) * 100).toLocaleString('tr-TR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} Satıldı`}
                     icon={CheckCircle}
                     color="text-green-600"
                 />
@@ -56,7 +56,7 @@ export default async function InventoryReportsPage(props: {
                 />
                 <AnalyticsMetricCard
                     title="Portföy Değeri"
-                    value={`${(totalCurrentValue).toFixed(1)} M ₺`}
+                    value={`${(totalCurrentValue).toLocaleString('tr-TR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} M ₺`}
                     description="Toplam piyasa değeri"
                     icon={Building2}
                     color="text-purple-600"
@@ -95,7 +95,7 @@ export default async function InventoryReportsPage(props: {
                                         <div className="flex items-center gap-2">
                                             <Progress value={p.occupancyRate} className="h-2" />
                                             <span className="text-xs font-medium w-10 text-right">
-                                                %{p.occupancyRate.toFixed(0)}
+                                                %{p.occupancyRate.toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                                             </span>
                                         </div>
                                     </TableCell>

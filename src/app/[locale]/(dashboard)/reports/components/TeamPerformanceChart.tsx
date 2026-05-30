@@ -31,7 +31,7 @@ export default function TeamPerformanceChart({ data }: TeamPerformanceChartProps
                             <Tooltip
                                 cursor={{ fill: '#f1f5f9' }}
                                 contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
-                                formatter={(value: any) => [`${(value / 1000000).toFixed(2)}M ₺`, 'Ciro']}
+                                formatter={(value: any) => [`${(value / 1000000).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}M ₺`, 'Ciro']}
                             />
                             <Bar
                                 dataKey="revenue"

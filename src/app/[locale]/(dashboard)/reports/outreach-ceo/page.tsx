@@ -189,7 +189,7 @@ export default function OutreachCeoReportPage() {
                         <div className="flex items-center gap-1 mt-1">
                             <TrendingUp className="h-3 w-3 text-emerald-500" />
                             <span className="text-[10px] text-emerald-500 font-bold">
-                                %{conversionRate.toFixed(1)} Kazanım Oranı
+                                %{conversionRate.toLocaleString('tr-TR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} Kazanım Oranı
                             </span>
                         </div>
                     </CardContent>
@@ -230,19 +230,19 @@ export default function OutreachCeoReportPage() {
                                 <PhoneIncoming className="h-5 w-5 text-emerald-500 mx-auto mb-1.5" />
                                 <span className="text-xs text-muted-foreground font-bold uppercase">Konuşulan</span>
                                 <div className="text-3xl font-black tracking-tight text-emerald-500 mt-1">{spokeCount}</div>
-                                <span className="text-[10px] text-emerald-500/70 font-semibold">%{spokeRate.toFixed(1)}</span>
+                                <span className="text-[10px] text-emerald-500/70 font-semibold">%{spokeRate.toLocaleString('tr-TR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</span>
                             </div>
                             <div className="p-4 rounded-xl bg-amber-500/5 border border-amber-500/10 text-center">
                                 <PhoneOff className="h-5 w-5 text-amber-500 mx-auto mb-1.5" />
                                 <span className="text-xs text-muted-foreground font-bold uppercase">Meşgul</span>
                                 <div className="text-3xl font-black tracking-tight text-amber-600 dark:text-amber-400 mt-1">{data.resumptionBusy.toLocaleString('tr-TR')}</div>
-                                <span className="text-[10px] text-amber-500/70 font-semibold">%{busyRate.toFixed(1)}</span>
+                                <span className="text-[10px] text-amber-500/70 font-semibold">%{busyRate.toLocaleString('tr-TR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</span>
                             </div>
                             <div className="p-4 rounded-xl bg-rose-500/5 border border-rose-500/10 text-center">
                                 <Phone className="h-5 w-5 text-rose-500 mx-auto mb-1.5" />
                                 <span className="text-xs text-muted-foreground font-bold uppercase">Cevapsız</span>
                                 <div className="text-3xl font-black tracking-tight text-rose-500 mt-1">{data.resumptionNoAnswer.toLocaleString('tr-TR')}</div>
-                                <span className="text-[10px] text-rose-500/70 font-semibold">%{noAnswerRate.toFixed(1)}</span>
+                                <span className="text-[10px] text-rose-500/70 font-semibold">%{noAnswerRate.toLocaleString('tr-TR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</span>
                             </div>
                         </div>
 
@@ -251,7 +251,7 @@ export default function OutreachCeoReportPage() {
                             <div className="p-3 rounded-lg bg-orange-500/5 border border-orange-500/10 text-center">
                                 <span className="text-xs text-muted-foreground font-bold">Açıp Kısa Kapatan</span>
                                 <div className="text-xl font-black mt-0.5 text-orange-500">{hungUpCount}</div>
-                                <span className="text-[10px] text-orange-500/70 font-semibold">%{hungUpRate.toFixed(1)}</span>
+                                <span className="text-[10px] text-orange-500/70 font-semibold">%{hungUpRate.toLocaleString('tr-TR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</span>
                             </div>
                             <div className="p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/10 text-center">
                                 <span className="text-xs text-muted-foreground font-bold">WhatsApp Gönderilen</span>
@@ -295,19 +295,19 @@ export default function OutreachCeoReportPage() {
                             <div className="flex flex-wrap gap-x-6 gap-y-2 text-xs font-medium text-muted-foreground justify-center">
                                 <div className="flex items-center gap-1.5">
                                     <span className="h-3 w-3 rounded bg-emerald-500" />
-                                    Konuşulan: %{spokeRate.toFixed(1)}
+                                    Konuşulan: %{spokeRate.toLocaleString('tr-TR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
                                 </div>
                                 <div className="flex items-center gap-1.5">
                                     <span className="h-3 w-3 rounded bg-orange-500" />
-                                    Açıp Kapatan: %{hungUpRate.toFixed(1)}
+                                    Açıp Kapatan: %{hungUpRate.toLocaleString('tr-TR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
                                 </div>
                                 <div className="flex items-center gap-1.5">
                                     <span className="h-3 w-3 rounded bg-amber-500" />
-                                    Meşgul: %{busyRate.toFixed(1)}
+                                    Meşgul: %{busyRate.toLocaleString('tr-TR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
                                 </div>
                                 <div className="flex items-center gap-1.5">
                                     <span className="h-3 w-3 rounded bg-rose-500" />
-                                    Cevapsız: %{noAnswerRate.toFixed(1)}
+                                    Cevapsız: %{noAnswerRate.toLocaleString('tr-TR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
                                 </div>
                             </div>
                         </div>

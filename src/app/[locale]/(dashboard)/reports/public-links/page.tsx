@@ -13,7 +13,7 @@ export default async function PublicLinksReportPage() {
 
     const totalViews = links.reduce((acc, curr) => acc + (curr.views_count || 0), 0)
     const totalLeads = links.reduce((acc, curr) => acc + (curr.leads_count || 0), 0)
-    const avgConversion = totalViews > 0 ? ((totalLeads / totalViews) * 100).toFixed(1) : 0
+    const avgConversion = totalViews > 0 ? ((totalLeads / totalViews) * 100).toLocaleString('tr-TR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : 0
 
     return (
         <div className="space-y-8 p-6 max-w-[1600px] mx-auto animate-in fade-in duration-700">
@@ -79,7 +79,7 @@ export default async function PublicLinksReportPage() {
                             ) : (
                                 links.map((link) => {
                                     const isExpired = link.expires_at && new Date(link.expires_at) < new Date()
-                                    const convRate = link.views_count > 0 ? ((link.leads_count / link.views_count) * 100).toFixed(1) : 0
+                                    const convRate = link.views_count > 0 ? ((link.leads_count / link.views_count) * 100).toLocaleString('tr-TR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : 0
 
                                     return (
                                         <TableRow key={link.id} className="group hover:bg-slate-50/50 transition-colors border-slate-50">

@@ -32,7 +32,7 @@ export default function CollectionPieChart({ data }: CollectionPieChartProps) {
                             </Pie>
                             <Tooltip
                                 contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}
-                                formatter={(value: any) => [`${(Number(value) / 1000000).toFixed(2)}M ₺`, 'Tutar']}
+                                formatter={(value: any) => [`${(Number(value) / 1000000).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}M ₺`, 'Tutar']}
                             />
                             <Legend verticalAlign="bottom" height={36} />
                         </PieChart>

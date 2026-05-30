@@ -146,8 +146,8 @@ export default function NegotiationDialog({ offerId, currentPrice, currentCurren
                         <MessageSquare className="h-4 w-4" /> {tActions('negotiate')}
                     </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-2xl p-0 overflow-hidden border-none shadow-2xl rounded-3xl max-h-[90vh] flex flex-col">
-                    <DialogHeader className="p-8 bg-slate-50 border-b border-slate-100 shrink-0">
+                <DialogContent className="max-w-2xl w-full sm:w-[95vw] h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[90dvh] p-0 overflow-hidden border-none shadow-2xl rounded-none sm:rounded-3xl flex flex-col">
+                    <DialogHeader className="p-4 sm:p-8 bg-slate-50 border-b border-slate-100 shrink-0">
                         <div className="flex flex-col gap-1">
                             <DialogTitle className="text-xl font-black text-slate-900 flex items-center gap-3">
                                 <div className="h-10 w-10 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center">
@@ -155,13 +155,13 @@ export default function NegotiationDialog({ offerId, currentPrice, currentCurren
                                 </div>
                                 {t('negotiationTitle')}
                             </DialogTitle>
-                            <p className="text-sm font-bold text-slate-400 uppercase tracking-widest ml-13">
+                            <p className="text-sm font-bold text-slate-400 uppercase tracking-widest ml-0 sm:ml-13">
                                 {customerName} <span className="mx-2 text-slate-200">/</span> {unitInfo}
                             </p>
                         </div>
                     </DialogHeader>
 
-                    <div className="p-8 space-y-8 overflow-y-auto">
+                    <div className="p-4 sm:p-8 space-y-6 sm:space-y-8 overflow-y-auto flex-1">
                         {/* New Proposal Form */}
                         <div className="space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                             <div className="flex items-center gap-2 mb-2">
@@ -226,8 +226,8 @@ export default function NegotiationDialog({ offerId, currentPrice, currentCurren
                                                     {proposedPlan ? 'GÜNCELLE' : 'OLUŞTUR'}
                                                 </Button>
                                             </DialogTrigger>
-                                            <DialogContent className="max-w-xl">
-                                                <DialogHeader>
+                                            <DialogContent className="max-w-xl w-full sm:w-[95vw] h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[90dvh] rounded-none sm:rounded-2xl flex flex-col p-0 overflow-hidden bg-white">
+                                                <DialogHeader className="p-4 sm:p-6 pb-2 shrink-0 border-b">
                                                     <DialogTitle>Müşteriye Ödeme Planı Öner</DialogTitle>
                                                 </DialogHeader>
                                                 <PaymentPlanCalculator

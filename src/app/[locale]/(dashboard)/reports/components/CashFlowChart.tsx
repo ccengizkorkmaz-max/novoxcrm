@@ -36,7 +36,7 @@ export default function CashFlowChart({ data }: CashFlowChartProps) {
                                 cursor={{ fill: '#f1f5f9' }}
                                 contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
                                 formatter={(value: any, name: any) => [
-                                    `${Number(value).toFixed(2)}M ₺`,
+                                    `${Number(value).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}M ₺`,
                                     name === 'total' ? 'Toplam Beklenen' : 'Tahsil Edilen'
                                 ]}
                             />

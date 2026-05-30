@@ -36,7 +36,7 @@ export default async function LossReportsPage(props: {
                 />
                 <AnalyticsMetricCard
                     title="Kayıp Oranı"
-                    value={`%${lossRate.toFixed(1)}`}
+                    value={`%${lossRate.toLocaleString('tr-TR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}`}
                     description="Kaçan fırsat yüzdesi"
                     icon={XCircle}
                     color="text-red-600"

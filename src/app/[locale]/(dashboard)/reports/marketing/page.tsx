@@ -107,7 +107,7 @@ export default async function MarketingReportsPage() {
                                     <TableCell className="text-center font-semibold">{ch.thisMonth > 0 ? <span className="text-blue-600">+{ch.thisMonth}</span> : '0'}</TableCell>
                                     <TableCell className="text-center font-bold text-lg">{ch.total}</TableCell>
                                     <TableCell className="text-center text-muted-foreground font-medium">
-                                        {totalMarketingLeads > 0 ? ((ch.total / totalMarketingLeads) * 100).toFixed(1) : '0'}%
+                                        {totalMarketingLeads > 0 ? ((ch.total / totalMarketingLeads) * 100).toLocaleString('tr-TR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '0'}%
                                     </TableCell>
                                 </TableRow>
                             ))}
@@ -146,7 +146,7 @@ export default async function MarketingReportsPage() {
                                     <TableCell className="text-center font-semibold">{proj.thisMonth > 0 ? <span className="text-emerald-600">+{proj.thisMonth}</span> : '0'}</TableCell>
                                     <TableCell className="text-center font-bold text-lg">{proj.total}</TableCell>
                                     <TableCell className="text-center text-muted-foreground font-medium">
-                                        {totalMarketingLeads > 0 ? ((proj.total / totalMarketingLeads) * 100).toFixed(1) : '0'}%
+                                        {totalMarketingLeads > 0 ? ((proj.total / totalMarketingLeads) * 100).toLocaleString('tr-TR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '0'}%
                                     </TableCell>
                                 </TableRow>
                             ))}

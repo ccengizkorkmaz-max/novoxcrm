@@ -35,7 +35,7 @@ export default function ProjectOccupancyChart({ data }: ProjectOccupancyChartPro
                             <Tooltip
                                 cursor={{ fill: '#f1f5f9' }}
                                 contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
-                                formatter={(value: any) => [`%${value.toFixed(1)}`, 'Doluluk Oranı']}
+                                formatter={(value: any) => [`%${value.toLocaleString('tr-TR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}`, 'Doluluk Oranı']}
                             />
                             <Bar
                                 dataKey="occupancyRate"
