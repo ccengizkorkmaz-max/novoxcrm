@@ -50,7 +50,7 @@ export default function AiCallDialog({ saleId, onClose }: AiCallDialogProps) {
     const [initiating, setInitiating] = useState(false)
     const [polling, setPolling] = useState(false)
     const [stopping, setStopping] = useState(false)
-    const [shouldStartCall, setShouldStartCall] = useState(false)
+    const [showConfirm, setShowConfirm] = useState(false)
     const pollingStartRef = useRef<number>(0)
 
     const transcriptEndRef = useRef<HTMLDivElement>(null)
@@ -73,14 +73,6 @@ export default function AiCallDialog({ saleId, onClose }: AiCallDialogProps) {
         }
     }, [transcript])
 
-    // Execute call when shouldStartCall becomes true
-    useEffect(() => {
-        if (shouldStartCall) {
-            console.log("[AiCallDialog] shouldStartCall is true, resetting and executing call...")
-            setShouldStartCall(false)
-            executeStartCall()
-        }
-    }, [shouldStartCall])
 
     // Poll call details during call (max 5 dakika timeout)
     useEffect(() => {
@@ -159,7 +151,7 @@ export default function AiCallDialog({ saleId, onClose }: AiCallDialogProps) {
         setInitiating(false)
         setPolling(false)
         setStopping(false)
-        setShouldStartCall(false)
+        setShowConfirm(false)
     }
 
     const executeStartCall = async () => {
@@ -187,48 +179,7 @@ export default function AiCallDialog({ saleId, onClose }: AiCallDialogProps) {
         }
     }
 
-    const handleStartCall = () => {
-        if (!saleId || initiating) return
-        
-        const customerName = modalData?.customerName || 'müşteri'
-        
-        toast((t) => (
-            <div className="flex flex-col gap-3 p-4 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-2xl max-w-sm w-[90vw] md:w-[350px]">
-                <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
-                    {customerName} adlı müşteriyi AI ile aramak istediğinizden emin misiniz?
-                </p>
-                <div className="flex items-center justify-end gap-2">
-                    <button 
-                        type="button"
-                        onClick={() => toast.dismiss(t.id)}
-                        className="px-3 py-1.5 text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
-                    >
-                        İptal
-                    </button>
-                    <button 
-                        type="button"
-                        onClick={() => {
-                            console.log("[AiCallDialog] Toast confirm clicked, setting shouldStartCall to true...");
-                            setShouldStartCall(true)
-                            toast.dismiss(t.id)
-                        }}
-                        className="px-4 py-1.5 text-xs font-black bg-purple-600 hover:bg-purple-700 text-white rounded-lg shadow-md shadow-purple-200 dark:shadow-none active:scale-95 transition-all"
-                    >
-                        Tamam
-                    </button>
-                </div>
-            </div>
-        ), {
-            duration: 8000,
-            position: 'top-center',
-            style: {
-                background: 'transparent',
-                boxShadow: 'none',
-                border: 'none',
-                padding: 0
-            }
-        })
-    }
+
 
     const handleStopCall = async () => {
         if (!callId || stopping) return
@@ -478,38 +429,68 @@ export default function AiCallDialog({ saleId, onClose }: AiCallDialogProps) {
                 ) : null}
 
                 <DialogFooter className="border-t pt-4 gap-2">
-                    <Button variant="outline" onClick={() => { setIsOpen(false); onClose() }}>
-                        Kapat
-                    </Button>
-                    
-                    {callStatus === 'idle' && (
-                        <Button 
-                            className="bg-purple-600 hover:bg-purple-700 font-bold"
-                            onClick={handleStartCall}
-                            disabled={initiating}
-                        >
-                            {initiating ? (
-                                <>
-                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                    Arama Hazırlanıyor...
-                                </>
-                            ) : (
-                                <>
-                                    <PhoneCall className="h-4 w-4 mr-2" />
-                                    AI Satış Asistanını Arat
-                                </>
+                    {showConfirm ? (
+                        <div className="flex items-center justify-between gap-3 p-3 bg-purple-50/50 dark:bg-purple-950/20 border border-purple-100 dark:border-purple-900/50 rounded-lg w-full animate-in fade-in slide-in-from-bottom-2 duration-250">
+                            <span className="text-xs font-semibold text-purple-900 dark:text-purple-200">
+                                Aramayı başlatmak istediğinizden emin misiniz?
+                            </span>
+                            <div className="flex items-center gap-2">
+                                <Button 
+                                    size="sm" 
+                                    variant="ghost" 
+                                    onClick={() => setShowConfirm(false)}
+                                    className="h-8 text-xs font-semibold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+                                >
+                                    İptal
+                                </Button>
+                                <Button 
+                                    size="sm" 
+                                    onClick={() => {
+                                        setShowConfirm(false)
+                                        executeStartCall()
+                                    }}
+                                    className="h-8 text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-md shadow-purple-200 dark:shadow-none"
+                                >
+                                    Evet, Ara
+                                </Button>
+                            </div>
+                        </div>
+                    ) : (
+                        <>
+                            <Button variant="outline" onClick={() => { setIsOpen(false); onClose() }}>
+                                Kapat
+                            </Button>
+                            
+                            {callStatus === 'idle' && (
+                                <Button 
+                                    className="bg-purple-600 hover:bg-purple-700 font-bold"
+                                    onClick={() => setShowConfirm(true)}
+                                    disabled={initiating}
+                                >
+                                    {initiating ? (
+                                        <>
+                                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                            Arama Hazırlanıyor...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <PhoneCall className="h-4 w-4 mr-2" />
+                                            AI Satış Asistanını Arat
+                                        </>
+                                    )}
+                                </Button>
                             )}
-                        </Button>
-                    )}
 
-                    {(callStatus === 'ringing' || callStatus === 'in-progress') && (
-                        <Button variant="destructive" className="font-bold flex items-center gap-1.5" onClick={handleStopCall} disabled={stopping}>
-                            {stopping ? (
-                                <><Loader2 className="h-4 w-4 animate-spin" /> Durduruluyor...</>
-                            ) : (
-                                <><PhoneOff className="h-4 w-4" /> Aramayı Durdur</>
+                            {(callStatus === 'ringing' || callStatus === 'in-progress') && (
+                                <Button variant="destructive" className="font-bold flex items-center gap-1.5" onClick={handleStopCall} disabled={stopping}>
+                                    {stopping ? (
+                                        <><Loader2 className="h-4 w-4 animate-spin" /> Durduruluyor...</>
+                                    ) : (
+                                        <><PhoneOff className="h-4 w-4" /> Aramayı Durdur</>
+                                    )}
+                                </Button>
                             )}
-                        </Button>
+                        </>
                     )}
                 </DialogFooter>
             </DialogContent>
