@@ -37,7 +37,8 @@ export async function POST(req: NextRequest) {
             case 'call.ended':
                 console.log(`[Vapi Webhook] Call ended: ${parsed.callId}, reason: ${parsed.endedReason}`)
                 
-                // Idempotency: aynı callId için tekrar işlem yapma
+                // Idempotency: aynı callId için tekrar işlem yapma.
+                // Not: Placeholder aktivitede Call ID zaten var. Bu yüzden Transkript'in eklenip eklenmediğine bakıyoruz.
                 if (parsed.callId) {
                     const adminSupabase = createAdminClient()
                     const { count } = await adminSupabase
@@ -45,6 +46,7 @@ export async function POST(req: NextRequest) {
                         .select('*', { count: 'exact', head: true })
                         .eq('type', 'Call')
                         .ilike('description', `%[Call ID: ${parsed.callId}]%`)
+                        .ilike('description', `%📝 Transkript:%`)
                     if (count && count > 0) {
                         console.log(`[Vapi Webhook] Duplicate webhook for callId ${parsed.callId} — atlanıyor`)
                         return NextResponse.json({ status: 'duplicate_skipped' }, { status: 200 })

@@ -2092,9 +2092,8 @@ Müşterinin adı: ${customerName}. Ona ismiyle hitap et (Örn: "${customerName}
             topic: 'Sales',
             summary: `📞 AI Arama başlatıldı — ${projectName}`,
             description: `AI arama başlatıldı. Webhook ile güncellenecek.\n\n[Call ID: ${result.callId}]`,
-            status: 'Completed',
+            status: 'In Progress',
             due_date: new Date().toISOString(),
-            completed_at: new Date().toISOString(),
             project_id: sale.project_id,
         })
     } catch (logErr) {
