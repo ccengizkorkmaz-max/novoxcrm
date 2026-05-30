@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+
 const VAPI_API_KEY = process.env.VAPI_API_KEY || '56495e99-0cdc-41d4-8bd8-964b50ac908d';
 const VAPI_BASE_URL = 'https://api.vapi.ai';
 const ASSISTANT_ID = process.env.VAPI_ASSISTANT_ID || '282a5b95-f9a7-43f0-b559-d469702021d7';
@@ -36,6 +38,7 @@ const TURKISH_VOICE_RULES = `
 7. Samimi ama profesyonel bir Türkçe ile konuş. Doğal, akıcı cümleler kur.
 8. "Efendim", "Buyurun", "Tabii ki" gibi Türkçe nezaket kalıplarını kullan.
 9. Müşteriyle konuşurken kesinlikle teknik jargon kullanma, sade ve anlaşılır Türkçe tercih et.
+10. GÖRÜŞME SONLANDIRMA VE TELEFONU KAPATMA: Görüşmeyi sonlandırırken mutlaka vedalaş ve ardından HEMEN "endCall" fonksiyonunu/aracını (tool) çağırarak aramayı sonlandır. Vedalaşma cümlesini ("Sizi ilgili satış danışmanımıza yönlendiriyorum. En kısa sürede size dönüş yapacaklar, iyi günler dilerim." veya "İyi günler dilerim.") söyledikten sonra beklemeden aramayı kapatmalısın.
 === DİL KURALLARI SONU ===
 `;
 
@@ -189,6 +192,10 @@ export async function POST(request: NextRequest) {
     };
 
     // We will build assistantOverrides dynamically
+    const host = request.headers.get('host') || 'oikoscrm.com';
+    const protocol = host.includes('localhost') || host.includes('127.0.0.1') ? 'http' : 'https';
+    const siteUrl = `${protocol}://${host}`;
+
     const overrides: any = {};
     if (customFirstMessage) {
       overrides.firstMessage = customFirstMessage;
@@ -208,6 +215,22 @@ export async function POST(request: NextRequest) {
     }
 
     const finalPrompt = `${TURKISH_VOICE_RULES}\n${basePrompt}\n\n=== CRM BİLGİSİ ===\n${crmContext}`;
+
+    overrides.backgroundSpeechDenoisingPlan = {
+      smartDenoisingPlan: {
+        enabled: true
+      }
+    };
+
+    overrides.tools = [
+      {
+        type: 'endCall'
+      }
+    ];
+
+    overrides.server = {
+      url: `${siteUrl}/api/webhooks/vapi`
+    };
 
     overrides.model = {
       provider: "openai",

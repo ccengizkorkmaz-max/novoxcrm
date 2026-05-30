@@ -38,7 +38,7 @@ export const TURKISH_VOICE_RULES = `
 7. Samimi ama profesyonel bir Türkçe ile konuş. Doğal, akıcı cümleler kur.
 8. "Efendim", "Buyurun", "Tabii ki" gibi Türkçe nezaket kalıplarını kullan.
 9. Müşteriyle konuşurken kesinlikle teknik jargon kullanma, sade ve anlaşılır Türkçe tercih et.
-10. GÖRÜŞME SONLANDIRMA: Görüşmeyi bitirirken cümleyi kısa tut, örneğin "Sizi ilgili satış danışmanımıza yönlendiriyorum. En kısa sürede size dönüş yapacaklar, iyi günler dilerim." diyerek net bir şekilde görüşmeyi sonlandır.
+10. GÖRÜŞME SONLANDIRMA VE TELEFONU KAPATMA: Görüşmeyi sonlandırırken mutlaka vedalaş ve ardından HEMEN "endCall" fonksiyonunu/aracını (tool) çağırarak aramayı sonlandır. Vedalaşma cümlesini ("Sizi ilgili satış danışmanımıza yönlendiriyorum. En kısa sürede size dönüş yapacaklar, iyi günler dilerim." veya "İyi günler dilerim.") söyledikten sonra beklemeden aramayı kapatmalısın.
 === DİL KURALLARI SONU ===
 
 === RET YÖNETİMİ (KRİTİK — KESİNLİKLE UYULMALIDIR) ===
@@ -180,14 +180,39 @@ export async function makeOutboundCall(options: VapiCallOptions): Promise<VapiCa
         // If we have a custom system prompt, use a transient (inline) assistant
         // to guarantee our prompt is used instead of the saved assistant's prompt
         if (options.systemPrompt) {
+            let siteUrl = 'https://oikoscrm.com'
+            try {
+                const { headers } = await import('next/headers')
+                const host = (await headers()).get('host')
+                if (host) {
+                    const protocol = host.includes('localhost') || host.includes('127.0.0.1') ? 'http' : 'https'
+                    siteUrl = `${protocol}://${host}`
+                }
+            } catch {
+                if (process.env.NEXT_PUBLIC_SITE_URL) {
+                    siteUrl = process.env.NEXT_PUBLIC_SITE_URL
+                }
+            }
+            const resolvedServerUrl = `${siteUrl}/api/webhooks/vapi`
+
             payload.assistant = {
-                serverUrl: 'https://oikoscrm.com/api/webhooks/vapi',
+                serverUrl: resolvedServerUrl,
                 serverMessages: ['end-of-call-report', 'status-update'],
                 firstMessage: options.firstMessage || undefined,
                 firstMessageMode: options.firstMessage ? 'assistant-speaks-first' : 'assistant-waits-for-user',
                 startSpeakingPlan: {
                     waitSeconds: 0.8
                 },
+                backgroundSpeechDenoisingPlan: {
+                    smartDenoisingPlan: {
+                        enabled: true
+                    }
+                },
+                tools: [
+                    {
+                        type: 'endCall'
+                    }
+                ],
                 model: {
                     provider: 'openai',
                     model: 'gpt-4o',

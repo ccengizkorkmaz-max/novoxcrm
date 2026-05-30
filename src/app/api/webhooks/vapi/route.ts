@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { parseVapiWebhook, handleManualVapiCallResult } from '@/lib/vapi'
+
+export const dynamic = 'force-dynamic'
 import { handleVapiCallResult } from '@/lib/outreach/engine'
 
 /**

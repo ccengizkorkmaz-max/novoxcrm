@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+
+export const dynamic = 'force-dynamic';
 import { sendWhatsAppMessage } from '@/lib/whatsapp';
 
 import { parseIncomingPayload, normalizeTurkish, findTenant, findOrCreateConversation } from '@/lib/whatsapp/parser';
