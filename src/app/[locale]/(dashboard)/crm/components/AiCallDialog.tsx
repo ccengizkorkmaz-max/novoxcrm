@@ -438,6 +438,7 @@ export default function AiCallDialog({ saleId, onClose }: AiCallDialogProps) {
                                 <Button 
                                     size="sm" 
                                     variant="ghost" 
+                                    disabled={initiating}
                                     onClick={() => setShowConfirm(false)}
                                     className="h-8 text-xs font-semibold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
                                 >
@@ -445,13 +446,14 @@ export default function AiCallDialog({ saleId, onClose }: AiCallDialogProps) {
                                 </Button>
                                 <Button 
                                     size="sm" 
-                                    onClick={() => {
+                                    disabled={initiating}
+                                    onClick={async () => {
+                                        await executeStartCall()
                                         setShowConfirm(false)
-                                        executeStartCall()
                                     }}
                                     className="h-8 text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white shadow-md shadow-purple-200 dark:shadow-none"
                                 >
-                                    Evet, Ara
+                                    {initiating ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Evet, Ara'}
                                 </Button>
                             </div>
                         </div>
