@@ -82,7 +82,7 @@ export default async function ConversationDetailPage(props: { params: Promise<{ 
                 </div>
 
                 {/* Info Sidebar */}
-                <div className="hidden xl:block w-40 border-l border-slate-200 bg-white overflow-y-auto custom-scrollbar p-3 space-y-4">
+                <div className="hidden xl:block w-52 border-l border-slate-200 bg-white overflow-y-auto custom-scrollbar p-3 space-y-4">
                     {/* Customer Card */}
                     {session.customers ? (
                         <Link
@@ -144,7 +144,7 @@ export default async function ConversationDetailPage(props: { params: Promise<{ 
                     )}
 
                     {/* Compact Info Grid */}
-                    <div className="flex flex-col gap-2">
+                    <div className="grid grid-cols-2 gap-2">
                         <div className="bg-slate-50 rounded-lg p-2.5 text-center">
                             <div className="text-[10px] text-slate-400 font-bold uppercase">Kanal</div>
                             <div className={cn(

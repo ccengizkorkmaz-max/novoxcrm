@@ -89,7 +89,7 @@ export default function RealtimeMessages({
                                     : "bg-[#f0f2f5] dark:bg-slate-800 text-slate-900 dark:text-white rounded-[22px] rounded-bl-sm"
                             )}
                         >
-                            <p className="text-[14.5px] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                            <p className="text-[13px] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
                             
                             {/* Timestamp below bubble if needed, but Messenger puts it outside or very small */}
                             <div className={cn(
