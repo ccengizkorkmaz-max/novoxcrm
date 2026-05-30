@@ -27,7 +27,7 @@ import {
     Volume2
 } from 'lucide-react'
 import { getAiCallModalData, initiateAiCall, getCallDetails, stopAiCall } from '../actions'
-import toast from 'react-hot-toast'
+import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 
 interface AiCallDialogProps {
