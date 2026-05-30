@@ -229,7 +229,7 @@ export async function makeOutboundCall(options: VapiCallOptions): Promise<VapiCa
                 },
                 voice: {
                     provider: '11labs',
-                    voiceId: options.voiceId || 'uvU9jrgGLWNPeNA4NgNT', // İrem - aktif kadın sesi
+                    voiceId: options.voiceId || 'uvU9jrgGLWNPeNA4NgNT', // Çiçek - aktif kadın sesi
                     model: 'eleven_multilingual_v2',
                     stability: 0.40,
                     similarityBoost: 0.85,
@@ -385,7 +385,7 @@ export async function createOutreachAssistant(config: {
             },
             voice: {
                 provider: 'elevenlabs',
-                voiceId: config.voice || 'uvU9jrgGLWNPeNA4NgNT', // İrem - aktif kadın sesi
+                voiceId: config.voice || 'uvU9jrgGLWNPeNA4NgNT', // Çiçek - aktif kadın sesi
             },
             firstMessage: config.firstMessage,
             endCallMessage: 'İyi günler, görüşmek üzere.',
