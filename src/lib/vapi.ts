@@ -203,6 +203,7 @@ export async function makeOutboundCall(options: VapiCallOptions): Promise<VapiCa
                 serverUrl: resolvedServerUrl,
                 serverMessages: ['end-of-call-report', 'status-update'],
                 firstMessage: options.firstMessage || undefined,
+                endCallMessage: options.endCallMessage || 'İyi günler, görüşmek üzere. Hoşçakalın.',
                 firstMessageMode: options.firstMessage ? 'assistant-speaks-first' : 'assistant-waits-for-user',
                 startSpeakingPlan: {
                     waitSeconds: 0.8
