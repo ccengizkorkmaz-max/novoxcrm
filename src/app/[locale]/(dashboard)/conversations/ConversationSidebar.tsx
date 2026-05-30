@@ -107,56 +107,58 @@ export default function ConversationSidebar({ sessions }: ConversationSidebarPro
                                 </div>
 
                                 <div className="flex-1 min-w-0 pr-2 text-left">
-                                    <div className="flex items-center justify-between gap-2 mb-1">
-                                        <span className={cn(
-                                            "font-medium text-sm truncate",
-                                            isActive ? "text-white" : "text-slate-900"
-                                        )}>
-                                            {session.customers?.full_name || `+${session.phone_number}`}
-                                        </span>
+                                    <div className="flex flex-col gap-0.5 mb-1.5">
+                                        <div className="flex items-center justify-between gap-2">
+                                            <span className={cn(
+                                                "font-bold text-sm truncate",
+                                                isActive ? "text-white" : "text-slate-900"
+                                            )}>
+                                                {session.customers?.full_name || `+${session.phone_number}`}
+                                            </span>
+                                            {!isActive && (
+                                                <div className="flex items-center gap-1 shrink-0">
+                                                    {session.unread_count > 0 && (
+                                                        <span className="flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-black text-white shadow-sm" title={`${session.unread_count} okunmamış mesaj`}>
+                                                            {session.unread_count}
+                                                        </span>
+                                                    )}
+                                                    {session.lead_score && session.lead_score !== 'unknown' && (
+                                                        <span className={cn(
+                                                            "text-[10px] px-1.5 py-0.5 rounded-full font-medium",
+                                                            session.lead_score === 'hot' && 'bg-red-100 text-red-700',
+                                                            session.lead_score === 'warm' && 'bg-orange-100 text-orange-700',
+                                                            session.lead_score === 'cold' && 'bg-sky-100 text-sky-600',
+                                                        )}>
+                                                            {session.lead_score === 'hot' ? '🔥' : session.lead_score === 'warm' ? '🟠' : '🔵'}
+                                                        </span>
+                                                    )}
+                                                    <Badge className={cn(
+                                                        "text-[9px] px-1.5 py-0 min-w-max uppercase font-bold border-none",
+                                                        session.ai_enabled ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'
+                                                    )}>
+                                                        {session.ai_enabled ? 'AI' : 'İNSAN'}
+                                                    </Badge>
+                                                </div>
+                                            )}
+                                        </div>
                                         {session.customers?.full_name && (
                                             <span className={cn(
-                                                "text-xs font-normal",
-                                                isActive ? "text-blue-200" : "text-slate-400"
+                                                "text-[11px] font-semibold",
+                                                isActive ? "text-blue-200" : "text-slate-500"
                                             )}>
                                                 +{session.phone_number}
                                             </span>
                                         )}
-                                        {!isActive && (
-                                            <div className="flex items-center gap-1">
-                                                {session.unread_count > 0 && (
-                                                    <span className="flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-black text-white shadow-sm" title={`${session.unread_count} okunmamış mesaj`}>
-                                                        {session.unread_count}
-                                                    </span>
-                                                )}
-                                                {session.lead_score && session.lead_score !== 'unknown' && (
-                                                    <span className={cn(
-                                                        "text-[10px] px-2 py-0.5 rounded-full font-medium",
-                                                        session.lead_score === 'hot' && 'bg-red-100 text-red-700',
-                                                        session.lead_score === 'warm' && 'bg-orange-100 text-orange-700',
-                                                        session.lead_score === 'cold' && 'bg-sky-100 text-sky-600',
-                                                    )}>
-                                                        {session.lead_score === 'hot' ? '🔥' : session.lead_score === 'warm' ? '🟠' : '🔵'}
-                                                    </span>
-                                                )}
-                                                <Badge className={cn(
-                                                    "text-[10px] px-2 py-0.5 min-w-max uppercase font-medium border-none",
-                                                    session.ai_enabled ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'
-                                                )}>
-                                                    {session.ai_enabled ? 'AI' : 'İNSAN'}
-                                                </Badge>
-                                            </div>
-                                        )}
                                     </div>
                                     <div className={cn(
-                                        "text-xs truncate opacity-70",
-                                        isActive ? "text-blue-100" : "text-slate-500"
+                                        "text-[13px] leading-snug line-clamp-2",
+                                        isActive ? "text-blue-100" : "text-slate-600"
                                     )}>
                                         {session.last_message_preview || 'Mesaj yok'}
                                     </div>
                                     <div className={cn(
-                                        "flex items-center gap-1.5 mt-2 text-xs font-normal",
-                                        isActive ? "text-blue-100/70" : "text-slate-400"
+                                        "flex items-center gap-1.5 mt-1.5 text-[11px] font-medium",
+                                        isActive ? "text-blue-100/70" : "text-slate-500"
                                     )}>
                                         <Clock className="h-3 w-3" />
                                         {formatDistanceToNow(new Date(session.last_message_at), { addSuffix: true, locale: tr })}
