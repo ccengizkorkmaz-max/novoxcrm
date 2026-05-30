@@ -50,6 +50,7 @@ export default function AiCallDialog({ saleId, onClose }: AiCallDialogProps) {
     const [initiating, setInitiating] = useState(false)
     const [polling, setPolling] = useState(false)
     const [stopping, setStopping] = useState(false)
+    const [shouldStartCall, setShouldStartCall] = useState(false)
     const pollingStartRef = useRef<number>(0)
 
     const transcriptEndRef = useRef<HTMLDivElement>(null)
@@ -71,6 +72,15 @@ export default function AiCallDialog({ saleId, onClose }: AiCallDialogProps) {
             transcriptEndRef.current.scrollIntoView({ behavior: 'smooth' })
         }
     }, [transcript])
+
+    // Execute call when shouldStartCall becomes true
+    useEffect(() => {
+        if (shouldStartCall) {
+            console.log("[AiCallDialog] shouldStartCall is true, resetting and executing call...")
+            setShouldStartCall(false)
+            executeStartCall()
+        }
+    }, [shouldStartCall])
 
     // Poll call details during call (max 5 dakika timeout)
     useEffect(() => {
@@ -149,18 +159,17 @@ export default function AiCallDialog({ saleId, onClose }: AiCallDialogProps) {
         setInitiating(false)
         setPolling(false)
         setStopping(false)
+        setShouldStartCall(false)
     }
 
-    const handleStartCall = async () => {
-        if (!saleId || initiating) return
-        
-        const customerName = modalData?.customerName || 'müşteri'
-        if (!window.confirm(`${customerName} adlı müşteriyi AI ile aramak istediğinizden emin misiniz?`)) return
-
+    const executeStartCall = async () => {
+        console.log("[AiCallDialog] executeStartCall starting...");
         setInitiating(true)
         setCallStatus('ringing')
         try {
-            const res = await initiateAiCall(saleId)
+            console.log("[AiCallDialog] calling initiateAiCall with saleId:", saleId);
+            const res = await initiateAiCall(saleId!)
+            console.log("[AiCallDialog] initiateAiCall result:", res);
             if (res.error) {
                 toast.error(res.error)
                 setCallStatus('idle')
@@ -169,12 +178,56 @@ export default function AiCallDialog({ saleId, onClose }: AiCallDialogProps) {
                 setPolling(true)
                 toast.success('AI Arama Başlatıldı')
             }
-        } catch {
+        } catch (err) {
+            console.error("[AiCallDialog] error in executeStartCall:", err);
             toast.error('Arama başlatılamadı.')
             setCallStatus('idle')
         } finally {
             setInitiating(false)
         }
+    }
+
+    const handleStartCall = () => {
+        if (!saleId || initiating) return
+        
+        const customerName = modalData?.customerName || 'müşteri'
+        
+        toast((t) => (
+            <div className="flex flex-col gap-3 p-4 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-2xl max-w-sm w-[90vw] md:w-[350px]">
+                <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                    {customerName} adlı müşteriyi AI ile aramak istediğinizden emin misiniz?
+                </p>
+                <div className="flex items-center justify-end gap-2">
+                    <button 
+                        type="button"
+                        onClick={() => toast.dismiss(t.id)}
+                        className="px-3 py-1.5 text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
+                    >
+                        İptal
+                    </button>
+                    <button 
+                        type="button"
+                        onClick={() => {
+                            console.log("[AiCallDialog] Toast confirm clicked, setting shouldStartCall to true...");
+                            setShouldStartCall(true)
+                            toast.dismiss(t.id)
+                        }}
+                        className="px-4 py-1.5 text-xs font-black bg-purple-600 hover:bg-purple-700 text-white rounded-lg shadow-md shadow-purple-200 dark:shadow-none active:scale-95 transition-all"
+                    >
+                        Tamam
+                    </button>
+                </div>
+            </div>
+        ), {
+            duration: 8000,
+            position: 'top-center',
+            style: {
+                background: 'transparent',
+                boxShadow: 'none',
+                border: 'none',
+                padding: 0
+            }
+        })
     }
 
     const handleStopCall = async () => {
