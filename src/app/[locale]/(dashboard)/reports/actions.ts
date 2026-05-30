@@ -1120,7 +1120,7 @@ export async function getOutreachCostReportData(workflowIdParam?: string) {
     })
 
     const totalCallCost = recordedVapiCost + estimatedVapiCost
-    const totalWhatsAppCost = whatsappLogs.length * 0.03
+    const totalWhatsAppCost = whatsappLogs.length * 0.01
     const totalSmsCost = smsLogs.length * 0.01
 
     const totalCost = totalCallCost + totalWhatsAppCost + totalSmsCost
@@ -1167,7 +1167,7 @@ export async function getOutreachCostReportData(workflowIdParam?: string) {
             current.callCost += cost
         } else if (l.channel === 'whatsapp') {
             current.whatsappCount++
-            current.whatsappCost += 0.03
+            current.whatsappCost += 0.01
         } else if (l.channel === 'sms') {
             current.smsCost += 0.01
         }

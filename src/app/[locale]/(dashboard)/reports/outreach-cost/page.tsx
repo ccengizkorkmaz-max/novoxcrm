@@ -501,7 +501,7 @@ export default function OutreachCostReportPage() {
                             <div className="space-y-2">
                                 <h4 className="font-bold text-indigo-200">2. WhatsApp Mesajlaşma Maliyeti</h4>
                                 <p>
-                                    Meta Cloud API şablon ve oturum maliyetleri veritabanında anlık tutulmadığı için, Meta standart tarifesinden mesaj başına <strong className="text-emerald-400">$0.03</strong> flat maliyet uygulanır.
+                                    Meta Cloud API şablon ve oturum maliyetleri veritabanında anlık tutulmadığı için, Meta standart tarifesinden mesaj başına <strong className="text-emerald-400">$0.01</strong> flat maliyet uygulanır.
                                 </p>
                             </div>
                         )}
