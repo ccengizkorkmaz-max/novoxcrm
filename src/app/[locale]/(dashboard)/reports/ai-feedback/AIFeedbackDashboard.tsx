@@ -291,13 +291,13 @@ function CallReviewPanel({ calls, t, locale }: { calls: any[]; t: (k: string) =>
                         className={cn(
                             "px-4 py-2 text-xs font-semibold flex items-center gap-1.5 transition-colors",
                             subTab === 'pending'
-                                ? "bg-violet-500/15 text-violet-400 border-r border-violet-500/30"
+                                ? "bg-violet-50 text-violet-700 border-r border-violet-200"
                                 : "text-muted-foreground hover:bg-muted/50 border-r"
                         )}
                     >
                         <AlertTriangle className="h-3.5 w-3.5" />
                         Bekleyen
-                        <span className="ml-1 px-1.5 py-0.5 rounded-full bg-orange-500/15 text-orange-400 text-[10px] font-bold tabular-nums">
+                        <span className="ml-1 px-1.5 py-0.5 rounded-full bg-orange-50 text-orange-700 border border-orange-200 text-[10px] font-bold tabular-nums">
                             {pendingCalls.length}
                         </span>
                     </button>
@@ -306,13 +306,13 @@ function CallReviewPanel({ calls, t, locale }: { calls: any[]; t: (k: string) =>
                         className={cn(
                             "px-4 py-2 text-xs font-semibold flex items-center gap-1.5 transition-colors",
                             subTab === 'reviewed'
-                                ? "bg-green-500/15 text-green-400"
+                                ? "bg-green-50 text-green-700 border-green-200"
                                 : "text-muted-foreground hover:bg-muted/50"
                         )}
                     >
                         <CheckCircle2 className="h-3.5 w-3.5" />
                         Değerlendirildi
-                        <span className="ml-1 px-1.5 py-0.5 rounded-full bg-green-500/15 text-green-400 text-[10px] font-bold tabular-nums">
+                        <span className="ml-1 px-1.5 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-200 text-[10px] font-bold tabular-nums">
                             {reviewedCalls.length}
                         </span>
                     </button>
@@ -355,7 +355,7 @@ function CallReviewPanel({ calls, t, locale }: { calls: any[]; t: (k: string) =>
                                 <div className="p-4 cursor-pointer" onClick={() => setExpandedId(isExpanded ? null : call.id)}>
                                     <div className="flex items-center gap-3">
                                         <div className="p-2 rounded-lg bg-violet-500/15 border border-violet-500/30">
-                                            <Phone className="h-4 w-4 text-violet-400" />
+                                            <Phone className="h-4 w-4 text-violet-600" />
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2">
@@ -383,16 +383,16 @@ function CallReviewPanel({ calls, t, locale }: { calls: any[]; t: (k: string) =>
 
                                         <Badge variant="outline" className={cn(
                                             "text-[10px]",
-                                            call.status === 'converted' ? "border-green-500/30 text-green-400" :
-                                            call.status === 'answered' ? "border-emerald-500/30 text-emerald-400" :
-                                            "border-orange-500/30 text-orange-400"
+                                            call.status === 'converted' ? "border-green-200 text-green-700" :
+                                            call.status === 'answered' ? "border-emerald-200 text-emerald-700" :
+                                            "border-orange-200 text-orange-600"
                                         )}>
                                             {call.status === 'converted' ? 'İlgilendi ✨' :
                                              call.status === 'answered' ? 'Cevaplandı' : 'Açtı/Kapattı'}
                                         </Badge>
 
                                         {(hasExisting || isSubmitted) && (
-                                            <Badge className="bg-green-500/15 text-green-400 border-green-500/30 text-[10px]">
+                                            <Badge className="bg-green-50 text-green-700 border-green-200 text-[10px]">
                                                 <CheckCircle2 className="h-3 w-3 mr-1" /> Değerlendirildi
                                             </Badge>
                                         )}
