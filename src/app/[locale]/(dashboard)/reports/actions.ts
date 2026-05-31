@@ -1311,7 +1311,43 @@ export async function getMetaAutomationAnalytics() {
             }
         }) : fallbackScenarios
 
-        const mappedIntegrations = activeForms.map((row: any) => {
+        // 5. Consolidate duplicate forms — the DB view returns separate rows per campaign,
+        // so "NOVO PARK 4 KOCAELİ" can appear multiple times. Merge by form_name.
+        const consolidatedForms: Record<string, any> = {}
+        activeForms.forEach((row: any) => {
+            const key = (row.form_name || 'Bilinmeyen Form').trim()
+            if (!consolidatedForms[key]) {
+                consolidatedForms[key] = {
+                    form_name: key,
+                    channel: row.channel || 'Facebook Ads',
+                    campaign: row.campaign || '',
+                    campaigns: [row.campaign].filter(Boolean),
+                    total: row.total || 0,
+                    today: row.today || 0,
+                    this_week: row.this_week || 0,
+                    this_month: row.this_month || 0,
+                }
+            } else {
+                const existing = consolidatedForms[key]
+                existing.total += row.total || 0
+                existing.today += row.today || 0
+                existing.this_week += row.this_week || 0
+                existing.this_month += row.this_month || 0
+                if (row.campaign && !existing.campaigns.includes(row.campaign)) {
+                    existing.campaigns.push(row.campaign)
+                }
+            }
+        })
+
+        // Build a combined campaign label for display
+        const consolidatedRows = Object.values(consolidatedForms).map((row: any) => ({
+            ...row,
+            campaign: row.campaigns.length > 1
+                ? `${row.campaigns[0]} (+${row.campaigns.length - 1} diğer)`
+                : row.campaigns[0] || ''
+        }))
+
+        const mappedIntegrations = consolidatedRows.map((row: any) => {
             const formName = row.form_name || 'Bilinmeyen Form'
             const campaign = row.campaign || ''
             
