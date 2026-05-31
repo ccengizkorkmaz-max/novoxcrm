@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from 'react'
-import { Building2, Menu, X, ChevronRight, ChevronDown, Calculator, CreditCard, Home, TrendingUp } from 'lucide-react'
+import { Building2, Menu, X, ChevronRight, ChevronDown, Calculator, CreditCard, Home, TrendingUp, Percent, DollarSign } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { LeadCaptureModal } from '@/components/marketing/LeadCaptureModal'
@@ -15,6 +15,12 @@ const toolsMenu = [
     { name: 'Emlak Vergisi Hesaplayıcı', href: '/tools/emlak-vergisi-hesaplayici', icon: Home, desc: '2026 güncel vergi dilimleriyle hesaplama' },
     { name: 'Konut Kredisi Karşılaştırma', href: '/tools/konut-kredisi-karsilastirma', icon: TrendingUp, desc: '10 bankanın faiz oranlarını karşılaştırın' },
     { name: 'Ödeme Planı Sihirbazı', href: '/payment-plan-calculator', icon: CreditCard, desc: 'Konut projeleri için ödeme planı oluşturun' },
+    { name: 'Broker Komisyonu', href: '/tools/broker-komisyon-hesaplayici', icon: Calculator, desc: 'Broker ve danışman komisyon payı' },
+    { name: 'Yatırım Getirisi (ROI)', href: '/tools/yatirim-getirisi-hesaplayici', icon: Percent, desc: 'ROI ve geri dönüş süresi hesaplama' },
+    { name: 'Kira Getirisi Analizi', href: '/tools/kira-getirisi-hesaplayici', icon: DollarSign, desc: 'Brüt ve net kira getirisi oranları' },
+    { name: 'İnşaat Maliyeti', href: '/tools/insaat-maliyet-hesaplayici', icon: Building2, desc: 'Kaba ve ince inşaat birim maliyetleri' },
+    { name: 'Metrekare Birim Fiyat', href: '/tools/metrekare-birim-fiyat', icon: Calculator, desc: 'Gayrimenkul metrekare birim fiyatı' },
+    { name: 'Damga Vergisi', href: '/tools/damga-vergisi-hesaplayici', icon: CreditCard, desc: 'Sözleşme ve tapu damga vergisi oranları' },
 ]
 
 export function Navbar() {
@@ -90,8 +96,8 @@ export function Navbar() {
                         </button>
 
                         {isToolsOpen && (
-                            <div className="absolute top-full right-0 mt-3 w-80 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl shadow-black/40 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-                                <div className="p-2">
+                            <div className="absolute top-full right-0 mt-3 w-[640px] bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl shadow-black/40 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 z-50">
+                                <div className="p-4 grid grid-cols-2 gap-2">
                                     {toolsMenu.map((tool) => (
                                         <Link
                                             key={tool.href}
@@ -165,19 +171,21 @@ export function Navbar() {
                     ))}
 
                     {/* Mobile Tools Section */}
-                    <div className="border-t border-slate-800 pt-4">
+                    <div className="border-t border-slate-800 pt-4 max-h-[300px] overflow-y-auto pr-1">
                         <p className="text-xs text-slate-500 uppercase tracking-wider mb-3">Ücretsiz Araçlar</p>
-                        {toolsMenu.map((tool) => (
-                            <Link
-                                key={tool.href}
-                                href={tool.href}
-                                onClick={() => setIsMobileMenuOpen(false)}
-                                className="flex items-center gap-3 py-3 text-lg text-slate-300 hover:text-white"
-                            >
-                                <tool.icon size={20} className="text-blue-400" />
-                                {tool.name}
-                            </Link>
-                        ))}
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                            {toolsMenu.map((tool) => (
+                                <Link
+                                    key={tool.href}
+                                    href={tool.href}
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                    className="flex items-center gap-2 py-2 text-sm text-slate-300 hover:text-white"
+                                >
+                                    <tool.icon size={16} className="text-blue-400 shrink-0" />
+                                    <span className="truncate">{tool.name}</span>
+                                </Link>
+                            ))}
+                        </div>
                     </div>
                 </div>
 
