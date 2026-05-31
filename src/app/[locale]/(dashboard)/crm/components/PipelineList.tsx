@@ -1081,9 +1081,9 @@ export default function PipelineList({
                 )}
             </div>
 
-            {/* Pagination Controls */}
+            {/* Pagination Controls & Record Count */}
             {
-                totalPages > 1 && (
+                totalPages > 1 ? (
                     <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 mt-4 shadow-sm">
                         <div className="flex items-center gap-1">
                             <Button
@@ -1184,6 +1184,17 @@ export default function PipelineList({
                             </p>
                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block sm:hidden">
                                 {currentPage} / {totalPages} • {currentSales.length}/{totalSalesCount}
+                            </p>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="flex flex-col sm:flex-row items-center justify-end gap-4 bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 mt-4 shadow-sm">
+                        <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2">
+                            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest hidden sm:block">
+                                Görüntülenen: {currentSales.length} / {totalSalesCount}
+                            </p>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block sm:hidden">
+                                {currentSales.length}/{totalSalesCount}
                             </p>
                         </div>
                     </div>
