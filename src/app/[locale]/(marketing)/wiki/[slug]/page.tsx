@@ -1,7 +1,7 @@
 
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { ArrowLeft, Clock, Calendar, Tag, Share2, MessageCircle } from 'lucide-react'
+import { ArrowLeft, Clock, Calendar, Tag, Share2, MessageCircle, ChevronDown, BarChart3, Sparkles } from 'lucide-react'
 import { wikiArticles } from '@/data/wiki-data'
 import type { Metadata } from 'next'
 import { getBrandNameFromHost, getHostFromHeaders } from '@/lib/tenant/resolve-brand-from-host'
@@ -262,10 +262,62 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
                     </div>
                 )}
 
+                {/* TL;DR Summary Box (GEO Optimized) */}
+                {(article as any).tldr && (
+                    <div className="bg-gradient-to-br from-blue-900/20 to-slate-900 border border-blue-500/20 rounded-2xl p-6 mb-12">
+                        <div className="flex items-center gap-2 text-blue-400 font-bold text-sm uppercase tracking-wider mb-3">
+                            <Sparkles size={16} /> Özet (TL;DR)
+                        </div>
+                        <p className="text-slate-300 leading-relaxed text-lg">{(article as any).tldr}</p>
+                    </div>
+                )}
+
+                {/* Stats Cards (GEO Optimized) */}
+                {(article as any).stats && (article as any).stats.length > 0 && (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
+                        {(article as any).stats.map((stat: {label: string; value: string}, i: number) => (
+                            <div key={i} className="p-4 rounded-xl bg-slate-900/50 border border-slate-800 text-center">
+                                <p className="text-2xl font-black text-blue-400">{stat.value}</p>
+                                <p className="text-xs text-slate-500 mt-1">{stat.label}</p>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
                 {/* Article Content */}
                 <article className="prose prose-invert prose-lg max-w-none mb-20 prose-headings:text-white prose-p:text-slate-400 prose-strong:text-blue-400 prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline prose-li:text-slate-400 prose-code:text-indigo-300">
                     <div dangerouslySetInnerHTML={{ __html: formatContent(article.content) }} />
                 </article>
+
+                {/* Structured FAQ Accordion (GEO Optimized) */}
+                {(article as any).faq && (article as any).faq.length > 0 && (
+                    <section className="mb-16">
+                        <h2 className="text-2xl font-bold text-white mb-8 flex items-center gap-2">
+                            <BarChart3 className="text-blue-400" size={24} /> Sıkça Sorulan Sorular
+                        </h2>
+                        <div className="space-y-3">
+                            {(article as any).faq.map((item: {question: string; answer: string}, i: number) => (
+                                <details key={i} className="group rounded-2xl border border-slate-800 bg-slate-900/30 overflow-hidden">
+                                    <summary className="p-5 cursor-pointer flex items-center justify-between text-white font-semibold hover:bg-slate-900/50 transition-colors">
+                                        <span>{item.question}</span>
+                                        <ChevronDown className="h-5 w-5 text-slate-500 group-open:rotate-180 transition-transform shrink-0 ml-2" />
+                                    </summary>
+                                    <div className="px-5 pb-5 text-slate-400 leading-relaxed border-t border-slate-800 pt-4">
+                                        {item.answer}
+                                    </div>
+                                </details>
+                            ))}
+                        </div>
+                    </section>
+                )}
+
+                {/* Expert Quote (GEO Optimized) */}
+                {(article as any).expertQuote && (
+                    <blockquote className="mb-16 p-6 rounded-2xl bg-slate-900/50 border-l-4 border-blue-500">
+                        <p className="text-lg text-slate-300 italic leading-relaxed mb-3">&ldquo;{(article as any).expertQuote.text}&rdquo;</p>
+                        <cite className="text-sm text-slate-500 not-italic">— {(article as any).expertQuote.author}</cite>
+                    </blockquote>
+                )}
 
                 {/* Tags */}
                 {article.tags && (
@@ -288,8 +340,11 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
                         <ul className="space-y-3 text-sm">
                             <li><Link href={`/${locale}/tools/tapu-harci-hesaplayici`} className="text-blue-400 hover:text-blue-300 transition-colors">Tapu Harcı Hesaplayıcı 2026</Link></li>
                             <li><Link href={`/${locale}/tools/serefiye-hesaplayici`} className="text-blue-400 hover:text-blue-300 transition-colors">Şerefiye Hesaplama Aracı</Link></li>
-                            <li><Link href={`/${locale}/tools/emlak-vergisi-hesaplayici`} className="text-blue-400 hover:text-blue-300 transition-colors">Emlak Vergisi Hesaplayıcı</Link></li>
-                            <li><Link href={`/${locale}/tools/konut-kredisi-karsilastirma`} className="text-blue-400 hover:text-blue-300 transition-colors">Konut Kredisi Karşılaştırma</Link></li>
+                            <li><Link href={`/${locale}/tools/broker-komisyon-hesaplayici`} className="text-blue-400 hover:text-blue-300 transition-colors">Broker Komisyon Hesaplayıcı</Link></li>
+                            <li><Link href={`/${locale}/tools/yatirim-getirisi-hesaplayici`} className="text-blue-400 hover:text-blue-300 transition-colors">Gayrimenkul ROI Hesaplayıcı</Link></li>
+                            <li><Link href={`/${locale}/tools/metrekare-birim-fiyat`} className="text-blue-400 hover:text-blue-300 transition-colors">m² Birim Fiyat Hesaplayıcı</Link></li>
+                            <li><Link href={`/${locale}/tools/insaat-maliyet-hesaplayici`} className="text-blue-400 hover:text-blue-300 transition-colors">İnşaat Maliyet Hesaplayıcı</Link></li>
+                            <li><Link href={`/${locale}/tools/damga-vergisi-hesaplayici`} className="text-blue-400 hover:text-blue-300 transition-colors">Damga Vergisi Hesaplayıcı</Link></li>
                             <li><Link href={`/${locale}/payment-plan-calculator`} className="text-blue-400 hover:text-blue-300 transition-colors">Ödeme Planı Sihirbazı</Link></li>
                         </ul>
                     </div>

@@ -12,6 +12,10 @@ export interface WikiArticle {
     image?: string;
     tags?: string[];
     relatedSlugs?: string[];
+    faq?: { question: string; answer: string }[];
+    tldr?: string;
+    stats?: { label: string; value: string }[];
+    expertQuote?: { text: string; author: string };
 }
 
 import { generatedArticles } from './wiki-articles-gen';
@@ -27,6 +31,19 @@ export const wikiArticles: WikiArticle[] = [
         date: '27 Ocak 2026',
         readTime: '6 dk',
         category: 'Strateji',
+        tldr: 'Gayrimenkul satışında Excel kullanmak; veri güvenliği, eş zamanlı çalışma, lead takibi, raporlama ve ölçeklenebilirlik açısından ciddi riskler taşır. 50+ ünite satışı yapan firmalar için CRM zorunludur.',
+        stats: [
+            { value: '%70', label: 'Takip edilmeyen lead kayıp oranı' },
+            { value: '3x', label: 'CRM ile raporlama hızı artışı' },
+            { value: '%40', label: 'CRM ile satış dönüşüm artışı' },
+            { value: '5+', label: 'Eş zamanlı çalışan ihtiyacı' },
+        ],
+        faq: [
+            { question: 'Gayrimenkul satışında Excel kullanmak riskli mi?', answer: 'Evet. Excel dosyaları kopyalanabilir, bozulabilir ve eş zamanlı güncelleme yapılamaz. Aynı dairenin iki kişiye satılması gibi ciddi prestij kayıplarına yol açabilir.' },
+            { question: 'CRM yerine Google Sheets kullanılabilir mi?', answer: 'Eş zamanlı çalışma sorununu çözer ama stok yönetimi, ödeme planı, broker portalı gibi gayrimenkule özel ihtiyaçları karşılayamaz.' },
+            { question: 'Excelden CRMe geçiş ne kadar sürer?', answer: 'Mevcut Excel verileriniz CSV formatında CRM sisteme aktarılabilir. Süreç genellikle 1-2 gün sürer.' },
+        ],
+        expertQuote: { text: 'Excel bir hesaplama aracıdır, yönetim sistemi değildir. Gayrimenkul satışı çok katmanlı bir süreçtir ve profesyonel bir CRM ile yönetilmelidir.', author: 'Caner Yılmaz, Kıdemli CRM Stratejisti' },
         content: `
 # Gayrimenkul Satışında Excel Neden Artık Yetersiz Kalıyor?
 
@@ -66,6 +83,11 @@ Eğer yılda 50 adetten fazla ünite satışı hedefliyorsanız veya birden fazl
         date: '26 Ocak 2026',
         readTime: '8 dk',
         category: 'Strateji',
+        tldr: 'Broker ağı yönetimi için şeffaf stok paylaşımı, lead protection sistemi ve otomatik hakediş hesaplama zorunludur. CRM ile broker sadakati ve satış hızı 3 katına çıkar.',
+        faq: [
+            { question: 'Broker satış komisyonu ne kadar?', answer: 'Türkiyede gayrimenkul broker komisyon oranı genellikle satış bedelinin yüzde 2-3 arasındadır. Lüks projelerde yüzde 4-5 olabilir.' },
+            { question: 'Broker portalı ne işe yarar?', answer: 'Dış acentelerin güncel stok, fiyat listesi ve pazarlama materyallerine erişmesini sağlayan özel bir paneldir.' },
+        ],
         content: `
 # B2B Broker Ağları: Proje Satışlarını Ölçeklendirmenin Anahtarı
 
@@ -101,6 +123,11 @@ Brokerlarınıza güncel PDF kataloglar, profesyonel renderlar ve ödeme planı 
         date: '25 Ocak 2026',
         readTime: '5 dk',
         category: 'Süreç',
+        tldr: 'Satış sonrası müşteri portalı, ödeme takibi ve inşaat ilerleme raporları ile müşteri güvenini artırır. Memnun müşteriler referans satışı yüzde 25 artırır.',
+        faq: [
+            { question: 'Müşteri portalı ne işe yarar?', answer: 'Satış sonrası müşterilerin ödeme durumlarını, inşaat ilerlemesini ve evrak süreçlerini dijital olarak takip edebildikleri özel bir alandır.' },
+            { question: 'Müşteri portalı referans satışını nasıl artırır?', answer: 'Şeffaf bilgi paylaşımı ile memnun olan müşteriler çevrelerine projeyi tavsiye eder.' },
+        ],
         content: `
 # Müşteri Portallarının Sadakat ve Şeffaflıktaki Rolü
 
@@ -132,6 +159,11 @@ Memnun olan bir müşteri, çevresindeki 3 kişiye daha projenizi tavsiye eder. 
         date: '24 Ocak 2026',
         readTime: '7 dk',
         category: 'Teknoloji',
+        tldr: 'Modern gayrimenkul CRM yazılımında olması gereken 5 özellik: dinamik ünite yönetimi, ödeme planı sihirbazı, WhatsApp entegrasyonu, finansal takip ve API kapasitesi.',
+        faq: [
+            { question: 'Gayrimenkul CRM neden genel CRMden farklıdır?', answer: 'Daire stok yönetimi, şerefiye hesaplama, ödeme planı kurgusu ve broker portalı gibi sektöre özel modüller içerir.' },
+            { question: 'CRM yazılımında API desteği neden önemli?', answer: 'API sayesinde CRM, banka sistemleri, tapu entegrasyonları, SMS servisleri ve ERP yazılımları ile veri alışverişi yapabilir.' },
+        ],
         content: `
 # Modern Bir Gayrimenkul CRM'inde Olmazsa Olmaz 5 Özellik
 
@@ -171,6 +203,11 @@ Novo CRM'i kurgularken bu 5 ana özelliği temel taşlarımız olarak belirledik
         date: '29 Ocak 2026',
         readTime: '6 dk',
         category: 'Strateji',
+        tldr: 'Gayrimenkul CRM, müşteri kartının yanı sıra projeyi, daireyi ve ödeme planını da yöneten uzmanlaşmış bir yazılımdır. Stok güvenliği, merkezi kontrol ve broker yönetimi için zorunludur.',
+        faq: [
+            { question: 'Gayrimenkul CRM nedir?', answer: 'Konut projeleri üreten ve satan firmaların müşteri, satış, stok ve ödeme süreçlerini tek merkezden yönetmesini sağlayan uzmanlaşmış bir yazılımdır.' },
+            { question: 'Klasik CRM ile gayrimenkul CRM arasındaki fark nedir?', answer: 'Klasik CRM sadece müşteri kartları sunar. Gayrimenkul CRM ise dairenin durumunu, şerefiye puanını ve ödeme planını da bilir.' },
+        ],
         content: `
 # Gayrimenkul CRM Nedir? Konut Projelerinde Neden Zorunlu Hale Geldi?
 
