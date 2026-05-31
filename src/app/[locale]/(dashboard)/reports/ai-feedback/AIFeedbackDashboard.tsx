@@ -255,7 +255,8 @@ function CallReviewPanel({ calls, t, locale }: { calls: any[]; t: (k: string) =>
                 const isExpanded = expandedId === call.id
                 const hasExisting = !!call.existing_feedback
                 const isSubmitted = submittedIds.has(call.id)
-                const fb = feedbackStates[call.id] || {}
+                // Merge existing feedback with any local unsaved changes
+                const fb = { ...(call.existing_feedback || {}), ...(feedbackStates[call.id] || {}) }
                 const durationMin = Math.floor((call.call_duration_seconds || 0) / 60)
                 const durationSec = (call.call_duration_seconds || 0) % 60
 
@@ -370,7 +371,7 @@ function CallReviewPanel({ calls, t, locale }: { calls: any[]; t: (k: string) =>
                                                     >
                                                         <Star className={cn(
                                                             "h-6 w-6 transition-colors",
-                                                            (fb.overall_rating || call.existing_feedback?.overall_rating || 0) >= n
+                                                            (fb.overall_rating || 0) >= n
                                                                 ? "fill-amber-400 text-amber-400"
                                                                 : "text-slate-600"
                                                         )} />
