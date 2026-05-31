@@ -681,17 +681,19 @@ export async function handleManualVapiCallResult(callData: {
     const transcriptBlock = callData.transcript
         ? `\n\n📝 Transkript:\n${callData.transcript}`
         : ''
+    const recordingBlock = callData.recordingUrl
+        ? `\n\n[RECORDING]: ${callData.recordingUrl}`
+        : ''
     const summaryBlock = callData.summary || notes || 'Görüşme tamamlandı.'
 
     const activityPayload = {
         summary: `🤖 AI Arama: ${leadScore ? 'Skor ' + leadScore.toUpperCase() : 'Görüşme Tamamlandı'} (${durationText})`,
-        description: `${summaryBlock}${transcriptBlock}`,
+        description: `${summaryBlock}${transcriptBlock}${recordingBlock}`,
         notes: callData.transcript || '',
         status: 'Completed' as const,
         completed_at: new Date().toISOString(),
         outcome: outcome,
-        priority: leadScore === 'hot' ? 'High' : 'Medium',
-        call_recording_url: callData.recordingUrl || null
+        priority: leadScore === 'hot' ? 'High' : 'Medium'
     }
 
     // Try to UPDATE the existing "AI Arama başlatıldı" placeholder activity first

@@ -197,18 +197,26 @@ export function ActivityCard({ activity, customers, profiles, projects, onComple
                             )
                         })()}
                         {activity.description && (() => {
-                            const displayDesc = cleanText(activity.description)
+                            const desc = cleanText(activity.description)
+                            const displayDesc = desc.replace(/\[RECORDING\]:\s*https?:\/\/[^\s]+/g, '').trim()
                             return (
                                 <p className="text-xs text-slate-600 leading-snug line-clamp-2 mb-1">
                                     {displayDesc}
                                 </p>
                             )
                         })()}
-                        {activity.call_recording_url && (
-                            <div className="mt-2 mb-2" onClick={(e) => e.stopPropagation()}>
-                                <MiniAudioPlayer src={activity.call_recording_url} />
-                            </div>
-                        )}
+                        {(() => {
+                            const recordingMatch = activity.description?.match(/\[RECORDING\]:\s*(https?:\/\/[^\s]+)/)
+                            const recUrl = recordingMatch ? recordingMatch[1] : activity.call_recording_url
+                            
+                            if (!recUrl) return null;
+                            
+                            return (
+                                <div className="mt-2 mb-2" onClick={(e) => e.stopPropagation()}>
+                                    <MiniAudioPlayer src={recUrl} />
+                                </div>
+                            )
+                        })()}
                         {activity.customers?.full_name && (
                             <Link href={`/customers/${activity.customer_id}`} onClick={(e: React.MouseEvent) => e.stopPropagation()}>
                                 <div className="flex items-center gap-1 text-[11px] text-slate-700 font-semibold truncate bg-slate-100 hover:bg-slate-200 hover:text-blue-700 cursor-pointer rounded px-1.5 py-0.5 w-fit max-w-full transition-colors">
@@ -289,8 +297,14 @@ export function ActivityCard({ activity, customers, profiles, projects, onComple
                             const desc = cleanText(activity.description)
                             // Split transcript from summary if present
                             const transcriptMarker = desc.indexOf('📝 Transkript:')
-                            const summaryPart = transcriptMarker > 0 ? desc.substring(0, transcriptMarker).trim() : desc
-                            const transcriptPart = transcriptMarker > 0 ? desc.substring(transcriptMarker + '📝 Transkript:'.length).trim() : null
+                            let summaryPart = transcriptMarker > 0 ? desc.substring(0, transcriptMarker).trim() : desc
+                            let transcriptPart = transcriptMarker > 0 ? desc.substring(transcriptMarker + '📝 Transkript:'.length).trim() : null
+
+                            // Remove recording tag
+                            summaryPart = summaryPart.replace(/\[RECORDING\]:\s*https?:\/\/[^\s]+/g, '').trim()
+                            if (transcriptPart) {
+                                transcriptPart = transcriptPart.replace(/\[RECORDING\]:\s*https?:\/\/[^\s]+/g, '').trim()
+                            }
 
                             return (
                                 <>
@@ -326,12 +340,19 @@ export function ActivityCard({ activity, customers, profiles, projects, onComple
                             </div>
                         )}
 
-                        {activity.call_recording_url && (
-                            <div>
-                                <span className="text-xs font-semibold text-slate-500 block mb-1">🎙️ Arama Kaydı:</span>
-                                <MiniAudioPlayer src={activity.call_recording_url} className="max-w-sm" />
-                            </div>
-                        )}
+                        {(() => {
+                            const recordingMatch = activity.description?.match(/\[RECORDING\]:\s*(https?:\/\/[^\s]+)/)
+                            const recUrl = recordingMatch ? recordingMatch[1] : activity.call_recording_url
+                            
+                            if (!recUrl) return null;
+                            
+                            return (
+                                <div>
+                                    <span className="text-xs font-semibold text-slate-500 block mb-1">🎙️ Arama Kaydı:</span>
+                                    <MiniAudioPlayer src={recUrl} className="max-w-sm" />
+                                </div>
+                            )
+                        })()}
 
                         <div className="flex items-center justify-between pt-3 border-t text-sm text-slate-600">
                             {activity.due_date && (
