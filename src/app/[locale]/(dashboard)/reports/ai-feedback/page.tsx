@@ -21,7 +21,7 @@ export default async function AIFeedbackPage({ params }: PageProps) {
     let promptVersions: any[] = []
 
     try {
-        calls = await getAICallsForReview(50)
+        calls = await getAICallsForReview(200)
     } catch (e) {
         console.error('Failed to fetch calls for review:', e)
     }
