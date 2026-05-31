@@ -549,5 +549,113 @@ export const sectors: SectorData[] = [
             'Sözleşme yenileme ve endeksleme otomasyonları',
             'Yönetim kuruluna anlık finansal varlık sunum raporları'
         ]
+    },
+    {
+        slug: 'broker-yonetimi-crm',
+        title: 'Broker Yönetimi CRM',
+        metaTitle: 'Gayrimenkul Broker Yönetim CRM Programı | NovoxCRM',
+        metaDescription: 'Dış acenteler, brokerlar ve serbest çalışan danışmanların hakediş, komisyon ve portföy paylaşım süreçlerini otomatikleştiren CRM yazılımı.',
+        heroHeadline: 'Broker Ağı ve Komisyon Yönetiminde Sıfır Hata',
+        heroSubheadline: 'Dış paydaşlarınızı sisteme dahil edin. Portföy paylaşım yetkilerini, komisyon hakedişlerini ve ödeme onay akışlarını şeffafça yönetin.',
+        features: [
+            { title: 'Broker Hakediş Portalı', description: 'Brokerların kendi satışlarının komisyon oranlarını ve onaylanan ödemelerini izleyeceği kişisel portal.', icon: 'LayoutDashboard' },
+            { title: 'Dinamik Komisyon Kuralları', description: 'Proje veya daire bazında farklılaşan broker komisyon oranlarını ve kademeli prim sistemlerini tanımlayın.', icon: 'Calculator' },
+            { title: 'Şeffaf Onay Akışları', description: 'Yapılan satışların broker komisyonlarının yöneticiler tarafından onaylanması ve fatura talep süreçleri.', icon: 'FileCheck' }
+        ],
+        benefits: [
+            'Broker ödemelerinde mutlak doğruluk',
+            'Ofis dışı acente ağının motivasyon ve sadakat artışı',
+            'Hızlı fatura ve evrak onay süreçleri'
+        ]
+    },
+    {
+        slug: 'lead-dagitim-crm',
+        title: 'Lead Dağıtım CRM',
+        metaTitle: 'Akıllı Lead Dağıtım ve Yönetim Yazılımı | NovoxCRM',
+        metaDescription: 'Facebook, Instagram ve web formlarından gelen müşteri adaylarını danışmanlara ve brokerlara adil, hızlı ve akıllı dağıtan CRM sistemi.',
+        heroHeadline: 'Leadleri Danışmanlara AI Dağıtsın',
+        heroSubheadline: 'Gelen müşteri adaylarını (lead) saniyeler içinde doğru danışmana atayın. Adil dağıtım (Round-robin) ve performans bazlı yönlendirme.',
+        features: [
+            { title: 'Round-Robin Adil Dağıtım', description: 'Gelen leadleri sırayla veya aktiflik durumuna göre danışmanlara eşit şekilde paylaştırın.', icon: 'Shuffle' },
+            { title: 'Performans Bazlı Yönlendirme', description: 'Sıcak leadleri satış kapatma oranı en yüksek olan deneyimli danışmanlara otomatik yönlendirin.', icon: 'TrendingUp' },
+            { title: 'Gecikme & Havuza İade', description: 'Belirlenen sürede aranmayan leadleri otomatik olarak genel havuza iade edin ve diğerlerine atayın.', icon: 'RefreshCw' }
+        ],
+        benefits: [
+            'Lead ilk arama süresinde %80 kısalma',
+            'Satış ekibinde adaletli ve huzurlu çalışma ortamı',
+            'Unutulan veya aranmayan lead oranında %0 kayıp'
+        ]
+    },
+    {
+        slug: 'satis-ofisi-yazilimi',
+        title: 'Satış Ofisi Yazılımı',
+        metaTitle: 'İnşaat Satış Ofisi CRM Yazılımı | NovoxCRM',
+        metaDescription: 'Konut projelerinin şantiyeden satış ofisine, daire stok durumlarından sözleşme basımına ve müşteri karşılama süreçlerine kadar tam yönetimi.',
+        heroHeadline: 'Satış Ofisinizin Dijital Kontrol Merkezi',
+        heroSubheadline: 'Müşteri karşılama, interaktif stok seçimi, ödeme planı kurgulama ve anında sözleşme imzalama süreçlerini tek ekranda toplayın.',
+        features: [
+            { title: 'Ziyaretçi Karşılama Ekranı', description: 'Satış ofisine fiziksel gelen müşterileri, ilgilenen danışmanı ve ziyaret amacını anlık kaydedin.', icon: 'Users' },
+            { title: 'Görsel Stok Seçim Masası', description: 'Dev ekranda müşteriye kat planını, cephe durumlarını ve güncel fiyat listesini interaktif sunun.', icon: 'Building2' },
+            { title: 'Sözleşme & Evrak Oluşturma', description: 'Peşinat ve taksit tutarlarını belirledikten sonra resmi satış vaadi sözleşmesini saniyeler içinde basın.', icon: 'FileText' }
+        ],
+        benefits: [
+            'Profesyonel ve kurumsal müşteri karşılama deneyimi',
+            'Sözleşme hazırlama süreçlerinde %90 zaman tasarrufu',
+            'Şantiye ve merkez ofisin anlık entegrasyonu'
+        ]
+    },
+    {
+        slug: 'tapu-sureci-yonetimi-crm',
+        title: 'Tapu Süreci Yönetim CRM',
+        metaTitle: 'Gayrimenkul Tapu ve Devir Süreci Yönetimi | NovoxCRM',
+        metaDescription: 'Konut satışından sonraki tapu devir işlemleri, harç ödemeleri, ipotek durumları ve noter onay süreçlerini takip eden otomasyon sistemi.',
+        heroHeadline: 'Tapu Devir ve Hukuki Süreç Takip Otomasyonu',
+        heroSubheadline: 'Satışı tamamlanan dairelerin tapu başvuru, harç ödemeleri, ipotek fekki ve devir teslim adımlarını hatasız yönetin.',
+        features: [
+            { title: 'Adım Adım Devir Kontrolü', description: 'Tapu dairesi randevusu, harç dekontları ve resmi imza aşamalarını checklistlerle izleyin.', icon: 'FileCheck' },
+            { title: 'Harç & Masraf Raporlama', description: 'Alıcı ve satıcı tapu harçlarını, döner sermaye ödemelerini ve ekstra masrafları kaydedin.', icon: 'Calculator' },
+            { title: 'İpotek & Kredi Takibi', description: 'Bankalı satışlarda banka ekspertiz, ipotek tesisi ve kredi serbest bırakma süreçlerini takip edin.', icon: 'Shield' }
+        ],
+        benefits: [
+            'Tapu devir süreçlerinin yasal sürelere uygun tamamlanması',
+            'Masraf ve harç hesaplama karmaşasının son bulması',
+            'Müşterilere süreç boyunca otomatik SMS bilgilendirmeleri'
+        ]
+    },
+    {
+        slug: 'teslim-sureci-yonetimi-crm',
+        title: 'Teslim Süreci Yönetim CRM',
+        metaTitle: 'İnşaat Konut Teslim ve Teknik Kabul CRM | NovoxCRM',
+        metaDescription: 'Tamamlanan konut projelerinde dairelerin anahtar teslimi, geçici teknik kabul, eksik listesi (snagging list) ve müşteri onay takibi.',
+        heroHeadline: 'Eksiksiz ve Hızlı Konut Teslim Süreçleri',
+        heroSubheadline: 'İnşaatı biten daireleri müşteriye teslim ederken oluşan teknik kabulleri, eksik listelerini ve anahtar teslim tutanaklarını dijital yönetin.',
+        features: [
+            { title: 'Eksik Listesi (Snagging List)', description: 'Daire tesliminde tespit edilen boya, tesisat veya kapı eksiklerini fotoğraflı olarak sahada kaydedin.', icon: 'FileText' },
+            { title: 'Anahtar Teslim Tutanakları', description: 'Müşteri onayından sonra resmi teslim tutanaklarını ve enerji abonelik evraklarını sistemden indirin.', icon: 'FileCheck' },
+            { title: 'Taşeron Eksik Giderme Ataması', description: 'Tespit edilen eksik listelerini ilgili taşeron ekiplerine otomatik iş emri olarak atayın.', icon: 'RefreshCw' }
+        ],
+        benefits: [
+            'Daire teslim hızında %40 artış',
+            'Taşeron ekiplerin eksik giderme performans ölçümü',
+            'Müşteri memnuniyetini en üst düzeye çıkaran şeffaf teslimat'
+        ]
+    },
+    {
+        slug: 'konut-pazarlama-yazilimi-crm',
+        title: 'Konut Pazarlama Yazılımı',
+        metaTitle: 'Gayrimenkul Proje Pazarlama Yazılımı | NovoxCRM',
+        metaDescription: 'Yeni konut projelerinin dijital pazarlaması, çok kanallı outreach otomasyonları, WhatsApp katalog gönderimleri ve ROI takibi.',
+        heroHeadline: 'Proje Pazarlamasında Dijital Dönüşüm',
+        heroSubheadline: 'Lansman öncesi talep toplamadan satış kapatmaya kadar tüm dijital reklam, WhatsApp ve SMS pazarlama bütçelerinizi tek CRM\'den yönetin.',
+        features: [
+            { title: 'UTM & Reklam Kaynak ROI Analizi', description: 'Hangi Facebook/Instagram reklamının reel satış cironuzu tetiklediğini kuruşu kuruşuna görün.', icon: 'LineChart' },
+            { title: 'WhatsApp Toplu Kampanyalar', description: 'İzinli veritabanınıza yeni etap veya fiyat listesi duyurularını toplu WhatsApp kataloguyla gönderin.', icon: 'Globe' },
+            { title: 'Otomatik Talep Toplama (Formlar)', description: 'Lansman web sitelerinden ve sosyal mecralardan gelen talep formlarını anında CRM\'e aktarın.', icon: 'FileCheck' }
+        ],
+        benefits: [
+            'Pazarlama bütçesi ROI ölçümünde %100 netlik',
+            'Çok kanallı talep toplama hızı ve verimliliği',
+            'Düşük maliyetli ve yüksek etkili müşteri reaktivasyonu'
+        ]
     }
 ];

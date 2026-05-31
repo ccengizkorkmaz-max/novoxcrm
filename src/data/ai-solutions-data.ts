@@ -311,4 +311,78 @@ export const aiSolutions: AISolutionData[] = [
             { question: 'Co-Pilot hangi cihazlarda çalışır?', answer: 'Web tabanlı olduğu için bilgisayar, tablet ve telefondan erişilebilir. Satış ofisinde veya sahada her yerde kullanılabilir.' },
         ]
     },
+    {
+        slug: 'ai-emlak-agent',
+        title: 'AI Emlak Agent',
+        metaTitle: 'Yapay Zeka Emlak Danışmanı | AI Emlak Agent | NovoxCRM',
+        metaDescription: 'Emlak acenteleri ve brokerlar için 7/24 çalışan yapay zeka emlak danışmanı. Otomatik portföy eşleştirme, randevu planlama ve lead yönetimi.',
+        heroHeadline: '7/24 Çalışan Yapay Zeka Emlak Danışmanınız',
+        heroSubheadline: 'Müşterilerinizle WhatsApp ve sesli aramalar üzerinden konuşan, portföy kriterlerini eşleştiren ve randevu alan akıllı emlak agentı.',
+        icon: 'UserCheck',
+        gradient: 'from-purple-500 to-indigo-600',
+        features: [
+            { title: 'Otomatik Portföy Eşleştirme', description: 'Müşterinin istediği bütçe, m² ve konum kriterlerine en uygun ilanları veri tabanından saniyeler içinde bulup gönderir.', icon: 'Target' },
+            { title: 'Akıllı Randevu Planlama', description: 'Müşterinin uygun olduğu gün ve saate göre danışmanın takviminde otomatik yer ayırır ve her iki tarafa hatırlatır.', icon: 'Calendar' },
+            { title: '7/24 Müşteri Karşılama', description: 'Gece veya tatil günlerinde bile gelen talepleri yanıtsız bırakmaz, ilk temasla lead bilgilerini doğrular.', icon: 'Clock' }
+        ],
+        benefits: [
+            'Portföy satış ve kiralama hızında %35 artış',
+            'Gece gelen müşteri taleplerini anında yakalama',
+            'Danışmanların rutin sekreterlik işlerinde %50 zaman tasarrufu',
+            'Müşteri veri tabanının her an güncel kalması'
+        ],
+        useCases: [
+            { title: 'Reklam Leadlerini Karşılama', description: 'İlan portalından gelen e-posta veya formları anında işleyerek müşteriye WhatsApp üzerinden portföy detaylarını otomatik iletir.' },
+            { title: 'İlan Eşleştirme Otomasyonu', description: 'Yeni bir portföy girildiğinde, o mülk kriterlerine uygun kayıtlı tüm eski müşterileri bulup otomatik WhatsApp bilgilendirmesi yapar.' },
+            { title: 'Ziyaret Randevuları Kurgulama', description: 'Proje veya daire görmek isteyen alıcılarla danışmanların takvimini çakışma olmadan eşleştirip randevu oluşturur.' }
+        ],
+        stats: [
+            { value: '3 sn', label: 'Ortalama Yanıt Süresi' },
+            { value: '%100', label: 'Mesai Dışı Yanıt Oranı' },
+            { value: '%35', label: 'Portföy Satış Hız Artışı' },
+            { value: '24/7', label: 'Kesintisiz Hizmet' }
+        ],
+        faq: [
+            { question: 'AI Emlak Agent nasıl çalışır?', answer: 'Sistem, web siteniz, ilan portalları veya WhatsApp üzerinden gelen müşteri taleplerini yapay zeka ile analiz eder, kriterleri belirler ve portföy havuzunuzla otomatik eşleştirerek yanıtlar.' },
+            { question: 'İlanları nereden çeker?', answer: 'Kendi CRM panelinizdeki portföy havuzundan ve entegre olduğunuz ilan portallarından güncel mülk listelerini çekerek müşterilere sunar.' },
+            { question: 'KVKK uyumlu mu?', answer: 'Evet. Müşteriye ilk mesajda KVKK onay metni sunulur. Onay vermeyen müşterilere veri işleme yapılmaz, kayıtlar güvenli sunucularda tutulur.' }
+        ]
+    },
+    {
+        slug: 'voice-ai-real-estate',
+        title: 'Voice AI Real Estate',
+        metaTitle: 'Gayrimenkul Sesli Yapay Zeka Sistemleri | Voice AI Real Estate | NovoxCRM',
+        metaDescription: 'Gayrimenkul sektörüne özel sesli yapay zeka arama robotu. Vapi + ElevenLabs entegrasyonu ile doğal Türkçe konuşan akıllı arama asistanı.',
+        heroHeadline: 'Gayrimenkul Arama Süreçlerinde Doğal Sesli Yapay Zeka',
+        heroSubheadline: 'Sesli yapay zeka ile soğuk aramaları, randevu hatırlatmalarını ve eski lead reaktivasyonunu insan doğallığında otomatikleştirin.',
+        icon: 'Mic',
+        gradient: 'from-blue-500 to-indigo-600',
+        features: [
+            { title: 'İnsan Doğallığında Türkçe Ses', description: 'Vapi ve ElevenLabs iş birliğiyle üretilen, nefes alma ve tonlama detaylarına sahip son derece doğal Türkçe ses tonu.', icon: 'Phone' },
+            { title: 'Akıllı İtiraz Yönetimi', description: 'Müşterinin "Bütçeme uymuyor" veya "Sonra görüşelim" gibi itirazlarına karşı önceden belirlenmiş akıllı ikna senaryolarını uygular.', icon: 'GitBranch' },
+            { title: 'CRM Entegre Transkript', description: 'Yapılan her aramanın ses kaydı, transkripti ve özet analizi (ilgileniyor, ilgilenmiyor, meşgul) anında CRM kartına işlenir.', icon: 'FileText' }
+        ],
+        benefits: [
+            'Günde 1000+ arama yapabilen limitsiz çağrı kapasitesi',
+            'Manuel arama maliyetlerinde %70 tasarruf',
+            'Müşteri takibinde gecikmelerin tamamen sıfırlanması',
+            'Yüksek potansiyelli leadlerin anında danışmana yönlendirilmesi'
+        ],
+        useCases: [
+            { title: 'Soğuk Arama Kampanyaları', description: 'Yeni lansman projeleriniz için geniş veri listelerini yorulmadan arar, sadece ilgilenenleri sıcak lead olarak satış ekibinize aktarır.' },
+            { title: 'Randevu & Ziyaret Hatırlatma', description: 'Yarın satış ofisini ziyaret edecek olan müşterileri otomatik arayarak randevuyu teyit eder.' },
+            { title: 'Portföy Güncelleme Duyuruları', description: 'Fiyat listesi değişen veya yeni etabı satışa çıkan projeler için eski veritabanını arayıp reaktivasyon sağlar.' }
+        ],
+        stats: [
+            { value: '1000+', label: 'Günlük Arama Kapasitesi' },
+            { value: '%90', label: 'Doğal Türkçe Skoru' },
+            { value: '0 ms', label: 'Yapay Zeka Yanıt Gecikmesi' },
+            { value: '%70', label: 'Operasyonel Maliyet Tasarrufu' }
+        ],
+        faq: [
+            { question: 'Sesli yapay zeka hangi dilleri konuşur?', answer: 'Ana odak noktası doğal Türkçe olmakla birlikte, isteğe göre İngilizce, Arapça ve Rusça dillerinde de konuşma yapabilmektedir.' },
+            { question: 'Telefon numarası entegrasyonu nasıl olur?', answer: 'Kendi kurumsal numaranızı Twilio veya yerel operatör sip hatları üzerinden sisteme bağlayabilir, aramaların kendi numaranızdan çıkmasını sağlayabilirsiniz.' },
+            { question: 'Sistemin kurulumu ne kadar sürer?', answer: 'Arama senaryolarının kurgulanması ve test aramalarının tamamlanması genellikle 2-3 iş günü içinde tamamlanmaktadır.' }
+        ]
+    }
 ];

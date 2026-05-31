@@ -5,6 +5,7 @@ import { turkishCities } from '@/data/cities-data'
 import { comparisons } from '@/data/comparisons-data'
 import { sectors } from '@/data/sectors-data'
 import { aiSolutions } from '@/data/ai-solutions-data'
+import { reports } from '@/data/reports-data'
 import { createClient } from '@/lib/supabase/server'
 import { getHostFromHeaders } from '@/lib/tenant/resolve-brand-from-host'
 import { getCanonicalBaseUrl } from '@/lib/seo-constants'
@@ -53,6 +54,7 @@ const STATIC_PAGE_DATES: Record<string, string> = {
     '/tools/metrekare-birim-fiyat': '2026-05-31T00:00:00.000Z',
     '/tools/yatirim-getirisi-hesaplayici': '2026-05-31T00:00:00.000Z',
     '/tools/kira-getirisi-hesaplayici': '2026-05-31T00:00:00.000Z',
+    '/industry-reports': '2026-05-31T00:00:00.000Z',
 }
 
 // Supported locales
@@ -205,6 +207,16 @@ export async function getSitemapUrls(): Promise<MetadataRoute.Sitemap> {
         }))
     )
 
+    // ── 6. Benchmark Reports routes ──
+    const reportRoutes = reports.flatMap((rep) =>
+        generateVariants(
+            `/industry-reports/${rep.slug}`,
+            new Date('2026-05-31T00:00:00.000Z'),
+            'monthly',
+            0.7
+        )
+    )
+
     // ── 4. Combine and add i18n alternates ──
     const allRoutes = [
         ...marketingRoutes, 
@@ -214,7 +226,8 @@ export async function getSitemapUrls(): Promise<MetadataRoute.Sitemap> {
         ...sectorRoutes, 
         ...citySectorRoutes, 
         ...comparisonRoutes, 
-        ...profileRoutes
+        ...profileRoutes,
+        ...reportRoutes
     ]
 
     return allRoutes.map((route) => {
