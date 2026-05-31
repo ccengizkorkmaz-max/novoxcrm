@@ -23,12 +23,12 @@ export async function generateMetadata(): Promise<Metadata> {
             if (profile?.tenant_id) {
                 const { data: tenant } = await supabase
                     .from('tenants')
-                    .select('brand_config')
+                    .select('brand_config, logo_url')
                     .eq('id', profile.tenant_id)
                     .single()
                 
                 const brand = resolveBrand(tenant?.brand_config)
-                const iconUrl = brand.faviconUrl || brand.logoUrl
+                const iconUrl = tenant?.logo_url || brand.faviconUrl || brand.logoUrl
                 
                 if (iconUrl) {
                     return {
@@ -110,6 +110,9 @@ export default async function DashboardLayout(props: {
 
     // Resolve white-label branding
     const brand = resolveBrand(tenant?.brand_config)
+    if (tenant?.logo_url) {
+        brand.logoUrl = tenant.logo_url
+    }
     const cssVars = brandToCssVars(brand)
 
     const isAuthorizedForSettings = profile?.role === 'admin' || profile?.role === 'owner'
