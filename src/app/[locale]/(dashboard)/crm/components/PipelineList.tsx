@@ -389,7 +389,38 @@ export default function PipelineList({
 
     // Column filters
     const [colFilters, setColFilters] = useState<Record<string, string>>({})
-    const [showFilters, setShowFilters] = useState(false)
+    const [showFilters, setShowFilters] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search)
+            return params.has('q') || params.has('p') || params.has('s') || params.has('r') || params.has('df') || params.has('dt')
+        }
+        return false
+    })
+
+    // Sync column filters with URL search params on mount & searchParams changes
+    useEffect(() => {
+        const filters: Record<string, string> = {}
+        const q = searchParams.get('q')
+        const p = searchParams.get('p')
+        const s = searchParams.get('s')
+        const r = searchParams.get('r')
+        const df = searchParams.get('df')
+        
+        if (q) filters['customer'] = q
+        if (s) filters['status'] = s
+        if (df) filters['date'] = df
+        
+        if (p) {
+            const proj = projects.find(proj => proj.id === p)
+            filters['project'] = proj ? proj.name : p
+        }
+        if (r) {
+            const profile = profiles.find(prof => prof.id === r)
+            filters['rep'] = profile ? profile.full_name : r
+        }
+        
+        setColFilters(filters)
+    }, [searchParams, projects, profiles])
 
     const handleColFilter = (colId: string, value: string) => {
         setColFilters(prev => {
@@ -398,9 +429,58 @@ export default function PipelineList({
             else delete next[colId]
             return next
         })
+
+        // Update URL Search Parameters
+        const params = new URLSearchParams(searchParams.toString())
+        params.set('page', '1') // reset to page 1
+
+        if (colId === 'customer') {
+            if (value) params.set('q', value)
+            else params.delete('q')
+        } else if (colId === 'project') {
+            if (value) {
+                const matched = projects.find(p => p.name === value)
+                if (matched) params.set('p', matched.id)
+                else params.set('p', value)
+            } else {
+                params.delete('p')
+            }
+        } else if (colId === 'status') {
+            if (value) params.set('s', value)
+            else params.delete('s')
+        } else if (colId === 'rep') {
+            if (value) {
+                const matched = profiles.find(p => p.full_name === value)
+                if (matched) params.set('r', matched.id)
+                else params.set('r', value)
+            } else {
+                params.delete('r')
+            }
+        } else if (colId === 'date') {
+            if (value) {
+                params.set('df', value)
+                params.set('dt', value)
+            } else {
+                params.delete('df')
+                params.delete('dt')
+            }
+        }
+
+        router.push(`?${params.toString()}`)
     }
 
-    const clearAllFilters = () => setColFilters({})
+    const clearAllFilters = () => {
+        setColFilters({})
+        const params = new URLSearchParams(searchParams.toString())
+        params.delete('q')
+        params.delete('p')
+        params.delete('s')
+        params.delete('r')
+        params.delete('df')
+        params.delete('dt')
+        params.set('page', '1')
+        router.push(`?${params.toString()}`)
+    }
 
     const activeFilterCount = Object.values(colFilters).filter(v => v.length > 0).length
 
@@ -447,9 +527,11 @@ export default function PipelineList({
                 if (repName !== q.toLowerCase() && !repName.includes(q)) return false
             } else if (colId === 'date') {
                 const saleDate = new Date(sale.created_at)
-                const filterDate = new Date(filterVal)
-                // YYYY-MM-DD string match (ignoring time)
-                if (saleDate.toISOString().split('T')[0] !== filterVal) return false
+                const year = saleDate.getFullYear()
+                const month = String(saleDate.getMonth() + 1).padStart(2, '0')
+                const day = String(saleDate.getDate()).padStart(2, '0')
+                const localDateStr = `${year}-${month}-${day}`
+                if (localDateStr !== filterVal) return false
             } else if (colId === 'amount') {
                 const amt = String(sale.deposit_amount || sale.final_price || '')
                 if (!amt.includes(q)) return false
@@ -1205,7 +1287,7 @@ export default function PipelineList({
 
                         <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 rounded-xl text-xs font-black uppercase tracking-wider border border-blue-100 dark:border-blue-900/50 shadow-sm">
                             <Filter className="w-3.5 h-3.5 text-blue-500" />
-                            Filtreye Uygun: <span className="text-blue-800 dark:text-blue-200 font-black ml-1">{showFilters && activeFilterCount > 0 ? currentSales.length : totalSalesCount} Kayıt</span>
+                            Filtreye Uygun: <span className="text-blue-800 dark:text-blue-200 font-black ml-1">{totalSalesCount} Kayıt</span>
                         </div>
 
                         <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 mt-2 sm:mt-0">

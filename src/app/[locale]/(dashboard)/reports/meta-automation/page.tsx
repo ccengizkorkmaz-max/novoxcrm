@@ -1,5 +1,4 @@
 import { getMetaAutomationAnalytics } from '../actions'
-import { getTranslations } from 'next-intl/server'
 import MetaAutomationDashboard from './MetaAutomationDashboard'
 
 export const revalidate = 0 // always fetch fresh analytics
@@ -14,7 +13,6 @@ export default async function MetaAutomationPage({ params }: PageProps) {
     const locale = resolvedParams.locale
 
     const analytics = await getMetaAutomationAnalytics()
-    const t = await getTranslations({ locale, namespace: 'Reports' })
 
     // If analytics is missing or returns an error, we supply fallback data so it never crashes
     const safeAnalytics = (!analytics || typeof analytics !== 'object' || 'error' in analytics) ? {
