@@ -78,7 +78,8 @@ export async function updateSession(request: NextRequest, response?: NextRespons
         pathWithoutLocale.startsWith('/gizlilik-sozlesmesi') ||
         pathWithoutLocale.startsWith('/mesafeli-satis-sozlesmesi') ||
         pathWithoutLocale.startsWith('/teslimat-ve-iade-sartlari') ||
-        pathWithoutLocale.startsWith('/hakkimizda')
+        pathWithoutLocale.startsWith('/hakkimizda') ||
+        pathWithoutLocale.startsWith('/industry-reports')
 
     if (!user && !isPublicRoute) {
         const isPortalRoute = pathWithoutLocale.startsWith('/customerservices')
@@ -129,7 +130,8 @@ export async function updateSession(request: NextRequest, response?: NextRespons
             pathWithoutLocale.startsWith('/gizlilik-sozlesmesi') ||
             pathWithoutLocale.startsWith('/mesafeli-satis-sozlesmesi') ||
             pathWithoutLocale.startsWith('/teslimat-ve-iade-sartlari') ||
-            pathWithoutLocale.startsWith('/hakkimizda')
+            pathWithoutLocale.startsWith('/hakkimizda') ||
+            pathWithoutLocale.startsWith('/industry-reports')
 
         // If customer tries to access dashboard or broker portal, redirect to portal
         if (profile?.role === 'customer' && !isPortalPath && !isPublicPath && !isBrokerPath && !pathWithoutLocale.startsWith('/auth') && !isMarketingPath) {
