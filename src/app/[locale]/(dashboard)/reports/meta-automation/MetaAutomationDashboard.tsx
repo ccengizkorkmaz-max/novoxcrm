@@ -80,20 +80,33 @@ interface Props {
     locale: string
 }
 
-export default function MetaAutomationDashboard({ initialData, locale }: Props) {
+export default function MetaAutomationDashboard({ initialData: rawData, locale }: Props) {
     const isTr = locale === 'tr'
     const [shareMode, setShareMode] = useState(false)
+
+    // Defensive: ensure initialData has all required fields with safe defaults
+    const initialData: AnalyticsData = {
+        makeConnected: rawData?.makeConnected ?? false,
+        metaConnected: rawData?.metaConnected ?? false,
+        mappedIntegrations: Array.isArray(rawData?.mappedIntegrations) ? rawData.mappedIntegrations : [],
+        totalLeadsCount: rawData?.totalLeadsCount ?? 0,
+        todayLeadsCount: rawData?.todayLeadsCount ?? 0,
+        monthLeadsCount: rawData?.monthLeadsCount ?? 0,
+        totalMetaSpend: rawData?.totalMetaSpend ?? 0,
+        totalScenariosCount: rawData?.totalScenariosCount ?? 0,
+        activeScenariosCount: rawData?.activeScenariosCount ?? 0,
+        savedCreditsCount: rawData?.savedCreditsCount ?? 0,
+        leadResponseTime: rawData?.leadResponseTime ?? '-',
+    }
     
     // Client-side cost manual inputs state (pre-populated with live Meta spend if available)
     const [costs, setCosts] = useState<Record<string, string>>(() => {
         const initialCosts: Record<string, string> = {}
-        if (initialData && Array.isArray(initialData.mappedIntegrations)) {
-            initialData.mappedIntegrations.forEach(item => {
-                if (item && item.metaLive && typeof item.metaLive.spend === 'number') {
-                    initialCosts[item.formName] = item.metaLive.spend.toFixed(2)
-                }
-            })
-        }
+        initialData.mappedIntegrations.forEach(item => {
+            if (item?.metaLive && typeof item.metaLive.spend === 'number') {
+                initialCosts[item.formName] = item.metaLive.spend.toFixed(2)
+            }
+        })
         return initialCosts
     })
     const [salesCounts, setSalesCounts] = useState<Record<string, string>>({})
