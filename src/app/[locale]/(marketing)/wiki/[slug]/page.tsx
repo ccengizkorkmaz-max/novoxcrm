@@ -262,15 +262,13 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
                     </div>
                 )}
 
-                {/* TL;DR Summary Box (GEO Optimized) */}
-                {(article as any).tldr && (
-                    <div className="bg-gradient-to-br from-blue-900/20 to-slate-900 border border-blue-500/20 rounded-2xl p-6 mb-12">
-                        <div className="flex items-center gap-2 text-blue-400 font-bold text-sm uppercase tracking-wider mb-3">
-                            <Sparkles size={16} /> Özet (TL;DR)
-                        </div>
-                        <p className="text-slate-300 leading-relaxed text-lg">{(article as any).tldr}</p>
+                {/* TL;DR Summary Box (GEO Optimized — falls back to excerpt) */}
+                <div className="bg-gradient-to-br from-blue-900/20 to-slate-900 border border-blue-500/20 rounded-2xl p-6 mb-12">
+                    <div className="flex items-center gap-2 text-blue-400 font-bold text-sm uppercase tracking-wider mb-3">
+                        <Sparkles size={16} /> Özet (TL;DR)
                     </div>
-                )}
+                    <p className="text-slate-300 leading-relaxed text-lg">{article.tldr || article.excerpt}</p>
+                </div>
 
                 {/* Stats Cards (GEO Optimized) */}
                 {(article as any).stats && (article as any).stats.length > 0 && (
@@ -289,27 +287,36 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
                     <div dangerouslySetInnerHTML={{ __html: formatContent(article.content) }} />
                 </article>
 
-                {/* Structured FAQ Accordion (GEO Optimized) */}
-                {(article as any).faq && (article as any).faq.length > 0 && (
-                    <section className="mb-16">
-                        <h2 className="text-2xl font-bold text-white mb-8 flex items-center gap-2">
-                            <BarChart3 className="text-blue-400" size={24} /> Sıkça Sorulan Sorular
-                        </h2>
-                        <div className="space-y-3">
-                            {(article as any).faq.map((item: {question: string; answer: string}, i: number) => (
-                                <details key={i} className="group rounded-2xl border border-slate-800 bg-slate-900/30 overflow-hidden">
-                                    <summary className="p-5 cursor-pointer flex items-center justify-between text-white font-semibold hover:bg-slate-900/50 transition-colors">
-                                        <span>{item.question}</span>
-                                        <ChevronDown className="h-5 w-5 text-slate-500 group-open:rotate-180 transition-transform shrink-0 ml-2" />
-                                    </summary>
-                                    <div className="px-5 pb-5 text-slate-400 leading-relaxed border-t border-slate-800 pt-4">
-                                        {item.answer}
-                                    </div>
-                                </details>
-                            ))}
-                        </div>
-                    </section>
-                )}
+                {/* Structured FAQ Accordion (GEO Optimized) — merges explicit faq + content-parsed SSS */}
+                {(() => {
+                    const explicitFaq = article.faq || [];
+                    // Parse SSS from content if no explicit faq
+                    const contentFaq = explicitFaq.length === 0 && faqSchema
+                        ? (faqSchema as any).mainEntity.map((e: any) => ({ question: e.name, answer: e.acceptedAnswer.text }))
+                        : [];
+                    const allFaq = [...explicitFaq, ...contentFaq];
+                    if (allFaq.length === 0) return null;
+                    return (
+                        <section className="mb-16">
+                            <h2 className="text-2xl font-bold text-white mb-8 flex items-center gap-2">
+                                <BarChart3 className="text-blue-400" size={24} /> Sıkça Sorulan Sorular
+                            </h2>
+                            <div className="space-y-3">
+                                {allFaq.map((item: {question: string; answer: string}, i: number) => (
+                                    <details key={i} className="group rounded-2xl border border-slate-800 bg-slate-900/30 overflow-hidden">
+                                        <summary className="p-5 cursor-pointer flex items-center justify-between text-white font-semibold hover:bg-slate-900/50 transition-colors">
+                                            <span>{item.question}</span>
+                                            <ChevronDown className="h-5 w-5 text-slate-500 group-open:rotate-180 transition-transform shrink-0 ml-2" />
+                                        </summary>
+                                        <div className="px-5 pb-5 text-slate-400 leading-relaxed border-t border-slate-800 pt-4">
+                                            {item.answer}
+                                        </div>
+                                    </details>
+                                ))}
+                            </div>
+                        </section>
+                    );
+                })()}
 
                 {/* Expert Quote (GEO Optimized) */}
                 {(article as any).expertQuote && (

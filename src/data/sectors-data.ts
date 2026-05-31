@@ -81,5 +81,113 @@ export const sectors: SectorData[] = [
             'Finans ve tahsilat süreçlerinin otomatikleşmesi',
             'Şantiye ve merkez ofis arasında kesintisiz iletişim'
         ]
+    },
+    {
+        slug: 'turizm-otel-crm',
+        title: 'Turizm & Otel Gayrimenkul CRM',
+        metaTitle: 'Turizm ve Otel Yatırımları İçin Gayrimenkul CRM | NovoxCRM',
+        metaDescription: 'Apart otel, devre mülk ve turizm gayrimenkul satışlarında müşteri takibi, yatırımcı portföy yönetimi ve getiri analizi için CRM yazılımı.',
+        heroHeadline: 'Turizm Gayrimenkulünde Satış Yönetimi',
+        heroSubheadline: 'Apart otel, devre mülk ve tatil köyü projelerinde yatırımcı ilişkilerini profesyonelce yönetin.',
+        features: [
+            { title: 'Yatırımcı Getiri Simülasyonu', description: 'Kira getirisi, doluluk oranı ve ROI projeksiyonu ile yatırımcılara somut veriler sunun.', icon: 'TrendingUp' },
+            { title: 'Devre Mülk Takvimi', description: 'Haftalık kullanım hakları, rotasyon ve bakım dönemlerini sistem üzerinden yönetin.', icon: 'Calendar' },
+            { title: 'Uluslararası Yatırımcı Takibi', description: 'Çok dilli iletişim, döviz bazlı fiyatlama ve uluslararası ödeme takibi.', icon: 'Globe' }
+        ],
+        benefits: [
+            'Yatırımcılara otomatik getiri raporları',
+            'Çoklu proje ve lokasyon yönetimi',
+            'Turizm sezonu bazlı satış analizi'
+        ]
+    },
+    {
+        slug: 'kentsel-donusum-crm',
+        title: 'Kentsel Dönüşüm CRM',
+        metaTitle: 'Kentsel Dönüşüm Projeleri İçin CRM Yazılımı | NovoxCRM',
+        metaDescription: 'Kentsel dönüşüm projelerinde hak sahipleri takibi, kat karşılığı anlaşma yönetimi ve yeni ünitelerle eşleştirme için CRM platformu.',
+        heroHeadline: 'Kentsel Dönüşüm Projelerinde Dijital Kontrol',
+        heroSubheadline: 'Hak sahipleri, yıkım-yapım süreçleri ve yeni ünitelerle eşleştirmeyi tek platformdan yönetin.',
+        features: [
+            { title: 'Hak Sahibi Yönetimi', description: 'Her hak sahibinin mevcut m², anlaşma durumu ve yeni ünite eşleştirmesini takip edin.', icon: 'Users' },
+            { title: 'Anlaşma Süreç Takibi', description: 'Kat karşılığı inşaat anlaşmaları, noter onayları ve tapu devir süreçlerini izleyin.', icon: 'FileCheck' },
+            { title: 'Yeni Proje Stok Yönetimi', description: 'Dönüşüm sonrası üretilen yeni ünitelerin satış ve dağıtım sürecini yönetin.', icon: 'Building' }
+        ],
+        benefits: [
+            'Hak sahipleri ile şeffaf iletişim',
+            'Hukuki süreç takibi ve belge yönetimi',
+            'Dönüşüm projelerinde çakışma önleme'
+        ]
+    },
+    {
+        slug: 'gyo-portfoy-crm',
+        title: 'GYO & Portföy Yönetim CRM',
+        metaTitle: 'GYO ve Gayrimenkul Portföy Yönetimi CRM | NovoxCRM',
+        metaDescription: 'Gayrimenkul yatırım ortaklıkları ve portföy yönetim şirketleri için çoklu proje, yatırımcı ilişkileri ve finansal raporlama CRM platformu.',
+        heroHeadline: 'Gayrimenkul Portföyünüzü Tek Panelden Yönetin',
+        heroSubheadline: 'Çoklu proje yönetimi, yatırımcı raporlama ve portföy performans analizi.',
+        features: [
+            { title: 'Çoklu Proje Dashboard', description: 'Tüm projelerinizin satış durumu, tahsilat ve stok bilgisini tek ekrandan görün.', icon: 'LayoutDashboard' },
+            { title: 'Yatırımcı İlişkileri', description: 'Ortakların ve yatırımcıların portföy değeri, getiri ve kar payı bilgilerini yönetin.', icon: 'Briefcase' },
+            { title: 'Konsolide Raporlama', description: 'Proje bazlı, bölge bazlı ve segment bazlı konsolide finansal raporlar üretin.', icon: 'BarChart3' }
+        ],
+        benefits: [
+            'Yönetim kurulu sunumları için hazır raporlar',
+            'Proje performans karşılaştırma',
+            'Yatırımcı getiri takibi ve dağıtım yönetimi'
+        ]
+    },
+    {
+        slug: 'yabanci-yatirimci-crm',
+        title: 'Yabancı Yatırımcı CRM',
+        metaTitle: 'Yabancı Yatırımcılara Gayrimenkul Satışı İçin CRM | NovoxCRM',
+        metaDescription: 'Yabancı uyruklu müşterilere gayrimenkul satışında çok dilli CRM, vatandaşlık takibi, döviz yönetimi ve uluslararası pazarlama otomasyonu.',
+        heroHeadline: 'Uluslararası Gayrimenkul Satışında CRM',
+        heroSubheadline: 'Yabancı yatırımcılarla çok dilli iletişim, vatandaşlık süreç takibi ve döviz bazlı ödeme yönetimi.',
+        features: [
+            { title: 'Çok Dilli İletişim', description: 'İngilizce, Arapça, Rusça ve Farsça dahil otomatik çeviri destekli müşteri iletişimi.', icon: 'Globe' },
+            { title: 'Vatandaşlık Süreç Takibi', description: 'Yatırım yoluyla vatandaşlık başvuru sürecini adım adım izleyin ve müşteriye raporlayın.', icon: 'Shield' },
+            { title: 'Döviz & Kur Yönetimi', description: 'USD, EUR, AED bazlı fiyatlama, kur farkı hesaplama ve havale takibi.', icon: 'DollarSign' }
+        ],
+        benefits: [
+            'Uluslararası pazarlama entegrasyonları',
+            'Tapu ve ikamet izni süreç takibi',
+            'Çok para birimli ödeme planı yönetimi'
+        ]
+    },
+    {
+        slug: 'toplu-konut-toki-crm',
+        title: 'Toplu Konut & TOKİ CRM',
+        metaTitle: 'Toplu Konut ve TOKİ Projeleri İçin CRM Yazılımı | NovoxCRM',
+        metaDescription: 'Yüksek hacimli toplu konut ve TOKİ projelerinde binlerce ünitenin satış, ödeme ve tahsilat takibi için CRM platformu.',
+        heroHeadline: 'Toplu Konut Projelerinde Ölçeklenebilir Satış Yönetimi',
+        heroSubheadline: '1.000+ üniteli projelerde satış, ödeme planı ve hak sahibi yönetimini profesyonelce yürütün.',
+        features: [
+            { title: 'Yüksek Hacim Stok Yönetimi', description: 'Binlerce üniteyi blok, kat ve tip bazında hiyerarşik yapıda yönetin.', icon: 'Building2' },
+            { title: 'Toplu Ödeme Planı', description: 'Standart ödeme planlarını toplu atama ile yüzlerce müşteriye anında uygulayın.', icon: 'Calculator' },
+            { title: 'Kura ve Çekiliş Modülü', description: 'Hak sahipleri için dijital kura ve çekiliş süreçlerini şeffaf şekilde yönetin.', icon: 'Shuffle' }
+        ],
+        benefits: [
+            'Toplu SMS ve bilgilendirme kampanyaları',
+            'Devlet destekli proje raporlama',
+            'Yüksek hacimli tahsilat takibi'
+        ]
+    },
+    {
+        slug: 'avm-perakende-crm',
+        title: 'AVM & Perakende Gayrimenkul CRM',
+        metaTitle: 'AVM ve Perakende Gayrimenkul Kiralama CRM | NovoxCRM',
+        metaDescription: 'Alışveriş merkezleri ve perakende gayrimenkul kiralama süreçlerinde kiracı takibi, sözleşme yönetimi ve doluluk analizi için CRM platformu.',
+        heroHeadline: 'AVM Kiralama Süreçlerini Dijitalleştirin',
+        heroSubheadline: 'Kiracı yönetimi, sözleşme takibi, doluluk oranı ve gelir optimizasyonu tek platformda.',
+        features: [
+            { title: 'Kiracı Portföy Yönetimi', description: 'Her kiracının sözleşme süresi, kira bedeli, ortak gider payı ve performansını takip edin.', icon: 'Store' },
+            { title: 'Doluluk & Gelir Analizi', description: 'AVM doluluk oranı, metrekare bazlı kira getirisi ve boşluk maliyetini raporlayın.', icon: 'PieChart' },
+            { title: 'Sözleşme Yenileme Takibi', description: 'Süresi dolan sözleşmeleri otomatik hatırlatma ile yenileme sürecine alın.', icon: 'RefreshCw' }
+        ],
+        benefits: [
+            'Kiracı memnuniyet takibi',
+            'Kira artış ve endeksleme otomasyonu',
+            'Boş alan pazarlama ve eşleştirme'
+        ]
     }
 ];
