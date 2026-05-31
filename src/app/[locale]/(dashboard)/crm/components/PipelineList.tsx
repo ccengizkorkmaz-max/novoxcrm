@@ -397,6 +397,7 @@ export default function PipelineList({
             if (colId === 'unit') return { id: colId, label: 'Birim', type: 'text' as const }
             if (colId === 'date') return { id: colId, label: 'Tarih', type: 'date' as const }
             if (colId === 'amount') return { id: colId, label: 'Tutar', type: 'text' as const }
+            if (colId === 'actions' || colId === 'quickicons') return { id: colId, label: colId, type: 'none' as const }
             return { id: colId, label: colId, type: 'text' as const }
         })
 

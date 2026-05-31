@@ -5,7 +5,7 @@ import { Filter, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface ColumnFilterRowProps {
-    columns: { id: string; label: string; type: 'text' | 'select' | 'date'; options?: string[] }[]
+    columns: { id: string; label: string; type: 'text' | 'select' | 'date' | 'none'; options?: string[] }[]
     visibleColumns: string[]
     filters: Record<string, string>
     onFilterChange: (columnId: string, value: string) => void
@@ -33,7 +33,7 @@ export default function ColumnFilterRow({
                         className="px-1.5 py-1.5"
                         style={{ width: columnWidths[col.id], minWidth: columnWidths[col.id] }}
                     >
-                        {col.type === 'select' ? (
+                        {col.type === 'none' ? null : col.type === 'select' ? (
                             <select
                                 value={filters[col.id] || ''}
                                 onChange={(e) => onFilterChange(col.id, e.target.value)}
