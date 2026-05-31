@@ -11,7 +11,7 @@ import {
     Brain, Star, Phone, Clock, ChevronDown, ChevronUp, Play, FileText,
     Send, Sparkles, CheckCircle2, AlertTriangle, MessageSquare, Shield,
     TrendingUp, BarChart3, ArrowLeft, RefreshCw, Eye, Lock, Zap,
-    ThumbsUp, ThumbsDown, Minus
+    ThumbsUp, ThumbsDown, Minus, Search
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -201,6 +201,8 @@ function CallReviewPanel({ calls, t, locale }: { calls: any[]; t: (k: string) =>
     const [feedbackStates, setFeedbackStates] = useState<Record<string, any>>({})
     const [submittedIds, setSubmittedIds] = useState<Set<string>>(new Set())
     const [isPending, startTransition] = useTransition()
+    const [searchQuery, setSearchQuery] = useState('')
+    const [subTab, setSubTab] = useState<'pending' | 'reviewed'>('pending')
 
     const handleFeedbackChange = (callId: string, field: string, value: any) => {
         setFeedbackStates(prev => ({
@@ -240,6 +242,26 @@ function CallReviewPanel({ calls, t, locale }: { calls: any[]; t: (k: string) =>
         })
     }
 
+    // Filter by search
+    const filtered = calls.filter(call => {
+        if (!searchQuery.trim()) return true
+        const q = searchQuery.toLowerCase()
+        return (
+            (call.customer_name || '').toLowerCase().includes(q) ||
+            (call.customer_phone || '').includes(q) ||
+            (call.project_name || '').toLowerCase().includes(q) ||
+            (call.workflow_name || '').toLowerCase().includes(q) ||
+            (call.call_summary || '').toLowerCase().includes(q) ||
+            (call.call_transcript || '').toLowerCase().includes(q)
+        )
+    })
+
+    // Split into pending / reviewed
+    const pendingCalls = filtered.filter(c => !c.existing_feedback && !submittedIds.has(c.id))
+    const reviewedCalls = filtered.filter(c => !!c.existing_feedback || submittedIds.has(c.id))
+
+    const activeCalls = subTab === 'pending' ? pendingCalls : reviewedCalls
+
     if (calls.length === 0) {
         return (
             <Card className="p-12 text-center">
@@ -250,237 +272,308 @@ function CallReviewPanel({ calls, t, locale }: { calls: any[]; t: (k: string) =>
     }
 
     return (
-        <div className="space-y-3">
-            {calls.map(call => {
-                const isExpanded = expandedId === call.id
-                const hasExisting = !!call.existing_feedback
-                const isSubmitted = submittedIds.has(call.id)
-                // Merge existing feedback with any local unsaved changes
-                const fb = { ...(call.existing_feedback || {}), ...(feedbackStates[call.id] || {}) }
-                const durationMin = Math.floor((call.call_duration_seconds || 0) / 60)
-                const durationSec = (call.call_duration_seconds || 0) % 60
+        <div className="space-y-4">
+            {/* Search + Sub-Tabs */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                <div className="relative flex-1 w-full sm:max-w-sm">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <input
+                        type="text"
+                        placeholder="Müşteri, telefon, proje ara..."
+                        value={searchQuery}
+                        onChange={e => setSearchQuery(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border bg-background focus:outline-none focus:ring-2 focus:ring-violet-500/40 transition-shadow"
+                    />
+                </div>
+                <div className="flex rounded-lg border overflow-hidden shrink-0">
+                    <button
+                        onClick={() => setSubTab('pending')}
+                        className={cn(
+                            "px-4 py-2 text-xs font-semibold flex items-center gap-1.5 transition-colors",
+                            subTab === 'pending'
+                                ? "bg-violet-500/15 text-violet-400 border-r border-violet-500/30"
+                                : "text-muted-foreground hover:bg-muted/50 border-r"
+                        )}
+                    >
+                        <AlertTriangle className="h-3.5 w-3.5" />
+                        Bekleyen
+                        <span className="ml-1 px-1.5 py-0.5 rounded-full bg-orange-500/15 text-orange-400 text-[10px] font-bold tabular-nums">
+                            {pendingCalls.length}
+                        </span>
+                    </button>
+                    <button
+                        onClick={() => setSubTab('reviewed')}
+                        className={cn(
+                            "px-4 py-2 text-xs font-semibold flex items-center gap-1.5 transition-colors",
+                            subTab === 'reviewed'
+                                ? "bg-green-500/15 text-green-400"
+                                : "text-muted-foreground hover:bg-muted/50"
+                        )}
+                    >
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        Değerlendirildi
+                        <span className="ml-1 px-1.5 py-0.5 rounded-full bg-green-500/15 text-green-400 text-[10px] font-bold tabular-nums">
+                            {reviewedCalls.length}
+                        </span>
+                    </button>
+                </div>
+            </div>
 
-                return (
-                    <Card key={call.id} className={cn(
-                        "transition-all",
-                        isExpanded ? "ring-1 ring-violet-500/30 shadow-lg" : "hover:bg-muted/30"
-                    )}>
-                        {/* Header Row */}
-                        <div className="p-4 cursor-pointer" onClick={() => setExpandedId(isExpanded ? null : call.id)}>
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 rounded-lg bg-violet-500/15 border border-violet-500/30">
-                                    <Phone className="h-4 w-4 text-violet-400" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2">
-                                        <span className="font-semibold text-sm">{call.customer_name}</span>
-                                        {call.project_name && (
-                                            <Badge variant="outline" className="text-[10px] border-blue-500/30 text-blue-400">
-                                                {call.project_name}
+            {/* Call List */}
+            {activeCalls.length === 0 ? (
+                <Card className="p-8 text-center">
+                    {subTab === 'pending' ? (
+                        <>
+                            <CheckCircle2 className="h-10 w-10 mx-auto text-green-500/40 mb-3" />
+                            <p className="text-sm text-muted-foreground">Tüm aramalar değerlendirildi! 🎉</p>
+                        </>
+                    ) : (
+                        <>
+                            <MessageSquare className="h-10 w-10 mx-auto text-muted-foreground/30 mb-3" />
+                            <p className="text-sm text-muted-foreground">
+                                {searchQuery ? 'Aramanızla eşleşen değerlendirilmiş kayıt bulunamadı.' : 'Henüz değerlendirilmiş arama yok.'}
+                            </p>
+                        </>
+                    )}
+                </Card>
+            ) : (
+                <div className="space-y-3">
+                    {activeCalls.map(call => {
+                        const isExpanded = expandedId === call.id
+                        const hasExisting = !!call.existing_feedback
+                        const isSubmitted = submittedIds.has(call.id)
+                        const fb = { ...(call.existing_feedback || {}), ...(feedbackStates[call.id] || {}) }
+                        const durationMin = Math.floor((call.call_duration_seconds || 0) / 60)
+                        const durationSec = (call.call_duration_seconds || 0) % 60
+
+                        return (
+                            <Card key={call.id} className={cn(
+                                "transition-all",
+                                isExpanded ? "ring-1 ring-violet-500/30 shadow-lg" : "hover:bg-muted/30"
+                            )}>
+                                {/* Header Row */}
+                                <div className="p-4 cursor-pointer" onClick={() => setExpandedId(isExpanded ? null : call.id)}>
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 rounded-lg bg-violet-500/15 border border-violet-500/30">
+                                            <Phone className="h-4 w-4 text-violet-400" />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-semibold text-sm">{call.customer_name}</span>
+                                                {call.project_name && (
+                                                    <Badge variant="outline" className="text-[10px] border-blue-500/30 text-blue-400">
+                                                        {call.project_name}
+                                                    </Badge>
+                                                )}
+                                                {call.workflow_name && (
+                                                    <Badge variant="outline" className="text-[10px] border-slate-500/30 text-slate-400">
+                                                        {call.workflow_name}
+                                                    </Badge>
+                                                )}
+                                            </div>
+                                            <p className="text-xs text-muted-foreground">{call.customer_phone}</p>
+                                        </div>
+
+                                        {call.call_duration_seconds > 0 && (
+                                            <div className="text-right mr-2">
+                                                <p className="text-sm font-bold tabular-nums">{durationMin}dk {durationSec}sn</p>
+                                                <p className="text-[10px] text-muted-foreground">{t('duration')}</p>
+                                            </div>
+                                        )}
+
+                                        <Badge variant="outline" className={cn(
+                                            "text-[10px]",
+                                            call.status === 'converted' ? "border-green-500/30 text-green-400" :
+                                            call.status === 'answered' ? "border-emerald-500/30 text-emerald-400" :
+                                            "border-orange-500/30 text-orange-400"
+                                        )}>
+                                            {call.status === 'converted' ? 'İlgilendi ✨' :
+                                             call.status === 'answered' ? 'Cevaplandı' : 'Açtı/Kapattı'}
+                                        </Badge>
+
+                                        {(hasExisting || isSubmitted) && (
+                                            <Badge className="bg-green-500/15 text-green-400 border-green-500/30 text-[10px]">
+                                                <CheckCircle2 className="h-3 w-3 mr-1" /> Değerlendirildi
                                             </Badge>
                                         )}
+
+                                        <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                                            {call.executed_at ? new Date(call.executed_at).toLocaleDateString(locale) : '—'}
+                                        </span>
+
+                                        {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                                     </div>
-                                    <p className="text-xs text-muted-foreground">{call.customer_phone}</p>
                                 </div>
 
-                                {call.call_duration_seconds > 0 && (
-                                    <div className="text-right mr-2">
-                                        <p className="text-sm font-bold tabular-nums">{durationMin}dk {durationSec}sn</p>
-                                        <p className="text-[10px] text-muted-foreground">{t('duration')}</p>
-                                    </div>
-                                )}
+                                {/* Expanded Detail */}
+                                {isExpanded && (
+                                    <div className="px-4 pb-4 border-t space-y-4">
+                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-4">
+                                            {/* Left: Call Details */}
+                                            <div className="space-y-4">
+                                                {/* Recording */}
+                                                {call.call_recording_url && (
+                                                    <div>
+                                                        <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-2 flex items-center gap-1">
+                                                            <Play className="h-3 w-3" /> {t('recording')}
+                                                        </h4>
+                                                        <audio controls className="w-full h-10 rounded-lg" src={call.call_recording_url}>
+                                                            <track kind="captions" />
+                                                        </audio>
+                                                    </div>
+                                                )}
 
-                                <Badge variant="outline" className={cn(
-                                    "text-[10px]",
-                                    call.status === 'converted' ? "border-green-500/30 text-green-400" :
-                                    call.status === 'answered' ? "border-emerald-500/30 text-emerald-400" :
-                                    "border-orange-500/30 text-orange-400"
-                                )}>
-                                    {call.status === 'converted' ? 'İlgilendi ✨' :
-                                     call.status === 'answered' ? 'Cevaplandı' : 'Açtı/Kapattı'}
-                                </Badge>
+                                                {/* Summary */}
+                                                {call.call_summary && (
+                                                    <div>
+                                                        <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-2">{t('summary')}</h4>
+                                                        <p className="text-xs leading-relaxed p-3 rounded-lg bg-muted/50 border">{call.call_summary}</p>
+                                                    </div>
+                                                )}
 
-                                {(hasExisting || isSubmitted) && (
-                                    <Badge className="bg-green-500/15 text-green-400 border-green-500/30 text-[10px]">
-                                        <CheckCircle2 className="h-3 w-3 mr-1" /> Değerlendirildi
-                                    </Badge>
-                                )}
-
-                                <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-                                    {call.executed_at ? new Date(call.executed_at).toLocaleDateString(locale) : '—'}
-                                </span>
-
-                                {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                            </div>
-                        </div>
-
-                        {/* Expanded Detail */}
-                        {isExpanded && (
-                            <div className="px-4 pb-4 border-t space-y-4">
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-4">
-                                    {/* Left: Call Details */}
-                                    <div className="space-y-4">
-                                        {/* Recording */}
-                                        {call.call_recording_url && (
-                                            <div>
-                                                <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-2 flex items-center gap-1">
-                                                    <Play className="h-3 w-3" /> {t('recording')}
-                                                </h4>
-                                                <audio controls className="w-full h-10 rounded-lg" src={call.call_recording_url}>
-                                                    <track kind="captions" />
-                                                </audio>
+                                                {/* Transcript */}
+                                                {call.call_transcript && (
+                                                    <div>
+                                                        <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-2 flex items-center gap-1">
+                                                            <FileText className="h-3 w-3" /> {t('transcript')}
+                                                        </h4>
+                                                        <div className="text-xs leading-relaxed p-3 rounded-lg bg-muted/50 border max-h-72 overflow-y-auto whitespace-pre-wrap">
+                                                            {call.call_transcript}
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
-                                        )}
 
-                                        {/* Summary */}
-                                        {call.call_summary && (
-                                            <div>
-                                                <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-2">{t('summary')}</h4>
-                                                <p className="text-xs leading-relaxed p-3 rounded-lg bg-muted/50 border">{call.call_summary}</p>
-                                            </div>
-                                        )}
-
-                                        {/* Transcript */}
-                                        {call.call_transcript && (
-                                            <div>
-                                                <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-2 flex items-center gap-1">
-                                                    <FileText className="h-3 w-3" /> {t('transcript')}
+                                            {/* Right: Feedback Form */}
+                                            <div className="space-y-4">
+                                                <h4 className="text-xs font-semibold text-violet-400 uppercase tracking-wider flex items-center gap-1">
+                                                    <Brain className="h-3 w-3" /> Geri Bildirim Formu
                                                 </h4>
-                                                <div className="text-xs leading-relaxed p-3 rounded-lg bg-muted/50 border max-h-72 overflow-y-auto whitespace-pre-wrap">
-                                                    {call.call_transcript}
+
+                                                {/* Star Rating */}
+                                                <div>
+                                                    <label className="text-xs text-muted-foreground mb-1 block">{t('overallRating')}</label>
+                                                    <div className="flex gap-1">
+                                                        {[1, 2, 3, 4, 5].map(n => (
+                                                            <button
+                                                                key={n}
+                                                                onClick={() => handleFeedbackChange(call.id, 'overall_rating', n)}
+                                                                className="p-1 hover:scale-110 transition-transform"
+                                                            >
+                                                                <Star className={cn(
+                                                                    "h-6 w-6 transition-colors",
+                                                                    (fb.overall_rating || 0) >= n
+                                                                        ? "fill-amber-400 text-amber-400"
+                                                                        : "text-slate-600"
+                                                                )} />
+                                                            </button>
+                                                        ))}
+                                                    </div>
                                                 </div>
+
+                                                {/* Dropdowns Grid */}
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <FeedbackSelect label={t('tone')} value={fb.tone_rating || ''} 
+                                                        onChange={v => handleFeedbackChange(call.id, 'tone_rating', v)}
+                                                        options={[
+                                                            { value: 'appropriate', label: t('appropriate') },
+                                                            { value: 'too_formal', label: t('too_formal') },
+                                                            { value: 'too_casual', label: t('too_casual') },
+                                                            { value: 'aggressive', label: t('aggressive') },
+                                                        ]} />
+                                                    <FeedbackSelect label={t('accuracy')} value={fb.accuracy_rating || ''}
+                                                        onChange={v => handleFeedbackChange(call.id, 'accuracy_rating', v)}
+                                                        options={[
+                                                            { value: 'correct', label: t('correct') },
+                                                            { value: 'incorrect', label: t('incorrect') },
+                                                            { value: 'incomplete', label: t('incomplete') },
+                                                        ]} />
+                                                    <FeedbackSelect label={t('objection')} value={fb.objection_handling || ''}
+                                                        onChange={v => handleFeedbackChange(call.id, 'objection_handling', v)}
+                                                        options={[
+                                                            { value: 'good', label: t('good') },
+                                                            { value: 'insufficient', label: t('insufficient') },
+                                                            { value: 'wrong_approach', label: t('wrong_approach') },
+                                                        ]} />
+                                                    <FeedbackSelect label={t('closing')} value={fb.closing_skill || ''}
+                                                        onChange={v => handleFeedbackChange(call.id, 'closing_skill', v)}
+                                                        options={[
+                                                            { value: 'good', label: t('good') },
+                                                            { value: 'missed_opportunity', label: t('missed_opportunity') },
+                                                            { value: 'too_pushy', label: t('too_pushy') },
+                                                        ]} />
+                                                </div>
+
+                                                {/* Tags */}
+                                                <div>
+                                                    <label className="text-xs text-muted-foreground mb-2 block">{t('tags')}</label>
+                                                    <div className="flex flex-wrap gap-1.5">
+                                                        {FEEDBACK_TAGS.map(tag => (
+                                                            <button
+                                                                key={tag}
+                                                                onClick={() => {
+                                                                    const current = fb.tags || []
+                                                                    const updated = current.includes(tag) 
+                                                                        ? current.filter((t: string) => t !== tag)
+                                                                        : [...current, tag]
+                                                                    handleFeedbackChange(call.id, 'tags', updated)
+                                                                }}
+                                                                className={cn(
+                                                                    "px-2 py-0.5 rounded-full text-[10px] font-medium border transition-colors",
+                                                                    (fb.tags || []).includes(tag)
+                                                                        ? "bg-violet-500/20 border-violet-500/40 text-violet-300"
+                                                                        : "border-slate-700 text-slate-500 hover:border-slate-500"
+                                                                )}
+                                                            >
+                                                                {tag.replace(/_/g, ' ')}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+
+                                                {/* Free Comment */}
+                                                <div>
+                                                    <label className="text-xs text-muted-foreground mb-1 block">{t('comment')}</label>
+                                                    <Textarea
+                                                        placeholder="Bu aramada neyi farklı yapmalıydı?"
+                                                        value={fb.free_comment || ''}
+                                                        onChange={e => handleFeedbackChange(call.id, 'free_comment', e.target.value)}
+                                                        className="text-xs min-h-[60px]"
+                                                    />
+                                                </div>
+
+                                                {/* Suggested Response */}
+                                                <div>
+                                                    <label className="text-xs text-muted-foreground mb-1 block">{t('suggestion')}</label>
+                                                    <Textarea
+                                                        placeholder="Bu soruya/duruma şöyle yanıt vermeli..."
+                                                        value={fb.suggested_response || ''}
+                                                        onChange={e => handleFeedbackChange(call.id, 'suggested_response', e.target.value)}
+                                                        className="text-xs min-h-[60px]"
+                                                    />
+                                                </div>
+
+                                                {/* Submit */}
+                                                <Button
+                                                    onClick={() => handleSubmit(call)}
+                                                    disabled={isPending || isSubmitted}
+                                                    className="w-full gap-2"
+                                                >
+                                                    {isSubmitted ? (
+                                                        <><CheckCircle2 className="h-4 w-4" /> {t('feedbackSent')}</>
+                                                    ) : (
+                                                        <><Send className="h-4 w-4" /> {t('submitFeedback')}</>
+                                                    )}
+                                                </Button>
                                             </div>
-                                        )}
+                                        </div>
                                     </div>
-
-                                    {/* Right: Feedback Form */}
-                                    <div className="space-y-4">
-                                        <h4 className="text-xs font-semibold text-violet-400 uppercase tracking-wider flex items-center gap-1">
-                                            <Brain className="h-3 w-3" /> Geri Bildirim Formu
-                                        </h4>
-
-                                        {/* Star Rating */}
-                                        <div>
-                                            <label className="text-xs text-muted-foreground mb-1 block">{t('overallRating')}</label>
-                                            <div className="flex gap-1">
-                                                {[1, 2, 3, 4, 5].map(n => (
-                                                    <button
-                                                        key={n}
-                                                        onClick={() => handleFeedbackChange(call.id, 'overall_rating', n)}
-                                                        className="p-1 hover:scale-110 transition-transform"
-                                                    >
-                                                        <Star className={cn(
-                                                            "h-6 w-6 transition-colors",
-                                                            (fb.overall_rating || 0) >= n
-                                                                ? "fill-amber-400 text-amber-400"
-                                                                : "text-slate-600"
-                                                        )} />
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-
-                                        {/* Dropdowns Grid */}
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <FeedbackSelect label={t('tone')} value={fb.tone_rating || ''} 
-                                                onChange={v => handleFeedbackChange(call.id, 'tone_rating', v)}
-                                                options={[
-                                                    { value: 'appropriate', label: t('appropriate') },
-                                                    { value: 'too_formal', label: t('too_formal') },
-                                                    { value: 'too_casual', label: t('too_casual') },
-                                                    { value: 'aggressive', label: t('aggressive') },
-                                                ]} />
-                                            <FeedbackSelect label={t('accuracy')} value={fb.accuracy_rating || ''}
-                                                onChange={v => handleFeedbackChange(call.id, 'accuracy_rating', v)}
-                                                options={[
-                                                    { value: 'correct', label: t('correct') },
-                                                    { value: 'incorrect', label: t('incorrect') },
-                                                    { value: 'incomplete', label: t('incomplete') },
-                                                ]} />
-                                            <FeedbackSelect label={t('objection')} value={fb.objection_handling || ''}
-                                                onChange={v => handleFeedbackChange(call.id, 'objection_handling', v)}
-                                                options={[
-                                                    { value: 'good', label: t('good') },
-                                                    { value: 'insufficient', label: t('insufficient') },
-                                                    { value: 'wrong_approach', label: t('wrong_approach') },
-                                                ]} />
-                                            <FeedbackSelect label={t('closing')} value={fb.closing_skill || ''}
-                                                onChange={v => handleFeedbackChange(call.id, 'closing_skill', v)}
-                                                options={[
-                                                    { value: 'good', label: t('good') },
-                                                    { value: 'missed_opportunity', label: t('missed_opportunity') },
-                                                    { value: 'too_pushy', label: t('too_pushy') },
-                                                ]} />
-                                        </div>
-
-                                        {/* Tags */}
-                                        <div>
-                                            <label className="text-xs text-muted-foreground mb-2 block">{t('tags')}</label>
-                                            <div className="flex flex-wrap gap-1.5">
-                                                {FEEDBACK_TAGS.map(tag => (
-                                                    <button
-                                                        key={tag}
-                                                        onClick={() => {
-                                                            const current = fb.tags || []
-                                                            const updated = current.includes(tag) 
-                                                                ? current.filter((t: string) => t !== tag)
-                                                                : [...current, tag]
-                                                            handleFeedbackChange(call.id, 'tags', updated)
-                                                        }}
-                                                        className={cn(
-                                                            "px-2 py-0.5 rounded-full text-[10px] font-medium border transition-colors",
-                                                            (fb.tags || []).includes(tag)
-                                                                ? "bg-violet-500/20 border-violet-500/40 text-violet-300"
-                                                                : "border-slate-700 text-slate-500 hover:border-slate-500"
-                                                        )}
-                                                    >
-                                                        {tag.replace(/_/g, ' ')}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-
-                                        {/* Free Comment */}
-                                        <div>
-                                            <label className="text-xs text-muted-foreground mb-1 block">{t('comment')}</label>
-                                            <Textarea
-                                                placeholder="Bu aramada neyi farklı yapmalıydı?"
-                                                value={fb.free_comment || ''}
-                                                onChange={e => handleFeedbackChange(call.id, 'free_comment', e.target.value)}
-                                                className="text-xs min-h-[60px]"
-                                            />
-                                        </div>
-
-                                        {/* Suggested Response */}
-                                        <div>
-                                            <label className="text-xs text-muted-foreground mb-1 block">{t('suggestion')}</label>
-                                            <Textarea
-                                                placeholder="Bu soruya/duruma şöyle yanıt vermeli..."
-                                                value={fb.suggested_response || ''}
-                                                onChange={e => handleFeedbackChange(call.id, 'suggested_response', e.target.value)}
-                                                className="text-xs min-h-[60px]"
-                                            />
-                                        </div>
-
-                                        {/* Submit */}
-                                        <Button
-                                            onClick={() => handleSubmit(call)}
-                                            disabled={isPending || isSubmitted}
-                                            className="w-full gap-2"
-                                        >
-                                            {isSubmitted ? (
-                                                <><CheckCircle2 className="h-4 w-4" /> {t('feedbackSent')}</>
-                                            ) : (
-                                                <><Send className="h-4 w-4" /> {t('submitFeedback')}</>
-                                            )}
-                                        </Button>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </Card>
-                )
-            })}
+                                )}
+                            </Card>
+                        )
+                    })}
+                </div>
+            )}
         </div>
     )
 }
