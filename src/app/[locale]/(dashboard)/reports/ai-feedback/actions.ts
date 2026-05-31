@@ -79,10 +79,68 @@ export async function getAICallsForReview(limit = 50): Promise<CallForReview[]> 
         .order('executed_at', { ascending: false })
         .limit(limit)
 
-    if (error || !logs) return []
+    if (error && !logs) return []
+
+    const validLogs = logs || []
+
+    // Fetch manual AI calls from activities
+    const { data: actData } = await supabase
+        .from('activities')
+        .select(`
+            id, type, status, outcome, summary, description, created_at, customer_id,
+            customers(full_name, phone),
+            sales(projects(name))
+        `)
+        .eq('tenant_id', profile.tenant_id)
+        .eq('type', 'Call')
+        .ilike('summary', '%🤖 AI Arama%')
+        .order('created_at', { ascending: false })
+        .limit(limit)
+
+    let manualLogs: any[] = []
+    if (actData) {
+        manualLogs = actData.map((act: any) => {
+            const desc = act.description || ''
+            const transcriptMarker = desc.indexOf('📝 Transkript:')
+            let summaryPart = transcriptMarker > 0 ? desc.substring(0, transcriptMarker).trim() : desc
+            let transcriptPart = transcriptMarker > 0 ? desc.substring(transcriptMarker + '📝 Transkript:'.length).trim() : ''
+            
+            const recordingMatch = desc.match(/\[RECORDING\]:\s*(https?:\/\/[^\s]+)/)
+            const recUrl = recordingMatch ? recordingMatch[1] : ''
+            
+            summaryPart = summaryPart.replace(/\[RECORDING\]:\s*https?:\/\/[^\s]+/g, '').trim()
+            transcriptPart = transcriptPart.replace(/\[RECORDING\]:\s*https?:\/\/[^\s]+/g, '').trim()
+
+            // Try to extract duration if present in summary like (0dk 35sn)
+            let duration = 0;
+            const durMatch = act.summary?.match(/\((\d+)dk\s*(\d+)sn\)/)
+            if (durMatch) {
+                duration = (parseInt(durMatch[1]) * 60) + parseInt(durMatch[2])
+            }
+
+            return {
+                id: act.id,
+                call_id: `manual_${act.id}`,
+                channel: 'ai_call',
+                status: act.status === 'Completed' ? 'answered' : 'hung_up',
+                call_duration_seconds: duration,
+                call_outcome: act.outcome || '',
+                call_summary: summaryPart,
+                call_transcript: transcriptPart,
+                call_recording_url: recUrl,
+                cost_amount: 0,
+                executed_at: act.created_at,
+                external_id: `manual_${act.id}`,
+                customer_name: act.customers?.full_name || 'Bilinmiyor',
+                customer_phone: act.customers?.phone || '',
+                project_name: act.sales?.projects?.name || 'Genel Proje',
+                workflow_name: 'Manuel CRM Araması'
+            }
+        })
+    }
 
     // Get existing feedback for these calls
-    const logIds = logs.map(l => l.id)
+    const logIds = [...validLogs.map(l => l.id), ...manualLogs.map(m => m.id)]
     const { data: feedbacks } = await supabase
         .from('ai_call_feedback')
         .select('*')
@@ -90,7 +148,7 @@ export async function getAICallsForReview(limit = 50): Promise<CallForReview[]> 
 
     const feedbackMap = new Map(feedbacks?.map(f => [f.step_log_id, f]) || [])
 
-    return logs.map((log: any) => ({
+    const outreachMapped = validLogs.map((log: any) => ({
         id: log.id,
         call_id: log.external_id || '',
         channel: log.channel,
@@ -101,14 +159,20 @@ export async function getAICallsForReview(limit = 50): Promise<CallForReview[]> 
         call_transcript: log.call_transcript || '',
         call_recording_url: log.call_recording_url || '',
         cost_amount: log.cost_amount || 0,
-        executed_at: log.executed_at || '',
+        executed_at: log.executed_at,
         external_id: log.external_id || '',
         customer_name: log.outreach_executions?.customers?.full_name || 'Bilinmiyor',
         customer_phone: log.outreach_executions?.customers?.phone || '',
-        project_name: log.outreach_executions?.sales?.projects?.name || '',
-        workflow_name: log.outreach_executions?.outreach_workflows?.name || '',
-        existing_feedback: feedbackMap.get(log.id) || null,
+        project_name: log.outreach_executions?.sales?.projects?.name || 'Genel Proje',
+        workflow_name: log.outreach_executions?.outreach_workflows?.name || 'Bilinmeyen Kampanya',
+        existing_feedback: feedbackMap.get(log.id) || null
     }))
+
+    // Combine and sort by date descending
+    const allCalls = [...outreachMapped, ...manualLogs.map(m => ({ ...m, existing_feedback: feedbackMap.get(m.id) || null }))]
+    allCalls.sort((a, b) => new Date(b.executed_at).getTime() - new Date(a.executed_at).getTime())
+
+    return allCalls.slice(0, limit)
 }
 
 
