@@ -748,6 +748,13 @@ export default function PipelineList({
                                                                             <Sparkles className="h-2.5 w-2.5 animate-pulse" />
                                                                             AI Ara
                                                                         </Button>
+                                                                        {sale.customers?.lead_qualifications?.[0] && (
+                                                                            <AiSignalBadge 
+                                                                                lastCallAt={sale.customers.lead_qualifications[0].last_call_at} 
+                                                                                interestLevel={sale.customers.lead_qualifications[0].interest_level} 
+                                                                                callNotes={sale.customers.lead_qualifications[0].call_notes} 
+                                                                            />
+                                                                        )}
                                                                     </div>
                                                                 )}
                                                                 {!sale.customers?.customer_number && !sale.customers?.phone && (
