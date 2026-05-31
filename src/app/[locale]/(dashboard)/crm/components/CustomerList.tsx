@@ -1118,7 +1118,7 @@ export default function CustomerList({
 
                     <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-xl text-xs font-black uppercase tracking-wider border border-blue-100 shadow-sm">
                         <Filter className="w-3.5 h-3.5 text-blue-500" />
-                        Filtreye Uygun: <span className="text-blue-800 font-black ml-1">{totalRecords} Kayıt</span>
+                        Filtreye Uygun: <span className="text-blue-800 font-black ml-1">{activeFilterCount > 0 ? currentItems.length : totalRecords} Kayıt</span>
                     </div>
 
                     <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 mt-2 sm:mt-0">
