@@ -45,6 +45,14 @@ interface IntegrationItem {
     thisWeekLeads: number
     thisMonthLeads: number
     scenario: Scenario
+    metaLive?: {
+        campaignId: string
+        spend: number
+        impressions: number
+        clicks: number
+        reach: number
+        cpl: number
+    } | null
     technical: {
         pageId: string
         formId: string
@@ -55,10 +63,12 @@ interface IntegrationItem {
 
 interface AnalyticsData {
     makeConnected: boolean
+    metaConnected?: boolean
     mappedIntegrations: IntegrationItem[]
     totalLeadsCount: number
     todayLeadsCount: number
     monthLeadsCount: number
+    totalMetaSpend?: number
     totalScenariosCount: number
     activeScenariosCount: number
     savedCreditsCount: number
@@ -74,8 +84,16 @@ export default function MetaAutomationDashboard({ initialData, locale }: Props) 
     const isTr = locale === 'tr'
     const [shareMode, setShareMode] = useState(false)
     
-    // Client-side cost manual inputs state
-    const [costs, setCosts] = useState<Record<string, string>>({})
+    // Client-side cost manual inputs state (pre-populated with live Meta spend if available)
+    const [costs, setCosts] = useState<Record<string, string>>(() => {
+        const initialCosts: Record<string, string> = {}
+        initialData.mappedIntegrations.forEach(item => {
+            if (item.metaLive) {
+                initialCosts[item.formName] = item.metaLive.spend.toFixed(2)
+            }
+        })
+        return initialCosts
+    })
     const [salesCounts, setSalesCounts] = useState<Record<string, string>>({})
 
     const t = (key: string): string => {
@@ -195,8 +213,8 @@ export default function MetaAutomationDashboard({ initialData, locale }: Props) 
                     </p>
                 </div>
 
-                {/* Make.com Status indicator badge */}
-                <div className="flex-shrink-0">
+                {/* Connection Status indicator badges */}
+                <div className="flex flex-wrap items-center gap-2">
                     <Badge className={cn(
                         "py-1.5 px-3 rounded-xl border font-bold text-xs shadow-sm flex items-center gap-2",
                         initialData.makeConnected 
@@ -205,6 +223,16 @@ export default function MetaAutomationDashboard({ initialData, locale }: Props) 
                     )}>
                         <div className={cn("h-2 w-2 rounded-full animate-pulse", initialData.makeConnected ? "bg-emerald-500" : "bg-amber-500")} />
                         {initialData.makeConnected ? t('makeStatusConnected') : t('makeStatusFallback')}
+                    </Badge>
+
+                    <Badge className={cn(
+                        "py-1.5 px-3 rounded-xl border font-bold text-xs shadow-sm flex items-center gap-2",
+                        initialData.metaConnected 
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/20 dark:text-emerald-300 dark:border-emerald-900/50" 
+                            : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/20 dark:text-amber-300 dark:border-amber-900/50"
+                    )}>
+                        <div className={cn("h-2 w-2 rounded-full animate-pulse", initialData.metaConnected ? "bg-emerald-500" : "bg-amber-500")} />
+                        {initialData.metaConnected ? (isTr ? "Meta Marketing API: Canlı Bağlantı" : "Meta Marketing API: Connected") : (isTr ? "Meta API: Çevrimdışı / Pasif" : "Meta API: Offline / Inactive")}
                     </Badge>
                 </div>
             </div>
@@ -472,7 +500,25 @@ export default function MetaAutomationDashboard({ initialData, locale }: Props) 
                                         </div>
                                     </td>
                                     <td className="p-4 text-slate-600 dark:text-slate-400 font-medium">
-                                        {shareMode ? t('masked') : item.campaign}
+                                        <div className="flex flex-col gap-1">
+                                            <span>{shareMode ? t('masked') : item.campaign}</span>
+                                            {item.metaLive && !shareMode && (
+                                                <div className="flex flex-wrap gap-1 mt-1">
+                                                    <Badge className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950/20 dark:text-indigo-300 text-[9px] font-bold px-1.5 py-0.5 border-none">
+                                                        👁️ {item.metaLive.impressions.toLocaleString()} Imp
+                                                    </Badge>
+                                                    <Badge className="bg-blue-50 hover:bg-blue-100 text-blue-700 dark:bg-blue-950/20 dark:text-blue-300 text-[9px] font-bold px-1.5 py-0.5 border-none">
+                                                        🖱️ {item.metaLive.clicks.toLocaleString()} Click
+                                                    </Badge>
+                                                    <Badge className="bg-purple-50 hover:bg-purple-100 text-purple-700 dark:bg-purple-950/20 dark:text-purple-300 text-[9px] font-bold px-1.5 py-0.5 border-none">
+                                                        🎯 {item.metaLive.reach.toLocaleString()} Reach
+                                                    </Badge>
+                                                    <Badge className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-300 text-[9px] font-bold px-1.5 py-0.5 border-none animate-pulse">
+                                                        💰 {item.metaLive.spend.toLocaleString()} ₺
+                                                    </Badge>
+                                                </div>
+                                            )}
+                                        </div>
                                     </td>
                                     <td className="p-4 text-center font-black text-slate-800 dark:text-slate-200">
                                         {item.todayLeads > 0 ? (

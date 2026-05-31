@@ -1254,7 +1254,30 @@ export async function getMetaAutomationAnalytics() {
         console.error('Failed to fetch Make.com scenarios:', e)
     }
 
-    // 3. Process and match data
+    // 3. Fetch live insights from Meta Marketing API
+    let metaInsights: any[] = []
+    let metaConnected = false
+    const metaToken = process.env.META_ADS_ACCESS_TOKEN
+    const adAccountId = 'act_4061690447453961' // NOVO Şirketler Grubu
+
+    if (metaToken) {
+        try {
+            const insightsRes = await fetch(`https://graph.facebook.com/v19.0/${adAccountId}/insights?fields=campaign_name,campaign_id,spend,impressions,clicks,inline_link_clicks,reach&level=campaign&date_preset=last_30d&access_token=${metaToken}`, {
+                next: { revalidate: 60 }
+            })
+            if (insightsRes.ok) {
+                const result = await insightsRes.json()
+                metaInsights = result.data || []
+                metaConnected = true
+            } else {
+                console.error('Meta API returned error:', await insightsRes.text())
+            }
+        } catch (e) {
+            console.error('Failed to fetch Meta Insights:', e)
+        }
+    }
+
+    // 4. Process and match data
     const metaRows = (campaignRows || []).filter((row: any) => {
         const chan = (row.channel || '').toLowerCase()
         return chan.includes('facebook') || chan.includes('instagram') || chan.includes('meta')
@@ -1290,13 +1313,24 @@ export async function getMetaAutomationAnalytics() {
                    (campLower && formLower.includes(campLower))
         }) || liveScenarios[Math.floor(Math.random() * liveScenarios.length)]
 
+        // Find matching Meta Campaign Insights
+        const metaCampaign = metaInsights.find((insight: any) => {
+            const insightName = (insight.campaign_name || '').toLowerCase()
+            const campName = (campaign || '').toLowerCase()
+            const formNameLower = formName.toLowerCase()
+            return insightName.includes(campName) || 
+                   campName.includes(insightName) || 
+                   insightName.includes(formNameLower) || 
+                   formNameLower.includes(insightName)
+        })
+
         const mockPageId = "48590123950183"
         const mockFormId = "85023958102395"
         const mockConnectionId = "conn_meta_lead_ads_v2"
 
         return {
             formName,
-            campaign,
+            campaign: metaCampaign?.campaign_name || campaign,
             channel: row.channel || 'Facebook Ads',
             totalLeads: row.total || 0,
             todayLeads: row.today || 0,
@@ -1308,9 +1342,17 @@ export async function getMetaAutomationAnalytics() {
                 active: matchingScenario ? matchingScenario.active : true,
                 scheduling: matchingScenario ? matchingScenario.scheduling : 'instant'
             },
+            metaLive: metaCampaign ? {
+                campaignId: metaCampaign.campaign_id,
+                spend: parseFloat(metaCampaign.spend) || 0,
+                impressions: parseInt(metaCampaign.impressions) || 0,
+                clicks: parseInt(metaCampaign.clicks) || 0,
+                reach: parseInt(metaCampaign.reach) || 0,
+                cpl: (parseFloat(metaCampaign.spend) || 0) / (row.total || 1)
+            } : null,
             technical: {
                 pageId: mockPageId,
-                formId: mockFormId,
+                formId: metaCampaign?.campaign_id || mockFormId,
                 connectionId: mockConnectionId,
                 mappedFields: {
                     "full_name": "full_name",
@@ -1325,13 +1367,16 @@ export async function getMetaAutomationAnalytics() {
     const totalLeadsCount = mappedIntegrations.reduce((sum, item) => sum + item.totalLeads, 0)
     const todayLeadsCount = mappedIntegrations.reduce((sum, item) => sum + item.todayLeads, 0)
     const monthLeadsCount = mappedIntegrations.reduce((sum, item) => sum + item.thisMonthLeads, 0)
+    const totalMetaSpend = mappedIntegrations.reduce((sum, item) => sum + (item.metaLive?.spend || 0), 0)
 
     return {
         makeConnected,
+        metaConnected,
         mappedIntegrations,
         totalLeadsCount,
         todayLeadsCount,
         monthLeadsCount,
+        totalMetaSpend,
         totalScenariosCount: liveScenarios.length,
         activeScenariosCount: liveScenarios.filter((s: any) => s.active).length,
         savedCreditsCount: 72000,
