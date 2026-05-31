@@ -15,7 +15,8 @@ import {
     CalendarCheck,
     ArrowRight,
     Megaphone,
-    Flame
+    Flame,
+    Zap
 } from "lucide-react"
 import Link from "next/link"
 import { getTranslations } from 'next-intl/server'
@@ -90,6 +91,13 @@ const reportCards = [
         icon: DollarSign,
         color: "text-purple-600",
         bgColor: "bg-purple-100"
+    },
+    {
+        id: "meta-automation",
+        href: "/reports/meta-automation",
+        icon: Zap,
+        color: "text-amber-600",
+        bgColor: "bg-amber-100"
     }
 ]
 

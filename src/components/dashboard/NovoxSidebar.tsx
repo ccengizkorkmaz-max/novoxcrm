@@ -478,6 +478,9 @@ export function NovoxSidebar({
                         <NavItem href="/reports/outreach-cost" icon={DollarSign} onClick={onElementClick} isCollapsed={isCollapsed} isSubItem>
                             {labels.reports?.outreachCost || 'Outreach Maliyet Analizi'}
                         </NavItem>
+                        <NavItem href="/reports/meta-automation" icon={Zap} onClick={onElementClick} isCollapsed={isCollapsed} isSubItem>
+                            {labels.reports?.metaAutomation || 'Meta Ads & Otomasyon Sağlığı'}
+                        </NavItem>
                     </>
                 ) : (
                     <Accordion type="multiple" className="w-full border-none">
@@ -550,6 +553,9 @@ export function NovoxSidebar({
                                 </NavItem>
                                 <NavItem href="/reports/outreach-cost" icon={DollarSign} onClick={onElementClick} isSubItem>
                                     {labels.reports?.outreachCost || 'Outreach Maliyet Analizi'}
+                                </NavItem>
+                                <NavItem href="/reports/meta-automation" icon={Zap} onClick={onElementClick} isSubItem>
+                                    {labels.reports?.metaAutomation || 'Meta Ads & Otomasyon Sağlığı'}
                                 </NavItem>
                             </AccordionContent>
                         </AccordionItem>

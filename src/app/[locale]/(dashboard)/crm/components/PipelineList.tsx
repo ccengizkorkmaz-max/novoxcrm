@@ -1202,6 +1202,12 @@ export default function PipelineList({
                                 <ChevronsRight className="h-4 w-4" />
                             </Button>
                         </div>
+
+                        <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 rounded-xl text-xs font-black uppercase tracking-wider border border-blue-100 dark:border-blue-900/50 shadow-sm">
+                            <Filter className="w-3.5 h-3.5 text-blue-500" />
+                            Filtreye Uygun: <span className="text-blue-800 dark:text-blue-200 font-black ml-1">{totalSalesCount} Kayıt</span>
+                        </div>
+
                         <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 mt-2 sm:mt-0">
                             <p className="text-xs font-bold text-slate-500 uppercase tracking-widest hidden sm:block">
                                 Sayfa <span className="text-blue-600 font-black">{currentPage}</span> / {totalPages}

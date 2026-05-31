@@ -506,7 +506,8 @@
             "marketing": "Marketing Analytics",
             "hotLeads": "Hot Lead Analysis",
             "outreachCeo": "Outreach CEO Report",
-            "outreachCost": "Outreach Cost Analysis"
+            "outreachCost": "Outreach Cost Analysis",
+            "metaAutomation": "Meta Ads & Automation"
         },
         "Inbox": {
             "title": "Inbox",
@@ -943,6 +944,10 @@
             "outreach-cost": {
                 "title": "Outreach Cost Analysis",
                 "description": "Campaign spend by AI Call and WhatsApp channels, cost per reach, and ROI reports."
+            },
+            "meta-automation": {
+                "title": "Meta Ads & Automation Health",
+                "description": "Real-time Meta Ads form integrations, Make.com webhook statuses, and financial credit savings report."
             }
         }
     },
