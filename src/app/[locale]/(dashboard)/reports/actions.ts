@@ -1216,171 +1216,178 @@ export async function getOutreachCostReportData(workflowIdParam?: string) {
 }
 
 export async function getMetaAutomationAnalytics() {
-    const supabase = await createClient()
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { error: 'Unauthorized' }
-
-    // 1. Fetch form campaign data from Supabase view
-    const { data: campaignRows, error: dbError } = await supabase
-        .from('marketing_form_campaign_grouped')
-        .select('form_name, channel, campaign, total, today, this_week, this_month, statuses')
-
-    if (dbError) {
-        console.error('Database campaign grouped error:', dbError)
-    }
-
-    // 2. Fetch scenarios from Make.com API
-    let makeScenarios: any[] = []
-    let makeConnected = false
-
     try {
-        const response = await fetch('https://eu1.make.com/api/v2/scenarios?organizationId=6505896&pg[limit]=100', {
-            headers: {
-                'Authorization': 'Token c208dab9-4f83-4bb6-94b7-3811c3e09628',
-                'Content-Type': 'application/json'
-            },
-            next: { revalidate: 60 }
-        })
+        const supabase = await createClient()
 
-        if (response.ok) {
-            const result = await response.json()
-            makeScenarios = result.scenarios || []
-            makeConnected = true
-        } else {
-            console.error('Make API returned error status:', response.status)
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return { error: 'Unauthorized' }
+
+        // 1. Fetch form campaign data from Supabase view
+        const { data: campaignRows, error: dbError } = await supabase
+            .from('marketing_form_campaign_grouped')
+            .select('form_name, channel, campaign, total, today, this_week, this_month, statuses')
+
+        if (dbError) {
+            console.error('Database campaign grouped error:', dbError)
         }
-    } catch (e) {
-        console.error('Failed to fetch Make.com scenarios:', e)
-    }
 
-    // 3. Fetch live insights from Meta Marketing API
-    let metaInsights: any[] = []
-    let metaConnected = false
-    const metaToken = process.env.META_ADS_ACCESS_TOKEN
-    const adAccountId = 'act_4061690447453961' // NOVO Şirketler Grubu
+        // 2. Fetch scenarios from Make.com API
+        let makeScenarios: any[] = []
+        let makeConnected = false
 
-    if (metaToken) {
         try {
-            const insightsRes = await fetch(`https://graph.facebook.com/v19.0/${adAccountId}/insights?fields=campaign_name,campaign_id,spend,impressions,clicks,inline_link_clicks,reach&level=campaign&date_preset=last_30d&access_token=${metaToken}`, {
+            const response = await fetch('https://eu1.make.com/api/v2/scenarios?organizationId=6505896&pg[limit]=100', {
+                headers: {
+                    'Authorization': 'Token c208dab9-4f83-4bb6-94b7-3811c3e09628',
+                    'Content-Type': 'application/json'
+                },
                 next: { revalidate: 60 }
             })
-            if (insightsRes.ok) {
-                const result = await insightsRes.json()
-                metaInsights = result.data || []
-                metaConnected = true
+
+            if (response.ok) {
+                const result = await response.json()
+                makeScenarios = result.scenarios || []
+                makeConnected = true
             } else {
-                console.error('Meta API returned error:', await insightsRes.text())
+                console.error('Make API returned error status:', response.status)
             }
         } catch (e) {
-            console.error('Failed to fetch Meta Insights:', e)
+            console.error('Failed to fetch Make.com scenarios:', e)
         }
-    }
 
-    // 4. Process and match data
-    const metaRows = (campaignRows || []).filter((row: any) => {
-        const chan = (row.channel || '').toLowerCase()
-        return chan.includes('facebook') || chan.includes('instagram') || chan.includes('meta')
-    })
+        // 3. Fetch live insights from Meta Marketing API
+        let metaInsights: any[] = []
+        let metaConnected = false
+        const metaToken = process.env.META_ADS_ACCESS_TOKEN
+        const adAccountId = 'act_4061690447453961' // NOVO Şirketler Grubu
 
-    const activeForms = metaRows.length > 0 ? metaRows : (campaignRows || [])
-
-    const fallbackScenarios = [
-        { id: 485123, name: "Vista Form Connection [Instant Webhook]", active: true, scheduling: "instant" },
-        { id: 485124, name: "İzmir Form Connection [Instant Webhook]", active: true, scheduling: "instant" },
-        { id: 485125, name: "Montenegro Form Connection [Instant Webhook]", active: true, scheduling: "instant" },
-        { id: 485126, name: "Kocaeli Form Connection [Instant Webhook]", active: true, scheduling: "instant" }
-    ]
-
-    const liveScenarios = makeConnected && makeScenarios.length > 0 ? makeScenarios.map((s: any) => ({
-        id: s.id,
-        name: s.name,
-        active: s.active,
-        scheduling: s.scheduling || (s.isInstant ? 'instant' : 'polling')
-    })) : fallbackScenarios
-
-    const mappedIntegrations = activeForms.map((row: any) => {
-        const formName = row.form_name || 'Bilinmeyen Form'
-        const campaign = row.campaign || ''
-        
-        // Find matching scenario by keyword
-        const matchingScenario = liveScenarios.find((s: any) => {
-            const nameLower = s.name.toLowerCase()
-            const formLower = formName.toLowerCase()
-            const campLower = campaign.toLowerCase()
-            return nameLower.includes(formLower) || 
-                   nameLower.includes(campLower) || 
-                   (campLower && formLower.includes(campLower))
-        }) || liveScenarios[Math.floor(Math.random() * liveScenarios.length)]
-
-        // Find matching Meta Campaign Insights
-        const metaCampaign = metaInsights.find((insight: any) => {
-            const insightName = (insight.campaign_name || '').toLowerCase()
-            const campName = (campaign || '').toLowerCase()
-            const formNameLower = formName.toLowerCase()
-            return insightName.includes(campName) || 
-                   campName.includes(insightName) || 
-                   insightName.includes(formNameLower) || 
-                   formNameLower.includes(insightName)
-        })
-
-        const mockPageId = "48590123950183"
-        const mockFormId = "85023958102395"
-        const mockConnectionId = "conn_meta_lead_ads_v2"
-
-        return {
-            formName,
-            campaign: metaCampaign?.campaign_name || campaign,
-            channel: row.channel || 'Facebook Ads',
-            totalLeads: row.total || 0,
-            todayLeads: row.today || 0,
-            thisWeekLeads: row.this_week || 0,
-            thisMonthLeads: row.this_month || 0,
-            scenario: {
-                id: matchingScenario?.id || 102345,
-                name: matchingScenario?.name || 'NovoCRM Form Integrator',
-                active: matchingScenario ? matchingScenario.active : true,
-                scheduling: matchingScenario ? matchingScenario.scheduling : 'instant'
-            },
-            metaLive: metaCampaign ? {
-                campaignId: metaCampaign.campaign_id,
-                spend: parseFloat(metaCampaign.spend) || 0,
-                impressions: parseInt(metaCampaign.impressions) || 0,
-                clicks: parseInt(metaCampaign.clicks) || 0,
-                reach: parseInt(metaCampaign.reach) || 0,
-                cpl: (parseFloat(metaCampaign.spend) || 0) / (row.total || 1)
-            } : null,
-            technical: {
-                pageId: mockPageId,
-                formId: metaCampaign?.campaign_id || mockFormId,
-                connectionId: mockConnectionId,
-                mappedFields: {
-                    "full_name": "full_name",
-                    "phone_number": "phone",
-                    "email": "email",
-                    "hangi_amaçla_almayı_düşünüyorsunuz?": "message"
+        if (metaToken) {
+            try {
+                const insightsRes = await fetch(`https://graph.facebook.com/v19.0/${adAccountId}/insights?fields=campaign_name,campaign_id,spend,impressions,clicks,inline_link_clicks,reach&level=campaign&date_preset=last_30d&access_token=${metaToken}`, {
+                    next: { revalidate: 60 }
+                })
+                if (insightsRes.ok) {
+                    const result = await insightsRes.json()
+                    metaInsights = result.data || []
+                    metaConnected = true
+                } else {
+                    console.error('Meta API returned error:', await insightsRes.text())
                 }
+            } catch (e) {
+                console.error('Failed to fetch Meta Insights:', e)
             }
         }
-    })
 
-    const totalLeadsCount = mappedIntegrations.reduce((sum, item) => sum + item.totalLeads, 0)
-    const todayLeadsCount = mappedIntegrations.reduce((sum, item) => sum + item.todayLeads, 0)
-    const monthLeadsCount = mappedIntegrations.reduce((sum, item) => sum + item.thisMonthLeads, 0)
-    const totalMetaSpend = mappedIntegrations.reduce((sum, item) => sum + (item.metaLive?.spend || 0), 0)
+        // 4. Process and match data
+        const metaRows = (campaignRows || []).filter((row: any) => {
+            const chan = (row.channel || '').toLowerCase()
+            return chan.includes('facebook') || chan.includes('instagram') || chan.includes('meta')
+        })
 
-    return {
-        makeConnected,
-        metaConnected,
-        mappedIntegrations,
-        totalLeadsCount,
-        todayLeadsCount,
-        monthLeadsCount,
-        totalMetaSpend,
-        totalScenariosCount: liveScenarios.length,
-        activeScenariosCount: liveScenarios.filter((s: any) => s.active).length,
-        savedCreditsCount: 72000,
-        leadResponseTime: '0.8s (Anlık)'
+        const activeForms = metaRows.length > 0 ? metaRows : (campaignRows || [])
+
+        const fallbackScenarios = [
+            { id: 485123, name: "Vista Form Connection [Instant Webhook]", active: true, scheduling: "instant" },
+            { id: 485124, name: "İzmir Form Connection [Instant Webhook]", active: true, scheduling: "instant" },
+            { id: 485125, name: "Montenegro Form Connection [Instant Webhook]", active: true, scheduling: "instant" },
+            { id: 485126, name: "Kocaeli Form Connection [Instant Webhook]", active: true, scheduling: "instant" }
+        ]
+
+        const liveScenarios = makeConnected && makeScenarios.length > 0 ? makeScenarios.map((s: any) => ({
+            id: s.id,
+            name: s.name,
+            active: s.active,
+            scheduling: s.scheduling || (s.isInstant ? 'instant' : 'polling')
+        })) : fallbackScenarios
+
+        const mappedIntegrations = activeForms.map((row: any) => {
+            const formName = row.form_name || 'Bilinmeyen Form'
+            const campaign = row.campaign || ''
+            
+            // Find matching scenario by keyword
+            const matchingScenario = liveScenarios.find((s: any) => {
+                const nameLower = (s?.name || '').toLowerCase()
+                const formLower = formName.toLowerCase()
+                const campLower = campaign.toLowerCase()
+                return nameLower.includes(formLower) || 
+                       nameLower.includes(campLower) || 
+                       (campLower && formLower.includes(campLower))
+            }) || liveScenarios[Math.floor(Math.random() * liveScenarios.length)]
+
+            // Find matching Meta Campaign Insights
+            const metaCampaign = metaInsights.find((insight: any) => {
+                const insightName = (insight?.campaign_name || '').toLowerCase()
+                const campName = (campaign || '').toLowerCase()
+                const formNameLower = formName.toLowerCase()
+                return insightName.includes(campName) || 
+                       campName.includes(insightName) || 
+                       insightName.includes(formNameLower) || 
+                       formNameLower.includes(insightName)
+            })
+
+            const mockPageId = "48590123950183"
+            const mockFormId = "85023958102395"
+            const mockConnectionId = "conn_meta_lead_ads_v2"
+
+            return {
+                formName,
+                campaign: metaCampaign?.campaign_name || campaign,
+                channel: row.channel || 'Facebook Ads',
+                totalLeads: row.total || 0,
+                todayLeads: row.today || 0,
+                thisWeekLeads: row.this_week || 0,
+                thisMonthLeads: row.this_month || 0,
+                scenario: {
+                    id: matchingScenario?.id || 102345,
+                    name: matchingScenario?.name || 'NovoCRM Form Integrator',
+                    active: matchingScenario ? matchingScenario.active : true,
+                    scheduling: matchingScenario ? matchingScenario.scheduling : 'instant'
+                },
+                metaLive: metaCampaign ? {
+                    campaignId: metaCampaign.campaign_id,
+                    spend: parseFloat(metaCampaign.spend) || 0,
+                    impressions: parseInt(metaCampaign.impressions) || 0,
+                    clicks: parseInt(metaCampaign.clicks) || 0,
+                    reach: parseInt(metaCampaign.reach) || 0,
+                    cpl: (parseFloat(metaCampaign.spend) || 0) / (row.total || 1)
+                } : null,
+                technical: {
+                    pageId: mockPageId,
+                    formId: metaCampaign?.campaign_id || mockFormId,
+                    connectionId: mockConnectionId,
+                    mappedFields: {
+                        "full_name": "full_name",
+                        "phone_number": "phone",
+                        "email": "email",
+                        "hangi_amaçla_almayı_düşünüyorsunuz?": "message"
+                    }
+                }
+            }
+        })
+
+        const totalLeadsCount = mappedIntegrations.reduce((sum, item) => sum + item.totalLeads, 0)
+        const todayLeadsCount = mappedIntegrations.reduce((sum, item) => sum + item.todayLeads, 0)
+        const monthLeadsCount = mappedIntegrations.reduce((sum, item) => sum + item.thisMonthLeads, 0)
+        const totalMetaSpend = mappedIntegrations.reduce((sum, item) => sum + (item.metaLive?.spend || 0), 0)
+
+        return {
+            makeConnected,
+            metaConnected,
+            mappedIntegrations,
+            totalLeadsCount,
+            todayLeadsCount,
+            monthLeadsCount,
+            totalMetaSpend,
+            totalScenariosCount: liveScenarios.length,
+            activeScenariosCount: liveScenarios.filter((s: any) => s.active).length,
+            savedCreditsCount: 72000,
+            leadResponseTime: '0.8s (Anlık)'
+        }
+    } catch (error: any) {
+        console.error("getMetaAutomationAnalytics uncaught error:", error)
+        return {
+            error: error?.message || String(error)
+        }
     }
 }
 

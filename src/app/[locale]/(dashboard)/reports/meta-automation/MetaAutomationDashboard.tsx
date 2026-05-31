@@ -87,11 +87,13 @@ export default function MetaAutomationDashboard({ initialData, locale }: Props) 
     // Client-side cost manual inputs state (pre-populated with live Meta spend if available)
     const [costs, setCosts] = useState<Record<string, string>>(() => {
         const initialCosts: Record<string, string> = {}
-        initialData.mappedIntegrations.forEach(item => {
-            if (item.metaLive) {
-                initialCosts[item.formName] = item.metaLive.spend.toFixed(2)
-            }
-        })
+        if (initialData && Array.isArray(initialData.mappedIntegrations)) {
+            initialData.mappedIntegrations.forEach(item => {
+                if (item && item.metaLive && typeof item.metaLive.spend === 'number') {
+                    initialCosts[item.formName] = item.metaLive.spend.toFixed(2)
+                }
+            })
+        }
         return initialCosts
     })
     const [salesCounts, setSalesCounts] = useState<Record<string, string>>({})
@@ -192,6 +194,14 @@ export default function MetaAutomationDashboard({ initialData, locale }: Props) 
             }
         }
         return translations[locale === 'en' ? 'en' : 'tr'][key] || key
+    }
+
+    const formatNumber = (value: number) => {
+        try {
+            return new Intl.NumberFormat(locale === 'tr' ? 'tr-TR' : 'en-US').format(value)
+        } catch {
+            return String(value)
+        }
     }
 
     return (
@@ -505,16 +515,16 @@ export default function MetaAutomationDashboard({ initialData, locale }: Props) 
                                             {item.metaLive && !shareMode && (
                                                 <div className="flex flex-wrap gap-1 mt-1">
                                                     <Badge className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950/20 dark:text-indigo-300 text-[9px] font-bold px-1.5 py-0.5 border-none">
-                                                        👁️ {item.metaLive.impressions.toLocaleString()} Imp
+                                                        👁️ {formatNumber(item.metaLive.impressions)} Imp
                                                     </Badge>
                                                     <Badge className="bg-blue-50 hover:bg-blue-100 text-blue-700 dark:bg-blue-950/20 dark:text-blue-300 text-[9px] font-bold px-1.5 py-0.5 border-none">
-                                                        🖱️ {item.metaLive.clicks.toLocaleString()} Click
+                                                        🖱️ {formatNumber(item.metaLive.clicks)} Click
                                                     </Badge>
                                                     <Badge className="bg-purple-50 hover:bg-purple-100 text-purple-700 dark:bg-purple-950/20 dark:text-purple-300 text-[9px] font-bold px-1.5 py-0.5 border-none">
-                                                        🎯 {item.metaLive.reach.toLocaleString()} Reach
+                                                        🎯 {formatNumber(item.metaLive.reach)} Reach
                                                     </Badge>
                                                     <Badge className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-300 text-[9px] font-bold px-1.5 py-0.5 border-none animate-pulse">
-                                                        💰 {item.metaLive.spend.toLocaleString()} ₺
+                                                        💰 {formatNumber(item.metaLive.spend)} ₺
                                                     </Badge>
                                                 </div>
                                             )}

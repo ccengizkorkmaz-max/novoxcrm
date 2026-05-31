@@ -16,8 +16,8 @@ export default async function MetaAutomationPage({ params }: PageProps) {
     const analytics = await getMetaAutomationAnalytics()
     const t = await getTranslations({ locale, namespace: 'Reports' })
 
-    // If analytics returns an error, we supply fallback data so it never crashes
-    const safeAnalytics = ('error' in analytics) ? {
+    // If analytics is missing or returns an error, we supply fallback data so it never crashes
+    const safeAnalytics = (!analytics || typeof analytics !== 'object' || 'error' in analytics) ? {
         makeConnected: false,
         mappedIntegrations: [
             {
