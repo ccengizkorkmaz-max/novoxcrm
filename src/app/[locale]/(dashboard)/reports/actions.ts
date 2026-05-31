@@ -1258,12 +1258,14 @@ export async function getMetaAutomationAnalytics() {
         // 3. Fetch live insights from Meta Marketing API
         let metaInsights: any[] = []
         let metaConnected = false
+        let metaLeadForms: Map<string, any> = new Map() // keyed by uppercased form name
         const metaToken = process.env.META_ADS_ACCESS_TOKEN
         const adAccountId = 'act_4061690447453961' // NOVO Şirketler Grubu
 
         if (metaToken) {
+            // 3a. Campaign-level insights with spend and lead actions
             try {
-                const insightsRes = await fetch(`https://graph.facebook.com/v19.0/${adAccountId}/insights?fields=campaign_name,campaign_id,spend,impressions,clicks,inline_link_clicks,reach&level=campaign&date_preset=last_30d&access_token=${metaToken}`, {
+                const insightsRes = await fetch(`https://graph.facebook.com/v19.0/${adAccountId}/insights?fields=campaign_name,campaign_id,actions,spend,impressions,clicks,reach&level=campaign&date_preset=last_30d&access_token=${metaToken}`, {
                     next: { revalidate: 60 }
                 })
                 if (insightsRes.ok) {
@@ -1275,6 +1277,38 @@ export async function getMetaAutomationAnalytics() {
                 }
             } catch (e) {
                 console.error('Failed to fetch Meta Insights:', e)
+            }
+
+            // 3b. Fetch real Lead Form names & IDs via page access tokens
+            try {
+                const pagesRes = await fetch(`https://graph.facebook.com/v19.0/me/accounts?fields=id,name,access_token&access_token=${metaToken}`, {
+                    next: { revalidate: 300 }
+                })
+                if (pagesRes.ok) {
+                    const pagesData = await pagesRes.json()
+                    for (const page of (pagesData.data || [])) {
+                        const formsRes = await fetch(`https://graph.facebook.com/v19.0/${page.id}/leadgen_forms?fields=id,name,status,leads_count&limit=50&access_token=${page.access_token}`, {
+                            next: { revalidate: 300 }
+                        })
+                        if (formsRes.ok) {
+                            const formsData = await formsRes.json()
+                            for (const form of (formsData.data || [])) {
+                                if (form.name && (form.leads_count || 0) > 0) {
+                                    metaLeadForms.set(form.name.toUpperCase().trim(), {
+                                        formId: form.id,
+                                        formName: form.name,
+                                        formStatus: form.status,
+                                        leadsCount: form.leads_count || 0,
+                                        pageId: page.id,
+                                        pageName: page.name,
+                                    })
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error('Failed to fetch Meta Lead Forms:', e)
             }
         }
 
@@ -1312,13 +1346,15 @@ export async function getMetaAutomationAnalytics() {
         }) : fallbackScenarios
 
         // 5. Consolidate duplicate forms — the DB view returns separate rows per campaign,
-        // so "NOVO PARK 4 KOCAELİ" can appear multiple times. Merge by form_name.
+        // and form names may differ in case ("Novo Park Vista" vs "NOVO PARK VISTA").
+        // Use case-insensitive key, keep the display name from the row with the most leads.
         const consolidatedForms: Record<string, any> = {}
         activeForms.forEach((row: any) => {
-            const key = (row.form_name || 'Bilinmeyen Form').trim()
+            const rawName = (row.form_name || 'Bilinmeyen Form').trim()
+            const key = rawName.toUpperCase() // case-insensitive grouping
             if (!consolidatedForms[key]) {
                 consolidatedForms[key] = {
-                    form_name: key,
+                    form_name: rawName,
                     channel: row.channel || 'Facebook Ads',
                     campaign: row.campaign || '',
                     campaigns: [row.campaign].filter(Boolean),
@@ -1326,6 +1362,7 @@ export async function getMetaAutomationAnalytics() {
                     today: row.today || 0,
                     this_week: row.this_week || 0,
                     this_month: row.this_month || 0,
+                    _bestTotal: row.total || 0, // track which name variant has most leads
                 }
             } else {
                 const existing = consolidatedForms[key]
@@ -1335,6 +1372,11 @@ export async function getMetaAutomationAnalytics() {
                 existing.this_month += row.this_month || 0
                 if (row.campaign && !existing.campaigns.includes(row.campaign)) {
                     existing.campaigns.push(row.campaign)
+                }
+                // Use the display name from the row with the most leads
+                if ((row.total || 0) > existing._bestTotal) {
+                    existing.form_name = rawName
+                    existing._bestTotal = row.total || 0
                 }
             }
         })
@@ -1361,23 +1403,34 @@ export async function getMetaAutomationAnalytics() {
                        (campLower && formLower.includes(campLower))
             }) || liveScenarios[Math.floor(Math.random() * liveScenarios.length)]
 
-            // Find matching Meta Campaign Insights
+            // Find matching Meta Campaign Insights (strict matching to avoid false positives)
             const metaCampaign = metaInsights.find((insight: any) => {
                 const insightName = (insight?.campaign_name || '').toLowerCase()
                 const campName = (campaign || '').toLowerCase()
                 const formNameLower = formName.toLowerCase()
-                return insightName.includes(campName) || 
-                       campName.includes(insightName) || 
-                       insightName.includes(formNameLower) || 
-                       formNameLower.includes(insightName)
+                
+                // Only match if there's a meaningful overlap (at least 5 chars to avoid "novo" matching everything)
+                if (!campName && !formNameLower) return false
+                
+                // Exact campaign name match (best)
+                if (campName.length >= 5 && insightName === campName) return true
+                
+                // Campaign name contains form name or vice versa (with minimum length check)
+                if (campName.length >= 5 && (insightName.includes(campName) || campName.includes(insightName))) return true
+                if (formNameLower.length >= 8 && (insightName.includes(formNameLower) || formNameLower.includes(insightName))) return true
+                
+                return false
             })
 
-            const mockPageId = "48590123950183"
-            const mockFormId = "85023958102395"
-            const mockConnectionId = "conn_meta_lead_ads_v2"
+            // Match real Meta Lead Form by form name (fuzzy uppercase key matching)
+            const formKey = formName.toUpperCase().trim()
+            const matchedForm = metaLeadForms.get(formKey) || 
+                [...metaLeadForms.entries()].find(([key]) => key.includes(formKey) || formKey.includes(key))?.[1] ||
+                null
 
             return {
                 formName,
+                metaFormName: matchedForm?.formName || null,
                 campaign: metaCampaign?.campaign_name || campaign,
                 channel: row.channel || 'Facebook Ads',
                 totalLeads: row.total || 0,
@@ -1396,12 +1449,15 @@ export async function getMetaAutomationAnalytics() {
                     impressions: parseInt(metaCampaign.impressions) || 0,
                     clicks: parseInt(metaCampaign.clicks) || 0,
                     reach: parseInt(metaCampaign.reach) || 0,
+                    leads: parseInt(((metaCampaign.actions || []).find((a: any) => a.action_type === 'lead') || {}).value || '0'),
                     cpl: (parseFloat(metaCampaign.spend) || 0) / (row.total || 1)
                 } : null,
                 technical: {
-                    pageId: mockPageId,
-                    formId: metaCampaign?.campaign_id || mockFormId,
-                    connectionId: mockConnectionId,
+                    pageId: matchedForm?.pageId || '-',
+                    pageName: matchedForm?.pageName || '-',
+                    formId: matchedForm?.formId || '-',
+                    metaLeadsCount: matchedForm?.leadsCount || 0,
+                    connectionId: 'conn_meta_lead_ads_v2',
                     mappedFields: {
                         "full_name": "full_name",
                         "phone_number": "phone",

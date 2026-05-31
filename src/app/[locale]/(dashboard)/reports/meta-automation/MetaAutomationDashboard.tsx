@@ -38,6 +38,7 @@ interface Scenario {
 
 interface IntegrationItem {
     formName: string
+    metaFormName?: string | null
     campaign: string
     channel: string
     totalLeads: number
@@ -51,11 +52,14 @@ interface IntegrationItem {
         impressions: number
         clicks: number
         reach: number
+        leads: number
         cpl: number
     } | null
     technical: {
         pageId: string
+        pageName?: string
         formId: string
+        metaLeadsCount?: number
         connectionId: string
         mappedFields: Record<string, string>
     }
@@ -516,6 +520,16 @@ export default function MetaAutomationDashboard({ initialData: rawData, locale }
                                     <td className="p-4 font-bold text-slate-900 dark:text-slate-100">
                                         <div className="flex flex-col gap-1">
                                             <span className="text-xs uppercase tracking-tight text-slate-900 dark:text-slate-100">{item.formName}</span>
+                                            {item.metaFormName && item.metaFormName.toUpperCase() !== item.formName.toUpperCase() && (
+                                                <span className="text-[10px] text-blue-500 dark:text-blue-400 font-semibold">
+                                                    Meta: {item.metaFormName}
+                                                </span>
+                                            )}
+                                            {item.technical?.formId && item.technical.formId !== '-' && (
+                                                <span className="text-[9px] text-slate-400 font-mono tracking-tight">
+                                                    ID: {item.technical.formId}
+                                                </span>
+                                            )}
                                             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-1">
                                                 <Building2 className="h-3 w-3" />
                                                 {item.channel}
