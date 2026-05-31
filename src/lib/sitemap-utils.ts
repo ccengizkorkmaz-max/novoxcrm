@@ -4,6 +4,7 @@ import { wikiArticles } from '@/data/wiki-data'
 import { turkishCities } from '@/data/cities-data'
 import { comparisons } from '@/data/comparisons-data'
 import { sectors } from '@/data/sectors-data'
+import { aiSolutions } from '@/data/ai-solutions-data'
 import { createClient } from '@/lib/supabase/server'
 import { getHostFromHeaders } from '@/lib/tenant/resolve-brand-from-host'
 import { getCanonicalBaseUrl } from '@/lib/seo-constants'
@@ -46,6 +47,12 @@ const STATIC_PAGE_DATES: Record<string, string> = {
     '/tools/serefiye-hesaplayici': '2026-05-15T00:00:00.000Z',
     '/tools/emlak-vergisi-hesaplayici': '2026-05-15T00:00:00.000Z',
     '/tools/konut-kredisi-karsilastirma': '2026-05-15T00:00:00.000Z',
+    '/tools/broker-komisyon-hesaplayici': '2026-05-31T00:00:00.000Z',
+    '/tools/damga-vergisi-hesaplayici': '2026-05-31T00:00:00.000Z',
+    '/tools/insaat-maliyet-hesaplayici': '2026-05-31T00:00:00.000Z',
+    '/tools/metrekare-birim-fiyat': '2026-05-31T00:00:00.000Z',
+    '/tools/yatirim-getirisi-hesaplayici': '2026-05-31T00:00:00.000Z',
+    '/tools/kira-getirisi-hesaplayici': '2026-05-31T00:00:00.000Z',
 }
 
 // Supported locales
@@ -120,6 +127,16 @@ export async function getSitemapUrls(): Promise<MetadataRoute.Sitemap> {
         ([route, date]) => generateVariants(route, new Date(date), 'weekly', route === '' ? 1 : 0.8)
     )
 
+    // ── 1.1 AI Solutions routes ──
+    const aiSolutionRoutes = aiSolutions.flatMap((sol) =>
+        generateVariants(
+            `/solutions/${sol.slug}`,
+            new Date('2026-05-31T00:00:00.000Z'),
+            'monthly',
+            0.8
+        )
+    )
+
     // ── 2. Wiki articles ──
     const wikiRoutes = wikiArticles.flatMap((article) =>
         generateVariants(
@@ -150,6 +167,18 @@ export async function getSitemapUrls(): Promise<MetadataRoute.Sitemap> {
         )
     )
 
+    // ── 3.2 City x Sector pages (programmatic SEO) ──
+    const citySectorRoutes = turkishCities.flatMap((city) =>
+        sectors.flatMap((sector) =>
+            generateVariants(
+                `/sehir/${city.slug}/${sector.slug}`,
+                new Date('2026-05-31T00:00:00.000Z'),
+                'monthly',
+                0.5
+            )
+        )
+    )
+
     // ── 4. Comparison pages ──
     const comparisonRoutes = comparisons.flatMap((comp) =>
         generateVariants(
@@ -177,7 +206,16 @@ export async function getSitemapUrls(): Promise<MetadataRoute.Sitemap> {
     )
 
     // ── 4. Combine and add i18n alternates ──
-    const allRoutes = [...marketingRoutes, ...wikiRoutes, ...cityRoutes, ...sectorRoutes, ...comparisonRoutes, ...profileRoutes]
+    const allRoutes = [
+        ...marketingRoutes, 
+        ...aiSolutionRoutes, 
+        ...wikiRoutes, 
+        ...cityRoutes, 
+        ...sectorRoutes, 
+        ...citySectorRoutes, 
+        ...comparisonRoutes, 
+        ...profileRoutes
+    ]
 
     return allRoutes.map((route) => {
         const { _path, ...rest } = route

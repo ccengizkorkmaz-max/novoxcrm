@@ -199,5 +199,113 @@ export const comparisons: ComparisonData[] = [
             { question: 'Zoho CRM emlakçılar için iyi bir tercih mi?', answer: 'Zoho ucuz bir giriş noktasıdır ancak portföy resimleri, harita konumları ve projeler gibi gayrimenkul dinamiklerini sisteme öğretmek için bir danışmana ihtiyaç duyabilirsiniz. Oikos CRM ise bu özelliklerle hazır gelir.' },
             { question: 'Zoho\'dan Oikos CRM\'e veri aktarılır mı?', answer: 'Evet, Zoho CRM\'den alacağınız CSV/Excel dosyalarını Oikos CRM\'e saniyeler içinde aktarabilirsiniz.' }
         ]
+    },
+    {
+        slug: 'oikos-crm-vs-hubspot',
+        title: 'Oikos CRM vs HubSpot CRM: Gayrimenkul Karşılaştırması',
+        metaTitle: 'Oikos CRM vs HubSpot CRM Karşılaştırma 2026',
+        metaDescription: 'HubSpot gayrimenkul satışında yeterli mi? Oikos CRM ile detaylı karşılaştırma. Sektörel araçlar, fiyatlandırma ve AI entegrasyonu.',
+        competitor: 'HubSpot CRM',
+        competitorDescription: 'HubSpot, dijital pazarlama ve inbound satış için dünya genelinde popüler bir CRM yazılımıdır. Ancak gayrimenkul projeleri için yüksek ek maliyetler ve entegrasyonlar gerektirir.',
+        features: [
+            { name: 'Sektörel Hazırlık', oikos: '✅ Gayrimenkul için hazır modüller', competitor: '⚠️ Genel amaçlı, özelleştirme gerekir' },
+            { name: 'Daire/Stok Takibi', oikos: '✅ İnteraktif lejant ve blok yönetimi', competitor: '❌ Daire stok yönetimi yok' },
+            { name: 'Acente ve Broker Portalı', oikos: '✅ Dahili ücretsiz portal', competitor: '❌ Partner portalı için ek lisanslar gerekir' },
+            { name: 'Ödeme Planı Motoru', oikos: '✅ Otomatik peşinat/taksit hesaplama', competitor: '❌ Manuel veya custom script' },
+            { name: 'AI Sesli Arama', oikos: '✅ Türkçe outbound AI agent', competitor: '❌ Türkçe sesli asistan yok' },
+            { name: 'WhatsApp Entegrasyonu', oikos: '✅ Yerleşik AI chatbot', competitor: '⚠️ Ek ücretli entegrasyonlar' },
+            { name: 'Fiyatlandırma', oikos: '✅ Şeffaf ve uygun', competitor: '❌ Kullanıcı başı ve kontak sınırına göre çok yüksek' }
+        ],
+        verdict: 'HubSpot, B2B pazarlama otomasyonu için harikadır ancak daire bazlı satış yapan inşaat ve gayrimenkul firmaları için hem çok pahalıdır hem de sektörel stok/ödeme planı modüllerinden yoksundur. Oikos CRM, ilk günden gayrimenkul sektörü için tam çözümdür.',
+        faq: [
+            { question: 'HubSpot gayrimenkul sektörü için uygun mu?', answer: 'HubSpot genel amaçlı bir CRM platformudur. Emlak ve inşaat sektörü için kullanılabilir ancak daire stok lejantı ve taksitli ödeme planı motoru gibi modüller için binlerce dolarlık özel yazılım geliştirme maliyeti çıkar.' },
+            { question: 'HubSpot\'tan Oikos CRM\'e geçiş nasıl yapılır?', answer: 'HubSpot API\'miz veya CSV veri aktarım aracımızla tüm kontak, anlaşma ve görüşme geçmişinizi birkaç saat içinde Oikos CRM\'e taşıyabilirsiniz.' }
+        ]
+    },
+    {
+        slug: 'oikos-crm-vs-monday',
+        title: 'Oikos CRM vs Monday.com CRM: Hangisi Gayrimenkul İçin Daha Uygun?',
+        metaTitle: 'Oikos CRM vs Monday.com Sales CRM 2026 Karşılaştırması',
+        metaDescription: 'Monday.com Sales CRM gayrimenkul takibinde nasıl? Oikos CRM ile karşılaştırma. Stok yönetimi, otomasyonlar ve Türkçe AI desteği.',
+        competitor: 'Monday.com Sales CRM',
+        competitorDescription: 'Monday.com, görsel proje yönetimi tabanlı bir CRM çözümüdür. Esnek panolar sunar ancak gayrimenkul stoğu ve karmaşık hakediş süreçleri için özel entegrasyonlar gerektirir.',
+        features: [
+            { name: 'Stok ve Blok Lejantı', oikos: '✅ Blok/kat bazlı interaktif lejant', competitor: '❌ Sadece standart satır/tablo görünümü' },
+            { name: 'Komisyon & Hakediş', oikos: '✅ Otomatik broker hakediş takibi', competitor: '⚠️ Formüllerle kısmi takip' },
+            { name: 'AI Sesli Arama', oikos: '✅ Yerleşik sesli arama asistanı', competitor: '❌ Yok' },
+            { name: 'WhatsApp AI Chatbot', oikos: '✅ 7/24 müşteri karşılama chatbotu', competitor: '❌ Üçüncü parti entegrasyon gerekir' },
+            { name: 'Ödeme Planı Hesaplayıcı', oikos: '✅ Otomatik taksitlendirme şablonu', competitor: '❌ Bulunmuyor' },
+            { name: 'Arayüz Hızı', oikos: '✅ Next.js ile anlık yükleme', competitor: '⚠️ Çok sütunlu tablolarda yavaşlama' },
+            { name: 'Mobil Uygulama', oikos: '✅ Mobil PWA + anlık bildirimler', competitor: '✅ Mobil uygulamalar mevcut' }
+        ],
+        verdict: 'Monday.com, proje takibi ve iş yönetimi için ideal olsa da, bir gayrimenkul veya inşaat projesinin satış ofisindeki dinamik stok durumunu ve ödeme planlarını yönetmek için yetersizdir. Oikos CRM, gayrimenkul dikeyine sıfırdan odaklandığı için çok daha etkilidir.',
+        faq: [
+            { question: 'Monday CRM emlak için özelleştirilebilir mi?', answer: 'Evet, Monday.com esnek tabloları sayesinde emlak takibi için uyarlanabilir. Ancak interaktif lejant, daire durum renk kodları ve taksit takip motoru gibi gayrimenkule özel araçları sunamaz.' },
+            { question: 'Oikos CRM Monday entegrasyonu sunuyor mu?', answer: 'Evet, isterseniz Make.com veya Zapier aracılığıyla Oikos CRM ile Monday.com\'u entegre çalıştırabilirsiniz.' }
+        ]
+    },
+    {
+        slug: 'oikos-crm-vs-pipedrive',
+        title: 'Oikos CRM vs Pipedrive: Satış Kapatma Odaklı CRM Karşılaştırması',
+        metaTitle: 'Oikos CRM vs Pipedrive Gayrimenkul Satış Takibi 2026',
+        metaDescription: 'Pipedrive gayrimenkul danışmanları için uygun mu? Oikos CRM ile Pipedrive fiyat, özellik ve Türkçe yapay zeka karşılaştırması.',
+        competitor: 'Pipedrive',
+        competitorDescription: 'Pipedrive, satış ekipleri için tasarlanmış pipeline (satış boru hattı) odaklı popüler bir CRM yazılımıdır. Kullanımı kolaydır ancak sektörel envanter yönetimi yoktur.',
+        features: [
+            { name: 'Pipeline Görünümü', oikos: '✅ Sektörel özel pipeline aşamaları', competitor: '✅ Çok başarılı pipeline yönetimi' },
+            { name: 'Gayrimenkul Portföyü', oikos: '✅ Detaylı daire envanteri ve lejant', competitor: '❌ Portföy/envanter modülü yok' },
+            { name: 'Ödeme ve Senet Takibi', oikos: '✅ Otomatik vadeli ödeme ve tahsilat', competitor: '❌ Sadece toplam anlaşma tutarı takibi' },
+            { name: 'AI Sesli Görüşme', oikos: '✅ Vapi entegreli Türkçe arama robotu', competitor: '❌ Türkçe sesli AI desteği yok' },
+            { name: 'WhatsApp CRM', oikos: '✅ Entegre sohbet ve AI bot', competitor: '⚠️ Ek ücretli entegrasyonlar' },
+            { name: 'Türkçe Destek', oikos: '✅ %100 yerli ve anında destek', competitor: '⚠️ Sınırlı Türkçe destek' },
+            { name: 'Aylık Ücret', oikos: '✅ Uygun fiyat garantisi', competitor: '❌ Euro/Dolar bazlı yüksek maliyet' }
+        ],
+        verdict: 'Pipedrive genel B2B satış takibi için oldukça başarılıdır. Ancak gayrimenkul satışında sadece pipeline yeterli değildir; daire stoğu, taksit planları ve tapu süreçlerinin de izlenmesi gerekir. Oikos CRM, Pipedrive\'ın kolaylığını sektörel derinlikle birleştirir.',
+        faq: [
+            { question: 'Pipedrive gayrimenkul için nasıl kullanılır?', answer: 'Pipedrive\'da her satış fırsatını bir kart olarak takip edebilirsiniz. Ancak mülk detaylarını ve taksit ödemelerini takip etmek için ek özel alanlar tanımlamanız gerekir ki bu da stok yönetimini zorlaştırır.' },
+            { question: 'Pipedrive verilerimi Oikos CRM\'e aktarabilir miyim?', answer: 'Evet, Pipedrive API anahtarınızı girerek tüm verilerinizi doğrudan ve kayıpsız bir şekilde Oikos CRM\'e taşıyabiliriz.' }
+        ]
+    },
+    {
+        slug: 'oikos-crm-vs-bitrix24',
+        title: 'Oikos CRM vs Bitrix24: Gayrimenkul CRM Seçimi',
+        metaTitle: 'Oikos CRM vs Bitrix24 Karşılaştırması 2026',
+        metaDescription: 'Bitrix24 gayrimenkul ve inşaat sektöründe nasıl? Oikos CRM ile arayüz, kullanım kolaylığı, AI özellikleri ve maliyet karşılaştırması.',
+        competitor: 'Bitrix24',
+        competitorDescription: 'Bitrix24; CRM, proje yönetimi, sohbet ve iş birliği araçlarını içeren devasa bir platformdur. Özellik sayısı çok fazladır ancak arayüzü karmaşık ve öğrenme eğrisi diktir.',
+        features: [
+            { name: 'Kullanım Kolaylığı', oikos: '✅ Gayrimenkul odaklı, sade ve hızlı arayüz', competitor: '⚠️ Aşırı karmaşık ve kalabalık menüler' },
+            { name: 'Sektörel Stok Yönetimi', oikos: '✅ İnteraktif kat planı ve stok durumu', competitor: '❌ Özel kodlama veya pahalı eklenti gerekir' },
+            { name: 'Mobil Uyumluluk', oikos: '✅ PWA ile hızlı mobil deneyim', competitor: '⚠️ Yavaş ve hantal mobil uygulama' },
+            { name: 'Yerel AI Entegrasyonları', oikos: '✅ Türkçe sesli arama ve WhatsApp bot', competitor: '❌ Genel İngilizce yapay zeka asistanı' },
+            { name: 'Ödeme & Tahsilat', oikos: '✅ Esnek taksit ve vade planlama', competitor: '⚠️ Sınırlı fatura takibi' },
+            { name: 'Danışman Eğitim Süresi', oikos: '✅ 1 Gün', competitor: '⚠️ Haftalar süren eğitim ve kurulum' }
+        ],
+        verdict: 'Bitrix24 bir İsviçre çakısı gibidir ancak gayrimenkul satış ofisleri için fazla hantal ve karmaşıktır. Danışmanların sistemi öğrenmesi haftalar alır. Oikos CRM ise sadece gayrimenkul satışına odaklandığı için sade, hızlı ve çok daha etkilidir.',
+        faq: [
+            { question: 'Bitrix24 gayrimenkul şablonu var mı?', answer: 'Bitrix24 içinde bazı temel emlak şablonları bulunur ancak bunlar sadece basit formlardan ibarettir. İnteraktif daire seçimi, broker portalı ve kurumsal inşaat muhasebesi gibi özellikleri sunamaz.' },
+            { question: 'Neden Bitrix24 yerine Oikos CRM?', answer: 'Oikos CRM, gayrimenkul ekibinizin işini zorlaştıran binlerce gereksiz özelliği eleyerek sadece satışı kapatmaya odaklanmanızı sağlar ve kurulum gerektirmez.' }
+        ]
+    },
+    {
+        slug: 'oikos-crm-vs-proptech',
+        title: 'Oikos CRM vs Diğer Gayrimenkul Yazılımları: Farklar Neler?',
+        metaTitle: 'Oikos CRM vs Geleneksel Emlak Programları 2026',
+        metaDescription: 'Oikos CRM\'in geleneksel emlak yazılımları ve proptech çözümlerinden farkları nelerdir? Karşılaştırmalı analiz ve avantajlar.',
+        competitor: 'Geleneksel Emlak Programları',
+        competitorDescription: 'Geleneksel emlak programları genellikle sadece ilan yayınlama, afiş takibi ve basit müşteri listelerinden oluşur. Yapay zeka ve otomasyon sunmazlar.',
+        features: [
+            { name: 'Yapay Zeka (AI) Otomasyonları', oikos: '✅ AI sesli arama, WhatsApp bot, lead qualification', competitor: '❌ Bulunmuyor' },
+            { name: 'Proje Satış Lejantı', oikos: '✅ İnteraktif 2D/3D kat planı stok yönetimi', competitor: '❌ Sadece tekil ilan girişi' },
+            { name: 'Broker / Acente Portalı', oikos: '✅ Broker ağını yöneten gelişmiş portal', competitor: '❌ Yok' },
+            { name: 'Çok Kanallı Outreach', oikos: '✅ Otomatik arama + WhatsApp + SMS zinciri', competitor: '❌ Sadece manuel arama' },
+            { name: 'White-Label Desteği', oikos: '✅ Kendi logonuz ve domaininizle white-label', competitor: '❌ Bulunmuyor' },
+            { name: 'Modern Web Teknolojisi', oikos: '✅ Next.js ve bulut tabanlı yüksek hız', competitor: '⚠️ Eski ASP/PHP altyapıları' }
+        ],
+        verdict: 'Geleneksel emlak programları 2010\'lu yılların ihtiyaçlarına göre tasarlanmıştır. Oikos CRM ise yapay zeka, otomasyon, white-label desteği ve interaktif stok yönetimi ile 2026 standartlarında modern bir proptech platformudur.',
+        faq: [
+            { question: 'Geleneksel emlak programlarından farkınız nedir?', answer: 'Temel fark yapay zeka ve otomasyondur. Oikos CRM müşterileri sizin yerinize arar, WhatsApp\'tan yazışır, stokları anlık günceller ve satışı kapatmanız için rehberlik eder.' },
+            { question: 'Sisteme kendi logomuzu ekleyebilir miyiz?', answer: 'Evet, White-Label özelliğimiz sayesinde sistemi tamamen kendi markanız, renkleriniz ve domaininizle (crm.firmaniz.com) kullanabilirsiniz.' }
+        ]
     }
 ]
