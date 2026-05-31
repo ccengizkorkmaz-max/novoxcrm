@@ -574,7 +574,7 @@ export default function MetaAutomationDashboard({ initialData: rawData, locale }
                                                 ? "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/20 dark:text-purple-300 dark:border-purple-900/50"
                                                 : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/20 dark:text-amber-300 dark:border-amber-900/50"
                                         )}>
-                                            {t(item.scenario.scheduling)}
+                                            {t(typeof item.scenario.scheduling === 'string' ? item.scenario.scheduling : 'polling')}
                                         </Badge>
                                     </td>
                                     <td className="p-4 font-bold">

@@ -1293,12 +1293,23 @@ export async function getMetaAutomationAnalytics() {
             { id: 485126, name: "Kocaeli Form Connection [Instant Webhook]", active: true, scheduling: "instant" }
         ]
 
-        const liveScenarios = makeConnected && makeScenarios.length > 0 ? makeScenarios.map((s: any) => ({
-            id: s.id,
-            name: s.name,
-            active: s.active,
-            scheduling: s.scheduling || (s.isInstant ? 'instant' : 'polling')
-        })) : fallbackScenarios
+        const liveScenarios = makeConnected && makeScenarios.length > 0 ? makeScenarios.map((s: any) => {
+            // Make.com API returns scheduling as an object {type, interval} — extract a safe string
+            let schedulingStr = 'polling'
+            if (s.isInstant) {
+                schedulingStr = 'instant'
+            } else if (typeof s.scheduling === 'string') {
+                schedulingStr = s.scheduling
+            } else if (s.scheduling && typeof s.scheduling === 'object') {
+                schedulingStr = s.scheduling.type === 'indefinitely' || s.scheduling.interval ? 'polling' : 'instant'
+            }
+            return {
+                id: s.id,
+                name: s.name,
+                active: s.active,
+                scheduling: schedulingStr
+            }
+        }) : fallbackScenarios
 
         const mappedIntegrations = activeForms.map((row: any) => {
             const formName = row.form_name || 'Bilinmeyen Form'
