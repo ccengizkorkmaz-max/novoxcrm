@@ -210,7 +210,7 @@ function CallReviewPanel({ calls, t, locale }: { calls: any[]; t: (k: string) =>
     }
 
     const handleSubmit = async (call: any) => {
-        const fb = feedbackStates[call.id] || {}
+        const fb = { ...(call.existing_feedback || {}), ...(feedbackStates[call.id] || {}) }
         if (!fb.overall_rating) {
             toast.error(locale === 'tr' ? 'Lütfen Genel Performans için 1-5 arası bir yıldız seçin.' : 'Please select an overall rating (1-5 stars).')
             return
