@@ -17,6 +17,8 @@ import BulkAutoAssignButton from './components/BulkAutoAssignButton'
 import DeferredPipelineStats from './components/DeferredPipelineStats'
 import { CollapsibleSection } from '@/components/ui/collapsible-section'
 import DeferredCRMToolbar from './components/DeferredCRMToolbar'
+import CRMHeaderToggles from './components/CRMHeaderToggles'
+import { CRMStatsCollapse } from './components/CRMStatsCollapse'
 import React, { Suspense } from 'react'
 
 export default async function CRMPage(props: {
@@ -170,7 +172,8 @@ export default async function CRMPage(props: {
                     </Suspense>
 
                     {/* Search + Export + AutoAssign */}
-                    <div className="flex items-center gap-1.5 shrink-0 ml-1">
+                    <div className="flex items-center gap-1.5 shrink-0 ml-1 flex-wrap">
+                        <CRMHeaderToggles />
                         <div className="w-48 lg:w-56">
                             <Suspense fallback={<div className="h-9 w-full bg-muted animate-pulse rounded" />}>
                                 <CRMSearch />
@@ -192,21 +195,21 @@ export default async function CRMPage(props: {
                 </div>
 
                 {/* Pipeline Stats */}
-                <div className="hidden lg:block mb-4">
-                    <CollapsibleSection title="Özet İstatistikler" defaultOpen={false}>
+                <div className="hidden lg:block">
+                    <CRMStatsCollapse>
                         <Suspense fallback={statsSkeleton}>
                             <DeferredPipelineStats {...statsFilterProps} />
                         </Suspense>
-                    </CollapsibleSection>
+                    </CRMStatsCollapse>
                 </div>
             </div>
 
-            <div className="lg:hidden px-1 mb-4">
-                <CollapsibleSection title="Özet İstatistikler" defaultOpen={false}>
+            <div className="lg:hidden px-1">
+                <CRMStatsCollapse>
                     <Suspense fallback={statsSkeleton}>
                         <DeferredPipelineStats {...statsFilterProps} />
                     </Suspense>
-                </CollapsibleSection>
+                </CRMStatsCollapse>
             </div>
 
             {/* Sales List — renders IMMEDIATELY with first 50 records */}

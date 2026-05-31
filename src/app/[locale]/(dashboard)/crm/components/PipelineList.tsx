@@ -94,6 +94,29 @@ export default function PipelineList({
     const locale = useLocale()
     const isBroker = tenantType === 'broker'
 
+    const [viewsOpen, setViewsOpen] = useState(false)
+
+    useEffect(() => {
+        const handleToggle = (e: Event) => {
+            const ce = e as CustomEvent
+            if (ce.detail?.open !== undefined) {
+                setViewsOpen(ce.detail.open)
+            } else {
+                setViewsOpen(prev => {
+                    const next = !prev
+                    window.dispatchEvent(new CustomEvent('crm-views-state', { detail: { open: next } }))
+                    return next
+                })
+            }
+        }
+        window.addEventListener('toggle-crm-views', handleToggle)
+        return () => window.removeEventListener('toggle-crm-views', handleToggle)
+    }, [])
+
+    useEffect(() => {
+        window.dispatchEvent(new CustomEvent('crm-views-state', { detail: { open: viewsOpen } }))
+    }, [viewsOpen])
+
     // Broker status label mapping
     const brokerStatusLabel = (status: string): string => {
         const map: Record<string, string> = {
@@ -472,49 +495,51 @@ export default function PipelineList({
             {/* Desktop Table View */}
             <div className="hidden md:block relative group">
                 {/* Column hint bar */}
-                <CollapsibleSection title="Görünüm ve Filtreler" defaultOpen={false} className="mb-3 border-slate-200">
-                    <div className="flex items-center gap-2 px-3 py-2 bg-slate-50/80 text-[10px] font-bold text-slate-400 uppercase tracking-widest flex-wrap">
-                        <span className="whitespace-nowrap">Sütunları sürükle &amp; bırak ile sırala</span>
-                        {colOrder.join(',') !== DEFAULT_PIPELINE_COL_ORDER.join(',') && (
-                            <button onClick={() => { setColOrder(DEFAULT_PIPELINE_COL_ORDER); try { localStorage.removeItem(PIPELINE_COL_ORDER_KEY) } catch {} }} className="text-blue-500 hover:text-blue-700 underline underline-offset-2">
-                                Sıral. sıfırla
-                            </button>
-                        )}
-                        {JSON.stringify(colWidths) !== JSON.stringify(DEFAULT_PIPELINE_WIDTHS) && (
-                            <button onClick={() => { setColWidths({ ...DEFAULT_PIPELINE_WIDTHS }); try { localStorage.removeItem(PIPELINE_COL_WIDTHS_KEY) } catch {} }} className="text-slate-400 hover:text-blue-600 underline underline-offset-2">
-                                Geniş. sıfırla
-                            </button>
-                        )}
-                        <ColumnVisibilityPicker
-                            columns={pipelineColumns}
-                            hiddenColumns={hiddenCols}
-                            onToggle={toggleColVisibility}
-                            onReset={resetColVisibility}
-                            storageKey={PIPELINE_HIDDEN_COLS_KEY}
-                        />
-                        <Button
-                            variant={showFilters ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => { setShowFilters(!showFilters); if (showFilters) clearAllFilters() }}
-                            className={cn(
-                                "gap-1.5 h-8 text-xs font-bold shadow-sm transition-all",
-                                showFilters
-                                    ? "bg-blue-600 hover:bg-blue-700 text-white"
-                                    : activeFilterCount > 0
-                                        ? "border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100"
-                                        : "border-slate-200"
+                {viewsOpen && (
+                    <div className="mb-3 border border-slate-200 dark:border-slate-800 rounded-xl p-3 bg-card shadow-sm transition-all animate-in fade-in slide-in-from-top-4 duration-200">
+                        <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest flex-wrap">
+                            <span className="whitespace-nowrap">Sütunları sürükle &amp; bırak ile sırala</span>
+                            {colOrder.join(',') !== DEFAULT_PIPELINE_COL_ORDER.join(',') && (
+                                <button onClick={() => { setColOrder(DEFAULT_PIPELINE_COL_ORDER); try { localStorage.removeItem(PIPELINE_COL_ORDER_KEY) } catch {} }} className="text-blue-500 hover:text-blue-700 underline underline-offset-2">
+                                    Sıral. sıfırla
+                                </button>
                             )}
-                        >
-                            <Filter className="w-3.5 h-3.5" />
-                            Filtre
-                            {activeFilterCount > 0 && (
-                                <span className="bg-white/20 text-[9px] font-black px-1.5 py-0.5 rounded-full">
-                                    {activeFilterCount}
-                                </span>
+                            {JSON.stringify(colWidths) !== JSON.stringify(DEFAULT_PIPELINE_WIDTHS) && (
+                                <button onClick={() => { setColWidths({ ...DEFAULT_PIPELINE_WIDTHS }); try { localStorage.removeItem(PIPELINE_COL_WIDTHS_KEY) } catch {} }} className="text-slate-400 hover:text-blue-600 underline underline-offset-2">
+                                    Geniş. sıfırla
+                                </button>
                             )}
-                        </Button>
+                            <ColumnVisibilityPicker
+                                columns={pipelineColumns}
+                                hiddenColumns={hiddenCols}
+                                onToggle={toggleColVisibility}
+                                onReset={resetColVisibility}
+                                storageKey={PIPELINE_HIDDEN_COLS_KEY}
+                            />
+                            <Button
+                                variant={showFilters ? 'default' : 'outline'}
+                                size="sm"
+                                onClick={() => { setShowFilters(!showFilters); if (showFilters) clearAllFilters() }}
+                                className={cn(
+                                    "gap-1.5 h-8 text-xs font-bold shadow-sm transition-all",
+                                    showFilters
+                                        ? "bg-blue-600 hover:bg-blue-700 text-white"
+                                        : activeFilterCount > 0
+                                            ? "border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100"
+                                            : "border-slate-200"
+                                )}
+                            >
+                                <Filter className="w-3.5 h-3.5" />
+                                Filtre
+                                {activeFilterCount > 0 && (
+                                    <span className="bg-white/20 text-[9px] font-black px-1.5 py-0.5 rounded-full">
+                                        {activeFilterCount}
+                                    </span>
+                                )}
+                            </Button>
+                        </div>
                     </div>
-                </CollapsibleSection>
+                )}
 
                 <div className="rounded-xl border bg-card shadow-sm relative w-full overflow-auto lg:max-h-[calc(100vh-185px)] max-w-[calc(100vw-1rem)] lg:max-w-full print:max-h-none print:overflow-visible">
                     <table className="min-w-[1000px] w-full caption-bottom text-sm border-collapse">
