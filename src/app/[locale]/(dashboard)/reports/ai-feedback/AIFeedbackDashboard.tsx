@@ -13,6 +13,7 @@ import {
     TrendingUp, BarChart3, ArrowLeft, RefreshCw, Eye, Lock, Zap,
     ThumbsUp, ThumbsDown, Minus
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { submitCallFeedback, generatePromptSuggestion, createPromptVersion, applyPromptVersion } from './actions'
 
@@ -210,7 +211,10 @@ function CallReviewPanel({ calls, t, locale }: { calls: any[]; t: (k: string) =>
 
     const handleSubmit = async (call: any) => {
         const fb = feedbackStates[call.id] || {}
-        if (!fb.overall_rating) return
+        if (!fb.overall_rating) {
+            toast.error(locale === 'tr' ? 'Lütfen Genel Performans için 1-5 arası bir yıldız seçin.' : 'Please select an overall rating (1-5 stars).')
+            return
+        }
 
         startTransition(async () => {
             const result = await submitCallFeedback({
@@ -228,7 +232,10 @@ function CallReviewPanel({ calls, t, locale }: { calls: any[]; t: (k: string) =>
                 tags: fb.tags || [],
             })
             if (result.success) {
+                toast.success(t('feedbackSent'))
                 setSubmittedIds(prev => new Set([...prev, call.id]))
+            } else {
+                toast.error(result.error || 'Kaydedilirken bir hata oluştu.')
             }
         })
     }
@@ -457,7 +464,7 @@ function CallReviewPanel({ calls, t, locale }: { calls: any[]; t: (k: string) =>
                                         {/* Submit */}
                                         <Button
                                             onClick={() => handleSubmit(call)}
-                                            disabled={!fb.overall_rating || isPending || isSubmitted}
+                                            disabled={isPending || isSubmitted}
                                             className="w-full gap-2"
                                         >
                                             {isSubmitted ? (
