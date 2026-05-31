@@ -174,7 +174,7 @@ export default async function CRMPage(props: {
                     {/* Search + Export + AutoAssign */}
                     <div className="flex items-center gap-1.5 shrink-0 ml-1 flex-wrap">
                         <CRMHeaderToggles />
-                        <div className="w-48 lg:w-56">
+                        <div className="w-72 lg:w-96">
                             <Suspense fallback={<div className="h-9 w-full bg-muted animate-pulse rounded" />}>
                                 <CRMSearch />
                             </Suspense>

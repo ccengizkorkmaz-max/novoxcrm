@@ -102,9 +102,15 @@ export default function SalesExportButton({ filters }: SalesExportButtonProps) {
     }
 
     return (
-        <Button onClick={handleExport} variant="outline" disabled={isExporting}>
-            {isExporting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FileDown className="h-4 w-4 mr-2" />}
-            Excel'e Aktar
+        <Button 
+            onClick={handleExport} 
+            variant="outline" 
+            disabled={isExporting}
+            size="icon"
+            className="h-9 w-9 shrink-0 text-slate-600 border-slate-200 hover:bg-slate-50 transition-all shadow-sm"
+            title="Excel'e Aktar"
+        >
+            {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
         </Button>
     )
 }

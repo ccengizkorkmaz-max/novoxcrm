@@ -93,18 +93,14 @@ export default function BulkAutoAssignButton() {
                 onClick={() => setIsDialogOpen(true)} 
                 variant="outline" 
                 disabled={isAssigning} 
-                className={`border-blue-200 text-blue-600 hover:text-blue-700 hover:bg-blue-50 ${isAssigning ? 'min-w-[200px]' : ''}`}
+                size="icon"
+                className="h-9 w-9 shrink-0 border-blue-200 text-blue-600 hover:text-blue-700 hover:bg-blue-50 transition-all shadow-sm"
+                title={isAssigning ? (totalTarget > 0 ? `Atanıyor: ${progress}/${totalTarget}` : 'İşleniyor...') : (progress > 0 ? `Atandı: ${progress}` : 'Otomatik Toplu Atama')}
             >
                 {isAssigning ? (
-                    <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        {totalTarget > 0 ? `Atanıyor: ${progress}/${totalTarget}` : 'İşleniyor...'}
-                    </>
+                    <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                    <>
-                        <Sparkles className="h-4 w-4 mr-2" />
-                        {progress > 0 && !isAssigning ? `Atandı: ${progress}` : 'Otomatik Toplu Atama'}
-                    </>
+                    <Sparkles className="h-4 w-4" />
                 )}
             </Button>
 

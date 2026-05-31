@@ -30,7 +30,7 @@ export default function CRMSearch() {
     }, [debouncedValue, router, searchParams])
 
     return (
-        <div className="relative w-full max-w-sm">
+        <div className="relative w-full max-w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <Input
                 placeholder={t('searchPlaceholder') || "İsim, telefon veya e-posta..."}

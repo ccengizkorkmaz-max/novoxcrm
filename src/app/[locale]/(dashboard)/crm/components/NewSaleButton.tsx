@@ -71,7 +71,10 @@ export default function NewSaleButton({
 
     if (!mounted) {
         return (
-            <Button variant="default"><Plus className="mr-2 h-4 w-4" /> {isBroker ? 'Yeni Talep' : t('button')}</Button>
+            <Button variant="default" className="h-9 px-3 gap-1.5 text-xs font-semibold transition-all shadow-sm">
+                <Plus className="w-3.5 h-3.5" /> 
+                {isBroker ? 'Yeni Talep' : t('button')}
+            </Button>
         )
     }
 
@@ -85,7 +88,10 @@ export default function NewSaleButton({
             }
         }}>
             <DialogTrigger asChild>
-                <Button><Plus className="mr-2 h-4 w-4" /> {isBroker ? 'Yeni Talep' : t('button')}</Button>
+                <Button className="h-9 px-3 gap-1.5 text-xs font-semibold transition-all shadow-sm">
+                    <Plus className="w-3.5 h-3.5" /> 
+                    {isBroker ? 'Yeni Talep' : t('button')}
+                </Button>
             </DialogTrigger>
             <DialogContent>
                 <DialogHeader>

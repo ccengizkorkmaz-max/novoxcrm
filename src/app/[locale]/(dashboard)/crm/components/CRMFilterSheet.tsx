@@ -157,11 +157,11 @@ export default function CRMFilterSheet({ projects, profiles, customers }: CRMFil
     return (
         <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
-                <Button variant="outline" className="h-[42px] px-4 gap-2">
-                    <Filter className="w-4 h-4" />
+                <Button variant="outline" className="h-9 px-3 gap-1.5 text-xs font-semibold text-slate-600 border-slate-200 hover:bg-slate-50 transition-all shadow-sm">
+                    <Filter className="w-3.5 h-3.5" />
                     <span>Filtreler</span>
                     {activeFilterCount > 0 && (
-                        <Badge variant="default" className="ml-1 h-5 min-w-5 rounded-full px-1 text-[10px] flex items-center justify-center">
+                        <Badge variant="default" className="ml-0.5 h-4 min-w-4 rounded-full px-0.5 text-[9px] flex items-center justify-center">
                             {activeFilterCount}
                         </Badge>
                     )}
