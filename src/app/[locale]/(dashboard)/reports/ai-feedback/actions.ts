@@ -89,7 +89,7 @@ export async function getAICallsForReview(limit = 50): Promise<CallForReview[]> 
         .select(`
             id, type, status, outcome, summary, description, created_at, customer_id,
             customers(full_name, phone),
-            sales(projects(name))
+            projects(name)
         `)
         .eq('tenant_id', profile.tenant_id)
         .eq('type', 'Call')
@@ -133,7 +133,7 @@ export async function getAICallsForReview(limit = 50): Promise<CallForReview[]> 
                 external_id: `manual_${act.id}`,
                 customer_name: act.customers?.full_name || 'Bilinmiyor',
                 customer_phone: act.customers?.phone || '',
-                project_name: act.sales?.projects?.name || 'Genel Proje',
+                project_name: act.projects?.name || 'Manuel Arama',
                 workflow_name: 'Manuel CRM Araması'
             }
         })
