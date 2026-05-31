@@ -32,7 +32,8 @@ import {
     Globe,
     Phone,
     MessageCircle,
-    Flame
+    Flame,
+    Brain
 } from 'lucide-react'
 import {
     Accordion,
@@ -481,6 +482,9 @@ export function NovoxSidebar({
                         <NavItem href="/reports/meta-automation" icon={Zap} onClick={onElementClick} isCollapsed={isCollapsed} isSubItem>
                             {labels.reports?.metaAutomation || 'Meta Ads & Otomasyon Sağlığı'}
                         </NavItem>
+                        <NavItem href="/reports/ai-feedback" icon={Brain} onClick={onElementClick} isCollapsed={isCollapsed} isSubItem>
+                            {'AI Geri Bildirim'}
+                        </NavItem>
                     </>
                 ) : (
                     <Accordion type="multiple" className="w-full border-none">
@@ -556,6 +560,9 @@ export function NovoxSidebar({
                                 </NavItem>
                                 <NavItem href="/reports/meta-automation" icon={Zap} onClick={onElementClick} isSubItem>
                                     {labels.reports?.metaAutomation || 'Meta Ads & Otomasyon Sağlığı'}
+                                </NavItem>
+                                <NavItem href="/reports/ai-feedback" icon={Brain} onClick={onElementClick} isSubItem>
+                                    {'AI Geri Bildirim'}
                                 </NavItem>
                             </AccordionContent>
                         </AccordionItem>

@@ -70,6 +70,39 @@ export const TURKISH_VOICE_RULES = `
 `;
 
 
+// ─── DB-Backed Prompt Versioning ─────────────────────────────
+
+/**
+ * Get the active prompt from DB (ai_prompt_versions table).
+ * Falls back to the hardcoded default if no DB version is active.
+ */
+export async function getActivePrompt(tenantId: string, promptType: string): Promise<string> {
+    try {
+        const { createAdminClient } = await import('@/lib/supabase/admin')
+        const supabase = createAdminClient()
+
+        const { data } = await supabase
+            .from('ai_prompt_versions')
+            .select('prompt_content')
+            .eq('tenant_id', tenantId)
+            .eq('prompt_type', promptType)
+            .eq('is_active', true)
+            .maybeSingle()
+
+        if (data?.prompt_content) {
+            console.log(`[Vapi] Using DB prompt v for type: ${promptType}`)
+            return data.prompt_content
+        }
+    } catch (e) {
+        console.warn('[Vapi] Failed to fetch DB prompt, using default:', e)
+    }
+
+    // Fallback to hardcoded
+    if (promptType === 'voice_rules') return TURKISH_VOICE_RULES
+    return (DEFAULT_OUTREACH_PROMPTS as any)[promptType] || DEFAULT_OUTREACH_PROMPTS.standard
+}
+
+
 function getVapiHeaders(): Record<string, string> {
     const apiKey = process.env.VAPI_API_KEY
     if (!apiKey) throw new Error('VAPI_API_KEY is not configured in .env.local')
