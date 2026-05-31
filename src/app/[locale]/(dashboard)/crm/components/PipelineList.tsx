@@ -381,7 +381,8 @@ export default function PipelineList({
     const activeFilterCount = Object.values(colFilters).filter(v => v.length > 0).length
 
     // Get unique values for select filters
-    const uniqueStatuses = [...new Set(sales.map(s => s.status).filter(Boolean))]
+    const ALL_STATUSES = ['Lead', 'Prospect', 'Reservation', 'Opsiyon - Kapora Bekleniyor', 'Proposal', 'Teklif - Kapora Bekleniyor', 'Negotiation', 'Sold', 'Completed', 'Lost']
+    const uniqueStatuses = ALL_STATUSES
     const uniqueProjects = [...new Set(sales.map(s => s.units?.projects?.name || s.projects?.name).filter(Boolean))]
     const uniqueReps = [...new Set(sales.map(s => s.profiles?.full_name).filter(Boolean))]
 
@@ -393,7 +394,7 @@ export default function PipelineList({
             if (colId === 'rep') return { id: colId, label: 'Temsilci', type: 'select' as const, options: uniqueReps }
             if (colId === 'customer') return { id: colId, label: 'Müşteri', type: 'text' as const }
             if (colId === 'unit') return { id: colId, label: 'Birim', type: 'text' as const }
-            if (colId === 'date') return { id: colId, label: 'Tarih', type: 'text' as const }
+            if (colId === 'date') return { id: colId, label: 'Tarih', type: 'date' as const }
             if (colId === 'amount') return { id: colId, label: 'Tutar', type: 'text' as const }
             return { id: colId, label: colId, type: 'text' as const }
         })
@@ -420,8 +421,10 @@ export default function PipelineList({
                 const repName = (sale.profiles?.full_name || '').toLowerCase()
                 if (repName !== q.toLowerCase() && !repName.includes(q)) return false
             } else if (colId === 'date') {
-                const dateStr = new Date(sale.created_at).toLocaleDateString('tr-TR')
-                if (!dateStr.includes(q)) return false
+                const saleDate = new Date(sale.created_at)
+                const filterDate = new Date(filterVal)
+                // YYYY-MM-DD string match (ignoring time)
+                if (saleDate.toISOString().split('T')[0] !== filterVal) return false
             } else if (colId === 'amount') {
                 const amt = String(sale.deposit_amount || sale.final_price || '')
                 if (!amt.includes(q)) return false

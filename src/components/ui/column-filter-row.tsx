@@ -5,7 +5,7 @@ import { Filter, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface ColumnFilterRowProps {
-    columns: { id: string; label: string; type: 'text' | 'select'; options?: string[] }[]
+    columns: { id: string; label: string; type: 'text' | 'select' | 'date'; options?: string[] }[]
     visibleColumns: string[]
     filters: Record<string, string>
     onFilterChange: (columnId: string, value: string) => void
@@ -49,6 +49,28 @@ export default function ColumnFilterRow({
                                     <option key={opt} value={opt}>{opt}</option>
                                 ))}
                             </select>
+                        ) : col.type === 'date' ? (
+                            <div className="relative">
+                                <input
+                                    type="date"
+                                    value={filters[col.id] || ''}
+                                    onChange={(e) => onFilterChange(col.id, e.target.value)}
+                                    className={cn(
+                                        "w-full h-7 text-[11px] rounded-lg border px-2 bg-white outline-none transition-all",
+                                        filters[col.id]
+                                            ? "border-blue-400 bg-blue-50 text-blue-700 font-bold ring-1 ring-blue-200"
+                                            : "border-slate-200 text-slate-600 hover:border-slate-300 focus:border-blue-400 focus:ring-1 focus:ring-blue-200"
+                                    )}
+                                />
+                                {filters[col.id] && (
+                                    <button
+                                        onClick={() => onFilterChange(col.id, '')}
+                                        className="absolute right-1.5 top-1/2 -translate-y-1/2 text-blue-400 hover:text-red-500 transition-colors"
+                                    >
+                                        <X className="w-3 h-3" />
+                                    </button>
+                                )}
+                            </div>
                         ) : (
                             <div className="relative">
                                 <input
