@@ -307,5 +307,163 @@ export const comparisons: ComparisonData[] = [
             { question: 'Geleneksel emlak programlarından farkınız nedir?', answer: 'Temel fark yapay zeka ve otomasyondur. Oikos CRM müşterileri sizin yerinize arar, WhatsApp\'tan yazışır, stokları anlık günceller ve satışı kapatmanız için rehberlik eder.' },
             { question: 'Sisteme kendi logomuzu ekleyebilir miyiz?', answer: 'Evet, White-Label özelliğimiz sayesinde sistemi tamamen kendi markanız, renkleriniz ve domaininizle (crm.firmaniz.com) kullanabilirsiniz.' }
         ]
+    },
+    {
+        slug: 'oikos-crm-vs-dynamics365',
+        title: 'Oikos CRM vs Microsoft Dynamics 365: Gayrimenkul Kıyaslaması',
+        metaTitle: 'Oikos CRM vs Dynamics 365 Karşılaştırması 2026',
+        metaDescription: 'Dynamics 365 gayrimenkul ve inşaat satışlarında nasıl? Oikos CRM ile karşılaştırma. Sektörel esneklik, maliyet ve kurulum süreleri.',
+        competitor: 'Dynamics 365',
+        competitorDescription: 'Microsoft Dynamics 365, çok büyük ölçekli işletmeler için geliştirilmiş kurumsal bir ERP ve CRM platformudur. Güçlüdür ancak son derece karmaşıktır ve yüksek kurulum maliyetleri gerektirir.',
+        features: [
+            { name: 'Sektörel Entegrasyon', oikos: '✅ Gayrimenkule özel hazır modüller', competitor: '⚠️ Geliştirme (customization) gerektirir' },
+            { name: 'Kat Planı & Lejant', oikos: '✅ İnteraktif 2D kat planı envanter yönetimi', competitor: '❌ Dahili olarak bulunmaz' },
+            { name: 'Acente/Broker Portalı', oikos: '✅ Hazır broker ve hakediş portalı', competitor: '❌ Power Pages ile ek geliştirme maliyeti' },
+            { name: 'Ödeme Planı Motoru', oikos: '✅ Şirket içi senetli satış vadeleri hesaplama', competitor: '❌ Özel finansal modül geliştirilmeli' },
+            { name: 'Kurulum Süresi', oikos: '✅ 1 Gün', competitor: '❌ 3-6 Ay (Danışmanlık süreci)' }
+        ],
+        verdict: 'Dynamics 365, binlerce kullanıcısı olan devasa holdingler için uygundur. Ancak konut ve inşaat satışı yapan çevik firmalar için Oikos CRM, ilk günden sektöre hazır modülleri ve uygun bütçesiyle çok daha mantıklı bir yatırımdır.',
+        faq: [
+            { question: 'Dynamics 365 emlak projelerinde kullanılabilir mi?', answer: 'Evet, ancak Microsoft iş ortakları tarafından sıfırdan gayrimenkul dikeyine uygun hale getirilmesi için yüksek danışmanlık bütçeleri ayırmanız gerekir.' },
+            { question: 'Oikos CRM verileri Dynamics 365 ile entegre edilebilir mi?', answer: 'Evet, Oikos CRM API\'si ve webhooks altyapısı sayesinde kurumsal Dynamics 365 veya SAP sistemlerinizle veri eşleşmesi sağlayabilirsiniz.' }
+        ]
+    },
+    {
+        slug: 'oikos-crm-vs-sap-re',
+        title: 'Oikos CRM vs SAP Real Estate: Kurumsal Karşılaştırma',
+        metaTitle: 'Oikos CRM vs SAP RE Gayrimenkul Yönetimi 2026',
+        metaDescription: 'SAP Real Estate (RE) modülü mü yoksa Oikos CRM mi? Gayrimenkul portföyü, satış ofisi hızı ve kullanıcı dostu arayüz kıyaslaması.',
+        competitor: 'SAP RE (Real Estate)',
+        competitorDescription: 'SAP RE, holding düzeyindeki şirketlerin gayrimenkul varlıklarını, kiralamalarını ve amortismanlarını takip eden kurumsal bir ERP modülüdür. Satış ofislerinin hızlı satış yapması için tasarlanmamıştır.',
+        features: [
+            { name: 'Arayüz Hızı', oikos: '✅ Next.js tabanlı anlık yüklenen arayüz', competitor: '⚠️ Karmaşık ve eski nesil ERP ekranları' },
+            { name: 'Satış Odaklılık', oikos: '✅ Hızlı lead yakalama, pipeline ve arama motoru', competitor: '⚠️ Finans ve muhasebe odaklı yapı' },
+            { name: 'Broker & Acente Entegrasyonu', oikos: '✅ Dış acenteler için anlık stok ve teklif', competitor: '❌ Acentelere açılması çok zor ve maliyetli' },
+            { name: 'AI Sesli Arama ve WhatsApp', oikos: '✅ 7/24 Türkçe AI chatbot ve outbound robotu', competitor: '❌ Yapay zeka otomasyonları bulunmuyor' }
+        ],
+        verdict: 'SAP RE, kurumsal gayrimenkul varlıklarının muhasebeleşmesi ve denetimi için mükemmeldir. Ancak satış ofisindeki danışmanların hızlı aksiyon alması ve satış kapatması için Oikos CRM tartışmasız daha hızlı ve kolay bir çözümdür.',
+        faq: [
+            { question: 'SAP kullanan inşaat firması Oikos CRM kullanabilir mi?', answer: 'Evet, en yaygın senaryo budur. Satış ofisi Oikos CRM ile hızlı ve verimli çalışırken, kapanan satışlar otomatik olarak SAP ERP sistemine aktarılır.' }
+        ]
+    },
+    {
+        slug: 'oikos-crm-vs-amocrm',
+        title: 'Oikos CRM vs amoCRM (Kommo): Hangisi Daha İyi?',
+        metaTitle: 'Oikos CRM vs amoCRM (Kommo) Karşılaştırması 2026',
+        metaDescription: 'amoCRM (Kommo) gayrimenkul takibinde yeterli mi? Oikos CRM ile mesajlaşma, stok yönetimi ve sektörel özelliklerin karşılaştırması.',
+        competitor: 'amoCRM (Kommo)',
+        competitorDescription: 'amoCRM (yeni adıyla Kommo), WhatsApp ve mesajlaşma odaklı bir CRM yazılımıdır. Satış hunileri için başarılıdır ancak inşaat stok lejantı ve gayrimenkul muhasebesi modülü yoktur.',
+        features: [
+            { name: 'WhatsApp Entegrasyonu', oikos: '✅ Dahili yapay zeka chatbot ve takibi', competitor: '✅ Çok başarılı mesajlaşma arayüzü' },
+            { name: 'İnteraktif Kat Planı', oikos: '✅ Blok ve daire bazlı envanter lejantı', competitor: '❌ Portföy/lejant yapısı yok' },
+            { name: 'Komisyon & Hakediş Takibi', oikos: '✅ Broker komisyon onay akışları', competitor: '❌ Sadece standart anlaşma tutarları' },
+            { name: 'Türkçe Sesli Arama', oikos: '✅ Vapi entegreli yerleşik outbound AI', competitor: '❌ Yok' }
+        ],
+        verdict: 'Kommo (amoCRM) genel mesajlaşma ve lead takibi için harika bir alternatif olsa da, gayrimenkul projelerindeki daire envanterini ve karmaşık ödeme planlarını yönetmek için yetersizdir. Oikos CRM, bu sektörel modülleri kutudan çıktığı gibi sunar.',
+        faq: [
+            { question: 'Kommo\'dan Oikos CRM\'e geçebilir miyim?', answer: 'Evet, Kommo API anahtarınızı kullanarak tüm konuşma geçmişinizi ve rehberinizi Oikos CRM\'e taşıyoruz.' }
+        ]
+    },
+    {
+        slug: 'oikos-crm-vs-copper',
+        title: 'Oikos CRM vs Copper CRM: G Suite Uyumlu Karşılaştırma',
+        metaTitle: 'Oikos CRM vs Copper CRM Karşılaştırması 2026',
+        metaDescription: 'Google Workspace uyumlu Copper CRM gayrimenkul satışında nasıl? Oikos CRM ile sektörel entegrasyon ve otomasyon kıyaslaması.',
+        competitor: 'Copper CRM',
+        competitorDescription: 'Copper CRM, Google Workspace (Gmail, Calendar vb.) ile %100 entegre çalışan şık bir CRM yazılımıdır. Genel satış ekipleri için tasarlanmıştır, sektörel envanter içermez.',
+        features: [
+            { name: 'Google Entegrasyonu', oikos: '✅ Gelişmiş Gmail/Calendar senkronizasyonu', competitor: '⭐ Google Workspace Google entegrasyonu' },
+            { name: 'Gayrimenkul Modülleri', oikos: '✅ Lejant, daire durumu, şerefiye puanları', competitor: '❌ Emlak modülleri bulunmuyor' },
+            { name: 'Taksitli Ödeme Takibi', oikos: '✅ Otomatik vade, senet ve tahsilat uyarısı', competitor: '❌ Yalnızca tek seferlik fatura girişi' }
+        ],
+        verdict: 'Eğer tek ihtiyacınız Gmail içinden müşteri kartı oluşturmaksa Copper harikadır. Ancak bir inşaat projesinin veya gayrimenkul ofisinin stok durumunu ve broker komisyonlarını yönetmek istiyorsanız Oikos CRM tercih etmelisiniz.',
+        faq: [
+            { question: 'Copper CRM gayrimenkul için özelleştirilir mi?', answer: 'Google Sheets entegrasyonları ile veri çekebilirsiniz ancak gerçek zamanlı stok lejantı ve broker portalı gibi interaktif araçları Copper içinde inşa etmek mümkün değildir.' }
+        ]
+    },
+    {
+        slug: 'oikos-crm-vs-freshsales',
+        title: 'Oikos CRM vs Freshsales: Hangi Satış CRM\'i?',
+        metaTitle: 'Oikos CRM vs Freshsales Karşılaştırması 2026',
+        metaDescription: 'Freshworks ürünü Freshsales gayrimenkul acenteleri için uygun mu? Oikos CRM ile telefon, e-posta otomasyonları ve fiyat karşılaştırması.',
+        competitor: 'Freshsales',
+        competitorDescription: 'Freshsales, yapay zeka destekli lead skorlama ve yerleşik telefon özellikleri sunan genel amaçlı bir B2B CRM çözümüdür. Kullanımı kolaydır ancak emlak dikeyi modüllerinden yoksundur.',
+        features: [
+            { name: 'Lead Skorlama', oikos: '✅ Sektör odaklı AI lead qualification', competitor: '✅ Freddy AI ile genel lead skorlama' },
+            { name: 'Daire Stok Yönetimi', oikos: '✅ İnteraktif lejant ve kat planları', competitor: '❌ Bulunmuyor' },
+            { name: 'Vatandaşlık & Tapu Takibi', oikos: '✅ Yabancı yatırımcılar için adım adım süreç takibi', competitor: '❌ Manuel custom alanlar gerektirir' }
+        ],
+        verdict: 'Freshsales, klasik SaaS veya teknoloji firmaları için başarılı bir CRM\'dir. Gayrimenkul geliştiricileri ve inşaat müteahhitleri için Oikos CRM, daire envanteri ve broker portalı gibi hazır modülleriyle çok daha hızlı değer üretir.',
+        faq: [
+            { question: 'Freshsales fiyatlandırması nasıl?', answer: 'Freshsales kullanıcı başına yüksek aylık ücretler talep eder. Oikos CRM ise her şey dahil ve sektöre özel paketleriyle çok daha ekonomiktir.' }
+        ]
+    },
+    {
+        slug: 'oikos-crm-vs-insightly',
+        title: 'Oikos CRM vs Insightly: Proje ve Müşteri Yönetimi',
+        metaTitle: 'Oikos CRM vs Insightly Karşılaştırması 2026',
+        metaDescription: 'Insightly gayrimenkul proje takibinde yeterli mi? Oikos CRM ile proje yönetimi ve satış hunisi karşılaştırması.',
+        competitor: 'Insightly',
+        competitorDescription: 'Insightly, CRM ve proje yönetimini birleştiren bir yazılımdır. Küçük ve orta ölçekli işletmeler için uygundur ancak gayrimenkul stoğu veya broker hakedişleri gibi finansal modülleri yoktur.',
+        features: [
+            { name: 'Proje Yönetimi', oikos: '✅ Gayrimenkul projesine özel stok ve tapu', competitor: '✅ Genel iş ve görev proje takibi' },
+            { name: 'Komisyon & Hakediş', oikos: '✅ Otomatik komisyon dağıtımı ve broker onayları', competitor: '❌ Bulunmamaktadır' },
+            { name: 'AI WhatsApp Chatbot', oikos: '✅ Entegre 7/24 lead yakalayıcı chatbot', competitor: '❌ Yok' }
+        ],
+        verdict: 'Insightly genel iş takibi ve CRM entegrasyonu için iyi olsa da, gayrimenkul dünyasının envanter ve taksit yönetim ihtiyaçlarını karşılayamaz. Oikos CRM, sektöre özel tasarlandığı için daha yüksek dönüşüm sağlar.',
+        faq: [
+            { question: 'Insightly\'den Oikos CRM\'e geçiş zor mu?', answer: 'Hayır, CSV dışa aktarma dosyalarınızla tüm müşteri verilerinizi saniyeler içinde Oikos CRM\'e taşıyabiliriz.' }
+        ]
+    },
+    {
+        slug: 'oikos-crm-vs-capsule',
+        title: 'Oikos CRM vs Capsule CRM: Sade Arayüz Karşılaştırması',
+        metaTitle: 'Oikos CRM vs Capsule CRM 2026 Karşılaştırması',
+        metaDescription: 'Sadelik odaklı Capsule CRM gayrimenkul acenteleri için nasıl? Oikos CRM ile kullanım kolaylığı, fiyat ve özellik kıyaslaması.',
+        competitor: 'Capsule CRM',
+        competitorDescription: 'Capsule CRM, küçük ekipler için sadelik ve kolaylığı ön planda tutan bir müşteri takip aracıdır. Ancak büyük inşaat projeleri ve broker ağları için çok temel kalmaktadır.',
+        features: [
+            { name: 'Kullanım Kolaylığı', oikos: '✅ Gayrimenkul terminolojisine özel sade arayüz', competitor: '⭐ Çok sade ve temiz arayüz' },
+            { name: 'Envanter Lejantı', oikos: '✅ Proje bazlı blok ve daire takibi', competitor: '❌ Yok' },
+            { name: 'WhatsApp & Sesli AI', oikos: '✅ Otomatik arama ve yapay zeka entegrasyonu', competitor: '❌ Bulunmuyor' }
+        ],
+        verdict: 'Capsule CRM tek çalışan emlak danışmanları için yeterli olabilir. Ancak 5+ kişilik ekipler veya sıfır konut projeleri satan firmalar için Oikos CRM, yapay zeka araçları ve stok lejantı ile tek seçenektir.',
+        faq: [
+            { question: 'Capsule CRM Türkçe dil desteği sunuyor mu?', answer: 'Capsule CRM İngilizce ağırlıklı bir arayüze sahiptir. Oikos CRM ise %100 Türkçe ve İngilizce desteğiyle gelir.' }
+        ]
+    },
+    {
+        slug: 'oikos-crm-vs-keap',
+        title: 'Oikos CRM vs Keap (Infusionsoft): Pazarlama Otomasyonu',
+        metaTitle: 'Oikos CRM vs Keap CRM Karşılaştırması 2026',
+        metaDescription: 'Pazarlama otomasyonu devi Keap emlakçılar için nasıl? Oikos CRM ile otomatik lead nurturing ve kampanya yönetimi kıyaslaması.',
+        competitor: 'Keap (Infusionsoft)',
+        competitorDescription: 'Keap (eski adıyla Infusionsoft), küçük işletmeler için güçlü pazarlama otomasyonları ve e-posta pazarlama araçları sunan bir CRM yazılımıdır. Kurulum eğrisi dik ve maliyeti yüksektir.',
+        features: [
+            { name: 'Pazarlama Otomasyonu', oikos: '✅ AI arama, WhatsApp bot ve SMS zinciri', competitor: '⭐ Çok gelişmiş e-posta otomasyon motoru' },
+            { name: 'Sektörel Hazırlık', oikos: '✅ Gayrimenkul portföyü ve ödeme planı motoru', competitor: '❌ Genel amaçlı pazarlama odaklı yapı' },
+            { name: 'Kullanım Kolaylığı', oikos: '✅ Kodsuz, ilk günden kolay kullanım', competitor: '⚠️ Öğrenmesi ve kurulumu uzmanlık gerektirir' }
+        ],
+        verdict: 'Keap, dijital ürün satan veya genel e-posta pazarlaması yapan firmalar için çok güçlüdür. Ancak gayrimenkul satış ofislerindeki fiziksel daire stok takibi ve senetli satış tahsilatları için yetersiz kalır. Oikos CRM, emlak sektöründe çok daha pratiktir.',
+        faq: [
+            { question: 'Keap CRM gayrimenkul sektörü için uygun mu?', answer: 'Keap, pazarlama kampanyaları için kullanılabilir ancak bir gayrimenkul projesinin satış süreçleri (stok takibi, broker hakedişi, tapu takvimi) için özel entegrasyonlar gerektirir.' }
+        ]
+    },
+    {
+        slug: 'oikos-crm-vs-streak',
+        title: 'Oikos CRM vs Streak CRM: Gmail İçinde Satış Takibi',
+        metaTitle: 'Oikos CRM vs Streak Gmail CRM Karşılaştırması 2026',
+        metaDescription: 'Gmail içinde çalışan Streak CRM emlak danışmanlığı için yeterli mi? Oikos CRM ile e-posta takibi ve sektörel araçlar karşılaştırması.',
+        competitor: 'Streak',
+        competitorDescription: 'Streak, doğrudan Gmail kutusunun içinde çalışan pratik ve e-posta odaklı bir CRM eklentisidir. Bireysel takipler için idealdir ancak kurumsal ölçekte yetersizdir.',
+        features: [
+            { name: 'Gmail Entegrasyonu', oikos: '✅ E-posta senkronizasyonu ve takibi', competitor: '⭐ %100 Gmail içi çalışma' },
+            { name: 'Kurumsal Stok Lejantı', oikos: '✅ İnteraktif kat planı ve daire durum takibi', competitor: '❌ Yok (sadece e-posta listesi)' },
+            { name: 'Takım Çalışması', oikos: '✅ Rol yetkili şantiye-ofis entegrasyonu', competitor: '⚠️ Büyük takımlarda yönetimi zorlaşır' }
+        ],
+        verdict: 'Bireysel çalışan bir emlak danışmanıysanız ve tüm işiniz e-posta üzerinden yürüyorsa Streak pratik bir eklentidir. Ancak profesyonel bir inşaat firması veya gayrimenkul ofisi yönetiyorsanız Streak yetersiz kalacaktır; Oikos CRM kurumsal derinlik sunar.',
+        faq: [
+            { question: 'Streak\'ten Oikos CRM\'e geçebilir miyim?', answer: 'Evet, Streak pipelines verilerinizi Excel üzerinden dışa aktararak Oikos CRM\'e dakikalar içinde aktarabilirsiniz.' }
+        ]
     }
 ]
