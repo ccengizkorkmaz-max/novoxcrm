@@ -6,6 +6,47 @@ import { getTranslations, getMessages } from 'next-intl/server'
 import { NextIntlClientProvider } from 'next-intl'
 import { resolveBrand, brandToCssVars } from '@/lib/brand-config'
 import { DashboardLayoutWrapper } from '@/components/dashboard/DashboardLayoutWrapper'
+import { Metadata } from 'next'
+
+export async function generateMetadata(): Promise<Metadata> {
+    try {
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        
+        if (user) {
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('tenant_id')
+                .eq('id', user.id)
+                .single()
+
+            if (profile?.tenant_id) {
+                const { data: tenant } = await supabase
+                    .from('tenants')
+                    .select('brand_config')
+                    .eq('id', profile.tenant_id)
+                    .single()
+                
+                const brand = resolveBrand(tenant?.brand_config)
+                const iconUrl = brand.faviconUrl || brand.logoUrl
+                
+                if (iconUrl) {
+                    return {
+                        icons: {
+                            icon: iconUrl,
+                            apple: iconUrl,
+                        }
+                    }
+                }
+            }
+        }
+    } catch (e) {
+        // Fallback to default metadata on error
+        console.error('Error generating dynamic favicon metadata:', e)
+    }
+    
+    return {}
+}
 
 export default async function DashboardLayout(props: {
     children: React.ReactNode
