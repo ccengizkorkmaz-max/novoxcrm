@@ -15,6 +15,7 @@ import CRMSearch from './components/CRMSearch'
 import SalesExportButton from './components/SalesExportButton'
 import BulkAutoAssignButton from './components/BulkAutoAssignButton'
 import DeferredPipelineStats from './components/DeferredPipelineStats'
+import { CollapsibleSection } from '@/components/ui/collapsible-section'
 import DeferredCRMToolbar from './components/DeferredCRMToolbar'
 import React, { Suspense } from 'react'
 
@@ -191,17 +192,21 @@ export default async function CRMPage(props: {
                 </div>
 
                 {/* Pipeline Stats */}
-                <div className="hidden lg:block">
-                    <Suspense fallback={statsSkeleton}>
-                        <DeferredPipelineStats {...statsFilterProps} />
-                    </Suspense>
+                <div className="hidden lg:block mb-4">
+                    <CollapsibleSection title="Özet İstatistikler" defaultOpen={false}>
+                        <Suspense fallback={statsSkeleton}>
+                            <DeferredPipelineStats {...statsFilterProps} />
+                        </Suspense>
+                    </CollapsibleSection>
                 </div>
             </div>
 
-            <div className="lg:hidden px-1">
-                <Suspense fallback={statsSkeleton}>
-                    <DeferredPipelineStats {...statsFilterProps} />
-                </Suspense>
+            <div className="lg:hidden px-1 mb-4">
+                <CollapsibleSection title="Özet İstatistikler" defaultOpen={false}>
+                    <Suspense fallback={statsSkeleton}>
+                        <DeferredPipelineStats {...statsFilterProps} />
+                    </Suspense>
+                </CollapsibleSection>
             </div>
 
             {/* Sales List — renders IMMEDIATELY with first 50 records */}
