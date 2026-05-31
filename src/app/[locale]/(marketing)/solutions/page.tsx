@@ -1,10 +1,11 @@
 import Image from 'next/image'
-import { CheckCircle2, TrendingUp, Users, Shield, Zap, Globe, ArrowRight, Database } from 'lucide-react'
+import { CheckCircle2, TrendingUp, Users, Shield, Zap, Globe, ArrowRight, Database, Brain, Phone, MessageCircle, Target, Network, Workflow, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { LeadCaptureModal } from '@/components/marketing/LeadCaptureModal'
 import { CRMLifecycle } from '@/components/marketing/CRMLifecycle'
 import { getBrandNameFromHost, getHostFromHeaders } from '@/lib/tenant/resolve-brand-from-host'
+import { aiSolutions } from '@/data/ai-solutions-data'
 
 export default async function SolutionsPage() {
     const host = await getHostFromHeaders()
@@ -217,6 +218,43 @@ export default async function SolutionsPage() {
                         {["Müşteri Yönetimi", "Stok Kontrol", "Broker Portali", "Ödeme Sihirbazı", "Dijital Sözleşme", "Finans & Tahsilat", "Raporlama & BI"].map((mod, i) => (
                             <span key={i} className="px-4 py-2 rounded-full border border-slate-800 text-sm text-slate-400">{mod}</span>
                         ))}
+                    </div>
+                </div>
+            </section>
+
+            {/* AI Solutions Cluster */}
+            <section className="py-24 border-t border-slate-900 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-violet-600/5 blur-[150px] rounded-full pointer-events-none" />
+                <div className="container mx-auto px-4 relative z-10">
+                    <div className="text-center mb-16">
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 text-violet-400 text-sm font-bold mb-6">
+                            <Brain size={16} /> YAPAY ZEKA ÇÖZÜMLERİ
+                        </div>
+                        <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">
+                            AI ile Satışı Yeniden Tanımlayın
+                        </h2>
+                        <p className="text-lg text-slate-400 max-w-2xl mx-auto">
+                            Yapay zeka destekli 8 farklı çözümle satış ekibinizi güçlendirin, müşteri deneyimini kişiselleştirin.
+                        </p>
+                    </div>
+
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
+                        {aiSolutions.map((sol) => {
+                            const iconMap: Record<string, any> = { Brain, Phone, MessageCircle, Target, Network, Workflow, Users, Sparkles }
+                            const SolIcon = iconMap[sol.icon] || Brain
+                            return (
+                                <Link key={sol.slug} href={`/tr/solutions/${sol.slug}`} className="group p-6 rounded-2xl bg-slate-900/40 border border-slate-800 hover:border-violet-500/40 transition-all hover:shadow-lg hover:shadow-violet-500/5">
+                                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${sol.gradient} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+                                        <SolIcon className="text-white" size={24} />
+                                    </div>
+                                    <h3 className="text-lg font-bold text-white mb-2 group-hover:text-violet-300 transition-colors">{sol.title}</h3>
+                                    <p className="text-sm text-slate-400 leading-relaxed line-clamp-3">{sol.heroSubheadline}</p>
+                                    <div className="mt-4 flex items-center gap-1 text-xs text-violet-400 font-semibold">
+                                        Detayları İncele <ArrowRight size={12} />
+                                    </div>
+                                </Link>
+                            )
+                        })}
                     </div>
                 </div>
             </section>
