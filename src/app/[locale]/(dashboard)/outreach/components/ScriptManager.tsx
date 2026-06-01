@@ -62,7 +62,7 @@ export function ScriptManager({ scripts: initialScripts, tenantId, onClose }: {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 md:pr-36">
                 <Button variant="ghost" size="sm" onClick={onClose}><ArrowLeft className="h-4 w-4" /></Button>
                 <h1 className="text-xl font-bold flex items-center gap-2">
                     <Bot className="h-5 w-5 text-violet-400" /> AI Script Yönetimi

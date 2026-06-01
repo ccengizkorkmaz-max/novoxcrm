@@ -256,7 +256,7 @@ export function OutreachDashboard({
             </AlertDialog>
 
             {/* Header */}
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between md:pr-36">
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight flex items-center gap-3">
                         <div className="p-2 rounded-xl bg-gradient-to-br from-violet-500/20 to-blue-500/20 border border-violet-500/20">
