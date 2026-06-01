@@ -91,11 +91,11 @@ async function fetchLeadData(leadgenId: string, pageId: string) {
     const supabase = createAdminClient()
     const { data: tenant } = await supabase
         .from('tenants')
-        .select('wa_access_token, fb_page_id')
+        .select('fb_page_id')
         .eq('id', NOVO_TENANT_ID)
         .single()
 
-    const accessToken = tenant?.wa_access_token || process.env.FB_PAGE_ACCESS_TOKEN
+    const accessToken = process.env.META_ADS_ACCESS_TOKEN || process.env.FB_PAGE_ACCESS_TOKEN
     if (!accessToken) {
         console.error('[FB Leads] Access token bulunamadı!')
         return null
