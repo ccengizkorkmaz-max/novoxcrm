@@ -2,7 +2,7 @@
 
 import React from "react"
 import { Bot } from "lucide-react"
-import { differenceInDays, differenceInMonths, differenceInWeeks } from "date-fns"
+import { differenceInCalendarDays, differenceInMonths, differenceInWeeks } from "date-fns"
 import {
     Tooltip,
     TooltipContent,
@@ -21,7 +21,7 @@ export function AiSignalBadge({ lastCallAt, interestLevel, callNotes }: AiSignal
     if (!lastCallAt) return null;
 
     const callDate = new Date(lastCallAt)
-    const daysAgo = differenceInDays(new Date(), callDate)
+    const daysAgo = differenceInCalendarDays(new Date(), callDate)
     
     // Determine freshness colors
     let colorClass = "text-slate-400 bg-slate-50 border-slate-200" // Default: Very old (>1 month)

@@ -35,6 +35,16 @@ export async function POST(req: Request) {
 
         console.log('External Lead Incoming Body:', JSON.stringify(body, null, 2))
 
+        // If the payload is wrapped inside a "json" string key (e.g. from Make.com)
+        if (body && typeof body.json === 'string') {
+            try {
+                const parsedJson = JSON.parse(body.json)
+                body = { ...body, ...parsedJson }
+            } catch (e) {
+                console.warn('Failed to parse body.json string:', e)
+            }
+        }
+
         let {
             name,
             email,
@@ -78,13 +88,19 @@ export async function POST(req: Request) {
         // Parse customer info from message content if available (Regex parsing)
         if (bodyMessage && typeof bodyMessage === 'string') {
             const nameMatch = bodyMessage.match(/Ad\s+Soyad:\s*([^:\n\r]+?)(?=\s*(?:E-posta|Telefon|Konu|Proje|$)|\r|\n)/i)
-            if (nameMatch && !name) name = nameMatch[1].trim()
+            if (nameMatch && (!name || name.toLowerCase() === 'novo')) {
+                name = nameMatch[1].trim()
+            }
 
             const emailMatch = bodyMessage.match(/(?:E-posta Adresi|E-posta):\s*([^:\n\r\s]+?)(?=\s*(?:Ad Soyad|Telefon|Konu|Proje|$)|\r|\n)/i)
-            if (emailMatch && !email) email = emailMatch[1].trim()
+            if (emailMatch && (!email || email === 'web@novosirketlergrubu.com')) {
+                email = emailMatch[1].trim()
+            }
 
             const phoneMatch = bodyMessage.match(/(?:Telefon Numarası|Telefon No|Telefon|Tel):\s*([^:\n\r\s]+?)(?=\s*(?:Ad Soyad|E-posta|Konu|Proje|$)|\r|\n)/i)
-            if (phoneMatch && !phone) phone = phoneMatch[1].trim()
+            if (phoneMatch) {
+                phone = phoneMatch[1].replace(/\\n/g, '').replace(/\n/g, '').trim()
+            }
         }
 
         // Final fallback for missing fields - capture from any possible top-level keys
