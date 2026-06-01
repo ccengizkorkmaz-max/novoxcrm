@@ -1,0 +1,635 @@
+{
+    "code":  "OK",
+    "response":  {
+                     "blueprint":  {
+                                       "flow":  [
+                                                    {
+                                                        "id":  1,
+                                                        "mapper":  {
+
+                                                                   },
+                                                        "module":  "facebook-lead-ads:WatchLeads",
+                                                        "version":  2,
+                                                        "metadata":  {
+                                                                         "expect":  [
+                                                                                        {
+                                                                                            "name":  "pageId",
+                                                                                            "type":  "select",
+                                                                                            "label":  "Page",
+                                                                                            "required":  true
+                                                                                        },
+                                                                                        {
+                                                                                            "name":  "limit",
+                                                                                            "type":  "uinteger",
+                                                                                            "label":  "Limit",
+                                                                                            "required":  true
+                                                                                        },
+                                                                                        {
+                                                                                            "name":  "olderThan",
+                                                                                            "type":  "date",
+                                                                                            "label":  "Older than"
+                                                                                        },
+                                                                                        {
+                                                                                            "name":  "formId",
+                                                                                            "type":  "select",
+                                                                                            "label":  "Form",
+                                                                                            "required":  true
+                                                                                        }
+                                                                                    ],
+                                                                         "restore":  {
+                                                                                         "expect":  {
+                                                                                                        "formId":  {
+                                                                                                                       "mode":  "chose",
+                                                                                                                       "label":  "Nova Park Vista - Elemeli"
+                                                                                                                   },
+                                                                                                        "pageId":  {
+                                                                                                                       "mode":  "chose",
+                                                                                                                       "label":  "NOVO Yapý \u0026 Ýnþaat"
+                                                                                                                   }
+                                                                                                    },
+                                                                                         "parameters":  {
+                                                                                                            "__IMTCONN__":  {
+                                                                                                                                "data":  {
+                                                                                                                                             "scoped":  "true",
+                                                                                                                                             "connection":  "facebook"
+                                                                                                                                         },
+                                                                                                                                "label":  "My Facebook connection (Cengiz Korkmaz)"
+                                                                                                                            }
+                                                                                                        }
+                                                                                     },
+                                                                         "designer":  {
+                                                                                          "x":  0,
+                                                                                          "y":  0
+                                                                                      },
+                                                                         "interface":  [
+                                                                                           {
+                                                                                               "name":  "leadgenId",
+                                                                                               "type":  "text",
+                                                                                               "label":  "Lead ID"
+                                                                                           },
+                                                                                           {
+                                                                                               "name":  "formId",
+                                                                                               "type":  "text",
+                                                                                               "label":  "Form ID"
+                                                                                           },
+                                                                                           {
+                                                                                               "name":  "dateCreated",
+                                                                                               "type":  "date",
+                                                                                               "label":  "Date created"
+                                                                                           },
+                                                                                           {
+                                                                                               "name":  "adId",
+                                                                                               "type":  "text",
+                                                                                               "label":  "Ad ID"
+                                                                                           },
+                                                                                           {
+                                                                                               "name":  "data",
+                                                                                               "spec":  [
+                                                                                                            {
+                                                                                                                "name":  "hangi_amaçla_almayý_düþünüyorsunuz?",
+                                                                                                                "type":  "array",
+                                                                                                                "label":  "Hangi amaçla almayý düþünüyorsunuz?"
+                                                                                                            },
+                                                                                                            {
+                                                                                                                "name":  "full_name",
+                                                                                                                "type":  "text",
+                                                                                                                "label":  "Full name"
+                                                                                                            },
+                                                                                                            {
+                                                                                                                "name":  "phone",
+                                                                                                                "type":  "text",
+                                                                                                                "label":  "Phone number"
+                                                                                                            },
+                                                                                                            {
+                                                                                                                "name":  "e-posta",
+                                                                                                                "type":  "text",
+                                                                                                                "label":  "Email"
+                                                                                                            }
+                                                                                                        ],
+                                                                                               "type":  "collection",
+                                                                                               "label":  "Field data"
+                                                                                           },
+                                                                                           {
+                                                                                               "name":  "isOrganic",
+                                                                                               "type":  "boolean",
+                                                                                               "label":  "Is organic"
+                                                                                           },
+                                                                                           {
+                                                                                               "name":  "adName",
+                                                                                               "type":  "text",
+                                                                                               "label":  "Ad name"
+                                                                                           },
+                                                                                           {
+                                                                                               "name":  "adsetId",
+                                                                                               "type":  "text",
+                                                                                               "label":  "Ad set ID"
+                                                                                           },
+                                                                                           {
+                                                                                               "name":  "adsetName",
+                                                                                               "type":  "text",
+                                                                                               "label":  "Adset name"
+                                                                                           },
+                                                                                           {
+                                                                                               "name":  "campaignId",
+                                                                                               "type":  "text",
+                                                                                               "label":  "Campaign ID"
+                                                                                           },
+                                                                                           {
+                                                                                               "name":  "campaignName",
+                                                                                               "type":  "text",
+                                                                                               "label":  "Campaign name"
+                                                                                           },
+                                                                                           {
+                                                                                               "name":  "customDisclaimerResponses",
+                                                                                               "type":  "collection",
+                                                                                               "label":  "Custom disclaimer responses"
+                                                                                           },
+                                                                                           {
+                                                                                               "name":  "homeListing",
+                                                                                               "type":  "collection",
+                                                                                               "label":  "Home listing"
+                                                                                           },
+                                                                                           {
+                                                                                               "name":  "partnerName",
+                                                                                               "type":  "text",
+                                                                                               "label":  "Partner name"
+                                                                                           },
+                                                                                           {
+                                                                                               "name":  "platform",
+                                                                                               "type":  "text",
+                                                                                               "label":  "Platform"
+                                                                                           },
+                                                                                           {
+                                                                                               "name":  "retailerItemId",
+                                                                                               "type":  "text",
+                                                                                               "label":  "Retailer item ID"
+                                                                                           },
+                                                                                           {
+                                                                                               "name":  "vehicle",
+                                                                                               "type":  "collection",
+                                                                                               "label":  "Vehicle"
+                                                                                           }
+                                                                                       ],
+                                                                         "parameters":  [
+                                                                                            {
+                                                                                                "name":  "__IMTCONN__",
+                                                                                                "type":  "account:facebook",
+                                                                                                "label":  "Connection",
+                                                                                                "required":  true
+                                                                                            },
+                                                                                            {
+                                                                                                "name":  "pageId",
+                                                                                                "type":  "select",
+                                                                                                "label":  "Page",
+                                                                                                "required":  true
+                                                                                            },
+                                                                                            {
+                                                                                                "name":  "limit",
+                                                                                                "type":  "uinteger",
+                                                                                                "label":  "Limit",
+                                                                                                "required":  true
+                                                                                            },
+                                                                                            {
+                                                                                                "name":  "formId",
+                                                                                                "type":  "select",
+                                                                                                "label":  "Form",
+                                                                                                "required":  true
+                                                                                            }
+                                                                                        ]
+                                                                     },
+                                                        "parameters":  {
+                                                                           "limit":  100,
+                                                                           "formId":  "1440764744066306",
+                                                                           "pageId":  "599772193224734",
+                                                                           "__IMTCONN__":  5062275
+                                                                       }
+                                                    },
+                                                    {
+                                                        "id":  4,
+                                                        "mapper":  {
+                                                                       "url":  "https://www.novoxcrm.com/api/leads/external",
+                                                                       "method":  "post",
+                                                                       "contentType":  "json",
+                                                                       "inputMethod":  "jsonString",
+                                                                       "shareCookies":  false,
+                                                                       "parseResponse":  true,
+                                                                       "allowRedirects":  true,
+                                                                       "stopOnHttpError":  true,
+                                                                       "jsonStringBodyContent":  "{\r\n  \"source\": \"Facebook Ads\",\r\n  \"form_name\": \"NOVO PARK VISTA\",\r\n  \"name\": \"{{1.data.full_name}}\",\r\n  \"phone\": \"{{1.data.phone}}\",\r\n  \"email\": \"{{1.data.`e-posta`}}\",\r\n  \"campaign\": \"{{1.campaignName}}\",\n  \"lead_date\": \"{{1.dateCreated}}\",\r\n  \"message\": \"Hangi amaçla almayý düþünüyorsunuz?: {{join(1.data.hangi_amaçla_almayý_düþünüyorsunuz?; \\\", \\\")}}\"\r\n}",
+                                                                       "requestCompressedContent":  true
+                                                                   },
+                                                        "module":  "http:MakeRequest",
+                                                        "onerror":  [
+                                                                        {
+                                                                            "id":  5,
+                                                                            "module":  "builtin:Resume",
+                                                                            "version":  1,
+                                                                            "metadata":  {
+                                                                                             "designer":  {
+                                                                                                              "x":  600,
+                                                                                                              "y":  0
+                                                                                                          }
+                                                                                         }
+                                                                        }
+                                                                    ],
+                                                        "version":  4,
+                                                        "metadata":  {
+                                                                         "expect":  [
+                                                                                        {
+                                                                                            "name":  "url",
+                                                                                            "type":  "url",
+                                                                                            "label":  "URL",
+                                                                                            "required":  true
+                                                                                        },
+                                                                                        {
+                                                                                            "name":  "method",
+                                                                                            "type":  "select",
+                                                                                            "label":  "Method",
+                                                                                            "required":  true,
+                                                                                            "validate":  {
+                                                                                                             "enum":  [
+                                                                                                                          "get",
+                                                                                                                          "head",
+                                                                                                                          "post",
+                                                                                                                          "put",
+                                                                                                                          "patch",
+                                                                                                                          "delete",
+                                                                                                                          "options"
+                                                                                                                      ]
+                                                                                                         }
+                                                                                        },
+                                                                                        {
+                                                                                            "name":  "headers",
+                                                                                            "spec":  {
+                                                                                                         "name":  "value",
+                                                                                                         "spec":  [
+                                                                                                                      {
+                                                                                                                          "name":  "name",
+                                                                                                                          "type":  "text",
+                                                                                                                          "label":  "Name",
+                                                                                                                          "required":  true,
+                                                                                                                          "validate":  "@{pattern=^[-!#$%\u0026\u0027*+.^_`|~0-9A-Za-z]+$}"
+                                                                                                                      },
+                                                                                                                      {
+                                                                                                                          "name":  "value",
+                                                                                                                          "type":  "text",
+                                                                                                                          "label":  "Value"
+                                                                                                                      }
+                                                                                                                  ],
+                                                                                                         "type":  "collection",
+                                                                                                         "label":  "Header"
+                                                                                                     },
+                                                                                            "type":  "array",
+                                                                                            "label":  "Headers"
+                                                                                        },
+                                                                                        {
+                                                                                            "name":  "queryParameters",
+                                                                                            "spec":  {
+                                                                                                         "name":  "value",
+                                                                                                         "spec":  [
+                                                                                                                      {
+                                                                                                                          "name":  "name",
+                                                                                                                          "type":  "text",
+                                                                                                                          "label":  "Name",
+                                                                                                                          "required":  true
+                                                                                                                      },
+                                                                                                                      {
+                                                                                                                          "name":  "value",
+                                                                                                                          "type":  "text",
+                                                                                                                          "label":  "Value"
+                                                                                                                      }
+                                                                                                                  ],
+                                                                                                         "type":  "collection",
+                                                                                                         "label":  "Parameter"
+                                                                                                     },
+                                                                                            "type":  "array",
+                                                                                            "label":  "Query parameters"
+                                                                                        },
+                                                                                        {
+                                                                                            "name":  "contentType",
+                                                                                            "type":  "select",
+                                                                                            "label":  "Body content type",
+                                                                                            "validate":  {
+                                                                                                             "enum":  [
+                                                                                                                          "json",
+                                                                                                                          "multipart",
+                                                                                                                          "urlEncoded",
+                                                                                                                          "custom"
+                                                                                                                      ]
+                                                                                                         }
+                                                                                        },
+                                                                                        {
+                                                                                            "name":  "parseResponse",
+                                                                                            "type":  "boolean",
+                                                                                            "label":  "Parse response",
+                                                                                            "required":  true
+                                                                                        },
+                                                                                        {
+                                                                                            "name":  "stopOnHttpError",
+                                                                                            "type":  "boolean",
+                                                                                            "label":  "Return error if HTTP request fails",
+                                                                                            "required":  true
+                                                                                        },
+                                                                                        {
+                                                                                            "name":  "timeout",
+                                                                                            "type":  "uinteger",
+                                                                                            "label":  "Timeout",
+                                                                                            "validate":  {
+                                                                                                             "max":  300,
+                                                                                                             "min":  1
+                                                                                                         }
+                                                                                        },
+                                                                                        {
+                                                                                            "name":  "allowRedirects",
+                                                                                            "type":  "boolean",
+                                                                                            "label":  "Allow redirects",
+                                                                                            "required":  true
+                                                                                        },
+                                                                                        {
+                                                                                            "name":  "shareCookies",
+                                                                                            "type":  "boolean",
+                                                                                            "label":  "Share cookies with other HTTP modules",
+                                                                                            "required":  true
+                                                                                        },
+                                                                                        {
+                                                                                            "name":  "requestCompressedContent",
+                                                                                            "type":  "boolean",
+                                                                                            "label":  "Request compressed content",
+                                                                                            "required":  true
+                                                                                        },
+                                                                                        {
+                                                                                            "name":  "inputMethod",
+                                                                                            "type":  "select",
+                                                                                            "label":  "Body input method",
+                                                                                            "required":  true,
+                                                                                            "validate":  {
+                                                                                                             "enum":  [
+                                                                                                                          "dataStructure",
+                                                                                                                          "jsonString"
+                                                                                                                      ]
+                                                                                                         }
+                                                                                        },
+                                                                                        {
+                                                                                            "name":  "jsonStringBodyContent",
+                                                                                            "type":  "text",
+                                                                                            "label":  "Body content",
+                                                                                            "required":  true
+                                                                                        },
+                                                                                        {
+                                                                                            "name":  "paginationType",
+                                                                                            "type":  "select",
+                                                                                            "label":  "Pagination type",
+                                                                                            "validate":  {
+                                                                                                             "enum":  [
+                                                                                                                          "offsetBased",
+                                                                                                                          "pageBased",
+                                                                                                                          "urlBased",
+                                                                                                                          "tokenBased"
+                                                                                                                      ]
+                                                                                                         }
+                                                                                        }
+                                                                                    ],
+                                                                         "restore":  {
+                                                                                         "expect":  {
+                                                                                                        "method":  {
+                                                                                                                       "mode":  "chose",
+                                                                                                                       "label":  "POST"
+                                                                                                                   },
+                                                                                                        "headers":  {
+                                                                                                                        "mode":  "chose"
+                                                                                                                    },
+                                                                                                        "contentType":  {
+                                                                                                                            "label":  "application/jsonEnter data in the JSON format, as a string or using a data structure."
+                                                                                                                        },
+                                                                                                        "inputMethod":  {
+                                                                                                                            "label":  "JSON stringEnter the JSON body as a raw text string. If values contain JSON reserved characters, you must escape them manually."
+                                                                                                                        },
+                                                                                                        "shareCookies":  {
+                                                                                                                             "mode":  "chose"
+                                                                                                                         },
+                                                                                                        "parseResponse":  {
+                                                                                                                              "mode":  "chose"
+                                                                                                                          },
+                                                                                                        "allowRedirects":  {
+                                                                                                                               "mode":  "chose"
+                                                                                                                           },
+                                                                                                        "paginationType":  {
+                                                                                                                               "label":  "Empty"
+                                                                                                                           },
+                                                                                                        "queryParameters":  {
+                                                                                                                                "mode":  "chose"
+                                                                                                                            },
+                                                                                                        "stopOnHttpError":  {
+                                                                                                                                "mode":  "chose"
+                                                                                                                            },
+                                                                                                        "requestCompressedContent":  {
+                                                                                                                                         "mode":  "chose"
+                                                                                                                                     }
+                                                                                                    },
+                                                                                         "parameters":  {
+                                                                                                            "tlsType":  {
+                                                                                                                            "label":  "Empty"
+                                                                                                                        },
+                                                                                                            "proxyKeychain":  {
+                                                                                                                                  "label":  "Choose a key"
+                                                                                                                              },
+                                                                                                            "authenticationType":  {
+                                                                                                                                       "label":  "No authenticationUse when no credentials are required for the request."
+                                                                                                                                   }
+                                                                                                        }
+                                                                                     },
+                                                                         "designer":  {
+                                                                                          "x":  300,
+                                                                                          "y":  0
+                                                                                      },
+                                                                         "interface":  [
+                                                                                           {
+                                                                                               "name":  "data",
+                                                                                               "type":  "any",
+                                                                                               "label":  "Data"
+                                                                                           },
+                                                                                           {
+                                                                                               "name":  "statusCode",
+                                                                                               "type":  "number",
+                                                                                               "label":  "Status Code"
+                                                                                           },
+                                                                                           {
+                                                                                               "name":  "headers",
+                                                                                               "spec":  [
+                                                                                                            {
+                                                                                                                "name":  "content-length",
+                                                                                                                "type":  "text",
+                                                                                                                "label":  "Content-Length"
+                                                                                                            },
+                                                                                                            {
+                                                                                                                "name":  "content-encoding",
+                                                                                                                "type":  "text",
+                                                                                                                "label":  "Content-Encoding"
+                                                                                                            },
+                                                                                                            {
+                                                                                                                "name":  "content-type",
+                                                                                                                "type":  "text",
+                                                                                                                "label":  "Content-Type"
+                                                                                                            },
+                                                                                                            {
+                                                                                                                "name":  "server",
+                                                                                                                "type":  "text",
+                                                                                                                "label":  "Server"
+                                                                                                            },
+                                                                                                            {
+                                                                                                                "name":  "cache-control",
+                                                                                                                "type":  "text",
+                                                                                                                "label":  "Cache-Control"
+                                                                                                            },
+                                                                                                            {
+                                                                                                                "name":  "set-cookie",
+                                                                                                                "spec":  {
+                                                                                                                             "type":  "text"
+                                                                                                                         },
+                                                                                                                "type":  "array",
+                                                                                                                "label":  "Set-Cookie"
+                                                                                                            }
+                                                                                                        ],
+                                                                                               "type":  "collection",
+                                                                                               "label":  "Headers"
+                                                                                           }
+                                                                                       ],
+                                                                         "parameters":  [
+                                                                                            {
+                                                                                                "name":  "authenticationType",
+                                                                                                "type":  "select",
+                                                                                                "label":  "Authentication type",
+                                                                                                "required":  true,
+                                                                                                "validate":  {
+                                                                                                                 "enum":  [
+                                                                                                                              "noAuth",
+                                                                                                                              "apiKey",
+                                                                                                                              "basicAuth",
+                                                                                                                              "oAuth"
+                                                                                                                          ]
+                                                                                                             }
+                                                                                            },
+                                                                                            {
+                                                                                                "name":  "tlsType",
+                                                                                                "type":  "select",
+                                                                                                "label":  "Transport layer security (TLS)",
+                                                                                                "validate":  {
+                                                                                                                 "enum":  [
+                                                                                                                              "mTls",
+                                                                                                                              "tls"
+                                                                                                                          ]
+                                                                                                             }
+                                                                                            },
+                                                                                            {
+                                                                                                "name":  "proxyKeychain",
+                                                                                                "type":  "keychain:proxy",
+                                                                                                "label":  "Proxy"
+                                                                                            }
+                                                                                        ]
+                                                                     },
+                                                        "parameters":  {
+                                                                           "tlsType":  "",
+                                                                           "proxyKeychain":  "",
+                                                                           "authenticationType":  "noAuth"
+                                                                       }
+                                                    }
+                                                ],
+                                       "name":  "Vista, RETRIVALs Elemeli",
+                                       "metadata":  {
+                                                        "instant":  true,
+                                                        "version":  1,
+                                                        "designer":  {
+                                                                         "orphans":  [
+
+                                                                                     ],
+                                                                         "samples":  {
+                                                                                         "1":  {
+                                                                                                   "adId":  "120244848338690653",
+                                                                                                   "data":  {
+                                                                                                                "phone":  "+90551122875154",
+                                                                                                                "e-posta":  "eraysar6@gmail.com",
+                                                                                                                "full_name":  "ERAY",
+                                                                                                                "hangi_amaçla_almayý_düþünüyorsunuz?":  [
+                                                                                                                                                            "yatýrým"
+                                                                                                                                                        ]
+                                                                                                            },
+                                                                                                   "adName":  "Vista / Görsel / R1",
+                                                                                                   "formId":  "1440764744066306",
+                                                                                                   "adsetId":  "120244848338600653",
+                                                                                                   "platform":  "ig",
+                                                                                                   "adsetName":  "Vista / SK / Görsel",
+                                                                                                   "isOrganic":  false,
+                                                                                                   "leadgenId":  "2703911956662258",
+                                                                                                   "campaignId":  "120244848338640653",
+                                                                                                   "dateCreated":  "2026-05-12T13:22:55.000Z",
+                                                                                                   "__IMTINDEX__":  1,
+                                                                                                   "campaignName":  "100426 / Vista / Potansiyel Müþteri Form Kampanyasý",
+                                                                                                   "__IMTLENGTH__":  2232,
+                                                                                                   "mappable_field_data":  [
+                                                                                                                               {
+                                                                                                                                   "name":  "hangi_amaçla_almayý_düþünüyorsunuz?",
+                                                                                                                                   "value":  "yatýrým"
+                                                                                                                               }
+                                                                                                                           ]
+                                                                                               },
+                                                                                         "4":  {
+                                                                                                   "data":  {
+                                                                                                                "lead_id":  "43adcb82-4c53-4eb3-9245-2b744811ab72",
+                                                                                                                "message":  "Existing customer found — new lead created.",
+                                                                                                                "success":  true,
+                                                                                                                "duplicate":  false,
+                                                                                                                "recorded_date":  "2026-05-12T13:22:55.000Z"
+                                                                                                            },
+                                                                                                   "headers":  {
+                                                                                                                   "nel":  "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+                                                                                                                   "date":  "Tue, 12 May 2026 14:37:47 GMT",
+                                                                                                                   "vary":  "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch, accept-encoding",
+                                                                                                                   "cf-ray":  "9faa29ce8a49f3ce-DUB",
+                                                                                                                   "server":  "cloudflare",
+                                                                                                                   "alt-svc":  "h3=\":443\"; ma=86400",
+                                                                                                                   "report-to":  "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=dx7...",
+                                                                                                                   "connection":  "keep-alive",
+                                                                                                                   "x-vercel-id":  "dub1::iad1::n5std-1778596666645-b6f398107246",
+                                                                                                                   "content-type":  "application/json",
+                                                                                                                   "cache-control":  "public, max-age=0, must-revalidate",
+                                                                                                                   "x-matched-path":  "/api/leads/external",
+                                                                                                                   "x-vercel-cache":  "MISS",
+                                                                                                                   "cf-cache-status":  "DYNAMIC",
+                                                                                                                   "transfer-encoding":  "chunked",
+                                                                                                                   "strict-transport-security":  "max-age=63072000"
+                                                                                                               },
+                                                                                                   "statusCode":  200
+                                                                                               }
+                                                                                     }
+                                                                     },
+                                                        "scenario":  {
+                                                                         "dlq":  false,
+                                                                         "slots":  null,
+                                                                         "dataloss":  false,
+                                                                         "maxErrors":  3,
+                                                                         "autoCommit":  true,
+                                                                         "roundtrips":  1,
+                                                                         "sequential":  true,
+                                                                         "confidential":  false,
+                                                                         "freshVariables":  false,
+                                                                         "autoCommitTriggerLast":  true
+                                                                     }
+                                                    }
+                                   },
+                     "scheduling":  {
+                                        "type":  "immediately"
+                                    },
+                     "concept":  false,
+                     "created":  "2026-03-24T14:09:16.192Z",
+                     "last_edit":  "2026-05-31T12:58:26.299Z",
+                     "metadata":  {
+                                      "input_spec":  [
+
+                                                     ],
+                                      "output_spec":  [
+
+                                                      ]
+                                  },
+                     "idSequence":  6
+                 }
+}
