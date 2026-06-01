@@ -171,10 +171,14 @@ export interface VapiCallStatus {
     status: 'queued' | 'ringing' | 'in-progress' | 'forwarding' | 'ended'
     endedReason?: string
     duration?: number
+    startedAt?: string
+    endedAt?: string
     transcript?: string
     summary?: string
     recordingUrl?: string
     cost?: number
+    costBreakdown?: { total?: number }
+    metadata?: Record<string, any>
     analysis?: {
         successEvaluation?: string
         summary?: string
@@ -649,11 +653,16 @@ export async function handleManualVapiCallResult(callData: {
     let outcome: 'Success' | 'Failed' | 'Busy' | 'No Answer' = 'No Answer'
     let logStatus: string = 'no_answer'
 
-    if (callData.endedReason === 'customer-ended-call' || callData.endedReason === 'assistant-ended-call') {
-        if (callData.duration && callData.duration > 30) {
+    const hasTranscript = !!(callData.transcript && callData.transcript.trim().length > 0)
+
+    if (callData.endedReason === 'customer-ended-call' || callData.endedReason === 'assistant-ended-call' || hasTranscript) {
+        if (hasTranscript || (callData.duration && callData.duration > 30)) {
             outcome = 'Success'
             logStatus = 'answered'
         } else if (callData.duration && callData.duration > 5) {
+            outcome = 'Failed'
+            logStatus = 'hung_up'
+        } else {
             outcome = 'Failed'
             logStatus = 'hung_up'
         }
@@ -703,9 +712,11 @@ export async function handleManualVapiCallResult(callData: {
         : ''
     const summaryBlock = callData.summary || notes || 'Görüşme tamamlandı.'
 
+    const callIdTag = callData.callId ? `\n\n[Call ID: ${callData.callId}]` : ''
+
     const activityPayload = {
         summary: `🤖 AI Arama: ${leadScore ? 'Skor ' + leadScore.toUpperCase() : 'Görüşme Tamamlandı'} (${durationText})`,
-        description: `${summaryBlock}${transcriptBlock}${recordingBlock}`,
+        description: `${summaryBlock}${transcriptBlock}${recordingBlock}${callIdTag}`,
         notes: callData.transcript || '',
         status: 'Completed' as const,
         completed_at: new Date().toISOString(),
@@ -834,7 +845,9 @@ export async function handleManualVapiCallResult(callData: {
  */
 export function getTurkishNameTitle(fullName: string | undefined | null): string {
     if (!fullName) return '';
-    const cleanName = fullName.trim();
+    // Clean suffixes after apostrophe (e.g. Bekir'e -> Bekir)
+    const nameWithoutSuffix = fullName.split("'")[0].trim();
+    const cleanName = nameWithoutSuffix;
     if (cleanName.length === 0) return '';
     
     // Get the first word as the first name

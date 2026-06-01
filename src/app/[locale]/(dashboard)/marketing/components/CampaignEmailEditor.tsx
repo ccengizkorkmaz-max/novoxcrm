@@ -6,7 +6,11 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
-import { Sparkles, Save, Eye, Undo, ChevronDown, Layout, FileText } from 'lucide-react'
+import { Sparkles, Save, Eye, Undo, ChevronDown, Layout, FileText, ArrowRight } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { createEmailTemplate } from '../actions'
 
 // Dynamic import to avoid SSR issues
 const EmailEditor = dynamic(() => import('react-email-editor').then(mod => mod.default || mod), {
@@ -95,6 +99,15 @@ export function CampaignEmailEditor({ initialDesign, initialHtml, onSave, portfo
     const [generating, setGenerating] = useState(false)
     const [previewHtml, setPreviewHtml] = useState<string | null>(null)
 
+    // Save as Template Modal states
+    const [showSaveDialog, setShowSaveDialog] = useState(false)
+    const [tplName, setTplName] = useState('')
+    const [tplSubject, setTplSubject] = useState('')
+    const [tplCategory, setTplCategory] = useState('general')
+    const [savingTemplate, setSavingTemplate] = useState(false)
+    const [tempHtml, setTempHtml] = useState('')
+    const [tempDesign, setTempDesign] = useState<any>(null)
+
     const onReady = useCallback(() => {
         setEditorReady(true)
         if (initialDesign) {
@@ -106,9 +119,43 @@ export function CampaignEmailEditor({ initialDesign, initialHtml, onSave, portfo
         emailEditorRef.current?.editor?.exportHtml((data: any) => {
             const { design, html } = data
             onSave(html, design)
-            toast.success('Kampanya içeriği kaydedildi!')
         })
     }, [onSave])
+
+    const handleSaveAsTemplateClick = useCallback(() => {
+        emailEditorRef.current?.editor?.exportHtml((data: any) => {
+            const { design, html } = data
+            setTempHtml(html)
+            setTempDesign(design)
+            setShowSaveDialog(true)
+        })
+    }, [])
+
+    const handleConfirmSaveTemplate = useCallback(async () => {
+        if (!tplName || !tplSubject) {
+            return toast.warning('Şablon adı ve konu satırı gereklidir')
+        }
+        setSavingTemplate(true)
+        try {
+            const fd = new FormData()
+            fd.set('name', tplName)
+            fd.set('category', tplCategory)
+            fd.set('subject', tplSubject)
+            fd.set('body', tempHtml)
+            
+            await createEmailTemplate(fd)
+            toast.success('Şablon başarıyla E-posta Şablonları kütüphanesine kaydedildi!')
+            setShowSaveDialog(false)
+            setTplName('')
+            setTplSubject('')
+            // Force reload to refresh lists
+            window.location.reload()
+        } catch (err: any) {
+            toast.error(err.message || 'Şablon kaydedilirken bir hata oluştu')
+        } finally {
+            setSavingTemplate(false)
+        }
+    }, [tplName, tplSubject, tplCategory, tempHtml])
 
     const handlePreview = useCallback(() => {
         emailEditorRef.current?.editor?.exportHtml((data: any) => {
@@ -185,8 +232,11 @@ export function CampaignEmailEditor({ initialDesign, initialHtml, onSave, portfo
                     <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={handlePreview} disabled={!editorReady}>
                         <Eye className="h-3.5 w-3.5" /> Önizle
                     </Button>
-                    <Button size="sm" className="text-xs gap-1.5 bg-blue-600 hover:bg-blue-700" onClick={handleSave} disabled={!editorReady}>
-                        <Save className="h-3.5 w-3.5" /> İçeriği Kaydet
+                    <Button variant="outline" size="sm" className="text-xs gap-1.5 border-blue-200 text-blue-700 hover:bg-blue-50" onClick={handleSave} disabled={!editorReady}>
+                        <Save className="h-3.5 w-3.5" /> Kampanyada Kullan
+                    </Button>
+                    <Button size="sm" className="text-xs gap-1.5 bg-blue-600 hover:bg-blue-700 text-white" onClick={handleSaveAsTemplateClick} disabled={!editorReady}>
+                        <Save className="h-3.5 w-3.5" /> Şablon Olarak Kaydet
                     </Button>
                 </div>
             </div>
@@ -265,6 +315,43 @@ export function CampaignEmailEditor({ initialDesign, initialHtml, onSave, portfo
                     </div>
                 </div>
             )}
+
+            {/* Save as Template Dialog */}
+            <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+                <DialogContent className="max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>E-posta Şablonu Olarak Kaydet</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid gap-2">
+                            <Label className="text-xs font-bold">Şablon Adı *</Label>
+                            <Input value={tplName} onChange={e => setTplName(e.target.value)} placeholder="Örn: Yeni Portföy Duyurusu" />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label className="text-xs font-bold">Konu Satırı (E-posta Başlığı) *</Label>
+                            <Input value={tplSubject} onChange={e => setTplSubject(e.target.value)} placeholder="Örn: Harika Bir Fırsat Sizleri Bekliyor!" />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label className="text-xs font-bold">Kategori</Label>
+                            <select value={tplCategory} onChange={e => setTplCategory(e.target.value)} className="w-full h-10 px-3 rounded-lg border text-sm bg-white mt-1">
+                                <option value="general">Genel</option>
+                                <option value="listing">İlan Tanıtım</option>
+                                <option value="follow_up">Takip</option>
+                                <option value="welcome">Hoş Geldiniz</option>
+                                <option value="birthday">Doğum Günü</option>
+                                <option value="anniversary">Yıldönümü</option>
+                                <option value="price_change">Fiyat Değişikliği</option>
+                            </select>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="ghost" onClick={() => setShowSaveDialog(false)}>İptal</Button>
+                        <Button onClick={handleConfirmSaveTemplate} disabled={savingTemplate || !tplName || !tplSubject} className="bg-blue-600 hover:bg-blue-700 text-white">
+                            {savingTemplate ? 'Kaydediliyor...' : 'Şablon Kaydet'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

@@ -143,12 +143,16 @@ export function WorkflowBuilder({ segments, scripts, projects, profiles, tenantI
                         const r = await addStepAction(editingWorkflow.id, {
                             step_order: s.step_order, name: s.name, action_type: s.action_type,
                             config: s.config, on_success: s.on_success, on_failure: s.on_failure,
+                            next_step_id_on_success: s.next_step_id_on_success,
+                            next_step_id_on_failure: s.next_step_id_on_failure,
                         })
                         if (r?.error) toast.error('Adım eklenemedi: ' + r.error)
                     } else {
                         const r = await updateStep(s.id, {
                             step_order: s.step_order, name: s.name, config: s.config,
                             on_success: s.on_success, on_failure: s.on_failure,
+                            next_step_id_on_success: s.next_step_id_on_success,
+                            next_step_id_on_failure: s.next_step_id_on_failure,
                         })
                         if (r?.error) toast.error('Adım güncellenemedi: ' + r.error)
                     }

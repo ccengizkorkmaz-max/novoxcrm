@@ -2033,7 +2033,10 @@ export async function initiateAiCall(saleId: string) {
         .eq('id', profile.tenant_id)
         .single()
 
-    const customerName = sale.customers.full_name || 'Değerli Müşterimiz'
+    const { makeOutboundCall, getTurkishNameTitle } = await import('@/lib/vapi')
+    const rawName = sale.customers.full_name || ''
+    const nameWithTitle = getTurkishNameTitle(rawName) || 'Değerli Müşterimiz'
+    const customerName = nameWithTitle
     const projectName = sale.projects?.name || 'Novo Projeleri'
     const projectDetails = tenant?.ai_knowledge_base || ''
 
@@ -2065,7 +2068,6 @@ Müşterinin adı: ${customerName}. Ona ismiyle hitap et (Örn: "${customerName}
 
     const firstMessage = `Merhaba ${customerName}, ben Novo'dan Çiçek. Daha önce ilgilenmiş olduğunuz ${projectName} projesi hakkında görüşmek için aramıştım, müsaitseniz kısaca bilgi aktarabilir miyim?`
 
-    const { makeOutboundCall } = await import('@/lib/vapi')
     const result = await makeOutboundCall({
         phoneNumber: sale.customers.phone,
         systemPrompt,
@@ -2124,4 +2126,70 @@ export async function stopAiCall(callId: string) {
     const success = await stopCall(callId)
     if (!success) return { error: 'Arama durdurulamadı' }
     return { success: true }
+}
+
+/**
+ * Fallback: Webhook gelmediğinde client tarafından çağrılır.
+ * Vapi API'den arama verilerini çeker ve timeline'ı günceller.
+ * Bu sayede webhook'a bağımlılık ortadan kalkar.
+ */
+export async function syncCallResult(callId: string) {
+    try {
+        const { getCallStatus, handleManualVapiCallResult } = await import('@/lib/vapi')
+        const { createAdminClient } = await import('@/lib/supabase/admin')
+
+        // 1. Önce bu call için activity zaten güncellenmiş mi kontrol et (idempotency)
+        const adminSupabase = createAdminClient()
+        const { count } = await adminSupabase
+            .from('activities')
+            .select('*', { count: 'exact', head: true })
+            .eq('type', 'Call')
+            .ilike('description', `%[Call ID: ${callId}]%`)
+            .ilike('description', `%📝 Transkript:%`)
+        
+        if (count && count > 0) {
+            console.log(`[syncCallResult] Activity already synced for callId ${callId} — skipping`)
+            return { success: true, alreadySynced: true }
+        }
+
+        // 2. Vapi API'den arama detaylarını çek
+        const callData = await getCallStatus(callId)
+        if (!callData) {
+            return { error: 'Arama verisi Vapi API\'den alınamadı' }
+        }
+
+        // 3. Arama henüz bitmemişse sync yapma
+        if (callData.status !== 'ended') {
+            return { error: 'Arama henüz sonlanmamış', status: callData.status }
+        }
+
+        // 4. Metadata kontrol (manual_call olmalı)
+        const metadata = callData.metadata
+        if (!metadata?.customer_id || !metadata?.tenant_id) {
+            return { error: 'Arama metadata bilgisi eksik (customer_id veya tenant_id)' }
+        }
+
+        // 5. handleManualVapiCallResult ile timeline'ı güncelle
+        console.log(`[syncCallResult] Syncing call ${callId} for customer ${metadata.customer_id}`)
+        await handleManualVapiCallResult({
+            callId: callId,
+            status: callData.status,
+            endedReason: callData.endedReason,
+            transcript: callData.transcript,
+            summary: callData.summary || callData.analysis?.summary,
+            recordingUrl: callData.recordingUrl,
+            duration: callData.duration || (callData.startedAt && callData.endedAt
+                ? Math.round((new Date(callData.endedAt).getTime() - new Date(callData.startedAt).getTime()) / 1000)
+                : undefined),
+            cost: callData.cost || callData.costBreakdown?.total,
+            analysis: callData.analysis,
+            metadata: metadata,
+        })
+
+        console.log(`[syncCallResult] ✅ Successfully synced call ${callId}`)
+        return { success: true }
+    } catch (err: any) {
+        console.error(`[syncCallResult] Error syncing call ${callId}:`, err)
+        return { error: err.message || 'Sync hatası' }
+    }
 }

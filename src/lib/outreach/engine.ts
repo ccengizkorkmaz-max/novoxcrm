@@ -1040,17 +1040,21 @@ export async function handleVapiCallResult(callData: {
     let outcome: string = 'no_answer'
     let logStatus: string = 'no_answer'
 
-    if (callData.endedReason === 'customer-ended-call' || callData.endedReason === 'assistant-ended-call') {
-        if (callData.duration && callData.duration > 30) {
+    const hasTranscript = !!(callData.transcript && callData.transcript.trim().length > 0)
+
+    if (callData.endedReason === 'customer-ended-call' || callData.endedReason === 'assistant-ended-call' || hasTranscript) {
+        if (hasTranscript || (callData.duration && callData.duration > 30)) {
             // Real conversation happened
             outcome = 'success'
             logStatus = 'answered'
         } else if (callData.duration && callData.duration > 5) {
             // Customer picked up but hung up quickly (mid-conversation cut)
-            outcome = 'no_answer'
+            outcome = 'failure'
+            logStatus = 'hung_up'
+        } else {
+            outcome = 'failure'
             logStatus = 'hung_up'
         }
-        // < 5 seconds = accidental pickup, treat as no_answer
     } else if (callData.endedReason === 'customer-did-not-answer') {
         outcome = 'no_answer'
         logStatus = 'no_answer'

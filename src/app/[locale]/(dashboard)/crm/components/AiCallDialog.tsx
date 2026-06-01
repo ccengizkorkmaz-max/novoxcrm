@@ -26,7 +26,7 @@ import {
     ThumbsUp,
     Volume2
 } from 'lucide-react'
-import { getAiCallModalData, initiateAiCall, getCallDetails, stopAiCall } from '../actions'
+import { getAiCallModalData, initiateAiCall, getCallDetails, stopAiCall, syncCallResult } from '../actions'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 
@@ -52,6 +52,7 @@ export default function AiCallDialog({ saleId, onClose }: AiCallDialogProps) {
     const [stopping, setStopping] = useState(false)
     const [showConfirm, setShowConfirm] = useState(false)
     const pollingStartRef = useRef<number>(0)
+    const syncAttemptedRef = useRef<boolean>(false)
 
     const transcriptEndRef = useRef<HTMLDivElement>(null)
 
@@ -104,6 +105,26 @@ export default function AiCallDialog({ saleId, onClose }: AiCallDialogProps) {
                     } else if (res.status === 'ended') {
                         setCallStatus('ended')
                         setPolling(false)
+                        // Webhook'a güvenmek yerine, arama bittiğinde client tarafından sync yap
+                        if (!syncAttemptedRef.current && callId) {
+                            syncAttemptedRef.current = true
+                            // 3 saniye bekle (Vapi'nin analysis tamamlaması için)
+                            setTimeout(async () => {
+                                try {
+                                    console.log('[AiCallDialog] Syncing call result as fallback...')
+                                    const syncRes = await syncCallResult(callId)
+                                    if (syncRes.error) {
+                                        console.warn('[AiCallDialog] Sync warning:', syncRes.error)
+                                    } else if (syncRes.alreadySynced) {
+                                        console.log('[AiCallDialog] Webhook already synced this call')
+                                    } else {
+                                        console.log('[AiCallDialog] ✅ Call result synced successfully')
+                                    }
+                                } catch (syncErr) {
+                                    console.error('[AiCallDialog] Sync error:', syncErr)
+                                }
+                            }, 3000)
+                        }
                     } else {
                         setCallStatus('failed')
                         setPolling(false)
@@ -143,6 +164,7 @@ export default function AiCallDialog({ saleId, onClose }: AiCallDialogProps) {
     const resetStates = () => {
         setModalData(null)
         setCallId(null)
+        syncAttemptedRef.current = false
         setCallStatus('idle')
         setTranscript('')
         setSummary('')

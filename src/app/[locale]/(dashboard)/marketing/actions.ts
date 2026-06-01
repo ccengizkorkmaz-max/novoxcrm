@@ -3,6 +3,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { Resend } from 'resend'
+import { sendPoliSms } from '@/lib/sms'
 
 // ===== CAMPAIGN MANAGEMENT =====
 
@@ -114,6 +116,34 @@ export async function deleteCampaign(campaignId: string) {
     return { success: true }
 }
 
+export async function updateCampaign(campaignId: string, formData: FormData) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) redirect('/login')
+
+    const name = (formData.get('name') as string)?.trim()
+    const type = formData.get('type') as string || 'email'
+    const subject = (formData.get('subject') as string)?.trim() || null
+    const body = (formData.get('body') as string)?.trim() || ''
+    const scheduleType = formData.get('schedule_type') as string || 'immediate'
+    const scheduledAt = (formData.get('scheduled_at') as string)?.trim() || null
+
+    if (!name) throw new Error('Kampanya adı zorunlu')
+
+    const { error } = await supabase.from('campaigns').update({
+        name,
+        type,
+        subject,
+        body,
+        schedule_type: scheduleType,
+        scheduled_at: scheduledAt || null,
+    }).eq('id', campaignId)
+
+    if (error) throw new Error('Kampanya güncellenemedi: ' + error.message)
+    revalidatePath('/marketing')
+    return { success: true }
+}
+
 export async function addRecipientsManually(campaignId: string, customerIds: string[]) {
     const supabase = await createClient()
 
@@ -172,6 +202,27 @@ export async function createEmailTemplate(formData: FormData) {
     return { success: true }
 }
 
+export async function updateEmailTemplate(templateId: string, formData: FormData) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) redirect('/login')
+
+    const name = (formData.get('name') as string)?.trim()
+    const category = formData.get('category') as string || 'general'
+    const subject = (formData.get('subject') as string)?.trim()
+    const body = (formData.get('body') as string)?.trim()
+
+    if (!name || !subject || !body) throw new Error('Tüm alanlar zorunlu')
+
+    const { error } = await supabase.from('email_templates').update({
+        name, category, subject, body,
+    }).eq('id', templateId)
+
+    if (error) throw new Error('Şablon güncellenemedi: ' + error.message)
+    revalidatePath('/marketing')
+    return { success: true }
+}
+
 export async function deleteEmailTemplate(templateId: string) {
     const supabase = await createClient()
     const { error } = await supabase.from('email_templates').delete().eq('id', templateId)
@@ -180,73 +231,264 @@ export async function deleteEmailTemplate(templateId: string) {
     return { success: true }
 }
 
-// ===== SEND (Integration Points) =====
-// These are stubs that will be connected to external services
-
 export async function sendCampaignEmails(campaignId: string) {
-    // TODO: Integrate with Mailchimp / Resend / SendGrid
-    // For now, mark as sent and log
     const supabase = await createClient()
 
-    const { data: recipients } = await supabase
-        .from('campaign_recipients')
-        .select('id, customers(email, full_name)')
-        .eq('campaign_id', campaignId)
-        .eq('status', 'pending')
+    // 1. Get campaign details
+    const { data: campaign, error: campaignError } = await supabase
+        .from('campaigns')
+        .select('*')
+        .eq('id', campaignId)
+        .single()
 
-    if (!recipients || recipients.length === 0) {
-        throw new Error('Gönderilecek alıcı yok')
+    if (campaignError || !campaign) {
+        throw new Error('Kampanya bulunamadı')
     }
 
-    // Mark as sent (simulation - replace with actual API calls)
-    const sentAt = new Date().toISOString()
-    await supabase.from('campaign_recipients')
-        .update({ status: 'sent', sent_at: sentAt })
+    // 2. Get pending recipients
+    const { data: recipients, error: recipientsError } = await supabase
+        .from('campaign_recipients')
+        .select('id, customer_id, customers(email, full_name, phone, city)')
         .eq('campaign_id', campaignId)
         .eq('status', 'pending')
 
-    await supabase.from('campaigns').update({
-        sent_count: recipients.length,
-        status: 'completed',
-    }).eq('id', campaignId)
+    if (recipientsError || !recipients || recipients.length === 0) {
+        throw new Error('Gönderilecek alıcı yok veya tümü gönderildi')
+    }
+
+    // 3. Initialize Resend
+    const apiKey = process.env.RESEND_API_KEY
+    if (!apiKey) {
+        throw new Error('E-posta gönderimi için RESEND_API_KEY çevre değişkeni tanımlı değil.')
+    }
+    const resend = new Resend(apiKey)
+
+    let successCount = 0
+    let failedCount = 0
+
+    // Helper for variable interpolation
+    const interpolate = (text: string, customer: any) => {
+        if (!text) return ''
+        return text
+            .replace(/\{\{musteri_adi\}\}/g, customer.full_name || '')
+            .replace(/\{\{telefon\}\}/g, customer.phone || '')
+            .replace(/\{\{email\}\}/g, customer.email || '')
+            .replace(/\{\{sehir\}\}/g, customer.city || '')
+    }
+
+    // 4. Send emails one by one
+    for (const rec of recipients) {
+        const customer = rec.customers as any
+        const sentAt = new Date().toISOString()
+
+        if (!customer || !customer.email) {
+            await supabase
+                .from('campaign_recipients')
+                .update({
+                    status: 'failed',
+                    sent_at: sentAt,
+                    error_message: 'E-posta adresi eksik'
+                })
+                .eq('id', rec.id)
+            failedCount++
+            continue
+        }
+
+        const personalSubject = interpolate(campaign.subject || 'Kampanya', customer)
+        const personalBody = interpolate(campaign.body || '', customer)
+
+        try {
+            const { error: sendError } = await resend.emails.send({
+                from: 'Novo CRM <onboarding@novoxcrm.com>',
+                to: customer.email,
+                subject: personalSubject,
+                html: personalBody,
+            })
+
+            if (sendError) {
+                console.error(`Resend send error for ${customer.email}:`, sendError)
+                await supabase
+                    .from('campaign_recipients')
+                    .update({
+                        status: 'failed',
+                        sent_at: sentAt,
+                        error_message: sendError.message || 'Resend gönderim hatası'
+                    })
+                    .eq('id', rec.id)
+                failedCount++
+            } else {
+                await supabase
+                    .from('campaign_recipients')
+                    .update({
+                        status: 'sent',
+                        sent_at: sentAt,
+                        error_message: null
+                    })
+                    .eq('id', rec.id)
+                successCount++
+            }
+        } catch (err: any) {
+            console.error(`Resend connection error for ${customer.email}:`, err)
+            await supabase
+                .from('campaign_recipients')
+                .update({
+                    status: 'failed',
+                    sent_at: sentAt,
+                    error_message: err.message || 'Bağlantı hatası'
+                })
+                .eq('id', rec.id)
+            failedCount++
+        }
+    }
+
+    // 5. Update campaign status
+    await supabase
+        .from('campaigns')
+        .update({
+            sent_count: successCount,
+            status: 'completed'
+        })
+        .eq('id', campaignId)
 
     revalidatePath('/marketing')
+
     return {
         success: true,
-        message: `${recipients.length} alıcıya gönderildi`,
-        note: '⚠️ Gerçek gönderim için Mailchimp/Resend/SendGrid API entegrasyonu gereklidir'
+        message: `${successCount} alıcıya e-posta başarıyla gönderildi. ${failedCount} alıcıda başarısız olundu.`
     }
 }
 
 export async function sendCampaignSMS(campaignId: string) {
-    // TODO: Integrate with Twilio / Netgsm / iletimerkezi
     const supabase = await createClient()
 
-    const { data: recipients } = await supabase
-        .from('campaign_recipients')
-        .select('id, customers(phone, full_name)')
-        .eq('campaign_id', campaignId)
-        .eq('status', 'pending')
+    // 1. Get campaign details
+    const { data: campaign, error: campaignError } = await supabase
+        .from('campaigns')
+        .select('*')
+        .eq('id', campaignId)
+        .single()
 
-    if (!recipients || recipients.length === 0) {
-        throw new Error('Gönderilecek alıcı yok')
+    if (campaignError || !campaign) {
+        throw new Error('Kampanya bulunamadı')
     }
 
-    const sentAt = new Date().toISOString()
-    await supabase.from('campaign_recipients')
-        .update({ status: 'sent', sent_at: sentAt })
+    // 2. Get pending recipients
+    const { data: recipients, error: recipientsError } = await supabase
+        .from('campaign_recipients')
+        .select('id, customer_id, customers(phone, full_name, email, city)')
         .eq('campaign_id', campaignId)
         .eq('status', 'pending')
 
-    await supabase.from('campaigns').update({
-        sent_count: recipients.length,
-        status: 'completed',
-    }).eq('id', campaignId)
+    if (recipientsError || !recipients || recipients.length === 0) {
+        throw new Error('Gönderilecek alıcı yok veya tümü gönderildi')
+    }
+
+    // 3. Get SMS API credentials from tenant settings
+    const { data: tenant } = await supabase
+        .from('tenants')
+        .select('sms_api_user, sms_api_password, sms_sender_id')
+        .eq('id', campaign.tenant_id)
+        .single()
+
+    const smsUser = tenant?.sms_api_user || process.env.POLI_SMS_USER
+    const smsPass = tenant?.sms_api_password || process.env.POLI_SMS_PASS
+    const header = tenant?.sms_sender_id || process.env.POLI_SMS_HEADER || 'NOVOEMLAK'
+
+    if (!smsUser || !smsPass) {
+        throw new Error('SMS API kimlik bilgileri (POLI_SMS_USER/PASS) ayarlanmamış.')
+    }
+
+    let successCount = 0
+    let failedCount = 0
+
+    // Helper for variable interpolation
+    const interpolate = (text: string, customer: any) => {
+        if (!text) return ''
+        return text
+            .replace(/\{\{musteri_adi\}\}/g, customer.full_name || '')
+            .replace(/\{\{telefon\}\}/g, customer.phone || '')
+            .replace(/\{\{email\}\}/g, customer.email || '')
+            .replace(/\{\{sehir\}\}/g, customer.city || '')
+    }
+
+    // 4. Send SMS one by one
+    for (const rec of recipients) {
+        const customer = rec.customers as any
+        const sentAt = new Date().toISOString()
+
+        if (!customer || !customer.phone) {
+            await supabase
+                .from('campaign_recipients')
+                .update({
+                    status: 'failed',
+                    sent_at: sentAt,
+                    error_message: 'Telefon numarası eksik'
+                })
+                .eq('id', rec.id)
+            failedCount++
+            continue
+        }
+
+        const personalBody = interpolate(campaign.body || '', customer)
+
+        try {
+            const result = await sendPoliSms({
+                user: smsUser,
+                pass: smsPass,
+                message: personalBody,
+                contacts: [customer.phone],
+                header
+            })
+
+            if (result.success) {
+                await supabase
+                    .from('campaign_recipients')
+                    .update({
+                        status: 'sent',
+                        sent_at: sentAt,
+                        error_message: null
+                    })
+                    .eq('id', rec.id)
+                successCount++
+            } else {
+                console.error(`Poli SMS send error for ${customer.phone}:`, result.error)
+                await supabase
+                    .from('campaign_recipients')
+                    .update({
+                        status: 'failed',
+                        sent_at: sentAt,
+                        error_message: result.error || 'SMS gönderim hatası'
+                    })
+                    .eq('id', rec.id)
+                failedCount++
+            }
+        } catch (err: any) {
+            console.error(`Poli SMS connection error for ${customer.phone}:`, err)
+            await supabase
+                .from('campaign_recipients')
+                .update({
+                    status: 'failed',
+                    sent_at: sentAt,
+                    error_message: err.message || 'Bağlantı hatası'
+                })
+                .eq('id', rec.id)
+            failedCount++
+        }
+    }
+
+    // 5. Update campaign status
+    await supabase
+        .from('campaigns')
+        .update({
+            sent_count: successCount,
+            status: 'completed'
+        })
+        .eq('id', campaignId)
 
     revalidatePath('/marketing')
+
     return {
         success: true,
-        message: `${recipients.length} alıcıya SMS gönderildi`,
-        note: '⚠️ Gerçek SMS için Twilio/Netgsm API entegrasyonu gereklidir'
+        message: `${successCount} alıcıya SMS başarıyla gönderildi. ${failedCount} alıcıda başarısız olundu.`
     }
 }

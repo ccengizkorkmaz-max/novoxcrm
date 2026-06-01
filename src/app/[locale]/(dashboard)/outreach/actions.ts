@@ -303,7 +303,8 @@ export async function getSteps(workflowId: string) {
 
 export async function addStep(workflowId: string, step: {
     step_order: number; name?: string; action_type: string; config: any;
-    on_success?: string; on_failure?: string; on_no_answer?: string; on_busy?: string
+    on_success?: string; on_failure?: string; on_no_answer?: string; on_busy?: string;
+    next_step_id_on_success?: string; next_step_id_on_failure?: string;
 }) {
     const { supabase } = await getAuthContext()
     const { data, error } = await supabase.from('outreach_steps')
