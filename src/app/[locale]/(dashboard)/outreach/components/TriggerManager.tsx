@@ -90,7 +90,7 @@ export function TriggerManager({ workflows, tenantId, onClose }: TriggerManagerP
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between md:pr-36">
                 <div className="flex items-center gap-3">
                     <Button variant="ghost" size="sm" onClick={onClose}>
                         <ArrowLeft className="h-4 w-4" />

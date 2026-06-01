@@ -192,7 +192,7 @@ export function WorkflowBuilder({ segments, scripts, projects, profiles, tenantI
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 md:pr-36">
                 <Button variant="ghost" size="sm" onClick={onClose}><ArrowLeft className="h-4 w-4" /></Button>
                 <h1 className="text-xl font-bold">
                     {editingWorkflow ? 'Workflow Düzenle' : 'Yeni Workflow Oluştur'}

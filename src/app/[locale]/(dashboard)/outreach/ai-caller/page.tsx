@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Phone, PhoneCall, Plus, Trash2, Play, Loader2, CheckCircle, XCircle, Clock, ChevronDown, ChevronUp, Volume2, MessageSquareText } from 'lucide-react';
+import { Phone, PhoneCall, Plus, Trash2, Play, Loader2, CheckCircle, XCircle, Clock, ChevronDown, ChevronUp, Volume2, MessageSquareText, Mail } from 'lucide-react';
 
 interface CallRecord {
   id: string;
@@ -76,6 +76,12 @@ export default function AiCallerPage() {
   const [waMediaUrl, setWaMediaUrl] = useState('');
   const [waSending, setWaSending] = useState(false);
   const [waResult, setWaResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  // SMS States
+  const [smsPhone, setSmsPhone] = useState('');
+  const [smsMessage, setSmsMessage] = useState('');
+  const [smsSending, setSmsSending] = useState(false);
+  const [smsResult, setSmsResult] = useState<{ success: boolean; message: string } | null>(null);
 
   useEffect(() => {
     async function fetchVoices() {
@@ -165,6 +171,30 @@ export default function AiCallerPage() {
       setWaResult({ success: false, message: err instanceof Error ? err.message : 'Mesaj gönderilemedi' });
     } finally {
       setWaSending(false);
+    }
+  };
+
+  const sendSMS = async () => {
+    if (!smsPhone || !smsMessage) return;
+    setSmsSending(true);
+    setSmsResult(null);
+    try {
+      const res = await fetch('/api/sms/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: smsPhone,
+          message: smsMessage
+        })
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setSmsResult({ success: true, message: 'SMS başarıyla gönderildi!' });
+      setSmsMessage('');
+    } catch (err: unknown) {
+      setSmsResult({ success: false, message: err instanceof Error ? err.message : 'Mesaj gönderilemedi' });
+    } finally {
+      setSmsSending(false);
     }
   };
 
@@ -468,8 +498,9 @@ export default function AiCallerPage() {
         )}
       </div>
 
-      {/* WhatsApp Test Panel */}
-      <div className="rounded-xl border bg-card p-6 shadow-sm mt-8 border-green-500/20">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+        {/* WhatsApp Test Panel */}
+        <div className="rounded-xl border bg-card p-6 shadow-sm border-green-500/20">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-semibold text-lg flex items-center gap-2">
             <MessageSquareText className="h-5 w-5 text-green-500" /> WhatsApp Test
@@ -555,13 +586,60 @@ export default function AiCallerPage() {
           </button>
 
           {waResult && (
-            <div className={`mt-3 p-3 rounded-lg text-sm flex items-center gap-2 ${waResult.success ? 'bg-green-500/10 text-green-600' : 'bg-red-500/10 text-red-600'}`}>
+            <div className={`mt-3 p-3 rounded-lg text-sm flex items-center gap-2 ${waResult.success ? 'bg-green-500/10 text-green-600' : 'bg-red-500/10 text-red-400'}`}>
               {waResult.success ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
               {waResult.message}
             </div>
           )}
         </div>
       </div>
+
+      {/* SMS Test Panel */}
+      <div className="rounded-xl border bg-card p-6 shadow-sm border-blue-500/20">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-semibold text-lg flex items-center gap-2">
+            <Mail className="h-5 w-5 text-blue-500" /> SMS Test
+          </h2>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="text-xs font-medium text-slate-700 mb-1.5 block">Alıcı Telefonu</label>
+            <input
+              value={smsPhone}
+              onChange={(e) => setSmsPhone(e.target.value)}
+              placeholder="+905551234567"
+              className="w-full h-10 px-3 rounded-lg border bg-background text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-slate-700 mb-1.5 block">Mesaj İçeriği</label>
+            <textarea
+              value={smsMessage}
+              onChange={(e) => setSmsMessage(e.target.value)}
+              placeholder="Merhaba, NovoCRM'den deneme SMS mesajı..."
+              className="w-full h-24 p-3 rounded-lg border bg-background text-sm focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+            />
+          </div>
+
+          <button
+            onClick={sendSMS}
+            disabled={smsSending || !smsPhone || !smsMessage}
+            className="h-10 px-6 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium flex items-center justify-center w-full gap-2 disabled:opacity-50 transition"
+          >
+            {smsSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />} Gönder
+          </button>
+
+          {smsResult && (
+            <div className={`mt-3 p-3 rounded-lg text-sm flex items-center gap-2 ${smsResult.success ? 'bg-green-500/10 text-green-600' : 'bg-red-500/10 text-red-400'}`}>
+              {smsResult.success ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+              {smsResult.message}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
+  </div>
   );
 }

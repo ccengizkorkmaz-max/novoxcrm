@@ -188,7 +188,7 @@ export function WorkflowMonitor({ workflowId, workflowName, onClose }: WorkflowM
     return (
         <div className="space-y-4">
             {/* Header */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 md:pr-36">
                 <Button variant="ghost" size="sm" onClick={onClose}>
                     <ArrowLeft className="h-4 w-4" />
                 </Button>

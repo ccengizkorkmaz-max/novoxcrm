@@ -175,7 +175,7 @@ export function SegmentManager({ segments: initialSegments, projects, profiles, 
         return (
             <div className="space-y-4">
                 {/* Header */}
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 md:pr-36">
                     {!isStandalone && (
                         <Button variant="ghost" size="sm" onClick={onClose}>
                             <ArrowLeft className="h-4 w-4" />
@@ -295,7 +295,7 @@ export function SegmentManager({ segments: initialSegments, projects, profiles, 
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 md:pr-36">
                 <Button variant="ghost" size="sm" onClick={() => setView('list')}>
                     <ArrowLeft className="h-4 w-4" />
                 </Button>
