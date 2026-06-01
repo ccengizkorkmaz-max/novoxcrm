@@ -179,7 +179,7 @@ async function saveLeadToCRM(
         phone: phone,
         email: leadData.email || null,
         city: leadData.city || null,
-        source: 'FB Novo API',
+        source: 'Facebook Ads',
         contact_type: 'buyer',
         notes: `🎯 [NOVO API DİREKT] Facebook Lead Ads | Form: ${formId || '-'} | Ad: ${adId || '-'}`,
     })
