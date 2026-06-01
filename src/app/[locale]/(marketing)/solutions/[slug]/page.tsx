@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button"
 import { LeadCaptureModal } from "@/components/marketing/LeadCaptureModal"
 import { getBrandNameFromHost, getHostFromHeaders } from "@/lib/tenant/resolve-brand-from-host"
 import { getCanonicalBaseUrl } from "@/lib/seo-constants"
+import { GeoBlock } from "@/components/marketing/GeoBlock"
+import { generateGeoData } from "@/lib/seo-helpers"
 import Link from "next/link"
 import {
     Brain, Phone, MessageCircle, Target, Network, Workflow, Users, Sparkles,
@@ -92,6 +94,7 @@ export default async function AISolutionPage({ params }: { params: Promise<{ slu
         "offers": { "@type": "Offer", "price": "0", "priceCurrency": "TRY", "description": "Ücretsiz Demo" }
     }
 
+    const geoData = generateGeoData('solution', solution.slug, solution, brandName)
     const GradientIcon = ICON_MAP[solution.icon] || Brain
 
     return (
@@ -143,6 +146,14 @@ export default async function AISolutionPage({ params }: { params: Promise<{ slu
                     </div>
                 </div>
             </section>
+
+            {/* GEO Block */}
+            <GeoBlock
+                question={geoData.question}
+                answer={geoData.answer}
+                summary={geoData.summary}
+                highlights={geoData.highlights}
+            />
 
             {/* Features */}
             <section className="py-24">

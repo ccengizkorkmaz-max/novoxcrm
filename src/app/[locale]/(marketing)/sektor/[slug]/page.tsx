@@ -8,6 +8,8 @@ import { LeadCaptureModal } from "@/components/marketing/LeadCaptureModal"
 import { getBrandNameFromHost, getHostFromHeaders, adjustBranding } from "@/lib/tenant/resolve-brand-from-host"
 import { getCanonicalBaseUrl } from "@/lib/seo-constants"
 import { Building2, LineChart, FileText, Star, Lock, Link as LinkIcon, Map, FileCheck, Users, Building, Calculator, Network, CheckCircle2 } from "lucide-react"
+import { GeoBlock } from "@/components/marketing/GeoBlock"
+import { generateGeoData } from "@/lib/seo-helpers"
 import Link from "next/link"
 
 const ICON_MAP: Record<string, any> = {
@@ -82,6 +84,8 @@ export default async function SectorPage({ params }: { params: Promise<{ slug: s
         "offers": { "@type": "Offer", "price": "0", "priceCurrency": "TRY", "description": "Ücretsiz Demo" }
     }
 
+    const geoData = generateGeoData('sector', sector.slug, sector, brandName)
+
     return (
         <div className="bg-slate-950 min-h-screen pt-24 pb-20">
             <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
@@ -105,6 +109,14 @@ export default async function SectorPage({ params }: { params: Promise<{ slug: s
                     </Button>
                 </LeadCaptureModal>
             </section>
+
+            {/* GEO Block */}
+            <GeoBlock
+                question={geoData.question}
+                answer={geoData.answer}
+                summary={geoData.summary}
+                highlights={geoData.highlights}
+            />
 
             {/* Features */}
             <section className="py-20 border-t border-slate-900">

@@ -8,6 +8,8 @@ import { LeadCaptureModal } from "@/components/marketing/LeadCaptureModal"
 import { getBrandNameFromHost, getHostFromHeaders, adjustBranding } from "@/lib/tenant/resolve-brand-from-host"
 import { getCanonicalBaseUrl } from "@/lib/seo-constants"
 import { CheckCircle2, XCircle, AlertCircle, Trophy } from "lucide-react"
+import { GeoBlock } from "@/components/marketing/GeoBlock"
+import { generateGeoData } from "@/lib/seo-helpers"
 import Link from "next/link"
 
 export async function generateStaticParams() {
@@ -89,6 +91,8 @@ export default async function ComparisonPage({ params }: { params: Promise<{ slu
         "offers": { "@type": "Offer", "price": "0", "priceCurrency": "TRY", "description": "Ücretsiz Demo" }
     }
 
+    const geoData = generateGeoData('comparison', comp.slug, comp, brandName)
+
     function getIcon(val: string) {
         if (val.startsWith('✅') || val.startsWith('⭐')) return <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
         if (val.startsWith('❌')) return <XCircle size={16} className="text-red-400 shrink-0" />
@@ -124,6 +128,14 @@ export default async function ComparisonPage({ params }: { params: Promise<{ slu
                     </div>
                 </div>
             </section>
+
+            {/* GEO Block */}
+            <GeoBlock
+                question={geoData.question}
+                answer={geoData.answer}
+                summary={geoData.summary}
+                highlights={geoData.highlights}
+            />
 
             {/* Feature Comparison Table */}
             <section className="py-16 border-t border-slate-900">

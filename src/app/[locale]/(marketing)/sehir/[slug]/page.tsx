@@ -8,6 +8,8 @@ import { LeadCaptureModal } from "@/components/marketing/LeadCaptureModal"
 import { getBrandNameFromHost, getHostFromHeaders, getCityLocativeSuffix } from "@/lib/tenant/resolve-brand-from-host"
 import { getCanonicalBaseUrl } from "@/lib/seo-constants"
 import { CheckCircle2, MapPin, Building2, Users, TrendingUp, ArrowRight } from "lucide-react"
+import { GeoBlock } from "@/components/marketing/GeoBlock"
+import { generateGeoData } from "@/lib/seo-helpers"
 import Link from "next/link"
 
 export async function generateStaticParams() {
@@ -67,6 +69,8 @@ export default async function CityPage({ params }: { params: Promise<{ slug: str
         ]
     }
 
+    const geoData = generateGeoData('city', city.slug, city, brandName)
+
     const features = [
         { icon: Building2, title: "Proje Bazlı Satış Takibi", desc: `${getCityLocativeSuffix(city.name)} tüm konut projelerinizi tek panelden yönetin. Daire bazlı stok, fiyat ve satış durumu anlık güncellensin.` },
         { icon: Users, title: "Broker & Acente Yönetimi", desc: `${city.name} ve çevresindeki broker ağınızı güvenle sisteme dahil edin. Komisyon ve hakediş süreçlerini otomatikleştirin.` },
@@ -102,6 +106,14 @@ export default async function CityPage({ params }: { params: Promise<{ slug: str
                     </Button>
                 </LeadCaptureModal>
             </section>
+
+            {/* GEO Block */}
+            <GeoBlock
+                question={geoData.question}
+                answer={geoData.answer}
+                summary={geoData.summary}
+                highlights={geoData.highlights}
+            />
 
             {/* Features */}
             <section className="py-20 border-t border-slate-900">

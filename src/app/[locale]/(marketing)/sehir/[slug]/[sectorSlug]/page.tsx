@@ -15,6 +15,7 @@ import {
     Briefcase, BarChart3, Shuffle
 } from "lucide-react"
 import Link from "next/link"
+import { GeoBlock } from "@/components/marketing/GeoBlock"
 
 const ICON_MAP: Record<string, any> = {
     Building2, LineChart, FileText, Star, Lock, Link: LinkIcon, Map, FileCheck, Users, 
@@ -110,6 +111,15 @@ export default async function CitySectorPage({ params }: { params: Promise<{ slu
     // Select major cities for regional context linking
     const majorCities = turkishCities.filter(c => c.slug !== city.slug && ['istanbul', 'ankara', 'izmir', 'antalya', 'bursa'].includes(c.slug))
 
+    const geoQuestion = `${city.name} bölgesinde ${sector.title} süreçleri nasıl yönetilmelidir?`
+    const geoAnswer = `${city.name} ve çevresinde yer alan konut ve ticari gayrimenkul projelerinde ${sector.title} süreçlerini dijitalleştirmek, satış hızını ve müşteri memnuniyetini artırır. ${brandName}, bu lokasyona özel interaktif daire stok lejantı, broker yönetim portalı ve yapay zeka destekli müşteri takip otomasyonu sunar.`
+    const geoSummary = `${city.name} pazar dinamiklerine ve ${sector.title} gereksinimlerine tam uyumlu modern bulut altyapısı.`
+    const geoHighlights = [
+        `${city.name} ve çevre illere özel interaktif daire lejantı`,
+        'Bölgesel acente ve broker satış portalı entegrasyonu',
+        'Otomatik müşteri atama ve entegre WhatsApp takip motoru'
+    ]
+
     return (
         <div className="bg-slate-950 min-h-screen pt-24 pb-20 text-slate-100 selection:bg-blue-600/30 selection:text-white">
             <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
@@ -168,6 +178,14 @@ export default async function CitySectorPage({ params }: { params: Promise<{ slu
                     </div>
                 </div>
             </section>
+
+            {/* GEO Block */}
+            <GeoBlock
+                question={geoQuestion}
+                answer={geoAnswer}
+                summary={geoSummary}
+                highlights={geoHighlights}
+            />
 
             {/* Sektörel Modül Özellikleri */}
             <section className="py-20 border-b border-slate-900 relative">

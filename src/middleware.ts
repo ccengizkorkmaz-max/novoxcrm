@@ -36,6 +36,7 @@ function isCacheableMarketingPath(pathname: string): boolean {
     // Prefix match public marketing sections
     if (
         pathWithoutLocale.startsWith('/solutions') ||
+        pathWithoutLocale.startsWith('/cozum') ||
         pathWithoutLocale.startsWith('/wiki') ||
         pathWithoutLocale.startsWith('/ebooks') ||
         pathWithoutLocale.startsWith('/p/') ||
