@@ -145,6 +145,18 @@ export async function getAICallsForReview(limit = 50): Promise<CallForReview[]> 
                 project_name: act.projects?.name || 'Manuel Arama',
                 workflow_name: 'Manuel CRM Araması'
             }
+        }).filter((log: any) => {
+            const transcript = (log.call_transcript || '').trim();
+            const recording = (log.call_recording_url || '').trim();
+            if (!transcript || !recording) return false;
+            
+            const outcome = (log.call_outcome || '').toLowerCase();
+            if (outcome === 'busy' || outcome === 'no_answer') return false;
+            
+            if (log.call_duration_seconds > 0 && log.call_duration_seconds < 10) return false;
+            if (transcript.length < 15) return false;
+            
+            return true;
         })
     }
 
@@ -175,7 +187,19 @@ export async function getAICallsForReview(limit = 50): Promise<CallForReview[]> 
         project_name: log.outreach_executions?.sales?.projects?.name || 'Genel Proje',
         workflow_name: log.outreach_executions?.outreach_workflows?.name || 'Bilinmeyen Kampanya',
         existing_feedback: feedbackMap.get(log.id) || null
-    }))
+    })).filter((log: any) => {
+        const transcript = (log.call_transcript || '').trim();
+        const recording = (log.call_recording_url || '').trim();
+        if (!transcript || !recording) return false;
+        
+        const outcome = (log.call_outcome || '').toLowerCase();
+        if (outcome === 'busy' || outcome === 'no_answer') return false;
+        
+        if (log.call_duration_seconds > 0 && log.call_duration_seconds < 10) return false;
+        if (transcript.length < 15) return false;
+        
+        return true;
+    })
 
     // Combine and sort by date descending
     const allCalls = [...outreachMapped, ...manualLogs.map(m => ({ ...m, existing_feedback: feedbackMap.get(m.id) || null }))]
