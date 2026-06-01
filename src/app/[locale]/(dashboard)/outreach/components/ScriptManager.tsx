@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
-import { ArrowLeft, Plus, Bot, Trash2, Edit3, Save, X } from 'lucide-react'
+import { ArrowLeft, Plus, Bot, Trash2, Edit3, Save, X, Copy } from 'lucide-react'
 import { createScript, updateScript, deleteScript } from '../actions'
 import { DEFAULT_OUTREACH_PROMPTS } from '@/lib/vapi'
 
@@ -32,6 +32,14 @@ export function ScriptManager({ scripts: initialScripts, tenantId, onClose }: {
         setEditing(s); setIsNew(false)
         setName(s.name); setDescription(s.description || '')
         setPrompt(s.prompt); setFirstMessage(s.first_message || '')
+    }
+
+    const startCopy = (s: any) => {
+        setIsNew(true); setEditing(null)
+        setName(`${s.name} (Kopya)`)
+        setDescription(s.description || '')
+        setPrompt(s.prompt)
+        setFirstMessage(s.first_message || '')
     }
 
     const handleSave = async () => {
@@ -126,12 +134,15 @@ export function ScriptManager({ scripts: initialScripts, tenantId, onClose }: {
                                     )}
                                 </div>
                                 <div className="flex gap-1 ml-2">
-                                    <Button variant="ghost" size="sm" onClick={() => startEdit(s)} className="h-7 w-7 p-0">
-                                        <Edit3 className="h-3 w-3" />
+                                    <Button variant="ghost" size="sm" onClick={() => startCopy(s)} className="h-7 w-7 p-0 text-muted-foreground hover:text-violet-400" title="Kopyala">
+                                        <Copy className="h-3 w-3" />
+                                    </Button>
+                                    <Button variant="ghost" size="sm" onClick={() => startEdit(s)} className="h-7 w-7 p-0 text-muted-foreground hover:text-blue-400" title="Düzenle">
+                                        <Edit3 className="h-3.5 w-3.5" />
                                     </Button>
                                     <Button variant="ghost" size="sm" onClick={() => handleDelete(s.id)}
-                                        className="h-7 w-7 p-0 text-red-400 hover:text-red-300">
-                                        <Trash2 className="h-3 w-3" />
+                                        className="h-7 w-7 p-0 text-red-400 hover:text-red-300" title="Sil">
+                                        <Trash2 className="h-3.5 w-3.5" />
                                     </Button>
                                 </div>
                             </div>

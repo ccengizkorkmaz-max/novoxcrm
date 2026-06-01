@@ -51,9 +51,10 @@ const TEMPLATE_CATEGORIES: Record<string, string> = {
 
 export function MarketingDashboard({ campaigns, templates, customers }: Props) {
     const router = useRouter()
-    const [activeTab, setActiveTab] = useState<'campaigns' | 'templates' | 'editor'>('campaigns')
+    const [activeTab, setActiveTab] = useState<'campaigns' | 'templates' | 'sms-templates' | 'editor'>('campaigns')
     const [showNewCampaign, setShowNewCampaign] = useState(false)
     const [showNewTemplate, setShowNewTemplate] = useState(false)
+    const [showNewSmsTemplate, setShowNewSmsTemplate] = useState(false)
 
     // Campaign form
     const [cName, setCName] = useState('')
@@ -68,6 +69,14 @@ export function MarketingDashboard({ campaigns, templates, customers }: Props) {
     const [tCategory, setTCategory] = useState('general')
     const [tSubject, setTSubject] = useState('')
     const [tBody, setTBody] = useState('')
+
+    // SMS Template form
+    const [smsTName, setSmsTName] = useState('')
+    const [smsTBody, setSmsTBody] = useState('')
+
+    // Filter templates
+    const emailTemplates = templates.filter(t => t.category !== 'sms')
+    const smsTemplates = templates.filter(t => t.category === 'sms')
 
     // Stats
     const totalSent = campaigns.reduce((s, c) => s + (c.sent_count || 0), 0)
@@ -116,6 +125,23 @@ export function MarketingDashboard({ campaigns, templates, customers }: Props) {
             toast.success('Şablon oluşturuldu')
             setShowNewTemplate(false)
             setTName(''); setTSubject(''); setTBody('')
+            router.refresh()
+        } catch (err: any) { toast.error(err.message) }
+        finally { setSaving(false) }
+    }
+
+    async function handleCreateSmsTemplate() {
+        setSaving(true)
+        try {
+            const fd = new FormData()
+            fd.set('name', smsTName)
+            fd.set('category', 'sms')
+            fd.set('subject', 'SMS')
+            fd.set('body', smsTBody)
+            await createEmailTemplate(fd)
+            toast.success('SMS Şablonu oluşturuldu')
+            setShowNewSmsTemplate(false)
+            setSmsTName(''); setSmsTBody('')
             router.refresh()
         } catch (err: any) { toast.error(err.message) }
         finally { setSaving(false) }
@@ -182,6 +208,9 @@ export function MarketingDashboard({ campaigns, templates, customers }: Props) {
                 <button onClick={() => setActiveTab('templates')} className={cn("px-4 py-2 rounded-lg text-xs font-bold transition-all", activeTab === 'templates' ? "bg-slate-900 text-white" : "bg-white text-slate-500 border hover:bg-slate-50")}>
                     E-posta Şablonları
                 </button>
+                <button onClick={() => setActiveTab('sms-templates')} className={cn("px-4 py-2 rounded-lg text-xs font-bold transition-all", activeTab === 'sms-templates' ? "bg-slate-900 text-white" : "bg-white text-slate-500 border hover:bg-slate-50")}>
+                    SMS Şablonları
+                </button>
                 <div className="flex-1" />
                 {activeTab === 'campaigns' && (
                     <Button onClick={() => setShowNewCampaign(true)} className="text-xs gap-1.5 bg-blue-600 hover:bg-blue-700">
@@ -191,6 +220,11 @@ export function MarketingDashboard({ campaigns, templates, customers }: Props) {
                 {activeTab === 'templates' && (
                     <Button onClick={() => setShowNewTemplate(true)} className="text-xs gap-1.5 bg-amber-600 hover:bg-amber-700">
                         <Plus className="h-4 w-4" /> Yeni Şablon
+                    </Button>
+                )}
+                {activeTab === 'sms-templates' && (
+                    <Button onClick={() => setShowNewSmsTemplate(true)} className="text-xs gap-1.5 bg-emerald-600 hover:bg-emerald-700">
+                        <Plus className="h-4 w-4" /> Yeni SMS Şablonu
                     </Button>
                 )}
             </div>
@@ -274,7 +308,7 @@ export function MarketingDashboard({ campaigns, templates, customers }: Props) {
             {/* Templates Tab */}
             {activeTab === 'templates' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                    {templates.length > 0 ? templates.map(tpl => (
+                    {emailTemplates.length > 0 ? emailTemplates.map(tpl => (
                         <Card key={tpl.id} className="border shadow-sm hover:shadow-md transition-all">
                             <CardHeader className="pb-2">
                                 <div className="flex items-center justify-between">
@@ -312,6 +346,38 @@ export function MarketingDashboard({ campaigns, templates, customers }: Props) {
                 </div>
             )}
 
+            {/* SMS Templates Tab */}
+            {activeTab === 'sms-templates' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                    {smsTemplates.length > 0 ? smsTemplates.map(tpl => (
+                        <Card key={tpl.id} className="border shadow-sm hover:shadow-md transition-all">
+                            <CardHeader className="pb-2">
+                                <div className="flex items-center justify-between">
+                                    <CardTitle className="text-xs font-bold">{tpl.name}</CardTitle>
+                                    <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500" onClick={async () => {
+                                        if (confirm('Şablonu silmek istediğinize emin misiniz?')) {
+                                            await deleteEmailTemplate(tpl.id); toast.success('Silindi'); router.refresh()
+                                        }
+                                    }}>
+                                        <Trash2 className="h-3 w-3" />
+                                    </Button>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="space-y-2">
+                                <Badge variant="outline" className="text-[9px] border-emerald-200 text-emerald-700 bg-emerald-50 font-medium">SMS Şablonu</Badge>
+                                <p className="text-[11px] text-muted-foreground line-clamp-3 whitespace-pre-wrap">{tpl.body}</p>
+                            </CardContent>
+                        </Card>
+                    )) : (
+                        <div className="col-span-full text-center py-16 text-muted-foreground">
+                            <MessageSquare className="h-12 w-12 mx-auto mb-3 text-slate-300" />
+                            <p className="font-medium">Henüz SMS şablonu yok</p>
+                            <p className="text-xs mt-1">Yeni bir SMS şablonu oluşturarak başlayın.</p>
+                        </div>
+                    )}
+                </div>
+            )}
+
             {/* New Campaign Dialog */}
             <Dialog open={showNewCampaign} onOpenChange={setShowNewCampaign}>
                 <DialogContent className="max-w-lg">
@@ -341,12 +407,54 @@ export function MarketingDashboard({ campaigns, templates, customers }: Props) {
                                 </select>
                             </div>
                         </div>
+
                         {cType === 'email' && (
+                            <>
+                                <div className="grid gap-2">
+                                    <Label className="text-xs font-bold">E-posta Şablonu Seç (Opsiyonel)</Label>
+                                    <select 
+                                        onChange={e => {
+                                            const selectedTpl = emailTemplates.find(t => t.id === e.target.value)
+                                            if (selectedTpl) {
+                                                setCSubject(selectedTpl.subject || '')
+                                                setCBody(selectedTpl.body || '')
+                                            }
+                                        }}
+                                        className="w-full h-10 px-3 rounded-lg border text-sm bg-white mt-1"
+                                    >
+                                        <option value="">-- Şablon Seç --</option>
+                                        {emailTemplates.map(t => (
+                                            <option key={t.id} value={t.id}>{t.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label className="text-xs font-bold">E-posta Konusu</Label>
+                                    <Input value={cSubject} onChange={e => setCSubject(e.target.value)} placeholder="Konu satırı..." />
+                                </div>
+                            </>
+                        )}
+
+                        {cType === 'sms' && (
                             <div className="grid gap-2">
-                                <Label className="text-xs font-bold">E-posta Konusu</Label>
-                                <Input value={cSubject} onChange={e => setCSubject(e.target.value)} placeholder="Konu satırı..." />
+                                <Label className="text-xs font-bold">SMS Şablonu Seç (Opsiyonel)</Label>
+                                <select 
+                                    onChange={e => {
+                                        const selectedTpl = smsTemplates.find(t => t.id === e.target.value)
+                                        if (selectedTpl) {
+                                            setCBody(selectedTpl.body || '')
+                                        }
+                                    }}
+                                    className="w-full h-10 px-3 rounded-lg border text-sm bg-white mt-1"
+                                >
+                                    <option value="">-- Şablon Seç --</option>
+                                    {smsTemplates.map(t => (
+                                        <option key={t.id} value={t.id}>{t.name}</option>
+                                    ))}
+                                </select>
                             </div>
                         )}
+
                         <div className="grid gap-2">
                             <Label className="text-xs font-bold">{cType === 'sms' ? 'SMS Metni' : 'İçerik'}</Label>
                             <textarea value={cBody} onChange={e => setCBody(e.target.value)} rows={5}
@@ -405,6 +513,39 @@ export function MarketingDashboard({ campaigns, templates, customers }: Props) {
                     <DialogFooter>
                         <Button variant="ghost" onClick={() => setShowNewTemplate(false)}>İptal</Button>
                         <Button onClick={handleCreateTemplate} disabled={saving || !tName || !tSubject || !tBody} className="bg-amber-600 hover:bg-amber-700">
+                            {saving ? 'Kaydediliyor...' : 'Şablon Oluştur'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* New SMS Template Dialog */}
+            <Dialog open={showNewSmsTemplate} onOpenChange={setShowNewSmsTemplate}>
+                <DialogContent className="max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>Yeni SMS Şablonu</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid gap-2">
+                            <Label className="text-xs font-bold">Şablon Adı *</Label>
+                            <Input value={smsTName} onChange={e => setSmsTName(e.target.value)} placeholder="Şablon adı, örn: Kampanya Hatırlatma" />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label className="text-xs font-bold">SMS Mesaj İçeriği *</Label>
+                            <textarea value={smsTBody} onChange={e => setSmsTBody(e.target.value)} rows={6}
+                                className="w-full px-3 py-2 rounded-lg border text-sm resize-none"
+                                placeholder="SMS metni... {{musteri_adi}} gibi değişkenler kullanabilirsiniz."
+                            />
+                            <p className="text-[10px] text-muted-foreground">{smsTBody.length} karakter (her 160 karakter 1 SMS boyutu olarak ücretlendirilir)</p>
+                        </div>
+                        <div className="p-3 rounded-xl bg-blue-50/50 border border-blue-200/50 text-[10px] text-blue-700 space-y-1">
+                            <p className="font-bold">💡 Kullanılabilir Değişkenler:</p>
+                            <p>{'{{musteri_adi}}'} • {'{{telefon}}'} • {'{{email}}'} • {'{{portfoy_baslik}}'} • {'{{fiyat}}'} • {'{{adres}}'}</p>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="ghost" onClick={() => setShowNewSmsTemplate(false)}>İptal</Button>
+                        <Button onClick={handleCreateSmsTemplate} disabled={saving || !smsTName || !smsTBody} className="bg-emerald-600 hover:bg-emerald-700 text-white">
                             {saving ? 'Kaydediliyor...' : 'Şablon Oluştur'}
                         </Button>
                     </DialogFooter>
