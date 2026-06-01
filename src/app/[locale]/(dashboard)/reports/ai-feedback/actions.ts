@@ -105,11 +105,20 @@ export async function getAICallsForReview(limit = 50): Promise<CallForReview[]> 
             let summaryPart = transcriptMarker > 0 ? desc.substring(0, transcriptMarker).trim() : desc
             let transcriptPart = transcriptMarker > 0 ? desc.substring(transcriptMarker + '📝 Transkript:'.length).trim() : ''
             
-            const recordingMatch = desc.match(/\[RECORDING\]:\s*(https?:\/\/[^\s]+)/)
+            const recordingMatch = desc.match(/(?:\[RECORDING\]:|🎙️ Kayıt:)\s*(https?:\/\/[^\s]+)/)
             const recUrl = recordingMatch ? recordingMatch[1] : ''
+
+            const callIdMatch = desc.match(/\[Call\s+ID:\s*([^\]]+)\]/i)
+            const realCallId = callIdMatch ? callIdMatch[1].trim() : `manual_${act.id}`
             
-            summaryPart = summaryPart.replace(/\[RECORDING\]:\s*https?:\/\/[^\s]+/g, '').trim()
-            transcriptPart = transcriptPart.replace(/\[RECORDING\]:\s*https?:\/\/[^\s]+/g, '').trim()
+            summaryPart = summaryPart
+                .replace(/(?:\[RECORDING\]:|🎙️ Kayıt:)\s*https?:\/\/[^\s]+/g, '')
+                .replace(/\[Call\s+ID:\s*[^\]]+\]/gi, '')
+                .trim()
+            transcriptPart = transcriptPart
+                .replace(/(?:\[RECORDING\]:|🎙️ Kayıt:)\s*https?:\/\/[^\s]+/g, '')
+                .replace(/\[Call\s+ID:\s*[^\]]+\]/gi, '')
+                .trim()
 
             // Try to extract duration if present in summary like (0dk 35sn)
             let duration = 0;
@@ -120,7 +129,7 @@ export async function getAICallsForReview(limit = 50): Promise<CallForReview[]> 
 
             return {
                 id: act.id,
-                call_id: `manual_${act.id}`,
+                call_id: realCallId,
                 channel: 'ai_call',
                 status: act.status === 'Completed' ? 'answered' : 'hung_up',
                 call_duration_seconds: duration,
@@ -130,7 +139,7 @@ export async function getAICallsForReview(limit = 50): Promise<CallForReview[]> 
                 call_recording_url: recUrl,
                 cost_amount: 0,
                 executed_at: act.created_at,
-                external_id: `manual_${act.id}`,
+                external_id: realCallId,
                 customer_name: act.customers?.full_name || 'Bilinmiyor',
                 customer_phone: act.customers?.phone || '',
                 project_name: act.projects?.name || 'Manuel Arama',

@@ -198,7 +198,7 @@ export function ActivityCard({ activity, customers, profiles, projects, onComple
                         })()}
                         {activity.description && (() => {
                             const desc = cleanText(activity.description)
-                            const displayDesc = desc.replace(/\[RECORDING\]:\s*https?:\/\/[^\s]+/g, '').trim()
+                            const displayDesc = desc.replace(/(?:\[RECORDING\]:|🎙️ Kayıt:)\s*https?:\/\/[^\s]+/g, '').trim()
                             return (
                                 <p className="text-xs text-slate-600 leading-snug line-clamp-2 mb-1">
                                     {displayDesc}
@@ -206,7 +206,7 @@ export function ActivityCard({ activity, customers, profiles, projects, onComple
                             )
                         })()}
                         {(() => {
-                            const recordingMatch = activity.description?.match(/\[RECORDING\]:\s*(https?:\/\/[^\s]+)/)
+                            const recordingMatch = activity.description?.match(/(?:\[RECORDING\]:|🎙️ Kayıt:)\s*(https?:\/\/[^\s]+)/)
                             const recUrl = recordingMatch ? recordingMatch[1] : activity.call_recording_url
                             
                             if (!recUrl) return null;
@@ -301,9 +301,9 @@ export function ActivityCard({ activity, customers, profiles, projects, onComple
                             let transcriptPart = transcriptMarker > 0 ? desc.substring(transcriptMarker + '📝 Transkript:'.length).trim() : null
 
                             // Remove recording tag
-                            summaryPart = summaryPart.replace(/\[RECORDING\]:\s*https?:\/\/[^\s]+/g, '').trim()
+                            summaryPart = summaryPart.replace(/(?:\[RECORDING\]:|🎙️ Kayıt:)\s*https?:\/\/[^\s]+/g, '').trim()
                             if (transcriptPart) {
-                                transcriptPart = transcriptPart.replace(/\[RECORDING\]:\s*https?:\/\/[^\s]+/g, '').trim()
+                                transcriptPart = transcriptPart.replace(/(?:\[RECORDING\]:|🎙️ Kayıt:)\s*https?:\/\/[^\s]+/g, '').trim()
                             }
 
                             return (
@@ -341,7 +341,7 @@ export function ActivityCard({ activity, customers, profiles, projects, onComple
                         )}
 
                         {(() => {
-                            const recordingMatch = activity.description?.match(/\[RECORDING\]:\s*(https?:\/\/[^\s]+)/)
+                            const recordingMatch = activity.description?.match(/(?:\[RECORDING\]:|🎙️ Kayıt:)\s*(https?:\/\/[^\s]+)/)
                             const recUrl = recordingMatch ? recordingMatch[1] : activity.call_recording_url
                             
                             if (!recUrl) return null;
