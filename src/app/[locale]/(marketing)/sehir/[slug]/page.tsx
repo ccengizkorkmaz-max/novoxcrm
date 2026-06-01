@@ -1,9 +1,11 @@
+export const dynamic = 'force-dynamic'
+
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { turkishCities } from "@/data/cities-data"
 import { Button } from "@/components/ui/button"
 import { LeadCaptureModal } from "@/components/marketing/LeadCaptureModal"
-import { getBrandNameFromHost, getHostFromHeaders } from "@/lib/tenant/resolve-brand-from-host"
+import { getBrandNameFromHost, getHostFromHeaders, getCityLocativeSuffix } from "@/lib/tenant/resolve-brand-from-host"
 import { getCanonicalBaseUrl } from "@/lib/seo-constants"
 import { CheckCircle2, MapPin, Building2, Users, TrendingUp, ArrowRight } from "lucide-react"
 import Link from "next/link"
@@ -18,15 +20,17 @@ export async function generateStaticParams() {
 export async function generateMetadata(
     { params }: { params: Promise<{ slug: string; locale: string }> }
 ): Promise<Metadata> {
-    const { slug } = await params
+    const { slug, locale } = await params
     const city = turkishCities.find(c => c.slug === slug)
     if (!city) return {}
     const host = await getHostFromHeaders()
     const brandName = await getBrandNameFromHost(host)
+    const locative = getCityLocativeSuffix(city.name)
     return {
         title: `${city.name} Gayrimenkul CRM Yazılımı | İnşaat Firmaları İçin - ${brandName}`,
-        description: `${city.name} inşaat firmaları ve gayrimenkul geliştiricileri için CRM yazılımı. ${city.population} nüfuslu ${city.name} pazarında satış süreçlerinizi ${brandName} ile dijitalleştirin.`,
+        description: `${locative} inşaat firmaları ve gayrimenkul geliştiricileri için CRM yazılımı. ${city.population} nüfuslu ${city.name} pazarında satış süreçlerinizi ${brandName} ile dijitalleştirin.`,
         keywords: `${city.name} gayrimenkul CRM, ${city.name} inşaat CRM, ${city.name} konut satış yazılımı, ${city.name} CRM`,
+        robots: locale === 'en' ? { index: false, follow: false } : undefined,
     }
 }
 
@@ -64,7 +68,7 @@ export default async function CityPage({ params }: { params: Promise<{ slug: str
     }
 
     const features = [
-        { icon: Building2, title: "Proje Bazlı Satış Takibi", desc: `${city.name}'deki tüm konut projelerinizi tek panelden yönetin. Daire bazlı stok, fiyat ve satış durumu anlık güncellensin.` },
+        { icon: Building2, title: "Proje Bazlı Satış Takibi", desc: `${getCityLocativeSuffix(city.name)} tüm konut projelerinizi tek panelden yönetin. Daire bazlı stok, fiyat ve satış durumu anlık güncellensin.` },
         { icon: Users, title: "Broker & Acente Yönetimi", desc: `${city.name} ve çevresindeki broker ağınızı güvenle sisteme dahil edin. Komisyon ve hakediş süreçlerini otomatikleştirin.` },
         { icon: TrendingUp, title: "Performans Analizi", desc: `${city.name} satış ofisinizin performansını anlık dashboard'larla izleyin. Danışman bazlı KPI takibi yapın.` },
         { icon: MapPin, title: "Lokasyon Bazlı Müşteri Takibi", desc: `${city.name} ve ${city.region} bölgesinden gelen müşteri adaylarını otomatik segmentleyin ve önceliklendirin.` },

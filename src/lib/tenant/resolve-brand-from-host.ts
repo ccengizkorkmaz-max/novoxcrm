@@ -85,3 +85,94 @@ export async function getBrandNameFromHost(hostname: string): Promise<string> {
     // Default for all other domains
     return 'Novo CRM'
 }
+
+/**
+ * Dynamically replace brand names in text content to ensure strict brand separation.
+ * If brand is "Novo CRM", replaces "Oikos CRM" -> "Novo CRM", "oikoscrm" -> "novoxcrm", etc.
+ * If brand is "Oikos CRM", replaces "Novo CRM" -> "Oikos CRM", "novoxcrm" -> "oikoscrm", etc.
+ */
+export function adjustBranding(text: string, brandName: string): string {
+    if (!text) return text
+    if (brandName === 'Novo CRM') {
+        return text
+            .replaceAll('Oikos CRM', 'Novo CRM')
+            .replaceAll('oikos-crm', 'novo-crm')
+            .replaceAll('oikoscrm.com', 'novoxcrm.com')
+            .replaceAll('oikoscrm', 'novoxcrm')
+            .replaceAll('Oikos\'', 'Novo\'')
+            .replaceAll('Oikos', 'Novo')
+    } else {
+        return text
+            .replaceAll('NovoxCRM', 'Oikos CRM')
+            .replaceAll('Novo CRM', 'Oikos CRM')
+            .replaceAll('novo-crm', 'oikos-crm')
+            .replaceAll('novoxcrm.com', 'oikoscrm.com')
+            .replaceAll('novoxcrm', 'oikoscrm')
+            .replaceAll('Novo\'', 'Oikos\'')
+            .replaceAll('Novo', 'Oikos')
+    }
+}
+
+/**
+ * Resolves the correct Turkish locative suffix (-deki / -daki / -teki / -taki) for a city name.
+ * e.g., "İstanbul" -> "İstanbul'daki", "Muş" -> "Muş'taki", "İzmir" -> "İzmir'deki"
+ */
+export function getCityLocativeSuffix(cityName: string): string {
+    if (!cityName) return '';
+    const name = cityName.trim();
+    const lower = name.toLowerCase();
+    
+    // Find the last vowel
+    const vowels = ['a', 'ı', 'o', 'u', 'e', 'i', 'ö', 'ü'];
+    let lastVowel = 'e'; // fallback
+    for (let i = lower.length - 1; i >= 0; i--) {
+        if (vowels.includes(lower[i])) {
+            lastVowel = lower[i];
+            break;
+        }
+    }
+    
+    const isKalin = ['a', 'ı', 'o', 'u'].includes(lastVowel);
+    
+    // Find the last character
+    const lastChar = lower[lower.length - 1];
+    const voicelessConsonants = ['ç', 'f', 'h', 'k', 'p', 's', 'ş', 't'];
+    const startsWithT = voicelessConsonants.includes(lastChar);
+    
+    const prefix = startsWithT ? 't' : 'd';
+    const vowel = isKalin ? 'a' : 'e';
+    
+    return `${name}'${prefix}${vowel}ki`;
+}
+
+/**
+ * Resolves the correct Turkish locative suffix (-de / -da / -te / -ta) for a city name.
+ * e.g., "İstanbul" -> "İstanbul'da", "Muş" -> "Muş'ta", "İzmir" -> "İzmir'de"
+ */
+export function getCityLocativeDeSuffix(cityName: string): string {
+    if (!cityName) return '';
+    const name = cityName.trim();
+    const lower = name.toLowerCase();
+    
+    // Find the last vowel
+    const vowels = ['a', 'ı', 'o', 'u', 'e', 'i', 'ö', 'ü'];
+    let lastVowel = 'e'; // fallback
+    for (let i = lower.length - 1; i >= 0; i--) {
+        if (vowels.includes(lower[i])) {
+            lastVowel = lower[i];
+            break;
+        }
+    }
+    
+    const isKalin = ['a', 'ı', 'o', 'u'].includes(lastVowel);
+    
+    // Find the last character
+    const lastChar = lower[lower.length - 1];
+    const voicelessConsonants = ['ç', 'f', 'h', 'k', 'p', 's', 'ş', 't'];
+    const startsWithT = voicelessConsonants.includes(lastChar);
+    
+    const prefix = startsWithT ? 't' : 'd';
+    const vowel = isKalin ? 'a' : 'e';
+    
+    return `${name}'${prefix}${vowel}`;
+}

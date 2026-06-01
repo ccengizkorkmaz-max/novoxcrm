@@ -1,9 +1,11 @@
+export const dynamic = 'force-dynamic'
+
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { sectors } from "@/data/sectors-data"
 import { Button } from "@/components/ui/button"
 import { LeadCaptureModal } from "@/components/marketing/LeadCaptureModal"
-import { getBrandNameFromHost, getHostFromHeaders } from "@/lib/tenant/resolve-brand-from-host"
+import { getBrandNameFromHost, getHostFromHeaders, adjustBranding } from "@/lib/tenant/resolve-brand-from-host"
 import { getCanonicalBaseUrl } from "@/lib/seo-constants"
 import { Building2, LineChart, FileText, Star, Lock, Link as LinkIcon, Map, FileCheck, Users, Building, Calculator, Network, CheckCircle2 } from "lucide-react"
 import Link from "next/link"
@@ -22,26 +24,40 @@ export async function generateStaticParams() {
 export async function generateMetadata(
     { params }: { params: Promise<{ slug: string; locale: string }> }
 ): Promise<Metadata> {
-    const { slug } = await params
+    const { slug, locale } = await params
     const sector = sectors.find(c => c.slug === slug)
     if (!sector) return {}
     const host = await getHostFromHeaders()
     const brandName = await getBrandNameFromHost(host)
     return {
-        title: sector.metaTitle.replace('NovoxCRM', brandName).replace('Oikos CRM', brandName),
-        description: sector.metaDescription,
+        title: adjustBranding(sector.metaTitle, brandName),
+        description: adjustBranding(sector.metaDescription, brandName),
         keywords: `${sector.title} crm, gayrimenkul crm, inşaat crm`,
+        robots: locale === 'en' ? { index: false, follow: false } : undefined,
     }
 }
 
 export default async function SectorPage({ params }: { params: Promise<{ slug: string; locale: string }> }) {
     const { slug, locale } = await params
-    const sector = sectors.find(c => c.slug === slug)
-    if (!sector) notFound()
+    const rawSector = sectors.find(c => c.slug === slug)
+    if (!rawSector) notFound()
 
     const host = await getHostFromHeaders()
     const brandName = await getBrandNameFromHost(host)
     const baseUrl = getCanonicalBaseUrl(host)
+
+    const sector = {
+        ...rawSector,
+        heroHeadline: adjustBranding(rawSector.heroHeadline, brandName),
+        heroSubheadline: adjustBranding(rawSector.heroSubheadline, brandName),
+        metaDescription: adjustBranding(rawSector.metaDescription, brandName),
+        features: rawSector.features.map(f => ({
+            ...f,
+            title: adjustBranding(f.title, brandName),
+            description: adjustBranding(f.description, brandName),
+        })),
+        benefits: rawSector.benefits.map(b => adjustBranding(b, brandName))
+    }
 
     const breadcrumbSchema = {
         "@context": "https://schema.org",

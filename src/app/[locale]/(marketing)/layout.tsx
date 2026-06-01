@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import type { Metadata } from 'next'
 import { Footer } from '@/components/marketing/Footer'
 import { Navbar } from '@/components/marketing/Navbar'
@@ -5,7 +7,10 @@ import { getBrandNameFromHost, getHostFromHeaders } from '@/lib/tenant/resolve-b
 import { BrandProvider } from '@/components/providers/BrandProvider'
 import { getCanonicalBaseUrl } from '@/lib/seo-constants'
 
-export async function generateMetadata(): Promise<Metadata> {
+export async function generateMetadata(
+    props: { params: Promise<{ locale: string }> }
+): Promise<Metadata> {
+    const { locale } = await props.params
     const host = await getHostFromHeaders()
     const brandName = await getBrandNameFromHost(host)
     // Each domain is self-canonical for independent SEO indexing
@@ -26,6 +31,7 @@ export async function generateMetadata(): Promise<Metadata> {
                 'en': '/en',
             },
         },
+        robots: locale === 'en' ? { index: false, follow: false } : undefined,
         openGraph: {
             type: 'website',
             locale: 'tr_TR',
@@ -52,7 +58,7 @@ export default async function MarketingLayout(props: {
     // Resolve brand from hostname
     const host = await getHostFromHeaders()
     const brandName = await getBrandNameFromHost(host)
-    const brandDomain = host.split(':')[0]
+    const brandDomain = host.split(':')[0].replace(/^www\./, '')
 
     return (
         <BrandProvider brandName={brandName} brandDomain={brandDomain}>

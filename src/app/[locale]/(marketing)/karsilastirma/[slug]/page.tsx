@@ -1,9 +1,11 @@
+export const dynamic = 'force-dynamic'
+
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { comparisons } from "@/data/comparisons-data"
 import { Button } from "@/components/ui/button"
 import { LeadCaptureModal } from "@/components/marketing/LeadCaptureModal"
-import { getBrandNameFromHost, getHostFromHeaders } from "@/lib/tenant/resolve-brand-from-host"
+import { getBrandNameFromHost, getHostFromHeaders, adjustBranding } from "@/lib/tenant/resolve-brand-from-host"
 import { getCanonicalBaseUrl } from "@/lib/seo-constants"
 import { CheckCircle2, XCircle, AlertCircle, Trophy } from "lucide-react"
 import Link from "next/link"
@@ -16,22 +18,44 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata(
-    { params }: { params: Promise<{ slug: string }> }
+    { params }: { params: Promise<{ slug: string; locale: string }> }
 ): Promise<Metadata> {
-    const { slug } = await params
+    const { slug, locale } = await params
     const comp = comparisons.find(c => c.slug === slug)
     if (!comp) return {}
-    return { title: comp.metaTitle, description: comp.metaDescription }
+    const host = await getHostFromHeaders()
+    const brandName = await getBrandNameFromHost(host)
+    return { 
+        title: adjustBranding(comp.metaTitle, brandName), 
+        description: adjustBranding(comp.metaDescription, brandName),
+        robots: locale === 'en' ? { index: false, follow: false } : undefined,
+    }
 }
 
 export default async function ComparisonPage({ params }: { params: Promise<{ slug: string; locale: string }> }) {
     const { slug, locale } = await params
-    const comp = comparisons.find(c => c.slug === slug)
-    if (!comp) notFound()
+    const rawComp = comparisons.find(c => c.slug === slug)
+    if (!rawComp) notFound()
 
     const host = await getHostFromHeaders()
     const brandName = await getBrandNameFromHost(host)
     const baseUrl = getCanonicalBaseUrl(host)
+
+    const comp = {
+        ...rawComp,
+        title: adjustBranding(rawComp.title, brandName),
+        competitorDescription: adjustBranding(rawComp.competitorDescription, brandName),
+        verdict: adjustBranding(rawComp.verdict, brandName),
+        faq: rawComp.faq.map(f => ({
+            question: adjustBranding(f.question, brandName),
+            answer: adjustBranding(f.answer, brandName)
+        })),
+        features: rawComp.features.map(f => ({
+            name: adjustBranding(f.name, brandName),
+            oikos: adjustBranding(f.oikos, brandName),
+            competitor: adjustBranding(f.competitor, brandName)
+        }))
+    }
 
     const faqSchema = {
         "@context": "https://schema.org",

@@ -1,10 +1,12 @@
+export const dynamic = 'force-dynamic'
+
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { turkishCities } from "@/data/cities-data"
 import { sectors } from "@/data/sectors-data"
 import { Button } from "@/components/ui/button"
 import { LeadCaptureModal } from "@/components/marketing/LeadCaptureModal"
-import { getBrandNameFromHost, getHostFromHeaders } from "@/lib/tenant/resolve-brand-from-host"
+import { getBrandNameFromHost, getHostFromHeaders, getCityLocativeSuffix, getCityLocativeDeSuffix, adjustBranding } from "@/lib/tenant/resolve-brand-from-host"
 import { getCanonicalBaseUrl } from "@/lib/seo-constants"
 import { 
     Building2, LineChart, FileText, Star, Lock, Link as LinkIcon, Map, FileCheck, 
@@ -36,33 +38,50 @@ export async function generateStaticParams() {
 export async function generateMetadata(
     { params }: { params: Promise<{ slug: string; sectorSlug: string; locale: string }> }
 ): Promise<Metadata> {
-    const { slug, sectorSlug } = await params
+    const { slug, sectorSlug, locale } = await params
     const city = turkishCities.find(c => c.slug === slug)
-    const sector = sectors.find(s => s.slug === sectorSlug)
-    if (!city || !sector) return {}
+    const rawSector = sectors.find(s => s.slug === sectorSlug)
+    if (!city || !rawSector) return {}
     
     const host = await getHostFromHeaders()
     const brandName = await getBrandNameFromHost(host)
+    const locative = getCityLocativeSuffix(city.name)
+    const sector = {
+        ...rawSector,
+        title: adjustBranding(rawSector.title, brandName)
+    }
     
     const title = `${city.name} ${sector.title} Programı | ${brandName}`
-    const description = `${city.name} ve çevresindeki projeleriniz için ${sector.title} süreçlerini dijitalleştirin. ${city.name} gayrimenkul pazarına özel geliştirilen en iyi CRM ve otomasyon yazılımı.`
+    const description = `${city.name} ve çevresindeki projeleriniz için ${sector.title} süreçlerini dijitalleştirin. ${locative} gayrimenkul pazarına özel geliştirilen en iyi CRM ve otomasyon yazılımı.`
     
     return {
-        title,
-        description,
+        title: adjustBranding(title, brandName),
+        description: adjustBranding(description, brandName),
         keywords: `${city.name} ${sector.slug.replace('-crm', '')} crm, ${city.name} ${sector.title}, ${city.name} emlak yazılımı, ${sector.title} programı`,
+        robots: locale === 'en' ? { index: false, follow: false } : undefined,
     }
 }
 
 export default async function CitySectorPage({ params }: { params: Promise<{ slug: string; sectorSlug: string; locale: string }> }) {
     const { slug, sectorSlug, locale } = await params
     const city = turkishCities.find(c => c.slug === slug)
-    const sector = sectors.find(s => s.slug === sectorSlug)
-    if (!city || !sector) notFound()
+    const rawSector = sectors.find(s => s.slug === sectorSlug)
+    if (!city || !rawSector) notFound()
 
     const host = await getHostFromHeaders()
     const brandName = await getBrandNameFromHost(host)
     const baseUrl = getCanonicalBaseUrl(host)
+
+    const sector = {
+        ...rawSector,
+        title: adjustBranding(rawSector.title, brandName),
+        features: rawSector.features.map(f => ({
+            ...f,
+            title: adjustBranding(f.title, brandName),
+            description: adjustBranding(f.description, brandName)
+        })),
+        benefits: rawSector.benefits.map(b => adjustBranding(b, brandName))
+    }
 
     const breadcrumbSchema = {
         "@context": "https://schema.org",
@@ -189,7 +208,7 @@ export default async function CitySectorPage({ params }: { params: Promise<{ slu
                         {city.keyProjects}
                     </div>
                     <p className="text-slate-400 text-sm max-w-2xl mx-auto">
-                        Bu bölgelerdeki tüm portföy, stok lejantı ve müşteri taleplerini {city.name}&apos;deki satış ekibinizle koordineli olarak tek bir bulut tabanlı CRM sistemi üzerinden yönetebilirsiniz.
+                        Bu bölgelerdeki tüm portföy, stok lejantı ve müşteri taleplerini {getCityLocativeSuffix(city.name)} satış ekibinizle koordineli olarak tek bir bulut tabanlı CRM sistemi üzerinden yönetebilirsiniz.
                     </p>
                 </div>
             </section>
@@ -215,7 +234,7 @@ export default async function CitySectorPage({ params }: { params: Promise<{ slu
             <section className="py-20 container mx-auto px-4 text-center">
                 <div className="p-12 md:p-20 rounded-[40px] bg-gradient-to-br from-indigo-950/40 via-slate-900/80 to-indigo-950/40 border border-indigo-500/20 max-w-4xl mx-auto shadow-2xl shadow-indigo-500/5">
                     <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
-                        {city.name}&apos;de {sector.title} Süreçlerinizi Bir Üst Seviyeye Taşıyın
+                        {getCityLocativeDeSuffix(city.name)} {sector.title} Süreçlerinizi Bir Üst Seviyeye Taşıyın
                     </h2>
                     <p className="text-lg text-slate-400 mb-10 max-w-2xl mx-auto">
                         {brandName} ile {city.name} ve çevre illerdeki tüm projelerinizi dijitalleştirin, acente ağınızı tek bir panelden kontrol edin.

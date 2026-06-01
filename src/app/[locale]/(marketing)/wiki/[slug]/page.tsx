@@ -1,10 +1,12 @@
 
+export const dynamic = 'force-dynamic'
+
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ArrowLeft, Clock, Calendar, Tag, Share2, MessageCircle, ChevronDown, BarChart3, Sparkles } from 'lucide-react'
 import { wikiArticles } from '@/data/wiki-data'
 import type { Metadata } from 'next'
-import { getBrandNameFromHost, getHostFromHeaders } from '@/lib/tenant/resolve-brand-from-host'
+import { getBrandNameFromHost, getHostFromHeaders, adjustBranding } from '@/lib/tenant/resolve-brand-from-host'
 import { getCanonicalBaseUrl } from '@/lib/seo-constants'
 
 // Tüm slug'ları ve locale'leri Next.js'e bildirerek 404 hatasını önle
@@ -21,20 +23,24 @@ export async function generateStaticParams() {
 export async function generateMetadata(
     { params }: { params: Promise<{ slug: string; locale: string }> }
 ): Promise<Metadata> {
-    const { slug } = await params;
+    const { slug, locale } = await params;
     const article = wikiArticles.find(a => a.slug === slug);
     if (!article) return {};
 
     const host = await getHostFromHeaders()
     const brandName = await getBrandNameFromHost(host)
 
+    const title = adjustBranding(`${article.title} | ${brandName} Bilgi Bankasi`, brandName);
+    const description = adjustBranding(article.excerpt, brandName);
+
     return {
-        title: `${article.title} | ${brandName} Bilgi Bankasi`,
-        description: article.excerpt,
+        title,
+        description,
         keywords: article.tags?.join(', '),
+        robots: locale === 'en' ? { index: false, follow: false } : undefined,
         openGraph: {
-            title: article.title,
-            description: article.excerpt,
+            title: adjustBranding(article.title, brandName),
+            description: description,
             type: 'article',
             authors: [article.author],
         },
@@ -80,25 +86,42 @@ function formatContent(content: string) {
 export default async function ArticlePage({ params }: { params: Promise<{ slug: string; locale: string }> }) {
     const { slug, locale } = await params;
 
-    const article = wikiArticles.find(a => a.slug === slug);
+    const rawArticle = wikiArticles.find(a => a.slug === slug);
 
-    if (!article) {
+    if (!rawArticle) {
         notFound();
     }
 
-    const relatedArticles = wikiArticles.filter(a =>
-        article.relatedSlugs?.includes(a.slug)
-    ).slice(0, 3);
-
-    // relatedSlugs boşsa aynı kategoriden öneri getir
-    const suggestedArticles = relatedArticles.length > 0
-        ? relatedArticles
-        : wikiArticles.filter(a => a.category === article.category && a.slug !== article.slug).slice(0, 3);
-
-    // Resolve brand from hostname for JSON-LD
     const host = await getHostFromHeaders()
     const brandName = await getBrandNameFromHost(host)
     const baseUrl = getCanonicalBaseUrl(host)
+
+    const article = {
+        ...rawArticle,
+        title: adjustBranding(rawArticle.title, brandName),
+        excerpt: adjustBranding(rawArticle.excerpt, brandName),
+        content: adjustBranding(rawArticle.content, brandName),
+        tldr: adjustBranding(rawArticle.tldr || '', brandName),
+        faq: rawArticle.faq?.map(f => ({
+            question: adjustBranding(f.question, brandName),
+            answer: adjustBranding(f.answer, brandName)
+        }))
+    }
+
+    const relatedArticles = wikiArticles.filter(a =>
+        rawArticle.relatedSlugs?.includes(a.slug)
+    ).slice(0, 3);
+
+    // relatedSlugs boşsa aynı kategoriden öneri getir
+    const rawSuggestedArticles = relatedArticles.length > 0
+        ? relatedArticles
+        : wikiArticles.filter(a => a.category === rawArticle.category && a.slug !== rawArticle.slug).slice(0, 3);
+
+    const suggestedArticles = rawSuggestedArticles.map(a => ({
+        ...a,
+        title: adjustBranding(a.title, brandName),
+        excerpt: adjustBranding(a.excerpt, brandName)
+    }));
 
     // JSON-LD Schema (Google SEO icin kritik)
     const jsonLd = {
@@ -142,12 +165,13 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
     };
 
     // BreadcrumbList Schema → SERP'te zengin breadcrumb gösterimi
+    const isEn = locale === 'en';
     const breadcrumbSchema = {
         "@context": "https://schema.org",
         "@type": "BreadcrumbList",
         "itemListElement": [
-            { "@type": "ListItem", "position": 1, "name": "Ana Sayfa", "item": baseUrl },
-            { "@type": "ListItem", "position": 2, "name": "Bilgi Bankası", "item": `${baseUrl}/${locale}/wiki` },
+            { "@type": "ListItem", "position": 1, "name": isEn ? "Home" : "Ana Sayfa", "item": baseUrl },
+            { "@type": "ListItem", "position": 2, "name": isEn ? "Knowledge Base" : "Bilgi Bankası", "item": `${baseUrl}/${locale}/wiki` },
             { "@type": "ListItem", "position": 3, "name": article.title, "item": `${baseUrl}/${locale}/wiki/${article.slug}` }
         ]
     };
@@ -181,6 +205,21 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
         text: match[1]
     }));
 
+    const textBack = isEn ? "Back to Knowledge Base" : "Bilgi Bankası'na Geri Dön";
+    const textReadTime = isEn ? "read time" : "okuma hızı";
+    const readTimeFormatted = isEn ? article.readTime.replace('dk', 'min') : article.readTime;
+    const textTOC = isEn ? "Table of Contents" : "İçindekiler";
+    const textTLDR = isEn ? "Summary (TL;DR)" : "Özet (TL;DR)";
+    const textFAQ = isEn ? "Frequently Asked Questions" : "Sıkça Sorulan Sorular";
+    const textTags = isEn ? "Tags:" : "Etiketler:";
+    const textToolsHeading = isEn ? "🧮 Free Tools" : "🧮 Ücretsiz Araçlar";
+    const textSolutionsHeading = isEn ? "🏗️ Solutions & Comparison" : "🏗️ Çözümler & Karşılaştırma";
+    const textSuggestedHeading = isEn ? "Other Articles You May Be Interested In" : "İlginizi Çekebilecek Diğer Yazılar";
+    const textHelpful = isEn ? "Was this article helpful?" : "Bu makale yardımcı oldu mu?";
+    const textNewsletter = isEn ? "Subscribe to our weekly real estate technology newsletter to follow the latest developments in the industry." : "Haftalık gayrimenkul teknoloji bültenimize abone olarak sektördeki son gelişmeleri takip edebilirsiniz.";
+    const textEmailPlaceholder = isEn ? "Your email address" : "E-posta adresiniz";
+    const textSubscribe = isEn ? "Subscribe" : "Abone Ol";
+
     return (
         <div className="bg-slate-950 min-h-screen pt-32 pb-20">
             <script
@@ -204,7 +243,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
                     className="inline-flex items-center gap-2 text-slate-500 hover:text-blue-400 transition-colors mb-12 group"
                 >
                     <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
-                    Bilgi Bankası'na Geri Dön
+                    {textBack}
                 </Link>
 
                 {/* Article Header */}
@@ -215,7 +254,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
                         </span>
                         <div className="w-1 h-1 rounded-full bg-slate-700" />
                         <div className="flex items-center gap-1.5 text-slate-500 text-xs italic">
-                            <Clock size={14} /> {article.readTime} okuma hızı
+                            <Clock size={14} /> {readTimeFormatted} {textReadTime}
                         </div>
                     </div>
 
@@ -248,7 +287,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
                 {/* İçindekiler (TOC) - SEO için çok önemli */}
                 {headings.length > 0 && (
                     <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6 mb-12">
-                        <h3 className="text-lg font-bold text-white mb-4">İçindekiler</h3>
+                        <h3 className="text-lg font-bold text-white mb-4">{textTOC}</h3>
                         <ul className="space-y-2">
                             {headings.map((heading) => (
                                 <li key={heading.id}>
@@ -265,7 +304,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
                 {/* TL;DR Summary Box (GEO Optimized — falls back to excerpt) */}
                 <div className="bg-gradient-to-br from-blue-900/20 to-slate-900 border border-blue-500/20 rounded-2xl p-6 mb-12">
                     <div className="flex items-center gap-2 text-blue-400 font-bold text-sm uppercase tracking-wider mb-3">
-                        <Sparkles size={16} /> Özet (TL;DR)
+                        <Sparkles size={16} /> {textTLDR}
                     </div>
                     <p className="text-slate-300 leading-relaxed text-lg">{article.tldr || article.excerpt}</p>
                 </div>
@@ -299,7 +338,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
                     return (
                         <section className="mb-16">
                             <h2 className="text-2xl font-bold text-white mb-8 flex items-center gap-2">
-                                <BarChart3 className="text-blue-400" size={24} /> Sıkça Sorulan Sorular
+                                <BarChart3 className="text-blue-400" size={24} /> {textFAQ}
                             </h2>
                             <div className="space-y-3">
                                 {allFaq.map((item: {question: string; answer: string}, i: number) => (
@@ -330,7 +369,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
                 {article.tags && (
                     <div className="flex flex-wrap gap-2 mb-20 py-8 border-t border-slate-800/50">
                         <span className="text-slate-500 mr-2 flex items-center gap-1.5 text-sm uppercase font-bold tracking-widest">
-                            <Tag size={16} /> Etiketler:
+                            <Tag size={16} /> {textTags}
                         </span>
                         {article.tags.map(tag => (
                             <span key={tag} className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 text-xs hover:border-blue-500/30 transition-all cursor-default">
@@ -343,26 +382,26 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
                 {/* Cross-Link Section — Internal Linking SEO Boost */}
                 <section className="mb-20 grid md:grid-cols-2 gap-6">
                     <div className="p-6 rounded-2xl bg-slate-900/50 border border-slate-800">
-                        <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4">🧮 Ücretsiz Araçlar</h3>
+                        <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4">{textToolsHeading}</h3>
                         <ul className="space-y-3 text-sm">
-                            <li><Link href={`/${locale}/tools/tapu-harci-hesaplayici`} className="text-blue-400 hover:text-blue-300 transition-colors">Tapu Harcı Hesaplayıcı 2026</Link></li>
-                            <li><Link href={`/${locale}/tools/serefiye-hesaplayici`} className="text-blue-400 hover:text-blue-300 transition-colors">Şerefiye Hesaplama Aracı</Link></li>
-                            <li><Link href={`/${locale}/tools/broker-komisyon-hesaplayici`} className="text-blue-400 hover:text-blue-300 transition-colors">Broker Komisyon Hesaplayıcı</Link></li>
-                            <li><Link href={`/${locale}/tools/yatirim-getirisi-hesaplayici`} className="text-blue-400 hover:text-blue-300 transition-colors">Gayrimenkul ROI Hesaplayıcı</Link></li>
-                            <li><Link href={`/${locale}/tools/metrekare-birim-fiyat`} className="text-blue-400 hover:text-blue-300 transition-colors">m² Birim Fiyat Hesaplayıcı</Link></li>
-                            <li><Link href={`/${locale}/tools/insaat-maliyet-hesaplayici`} className="text-blue-400 hover:text-blue-300 transition-colors">İnşaat Maliyet Hesaplayıcı</Link></li>
-                            <li><Link href={`/${locale}/tools/damga-vergisi-hesaplayici`} className="text-blue-400 hover:text-blue-300 transition-colors">Damga Vergisi Hesaplayıcı</Link></li>
-                            <li><Link href={`/${locale}/payment-plan-calculator`} className="text-blue-400 hover:text-blue-300 transition-colors">Ödeme Planı Sihirbazı</Link></li>
+                            <li><Link href={`/${locale}/tools/tapu-harci-hesaplayici`} className="text-blue-400 hover:text-blue-300 transition-colors">{isEn ? "Deed Fee Calculator 2026" : "Tapu Harcı Hesaplayıcı 2026"}</Link></li>
+                            <li><Link href={`/${locale}/tools/serefiye-hesaplayici`} className="text-blue-400 hover:text-blue-300 transition-colors">{isEn ? "Goodwill Calculator" : "Şerefiye Hesaplama Aracı"}</Link></li>
+                            <li><Link href={`/${locale}/tools/broker-komisyon-hesaplayici`} className="text-blue-400 hover:text-blue-300 transition-colors">{isEn ? "Broker Commission Calculator" : "Broker Komisyon Hesaplayıcı"}</Link></li>
+                            <li><Link href={`/${locale}/tools/yatirim-getirisi-hesaplayici`} className="text-blue-400 hover:text-blue-300 transition-colors">{isEn ? "Real Estate ROI Calculator" : "Gayrimenkul ROI Hesaplayıcı"}</Link></li>
+                            <li><Link href={`/${locale}/tools/metrekare-birim-fiyat`} className="text-blue-400 hover:text-blue-300 transition-colors">{isEn ? "m² Unit Price Calculator" : "m² Birim Fiyat Hesaplayıcı"}</Link></li>
+                            <li><Link href={`/${locale}/tools/insaat-maliyet-hesaplayici`} className="text-blue-400 hover:text-blue-300 transition-colors">{isEn ? "Construction Cost Calculator" : "İnşaat Maliyet Hesaplayıcı"}</Link></li>
+                            <li><Link href={`/${locale}/tools/damga-vergisi-hesaplayici`} className="text-blue-400 hover:text-blue-300 transition-colors">{isEn ? "Stamp Duty Calculator" : "Damga Vergisi Hesaplayıcı"}</Link></li>
+                            <li><Link href={`/${locale}/payment-plan-calculator`} className="text-blue-400 hover:text-blue-300 transition-colors">{isEn ? "Payment Plan Wizard" : "Ödeme Planı Sihirbazı"}</Link></li>
                         </ul>
                     </div>
                     <div className="p-6 rounded-2xl bg-slate-900/50 border border-slate-800">
-                        <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4">🏗️ Çözümler & Karşılaştırma</h3>
+                        <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4">{textSolutionsHeading}</h3>
                         <ul className="space-y-3 text-sm">
-                            <li><Link href={`/${locale}/solutions/gayrimenkul-crm`} className="text-blue-400 hover:text-blue-300 transition-colors">Gayrimenkul CRM Yazılımı</Link></li>
-                            <li><Link href={`/${locale}/solutions/insaat-crm`} className="text-blue-400 hover:text-blue-300 transition-colors">İnşaat CRM Yazılımı</Link></li>
-                            <li><Link href={`/${locale}/karsilastirma/en-iyi-gayrimenkul-crm-2026`} className="text-blue-400 hover:text-blue-300 transition-colors">En İyi 10 Gayrimenkul CRM 2026</Link></li>
-                            <li><Link href={`/${locale}/karsilastirma/oikos-crm-vs-emor`} className="text-blue-400 hover:text-blue-300 transition-colors">Oikos CRM vs e-MOR Karşılaştırma</Link></li>
-                            <li><Link href={`/${locale}/karsilastirma/crm-vs-excel-gayrimenkul`} className="text-blue-400 hover:text-blue-300 transition-colors">CRM mi Excel mi?</Link></li>
+                            <li><Link href={`/${locale}/solutions/gayrimenkul-crm`} className="text-blue-400 hover:text-blue-300 transition-colors">{isEn ? "Real Estate CRM Software" : "Gayrimenkul CRM Yazılımı"}</Link></li>
+                            <li><Link href={`/${locale}/solutions/insaat-crm`} className="text-blue-400 hover:text-blue-300 transition-colors">{isEn ? "Construction CRM Software" : "İnşaat CRM Yazılımı"}</Link></li>
+                            <li><Link href={`/${locale}/karsilastirma/en-iyi-gayrimenkul-crm-2026`} className="text-blue-400 hover:text-blue-300 transition-colors">{isEn ? "Best 10 Real Estate CRM 2026" : "En İyi 10 Gayrimenkul CRM 2026"}</Link></li>
+                            <li><Link href={`/${locale}/karsilastirma/oikos-crm-vs-emor`} className="text-blue-400 hover:text-blue-300 transition-colors">{isEn ? `${brandName} vs e-MOR Comparison` : `${brandName} vs e-MOR Karşılaştırma`}</Link></li>
+                            <li><Link href={`/${locale}/karsilastirma/crm-vs-excel-gayrimenkul`} className="text-blue-400 hover:text-blue-300 transition-colors">{isEn ? "CRM vs Excel" : "CRM mi Excel mi?"}</Link></li>
                         </ul>
                     </div>
                 </section>
@@ -374,7 +413,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
                             <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400">
                                 <Clock size={18} />
                             </div>
-                            İlginizi Çekebilecek Diğer Yazılar
+                            {textSuggestedHeading}
                         </h2>
                         <div className="grid md:grid-cols-2 gap-6">
                             {suggestedArticles.map(rel => (
@@ -395,18 +434,18 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
                 {/* Newsletter Box */}
                 <div className="mt-32 p-10 rounded-[40px] bg-gradient-to-br from-blue-900/20 to-slate-900 border border-blue-500/10 relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 blur-[100px] -mr-32 -mt-32" />
-                    <h3 className="text-2xl font-bold text-white mb-4">Bu makale yardımcı oldu mu?</h3>
+                    <h3 className="text-2xl font-bold text-white mb-4">{textHelpful}</h3>
                     <p className="text-slate-400 mb-8 max-w-md">
-                        Haftalık gayrimenkul teknoloji bültenimize abone olarak sektördeki son gelişmeleri takip edebilirsiniz.
+                        {textNewsletter}
                     </p>
                     <div className="flex flex-col sm:flex-row gap-3">
                         <input
                             type="email"
-                            placeholder="E-posta adresiniz"
+                            placeholder={textEmailPlaceholder}
                             className="flex-1 bg-slate-950 border border-slate-800 rounded-2xl px-5 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                         />
                         <button className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-2xl font-bold transition-all shadow-lg shadow-blue-900/20">
-                            Abone Ol
+                            {textSubscribe}
                         </button>
                     </div>
                 </div>
