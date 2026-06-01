@@ -1505,7 +1505,8 @@
             "OnlineMeeting": "Online Toplantı",
             "OfficeMeeting": "Ofis Toplantısı",
             "Offer Sent": "Teklif Gönderildi",
-            "System": "Sistem"
+            "System": "Sistem",
+            "Transcript": "AI Transkript"
         },
         "topic": {
             "General": "Genel",

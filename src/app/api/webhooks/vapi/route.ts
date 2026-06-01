@@ -244,7 +244,7 @@ export async function POST(req: NextRequest) {
                     const { count } = await adminSupabase
                         .from('activities')
                         .select('*', { count: 'exact', head: true })
-                        .eq('type', 'Call')
+                        .eq('type', 'Transcript')
                         .ilike('description', `%[Call ID: ${parsed.callId}]%`)
                         .ilike('description', `%📝 Transkript:%`)
                     if (count && count > 0) {
@@ -325,9 +325,22 @@ export async function POST(req: NextRequest) {
                                 const adminSupabase = createAdminClient()
                                 const metadata = parsed.metadata || {}
                                 
+                                let ownerId = null;
+                                if (metadata.customer_id) {
+                                    const { data: customerData } = await adminSupabase
+                                        .from('customers')
+                                        .select('assigned_to')
+                                        .eq('id', metadata.customer_id)
+                                        .single();
+                                    if (customerData?.assigned_to) {
+                                        ownerId = customerData.assigned_to;
+                                    }
+                                }
+                                
                                 await adminSupabase.from('activities').insert({
                                     tenant_id: metadata.tenant_id,
                                     customer_id: metadata.customer_id,
+                                    owner_id: ownerId,
                                     type: 'Meeting',
                                     topic: 'Sales',
                                     summary: `📅 AI aramasında randevu talebi — ${functionParams.date || 'Tarih belirtilmedi'}`,

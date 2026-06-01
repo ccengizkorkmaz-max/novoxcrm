@@ -779,6 +779,39 @@ export async function updateSaleStatus(id: string, status: string) {
         }).catch(console.error)
     }
 
+    // Insert System Log Activity for Timeline
+    if (sale) {
+        const statusMap: Record<string, string> = {
+            'Lead': 'Aday',
+            'Prospect': 'İlgileniyor',
+            'Reservation': 'Opsiyon / Rezervasyon',
+            'Proposal': 'Teklif',
+            'Negotiation': 'Pazarlık',
+            'Contract': 'Sözleşme Aşaması',
+            'Sold': 'Satış Tamamlandı',
+            'Lost': 'Kayıp'
+        }
+        try {
+            const trStatus = statusMap[status] || status;
+            const unitName = sale.units?.unit_number ? ` (${sale.units.block ? sale.units.block + ' Blok, ' : ''}${sale.units.unit_number} Nolu Ünite)` : '';
+            await supabase.from('activities').insert({
+                tenant_id: profile?.tenant_id,
+                customer_id: sale.customer_id,
+                owner_id: user?.id,
+                user_id: user?.id,
+                project_id: sale.project_id,
+                type: 'System',
+                topic: 'System',
+                summary: `Durum Güncellemesi: ${trStatus}`,
+                description: `Müşterinin satış süreci "${trStatus}" aşamasına alındı.${unitName}`,
+                status: 'Completed',
+                due_date: new Date().toISOString()
+            })
+        } catch (err) {
+            console.error('System log activity error:', err)
+        }
+    }
+
     // Broker Sync
     await syncBrokerLeadFromSale(id, status)
 

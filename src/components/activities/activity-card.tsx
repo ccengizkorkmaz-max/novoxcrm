@@ -2,7 +2,7 @@
 
 import { format } from 'date-fns'
 import { enUS, tr } from 'date-fns/locale'
-import { CalendarIcon, Phone, Mail, MessageSquare, Briefcase, FileText, User, MoreHorizontal, Video, Building2, CheckCircle2 } from 'lucide-react'
+import { CalendarIcon, Phone, Mail, MessageSquare, Briefcase, FileText, User, MoreHorizontal, Video, Building2, CheckCircle2, Bot, Info } from 'lucide-react'
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Link } from "@/i18n/routing"
@@ -64,6 +64,8 @@ function getActivityIcon(type: string) {
         case 'Meeting':
         case 'Site Visit': return Briefcase
         case 'Offer Sent': return FileText
+        case 'Transcript': return Bot
+        case 'System': return Info
         default: return CalendarIcon
     }
 }

@@ -747,7 +747,7 @@ export async function handleManualVapiCallResult(callData: {
             const { error } = await supabase.from('activities').insert({
                 tenant_id: tenantId,
                 customer_id: customerId,
-                type: 'Call',
+                type: 'Transcript',
                 topic: 'Sales',
                 due_date: new Date().toISOString(),
                 ...activityPayload
@@ -759,7 +759,7 @@ export async function handleManualVapiCallResult(callData: {
         const { error } = await supabase.from('activities').insert({
             tenant_id: tenantId,
             customer_id: customerId,
-            type: 'Call',
+            type: 'Transcript',
             topic: 'Sales',
             due_date: new Date().toISOString(),
             ...activityPayload
