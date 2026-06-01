@@ -155,6 +155,10 @@ export async function getAICallsForReview(limit = 50): Promise<CallForReview[]> 
             
             if (log.call_duration_seconds > 0 && log.call_duration_seconds < 10) return false;
             if (transcript.length < 15) return false;
+
+            // Enforce at least 2 dialogue turns from the user
+            const userTurns = (transcript.match(/User:/gi) || []).length;
+            if (userTurns < 2) return false;
             
             return true;
         })
@@ -197,6 +201,10 @@ export async function getAICallsForReview(limit = 50): Promise<CallForReview[]> 
         
         if (log.call_duration_seconds > 0 && log.call_duration_seconds < 10) return false;
         if (transcript.length < 15) return false;
+
+        // Enforce at least 2 dialogue turns from the user
+        const userTurns = (transcript.match(/User:/gi) || []).length;
+        if (userTurns < 2) return false;
         
         return true;
     })

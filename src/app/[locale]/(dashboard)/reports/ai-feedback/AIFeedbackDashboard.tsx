@@ -16,6 +16,7 @@ import {
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { submitCallFeedback, generatePromptSuggestion, createPromptVersion, applyPromptVersion } from './actions'
+import { MiniAudioPlayer } from '@/components/ui/mini-audio-player'
 
 // ─── Props ───────────────────────────────────────────────────
 
@@ -417,9 +418,7 @@ function CallReviewPanel({ calls, t, locale }: { calls: any[]; t: (k: string) =>
                                                         <h4 className="text-xs font-semibold text-muted-foreground uppercase mb-2 flex items-center gap-1">
                                                             <Play className="h-3 w-3" /> {t('recording')}
                                                         </h4>
-                                                        <audio controls className="w-full h-10 rounded-lg" src={call.call_recording_url}>
-                                                            <track kind="captions" />
-                                                        </audio>
+                                                        <MiniAudioPlayer src={call.call_recording_url} className="max-w-md bg-slate-50 border-slate-200" />
                                                     </div>
                                                 )}
 
