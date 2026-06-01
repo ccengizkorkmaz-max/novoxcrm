@@ -52,7 +52,7 @@ export default async function ActivitiesPage(props: {
         supabase
             .from('activities')
             .select('*, customers(full_name), owner:profiles!activities_owner_id_fkey(full_name)')
-            .order('due_date', { ascending: false })
+            .order('created_at', { ascending: false })
             .limit(500)
             .then(r => {
                 if (r.error) console.error('[Activities] Query Error:', r.error.message)
