@@ -15,8 +15,41 @@ const PLATFORM_HOSTS = [
     'vercel.app',
 ]
 
-function isPlatformHost(hostname: string): boolean {
-    return PLATFORM_HOSTS.some(h => hostname === h || hostname.endsWith(`.${h}`))
+function isCacheableMarketingPath(pathname: string): boolean {
+    const pathWithoutLocale = pathname.replace(/^\/(tr|en)(\/|$)/, '/')
+
+    // Exact match public marketing pages
+    if (
+        pathWithoutLocale === '/' ||
+        pathWithoutLocale === '/sitemap.xml' ||
+        pathWithoutLocale === '/robots.txt' ||
+        pathWithoutLocale === '/gizlilik-sozlesmesi' ||
+        pathWithoutLocale === '/mesafeli-satis-sozlesmesi' ||
+        pathWithoutLocale === '/teslimat-ve-iade-sartlari' ||
+        pathWithoutLocale === '/hakkimizda' ||
+        pathWithoutLocale === '/payment-plan-calculator' ||
+        pathWithoutLocale === '/system-details'
+    ) {
+        return true
+    }
+
+    // Prefix match public marketing sections
+    if (
+        pathWithoutLocale.startsWith('/solutions') ||
+        pathWithoutLocale.startsWith('/wiki') ||
+        pathWithoutLocale.startsWith('/ebooks') ||
+        pathWithoutLocale.startsWith('/p/') ||
+        pathWithoutLocale.startsWith('/broker/apply') ||
+        pathWithoutLocale.startsWith('/tools') ||
+        pathWithoutLocale.startsWith('/sehir') ||
+        pathWithoutLocale.startsWith('/sektor') ||
+        pathWithoutLocale.startsWith('/karsilastirma') ||
+        pathWithoutLocale.startsWith('/industry-reports')
+    ) {
+        return true
+    }
+
+    return false
 }
 
 export async function middleware(request: NextRequest) {
@@ -29,7 +62,17 @@ export async function middleware(request: NextRequest) {
     const response = i18nMiddleware(request);
 
     // Then update session (Supabase)
-    return await updateSession(request, response)
+    const finalResponse = await updateSession(request, response)
+
+    // Add Vercel-CDN-Cache-Control for public marketing paths to prevent serverless function invocation spikes
+    if (isCacheableMarketingPath(request.nextUrl.pathname)) {
+        finalResponse.headers.set(
+            'Vercel-CDN-Cache-Control',
+            'public, s-maxage=86400, stale-while-revalidate=604800'
+        )
+    }
+
+    return finalResponse
 }
 
 
