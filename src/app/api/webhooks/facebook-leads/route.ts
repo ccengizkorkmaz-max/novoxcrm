@@ -179,9 +179,9 @@ async function saveLeadToCRM(
         phone: phone,
         email: leadData.email || null,
         city: leadData.city || null,
-        source: 'Facebook Ads',
+        source: 'FB Novo API',
         contact_type: 'buyer',
-        notes: `Facebook Lead Ads direkt entegrasyon | Form: ${formId || '-'} | Ad: ${adId || '-'}`,
+        notes: `🎯 [NOVO API DİREKT] Facebook Lead Ads | Form: ${formId || '-'} | Ad: ${adId || '-'}`,
     })
 
     if (error) {
