@@ -224,7 +224,7 @@ export function DashboardLayoutWrapper({
                         <NotificationBell />
                     </div>
 
-                    <main className="flex-1 items-start p-2 sm:px-4 sm:py-4 overflow-auto">
+                    <main className="flex-1 items-start p-2 sm:px-4 sm:py-4 md:pr-40 overflow-auto">
                         {children}
                     </main>
                 </div>
