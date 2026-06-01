@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { parseVapiWebhook, handleManualVapiCallResult } from '@/lib/vapi'
+import { parseVapiWebhook, handleManualVapiCallResult, getTurkishNameTitle, TURKISH_VOICE_RULES } from '@/lib/vapi'
 
 export const dynamic = 'force-dynamic'
 import { handleVapiCallResult } from '@/lib/outreach/engine'
@@ -33,6 +33,206 @@ export async function POST(req: NextRequest) {
 
         // Handle different event types
         switch (parsed.type) {
+            case 'assistant-request': {
+                console.log('[Vapi Webhook] Assistant request triggered')
+                
+                // Get customer phone number
+                const customerPhone = body.message?.call?.customer?.number || body.message?.customer?.number || body.message?.call?.customer?.phone
+                if (!customerPhone) {
+                    console.error('[Vapi Webhook] No customer phone number in assistant-request')
+                    return NextResponse.json({ error: 'Customer phone number is required' }, { status: 400 })
+                }
+
+                // Resolve tenant_id from host header
+                let tenant_id = '89b2829e-fc21-477e-8fd8-9f9f0c587e81' // Default: Novo Şirketler Grubu
+                const host = req.headers.get('host') || ''
+                const adminSupabase = createAdminClient()
+                
+                if (host.includes('oikoscrm')) {
+                    tenant_id = '3de3c038-8ce7-44b1-b5ba-8b99d63301f4' // Oikos İnşaat A.Ş.
+                } else if (host && !host.includes('localhost') && !host.includes('127.0.0.1') && !host.includes('novoxcrm.com') && !host.includes('vercel.app')) {
+                    // Check custom domain
+                    const cleanHost = host.split(':')[0].replace(/^www\./, '')
+                    const { data: matchedTenant } = await adminSupabase
+                        .from('tenants')
+                        .select('id')
+                        .eq('custom_domain', cleanHost)
+                        .maybeSingle()
+                    if (matchedTenant) {
+                        tenant_id = matchedTenant.id
+                    }
+                }
+
+                // Clean/normalize phone number for search (e.g. remove country code and plus sign)
+                let cleanPhone = customerPhone.replace('+', '')
+                if (cleanPhone.startsWith('90')) {
+                    cleanPhone = cleanPhone.substring(2)
+                }
+
+                // Query customer in database
+                const { data: customers } = await adminSupabase
+                    .from('customers')
+                    .select('id, full_name')
+                    .eq('tenant_id', tenant_id)
+                    .ilike('phone', `%${cleanPhone}%`)
+                    .limit(1)
+
+                let customer = customers?.[0]
+                let isNewCustomer = false
+
+                if (!customer) {
+                    // Create new customer dynamically
+                    const { data: newCustomer, error: createError } = await adminSupabase
+                        .from('customers')
+                        .insert({
+                            tenant_id: tenant_id,
+                            full_name: 'Yeni Gelen Arama Adayı',
+                            phone: customerPhone,
+                            source: 'Gelen Arama'
+                        })
+                        .select('id, full_name')
+                        .single()
+
+                    if (createError || !newCustomer) {
+                        console.error('[Vapi Webhook] Failed to create customer dynamically for inbound call:', createError)
+                        return NextResponse.json({ error: 'Failed to register inbound call customer' }, { status: 500 })
+                    }
+                    customer = newCustomer
+                    isNewCustomer = true
+                    console.log(`[Vapi Webhook] Registered new customer for inbound call: ${customer.id}`)
+                } else {
+                    console.log(`[Vapi Webhook] Matched existing customer: ${customer.full_name} (${customer.id})`)
+                }
+
+                // Fetch tenant instructions and knowledge base
+                const { data: tenantData } = await adminSupabase
+                    .from('tenants')
+                    .select('ai_assistant_instructions, ai_knowledge_base, ai_assistant_name, ai_assistant_gender')
+                    .eq('id', tenant_id)
+                    .single()
+
+                const assistantName = tenantData?.ai_assistant_name || 'Çiçek'
+                const assistantGender = tenantData?.ai_assistant_gender || 'female'
+                const voiceId = assistantGender === 'male' 
+                    ? 'nPczCjzI2devNBz1zQrb' // Mert (Brian)
+                    : 'uvU9jrgGLWNPeNA4NgNT' // Çiçek (İrem)
+
+                // Build System Prompt
+                let systemPrompt = tenantData?.ai_assistant_instructions || `Sen Novo Gayrimenkul için çalışan profesyonel sesli yapay zeka asistanısın. Adın ${assistantName}. Amacın, gelen aramaları nazik, profesyonel ve etkileşimli bir şekilde karşılamak, sorularını bilgi bankasına göre yanıtlamak ve randevu almak. Müşterinin sözünü kesmesine izin ver, her cümleden sonra cevabını bekle.`
+                
+                if (tenantData?.ai_knowledge_base) {
+                    systemPrompt += `\n\n--- ŞİRKET BİLGİ BANKASI VE AKTİF PROJELER ---\n${tenantData.ai_knowledge_base}\n\nÖNEMLİ KURAL: Projeler hakkında SADECE yukarıdaki BİLGİ BANKASI'nda yazan bilgileri kullan. Bilmediğin veya bilgi bankasında yazmayan bir detay (fiyat, metrekare, teslim tarihi vb.) sorulursa ASLA uydurma, 'Bu detay şu an sistemimde mevcut değil, dilerseniz ilgili satış uzmanımızın size net bilgi vermesini sağlayabilirim' şeklinde yanıt ver.\n`
+                }
+
+                // Dynamic First Greeting Message
+                let firstMessage = `Merhaba, Novo Gayrimenkul'e hoş geldiniz. Ben ${assistantName}, size nasıl yardımcı olabilirim?`
+                if (!isNewCustomer && customer.full_name && customer.full_name !== 'Yeni Gelen Arama Adayı') {
+                    const nameWithTitle = getTurkishNameTitle(customer.full_name)
+                    firstMessage = `Merhaba ${nameWithTitle}, Novo Gayrimenkul'e hoş geldiniz. Ben ${assistantName}, size nasıl yardımcı olabilirim?`
+                }
+
+                // Define Webhook server URL for function calling/status tracking
+                const siteUrl = host.includes('localhost') || host.includes('127.0.0.1')
+                    ? 'https://www.novoxcrm.com'
+                    : `https://${host}`
+                const serverUrl = `${siteUrl}/api/webhooks/vapi`
+
+                // Respond to Vapi with assistant configuration
+                const assistantResponse = {
+                    assistant: {
+                        name: assistantName,
+                        firstMessage: firstMessage,
+                        firstMessageMode: 'assistant-speaks-first',
+                        serverUrl: serverUrl,
+                        serverMessages: ['end-of-call-report', 'status-update', 'function-call'],
+                        maxDurationSeconds: 300,
+                        silenceTimeoutSeconds: 45,
+                        startSpeakingPlan: {
+                            waitSeconds: 0.8
+                        },
+                        stopSpeakingPlan: {
+                            numWords: 1,
+                            voiceSeconds: 0.25,
+                            backoffSeconds: 0.8
+                        },
+                        backgroundSpeechDenoisingPlan: {
+                            smartDenoisingPlan: {
+                                enabled: true
+                            }
+                        },
+                        transcriber: {
+                            provider: 'deepgram',
+                            model: 'nova-3',
+                            language: 'tr',
+                        },
+                        voice: {
+                            provider: '11labs',
+                            voiceId: voiceId,
+                            model: 'eleven_multilingual_v2',
+                            stability: 0.40,
+                            similarityBoost: 0.85,
+                            style: 0.35,
+                        },
+                        model: {
+                            provider: 'openai',
+                            model: 'gpt-4o',
+                            messages: [{ role: 'system', content: TURKISH_VOICE_RULES + '\n\n' + systemPrompt }],
+                            tools: [
+                                {
+                                    type: 'endCall',
+                                    messages: [
+                                        {
+                                            type: 'request-start',
+                                            content: 'Görüşmek üzere, iyi günler dilerim.'
+                                        }
+                                    ]
+                                },
+                                {
+                                    type: 'function',
+                                    function: {
+                                        name: 'scheduleAppointment',
+                                        description: 'Schedules a physical or phone appointment/meeting with a sales representative.',
+                                        parameters: {
+                                            type: 'object',
+                                            properties: {
+                                                date: { type: 'string', description: 'Tarih ve zaman bilgisi (örn: yarın saat 14:00)' },
+                                                time: { type: 'string', description: 'Saat bilgisi' },
+                                                notes: { type: 'string', description: 'Randevu konusu ve müşteri notları' }
+                                            },
+                                            required: ['date']
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                        analysisPlan: {
+                            structuredDataPrompt: 'Görüşme transkriptini analiz et ve aşağıdaki JSON yapısını doldur.',
+                            structuredDataSchema: {
+                                type: 'object',
+                                properties: {
+                                    lead_score: { type: 'string', enum: ['hot', 'warm', 'follow_up', 'disqualified'], description: 'Müşterinin sıcaklık skoru' },
+                                    interested: { type: 'boolean', description: 'Müşteri ilgileniyor mu?' },
+                                    notes: { type: 'string', description: 'Görüşme hakkında kısa not (Türkçe)' },
+                                    customer_name: { type: 'string', description: 'Konuşma sırasında müşterinin belirttiği ad soyad (eğer ilk başta bilinmiyorsa)' }
+                                },
+                                required: ['lead_score', 'interested', 'notes'],
+                            },
+                            summaryPrompt: 'Bu telefon görüşmesini Türkçe olarak 2-3 cümleyle özetle.',
+                            successEvaluationPrompt: 'Müşteri randevu aldı veya detaylı bilgi talep etti ise başarılı say.',
+                            successEvaluationRubric: 'PassFail',
+                        },
+                        metadata: {
+                            tenant_id: tenant_id,
+                            customer_id: customer.id,
+                            type: 'manual_call'
+                        }
+                    }
+                }
+
+                console.log(`[Vapi Webhook] Dinamik asistan yapılandırması başarıyla oluşturuldu: ${customer.id}`)
+                return NextResponse.json(assistantResponse, { status: 200 })
+            }
+
             case 'end-of-call-report':
             case 'call.ended':
                 console.log(`[Vapi Webhook] Call ended: ${parsed.callId}, reason: ${parsed.endedReason}`)

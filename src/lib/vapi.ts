@@ -670,6 +670,23 @@ export async function handleManualVapiCallResult(callData: {
     const interested = structuredData?.interested
     const leadScore = structuredData?.lead_score // hot, warm, follow_up, disqualified
     const notes = structuredData?.notes
+    const extractedCustomerName = structuredData?.customer_name
+
+    if (extractedCustomerName && customerId) {
+        const { data: currentCust } = await supabase
+            .from('customers')
+            .select('full_name')
+            .eq('id', customerId)
+            .maybeSingle()
+
+        if (currentCust?.full_name === 'Yeni Gelen Arama Adayı') {
+            await supabase
+                .from('customers')
+                .update({ full_name: extractedCustomerName.trim() })
+                .eq('id', customerId)
+            console.log(`[Vapi Webhook] Dynamically updated unknown caller name to: ${extractedCustomerName}`)
+        }
+    }
 
     if (interested === true || leadScore === 'hot' || leadScore === 'warm') {
         outcome = 'Success'
@@ -830,7 +847,7 @@ export function getTurkishNameTitle(fullName: string | undefined | null): string
         'sultan', 'hanife', 'merve', 'selma', 'esra', 'asiye', 'hayriye', 'cemile', 'kadriye', 'songul', 'songül', 
         'gulay', 'gülay', 'melike', 'yasemin', 'sennur', 'şennur', 'nurten', 'nurcan', 'ayten', 'figen', 'ceyda', 
         'aytul', 'aytül', 'tugba', 'tuğba', 'kubra', 'kübra', 'busra', 'büşra', 'gamze', 'gizem', 'derya', 'seda', 
-        'nihal', 'didem', 'sinem', 'banu', 'canan', 'hande', 'ozge', 'özge', 'burcu', 'pinar', 'pınar', 'demet', 
+        'nihal', 'didem', 'sinem', 'banu', 'canan', 'hande', 'ozge', 'özge', 'ozlem', 'özlem', 'burcu', 'pinar', 'pınar', 'demet', 
         'ece', 'ebru', 'asli', 'aslı', 'pelin', 'melis', 'irem', 'i̇rem', 'ceren', 'dilara', 'bengu', 'bengü', 
         'begum', 'begüm', 'damla', 'sule', 'şule', 'hale', 'jale', 'lale', 'sibel', 'arzum', 'arzu', 'asuman',
         'berna', 'betul', 'betül', 'burcin', 'burçin', 'cansu', 'deniz', 'duygu', 'ebru', 'eda', 'elvan', 'esma',
