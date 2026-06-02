@@ -176,6 +176,22 @@ export async function processOutreachQueue() {
         }
     }
 
+    // ─── Ghost Record Cleanup (ALWAYS runs, even when locked) ──────
+    // Ghost records: status='failed' but completed_at is NULL
+    // These are harmless but pollute the dashboard. Auto-fix by setting completed_at.
+    {
+        const { data: ghosts, error: ghostErr } = await supabase
+            .from('outreach_step_logs')
+            .update({ completed_at: now })
+            .eq('status', 'failed')
+            .is('completed_at', null)
+            .select('id')
+
+        if (!ghostErr && ghosts && ghosts.length > 0) {
+            console.log(`[Outreach] 🧹 ${ghosts.length} hayalet kayıt otomatik temizlendi (failed + completed_at=null)`)
+        }
+    }
+
     // ─── Global Lock: Eşzamanlı cron çalışmalarını engelle ─────
     // Tenants tablosunda ilk tenant'ın ai_outreach_settings alanında lock tutuyoruz
     const LOCK_TIMEOUT_MS = 3 * 60 * 1000 // 3 dakika (kısa tutuyoruz — stale lock hızlı kurtarılsın)
