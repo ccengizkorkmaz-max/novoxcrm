@@ -304,10 +304,24 @@ export function WorkflowMonitor({ workflowId, workflowName, onClose }: WorkflowM
                                     const log = logMap.get(exec.id)
                                     const isCallActive = log?.channel === 'ai_call' && log?.status === 'sent' && !log?.completed_at;
                                     
-                                    // Custom status styling for active calls
-                                    const statusConf = isCallActive 
-                                        ? { label: 'Arama Yapılıyor...', color: 'text-emerald-400 bg-emerald-500/20 border-emerald-500 animate-pulse', icon: PhoneIncoming }
-                                        : (STATUS_CONFIG[exec.status] || STATUS_CONFIG.active)
+                                    // Smart status label based on actual execution state
+                                    let statusConf: { label: string; color: string; icon: any }
+                                    if (isCallActive) {
+                                        statusConf = { label: 'Arama Yapılıyor...', color: 'text-emerald-400 bg-emerald-500/20 border-emerald-500 animate-pulse', icon: PhoneIncoming }
+                                    } else if (exec.status === 'active') {
+                                        // Smarter "active" labels
+                                        if (exec.current_retry_count > 0 && log?.channel === 'ai_call') {
+                                            statusConf = { label: `Tekrar Aranacak (${exec.current_retry_count}.)`, color: 'text-orange-400 bg-orange-500/10 border-orange-500/30', icon: Timer }
+                                        } else if (exec.current_step_order > 1 && channels?.includes('whatsapp')) {
+                                            statusConf = { label: 'WA Gönderilecek', color: 'text-green-400 bg-green-500/10 border-green-500/30', icon: MessageSquare }
+                                        } else if (log?.call_outcome && exec.current_step_order === 1) {
+                                            statusConf = { label: 'Sonraki Adım Bekliyor', color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/30', icon: Clock }
+                                        } else {
+                                            statusConf = { label: 'Arama Bekliyor', color: 'text-blue-400 bg-blue-500/10 border-blue-500/30', icon: Activity }
+                                        }
+                                    } else {
+                                        statusConf = STATUS_CONFIG[exec.status] || STATUS_CONFIG.active
+                                    }
                                     
                                     // Outcome: prefer call_outcome, fallback to log status, then execution status
                                     let outcomeConf = log?.call_outcome ? CALL_OUTCOME_CONFIG[log.call_outcome] : null
