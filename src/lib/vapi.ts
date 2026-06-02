@@ -247,6 +247,7 @@ export async function makeOutboundCall(options: VapiCallOptions): Promise<VapiCa
             payload.assistant = {
                 serverUrl: resolvedServerUrl,
                 serverMessages: ['end-of-call-report', 'status-update', 'function-call'],
+                secret: process.env.VAPI_WEBHOOK_SECRET || undefined,
                 firstMessage: options.firstMessage || undefined,
                 endCallMessage: options.endCallMessage || 'İyi günler, görüşmek üzere. Hoşçakalın.',
                 firstMessageMode: options.firstMessage ? 'assistant-speaks-first' : 'assistant-waits-for-user',
