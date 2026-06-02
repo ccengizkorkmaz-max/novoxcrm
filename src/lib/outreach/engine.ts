@@ -178,17 +178,23 @@ export async function processOutreachQueue() {
 
     // ─── Global Lock: Eşzamanlı cron çalışmalarını engelle ─────
     // Tenants tablosunda ilk tenant'ın ai_outreach_settings alanında lock tutuyoruz
-    const LOCK_TIMEOUT_MS = 5 * 60 * 1000 // 5 dakika
+    const LOCK_TIMEOUT_MS = 3 * 60 * 1000 // 3 dakika (kısa tutuyoruz — stale lock hızlı kurtarılsın)
     const { data: lockTenant } = await supabase.from('tenants').select('id, ai_outreach_settings').limit(1).single()
     
     if (lockTenant) {
         const settings = lockTenant.ai_outreach_settings || {}
         const lockTime = settings.queue_lock_at ? new Date(settings.queue_lock_at).getTime() : 0
-        const isLocked = lockTime > 0 && (Date.now() - lockTime) < LOCK_TIMEOUT_MS
+        const lockAgeMs = lockTime > 0 ? Date.now() - lockTime : 0
+        const isLocked = lockTime > 0 && lockAgeMs < LOCK_TIMEOUT_MS
 
         if (isLocked) {
-            console.log(`[Outreach] Kuyruk zaten işleniyor (lock: ${settings.queue_lock_at}). Atlanıyor.`)
+            console.log(`[Outreach] Kuyruk zaten işleniyor (lock: ${settings.queue_lock_at}, yaş: ${Math.round(lockAgeMs / 1000)}s). Atlanıyor.`)
             return { processed: 0, reason: 'already_processing' }
+        }
+
+        // Stale lock kurtarma: 3+ dakikalık eski lock'u otomatik temizle ve devam et
+        if (lockTime > 0 && lockAgeMs >= LOCK_TIMEOUT_MS) {
+            console.warn(`[Outreach] ⚠️ Stale lock tespit edildi (${Math.round(lockAgeMs / 1000)}s eski). Otomatik kurtarma — kilit açılıp devam ediliyor.`)
         }
 
         // Lock al
@@ -197,14 +203,18 @@ export async function processOutreachQueue() {
         }).eq('id', lockTenant.id)
     }
 
-    // Lock temizleme helper
+    // Lock temizleme helper — ALWAYS releases, even on error
     const releaseLock = async () => {
-        if (lockTenant) {
-            const { data: latest } = await supabase.from('tenants').select('ai_outreach_settings').eq('id', lockTenant.id).single()
-            const settings = latest?.ai_outreach_settings || {}
-            await supabase.from('tenants').update({
-                ai_outreach_settings: { ...settings, queue_lock_at: null }
-            }).eq('id', lockTenant.id)
+        try {
+            if (lockTenant) {
+                const { data: latest } = await supabase.from('tenants').select('ai_outreach_settings').eq('id', lockTenant.id).single()
+                const settings = latest?.ai_outreach_settings || {}
+                await supabase.from('tenants').update({
+                    ai_outreach_settings: { ...settings, queue_lock_at: null }
+                }).eq('id', lockTenant.id)
+            }
+        } catch (releaseErr: any) {
+            console.error('[Outreach] Lock release failed:', releaseErr.message)
         }
     }
 
@@ -228,7 +238,6 @@ export async function processOutreachQueue() {
 
     if (error || !dueExecutions?.length) {
         console.log(`[Outreach] No due executions. Error: ${error?.message || 'none'}`)
-        await releaseLock()
         return { processed: 0 }
     }
 
@@ -245,7 +254,6 @@ export async function processOutreachQueue() {
         const health = await checkSystemHealth(tenantId);
         if (!health.isHealthy) {
             await handleCriticalSystemFailure(tenantId, health.reason || 'Bilinmeyen sistem hatası');
-            await releaseLock()
             return { processed: 0, reason: 'system_health_failure' };
         }
     }
@@ -309,7 +317,6 @@ export async function processOutreachQueue() {
 
     if (availableSlots <= 0) {
         console.log(`[Outreach] Eşzamanlı arama limiti doldu (${maxConcurrent}). Bekleniyor...`)
-        await releaseLock()
         return { processed: 0, reason: 'concurrency_limit' }
     }
 
@@ -527,16 +534,15 @@ export async function processOutreachQueue() {
             // Critical failure check
             if (err.message.includes('INSUFFICIENT_FUNDS')) {
                 await handleCriticalSystemFailure(execution.tenant_id, err.message, execution.workflow_id);
-                await releaseLock()
                 return { processed, reason: 'critical_system_failure' };
             }
         }
     }
 
     // ─── Post-batch polling: wait for calls to finish, then start more ─────
-    // Without webhooks, this is the only way to chain batches within one cron run
-    const MAX_POLL_ROUNDS = 4
-    const POLL_WAIT_MS = 30_000 // 30 seconds between polls
+    // With webhooks active, polling is a fallback safety net
+    const MAX_POLL_ROUNDS = 2 // Reduced from 4 — webhooks handle most reconciliation now
+    const POLL_WAIT_MS = 20_000 // 20 seconds between polls (was 30s)
     const vapiKeyForPoll = process.env.VAPI_API_KEY
 
     for (let round = 1; round <= MAX_POLL_ROUNDS && initiatedCallsCount > 0; round++) {
@@ -682,13 +688,14 @@ export async function processOutreachQueue() {
         console.log(`[Outreach] Polling round ${round}: ${batchProcessed} yeni arama başlatıldı (toplam: ${processed})`)
     }
 
-    await releaseLock()
     return { processed }
 
     } catch (outerError: any) {
         console.error('[Outreach] processOutreachQueue beklenmeyen hata:', outerError.message)
-        await releaseLock()
         return { processed: 0, reason: 'unexpected_error' }
+    } finally {
+        // ALWAYS release lock, even on unexpected errors, timeouts, or crashes
+        await releaseLock()
     }
 }
 
