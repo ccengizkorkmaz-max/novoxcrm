@@ -159,6 +159,7 @@ export function WorkflowMonitor({ workflowId, workflowName, onClose }: WorkflowM
     }
 
     statCards.push(
+        { label: 'Tamamlanan', value: stats.completedCalled || 0, color: 'text-slate-400', bg: 'from-slate-500/10' },
         { label: 'Dönüşüm (İlgilendi)', value: stats.converted || 0, color: 'text-rose-400', bg: 'from-rose-500/10' },
     )
 
