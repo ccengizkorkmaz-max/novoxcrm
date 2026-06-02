@@ -194,7 +194,7 @@ export async function processOutreachQueue() {
 
     // ─── Global Lock: Eşzamanlı cron çalışmalarını engelle ─────
     // Tenants tablosunda ilk tenant'ın ai_outreach_settings alanında lock tutuyoruz
-    const LOCK_TIMEOUT_MS = 3 * 60 * 1000 // 3 dakika (kısa tutuyoruz — stale lock hızlı kurtarılsın)
+    const LOCK_TIMEOUT_MS = 6 * 60 * 1000 // 6 dakika (cron 5dk'da bir, lock bundan uzun olmalı)
     const { data: lockTenant } = await supabase.from('tenants').select('id, ai_outreach_settings').limit(1).single()
     
     if (lockTenant) {
@@ -250,17 +250,16 @@ export async function processOutreachQueue() {
         .in('status', ['active', 'waiting'])
         .lte('next_action_at', now)
         .order('next_action_at', { ascending: true })
-        .limit(1000)
+        .limit(500)
 
     if (error || !dueExecutions?.length) {
         console.log(`[Outreach] No due executions. Error: ${error?.message || 'none'}`)
         return { processed: 0 }
     }
 
-    // ─── Önceliklendirme: AI aramaları (step_order=1) her zaman WA/SMS'den önce ───
-    // Bu sayede WA hataları arama kuyruğunu asla engelleyemez
+    // ─── İki Aşamalı İşleme: Aramalar her zaman WA'dan ÖNCE ───
+    // Adım 1 execution'ları (genelde ai_call) en önce, sonra diğerleri
     dueExecutions.sort((a: any, b: any) => {
-        // ai_call adımları (genelde step_order=1) önce, WA/SMS sonra
         return (a.current_step_order || 0) - (b.current_step_order || 0)
     })
 
@@ -347,6 +346,8 @@ export async function processOutreachQueue() {
 
     let processed = 0
     let initiatedCallsCount = 0
+    let waProcessedCount = 0
+    const MAX_WA_PER_BATCH = 20 // WA batch limiti — aramaları engellemesini önler
 
     // Track batch counts per workflow
     const workflowBatchCounts = new Map<string, number>()
@@ -436,6 +437,16 @@ export async function processOutreachQueue() {
             // No more steps → mark completed
             await supabase.from('outreach_executions')
                 .update({ status: 'completed', completed_at: now })
+                .eq('id', execution.id)
+            continue
+        }
+
+        // ─── WA Batch Limiti ─────────────────────────────
+        // Her cron çalışmasında max 20 WA. Aramalar sınırsız.
+        if ((step.action_type === 'whatsapp' || step.action_type === 'sms') && waProcessedCount >= MAX_WA_PER_BATCH) {
+            // WA limiti doldu — execution'ı unlock et, sonraki cron'a bırak
+            await supabase.from('outreach_executions')
+                .update({ next_action_at: new Date(Date.now() + 60 * 1000).toISOString() })
                 .eq('id', execution.id)
             continue
         }
@@ -541,6 +552,9 @@ export async function processOutreachQueue() {
             if (step.action_type === 'ai_call') {
                 initiatedCallsCount++
             }
+            if (step.action_type === 'whatsapp' || step.action_type === 'sms') {
+                waProcessedCount++
+            }
             if (customerId) processedCustomerIds.add(customerId)
             workflowBatchCounts.set(wfId, (workflowBatchCounts.get(wfId) || 0) + 1)
         } catch (err: any) {
@@ -562,10 +576,11 @@ export async function processOutreachQueue() {
         }
     }
 
-    // ─── Post-batch polling: wait for calls to finish, then start more ─────
-    // With webhooks active, polling is a fallback safety net
-    const MAX_POLL_ROUNDS = 2 // Reduced from 4 — webhooks handle most reconciliation now
-    const POLL_WAIT_MS = 20_000 // 20 seconds between polls (was 30s)
+    // ─── Post-batch polling: DEVRE DIŞI ─────────────────────────────
+    // Webhooklar + cron başı reconciliation yeterli. Polling kaldırıldı.
+    // 40sn gereksiz bekleme vardı, bu süre kurtarıldı.
+    const MAX_POLL_ROUNDS = 0 // Devre dışı — webhook-first yaklaşım
+    const POLL_WAIT_MS = 20_000 // Kullanılmıyor ama referans için
     const vapiKeyForPoll = process.env.VAPI_API_KEY
 
     for (let round = 1; round <= MAX_POLL_ROUNDS && initiatedCallsCount > 0; round++) {
@@ -861,6 +876,7 @@ async function executeAiCall(execution: any, step: any, config: StepConfig, phon
     })
 
     if (result.success) {
+        console.log(`[Outreach] ✅ Arama başlatıldı: ${execution.customer_id} (${customer?.full_name}) → callId: ${result.callId}`)
         // Call initiated — wait for webhook to report result
         // Set execution to 'waiting' state with a 10-minute timeout
         const timeoutAt = new Date()
@@ -878,9 +894,18 @@ async function executeAiCall(execution: any, step: any, config: StepConfig, phon
             })
             .eq('id', execution.id)
     } else {
+        console.error(`[Outreach] ❌ Arama başlatılamadı: ${execution.customer_id} (${customer?.full_name}) — Hata: ${result.error}`)
         // Critical failure check
         if (result.error && result.error.includes('INSUFFICIENT_FUNDS')) {
             throw new Error(`Critical System Failure: ${result.error}`);
+        }
+        // Vapi concurrency limit — erteleme yap, fail sayma
+        if (result.error && (result.error.includes('concurrency') || result.error.includes('Concurrency'))) {
+            console.log(`[Outreach] Vapi concurrency limit. ${execution.id} 2dk sonraya erteleniyor.`)
+            await supabase.from('outreach_executions')
+                .update({ next_action_at: new Date(Date.now() + 2 * 60 * 1000).toISOString() })
+                .eq('id', execution.id)
+            return
         }
         // Call failed — check retry logic
         await handleRetryOrAdvance(execution, step, config, 'no_answer')
@@ -893,6 +918,34 @@ async function executeWhatsApp(execution: any, step: any, config: StepConfig, ph
     if (!phone) {
         await logAndAdvance(execution, step, 'skipped', 'whatsapp', 'No phone number')
         return
+    }
+
+    // ─── Mükerrer WA Koruması (24 saat) ─────────────────────
+    // Aynı müşteriye aynı şablonla son 24 saatte mesaj gitmişse ATLA
+    const templateName24h = config.template_name || ''
+    if (templateName24h && execution.customer_id) {
+        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+        // Müşterinin TÜM execution'larını bul
+        const { data: custExecs } = await supabase
+            .from('outreach_executions')
+            .select('id')
+            .eq('customer_id', execution.customer_id)
+        const custExecIds = custExecs?.map(e => e.id) || []
+        if (custExecIds.length > 0) {
+            const { count: recentWA } = await supabase
+                .from('outreach_step_logs')
+                .select('id', { count: 'exact', head: true })
+                .eq('channel', 'whatsapp')
+                .eq('status', 'sent')
+                .eq('template_name', templateName24h)
+                .in('execution_id', custExecIds.slice(0, 200))
+                .gte('executed_at', twentyFourHoursAgo)
+            if (recentWA && recentWA > 0) {
+                console.log(`[Outreach] ⛔ WA mükerrer koruma: ${execution.customer_id} müşterisine ${templateName24h} şablonu son 24 saatte zaten gönderilmiş. Atlanıyor.`)
+                await advanceToNextStep(execution, step, 'success')
+                return
+            }
+        }
     }
 
     let result: { success: boolean; error?: string; data?: any }
@@ -1917,7 +1970,7 @@ export async function startWorkflowForLeads(workflowId: string, leadIds: string[
             .from('outreach_executions')
             .select('customer_id')
             .eq('workflow_id', workflowId)
-            .in('status', ['active', 'waiting', 'completed', 'converted', 'stopped'])
+            .in('status', ['active', 'waiting', 'completed', 'converted', 'stopped', 'paused', 'failed'])
             .in('customer_id', chunk)
     )
     const existingResults = await Promise.all(existingPromises)
