@@ -737,8 +737,8 @@ async function executeWhatsApp(execution: any, step: any, config: StepConfig, ph
 
         // Send template message (for messages outside 24h window)
         const params = (config.template_params || []).map((p: string) =>
-            p.replace('{customer_name}', customer?.full_name || '')
-                .replace('{project_name}', execution.metadata?.project_name || '')
+            p.replace('{customer_name}', customer?.full_name || 'Değerli Müşterimiz')
+                .replace('{project_name}', execution.metadata?.project_name || 'Novo Gayrimenkul')
         )
         result = await sendWhatsAppTemplate(phone, templateName, params)
         messageContent = `Template: ${templateName} [${params.join(', ')}]`
