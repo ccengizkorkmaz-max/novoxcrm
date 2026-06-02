@@ -119,6 +119,63 @@ export async function processOutreachQueue() {
     const supabase = createAdminClient()
     const now = new Date().toISOString()
 
+    // ─── Vapi Call Reconciliation (ALWAYS runs, even when locked) ──────
+    // Sync calls that ended on Vapi's side but webhook was never received.
+    // This runs BEFORE the lock check so stuck calls are always resolved.
+    {
+        const { data: stuckCalls } = await supabase
+            .from('outreach_step_logs')
+            .select('id, external_id, execution_id')
+            .eq('status', 'sent')
+            .is('completed_at', null)
+            .eq('channel', 'ai_call')
+            .limit(50)
+
+        if (stuckCalls?.length) {
+            const vapiApiKey = process.env.VAPI_API_KEY
+            let synced = 0
+            for (const log of stuckCalls) {
+                if (!log.external_id || !vapiApiKey) continue
+                try {
+                    const res = await fetch(`https://api.vapi.ai/call/${log.external_id}`, {
+                        headers: { 'Authorization': `Bearer ${vapiApiKey}` },
+                    })
+                    if (!res.ok) continue
+                    const vapiCall = await res.json()
+                    if (vapiCall.status === 'ended') {
+                        // Get execution metadata for handleVapiCallResult
+                        const { data: exec } = await supabase
+                            .from('outreach_executions')
+                            .select('metadata')
+                            .eq('id', log.execution_id)
+                            .single()
+
+                        // Use the same handler as webhook — this creates timeline activities,
+                        // transcripts, recordings, lead scoring, and retry/advance logic
+                        await handleVapiCallResult({
+                            callId: log.external_id,
+                            status: vapiCall.status || 'ended',
+                            endedReason: vapiCall.endedReason,
+                            transcript: vapiCall.transcript || vapiCall.artifact?.transcript,
+                            summary: vapiCall.summary || vapiCall.analysis?.summary || vapiCall.artifact?.summary,
+                            recordingUrl: vapiCall.recordingUrl || vapiCall.artifact?.recordingUrl,
+                            duration: vapiCall.duration,
+                            cost: vapiCall.cost || vapiCall.costBreakdown?.total,
+                            analysis: vapiCall.analysis,
+                            metadata: exec?.metadata || { execution_id: log.execution_id },
+                        })
+                        synced++
+                    }
+                } catch (e: any) {
+                    console.warn(`[Outreach] Reconciliation error for ${log.external_id}: ${e.message}`)
+                }
+            }
+            if (synced > 0) {
+                console.log(`[Outreach] Vapi reconciliation: ${synced}/${stuckCalls.length} aramanın durumu senkronize edildi (timeline + retry dahil)`)
+            }
+        }
+    }
+
     // ─── Global Lock: Eşzamanlı cron çalışmalarını engelle ─────
     // Tenants tablosunda ilk tenant'ın ai_outreach_settings alanında lock tutuyoruz
     const LOCK_TIMEOUT_MS = 5 * 60 * 1000 // 5 dakika
@@ -152,64 +209,6 @@ export async function processOutreachQueue() {
     }
 
     try {
-
-    // ─── Vapi Call Reconciliation ──────────────────────────
-    // Sync calls that ended on Vapi's side but webhook was never received.
-    // Uses handleVapiCallResult to ensure timeline activities, transcripts,
-    // recordings, lead scoring, and retry/advance logic all run properly.
-    {
-        const { data: stuckCalls } = await supabase
-            .from('outreach_step_logs')
-            .select('id, external_id, execution_id')
-            .eq('status', 'sent')
-            .is('completed_at', null)
-            .eq('channel', 'ai_call')
-            .limit(20)
-
-        if (stuckCalls?.length) {
-            const vapiApiKey = process.env.VAPI_API_KEY
-            let synced = 0
-            for (const log of stuckCalls) {
-                if (!log.external_id || !vapiApiKey) continue
-                try {
-                    const res = await fetch(`https://api.vapi.ai/call/${log.external_id}`, {
-                        headers: { 'Authorization': `Bearer ${vapiApiKey}` },
-                    })
-                    if (!res.ok) continue
-                    const vapiCall = await res.json()
-                    if (vapiCall.status === 'ended') {
-                        // Get execution metadata for handleVapiCallResult
-                        const { data: exec } = await supabase
-                            .from('outreach_executions')
-                            .select('metadata')
-                            .eq('id', log.execution_id)
-                            .single()
-
-                        // Use the same handler as webhook — this creates timeline activities,
-                        // transcripts, recordings, lead scoring, and retry/advance logic
-                        await handleVapiCallResult({
-                            callId: log.external_id,
-                            status: vapiCall.status || 'ended',
-                            endedReason: vapiCall.endedReason,
-                            transcript: vapiCall.transcript,
-                            summary: vapiCall.summary,
-                            recordingUrl: vapiCall.recordingUrl,
-                            duration: vapiCall.duration,
-                            cost: vapiCall.cost,
-                            analysis: vapiCall.analysis,
-                            metadata: exec?.metadata || { execution_id: log.execution_id },
-                        })
-                        synced++
-                    }
-                } catch (e: any) {
-                    console.warn(`[Outreach] Reconciliation error for ${log.external_id}: ${e.message}`)
-                }
-            }
-            if (synced > 0) {
-                console.log(`[Outreach] Vapi reconciliation: ${synced}/${stuckCalls.length} aramanın durumu senkronize edildi (timeline + retry dahil)`)
-            }
-        }
-    }
 
     // Find executions that are due, sorted by next_action_at ascending to prevent starvation
     const { data: dueExecutions, error } = await supabase
