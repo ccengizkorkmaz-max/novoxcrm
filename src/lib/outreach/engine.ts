@@ -655,7 +655,7 @@ export async function processOutreachQueue() {
             if (batchProcessed >= newSlots) break
             if (!(execution.outreach_workflows as any)?.is_active) continue
 
-            const phone = execution.customers?.phone
+            const phone = (execution.customers as any)?.phone
             if (!phone) continue
 
             const { data: step } = await supabase
