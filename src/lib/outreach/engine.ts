@@ -265,6 +265,7 @@ export async function processOutreachQueue() {
     // Check Vapi's REAL remaining concurrent call slots via API
     // This is the source of truth — DB records can become stale if webhooks fail
     let availableSlots = maxConcurrent
+    let vapiApiSucceeded = false
     try {
         const vapiApiKey = process.env.VAPI_API_KEY
         if (vapiApiKey) {
@@ -281,6 +282,7 @@ export async function processOutreachQueue() {
                 const vapiSlots = maxConcurrent - vapiActiveCalls
                 console.log(`[Outreach] Vapi API: ${vapiActiveCalls} aktif arama, ${vapiSlots}/${maxConcurrent} slot müsait`)
                 availableSlots = Math.max(0, vapiSlots)
+                vapiApiSucceeded = true
             } else {
                 console.warn(`[Outreach] Vapi API check failed (${vapiRes.status}), falling back to DB check`)
             }
@@ -289,8 +291,8 @@ export async function processOutreachQueue() {
         console.warn(`[Outreach] Vapi API check error: ${vapiErr.message}, falling back to DB check`)
     }
 
-    // Fallback: also check DB for active calls (in case Vapi API check failed)
-    if (availableSlots === maxConcurrent) {
+    // Fallback: check DB for active calls ONLY if Vapi API check failed
+    if (!vapiApiSucceeded) {
         const activeThreshold = new Date(Date.now() - 15 * 60 * 1000).toISOString()
         const { count: activeCalls } = await supabase
             .from('outreach_step_logs')
