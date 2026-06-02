@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse, after } from 'next/server'
 import { parseVapiWebhook, handleManualVapiCallResult, getTurkishNameTitle, TURKISH_VOICE_RULES } from '@/lib/vapi'
 
 export const dynamic = 'force-dynamic'
@@ -44,7 +44,20 @@ export async function POST(req: NextRequest) {
         // Handle different event types
         switch (parsed.type) {
             case 'assistant-request': {
-                console.log('[Vapi Webhook] Assistant request triggered')
+                // ─── FAST PATH: Outbound calls already have assistant config ───
+                // When we start an outbound call via makeOutboundCall(), the assistant
+                // configuration is sent inline in the API body. If Vapi still sends
+                // assistant-request, we MUST respond within 3 seconds or Vapi drops
+                // the call. Return empty {} immediately — no DB queries needed.
+                const callType = body.message?.call?.type || body.call?.type || ''
+                const hasExecutionId = parsed.metadata?.execution_id
+                
+                if (callType === 'outboundPhoneCall' || hasExecutionId) {
+                    console.log(`[Vapi Webhook] ⚡ Outbound assistant-request — instant empty response (type=${callType}, execId=${hasExecutionId || 'none'})`)
+                    return NextResponse.json({}, { status: 200 })
+                }
+
+                console.log('[Vapi Webhook] Assistant request triggered (inbound call)')
                 
                 // Get customer phone number
                 const customerPhone = body.message?.call?.customer?.number || body.message?.customer?.number || body.message?.call?.customer?.phone
@@ -244,53 +257,57 @@ export async function POST(req: NextRequest) {
             }
 
             case 'end-of-call-report':
-            case 'call.ended':
+            case 'call.ended': {
                 console.log(`[Vapi Webhook] Call ended: ${parsed.callId}, reason: ${parsed.endedReason}`)
                 
-                // Idempotency: aynı callId için tekrar işlem yapma.
-                // Not: Placeholder aktivitede Call ID zaten var. Bu yüzden Transkript'in eklenip eklenmediğine bakıyoruz.
-                if (parsed.callId) {
-                    const adminSupabase = createAdminClient()
-                    const { count } = await adminSupabase
-                        .from('activities')
-                        .select('*', { count: 'exact', head: true })
-                        .eq('type', 'Transcript')
-                        .ilike('description', `%[Call ID: ${parsed.callId}]%`)
-                        .ilike('description', `%📝 Transkript:%`)
-                    if (count && count > 0) {
-                        console.log(`[Vapi Webhook] Duplicate webhook for callId ${parsed.callId} — atlanıyor`)
-                        return NextResponse.json({ status: 'duplicate_skipped' }, { status: 200 })
-                    }
+                // ─── NON-BLOCKING: Return 200 immediately, process in background ───
+                // Vapi expects a response within 3-5 seconds. DB operations (timeline,
+                // lead scoring, WhatsApp notifications) can take 5-15 seconds.
+                // Using Next.js after() API to defer heavy work after response.
+                const callEndData = {
+                    callId: parsed.callId,
+                    status: parsed.status || 'ended',
+                    endedReason: parsed.endedReason,
+                    transcript: parsed.transcript,
+                    summary: parsed.summary,
+                    recordingUrl: parsed.recordingUrl,
+                    duration: parsed.duration,
+                    cost: parsed.cost,
+                    analysis: parsed.analysis,
+                    metadata: parsed.metadata,
                 }
 
-                if (parsed.metadata?.type === 'manual_call') {
-                    await handleManualVapiCallResult({
-                        callId: parsed.callId,
-                        status: parsed.status || 'ended',
-                        endedReason: parsed.endedReason,
-                        transcript: parsed.transcript,
-                        summary: parsed.summary,
-                        recordingUrl: parsed.recordingUrl,
-                        duration: parsed.duration,
-                        cost: parsed.cost,
-                        analysis: parsed.analysis,
-                        metadata: parsed.metadata,
-                    })
-                } else {
-                    await handleVapiCallResult({
-                        callId: parsed.callId,
-                        status: parsed.status || 'ended',
-                        endedReason: parsed.endedReason,
-                        transcript: parsed.transcript,
-                        summary: parsed.summary,
-                        recordingUrl: parsed.recordingUrl,
-                        duration: parsed.duration,
-                        cost: parsed.cost,
-                        analysis: parsed.analysis,
-                        metadata: parsed.metadata,
-                    })
-                }
-                break
+                after(async () => {
+                    try {
+                        // Idempotency: aynı callId için tekrar işlem yapma
+                        if (callEndData.callId) {
+                            const adminSupabase = createAdminClient()
+                            const { count } = await adminSupabase
+                                .from('activities')
+                                .select('*', { count: 'exact', head: true })
+                                .eq('type', 'Transcript')
+                                .ilike('description', `%[Call ID: ${callEndData.callId}]%`)
+                                .ilike('description', `%📝 Transkript:%`)
+                            if (count && count > 0) {
+                                console.log(`[Vapi Webhook] Duplicate webhook for callId ${callEndData.callId} — skipping in after()`)
+                                return
+                            }
+                        }
+
+                        if (callEndData.metadata?.type === 'manual_call') {
+                            await handleManualVapiCallResult(callEndData)
+                        } else {
+                            await handleVapiCallResult(callEndData)
+                        }
+                        console.log(`[Vapi Webhook] ✅ Background processing completed for ${callEndData.callId}`)
+                    } catch (afterErr: any) {
+                        console.error(`[Vapi Webhook] ❌ Background processing error for ${callEndData.callId}:`, afterErr.message)
+                    }
+                })
+
+                // Return 200 immediately — Vapi won't retry
+                return NextResponse.json({ status: 'ok', callId: parsed.callId }, { status: 200 })
+            }
 
             case 'status-update':
             case 'call.status':

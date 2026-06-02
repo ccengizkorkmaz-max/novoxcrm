@@ -236,9 +236,8 @@ export async function makeOutboundCall(options: VapiCallOptions): Promise<VapiCa
                 serverMessages: ['end-of-call-report', 'status-update', 'function-call'],
                 server: {
                     url: resolvedServerUrl,
-                    headers: {
-                        'x-vapi-secret': process.env.VAPI_WEBHOOK_SECRET || '',
-                    },
+                    secret: process.env.VAPI_WEBHOOK_SECRET || undefined,
+                    timeoutSeconds: 20,
                 },
                 firstMessage: options.firstMessage || undefined,
                 endCallMessage: options.endCallMessage || 'İyi günler, görüşmek üzere. Hoşçakalın.',
