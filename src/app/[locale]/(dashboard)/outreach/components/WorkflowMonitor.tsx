@@ -100,10 +100,20 @@ export function WorkflowMonitor({ workflowId, workflowName, onClose }: WorkflowM
 
     const { workflow, executions, logs, stats, channels, totalCount, todayCount, totalPages, pageSize } = data
 
-    // Build a map: execution_id → latest log
+    // Build a map: execution_id → best log (prefer completed logs with actual results)
     const logMap = new Map<string, any>()
     logs.forEach((log: any) => {
-        if (!logMap.has(log.execution_id)) logMap.set(log.execution_id, log)
+        const existing = logMap.get(log.execution_id)
+        if (!existing) {
+            logMap.set(log.execution_id, log)
+        } else {
+            // Prefer logs with actual call results over pending 'sent' logs
+            const existingHasResults = existing.call_outcome || existing.call_summary || existing.call_duration_seconds
+            const newHasResults = log.call_outcome || log.call_summary || log.call_duration_seconds
+            if (newHasResults && !existingHasResults) {
+                logMap.set(log.execution_id, log)
+            }
+        }
     })
 
     // Determine which channels this workflow uses
@@ -299,7 +309,19 @@ export function WorkflowMonitor({ workflowId, workflowName, onClose }: WorkflowM
                                         ? { label: 'Arama Yapılıyor...', color: 'text-emerald-400 bg-emerald-500/20 border-emerald-500 animate-pulse', icon: PhoneIncoming }
                                         : (STATUS_CONFIG[exec.status] || STATUS_CONFIG.active)
                                     
-                                    const outcomeConf = log?.call_outcome ? CALL_OUTCOME_CONFIG[log.call_outcome] : null
+                                    // Outcome: prefer call_outcome, fallback to log status, then execution status
+                                    let outcomeConf = log?.call_outcome ? CALL_OUTCOME_CONFIG[log.call_outcome] : null
+                                    if (!outcomeConf && log?.status === 'failed') {
+                                        outcomeConf = CALL_OUTCOME_CONFIG['failed'] || { label: 'Başarısız', emoji: '❌' }
+                                    } else if (!outcomeConf && log?.status === 'sent' && log?.completed_at) {
+                                        outcomeConf = { label: 'Gönderildi', emoji: '📤' }
+                                    } else if (!outcomeConf && log?.channel === 'whatsapp' && log?.status === 'sent') {
+                                        outcomeConf = { label: 'WA Gönderildi', emoji: '✅' }
+                                    } else if (!outcomeConf && exec.status === 'completed') {
+                                        outcomeConf = { label: 'Tamamlandı', emoji: '✅' }
+                                    } else if (!outcomeConf && exec.status === 'stopped') {
+                                        outcomeConf = { label: 'Tamamlandı', emoji: '✅' }
+                                    }
                                     const StatusIcon = statusConf.icon
 
                                     return (
@@ -336,8 +358,14 @@ export function WorkflowMonitor({ workflowId, workflowName, onClose }: WorkflowM
                                                         {log.template_name.replace('novo_campaign_', '').replace('novo_kampanya_', '').replace('_v2', '')}
                                                     </span>
                                                 ) : log?.channel === 'ai_call' ? (
-                                                    <span className="text-[10px] bg-purple-500/10 text-purple-400 px-1.5 py-0.5 rounded">AI Arama</span>
-                                                ) : '—'}
+                                                    <span className="text-[10px] bg-purple-500/10 text-purple-400 px-1.5 py-0.5 rounded">📞 AI Arama</span>
+                                                ) : log?.channel === 'whatsapp' ? (
+                                                    <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded">💬 WhatsApp</span>
+                                                ) : log?.channel === 'sms' ? (
+                                                    <span className="text-[10px] bg-sky-500/10 text-sky-400 px-1.5 py-0.5 rounded">📱 SMS</span>
+                                                ) : (
+                                                    <span className="text-[10px] text-muted-foreground/50">⏳ Bekliyor</span>
+                                                )}
                                             </td>
                                             <td className="p-2.5 text-center">
                                                 <Badge variant="outline" className={`text-[10px] gap-1 ${statusConf.color}`}>
