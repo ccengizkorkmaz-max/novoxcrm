@@ -1213,22 +1213,22 @@ export async function resetOutreachSystem(options: { clearStuckCalls?: boolean; 
 
     if (options.clearStuckCalls) {
         // Clear all sent/in_progress step logs without completed_at
-        const { count: c1 } = await supabase
+        const { data: d1 } = await supabase
             .from('outreach_step_logs')
             .update({ status: 'failed', completed_at: now, error_message: 'Admin tarafından manuel temizlendi' })
             .in('status', ['sent', 'in_progress'])
             .is('completed_at', null)
-            .select('id', { count: 'exact', head: true })
+            .select('id')
 
         // Also fix failed logs without completed_at
-        const { count: c2 } = await supabase
+        const { data: d2 } = await supabase
             .from('outreach_step_logs')
             .update({ completed_at: now })
             .eq('status', 'failed')
             .is('completed_at', null)
-            .select('id', { count: 'exact', head: true })
+            .select('id')
 
-        results.push(`${(c1 || 0) + (c2 || 0)} takılı arama kaydı temizlendi`)
+        results.push(`${(d1?.length || 0) + (d2?.length || 0)} takılı arama kaydı temizlendi`)
     }
 
     if (options.releaseLock) {
@@ -1247,14 +1247,14 @@ export async function resetOutreachSystem(options: { clearStuckCalls?: boolean; 
     }
 
     if (options.resetWaiting) {
-        const { count } = await supabase
+        const { data: d3 } = await supabase
             .from('outreach_executions')
             .update({ status: 'active', next_action_at: now })
             .eq('status', 'waiting')
             .eq('tenant_id', tenantId)
-            .select('id', { count: 'exact', head: true })
+            .select('id')
 
-        results.push(`${count || 0} bekleyen execution aktife alındı`)
+        results.push(`${d3?.length || 0} bekleyen execution aktife alındı`)
     }
 
     revalidatePath('/outreach')
