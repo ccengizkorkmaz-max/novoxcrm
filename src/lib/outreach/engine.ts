@@ -162,7 +162,7 @@ export async function processOutreachQueue() {
                             duration: vapiCall.duration,
                             cost: vapiCall.cost || vapiCall.costBreakdown?.total,
                             analysis: vapiCall.analysis,
-                            metadata: exec?.metadata || { execution_id: log.execution_id },
+                            metadata: { ...(exec?.metadata || {}), execution_id: log.execution_id },
                         })
                         synced++
                     }
@@ -592,7 +592,7 @@ export async function processOutreachQueue() {
                                 duration: vapiCall.duration,
                                 cost: vapiCall.cost || vapiCall.costBreakdown?.total,
                                 analysis: vapiCall.analysis,
-                                metadata: exec?.metadata || { execution_id: log.execution_id },
+                                metadata: { ...(exec?.metadata || {}), execution_id: log.execution_id },
                             })
                             reconciledCount++
                         }
