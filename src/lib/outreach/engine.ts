@@ -546,8 +546,12 @@ export async function processOutreachQueue() {
         // Extend lock so other cron instances don't interfere
         if (tenantId) {
             const extendedLock = new Date(Date.now() + LOCK_TIMEOUT_MS).toISOString()
+            const { data: currentTenant } = await supabase.from('tenants')
+                .select('ai_outreach_settings')
+                .eq('id', tenantId)
+                .single()
             await supabase.from('tenants')
-                .update({ ai_outreach_settings: { ...tenantSettings, queue_lock_at: extendedLock } })
+                .update({ ai_outreach_settings: { ...currentTenant?.ai_outreach_settings, queue_lock_at: extendedLock } })
                 .eq('id', tenantId)
         }
 
