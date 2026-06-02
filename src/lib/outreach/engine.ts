@@ -205,12 +205,15 @@ export async function processOutreachQueue() {
         maxConcurrent = tenantSettings?.ai_outreach_settings?.max_concurrent_calls || MAX_CONCURRENT_CALLS
     }
 
+    // Count active calls started in the last 15 minutes to ignore old stuck calls
+    const activeThreshold = new Date(Date.now() - 15 * 60 * 1000).toISOString()
     const { count: activeCalls } = await supabase
         .from('outreach_step_logs')
         .select('id', { count: 'exact', head: true })
         .eq('status', 'sent')
         .is('completed_at', null)
         .eq('channel', 'ai_call')
+        .gte('executed_at', activeThreshold)
 
 
     const availableSlots = maxConcurrent - (activeCalls || 0)
@@ -313,6 +316,33 @@ export async function processOutreachQueue() {
             await supabase.from('outreach_executions')
                 .update({ status: 'completed', completed_at: now })
                 .eq('id', execution.id)
+            continue
+        }
+
+        // Handle webhook timeout for executions stuck in 'waiting' status
+        if (execution.status === 'waiting') {
+            console.log(`[Outreach] Execution ${execution.id} timed out waiting for webhook. Handling timeout...`)
+            const pendingCallId = execution.metadata?.pending_call_id
+            if (pendingCallId) {
+                const { data: logEntry } = await supabase
+                    .from('outreach_step_logs')
+                    .select('*')
+                    .eq('execution_id', execution.id)
+                    .eq('external_id', pendingCallId)
+                    .maybeSingle()
+
+                if (logEntry && !logEntry.completed_at) {
+                    await supabase.from('outreach_step_logs')
+                        .update({
+                            status: 'failed',
+                            completed_at: now,
+                            error_message: 'Webhook timeout (10 minutes passed)',
+                            call_outcome: 'no_answer'
+                        })
+                        .eq('id', logEntry.id)
+                }
+            }
+            await handleRetryOrAdvance(execution, step, step.config || {}, 'no_answer')
             continue
         }
 
