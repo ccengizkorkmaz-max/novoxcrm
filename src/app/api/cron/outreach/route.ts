@@ -22,12 +22,14 @@ export async function GET(req: NextRequest) {
     try {
         console.log('[Outreach Cron] Starting queue processing...')
         const result = await processOutreachQueue()
-        console.log(`[Outreach Cron] Processed ${result.processed} executions`)
+        console.log(`[Outreach Cron] Processed ${result.processed} executions, reason: ${result.reason || 'ok'}`)
 
         return NextResponse.json({
             success: true,
             processed: result.processed,
+            reason: result.reason || 'ok',
             timestamp: new Date().toISOString(),
+            v: '2026-06-02a',
         })
     } catch (error: any) {
         console.error('[Outreach Cron] Error:', error.message)
