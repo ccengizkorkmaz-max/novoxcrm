@@ -653,7 +653,7 @@ export async function processOutreachQueue() {
         let batchProcessed = 0
         for (const execution of nextBatch) {
             if (batchProcessed >= newSlots) break
-            if (!execution.outreach_workflows?.is_active) continue
+            if (!(execution.outreach_workflows as any)?.is_active) continue
 
             const phone = execution.customers?.phone
             if (!phone) continue
