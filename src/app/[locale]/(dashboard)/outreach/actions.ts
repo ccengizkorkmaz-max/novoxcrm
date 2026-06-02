@@ -1169,7 +1169,7 @@ export async function getSystemHealth() {
 
     const lockAt = tenant?.ai_outreach_settings?.queue_lock_at
     const lockAgeMs = lockAt ? Date.now() - new Date(lockAt).getTime() : 0
-    const isLockStuck = lockAt && lockAgeMs > 5 * 60 * 1000 // 5 dakikadan eski lock = takılı
+    const isLockStuck = lockAt && lockAgeMs > 3 * 60 * 1000 // 3 dakikadan eski lock = takılı (engine timeout ile aynı)
 
     // 5. Waiting executions (should resolve via webhook but might be stuck)
     const { count: waitingExecs } = await supabase

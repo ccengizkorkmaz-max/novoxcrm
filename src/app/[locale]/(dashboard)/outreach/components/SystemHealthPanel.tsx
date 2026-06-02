@@ -105,7 +105,9 @@ export function SystemHealthPanel() {
         )
     }
 
-    const isHealthy = !health.hasIssues && health.stuckCallsTotal === 0
+    // Only real problems trigger the warning: stuck calls (>15min), stuck locks (>3min), ghost records
+    // Active calls and locked queue during normal processing are NOT issues
+    const isHealthy = !health.hasIssues
 
     return (
         <div className={`rounded-xl border transition-all duration-300 ${
@@ -134,7 +136,7 @@ export function SystemHealthPanel() {
                         </div>
                         <p className="text-[11px] text-muted-foreground mt-0.5">
                             {health.stuckCallsTotal > 0 && `${health.stuckCallsTotal} aktif arama · `}
-                            {health.overdueExecs > 0 && `${health.overdueExecs} bekleyen · `}
+                            {health.waitingExecs > 0 && `${health.waitingExecs} webhook bekliyor · `}
                             Son kontrol: {new Date(health.checkedAt).toLocaleTimeString('tr-TR')}
                         </p>
                     </div>
@@ -160,22 +162,22 @@ export function SystemHealthPanel() {
                             icon={Phone}
                             label="Aktif Arama"
                             value={health.stuckCallsTotal}
-                            sub={health.stuckCallsOld > 0 ? `${health.stuckCallsOld} takılı (>15dk)` : 'Normal'}
+                            sub={health.stuckCallsOld > 0 ? `⚠️ ${health.stuckCallsOld} takılı (>15dk)` : health.stuckCallsTotal > 0 ? 'Devam ediyor' : 'Arama yok'}
                             status={health.stuckCallsOld > 0 ? 'danger' : health.stuckCallsTotal > 0 ? 'active' : 'ok'}
                         />
                         <StatusCard
                             icon={Lock}
                             label="Kuyruk Kilidi"
                             value={health.isLockStuck ? 'Takılı!' : health.queueLock ? 'Kilitli' : 'Açık'}
-                            sub={health.queueLock ? `${Math.round(health.queueLockAge / 1000)}sn` : 'Serbest'}
-                            status={health.isLockStuck ? 'danger' : health.queueLock ? 'warning' : 'ok'}
+                            sub={health.isLockStuck ? `⚠️ ${Math.round(health.queueLockAge / 1000)}sn takılı` : health.queueLock ? `${Math.round(health.queueLockAge / 1000)}sn · İşleniyor` : 'Serbest'}
+                            status={health.isLockStuck ? 'danger' : health.queueLock ? 'active' : 'ok'}
                         />
                         <StatusCard
                             icon={Clock}
                             label="Bekleyen (Waiting)"
                             value={health.waitingExecs}
-                            sub="Webhook bekliyor"
-                            status={health.waitingExecs > 20 ? 'danger' : health.waitingExecs > 0 ? 'warning' : 'ok'}
+                            sub={health.waitingExecs > 20 ? '⚠️ Çok fazla bekleyen' : health.waitingExecs > 0 ? 'Webhook bekliyor' : 'Bekleyen yok'}
+                            status={health.waitingExecs > 20 ? 'danger' : health.waitingExecs > 0 ? 'active' : 'ok'}
                         />
                         <StatusCard
                             icon={AlertTriangle}
