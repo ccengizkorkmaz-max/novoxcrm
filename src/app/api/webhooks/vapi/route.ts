@@ -13,6 +13,11 @@ import { createAdminClient } from '@/lib/supabase/admin'
  *   https://your-domain.com/api/webhooks/vapi
  */
 export async function POST(req: NextRequest) {
+    // DEBUG: Log every incoming request to verify Vapi is reaching this endpoint
+    const reqUrl = req.url
+    const reqMethod = req.method
+    const reqHeaders = Object.fromEntries([...req.headers.entries()].filter(([k]) => k.startsWith('x-vapi') || k === 'content-type' || k === 'user-agent'))
+    console.log(`[Vapi Webhook] 🔔 INCOMING REQUEST: ${reqMethod} ${reqUrl} headers=${JSON.stringify(reqHeaders)}`)
     try {
         // Webhook secret doğrulama (header veya query parameter)
         let secret = req.headers.get('x-vapi-secret')
