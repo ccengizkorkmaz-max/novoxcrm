@@ -1125,3 +1125,138 @@ function normalizeTurkish(str: string): string {
     }
 }
 
+// ─── System Health & Admin Reset ─────────────────────────────
+
+export async function getSystemHealth() {
+    const { supabase, tenantId, profile } = await getAuthContext()
+    if (!['admin', 'owner'].includes(profile?.role || '')) {
+        return { error: 'Yetkisiz erişim' }
+    }
+
+    const now = new Date().toISOString()
+    const fifteenMinsAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString()
+
+    // 1. Stuck step logs: status=sent/in_progress AND completed_at IS NULL
+    const { count: stuckCallsTotal } = await supabase
+        .from('outreach_step_logs')
+        .select('id', { count: 'exact', head: true })
+        .in('status', ['sent', 'in_progress'])
+        .is('completed_at', null)
+        .eq('channel', 'ai_call')
+
+    // 2. Stuck step logs older than 15 minutes (truly stuck)
+    const { count: stuckCallsOld } = await supabase
+        .from('outreach_step_logs')
+        .select('id', { count: 'exact', head: true })
+        .in('status', ['sent', 'in_progress'])
+        .is('completed_at', null)
+        .eq('channel', 'ai_call')
+        .lt('executed_at', fifteenMinsAgo)
+
+    // 3. Failed logs without completed_at (ghost records)
+    const { count: ghostFailed } = await supabase
+        .from('outreach_step_logs')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'failed')
+        .is('completed_at', null)
+
+    // 4. Queue lock status
+    const { data: tenant } = await supabase
+        .from('tenants')
+        .select('id, ai_outreach_settings')
+        .eq('id', tenantId)
+        .single()
+
+    const lockAt = tenant?.ai_outreach_settings?.queue_lock_at
+    const lockAgeMs = lockAt ? Date.now() - new Date(lockAt).getTime() : 0
+    const isLockStuck = lockAt && lockAgeMs > 5 * 60 * 1000 // 5 dakikadan eski lock = takılı
+
+    // 5. Waiting executions (should resolve via webhook but might be stuck)
+    const { count: waitingExecs } = await supabase
+        .from('outreach_executions')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'waiting')
+        .eq('tenant_id', tenantId)
+
+    // 6. Active executions due in past (should have been processed)
+    const { count: overduExecs } = await supabase
+        .from('outreach_executions')
+        .select('id', { count: 'exact', head: true })
+        .in('status', ['active', 'waiting'])
+        .lte('next_action_at', now)
+        .eq('tenant_id', tenantId)
+
+    const hasIssues = (stuckCallsOld || 0) > 0 || isLockStuck || (ghostFailed || 0) > 0
+
+    return {
+        stuckCallsTotal: stuckCallsTotal || 0,
+        stuckCallsOld: stuckCallsOld || 0,
+        ghostFailed: ghostFailed || 0,
+        queueLock: lockAt || null,
+        queueLockAge: lockAgeMs,
+        isLockStuck: !!isLockStuck,
+        waitingExecs: waitingExecs || 0,
+        overdueExecs: overduExecs || 0,
+        hasIssues,
+        checkedAt: now,
+    }
+}
+
+export async function resetOutreachSystem(options: { clearStuckCalls?: boolean; releaseLock?: boolean; resetWaiting?: boolean }) {
+    const { supabase, tenantId, profile } = await getAuthContext()
+    if (!['admin', 'owner'].includes(profile?.role || '')) {
+        return { error: 'Yetkisiz erişim' }
+    }
+
+    const now = new Date().toISOString()
+    const results: string[] = []
+
+    if (options.clearStuckCalls) {
+        // Clear all sent/in_progress step logs without completed_at
+        const { count: c1 } = await supabase
+            .from('outreach_step_logs')
+            .update({ status: 'failed', completed_at: now, error_message: 'Admin tarafından manuel temizlendi' })
+            .in('status', ['sent', 'in_progress'])
+            .is('completed_at', null)
+            .select('id', { count: 'exact', head: true })
+
+        // Also fix failed logs without completed_at
+        const { count: c2 } = await supabase
+            .from('outreach_step_logs')
+            .update({ completed_at: now })
+            .eq('status', 'failed')
+            .is('completed_at', null)
+            .select('id', { count: 'exact', head: true })
+
+        results.push(`${(c1 || 0) + (c2 || 0)} takılı arama kaydı temizlendi`)
+    }
+
+    if (options.releaseLock) {
+        const { data: tenant } = await supabase
+            .from('tenants')
+            .select('id, ai_outreach_settings')
+            .eq('id', tenantId)
+            .single()
+
+        if (tenant) {
+            await supabase.from('tenants').update({
+                ai_outreach_settings: { ...(tenant.ai_outreach_settings || {}), queue_lock_at: null }
+            }).eq('id', tenant.id)
+            results.push('Kuyruk kilidi serbest bırakıldı')
+        }
+    }
+
+    if (options.resetWaiting) {
+        const { count } = await supabase
+            .from('outreach_executions')
+            .update({ status: 'active', next_action_at: now })
+            .eq('status', 'waiting')
+            .eq('tenant_id', tenantId)
+            .select('id', { count: 'exact', head: true })
+
+        results.push(`${count || 0} bekleyen execution aktife alındı`)
+    }
+
+    revalidatePath('/outreach')
+    return { success: true, results }
+}

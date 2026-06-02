@@ -205,18 +205,49 @@ export async function processOutreachQueue() {
         maxConcurrent = tenantSettings?.ai_outreach_settings?.max_concurrent_calls || MAX_CONCURRENT_CALLS
     }
 
-    // Count active calls started in the last 15 minutes to ignore old stuck calls
+    // Check Vapi's REAL remaining concurrent call slots via API
+    // This is the source of truth — DB records can become stale if webhooks fail
+    let availableSlots = maxConcurrent
+    try {
+        const vapiApiKey = process.env.VAPI_API_KEY
+        if (vapiApiKey) {
+            const vapiRes = await fetch('https://api.vapi.ai/call', {
+                method: 'GET',
+                headers: { 'Authorization': `Bearer ${vapiApiKey}` },
+            })
+            if (vapiRes.ok) {
+                const vapiCalls = await vapiRes.json()
+                // Count calls that are still active on Vapi's side
+                const vapiActiveCalls = Array.isArray(vapiCalls)
+                    ? vapiCalls.filter((c: any) => ['queued', 'ringing', 'in-progress'].includes(c.status)).length
+                    : 0
+                const vapiSlots = maxConcurrent - vapiActiveCalls
+                console.log(`[Outreach] Vapi API: ${vapiActiveCalls} aktif arama, ${vapiSlots}/${maxConcurrent} slot müsait`)
+                availableSlots = Math.max(0, vapiSlots)
+            } else {
+                console.warn(`[Outreach] Vapi API check failed (${vapiRes.status}), falling back to DB check`)
+            }
+        }
+    } catch (vapiErr: any) {
+        console.warn(`[Outreach] Vapi API check error: ${vapiErr.message}, falling back to DB check`)
+    }
+
+    // Fallback: also check DB for active calls (in case Vapi API check failed)
+    if (availableSlots === maxConcurrent) {
+        const activeThreshold = new Date(Date.now() - 15 * 60 * 1000).toISOString()
+        const { count: activeCalls } = await supabase
+            .from('outreach_step_logs')
+            .select('id', { count: 'exact', head: true })
+            .eq('status', 'sent')
+            .is('completed_at', null)
+            .eq('channel', 'ai_call')
+            .gte('executed_at', activeThreshold)
+        availableSlots = maxConcurrent - (activeCalls || 0)
+    }
+
+    // Also keep activeThreshold for per-iteration DB check inside the loop
     const activeThreshold = new Date(Date.now() - 15 * 60 * 1000).toISOString()
-    const { count: activeCalls } = await supabase
-        .from('outreach_step_logs')
-        .select('id', { count: 'exact', head: true })
-        .eq('status', 'sent')
-        .is('completed_at', null)
-        .eq('channel', 'ai_call')
-        .gte('executed_at', activeThreshold)
 
-
-    const availableSlots = maxConcurrent - (activeCalls || 0)
     if (availableSlots <= 0) {
         console.log(`[Outreach] Eşzamanlı arama limiti doldu (${maxConcurrent}). Bekleniyor...`)
         await releaseLock()

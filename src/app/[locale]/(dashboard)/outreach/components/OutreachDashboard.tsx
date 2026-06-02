@@ -20,6 +20,7 @@ import { SegmentManager } from './SegmentManager'
 import { CallResultsPanel } from './CallResultsPanel'
 import { TriggerManager } from './TriggerManager'
 import { WorkflowMonitor } from './WorkflowMonitor'
+import { SystemHealthPanel } from './SystemHealthPanel'
 
 interface OutreachDashboardProps {
     workflows: any[]
@@ -292,6 +293,9 @@ export function OutreachDashboard({
                 </div>
             </div>
 
+
+            {/* System Health Panel */}
+            <SystemHealthPanel />
 
             {/* Tabs: Workflows & Activity */}
             <Tabs defaultValue="workflows" className="space-y-4">
