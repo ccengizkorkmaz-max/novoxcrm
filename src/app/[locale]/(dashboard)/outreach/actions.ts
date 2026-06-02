@@ -523,22 +523,13 @@ export async function launchWorkflow(workflowId: string) {
 
     if (!remainingIds.length) {
         // Zaten ekli olan leadler olabilir, ancak durdurulup tekrar başlatılmış olabilir.
-        // Bu yüzden cron'u tetikleyip başarılı dönüyoruz.
-        processOutreachQueue().catch(err => 
-            console.error('[Outreach] Queue processing error after launch:', err.message)
-        )
-        return { success: true, started: 0, skipped: 0, message: 'Kuyruk tetiklendi, aktif aramalar devam edecek.' }
+        return { success: true, started: 0, skipped: 0, message: 'Kuyruk tetiklendi, cron döngüsünde aramalar devam edecek.' }
     }
 
     // Günlük limit uygula
     const limited = remainingIds.slice(0, workflow.max_leads_per_day || 50)
 
     const result = await startWorkflowForLeads(workflowId, limited, tenantId)
-
-    // Hemen aramalara başla — cron'u bekleme
-    processOutreachQueue().catch(err => 
-        console.error('[Outreach] Queue processing error after launch:', err.message)
-    )
 
     revalidatePath('/outreach')
     return { success: true, ...result }
