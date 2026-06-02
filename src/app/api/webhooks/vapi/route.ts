@@ -14,8 +14,11 @@ import { createAdminClient } from '@/lib/supabase/admin'
  */
 export async function POST(req: NextRequest) {
     try {
-        // Webhook secret doğrulama
-        const secret = req.headers.get('x-vapi-secret')
+        // Webhook secret doğrulama (header veya query parameter)
+        let secret = req.headers.get('x-vapi-secret')
+        if (!secret) {
+            secret = req.nextUrl.searchParams.get('secret')
+        }
         const expectedSecret = process.env.VAPI_WEBHOOK_SECRET
         if (expectedSecret) {
             if (secret !== expectedSecret) {

@@ -226,6 +226,7 @@ export async function processOutreachQueue() {
     console.log(`[Outreach] ${dueExecutions.length} bekleyen, ${availableSlots}/${maxConcurrent} slot müsait`)
 
     let processed = 0
+    let initiatedCallsCount = 0
 
     // Track batch counts per workflow
     const workflowBatchCounts = new Map<string, number>()
@@ -354,13 +355,19 @@ export async function processOutreachQueue() {
             continue
         }
 
+        // Prevent timeout by limiting max processed items per cron run
+        if (processed >= 100) {
+            console.log('[Outreach] Maksimum işlem limitine ulaşıldı (100), kalanlar sonraki dakikada işlenecek.')
+            break
+        }
+
         // Execute the step
         try {
             // Eşzamanlı limit kontrolü — her arama öncesi tekrar kontrol et
             if (step.action_type === 'ai_call') {
-                if (processed >= maxConcurrent) {
-                    console.log(`[Outreach] Arama limitine ulaşıldı (${maxConcurrent}), bu tetikleme sonlandırılıyor.`)
-                    break
+                if (initiatedCallsCount >= availableSlots) {
+                    console.log(`[Outreach] Bu tetiklemede başlatılabilecek maksimum arama limitine ulaşıldı (${availableSlots}), yeni aramalar erteleniyor.`)
+                    continue
                 }
                 const { count: currentCalls } = await supabase
                     .from('outreach_step_logs')
@@ -368,6 +375,7 @@ export async function processOutreachQueue() {
                     .eq('status', 'sent')
                     .is('completed_at', null)
                     .eq('channel', 'ai_call')
+                    .gte('executed_at', activeThreshold)
                 if ((currentCalls || 0) >= maxConcurrent) {
                     console.log(`[Outreach] Slot dolu, ${execution.id} erteleniyor`)
                     continue
@@ -410,6 +418,9 @@ export async function processOutreachQueue() {
             }
             await executeStep(execution, step)
             processed++
+            if (step.action_type === 'ai_call') {
+                initiatedCallsCount++
+            }
             if (customerId) processedCustomerIds.add(customerId)
             workflowBatchCounts.set(wfId, (workflowBatchCounts.get(wfId) || 0) + 1)
         } catch (err: any) {

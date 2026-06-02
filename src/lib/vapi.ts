@@ -242,12 +242,11 @@ export async function makeOutboundCall(options: VapiCallOptions): Promise<VapiCa
                     siteUrl = process.env.NEXT_PUBLIC_SITE_URL
                 }
             }
-            const resolvedServerUrl = options.serverUrl || `${siteUrl}/api/webhooks/vapi`
+            const resolvedServerUrl = (options.serverUrl || `${siteUrl}/api/webhooks/vapi`) + `?secret=${process.env.VAPI_WEBHOOK_SECRET || ''}`
 
             payload.assistant = {
                 serverUrl: resolvedServerUrl,
                 serverMessages: ['end-of-call-report', 'status-update', 'function-call'],
-                secret: process.env.VAPI_WEBHOOK_SECRET || undefined,
                 firstMessage: options.firstMessage || undefined,
                 endCallMessage: options.endCallMessage || 'İyi günler, görüşmek üzere. Hoşçakalın.',
                 firstMessageMode: options.firstMessage ? 'assistant-speaks-first' : 'assistant-waits-for-user',
