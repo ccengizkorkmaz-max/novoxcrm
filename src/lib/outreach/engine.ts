@@ -155,7 +155,8 @@ export async function processOutreachQueue() {
 
     // ─── Vapi Call Reconciliation ──────────────────────────
     // Sync calls that ended on Vapi's side but webhook was never received.
-    // This is a safety net — webhooks may fail due to URL issues, timeouts, etc.
+    // Uses handleVapiCallResult to ensure timeline activities, transcripts,
+    // recordings, lead scoring, and retry/advance logic all run properly.
     {
         const { data: stuckCalls } = await supabase
             .from('outreach_step_logs')
@@ -177,39 +178,35 @@ export async function processOutreachQueue() {
                     if (!res.ok) continue
                     const vapiCall = await res.json()
                     if (vapiCall.status === 'ended') {
-                        const endedReason = vapiCall.endedReason || 'unknown'
-                        const isConnected = ['customer-ended-call', 'assistant-ended-call', 'silence-timed-out'].includes(endedReason)
-                        const callOutcome = isConnected ? 'connected' :
-                            endedReason === 'customer-busy' ? 'busy' :
-                            endedReason === 'customer-did-not-answer' ? 'no_answer' :
-                            endedReason.includes('error') ? 'failed' : 'no_answer'
+                        // Get execution metadata for handleVapiCallResult
+                        const { data: exec } = await supabase
+                            .from('outreach_executions')
+                            .select('metadata')
+                            .eq('id', log.execution_id)
+                            .single()
 
-                        await supabase.from('outreach_step_logs').update({
-                            status: isConnected ? 'completed' : 'failed',
-                            completed_at: now,
-                            call_outcome: callOutcome,
-                            call_duration: vapiCall.duration || null,
-                            call_summary: vapiCall.summary || null,
-                            call_transcript: vapiCall.transcript || null,
-                            call_recording_url: vapiCall.recordingUrl || null,
-                            error_message: isConnected ? null : `Vapi sync: ${endedReason}`,
-                        }).eq('id', log.id)
-
-                        // Also update execution status
-                        if (log.execution_id) {
-                            await supabase.from('outreach_executions').update({
-                                status: 'active',
-                                next_action_at: now,
-                            }).eq('id', log.execution_id).eq('status', 'waiting')
-                        }
+                        // Use the same handler as webhook — this creates timeline activities,
+                        // transcripts, recordings, lead scoring, and retry/advance logic
+                        await handleVapiCallResult({
+                            callId: log.external_id,
+                            status: vapiCall.status || 'ended',
+                            endedReason: vapiCall.endedReason,
+                            transcript: vapiCall.transcript,
+                            summary: vapiCall.summary,
+                            recordingUrl: vapiCall.recordingUrl,
+                            duration: vapiCall.duration,
+                            cost: vapiCall.cost,
+                            analysis: vapiCall.analysis,
+                            metadata: exec?.metadata || { execution_id: log.execution_id },
+                        })
                         synced++
                     }
                 } catch (e: any) {
-                    // Silently continue — individual call check failure shouldn't block queue
+                    console.warn(`[Outreach] Reconciliation error for ${log.external_id}: ${e.message}`)
                 }
             }
             if (synced > 0) {
-                console.log(`[Outreach] Vapi reconciliation: ${synced}/${stuckCalls.length} aramanın durumu senkronize edildi`)
+                console.log(`[Outreach] Vapi reconciliation: ${synced}/${stuckCalls.length} aramanın durumu senkronize edildi (timeline + retry dahil)`)
             }
         }
     }
