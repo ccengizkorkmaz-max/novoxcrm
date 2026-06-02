@@ -153,6 +153,67 @@ export async function processOutreachQueue() {
 
     try {
 
+    // ─── Vapi Call Reconciliation ──────────────────────────
+    // Sync calls that ended on Vapi's side but webhook was never received.
+    // This is a safety net — webhooks may fail due to URL issues, timeouts, etc.
+    {
+        const { data: stuckCalls } = await supabase
+            .from('outreach_step_logs')
+            .select('id, external_id, execution_id')
+            .eq('status', 'sent')
+            .is('completed_at', null)
+            .eq('channel', 'ai_call')
+            .limit(20)
+
+        if (stuckCalls?.length) {
+            const vapiApiKey = process.env.VAPI_API_KEY
+            let synced = 0
+            for (const log of stuckCalls) {
+                if (!log.external_id || !vapiApiKey) continue
+                try {
+                    const res = await fetch(`https://api.vapi.ai/call/${log.external_id}`, {
+                        headers: { 'Authorization': `Bearer ${vapiApiKey}` },
+                    })
+                    if (!res.ok) continue
+                    const vapiCall = await res.json()
+                    if (vapiCall.status === 'ended') {
+                        const endedReason = vapiCall.endedReason || 'unknown'
+                        const isConnected = ['customer-ended-call', 'assistant-ended-call', 'silence-timed-out'].includes(endedReason)
+                        const callOutcome = isConnected ? 'connected' :
+                            endedReason === 'customer-busy' ? 'busy' :
+                            endedReason === 'customer-did-not-answer' ? 'no_answer' :
+                            endedReason.includes('error') ? 'failed' : 'no_answer'
+
+                        await supabase.from('outreach_step_logs').update({
+                            status: isConnected ? 'completed' : 'failed',
+                            completed_at: now,
+                            call_outcome: callOutcome,
+                            call_duration: vapiCall.duration || null,
+                            call_summary: vapiCall.summary || null,
+                            call_transcript: vapiCall.transcript || null,
+                            call_recording_url: vapiCall.recordingUrl || null,
+                            error_message: isConnected ? null : `Vapi sync: ${endedReason}`,
+                        }).eq('id', log.id)
+
+                        // Also update execution status
+                        if (log.execution_id) {
+                            await supabase.from('outreach_executions').update({
+                                status: 'active',
+                                next_action_at: now,
+                            }).eq('id', log.execution_id).eq('status', 'waiting')
+                        }
+                        synced++
+                    }
+                } catch (e: any) {
+                    // Silently continue — individual call check failure shouldn't block queue
+                }
+            }
+            if (synced > 0) {
+                console.log(`[Outreach] Vapi reconciliation: ${synced}/${stuckCalls.length} aramanın durumu senkronize edildi`)
+            }
+        }
+    }
+
     // Find executions that are due, sorted by next_action_at ascending to prevent starvation
     const { data: dueExecutions, error } = await supabase
         .from('outreach_executions')
