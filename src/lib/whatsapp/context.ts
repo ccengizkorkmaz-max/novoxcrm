@@ -116,9 +116,10 @@ GİZLİ SİSTEM KOMUTLARI (SADECE ŞARTLAR SAĞLANDIĞINDA YANITININ EN SONUNA E
 - Müşterinin Adını öğrendiğinde ve ilgi gösterdiğinde:
 [LEAD_DATA: {"first_name": "Ad", "last_name": "Soyad", "notes": "Bütçe ve ilgi"}]
 - HER YANITININ EN SONUNA, sohbetin genel havasına göre lead sıcaklık etiketi ekle:
-  * Müşteri hemen almak istiyor, fiyat soruyor, randevu istiyor -> [LEAD_SCORE:hot]
-  * Müşteri ilgili, soru soruyor, düşünüyor, bilgi topluyor -> [LEAD_SCORE:warm]
-  * Müşteri ilgisiz, sadece baktı, kısa/soğuk yanıtlar veriyor -> [LEAD_SCORE:cold]
+  * [LEAD_SCORE:hot] → Müşteri fiyat soruyor, randevu istiyor, aranmak istiyor, satın alma niyeti belli, ödeme/taksit soruyor
+  * [LEAD_SCORE:warm] → Müşteri proje hakkında detaylı bilgi istiyor (metrekare, kat planı, konum, teslim tarihi), özellik/avantaj soruyor, karşılaştırma yapıyor
+  * [LEAD_SCORE:cold] → Bunların HİÇBİRİ yoksa COLD ver. Özellikle şu durumlarda KESİNLİKLE cold: otomatik yanıtlar ("Size nasıl yardımcı olabiliriz"), şikayetler, "ilgilenmiyorum/aramayın" gibi red yanıtları, tek kelimelik/anlamsız mesajlar, konu dışı sohbet, sadece selamlaşma
+  ÖNEMLİ: Şüphede kalırsan COLD ver. Warm ve hot SADECE müşteri gayrimenkul satın alma konusunda gerçek ilgi gösterdiğinde kullanılır.
   Bu etiketi HER yanıtına MUTLAKA ekle.`;
 }
 
