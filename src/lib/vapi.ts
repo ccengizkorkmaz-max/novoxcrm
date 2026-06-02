@@ -225,23 +225,10 @@ export async function makeOutboundCall(options: VapiCallOptions): Promise<VapiCa
         // If we have a custom system prompt, use a transient (inline) assistant
         // to guarantee our prompt is used instead of the saved assistant's prompt
         if (options.systemPrompt) {
-            let siteUrl = 'https://www.novoxcrm.com'
-            try {
-                const { headers } = await import('next/headers')
-                const host = (await headers()).get('host')
-                if (host) {
-                    if (host.includes('localhost') || host.includes('127.0.0.1')) {
-                        siteUrl = 'https://www.novoxcrm.com'
-                    } else {
-                        const protocol = host.includes('localhost') ? 'http' : 'https'
-                        siteUrl = `${protocol}://${host}`
-                    }
-                }
-            } catch {
-                if (process.env.NEXT_PUBLIC_SITE_URL) {
-                    siteUrl = process.env.NEXT_PUBLIC_SITE_URL
-                }
-            }
+            // IMPORTANT: Always use production domain for webhook URL.
+            // Vercel serverless functions resolve headers().host to deployment-specific URLs
+            // (e.g. novocrm-abc123.vercel.app) which causes webhooks to go to wrong endpoint.
+            const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.novoxcrm.com'
             const resolvedServerUrl = (options.serverUrl || `${siteUrl}/api/webhooks/vapi`) + `?secret=${process.env.VAPI_WEBHOOK_SECRET || ''}`
 
             payload.assistant = {
