@@ -678,6 +678,8 @@ export async function getWorkflowMonitor(workflowId: string, page: number = 1) {
 
     // 1. Get currently active phone calls (AI calls where status = 'sent' and completed_at is null)
     // We fetch these across the entire table to show at the top of the monitor
+    // Only show calls from the last 15 minutes to avoid showing stale/stuck records
+    const activeThreshold = new Date(Date.now() - 15 * 60 * 1000).toISOString()
     const { data: activeLogs } = await adminDb.from('outreach_step_logs')
         .select(`
             execution_id, channel, status, template_name, message_content, call_duration_seconds, call_outcome, call_summary, cost_amount, executed_at, completed_at,
@@ -690,6 +692,7 @@ export async function getWorkflowMonitor(workflowId: string, page: number = 1) {
         .eq('channel', 'ai_call')
         .eq('status', 'sent')
         .is('completed_at', null)
+        .gte('executed_at', activeThreshold)
 
     const activeExecutions: any[] = []
     const activeLogData: any[] = []
