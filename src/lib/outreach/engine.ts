@@ -533,6 +533,151 @@ export async function processOutreachQueue() {
         }
     }
 
+    // ─── Post-batch polling: wait for calls to finish, then start more ─────
+    // Without webhooks, this is the only way to chain batches within one cron run
+    const MAX_POLL_ROUNDS = 4
+    const POLL_WAIT_MS = 30_000 // 30 seconds between polls
+    const vapiKeyForPoll = process.env.VAPI_API_KEY
+
+    for (let round = 1; round <= MAX_POLL_ROUNDS && initiatedCallsCount > 0; round++) {
+        console.log(`[Outreach] Polling round ${round}/${MAX_POLL_ROUNDS}: ${POLL_WAIT_MS / 1000}s bekleniyor...`)
+        await new Promise(r => setTimeout(r, POLL_WAIT_MS))
+
+        // Extend lock so other cron instances don't interfere
+        if (tenantId) {
+            const extendedLock = new Date(Date.now() + LOCK_TIMEOUT_MS).toISOString()
+            await supabase.from('tenants')
+                .update({ ai_outreach_settings: { ...tenantSettings, queue_lock_at: extendedLock } })
+                .eq('id', tenantId)
+        }
+
+        // Reconcile: check Vapi for ended calls
+        let reconciledCount = 0
+        if (vapiKeyForPoll) {
+            const { data: pendingLogs } = await supabase
+                .from('outreach_step_logs')
+                .select('id, external_id, execution_id')
+                .eq('status', 'sent')
+                .is('completed_at', null)
+                .eq('channel', 'ai_call')
+                .limit(50)
+
+            if (pendingLogs?.length) {
+                for (const log of pendingLogs) {
+                    if (!log.external_id) continue
+                    try {
+                        const res = await fetch(`https://api.vapi.ai/call/${log.external_id}`, {
+                            headers: { 'Authorization': `Bearer ${vapiKeyForPoll}` },
+                        })
+                        if (!res.ok) continue
+                        const vapiCall = await res.json()
+                        if (vapiCall.status === 'ended') {
+                            const { data: exec } = await supabase
+                                .from('outreach_executions')
+                                .select('metadata')
+                                .eq('id', log.execution_id)
+                                .single()
+
+                            await handleVapiCallResult({
+                                callId: log.external_id,
+                                status: 'ended',
+                                endedReason: vapiCall.endedReason,
+                                transcript: vapiCall.transcript || vapiCall.artifact?.transcript,
+                                summary: vapiCall.summary || vapiCall.analysis?.summary || vapiCall.artifact?.summary,
+                                recordingUrl: vapiCall.recordingUrl || vapiCall.artifact?.recordingUrl,
+                                duration: vapiCall.duration,
+                                cost: vapiCall.cost || vapiCall.costBreakdown?.total,
+                                analysis: vapiCall.analysis,
+                                metadata: exec?.metadata || { execution_id: log.execution_id },
+                            })
+                            reconciledCount++
+                        }
+                    } catch (e: any) {
+                        console.warn(`[Outreach] Poll reconcile error: ${e.message}`)
+                    }
+                }
+            }
+        }
+
+        if (reconciledCount === 0) {
+            console.log(`[Outreach] Polling round ${round}: hiçbir arama bitmemiş, döngü sonlandırılıyor`)
+            break
+        }
+
+        console.log(`[Outreach] Polling round ${round}: ${reconciledCount} arama senkronize edildi, yeni batch başlatılıyor...`)
+
+        // Re-query available slots from Vapi
+        let newSlots = maxConcurrent
+        try {
+            const vapiRes = await fetch('https://api.vapi.ai/call', {
+                headers: { 'Authorization': `Bearer ${vapiKeyForPoll}` },
+            })
+            if (vapiRes.ok) {
+                const vapiCalls = await vapiRes.json()
+                const active = Array.isArray(vapiCalls)
+                    ? vapiCalls.filter((c: any) => ['queued', 'ringing', 'in-progress'].includes(c.status)).length
+                    : 0
+                newSlots = Math.max(0, maxConcurrent - active)
+            }
+        } catch {}
+
+        if (newSlots <= 0) continue
+
+        // Fetch next batch of due executions
+        const newNow = new Date().toISOString()
+        const { data: nextBatch } = await supabase
+            .from('outreach_executions')
+            .select(`
+                id, workflow_id, customer_id, sale_id, current_step_order, current_retry_count,
+                status, metadata, tenant_id, next_action_at,
+                outreach_workflows!inner(
+                    id, working_hours_start, working_hours_end, working_days, timezone, is_active, conversion_goal_status, batch_size, batch_interval_seconds
+                ),
+                customers(id, full_name, phone, email),
+                sales(id, status, project_id, unit_id)
+            `)
+            .in('status', ['active', 'waiting'])
+            .lte('next_action_at', newNow)
+            .order('next_action_at', { ascending: true })
+            .limit(newSlots)
+
+        if (!nextBatch?.length) {
+            console.log(`[Outreach] Polling round ${round}: yeni bekleyen execution yok`)
+            break
+        }
+
+        let batchProcessed = 0
+        for (const execution of nextBatch) {
+            if (batchProcessed >= newSlots) break
+            if (!execution.outreach_workflows?.is_active) continue
+
+            const phone = execution.customers?.phone
+            if (!phone) continue
+
+            const { data: step } = await supabase
+                .from('outreach_steps')
+                .select('*')
+                .eq('workflow_id', execution.workflow_id)
+                .eq('step_order', execution.current_step_order)
+                .eq('is_active', true)
+                .single()
+
+            if (!step) continue
+            if (step.action_type !== 'ai_call') continue
+
+            try {
+                if (batchProcessed > 0) await new Promise(r => setTimeout(r, 3000))
+                await executeStep(execution, step)
+                batchProcessed++
+                processed++
+                initiatedCallsCount++
+            } catch (err: any) {
+                console.error(`[Outreach] Poll batch error for ${execution.id}: ${err.message}`)
+            }
+        }
+        console.log(`[Outreach] Polling round ${round}: ${batchProcessed} yeni arama başlatıldı (toplam: ${processed})`)
+    }
+
     await releaseLock()
     return { processed }
 

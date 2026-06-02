@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { processOutreachQueue } from '@/lib/outreach/engine'
 
+// Allow up to 5 minutes for polling loop (wait → reconcile → new batch)
+export const maxDuration = 300
 /**
  * OUTREACH CRON JOB
  * 
