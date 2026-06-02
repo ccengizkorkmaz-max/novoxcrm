@@ -1316,31 +1316,50 @@ export async function handleVapiCallResult(callData: {
         return
     }
 
-    // Determine call outcome
+    // Determine call outcome and logStatus
     let outcome: string = 'no_answer'
     let logStatus: string = 'no_answer'
 
     const hasTranscript = !!(callData.transcript && callData.transcript.trim().length > 0)
+    const transcriptText = callData.transcript || ''
 
-    if (callData.endedReason === 'customer-ended-call' || callData.endedReason === 'assistant-ended-call' || hasTranscript) {
-        if (hasTranscript || (callData.duration && callData.duration > 30)) {
-            // Real conversation happened
-            outcome = 'success'
-            logStatus = 'answered'
-        } else if (callData.duration && callData.duration > 5) {
-            // Customer picked up but hung up quickly (mid-conversation cut)
-            outcome = 'failure'
-            logStatus = 'hung_up'
-        } else {
-            outcome = 'failure'
-            logStatus = 'hung_up'
-        }
-    } else if (callData.endedReason === 'customer-did-not-answer') {
-        outcome = 'no_answer'
-        logStatus = 'no_answer'
-    } else if (callData.endedReason === 'customer-busy') {
+    // Check if the customer actually spoke (presence of User: or Customer:)
+    const customerSpoke = hasTranscript && (
+        transcriptText.toLowerCase().includes('user:') || 
+        transcriptText.toLowerCase().includes('customer:') ||
+        transcriptText.toLowerCase().includes('user (customer):')
+    )
+
+    // Check for Turkish voicemail carrier messages
+    const voicemailKeywords = [
+        'sekreter',
+        'en uzun kayıt',
+        'mesajınız',
+        'sinyal sesinden',
+        'ulaşılamıyor',
+        'telesekreter',
+        'mesaj bırakın'
+    ]
+    const isVoicemail = customerSpoke && voicemailKeywords.some(keyword => 
+        transcriptText.toLowerCase().includes(keyword)
+    )
+
+    if (callData.endedReason === 'customer-busy') {
         outcome = 'busy'
         logStatus = 'busy'
+    } else if (callData.endedReason === 'customer-did-not-answer' || isVoicemail || (hasTranscript && !customerSpoke)) {
+        outcome = 'no_answer'
+        logStatus = 'no_answer'
+    } else if (callData.endedReason === 'customer-ended-call' || callData.endedReason === 'assistant-ended-call' || customerSpoke) {
+        // Customer answered and spoke (not voicemail)
+        if (callData.duration && callData.duration > 30) {
+            outcome = 'success'
+            logStatus = 'answered'
+        } else {
+            // Customer picked up but hung up quickly
+            outcome = 'hung_up'
+            logStatus = 'answered' // MUST BE 'answered' to satisfy DB constraint
+        }
     }
 
     // Check AI analysis for interest
@@ -1372,10 +1391,10 @@ export async function handleVapiCallResult(callData: {
 
     const logEntry = updatedLogs?.[0]
 
-    // Get execution, step and workflow
+    // Get execution, step and workflow with customers and sales loaded
     const { data: execution } = await supabase
         .from('outreach_executions')
-        .select('*, outreach_steps(*), outreach_workflows(*)')
+        .select('*, outreach_steps(*), outreach_workflows(*), customers(*), sales(*)')
         .eq('id', executionId)
         .single()
 
@@ -1435,30 +1454,32 @@ export async function handleVapiCallResult(callData: {
         })
     } else {
         // Log non-converted calls too (answered, no_answer, busy)
-        // For answered calls, check AI analysis to distinguish interested vs not
         let answeredSummary = `🤖 AI Arama — Görüşme Yapıldı (${durationText})`
         if (logStatus === 'answered') {
             const interested = callData.analysis?.structuredData?.interested
             if (interested === false) {
                 answeredSummary = `🤖 AI Arama — Görüşüldü, İlgilenmedi ❌ (${durationText})`
             } else if (interested === undefined || interested === null) {
-                // No AI analysis available — keep neutral
                 answeredSummary = `🤖 AI Arama — Görüşüldü (${durationText})`
             }
         }
 
         const summaryMap: Record<string, string> = {
             answered: answeredSummary,
-            hung_up: `🤖 AI Arama — Açtı ama Kapattı 📵 (${durationText})`,
             no_answer: '🤖 AI Arama — Cevap Vermedi',
             busy: '🤖 AI Arama — Hat Meşgul',
         }
 
         const priorityMap: Record<string, string> = {
             answered: 'Medium',
-            hung_up: 'Medium',
             no_answer: 'Low',
             busy: 'Low',
+        }
+
+        // For hung_up outcome, use the hung_up summary
+        let summary = summaryMap[logStatus] || `🤖 AI Arama — ${logStatus} (${durationText})`
+        if (outcome === 'hung_up') {
+            summary = `🤖 AI Arama — Açtı ama Kapattı 📵 (${durationText})`
         }
 
         await supabase.from('activities').insert({
@@ -1466,8 +1487,8 @@ export async function handleVapiCallResult(callData: {
             customer_id: execution.customer_id,
             type: 'Call',
             topic: 'Sales',
-            summary: summaryMap[logStatus] || `🤖 AI Arama — ${logStatus} (${durationText})`,
-            description: `${callData.summary || `Arama sonucu: ${logStatus}`}${transcriptBlock}${recordingBlock}\n\n[Call ID: ${callData.callId}]`,
+            summary: summary,
+            description: `${callData.summary || `Arama sonucu: ${outcome}`}${transcriptBlock}${recordingBlock}\n\n[Call ID: ${callData.callId}]`,
             due_date: new Date().toISOString(),
             status: 'Completed',
             priority: priorityMap[logStatus] || 'Low',
@@ -1499,7 +1520,7 @@ export async function handleVapiCallResult(callData: {
         }
         const newStatus = scoreMap[structuredData.lead_score] || 'follow_up'
 
-        // Update lead_qualifications if this customer has a record there
+        // Check if lead_qualifications record exists
         const { data: lqRecord } = await supabase
             .from('lead_qualifications')
             .select('id, assigned_to')
@@ -1507,88 +1528,157 @@ export async function handleVapiCallResult(callData: {
             .limit(1)
             .single()
 
+        const callNotes = `🤖 AI Skor: ${structuredData.lead_score.toUpperCase()}` +
+            (structuredData.notes ? ` — ${structuredData.notes}` : '') +
+            (structuredData.purpose ? ` | Amaç: ${structuredData.purpose}` : '') +
+            (structuredData.investment_timeline ? ` | Zamanlama: ${structuredData.investment_timeline}` : '') +
+            (structuredData.preferred_unit_type ? ` | Tip: ${structuredData.preferred_unit_type}` : '')
+
+        let assignedTo = null
+
         if (lqRecord) {
+            assignedTo = lqRecord.assigned_to
             await supabase
                 .from('lead_qualifications')
                 .update({
                     status: newStatus,
-                    call_notes: `🤖 AI Skor: ${structuredData.lead_score.toUpperCase()}` +
-                        (structuredData.notes ? ` — ${structuredData.notes}` : '') +
-                        (structuredData.purpose ? ` | Amaç: ${structuredData.purpose}` : '') +
-                        (structuredData.investment_timeline ? ` | Zamanlama: ${structuredData.investment_timeline}` : '') +
-                        (structuredData.preferred_unit_type ? ` | Tip: ${structuredData.preferred_unit_type}` : ''),
+                    call_notes: callNotes,
                     updated_at: new Date().toISOString(),
                 })
                 .eq('id', lqRecord.id)
+        } else {
+            // Check if there is an assigned rep on sales or customer
+            const saleAssignedTo = execution.sales?.assigned_to || execution.customers?.assigned_to || null
+            assignedTo = saleAssignedTo
 
-            console.log(`[Outreach] 📊 Lead scored: ${execution.customer_id} → ${structuredData.lead_score} (${newStatus})`)
+            // Create new lead qualification record
+            await supabase
+                .from('lead_qualifications')
+                .insert({
+                    tenant_id: execution.tenant_id,
+                    customer_id: execution.customer_id,
+                    status: newStatus,
+                    source: 'ai_call',
+                    project_id: execution.sales?.project_id || null,
+                    interest_level: structuredData.lead_score,
+                    call_notes: callNotes,
+                    assigned_to: assignedTo,
+                    sale_id: execution.sale_id || null,
+                })
+        }
 
-            // Activity log for scoring
-            await supabase.from('activities').insert({
-                tenant_id: execution.tenant_id,
-                customer_id: execution.customer_id,
-                type: 'Note',
-                topic: 'Sales',
-                summary: `📊 AI Lead Skor: ${structuredData.lead_score.toUpperCase()}`,
-                description: [
-                    `Lead Skoru: ${structuredData.lead_score.toUpperCase()}`,
-                    structuredData.purpose ? `Amaç: ${structuredData.purpose}` : null,
-                    structuredData.investment_timeline ? `Zamanlama: ${structuredData.investment_timeline}` : null,
-                    structuredData.preferred_unit_type ? `Daire Tipi: ${structuredData.preferred_unit_type}` : null,
-                    structuredData.budget_mentioned ? 'Bütçe konuşuldu' : null,
-                    structuredData.wants_appointment ? '📅 Randevu istedi' : null,
-                    structuredData.wants_catalog ? '📋 Katalog istedi' : null,
-                    structuredData.rejection_reason ? `Red Sebebi: ${structuredData.rejection_reason}` : null,
-                    structuredData.notes ? `\nNotlar: ${structuredData.notes}` : null,
-                ].filter(Boolean).join('\n'),
-                due_date: new Date().toISOString(),
-                status: 'Completed',
-                priority: structuredData.lead_score === 'hot' ? 'High' : 'Medium',
-            })
+        console.log(`[Outreach] 📊 Lead scored: ${execution.customer_id} → ${structuredData.lead_score} (${newStatus})`)
 
-            // HOT Lead → WhatsApp notification to assigned rep
-            if (structuredData.lead_score === 'hot' && lqRecord.assigned_to) {
-                try {
-                    const { data: customer } = await supabase
-                        .from('customers')
-                        .select('full_name, phone')
-                        .eq('id', execution.customer_id)
+        // Activity log for scoring
+        await supabase.from('activities').insert({
+            tenant_id: execution.tenant_id,
+            customer_id: execution.customer_id,
+            type: 'Note',
+            topic: 'Sales',
+            summary: `📊 AI Lead Skor: ${structuredData.lead_score.toUpperCase()}`,
+            description: [
+                `Lead Skoru: ${structuredData.lead_score.toUpperCase()}`,
+                structuredData.purpose ? `Amaç: ${structuredData.purpose}` : null,
+                structuredData.investment_timeline ? `Zamanlama: ${structuredData.investment_timeline}` : null,
+                structuredData.preferred_unit_type ? `Daire Tipi: ${structuredData.preferred_unit_type}` : null,
+                structuredData.budget_mentioned ? 'Bütçe konuşuldu' : null,
+                structuredData.wants_appointment ? '📅 Randevu istedi' : null,
+                structuredData.wants_catalog ? '📋 Katalog istedi' : null,
+                structuredData.rejection_reason ? `Red Sebebi: ${structuredData.rejection_reason}` : null,
+                structuredData.notes ? `\nNotlar: ${structuredData.notes}` : null,
+            ].filter(Boolean).join('\n'),
+            due_date: new Date().toISOString(),
+            status: 'Completed',
+            priority: structuredData.lead_score === 'hot' ? 'High' : 'Medium',
+        })
+
+        // HOT Lead → WhatsApp notification to assigned rep
+        if (structuredData.lead_score === 'hot' && assignedTo) {
+            try {
+                const { data: customer } = await supabase
+                    .from('customers')
+                    .select('full_name, phone')
+                    .eq('id', execution.customer_id)
+                    .single()
+
+                const { data: rep } = await supabase
+                    .from('profiles')
+                    .select('phone, full_name')
+                    .eq('id', assignedTo)
+                    .single()
+
+                if (rep?.phone && customer) {
+                    const { data: tenant } = await supabase
+                        .from('tenants')
+                        .select('wa_phone_number_id, wa_access_token')
+                        .eq('id', execution.tenant_id)
                         .single()
 
-                    const { data: rep } = await supabase
-                        .from('profiles')
-                        .select('phone, full_name')
-                        .eq('id', lqRecord.assigned_to)
-                        .single()
-
-                    if (rep?.phone && customer) {
-                        const { data: tenant } = await supabase
-                            .from('tenants')
-                            .select('wa_phone_number_id, wa_access_token')
-                            .eq('id', execution.tenant_id)
-                            .single()
-
-                        if (tenant?.wa_phone_number_id && tenant?.wa_access_token) {
-                            const { sendWhatsAppTemplate } = await import('@/lib/whatsapp')
-                            await sendWhatsAppTemplate(
-                                rep.phone.replace(/\D/g, ''),
-                                'crm_operasyonel_durum_bildirimi',
-                                [
-                                    customer.phone || '-',
-                                    customer.full_name || 'Müşteri',
-                                    new Date().toLocaleString('tr-TR'),
-                                    structuredData.notes || 'AI arama sonucu HOT olarak değerlendirildi'
-                                ].map(p => typeof p === 'string' ? p.replace(/[\r\n\t]+/g, ' ').replace(/\s{2,}/g, ' ').trim() : p),
-                                'tr',
-                                tenant.wa_phone_number_id,
-                                tenant.wa_access_token
-                            )
-                            console.log(`[Outreach] 🔥 HOT lead bildirim gönderildi → ${rep.full_name}`)
-                        }
+                    if (tenant?.wa_phone_number_id && tenant?.wa_access_token) {
+                        const { sendWhatsAppTemplate } = await import('@/lib/whatsapp')
+                        await sendWhatsAppTemplate(
+                            rep.phone.replace(/\D/g, ''),
+                            'crm_operasyonel_durum_bildirimi',
+                            [
+                                customer.phone || '-',
+                                customer.full_name || 'Müşteri',
+                                new Date().toLocaleString('tr-TR'),
+                                structuredData.notes || 'AI arama sonucu HOT olarak değerlendirildi'
+                            ].map(p => typeof p === 'string' ? p.replace(/[\r\n\t]+/g, ' ').replace(/\s{2,}/g, ' ').trim() : p),
+                            'tr',
+                            tenant.wa_phone_number_id,
+                            tenant.wa_access_token
+                        )
+                        console.log(`[Outreach] 🔥 HOT lead bildirim gönderildi → ${rep.full_name}`)
                     }
-                } catch (notifErr: any) {
-                    console.error('[Outreach] HOT lead notification error:', notifErr.message)
                 }
+            } catch (notifErr: any) {
+                console.error('[Outreach] HOT lead notification error:', notifErr.message)
+            }
+        }
+
+        // UNASSIGNED WARM/HOT Lead → Create follow-up task and notify admins
+        if ((structuredData.lead_score === 'hot' || structuredData.lead_score === 'warm') && !assignedTo) {
+            try {
+                // Find primary owner/admin to assign the task
+                const { data: admins } = await supabase
+                    .from('profiles')
+                    .select('id, full_name')
+                    .eq('tenant_id', execution.tenant_id)
+                    .in('role', ['admin', 'owner'])
+                    .limit(1)
+
+                const adminId = admins?.[0]?.id || null
+
+                // Create follow-up activity (pending task)
+                await supabase.from('activities').insert({
+                    tenant_id: execution.tenant_id,
+                    customer_id: execution.customer_id,
+                    owner_id: adminId,
+                    type: 'Call',
+                    topic: 'Sales',
+                    summary: `🚨 Atama Bekleyen İlgili Müşteri (${structuredData.lead_score.toUpperCase()})`,
+                    description: `Müşteri yapay zeka aramasında sıcak ilgi gösterdi ancak şu an atanmış bir danışmanı bulunmamaktadır. Lütfen atama yapıp iletişime geçiniz.\nNotlar: ${structuredData.notes || '-'}`,
+                    due_date: new Date().toISOString(),
+                    status: 'Pending',
+                    priority: 'High',
+                })
+
+                // Create system notification
+                const { createNotification } = await import('@/lib/notifications/create')
+                await createNotification({
+                    tenant_id: execution.tenant_id,
+                    user_id: adminId || undefined,
+                    type: 'Alert',
+                    category: 'CRM',
+                    title: `🔥 Atanmamış Sıcak Fırsat (AI Arama)`,
+                    message: `${execution.customers?.full_name || 'Müşteri'} yapay zeka aramasında sıcak ilgi gösterdi ancak ataması yok.`,
+                    link: `/crm?customerId=${execution.customer_id}`,
+                })
+
+                console.log(`[Outreach] 🔔 Unassigned lead action created for ${execution.customer_id}`)
+            } catch (err: any) {
+                console.error('[Outreach] Error creating unassigned lead action:', err.message)
             }
         }
     }

@@ -647,24 +647,44 @@ export async function handleManualVapiCallResult(callData: {
     let logStatus: string = 'no_answer'
 
     const hasTranscript = !!(callData.transcript && callData.transcript.trim().length > 0)
+    const transcriptText = callData.transcript || ''
 
-    if (callData.endedReason === 'customer-ended-call' || callData.endedReason === 'assistant-ended-call' || hasTranscript) {
-        if (hasTranscript || (callData.duration && callData.duration > 30)) {
-            outcome = 'Success'
-            logStatus = 'answered'
-        } else if (callData.duration && callData.duration > 5) {
-            outcome = 'Failed'
-            logStatus = 'hung_up'
-        } else {
-            outcome = 'Failed'
-            logStatus = 'hung_up'
-        }
-    } else if (callData.endedReason === 'customer-did-not-answer') {
-        outcome = 'No Answer'
-        logStatus = 'no_answer'
-    } else if (callData.endedReason === 'customer-busy') {
+    // Check if the customer actually spoke (presence of User: or Customer:)
+    const customerSpoke = hasTranscript && (
+        transcriptText.toLowerCase().includes('user:') || 
+        transcriptText.toLowerCase().includes('customer:') ||
+        transcriptText.toLowerCase().includes('user (customer):')
+    )
+
+    // Check for Turkish voicemail carrier messages
+    const voicemailKeywords = [
+        'sekreter',
+        'en uzun kayıt',
+        'mesajınız',
+        'sinyal sesinden',
+        'ulaşılamıyor',
+        'telesekreter',
+        'mesaj bırakın'
+    ]
+    const isVoicemail = customerSpoke && voicemailKeywords.some(keyword => 
+        transcriptText.toLowerCase().includes(keyword)
+    )
+
+    if (callData.endedReason === 'customer-busy') {
         outcome = 'Busy'
         logStatus = 'busy'
+    } else if (callData.endedReason === 'customer-did-not-answer' || isVoicemail || (hasTranscript && !customerSpoke)) {
+        outcome = 'No Answer'
+        logStatus = 'no_answer'
+    } else if (callData.endedReason === 'customer-ended-call' || callData.endedReason === 'assistant-ended-call' || customerSpoke) {
+        // Customer answered and spoke (not voicemail)
+        if (callData.duration && callData.duration > 30) {
+            outcome = 'Success'
+            logStatus = 'answered'
+        } else {
+            outcome = 'Failed'
+            logStatus = 'answered'
+        }
     }
 
     // Check structured data
@@ -830,6 +850,60 @@ export async function handleManualVapiCallResult(callData: {
                 })
         }
         console.log(`[Vapi Webhook] 📊 Manual lead scored: ${customerId} → ${leadScore} (${newLqStatus})`)
+
+        // Check if there is an assigned rep on customer/sale
+        const { data: customer } = await supabase
+            .from('customers')
+            .select('full_name, assigned_to')
+            .eq('id', customerId)
+            .single()
+
+        const assignedTo = customer?.assigned_to || null
+
+        // UNASSIGNED WARM/HOT Lead → Create follow-up task and notify admins
+        if ((leadScore === 'hot' || leadScore === 'warm') && !assignedTo) {
+            try {
+                // Find primary owner/admin to assign the task
+                const { data: admins } = await supabase
+                    .from('profiles')
+                    .select('id, full_name')
+                    .eq('tenant_id', tenantId)
+                    .in('role', ['admin', 'owner'])
+                    .limit(1)
+
+                const adminId = admins?.[0]?.id || null
+
+                // Create follow-up activity (pending task)
+                await supabase.from('activities').insert({
+                    tenant_id: tenantId,
+                    customer_id: customerId,
+                    owner_id: adminId,
+                    type: 'Call',
+                    topic: 'Sales',
+                    summary: `🚨 Atama Bekleyen İlgili Müşteri (Manuel Arama - ${leadScore.toUpperCase()})`,
+                    description: `Müşteri yapay zeka aramasında sıcak ilgi gösterdi ancak şu an atanmış bir danışmanı bulunmamaktadır. Lütfen atama yapıp iletişime geçiniz.\nNotlar: ${notes || '-'}`,
+                    due_date: new Date().toISOString(),
+                    status: 'Pending',
+                    priority: 'High',
+                })
+
+                // Create system notification
+                const { createNotification } = await import('@/lib/notifications/create')
+                await createNotification({
+                    tenant_id: tenantId,
+                    user_id: adminId || undefined,
+                    type: 'Alert',
+                    category: 'CRM',
+                    title: `🔥 Atanmamış Sıcak Fırsat (Manuel Arama)`,
+                    message: `${customer?.full_name || 'Müşteri'} yapay zeka aramasında sıcak ilgi gösterdi ancak ataması yok.`,
+                    link: `/crm?customerId=${customerId}`,
+                })
+
+                console.log(`[Vapi Webhook] 🔔 Unassigned lead action created for customer ${customerId}`)
+            } catch (err: any) {
+                console.error('[Vapi Webhook] Error creating unassigned manual lead action:', err.message)
+            }
+        }
     }
 }
 
