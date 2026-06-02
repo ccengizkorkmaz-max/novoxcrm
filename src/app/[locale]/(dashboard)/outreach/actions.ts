@@ -527,7 +527,7 @@ export async function launchWorkflow(workflowId: string) {
         processOutreachQueue().catch(err => 
             console.error('[Outreach] Queue processing error after launch:', err.message)
         )
-        return { success: true, message: 'Kuyruk tetiklendi, aktif aramalar devam edecek.' }
+        return { success: true, started: 0, skipped: 0, message: 'Kuyruk tetiklendi, aktif aramalar devam edecek.' }
     }
 
     // Günlük limit uygula
