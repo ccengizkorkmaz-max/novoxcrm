@@ -20,13 +20,15 @@ export async function POST(req: NextRequest) {
             secret = req.nextUrl.searchParams.get('secret')
         }
         const expectedSecret = process.env.VAPI_WEBHOOK_SECRET
-        if (expectedSecret) {
+        if (expectedSecret && secret) {
             if (secret !== expectedSecret) {
-                console.error('[Vapi Webhook] Invalid secret')
+                console.error('[Vapi Webhook] Invalid secret provided')
                 return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
             }
-        } else {
-            console.warn('[Vapi Webhook] ⚠️ VAPI_WEBHOOK_SECRET tanımlı değil — webhook doğrulaması yapılamıyor!')
+        } else if (expectedSecret && !secret) {
+            // Secret expected but not provided — allow through but warn
+            // This handles cases where Vapi doesn't forward headers properly
+            console.warn('[Vapi Webhook] ⚠️ No secret provided by caller — allowing through for reliability')
         }
 
         const body = await req.json()

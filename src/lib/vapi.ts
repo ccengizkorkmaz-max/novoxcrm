@@ -229,11 +229,17 @@ export async function makeOutboundCall(options: VapiCallOptions): Promise<VapiCa
             // Vercel serverless functions resolve headers().host to deployment-specific URLs
             // (e.g. novocrm-abc123.vercel.app) which causes webhooks to go to wrong endpoint.
             const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.novoxcrm.com'
-            const resolvedServerUrl = (options.serverUrl || `${siteUrl}/api/webhooks/vapi`) + `?secret=${process.env.VAPI_WEBHOOK_SECRET || ''}`
+            const resolvedServerUrl = options.serverUrl || `${siteUrl}/api/webhooks/vapi`
 
             payload.assistant = {
                 serverUrl: resolvedServerUrl,
                 serverMessages: ['end-of-call-report', 'status-update', 'function-call'],
+                server: {
+                    url: resolvedServerUrl,
+                    headers: {
+                        'x-vapi-secret': process.env.VAPI_WEBHOOK_SECRET || '',
+                    },
+                },
                 firstMessage: options.firstMessage || undefined,
                 endCallMessage: options.endCallMessage || 'İyi günler, görüşmek üzere. Hoşçakalın.',
                 firstMessageMode: options.firstMessage ? 'assistant-speaks-first' : 'assistant-waits-for-user',
