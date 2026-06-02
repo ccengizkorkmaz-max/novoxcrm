@@ -257,6 +257,13 @@ export async function processOutreachQueue() {
         return { processed: 0 }
     }
 
+    // ─── Önceliklendirme: AI aramaları (step_order=1) her zaman WA/SMS'den önce ───
+    // Bu sayede WA hataları arama kuyruğunu asla engelleyemez
+    dueExecutions.sort((a: any, b: any) => {
+        // ai_call adımları (genelde step_order=1) önce, WA/SMS sonra
+        return (a.current_step_order || 0) - (b.current_step_order || 0)
+    })
+
 
 
     // ─── Pessimistic Locking (Moved inside loop) ─────────
@@ -956,7 +963,30 @@ async function executeWhatsApp(execution: any, step: any, config: StepConfig, ph
 
         await advanceToNextStep(execution, step, 'success')
     } else {
-        await handleRetryOrAdvance(execution, step, config, 'failure')
+        // ─── WA Template/System hatası → hemen retry yerine 30dk sonraya ertele ───
+        // Bu sayede WA hataları akışı/kuyruğu engellemez
+        const isTemplateError = result.error?.includes('132015') || result.error?.includes('paused') || result.error?.includes('temporarily unavailable')
+        const waRetryCount = execution.metadata?.wa_retry_count || 0
+        const MAX_WA_RETRIES = 3
+
+        if (isTemplateError && waRetryCount < MAX_WA_RETRIES) {
+            // Şablon hatası → 30 dk sonra tekrar dene (kuyruğu bloklamadan)
+            const retryAt = new Date(Date.now() + 30 * 60 * 1000).toISOString()
+            await supabase.from('outreach_executions')
+                .update({
+                    next_action_at: retryAt,
+                    metadata: { ...execution.metadata, wa_retry_count: waRetryCount + 1, last_wa_error: result.error }
+                })
+                .eq('id', execution.id)
+            console.log(`[Outreach] WA template hatası, ${waRetryCount + 1}/${MAX_WA_RETRIES} deneme. 30dk sonra tekrar denenecek: ${execution.id}`)
+        } else if (isTemplateError && waRetryCount >= MAX_WA_RETRIES) {
+            // Max WA retry aşıldı → bu adımı atla, sonrakine geç
+            console.log(`[Outreach] WA max retry aşıldı (${MAX_WA_RETRIES}), adım atlanıyor: ${execution.id}`)
+            await advanceToNextStep(execution, step, 'failure')
+        } else {
+            // Diğer hatalar (telefon yok vb.) → normal retry/advance mantığı
+            await handleRetryOrAdvance(execution, step, config, 'failure')
+        }
     }
 }
 
