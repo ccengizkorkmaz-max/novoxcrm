@@ -950,21 +950,35 @@ export async function getWorkflowMonitor(workflowId: string, page: number = 1) {
         smsTotalFailed: smsLogs.filter(l => l.status === 'failed').length,
     }
 
-    // Now calculate queue breakdowns using call logs as source of truth
+    // Now calculate queue breakdowns using call logs AND actual step definitions
+    // Build step_order → action_type map for this workflow
+    const { data: allSteps } = await adminDb.from('outreach_steps')
+        .select('step_order, action_type')
+        .eq('workflow_id', workflowId)
+        .eq('is_active', true)
+        .order('step_order', { ascending: true })
+    
+    const stepTypeMap = new Map<number, string>()
+    allSteps?.forEach((s: any) => stepTypeMap.set(s.step_order, s.action_type))
+
     let completedCalled = 0
     customerLatest.forEach((e: any) => {
         const cId = e.customer_id
         const wasCalled = cId && calledCustomerIds.has(cId)
+        const currentStepType = stepTypeMap.get(e.current_step_order)
 
         if (e.status === 'active' || e.status === 'waiting') {
-            if (!wasCalled) {
+            if (currentStepType === 'ai_call' && !wasCalled) {
                 statusCounts.firstCallPending++
-            } else if (e.current_step_order === 1) {
+            } else if (currentStepType === 'ai_call' && wasCalled) {
                 statusCounts.secondCallPending++
-            } else if (e.current_step_order === 2) {
+            } else if (currentStepType === 'wait') {
                 statusCounts.inWaitStep++
-            } else if (e.current_step_order === 3) {
+            } else if (currentStepType === 'whatsapp') {
                 statusCounts.whatsappPending++
+            } else if (!wasCalled && !currentStepType) {
+                // Fallback: henüz başlamamış
+                statusCounts.firstCallPending++
             }
         } else if (e.status === 'completed' || e.status === 'converted' || e.status === 'stopped' || e.status === 'failed') {
             completedCalled++
