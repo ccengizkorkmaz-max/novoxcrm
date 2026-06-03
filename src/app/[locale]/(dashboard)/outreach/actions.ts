@@ -238,7 +238,7 @@ export async function createWorkflow(payload: {
 
     // Create steps
     if (steps?.length) {
-        const stepsPayload = steps.map(s => ({ ...s, workflow_id: workflow.id }))
+        const stepsPayload = steps.map(s => ({ ...s, workflow_id: workflow.id, is_active: true }))
         console.log('[createWorkflow] stepsPayload:', JSON.stringify(stepsPayload, null, 2))
         const { error: stepsError } = await supabase.from('outreach_steps').insert(stepsPayload)
         console.log('[createWorkflow] stepsError:', stepsError?.message, stepsError?.details)
@@ -309,7 +309,7 @@ export async function addStep(workflowId: string, step: {
 }) {
     const { supabase } = await getAuthContext()
     const { data, error } = await supabase.from('outreach_steps')
-        .insert({ workflow_id: workflowId, ...step })
+        .insert({ workflow_id: workflowId, is_active: true, ...step })
         .select().single()
     if (error) return { error: error.message }
     revalidatePath('/outreach')

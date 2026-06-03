@@ -1315,14 +1315,33 @@ async function handleRetryOrAdvance(execution: any, step: any, config: StepConfi
 
     let shouldRetry = false
 
-    // KURAL: Sadece cevapsız veya ulaşılamaz ise tekrar ara.
-    // Müşteri telefonu açtıysa (ne derse desin) bir daha AI arama YAPMA.
+    // KURAL: Müşteri telefonu açıp konuştuysa (success, callback_requested) → ASLA retry yapma.
+    // Cevapsız veya meşgul → criteria toggle'larına göre retry yap.
+    // Hemen kapatanlar → sadece toggle AÇIK ve süre eşiğin altındaysa retry yap.
     if (retry?.enabled && (execution.current_retry_count || 0) < (retry.max_attempts || 3)) {
-        // Only retry if customer was unreachable
-        if (outcome === 'no_answer' || outcome === 'busy') {
-            shouldRetry = true
+        const criteria = retry.criteria
+
+        if (outcome === 'success' || outcome === 'callback_requested') {
+            // Müşteri ile konuşma yapıldı → ASLA retry yapma
+            shouldRetry = false
+        } else if (outcome === 'busy') {
+            // Hat meşgul → criteria varsa toggle'a bak, yoksa default retry
+            shouldRetry = criteria ? criteria.busy !== false : true
+        } else if (outcome === 'no_answer') {
+            // Cevapsız → criteria varsa toggle'a bak, yoksa default retry
+            shouldRetry = criteria ? criteria.no_answer !== false : true
+        } else if (outcome === 'hung_up') {
+            // Hemen kapattı → sadece toggle AÇIK ve süre eşiğin altındaysa
+            if (criteria?.hung_up?.enabled && duration !== undefined && duration !== null) {
+                const maxSecs = criteria.hung_up.max_seconds || 10
+                shouldRetry = duration <= maxSecs
+            } else {
+                shouldRetry = false
+            }
+        } else {
+            // Bilinmeyen outcome → güvenli default
+            shouldRetry = false
         }
-        // Müşteri telefonu açtıysa (success, hung_up, callback_requested, answered) → ASLA retry yapma
     }
 
     if (shouldRetry) {
