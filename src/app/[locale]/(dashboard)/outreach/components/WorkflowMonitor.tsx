@@ -174,7 +174,7 @@ export function WorkflowMonitor({ workflowId, workflowName, onClose }: WorkflowM
     if (hasCall) {
         breakdownItems.push(
             { label: 'Arama Bekleyen', value: stats.firstCallPending || 0, sub: 'Henüz hiç aranmadı', color: 'text-amber-500', bg: 'bg-amber-500/5' },
-            { label: 'Tekrar Arama Bekleyen', value: stats.secondCallPending || 0, sub: 'Açmayanların 30dk bekleyenleri', color: 'text-orange-500', bg: 'bg-orange-500/5' },
+            { label: 'Tekrar Arama Bekleyen', value: stats.secondCallPending || 0, color: 'text-orange-500', bg: 'bg-orange-500/5' },
         )
     }
     if (hasCall || hasWhatsApp) {
