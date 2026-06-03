@@ -966,6 +966,24 @@ async function executeWhatsApp(execution: any, step: any, config: StepConfig, ph
         }
     }
 
+    // ─── WA Template Circuit Breaker ─────────────────────────
+    // Son 30 dakikada aynı workflow'ta 3+ ardışık template hatası varsa,
+    // tüm WA gönderimlerini atla (Meta şablonu dondurmuş olabilir)
+    const thirtyMinsAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString()
+    const { count: recentFails } = await supabase
+        .from('outreach_step_logs')
+        .select('id', { count: 'exact', head: true })
+        .eq('channel', 'whatsapp')
+        .eq('status', 'failed')
+        .gte('executed_at', thirtyMinsAgo)
+        .ilike('error_message', '%132015%')
+    
+    if (recentFails && recentFails >= 3) {
+        console.warn(`[Outreach] 🚫 WA Circuit Breaker AÇIK: Son 30dk'da ${recentFails} template hatası. Şablon dondurulmuş olabilir. Gönderim atlanıyor.`)
+        await logAndAdvance(execution, step, 'skipped', 'whatsapp', `Circuit breaker: WA template dondurulmuş (${recentFails} hata/30dk)`)
+        return
+    }
+
     let result: { success: boolean; error?: string; data?: any }
     let messageContent: string = ''
 

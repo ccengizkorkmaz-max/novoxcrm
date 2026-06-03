@@ -1366,7 +1366,18 @@ export async function getSystemHealth() {
         .lte('next_action_at', now)
         .eq('tenant_id', tenantId)
 
-    const hasIssues = (stuckCallsOld || 0) > 0 || isLockStuck || (ghostFailed || 0) > 0
+    // 7. WA Template Circuit Breaker durumu
+    const thirtyMinsAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString()
+    const { count: waTemplateErrors } = await supabase
+        .from('outreach_step_logs')
+        .select('id', { count: 'exact', head: true })
+        .eq('channel', 'whatsapp')
+        .eq('status', 'failed')
+        .gte('executed_at', thirtyMinsAgo)
+        .ilike('error_message', '%132015%')
+
+    const isTemplateBlocked = (waTemplateErrors || 0) >= 3
+    const hasIssues = (stuckCallsOld || 0) > 0 || isLockStuck || (ghostFailed || 0) > 0 || isTemplateBlocked
 
     return {
         stuckCallsTotal: stuckCallsTotal || 0,
@@ -1377,6 +1388,8 @@ export async function getSystemHealth() {
         isLockStuck: !!isLockStuck,
         waitingExecs: waitingExecs || 0,
         overdueExecs: overduExecs || 0,
+        waTemplateErrors: waTemplateErrors || 0,
+        isTemplateBlocked,
         hasIssues,
         checkedAt: now,
     }

@@ -19,31 +19,57 @@ export async function extractAndUpdateLeadScore(
     aiReply: string
 ): Promise<{ aiReply: string; leadScore: string }> {
     let leadScore = 'unknown';
-    const scoreMatch = aiReply.match(/\[LEAD_SCORE:(hot|warm|cold)\]/);
+    // Genişletilmiş regex: hot, warm, cold, disqualified, call_requested
+    const scoreMatch = aiReply.match(/\[LEAD_SCORE:(hot|warm|cold|disqualified|call_requested)\]/);
     if (scoreMatch) {
         leadScore = scoreMatch[1];
         aiReply = aiReply.replace(scoreMatch[0], '').trim();
-        console.log(`🌡️ Lead Score: ${leadScore}`);
+        console.log(`🌡️ Lead Score (AI): ${leadScore}`);
+
+        // ─── Skor Yükseltme: Skor asla düşmez ───
+        // Hiyerarşi: disqualified < cold < warm < hot (call_requested = hot seviyesi)
+        const SCORE_HIERARCHY: Record<string, number> = {
+            'unknown': 0,
+            'disqualified': 0,
+            'cold': 1,
+            'warm': 2,
+            'call_requested': 3,
+            'hot': 3,
+        };
+
+        // Mevcut skoru kontrol et
+        const { data: convData } = await supabase
+            .from('whatsapp_conversations')
+            .select('lead_score, customer_id')
+            .eq('id', conversationId)
+            .single();
+
+        const currentScore = convData?.lead_score || 'unknown';
+        const currentLevel = SCORE_HIERARCHY[currentScore] ?? 0;
+        const newLevel = SCORE_HIERARCHY[leadScore] ?? 0;
+
+        // disqualified özel durum: her zaman uygulanır (müşteri red etti)
+        const finalScore = leadScore === 'disqualified'
+            ? 'disqualified'
+            : (newLevel >= currentLevel ? leadScore : currentScore);
+
+        console.log(`🌡️ Skor kararı: ${currentScore}(${currentLevel}) → ${leadScore}(${newLevel}) = ${finalScore}`);
 
         // Conversation'ın lead_score'unu güncelle
         await supabase.from('whatsapp_conversations').update({
-            lead_score: leadScore,
+            lead_score: finalScore,
         }).eq('id', conversationId);
 
         // Öndeğerlendirme kaydının interest_level'ını da güncelle
-        const { data: convData } = await supabase
-            .from('whatsapp_conversations')
-            .select('customer_id')
-            .eq('id', conversationId)
-            .single();
-        
         if (convData?.customer_id) {
             await supabase.from('lead_qualifications')
-                .update({ interest_level: leadScore, updated_at: new Date().toISOString() })
+                .update({ interest_level: finalScore, updated_at: new Date().toISOString() })
                 .eq('customer_id', convData.customer_id)
                 .eq('tenant_id', tenantId);
-            console.log(`📊 Lead qualification interest_level güncellendi: ${leadScore} (customer: ${convData.customer_id})`);
+            console.log(`📊 Lead qualification interest_level güncellendi: ${finalScore} (customer: ${convData.customer_id})`);
         }
+
+        leadScore = finalScore;
     }
     return { aiReply, leadScore };
 }

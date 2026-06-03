@@ -5,7 +5,7 @@ import { getSystemHealth, resetOutreachSystem } from '../actions'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
-    Activity, AlertTriangle, CheckCircle2, Lock, Phone,
+    Activity, AlertTriangle, CheckCircle2, Lock, Phone, MessageSquare,
     RefreshCw, Trash2, Unlock, RotateCcw, Clock, Zap,
     ShieldCheck, ShieldAlert
 } from 'lucide-react'
@@ -21,6 +21,8 @@ interface HealthData {
     waitingExecs: number
     overdueExecs: number
     hasIssues: boolean
+    waTemplateErrors: number
+    isTemplateBlocked: boolean
     checkedAt: string
     error?: string
 }
@@ -135,6 +137,7 @@ export function SystemHealthPanel() {
                             </Badge>
                         </div>
                         <p className="text-[11px] text-muted-foreground mt-0.5">
+                            {health.isTemplateBlocked && <span className="text-red-400 font-medium">⚠️ WA Şablonu Dondurulmuş · </span>}
                             {health.stuckCallsTotal > 0 && `${health.stuckCallsTotal} aktif arama · `}
                             {health.waitingExecs > 0 && `${health.waitingExecs} webhook bekliyor · `}
                             Son kontrol: {new Date(health.checkedAt).toLocaleTimeString('tr-TR')}
@@ -157,7 +160,7 @@ export function SystemHealthPanel() {
             {expanded && (
                 <div className="border-t border-border/30 p-4 space-y-4">
                     {/* Status Cards */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                         <StatusCard
                             icon={Phone}
                             label="Aktif Arama"
@@ -186,7 +189,29 @@ export function SystemHealthPanel() {
                             sub="Failed ama kapanmamış"
                             status={health.ghostFailed > 0 ? 'danger' : 'ok'}
                         />
+                        <StatusCard
+                            icon={MessageSquare}
+                            label="WA Şablon"
+                            value={health.isTemplateBlocked ? 'Donduruldu!' : health.waTemplateErrors > 0 ? `${health.waTemplateErrors} hata` : 'Sağlıklı'}
+                            sub={health.isTemplateBlocked ? `⚠️ Circuit breaker aktif (${health.waTemplateErrors} hata)` : health.waTemplateErrors > 0 ? 'Son 30dk hata' : 'Gönderim normal'}
+                            status={health.isTemplateBlocked ? 'danger' : health.waTemplateErrors > 0 ? 'warning' : 'ok'}
+                        />
                     </div>
+
+                    {/* WA Template Warning Banner */}
+                    {health.isTemplateBlocked && (
+                        <div className="flex items-start gap-3 p-3 rounded-lg bg-red-500/10 border border-red-500/30">
+                            <MessageSquare className="h-5 w-5 text-red-400 shrink-0 mt-0.5" />
+                            <div>
+                                <p className="text-sm font-semibold text-red-400">WhatsApp Şablonu Dondurulmuş</p>
+                                <p className="text-xs text-red-300/70 mt-0.5">
+                                    Son 30 dakikada {health.waTemplateErrors} şablon hatası tespit edildi (Meta hata kodu: 132015).
+                                    Circuit breaker devrede — WA mesajları otomatik olarak atlanıyor.
+                                    Meta Business Manager&apos;dan şablon durumunu kontrol edin.
+                                </p>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Action Buttons */}
                     {health.hasIssues ? (
