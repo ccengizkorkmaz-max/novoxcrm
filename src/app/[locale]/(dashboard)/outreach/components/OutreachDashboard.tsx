@@ -462,7 +462,7 @@ function WorkflowCard({ workflow, hasTrigger, onToggle, onEdit, onDelete, onLaun
                                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                                         <div>
                                             <span className="text-muted-foreground">Sure</span>
-                                            <p className="font-medium">{`~${workflow.computed_params.estimated_completion_minutes}dk`}</p>
+                                            <p className="font-medium">~{workflow.computed_params.estimated_completion_minutes}dk</p>
                                         </div>
                                         <div>
                                             <span className="text-muted-foreground">Aramalar</span>
@@ -474,17 +474,12 @@ function WorkflowCard({ workflow, hasTrigger, onToggle, onEdit, onDelete, onLaun
                                         </div>
                                         <div>
                                             <span className="text-muted-foreground">Maliyet</span>
-                                            <p className="font-medium">{`$${workflow.computed_params.estimated_cost_usd}`}</p>
+                                            <p className="font-medium">{workflow.computed_params.estimated_cost_usd} USD</p>
                                         </div>
-                                    </div>
-                                    <div className="flex items-center gap-3 mt-1.5 text-[10px] text-muted-foreground">
-                                        <span>{`${workflow.computed_params.segment_size} kisi`}</span>
-                                        <span>{`${workflow.computed_params.max_concurrent_lines} hat`}</span>
-                                        <span>{`batch: ${workflow.computed_params.optimal_batch_size}`}</span>
                                     </div>
                                 </div>
                             )}
-                    </div>
+                        </div>
                     <div className="flex items-center gap-2 ml-4">
                         <Switch checked={workflow.is_active} onCheckedChange={onToggle} />
                     </div>
