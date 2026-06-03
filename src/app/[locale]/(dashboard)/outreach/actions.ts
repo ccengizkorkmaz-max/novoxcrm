@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { resolveSegment, startWorkflowForLeads, processOutreachQueue } from '@/lib/outreach/engine'
+import { simulateWorkflow, type WorkflowComputedParams } from '@/lib/outreach/workflow-simulator'
 
 // ─── Helpers ─────────────────────────────────────────────────
 
@@ -477,7 +478,7 @@ export async function launchWorkflow(workflowId: string) {
     const adminDb = createAdminClient()
 
     const { data: workflow } = await adminDb.from('outreach_workflows')
-        .select('segment_id, max_leads_per_day')
+        .select('segment_id, max_leads_per_day, working_hours_start, working_hours_end, outreach_steps(*)')
         .eq('id', workflowId)
         .single()
 
@@ -514,7 +515,7 @@ export async function launchWorkflow(workflowId: string) {
 
     const processedIds = new Set(
         existing.map(e => isLqSource ? e.customer_id : e.sale_id).filter(Boolean)
-    );
+    )
 
     const remainingIds = allLeadIds.filter(id => {
         const matchId = isLqSource ? id.replace('lq:', '') : id
@@ -522,8 +523,42 @@ export async function launchWorkflow(workflowId: string) {
     })
 
     if (!remainingIds.length) {
-        // Zaten ekli olan leadler olabilir, ancak durdurulup tekrar başlatılmış olabilir.
         return { success: true, started: 0, skipped: 0, message: 'Kuyruk tetiklendi, cron döngüsünde aramalar devam edecek.' }
+    }
+
+    // ─── Auto-Tuning: Simülasyon çalıştır ve computed_params kaydet ───
+    let computedParams: WorkflowComputedParams | null = null
+    try {
+        // Tenant'ın max concurrent lines ayarını al
+        const { data: tenantData } = await adminDb.from('tenants')
+            .select('ai_outreach_settings')
+            .eq('id', tenantId)
+            .single()
+        const maxLines = tenantData?.ai_outreach_settings?.max_concurrent_calls || 5
+
+        const wfSteps = (workflow.outreach_steps || []).sort((a: any, b: any) => (a.step_order || 0) - (b.step_order || 0))
+
+        computedParams = simulateWorkflow({
+            segmentSize: remainingIds.length,
+            maxConcurrentLines: maxLines,
+            steps: wfSteps.map((s: any) => ({
+                type: s.action_type,
+                retry: s.config?.retry,
+                wait_minutes: s.config?.wait_minutes,
+            })),
+            workingHoursStart: parseInt(workflow.working_hours_start || '9'),
+            workingHoursEnd: parseInt(workflow.working_hours_end || '18'),
+            cronIntervalMinutes: 1,
+        })
+
+        // computed_params'ı workflow'a kaydet
+        await adminDb.from('outreach_workflows')
+            .update({ computed_params: computedParams })
+            .eq('id', workflowId)
+
+        console.log(`[Outreach] 📊 Simülasyon: ${remainingIds.length} kişi, ~${computedParams.estimated_completion_minutes}dk, batch=${computedParams.optimal_batch_size}`)
+    } catch (simErr: any) {
+        console.warn('[Outreach] Simülasyon hatası (non-blocking):', simErr.message)
     }
 
     // Günlük limit uygula
@@ -532,7 +567,55 @@ export async function launchWorkflow(workflowId: string) {
     const result = await startWorkflowForLeads(workflowId, limited, tenantId)
 
     revalidatePath('/outreach')
-    return { success: true, ...result }
+    return { success: true, ...result, computed_params: computedParams }
+}
+
+// ─── Workflow Simülasyonu (UI Preview) ───────────────────────
+
+export async function simulateWorkflowAction(workflowId: string): Promise<{ data?: WorkflowComputedParams; error?: string }> {
+    const { tenantId } = await getAuthContext()
+    if (!tenantId) return { error: 'No tenant' }
+
+    const adminDb = createAdminClient()
+
+    const { data: workflow } = await adminDb.from('outreach_workflows')
+        .select('segment_id, working_hours_start, working_hours_end, outreach_steps(*)')
+        .eq('id', workflowId)
+        .single()
+
+    if (!workflow?.segment_id) return { error: 'Segment tanımlı değil' }
+
+    // Segment büyüklüğünü hesapla
+    const allLeadIds = await resolveSegment(workflow.segment_id)
+
+    // Tenant max lines
+    const { data: tenantData } = await adminDb.from('tenants')
+        .select('ai_outreach_settings')
+        .eq('id', tenantId)
+        .single()
+    const maxLines = tenantData?.ai_outreach_settings?.max_concurrent_calls || 5
+
+    const wfSteps = (workflow.outreach_steps || []).sort((a: any, b: any) => (a.step_order || 0) - (b.step_order || 0))
+
+    const result = simulateWorkflow({
+        segmentSize: allLeadIds.length,
+        maxConcurrentLines: maxLines,
+        steps: wfSteps.map((s: any) => ({
+            type: s.action_type,
+            retry: s.config?.retry,
+            wait_minutes: s.config?.wait_minutes,
+        })),
+        workingHoursStart: parseInt(workflow.working_hours_start || '9'),
+        workingHoursEnd: parseInt(workflow.working_hours_end || '18'),
+        cronIntervalMinutes: 1,
+    })
+
+    // computed_params'ı workflow'a kaydet
+    await adminDb.from('outreach_workflows')
+        .update({ computed_params: result })
+        .eq('id', workflowId)
+
+    return { data: result }
 }
 
 export async function getWhatsAppTemplates() {
@@ -649,7 +732,7 @@ export async function getWorkflowMonitor(workflowId: string, page: number = 1) {
 
     // Get workflow info
     const { data: workflow } = await adminDb.from('outreach_workflows')
-        .select('id, name, is_active, max_leads_per_day, total_executions, outreach_segments(name)')
+        .select('id, name, is_active, max_leads_per_day, total_executions, computed_params, outreach_segments(name)')
         .eq('id', workflowId)
         .single()
 
@@ -903,6 +986,45 @@ export async function getWorkflowMonitor(workflowId: string, page: number = 1) {
         combinedLogs = [...uniqueActiveLogs, ...combinedLogs]
     }
 
+    // ─── Cron Health Check ───────────────────────────────────
+    // Son cron çalışmasını tespit etmek için en son step_log'a bak
+    let cronHealth: { status: 'ok' | 'warning' | 'error'; lastRunAt: string | null; message: string } = {
+        status: 'error', lastRunAt: null, message: 'Cron verisi bulunamadı'
+    }
+    try {
+        // Tenant'ın queue_lock_at değeri son cron çalışmasını gösterir
+        const { data: tenantData } = await adminDb.from('tenants')
+            .select('ai_outreach_settings')
+            .eq('id', tenantId)
+            .single()
+        const lockAt = tenantData?.ai_outreach_settings?.queue_lock_at
+
+        // Ayrıca en son step_log'un zamanına da bakalım (daha güvenilir)
+        const { data: latestLog } = await adminDb.from('outreach_step_logs')
+            .select('executed_at')
+            .order('executed_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+
+        const lastActivity = latestLog?.executed_at || lockAt
+        if (lastActivity) {
+            const ageMs = Date.now() - new Date(lastActivity).getTime()
+            const ageMinutes = Math.floor(ageMs / 60000)
+            cronHealth.lastRunAt = lastActivity
+
+            if (ageMinutes <= 2) {
+                cronHealth.status = 'ok'
+                cronHealth.message = `Son aktivite: ${ageMinutes < 1 ? 'az önce' : ageMinutes + 'dk önce'}`
+            } else if (ageMinutes <= 10) {
+                cronHealth.status = 'warning'
+                cronHealth.message = `Son aktivite ${ageMinutes}dk önce — cron yavaşlamış olabilir`
+            } else {
+                cronHealth.status = 'error'
+                cronHealth.message = `Son aktivite ${ageMinutes}dk önce — cron çalışmıyor olabilir!`
+            }
+        }
+    } catch (_) { /* non-blocking */ }
+
     return {
         workflow,
         executions: combinedExecutions,
@@ -914,6 +1036,7 @@ export async function getWorkflowMonitor(workflowId: string, page: number = 1) {
         page,
         pageSize: PAGE_SIZE,
         totalPages: Math.ceil(totalCount / PAGE_SIZE),
+        cronHealth,
     }
 }
 

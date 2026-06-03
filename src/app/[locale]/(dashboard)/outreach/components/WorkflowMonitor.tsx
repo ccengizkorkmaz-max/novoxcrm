@@ -98,7 +98,7 @@ export function WorkflowMonitor({ workflowId, workflowName, onClose }: WorkflowM
 
     if (!data) return null
 
-    const { workflow, executions, logs, stats, channels, totalCount, todayCount, totalPages, pageSize } = data
+    const { workflow, executions, logs, stats, channels, totalCount, todayCount, totalPages, pageSize, cronHealth } = data
 
     // Build a map: execution_id → best log (prefer completed logs with actual results)
     const logMap = new Map<string, any>()
@@ -210,14 +210,38 @@ export function WorkflowMonitor({ workflowId, workflowName, onClose }: WorkflowM
                         </div>
                         Canlı Takip — {workflowName}
                     </h1>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                        {workflow?.is_active ? '🟢 Aktif' : '⏸️ Duraklatıldı'} · Günlük max: {workflow?.max_leads_per_day || 50} · 5 sn'de bir yenilenir (Anlık Canlı Veri)
-                        {channels?.length > 0 && (
-                            <span className="ml-2">
-                                · Kanallar: {channels.map((c: string) => c === 'ai_call' ? '📞 Arama' : c === 'whatsapp' ? '💬 WhatsApp' : c === 'sms' ? '📱 SMS' : c).join(', ')}
-                            </span>
+                    <div className="flex items-center gap-3 mt-1">
+                        <p className="text-xs text-muted-foreground">
+                            {workflow?.is_active ? '🟢 Aktif' : '⏸️ Duraklatıldı'} · Günlük max: {workflow?.max_leads_per_day || 50} · 5 sn'de bir yenilenir
+                            {channels?.length > 0 && (
+                                <span className="ml-2">
+                                    · Kanallar: {channels.map((c: string) => c === 'ai_call' ? '📞 Arama' : c === 'whatsapp' ? '💬 WhatsApp' : c === 'sms' ? '📱 SMS' : c).join(', ')}
+                                </span>
+                            )}
+                        </p>
+                        {/* Cron Health Indicator */}
+                        {cronHealth && (
+                            <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[10px] font-medium ${
+                                cronHealth.status === 'ok' 
+                                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                                    : cronHealth.status === 'warning'
+                                    ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
+                                    : 'bg-red-500/10 border-red-500/30 text-red-400'
+                            }`}>
+                                <span className={`relative flex h-2 w-2`}>
+                                    {cronHealth.status === 'ok' && (
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                                    )}
+                                    <span className={`relative inline-flex rounded-full h-2 w-2 ${
+                                        cronHealth.status === 'ok' ? 'bg-emerald-400'
+                                        : cronHealth.status === 'warning' ? 'bg-amber-400'
+                                        : 'bg-red-400'
+                                    }`} />
+                                </span>
+                                <span>Cron: {cronHealth.message}</span>
+                            </div>
                         )}
-                    </p>
+                    </div>
                 </div>
                 <Button size="sm" variant="outline" onClick={handleRefresh} disabled={refreshing}
                     className="gap-2 border-blue-500/30 text-blue-400 hover:bg-blue-500/10">
@@ -225,6 +249,40 @@ export function WorkflowMonitor({ workflowId, workflowName, onClose }: WorkflowM
                     Yenile
                 </Button>
             </div>
+
+            {/* Simulation Info Bar */}
+            {workflow?.computed_params && (
+                <Card className="p-3 bg-gradient-to-r from-blue-500/5 to-cyan-500/5 border-blue-500/15">
+                    <div className="flex items-center gap-6 text-xs flex-wrap">
+                        <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] font-semibold text-blue-400 uppercase tracking-wide">📊 Simülasyon</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-muted-foreground">
+                            <Clock className="h-3 w-3" />
+                            <span>Tahmini: <strong className="text-foreground">~{workflow.computed_params.estimated_completion_minutes}dk</strong></span>
+                        </div>
+                        <div className="flex items-center gap-1 text-muted-foreground">
+                            <Phone className="h-3 w-3" />
+                            <span>Aramalar: <strong className="text-foreground">{workflow.computed_params.estimated_total_calls}</strong></span>
+                        </div>
+                        {workflow.computed_params.estimated_wa_messages > 0 && (
+                            <div className="flex items-center gap-1 text-muted-foreground">
+                                <MessageSquare className="h-3 w-3" />
+                                <span>WA: <strong className="text-foreground">{workflow.computed_params.estimated_wa_messages}</strong></span>
+                            </div>
+                        )}
+                        <div className="text-muted-foreground">
+                            Maliyet: <strong className="text-foreground">${workflow.computed_params.estimated_cost_usd}</strong>
+                        </div>
+                        <div className="text-muted-foreground">
+                            Batch: <strong className="text-foreground">{workflow.computed_params.optimal_batch_size}</strong>
+                        </div>
+                        {workflow.computed_params.warnings?.map((w: string, i: number) => (
+                            <span key={i} className="text-amber-400 text-[10px]">⚠️ {w}</span>
+                        ))}
+                    </div>
+                </Card>
+            )}
 
             {/* Dynamic Stats Cards */}
             <div className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-${Math.min(statCards.length, 6)} gap-3`}>

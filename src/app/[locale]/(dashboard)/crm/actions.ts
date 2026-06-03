@@ -8,7 +8,6 @@ import { logUnitPriceHistory } from '../inventory/actions'
 import { ensureFinancialAccount, createTransaction, createValuablePaper } from '../finance/actions'
 import { createNotification } from '@/lib/notifications/create'
 import { logSystemAction } from '@/lib/actions/system-logs'
-import { handleOutreachEvent } from '@/lib/outreach/events'
 
 export async function getCustomerFullProfile(customerId: string) {
     const supabase = await createClient()
@@ -237,15 +236,7 @@ export async function createCustomer(formData: FormData) {
                     }).select().single()
 
                     if (!saleError && newSale) {
-
-                        // Trigger Outreach Event: Lead Created
-                        if (profile?.tenant_id) {
-                            handleOutreachEvent(profile.tenant_id, 'lead_created', {
-                                saleId: newSale.id,
-                                customerId: data.id,
-                                status: 'Lead'
-                            }).catch(console.error)
-                        }
+                        // Not: Outreach workflow tetiklemesi kaldırıldı — outreach_event_triggers tablosu boş
                     }
                 }
             }
@@ -498,10 +489,11 @@ export async function createSale(formData: FormData) {
     const description = (formData.get('description') as string)?.trim() || null
     const source = (formData.get('source') as string)?.trim() || null
     const budget = formData.get('budget') ? Number(formData.get('budget')) : null
+    const sendWaMessage = formData.get('send_wa_message') === 'on'
 
     if (!customer_id) return { error: 'Missing customer' }
 
-    const { data: customer } = await supabase.from('customers').select('source').eq('id', customer_id).single()
+    const { data: customer } = await supabase.from('customers').select('id, full_name, phone, source').eq('id', customer_id).single()
     const lead_origin = mapSourceToCategory(source || customer?.source || null)
 
     // Build insert payload
@@ -529,14 +521,81 @@ export async function createSale(formData: FormData) {
     if (newSaleData) {
         await syncBrokerLeadFromSale(newSaleData.id, unit_id ? 'Prospect' : 'Lead')
         
-        // Trigger Outreach Event: Lead Created
-        if (profile?.tenant_id) {
-            handleOutreachEvent(profile.tenant_id, 'lead_created', {
-                saleId: newSaleData.id,
-                customerId: customer_id,
-                status: unit_id ? 'Prospect' : 'Lead',
-                project_id: project_id || null
-            }).catch(console.error)
+        // WhatsApp bilgilendirme mesajı gönder (kullanıcı isterse)
+        if (sendWaMessage && customer?.phone && profile?.tenant_id) {
+            try {
+                const { sendWhatsAppTemplate } = await import('@/lib/whatsapp')
+                
+                // Tenant'ın WA şablon ayarını oku
+                const { data: tenantSettings } = await supabase
+                    .from('tenants')
+                    .select('wa_auto_template_name')
+                    .eq('id', profile.tenant_id)
+                    .single()
+                
+                const templateName = tenantSettings?.wa_auto_template_name || 'novo_talep_alindi'
+                
+                // Proje adını bul
+                let projectName = 'Novo'
+                if (project_id) {
+                    const { data: proj } = await supabase.from('projects').select('name').eq('id', project_id).single()
+                    if (proj) projectName = proj.name
+                }
+                
+                // Telefon normalize
+                let wpPhone = customer.phone.replace(/[^\d]/g, '')
+                if (wpPhone.startsWith('0')) wpPhone = '90' + wpPhone.substring(1)
+                if (!wpPhone.startsWith('90') && wpPhone.length === 10) wpPhone = '90' + wpPhone
+                
+                const customerName = customer.full_name?.trim() || 'Değerli Müşterimiz'
+                
+                const waResult = await sendWhatsAppTemplate(wpPhone, templateName, [customerName, projectName])
+                
+                if (waResult.success) {
+                    console.log(`[CRM] ✅ WA bilgilendirme gönderildi: ${customerName} (${wpPhone})`)
+                    
+                    // Zaman tünelinde görünsün — whatsapp_conversations + whatsapp_messages
+                    try {
+                        let { data: existingConv } = await supabase
+                            .from('whatsapp_conversations')
+                            .select('id')
+                            .eq('tenant_id', profile.tenant_id)
+                            .eq('phone_number', wpPhone)
+                            .maybeSingle()
+
+                        if (!existingConv) {
+                            const { data: newConv } = await supabase.from('whatsapp_conversations').insert({
+                                tenant_id: profile.tenant_id,
+                                phone_number: wpPhone,
+                                customer_id,
+                                channel: 'whatsapp',
+                                ai_enabled: true,
+                                last_message_preview: `[Şablon] ${templateName}`,
+                                unread_count: 0
+                            }).select('id').single()
+                            existingConv = newConv
+                        }
+
+                        if (existingConv) {
+                            await supabase.from('whatsapp_messages').insert({
+                                conversation_id: existingConv.id,
+                                tenant_id: profile.tenant_id,
+                                role: 'assistant',
+                                direction: 'outbound',
+                                sender_type: 'bot',
+                                content: `[Şablon: ${templateName}] ${customerName} müşterisine ${projectName} projesi hakkında bilgilendirme mesajı gönderildi.`,
+                                status: 'delivered',
+                            })
+                        }
+                    } catch (convErr) {
+                        console.warn('[CRM] Conversation log hatası (non-blocking):', convErr)
+                    }
+                } else {
+                    console.warn(`[CRM] ⚠️ WA gönderilemedi: ${waResult.error}`)
+                }
+            } catch (waErr) {
+                console.warn('[CRM] WA gönderim hatası (non-blocking):', waErr)
+            }
         }
     }
 
@@ -545,6 +604,7 @@ export async function createSale(formData: FormData) {
 
     return { success: true, sale: newSaleData }
 }
+
 
 export async function restartSale(saleId: string) {
     const supabase = await createClient()
@@ -769,15 +829,7 @@ export async function updateSaleStatus(id: string, status: string) {
     revalidatePath('/crm')
     revalidatePath('/offers')
 
-    // Trigger Outreach Event: Status Changed
-    if (profile?.tenant_id && sale) {
-        handleOutreachEvent(profile.tenant_id, 'status_changed', {
-            saleId: id,
-            customerId: sale.customer_id,
-            status: status,
-            project_id: sale.project_id || null
-        }).catch(console.error)
-    }
+    // Not: Outreach status_changed tetiklemesi kaldırıldı — outreach_event_triggers tablosu boş
 
     // Insert System Log Activity for Timeline
     if (sale) {

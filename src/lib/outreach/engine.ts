@@ -242,7 +242,7 @@ export async function processOutreachQueue() {
         .select(`
             *,
             outreach_workflows!inner(
-                id, working_hours_start, working_hours_end, working_days, timezone, is_active, conversion_goal_status, batch_size, batch_interval_seconds
+                id, working_hours_start, working_hours_end, working_days, timezone, is_active, conversion_goal_status, batch_size, batch_interval_seconds, computed_params
             ),
             customers(id, full_name, phone, email),
             sales(id, status, project_id, unit_id)
@@ -338,8 +338,9 @@ export async function processOutreachQueue() {
     const activeThreshold = new Date(Date.now() - 15 * 60 * 1000).toISOString()
 
     if (availableSlots <= 0) {
-        console.log(`[Outreach] Eşzamanlı arama limiti doldu (${maxConcurrent}). Bekleniyor...`)
-        return { processed: 0, reason: 'concurrency_limit' }
+        console.log(`[Outreach] Eşzamanlı arama limiti doldu (${maxConcurrent}). Aramalar ertelenecek, WA/SMS adımları devam edecek.`)
+        // Return yapmıyoruz — WA/SMS adımları yine de işlenebilir.
+        // Loop içindeki per-step slot kontrolü (L498-502) ai_call'ları zaten skip edecek.
     }
 
     console.log(`[Outreach] ${dueExecutions.length} bekleyen, ${availableSlots}/${maxConcurrent} slot müsait`)
@@ -357,7 +358,8 @@ export async function processOutreachQueue() {
     for (const execution of dueExecutions) {
         // Enforce per-workflow batch_size limit
         const wfId = execution.workflow_id
-        const batchSize = execution.outreach_workflows?.batch_size || 100
+        const batchSize = execution.outreach_workflows?.computed_params?.optimal_batch_size
+            || execution.outreach_workflows?.batch_size || 100
         const currentCount = workflowBatchCounts.get(wfId) || 0
         if (currentCount >= batchSize) continue
 
@@ -679,7 +681,7 @@ export async function processOutreachQueue() {
                 id, workflow_id, customer_id, sale_id, current_step_order, current_retry_count,
                 status, metadata, tenant_id, next_action_at,
                 outreach_workflows!inner(
-                    id, working_hours_start, working_hours_end, working_days, timezone, is_active, conversion_goal_status, batch_size, batch_interval_seconds
+                    id, working_hours_start, working_hours_end, working_days, timezone, is_active, conversion_goal_status, batch_size, batch_interval_seconds, computed_params
                 ),
                 customers(id, full_name, phone, email),
                 sales(id, status, project_id, unit_id)
@@ -808,6 +810,15 @@ async function executeAiCall(execution: any, step: any, config: StepConfig, phon
         return
     }
 
+    // ─── AI Call Guard: Aktif arama devam ediyorsa tekrar arama başlatma ───
+    // NOT: Bu guard retry'ları ENGELLEMEMELİ. Retry'lar aynı step'te tekrar arama
+    // yapar — webhook gelince execution 'active'e döner ve guard geçer.
+    // Sadece "execution waiting + henüz webhook gelmemiş" durumunu engeller.
+    if (execution.status === 'waiting' && execution.metadata?.pending_call_id) {
+        console.log(`[Outreach] ⛔ AI Call guard: Execution ${execution.id} zaten aktif arama bekliyor (${execution.metadata.pending_call_id}). Atlanıyor.`)
+        return
+    }
+
     // Normalize & validate phone
     let cleanPhone = phone.replace(/[^0-9+]/g, '') // Remove non-numeric except +
     if (cleanPhone.startsWith('0')) cleanPhone = '+90' + cleanPhone.substring(1)
@@ -920,31 +931,38 @@ async function executeWhatsApp(execution: any, step: any, config: StepConfig, ph
         return
     }
 
+    // ─── Step-Level Idempotency: Bu adım zaten başarıyla gönderilmiş mi? ───
+    // Aynı execution + aynı step için 'sent' kaydı varsa tekrar gönderme
+    const { count: alreadySentWA } = await supabase
+        .from('outreach_step_logs')
+        .select('id', { count: 'exact', head: true })
+        .eq('execution_id', execution.id)
+        .eq('step_id', step.id)
+        .eq('channel', 'whatsapp')
+        .eq('status', 'sent')
+    if (alreadySentWA && alreadySentWA > 0) {
+        console.log(`[Outreach] ⛔ Step idempotency: Execution ${execution.id} step ${step.id} WA zaten başarıyla gönderilmiş. Atlanıyor.`)
+        await advanceToNextStep(execution, step, 'success')
+        return
+    }
+
     // ─── Mükerrer WA Koruması (24 saat) ─────────────────────
     // Aynı müşteriye aynı şablonla son 24 saatte mesaj gitmişse ATLA
+    // Activities tablosundan kontrol — execution sayısından bağımsız, slice(0,200) boşluğu yok
     const templateName24h = config.template_name || ''
     if (templateName24h && execution.customer_id) {
         const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-        // Müşterinin TÜM execution'larını bul
-        const { data: custExecs } = await supabase
-            .from('outreach_executions')
-            .select('id')
+        const { count: recentWA } = await supabase
+            .from('activities')
+            .select('id', { count: 'exact', head: true })
             .eq('customer_id', execution.customer_id)
-        const custExecIds = custExecs?.map(e => e.id) || []
-        if (custExecIds.length > 0) {
-            const { count: recentWA } = await supabase
-                .from('outreach_step_logs')
-                .select('id', { count: 'exact', head: true })
-                .eq('channel', 'whatsapp')
-                .eq('status', 'sent')
-                .eq('template_name', templateName24h)
-                .in('execution_id', custExecIds.slice(0, 200))
-                .gte('executed_at', twentyFourHoursAgo)
-            if (recentWA && recentWA > 0) {
-                console.log(`[Outreach] ⛔ WA mükerrer koruma: ${execution.customer_id} müşterisine ${templateName24h} şablonu son 24 saatte zaten gönderilmiş. Atlanıyor.`)
-                await advanceToNextStep(execution, step, 'success')
-                return
-            }
+            .eq('type', 'Whatsapp')
+            .ilike('description', `%${templateName24h}%`)
+            .gte('created_at', twentyFourHoursAgo)
+        if (recentWA && recentWA > 0) {
+            console.log(`[Outreach] ⛔ WA mükerrer koruma (24 saat): ${execution.customer_id} müşterisine ${templateName24h} şablonu son 24 saatte zaten gönderilmiş. Atlanıyor.`)
+            await advanceToNextStep(execution, step, 'success')
+            return
         }
     }
 
@@ -1048,6 +1066,20 @@ async function executeSms(execution: any, step: any, config: StepConfig, phone: 
 
     if (!phone) {
         await logAndAdvance(execution, step, 'skipped', 'sms', 'No phone number')
+        return
+    }
+
+    // ─── Step-Level Idempotency: Bu adım zaten başarıyla gönderilmiş mi? ───
+    const { count: alreadySentSMS } = await supabase
+        .from('outreach_step_logs')
+        .select('id', { count: 'exact', head: true })
+        .eq('execution_id', execution.id)
+        .eq('step_id', step.id)
+        .eq('channel', 'sms')
+        .eq('status', 'sent')
+    if (alreadySentSMS && alreadySentSMS > 0) {
+        console.log(`[Outreach] ⛔ Step idempotency: Execution ${execution.id} step ${step.id} SMS zaten başarıyla gönderilmiş. Atlanıyor.`)
+        await advanceToNextStep(execution, step, 'success')
         return
     }
 
@@ -1965,12 +1997,15 @@ export async function startWorkflowForLeads(workflowId: string, leadIds: string[
     // Check for existing active executions
     const leadIdList = leads.map(l => l.customer_id)
     const leadIdChunks = chunkArray(leadIdList, 150)
+    // Sadece aktif/bekleyen execution'ları engelle — tamamlanan/başarısız/durdurulan müşteriler
+    // yeni kampanyalar için tekrar workflow'a girebilir. Mükerrer mesaj koruması
+    // step-level idempotency guard'ları tarafından sağlanır (executeWhatsApp/SMS/AiCall).
     const existingPromises = leadIdChunks.map(chunk =>
         supabase
             .from('outreach_executions')
             .select('customer_id')
             .eq('workflow_id', workflowId)
-            .in('status', ['active', 'waiting', 'completed', 'converted', 'stopped', 'paused', 'failed'])
+            .in('status', ['active', 'waiting'])
             .in('customer_id', chunk)
     )
     const existingResults = await Promise.all(existingPromises)

@@ -12,7 +12,7 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog"
-import { Plus } from 'lucide-react'
+import { Plus, MessageCircle } from 'lucide-react'
 import { createSale } from '../actions'
 import { toast } from "sonner"
 import { Combobox } from '@/components/ui/combobox'
@@ -38,6 +38,7 @@ export default function NewSaleButton({
     const [selectedCustomerIdForSale, setSelectedCustomerIdForSale] = useState("")
     const [selectedProjectIdForSale, setSelectedProjectIdForSale] = useState(initialState?.projectId || "")
     const [selectedUnitIdForSale, setSelectedUnitIdForSale] = useState(initialState?.unitId || "")
+    const [sendWaMessage, setSendWaMessage] = useState(false)
 
     // Extract unique projects from available units
     const projects = useMemo(() => {
@@ -195,7 +196,22 @@ export default function NewSaleButton({
                             </>
                         )}
                     </div>
-                    <DialogFooter>
+                    <DialogFooter className="flex flex-col gap-3">
+                        {/* WhatsApp Bilgilendirme Opsiyonu */}
+                        <label className="flex items-center gap-3 p-3 rounded-xl border border-emerald-200 bg-emerald-50/50 cursor-pointer hover:bg-emerald-50 transition-all w-full">
+                            <input
+                                type="checkbox"
+                                name="send_wa_message"
+                                checked={sendWaMessage}
+                                onChange={(e) => setSendWaMessage(e.target.checked)}
+                                className="h-4 w-4 rounded border-emerald-300 text-emerald-600 focus:ring-emerald-500"
+                            />
+                            <MessageCircle className="h-4 w-4 text-emerald-600 flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                                <span className="text-xs font-bold text-emerald-800">WhatsApp Bilgilendirme Mesajı Gönder</span>
+                                <p className="text-[10px] text-emerald-600/80 mt-0.5">Müşteriye yeni lead bilgilendirme mesajı gönderilir</p>
+                            </div>
+                        </label>
                         <Button
                             type="submit"
                             disabled={!selectedCustomerIdForSale || (!isBroker && !selectedUnitIdForSale && !selectedProjectIdForSale)}

@@ -453,7 +453,45 @@ function WorkflowCard({ workflow, hasTrigger, onToggle, onEdit, onDelete, onLaun
                                     )}
                                 </div>
                             )}
-                        </div>
+                            {/* Auto-Tuning Simülasyon Bilgi Kartı */}
+                            {workflow.computed_params && (
+                                <div className="mt-2 p-2.5 rounded-lg bg-blue-500/5 border border-blue-500/15">
+                                    <div className="flex items-center gap-1.5 mb-1.5">
+                                        <BarChart3 className="h-3 w-3 text-blue-400" />
+                                        <span className="text-[10px] font-semibold text-blue-400 uppercase tracking-wide">Akış Simülasyonu</span>
+                                    </div>
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                                        <div>
+                                            <span className="text-muted-foreground">Süre</span>
+                                            <p className="font-medium">~{workflow.computed_params.estimated_completion_minutes}dk</p>
+                                        </div>
+                                        <div>
+                                            <span className="text-muted-foreground">Aramalar</span>
+                                            <p className="font-medium">{workflow.computed_params.estimated_total_calls}</p>
+                                        </div>
+                                        <div>
+                                            <span className="text-muted-foreground">WA Mesaj</span>
+                                            <p className="font-medium">{workflow.computed_params.estimated_wa_messages}</p>
+                                        </div>
+                                        <div>
+                                            <span className="text-muted-foreground">Maliyet</span>
+                                            <p className="font-medium">${workflow.computed_params.estimated_cost_usd}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-3 mt-1.5 text-[10px] text-muted-foreground">
+                                        <span>🎯 {workflow.computed_params.segment_size} kişi</span>
+                                        <span>📞 {workflow.computed_params.max_concurrent_lines} hat</span>
+                                        <span>📦 batch: {workflow.computed_params.optimal_batch_size}</span>
+                                    </div>
+                                    {workflow.computed_params.warnings?.length > 0 && (
+                                        <div className="mt-1.5 space-y-0.5">
+                                            {workflow.computed_params.warnings.map((w: string, i: number) => (
+                                                <p key={i} className="text-[10px] text-amber-400">⚠️ {w}</p>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                     </div>
                     <div className="flex items-center gap-2 ml-4">
                         <Switch checked={workflow.is_active} onCheckedChange={onToggle} />

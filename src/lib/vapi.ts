@@ -332,7 +332,7 @@ export async function makeOutboundCall(options: VapiCallOptions): Promise<VapiCa
         if (!response.ok) {
             console.error('[Vapi] Call initiation failed:', data)
             let errorMessage = data.message || data.error || `HTTP ${response.status}`
-            
+
             // Detect billing / insufficient funds errors (402 or keyword match)
             if (response.status === 402 || (typeof errorMessage === 'string' && errorMessage.toLowerCase().match(/billing|balance|funds|payment|credit/))) {
                 errorMessage = 'INSUFFICIENT_FUNDS: ' + errorMessage
@@ -650,7 +650,7 @@ export async function handleManualVapiCallResult(callData: {
 
     // Check if the customer actually spoke (presence of User: or Customer:)
     const customerSpoke = hasTranscript && (
-        transcriptText.toLowerCase().includes('user:') || 
+        transcriptText.toLowerCase().includes('user:') ||
         transcriptText.toLowerCase().includes('customer:') ||
         transcriptText.toLowerCase().includes('user (customer):')
     )
@@ -665,7 +665,7 @@ export async function handleManualVapiCallResult(callData: {
         'telesekreter',
         'mesaj bırakın'
     ]
-    const isVoicemail = customerSpoke && voicemailKeywords.some(keyword => 
+    const isVoicemail = customerSpoke && voicemailKeywords.some(keyword =>
         transcriptText.toLowerCase().includes(keyword)
     )
 
@@ -786,12 +786,12 @@ export async function handleManualVapiCallResult(callData: {
     // ─── 2. Update Lead (Sale) Status if interested ─────────
     if (saleId) {
         const updates: any = {}
-        
+
         // If customer is highly interested, promote to Prospect (Fırsat)
         if (interested === true || leadScore === 'hot') {
             updates.status = 'Prospect'
         }
-        
+
         if (Object.keys(updates).length > 0) {
             await supabase.from('sales').update(updates).eq('id', saleId)
         }
@@ -828,7 +828,7 @@ export async function handleManualVapiCallResult(callData: {
         if (lqRecord) {
             const { data: currentLq } = await supabase.from('lead_qualifications').select('call_count').eq('id', lqRecord.id).single()
             const currentCount = currentLq?.call_count || 0
-            
+
             await supabase
                 .from('lead_qualifications')
                 .update({
@@ -915,19 +915,19 @@ export function getTurkishNameTitle(fullName: string | undefined | null): string
     const nameWithoutSuffix = fullName.split("'")[0].trim();
     const cleanName = nameWithoutSuffix;
     if (cleanName.length === 0) return '';
-    
+
     // Get the first word as the first name
     const firstName = cleanName.split(/\s+/)[0].toLowerCase()
         .replace(/i̇/g, 'i') // normalize dotted uppercase I to lowercase i
         .replace(/ı/g, 'i');
-    
+
     const femaleNames = new Set([
-        'ayse', 'ayşe', 'fatma', 'emine', 'hatice', 'zeynep', 'elif', 'meryem', 'serife', 'şerife', 'zehra', 
-        'sultan', 'hanife', 'merve', 'selma', 'esra', 'asiye', 'hayriye', 'cemile', 'kadriye', 'songul', 'songül', 
-        'gulay', 'gülay', 'melike', 'yasemin', 'sennur', 'şennur', 'nurten', 'nurcan', 'ayten', 'figen', 'ceyda', 
-        'aytul', 'aytül', 'tugba', 'tuğba', 'kubra', 'kübra', 'busra', 'büşra', 'gamze', 'gizem', 'derya', 'seda', 
-        'nihal', 'didem', 'sinem', 'banu', 'canan', 'hande', 'ozge', 'özge', 'ozlem', 'özlem', 'burcu', 'pinar', 'pınar', 'demet', 
-        'ece', 'ebru', 'asli', 'aslı', 'pelin', 'melis', 'irem', 'i̇rem', 'ceren', 'dilara', 'bengu', 'bengü', 
+        'ayse', 'ayşe', 'fatma', 'emine', 'hatice', 'zeynep', 'elif', 'meryem', 'serife', 'şerife', 'zehra',
+        'sultan', 'hanife', 'merve', 'selma', 'esra', 'asiye', 'hayriye', 'cemile', 'kadriye', 'songul', 'songül',
+        'gulay', 'gülay', 'melike', 'yasemin', 'sennur', 'şennur', 'nurten', 'nurcan', 'ayten', 'figen', 'ceyda',
+        'aytul', 'aytül', 'tugba', 'tuğba', 'kubra', 'kübra', 'busra', 'büşra', 'gamze', 'gizem', 'derya', 'seda',
+        'nihal', 'didem', 'sinem', 'banu', 'canan', 'hande', 'ozge', 'özge', 'ozlem', 'özlem', 'burcu', 'pinar', 'pınar', 'demet',
+        'ece', 'ebru', 'asli', 'aslı', 'pelin', 'melis', 'irem', 'i̇rem', 'ceren', 'dilara', 'bengu', 'bengü',
         'begum', 'begüm', 'damla', 'sule', 'şule', 'hale', 'jale', 'lale', 'sibel', 'arzum', 'arzu', 'asuman',
         'berna', 'betul', 'betül', 'burcin', 'burçin', 'cansu', 'deniz', 'duygu', 'ebru', 'eda', 'elvan', 'esma',
         'eylul', 'eylül', 'filiz', 'gonca', 'gul', 'gül', 'guzin', 'güzin', 'handan', 'hilal', 'hulya', 'hülya',
@@ -935,13 +935,13 @@ export function getTurkishNameTitle(fullName: string | undefined | null): string
         'nur', 'nuran', 'sabiha', 'sanem', 'secil', 'seçil', 'selin', 'sevgi', 'sevim', 'seval', 'sezen', 'simge',
         'songul', 'songül', 'sukran', 'şükran', 'tulin', 'tülin', 'umran', 'ümran', 'vildan', 'yonca', 'zuhal'
     ]);
-    
+
     const maleNames = new Set([
-        'mehmet', 'mustafa', 'ahmet', 'ali', 'huseyin', 'hüseyin', 'hasan', 'ibrahim', 'i̇brahim', 'halil', 
-        'osman', 'yusuf', 'omer', 'ömer', 'ramazan', 'salih', 'hakan', 'murat', 'murad', 'gokhan', 'gökhan', 
-        'fatih', 'suat', 'bekir', 'emre', 'arda', 'efe', 'burak', 'baris', 'barış', 'cem', 'erkan', 'serkan', 
-        'volkan', 'onur', 'alper', 'mert', 'tolga', 'kaan', 'kerem', 'can', 'engin', 'sinan', 'tarkan', 'bulent', 
-        'bülent', 'levent', 'yavuz', 'selim', 'tarik', 'tarık', 'zafer', 'orhan', 'kemal', 'kenan', 'ayhan', 
+        'mehmet', 'mustafa', 'ahmet', 'ali', 'huseyin', 'hüseyin', 'hasan', 'ibrahim', 'i̇brahim', 'halil',
+        'osman', 'yusuf', 'omer', 'ömer', 'ramazan', 'salih', 'hakan', 'murat', 'murad', 'gokhan', 'gökhan',
+        'fatih', 'suat', 'bekir', 'emre', 'arda', 'efe', 'burak', 'baris', 'barış', 'cem', 'erkan', 'serkan',
+        'volkan', 'onur', 'alper', 'mert', 'tolga', 'kaan', 'kerem', 'can', 'engin', 'sinan', 'tarkan', 'bulent',
+        'bülent', 'levent', 'yavuz', 'selim', 'tarik', 'tarık', 'zafer', 'orhan', 'kemal', 'kenan', 'ayhan',
         'erhan', 'metin', 'cetin', 'çetin', 'cengiz', 'abdullah', 'adem', 'adnan', 'ahmet', 'akif', 'akin', 'akın',
         'altan', 'anil', 'anıl', 'aslan', 'asim', 'asım', 'atilla', 'avni', 'aydın', 'aykut', 'bahadir', 'bahadır',
         'baha', 'baki', 'barbaros', 'batuhan', 'bedri', 'behçet', 'behcet', 'berat', 'berk', 'berkan', 'birol',
@@ -971,17 +971,17 @@ export function getTurkishNameTitle(fullName: string | undefined | null): string
         'yasin', 'yasar', 'yaşar', 'yakup', 'yavuz', 'yekta', 'yiğit', 'yigit', 'yunus', 'yusuf', 'zafer', 'zekeriya',
         'zeki', 'ziya'
     ]);
-    
+
     // Split name words to find first word
     const words = cleanName.split(/\s+/);
     const originalFirstName = words[0];
-    
+
     if (femaleNames.has(firstName)) {
         return `${originalFirstName} Hanım`;
     } else if (maleNames.has(firstName)) {
         return `${originalFirstName} Bey`;
     }
-    
+
     // Heuristic suffix matching for female names ending with a/e/i/o/ö/u/ü/ı + certain clusters
     const femaleSuffixes = ['gul', 'gül', 'nur', 'naz', 'su', 'sen', 'şen', 'ten', 'bel'];
     for (const suffix of femaleSuffixes) {
@@ -989,6 +989,6 @@ export function getTurkishNameTitle(fullName: string | undefined | null): string
             return `${originalFirstName} Hanım`;
         }
     }
-    
+
     return originalFirstName; // Fallback to just first name without title if unknown
 }
