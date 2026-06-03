@@ -794,7 +794,6 @@ export async function getWorkflowMonitor(workflowId: string, page: number = 1) {
     const { data: steps } = await adminDb.from('outreach_steps')
         .select('action_type')
         .eq('workflow_id', workflowId)
-        .eq('is_active', true)
     const workflowChannels = new Set<string>()
     steps?.forEach((s: any) => {
         if (['ai_call', 'whatsapp', 'sms'].includes(s.action_type)) {
@@ -1007,7 +1006,6 @@ export async function getWorkflowMonitor(workflowId: string, page: number = 1) {
     const { data: allSteps } = await adminDb.from('outreach_steps')
         .select('step_order, action_type')
         .eq('workflow_id', workflowId)
-        .eq('is_active', true)
         .order('step_order', { ascending: true })
     
     const stepTypeMap = new Map<number, string>()

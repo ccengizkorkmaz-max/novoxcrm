@@ -432,7 +432,6 @@ export async function processOutreachQueue() {
             .select('*')
             .eq('workflow_id', execution.workflow_id)
             .eq('step_order', execution.current_step_order)
-            .eq('is_active', true)
             .single()
 
         if (!step) {
@@ -709,7 +708,6 @@ export async function processOutreachQueue() {
                 .select('*')
                 .eq('workflow_id', execution.workflow_id)
                 .eq('step_order', execution.current_step_order)
-                .eq('is_active', true)
                 .single()
 
             if (!step) continue
