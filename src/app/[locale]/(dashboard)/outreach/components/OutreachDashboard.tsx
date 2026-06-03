@@ -434,7 +434,7 @@ function WorkflowCard({ workflow, hasTrigger, onToggle, onEdit, onDelete, onLaun
                             {/* Execution Stats */}
                             {workflow._exec_stats?.total > 0 && (
                                 <div className="mt-2 space-y-1.5">
-                                    <div className="flex items-center gap-3 text-xs">
+                                    <div className="flex items-center gap-3 text-xs flex-wrap">
                                         {workflow._exec_stats.active > 0 ? (
                                             <span className="flex items-center gap-1.5 text-amber-400">
                                                 <span className="relative flex h-2 w-2">
@@ -446,7 +446,13 @@ function WorkflowCard({ workflow, hasTrigger, onToggle, onEdit, onDelete, onLaun
                                         ) : (
                                             <span className="text-muted-foreground">⏸ Beklemede</span>
                                         )}
+                                        {(workflow._exec_stats.converted || 0) > 0 && (
+                                            <span className="text-green-400">✅ {workflow._exec_stats.converted} dönüşüm</span>
+                                        )}
                                         <span className="text-emerald-400">{workflow._exec_stats.completed} tamamlandı</span>
+                                        {(workflow._exec_stats.stopped || 0) > 0 && (
+                                            <span className="text-slate-400">⏹ {workflow._exec_stats.stopped} durduruldu</span>
+                                        )}
                                         {workflow._exec_stats.failed > 0 && (
                                             <span className="text-red-400">{workflow._exec_stats.failed} başarısız</span>
                                         )}
@@ -461,7 +467,7 @@ function WorkflowCard({ workflow, hasTrigger, onToggle, onEdit, onDelete, onLaun
                                         <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
                                             <div
                                                 className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-500"
-                                                style={{ width: `${Math.round((workflow._exec_stats.completed / workflow._exec_stats.total) * 100)}%` }}
+                                                style={{ width: `${Math.round(((workflow._exec_stats.completed + (workflow._exec_stats.converted || 0)) / workflow._exec_stats.total) * 100)}%` }}
                                             />
                                         </div>
                                     )}

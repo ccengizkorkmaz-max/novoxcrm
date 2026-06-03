@@ -172,6 +172,8 @@ export async function getWorkflows() {
                 total: wfExecs.length,
                 active: wfExecs.filter((e: any) => e.status === 'active' || e.status === 'waiting').length,
                 completed: wfExecs.filter((e: any) => e.status === 'completed').length,
+                converted: wfExecs.filter((e: any) => e.status === 'converted').length,
+                stopped: wfExecs.filter((e: any) => e.status === 'stopped').length,
                 failed: wfExecs.filter((e: any) => e.status === 'failed').length,
                 last_run: wfExecs.length > 0
                     ? wfExecs.reduce((max: string, e: any) => e.started_at > max ? e.started_at : max, '')
