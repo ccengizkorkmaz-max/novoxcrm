@@ -15,7 +15,8 @@ export function getDefaultSystemPrompt(): string {
 Kısa, samimi ve doğal konuş. Müşteri ile gerçek bir WhatsApp sohbeti yapıyorsun.
 Uzun paragraflar yazma, mesajlaşma gibi kısa tut.
 Müşterinin sorduğu soruya ÖNCE cevap ver, sonra gerekirse yönlendir.
-Bilmediğin bir konuda "Hemen bakıp döneyim" de, uydurma.`;
+Bilmediğin bir konuda "Hemen bakıp döneyim" de, uydurma.
+ASLA link veya URL uydurma. Bilgi bankasında olmayan bir link paylaşma.`;
 }
 
 /**
@@ -120,7 +121,8 @@ GİZLİ SİSTEM KOMUTLARI (SADECE ŞARTLAR SAĞLANDIĞINDA YANITININ EN SONUNA E
   * [LEAD_SCORE:warm] → Müşteri proje hakkında detaylı bilgi istiyor (metrekare, kat planı, konum, teslim tarihi), özellik/avantaj soruyor, karşılaştırma yapıyor
   * [LEAD_SCORE:cold] → Bunların HİÇBİRİ yoksa COLD ver. Özellikle şu durumlarda KESİNLİKLE cold: otomatik yanıtlar ("Size nasıl yardımcı olabiliriz"), şikayetler, "ilgilenmiyorum/aramayın" gibi red yanıtları, tek kelimelik/anlamsız mesajlar, konu dışı sohbet, sadece selamlaşma
   ÖNEMLİ: Şüphede kalırsan COLD ver. Warm ve hot SADECE müşteri gayrimenkul satın alma konusunda gerçek ilgi gösterdiğinde kullanılır.
-  Bu etiketi HER yanıtına MUTLAKA ekle.`;
+  Bu etiketi HER yanıtına MUTLAKA ekle.
+9. LINK YASAĞI: Müşteriye ASLA kendin link/URL üretip paylaşma. Sadece bilgi bankasında birebir yazılı olan linkleri gönderebilirsin. Link yoksa "Hemen bakıp iletiyorum" de. Sahte link paylaşmak müşteriyi kaybettirir.`;
 }
 
 /**
@@ -134,7 +136,7 @@ export function assembleFinalPrompt(
     // CRM envanter bilgisi devre dışı - proje bilgileri system prompt'taki web sitesinden alınan Bilgi Bankası'ndan geliyor
     // Units tablosundaki veriler eksik/güncel olmayabilir, AI'ı yanıltıyor
 
-    let knowledgeContext = tenantData.ai_knowledge_base ? `\n\n--- ŞİRKET BİLGİ BANKASI VE AKTİF PROJELER ---\n${tenantData.ai_knowledge_base}\n\nÖNEMLİ KURAL: Projeler hakkında SADECE yukarıdaki BİLGİ BANKASI'nda yazan bilgileri kullan. Bilmediğin veya bilgi bankasında yazmayan bir detay (fiyat, metrekare, teslim tarihi vb.) sorulursa ASLA uydurma, 'Bu detay şu an sistemimde mevcut değil, dilerseniz ilgili satış uzmanımızın size net bilgi vermesini sağlayabilirim' şeklinde yanıt ver.\n` : '';
+    let knowledgeContext = tenantData.ai_knowledge_base ? `\n\n--- ŞİRKET BİLGİ BANKASI VE AKTİF PROJELER ---\n${tenantData.ai_knowledge_base}\n\nÖNEMLİ KURAL: Projeler hakkında SADECE yukarıdaki BİLGİ BANKASI'nda yazan bilgileri kullan. Bilmediğin veya bilgi bankasında yazmayan bir detay (fiyat, metrekare, teslim tarihi vb.) sorulursa ASLA uydurma, 'Bu detay şu an sistemimde mevcut değil, dilerseniz ilgili satış uzmanımızın size net bilgi vermesini sağlayabilirim' şeklinde yanıt ver.\nLİNK/URL YASAĞI: ASLA kendin link veya URL uydurma. Sadece yukarıdaki BİLGİ BANKASI'nda açıkça yazılmış linkleri paylaş. Bilgi bankasında link yoksa 'Linki şu an bulamadım, hemen bakıp iletiyorum' de. Olmayan site adresi, canlı izleme linki, sanal tur linki gibi URL'ler KESINLIKLE üretme.\n` : '';
 
     const basePrompt = tenantData.ai_system_prompt || tenantData.ai_assistant_instructions || getDefaultSystemPrompt();
     const strictHumanPersona = getStrictHumanPersona();
