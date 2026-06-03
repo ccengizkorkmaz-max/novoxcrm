@@ -144,8 +144,11 @@ export function OutreachDashboard({
             if ('error' in result) {
                 toast.error(result.error as string)
             } else {
-                toast.success(`${result.started} lead için outreach başlatıldı! (${result.skipped || 0} atlandı)`)
-                // Automatically switch to live monitor so the user can track progress
+                const parts: string[] = []
+                if (result.started) parts.push(`${result.started} yeni lead`)
+                if (result.resumed) parts.push(`${result.resumed} devam ettirilen`)
+                if (result.skipped) parts.push(`${result.skipped} atlanan`)
+                toast.success(parts.length ? parts.join(', ') + ' - Outreach aktif!' : (result.message || 'Outreach aktif!'))
                 setMonitoringWorkflow({ id, name })
             }
         } catch (err: any) {
@@ -460,14 +463,25 @@ function WorkflowCard({ workflow, hasTrigger, onToggle, onEdit, onDelete, onLaun
                     </div>
                 </div>
                 <div className="flex items-center gap-2 mt-3 pt-3 border-t">
-                    <Button variant="outline" size="sm" onClick={onLaunch}
-                        disabled={!workflow.is_active || isLaunching || isStopping}
-                        className="gap-1.5 text-xs border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10">
-                        <Play className="h-3 w-3" />
-                        {isLaunching ? 'Başlatılıyor...' : 'Başlat'}
-                    </Button>
+                    {(workflow._exec_stats?.active || 0) > 0 || (workflow._exec_stats?.waiting || 0) > 0 ? (
+                        <Button variant="outline" size="sm" disabled
+                            className="gap-1.5 text-xs border-emerald-500/30 text-emerald-400 bg-emerald-500/10 cursor-not-allowed">
+                            <span className="relative flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
+                            </span>
+                            Calisiyor
+                        </Button>
+                    ) : (
+                        <Button variant="outline" size="sm" onClick={onLaunch}
+                            disabled={!workflow.is_active || isLaunching || isStopping}
+                            className="gap-1.5 text-xs border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10">
+                            <Play className="h-3 w-3" />
+                            {isLaunching ? 'Baslatiliyor...' : (workflow._exec_stats?.stopped || 0) > 0 ? 'Devam Et' : 'Baslat'}
+                        </Button>
+                    )}
                     <Button variant="outline" size="sm" onClick={onStop}
-                        disabled={isStopping}
+                        disabled={isStopping || ((workflow._exec_stats?.active || 0) === 0 && (workflow._exec_stats?.waiting || 0) === 0)}
                         className="gap-1.5 text-xs border-red-500/40 text-red-400 hover:bg-red-500/10">
                         <OctagonX className="h-3 w-3" />
                         {isStopping ? 'Durduruluyor...' : 'Durdur'}

@@ -477,23 +477,71 @@ export async function launchWorkflow(workflowId: string) {
 
     const adminDb = createAdminClient()
 
+    // ─── Race Condition Guard: Çalışan akış tekrar başlatılamaz ───
+    const { count: activeCount } = await adminDb.from('outreach_executions')
+        .select('id', { count: 'exact', head: true })
+        .eq('workflow_id', workflowId)
+        .in('status', ['active', 'waiting'])
+    if (activeCount && activeCount > 0) {
+        return { error: `Bu akis zaten calisiyor (${activeCount} aktif islem). Once durdurun.` }
+    }
+
+    // ─── Resume Guard: Durdurulan execution'ları kaldığı yerden devam ettir ───
+    const { data: stoppedExecs, count: stoppedCount } = await adminDb.from('outreach_executions')
+        .select('id', { count: 'exact' })
+        .eq('workflow_id', workflowId)
+        .eq('status', 'stopped')
+        .limit(5000)
+    
+    let resumed = 0
+    if (stoppedExecs && stoppedExecs.length > 0) {
+        const stoppedIds = stoppedExecs.map(e => e.id)
+        // Chunk updates to avoid hitting Supabase limits
+        const chunkArray = <T>(arr: T[], size: number): T[][] => {
+            const chunks: T[][] = [];
+            for (let i = 0; i < arr.length; i += size) {
+                chunks.push(arr.slice(i, i + size));
+            }
+            return chunks;
+        }
+        const idChunks = chunkArray(stoppedIds, 200)
+        for (const chunk of idChunks) {
+            const { count } = await adminDb.from('outreach_executions')
+                .update({ 
+                    status: 'active', 
+                    completed_at: null,
+                    next_action_at: new Date().toISOString()
+                })
+                .in('id', chunk)
+                .eq('status', 'stopped') // Extra safety: only resume still-stopped
+            resumed += count || 0
+        }
+        console.log(`[Outreach] ▶️ Resume: ${resumed} durdurulan execution tekrar aktif edildi`)
+    }
+
     const { data: workflow } = await adminDb.from('outreach_workflows')
         .select('segment_id, max_leads_per_day, working_hours_start, working_hours_end, outreach_steps(*)')
         .eq('id', workflowId)
         .single()
 
-    if (!workflow?.segment_id) return { error: 'No segment configured for this workflow' }
+    if (!workflow?.segment_id) {
+        if (resumed > 0) {
+            revalidatePath('/outreach')
+            return { success: true, started: 0, resumed, skipped: 0 }
+        }
+        return { error: 'No segment configured for this workflow' }
+    }
 
     const allLeadIds = await resolveSegment(workflow.segment_id)
-    if (!allLeadIds.length) return { error: 'No matching leads found for this segment' }
+    if (!allLeadIds.length && resumed === 0) return { error: 'No matching leads found for this segment' }
 
-    // Zaten işlenmiş olanları çıkar (completed, converted, active, waiting)
+    // Zaten işlenmiş olanları çıkar (completed, converted, active, waiting, stopped)
     const isLqSource = allLeadIds.length > 0 && allLeadIds[0].startsWith('lq:')
     const matchIds = isLqSource 
         ? allLeadIds.map(id => id.replace('lq:', ''))
         : allLeadIds
 
-    const chunkArray = <T>(arr: T[], size: number): T[][] => {
+    const chunkArray2 = <T>(arr: T[], size: number): T[][] => {
         const chunks: T[][] = [];
         for (let i = 0; i < arr.length; i += size) {
             chunks.push(arr.slice(i, i + size));
@@ -501,13 +549,13 @@ export async function launchWorkflow(workflowId: string) {
         return chunks;
     };
 
-    const chunks = chunkArray(matchIds, 150);
+    const chunks = chunkArray2(matchIds, 150);
     const existingPromises = chunks.map(chunk => 
         adminDb
             .from('outreach_executions')
             .select('customer_id, sale_id')
             .eq('workflow_id', workflowId)
-            .in('status', ['active', 'waiting', 'completed', 'converted'])
+            .in('status', ['active', 'waiting', 'completed', 'converted', 'stopped'])
             .in(isLqSource ? 'customer_id' : 'sale_id', chunk)
     );
     const results = await Promise.all(existingPromises);
@@ -523,7 +571,11 @@ export async function launchWorkflow(workflowId: string) {
     })
 
     if (!remainingIds.length) {
-        return { success: true, started: 0, skipped: 0, message: 'Kuyruk tetiklendi, cron döngüsünde aramalar devam edecek.' }
+        revalidatePath('/outreach')
+        if (resumed > 0) {
+            return { success: true, started: 0, resumed, skipped: 0, message: `${resumed} durdurulan islem devam ettiriliyor.` }
+        }
+        return { success: true, started: 0, skipped: 0, message: 'Kuyruk tetiklendi, cron dongusunde aramalar devam edecek.' }
     }
 
     // ─── Auto-Tuning: Simülasyon çalıştır ve computed_params kaydet ───
@@ -539,7 +591,7 @@ export async function launchWorkflow(workflowId: string) {
         const wfSteps = (workflow.outreach_steps || []).sort((a: any, b: any) => (a.step_order || 0) - (b.step_order || 0))
 
         computedParams = simulateWorkflow({
-            segmentSize: remainingIds.length,
+            segmentSize: remainingIds.length + resumed,
             maxConcurrentLines: maxLines,
             steps: wfSteps.map((s: any) => ({
                 type: s.action_type,
@@ -556,18 +608,18 @@ export async function launchWorkflow(workflowId: string) {
             .update({ computed_params: computedParams })
             .eq('id', workflowId)
 
-        console.log(`[Outreach] 📊 Simülasyon: ${remainingIds.length} kişi, ~${computedParams.estimated_completion_minutes}dk, batch=${computedParams.optimal_batch_size}`)
+        console.log(`[Outreach] Simulasyon: ${remainingIds.length + resumed} kisi, ~${computedParams.estimated_completion_minutes}dk, batch=${computedParams.optimal_batch_size}`)
     } catch (simErr: any) {
-        console.warn('[Outreach] Simülasyon hatası (non-blocking):', simErr.message)
+        console.warn('[Outreach] Simulasyon hatasi (non-blocking):', simErr.message)
     }
 
-    // Günlük limit uygula
+    // Günlük limit uygula (resume edilenler limit dışı — zaten kuyruktaydılar)
     const limited = remainingIds.slice(0, workflow.max_leads_per_day || 50)
 
     const result = await startWorkflowForLeads(workflowId, limited, tenantId)
 
     revalidatePath('/outreach')
-    return { success: true, ...result, computed_params: computedParams }
+    return { success: true, ...result, resumed, computed_params: computedParams }
 }
 
 // ─── Workflow Simülasyonu (UI Preview) ───────────────────────
