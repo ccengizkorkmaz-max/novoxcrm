@@ -1460,45 +1460,79 @@ export async function getWorkflowLog(workflowId: string) {
     const { supabase, tenantId } = await getAuthContext()
     if (!tenantId) return { error: 'No tenant' }
 
-    // Son 200 execution'ı çek (tarih bazlı sıralı)
+    // Tüm execution'ları çek (tarih bazlı sıralı — eskiden yeniye)
     const { data: executions } = await supabase.from('outreach_executions')
-        .select(`
-            id, status, created_at, completed_at, current_step_order,
-            customers(id, full_name, phone)
-        `)
+        .select('id, status, created_at, completed_at')
         .eq('workflow_id', workflowId)
         .eq('tenant_id', tenantId)
-        .order('created_at', { ascending: false })
-        .limit(200)
+        .order('created_at', { ascending: true })
+        .limit(2000)
 
-    // Son 500 step log'u çek
-    const execIds = (executions || []).map(e => e.id)
-    let stepLogs: any[] = []
-    if (execIds.length > 0) {
-        const chunks: string[][] = []
-        for (let i = 0; i < execIds.length; i += 100) {
-            chunks.push(execIds.slice(i, i + 100))
-        }
-        for (const chunk of chunks) {
-            const { data } = await supabase.from('outreach_step_logs')
-                .select('id, execution_id, channel, status, template_name, executed_at, error_message, duration_seconds')
-                .in('execution_id', chunk)
-                .order('executed_at', { ascending: false })
-                .limit(300)
-            stepLogs.push(...(data || []))
-        }
+    if (!executions || executions.length === 0) {
+        return { runs: [] }
     }
 
-    // Özet istatistikler
-    const stats = {
-        total: executions?.length || 0,
-        active: (executions || []).filter(e => e.status === 'active').length,
-        waiting: (executions || []).filter(e => e.status === 'waiting').length,
-        completed: (executions || []).filter(e => e.status === 'completed').length,
-        converted: (executions || []).filter(e => e.status === 'converted').length,
-        stopped: (executions || []).filter(e => e.status === 'stopped').length,
-        failed: (executions || []).filter(e => e.status === 'failed').length,
+    // Execution'ları "çalıştırma oturumları"na grupla
+    // Aynı dakika içinde oluşturulan execution'lar = 1 çalıştırma
+    const SESSION_GAP_MS = 60 * 1000
+    interface RunSession {
+        startedAt: string
+        lastActivityAt: string | null
+        totalLeads: number
+        completed: number
+        stopped: number
+        failed: number
+        active: number
+        waiting: number
+        converted: number
+        status: 'running' | 'completed' | 'stopped' | 'mixed'
     }
 
-    return { executions: executions || [], stepLogs, stats }
+    const runs: RunSession[] = []
+    let currentRun: RunSession | null = null
+    let currentRunStart: number = 0
+
+    for (const exec of executions) {
+        const createdMs = new Date(exec.created_at).getTime()
+
+        if (!currentRun || createdMs - currentRunStart > SESSION_GAP_MS) {
+            if (currentRun) runs.push(currentRun)
+            currentRunStart = createdMs
+            currentRun = {
+                startedAt: exec.created_at,
+                lastActivityAt: exec.completed_at,
+                totalLeads: 0, completed: 0, stopped: 0, failed: 0,
+                active: 0, waiting: 0, converted: 0, status: 'running',
+            }
+        }
+
+        currentRun.totalLeads++
+        if (exec.status === 'completed') currentRun.completed++
+        else if (exec.status === 'stopped') currentRun.stopped++
+        else if (exec.status === 'failed') currentRun.failed++
+        else if (exec.status === 'active') currentRun.active++
+        else if (exec.status === 'waiting') currentRun.waiting++
+        else if (exec.status === 'converted') currentRun.converted++
+        else currentRun.completed++
+
+        if (exec.completed_at) {
+            if (!currentRun.lastActivityAt || new Date(exec.completed_at) > new Date(currentRun.lastActivityAt)) {
+                currentRun.lastActivityAt = exec.completed_at
+            }
+        }
+    }
+    if (currentRun) runs.push(currentRun)
+
+    // Her oturumun durumunu belirle
+    for (const run of runs) {
+        if (run.active > 0 || run.waiting > 0) run.status = 'running'
+        else if (run.stopped > 0 && run.completed === 0) run.status = 'stopped'
+        else if (run.stopped > 0 && run.completed > 0) run.status = 'mixed'
+        else run.status = 'completed'
+    }
+
+    runs.reverse() // En yeniden eskiye
+
+    return { runs }
 }
+
