@@ -475,7 +475,7 @@ function WorkflowCard({ workflow, hasTrigger, onToggle, onEdit, onDelete, onLaun
                                         </div>
                                         <div>
                                             <span className="text-muted-foreground">Maliyet</span>
-                                            <p className="font-medium">${workflow.computed_params.estimated_cost_usd}</p>
+                                            <p className="font-medium">{'$'}{workflow.computed_params.estimated_cost_usd}</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-3 mt-1.5 text-[10px] text-muted-foreground">

@@ -1,4 +1,4 @@
-'use server'
+// Workflow Auto-Tuning Simulator — pure utility (no 'use server')
 
 // ─── Workflow Auto-Tuning Simulator ──────────────────────────
 // Saf hesaplama fonksiyonu — DB bağımlılığı yok, test edilebilir.
