@@ -1385,7 +1385,7 @@ async function advanceToNextStep(execution: any, step: any, outcome: string) {
 
     if (nextStepId === 'stop') {
         await supabase.from('outreach_executions')
-            .update({ status: 'stopped', completed_at: new Date().toISOString() })
+            .update({ status: 'completed', completed_at: new Date().toISOString() })
             .eq('id', execution.id)
         return
     }
