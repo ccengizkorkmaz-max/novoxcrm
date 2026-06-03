@@ -21,6 +21,7 @@ import { CallResultsPanel } from './CallResultsPanel'
 import { TriggerManager } from './TriggerManager'
 import { WorkflowMonitor } from './WorkflowMonitor'
 import { SystemHealthPanel } from './SystemHealthPanel'
+import { WorkflowLogDialog } from './WorkflowLogDialog'
 
 interface OutreachDashboardProps {
     workflows: any[]
@@ -79,6 +80,7 @@ export function OutreachDashboard({
     const router = useRouter()
     const [localSegments, setLocalSegments] = useState(segments)
     const [monitoringWorkflow, setMonitoringWorkflow] = useState<{ id: string; name: string } | null>(null)
+    const [logWorkflow, setLogWorkflow] = useState<{ id: string; name: string } | null>(null)
 
     // Prop değiştiğinde local state'i güncelle (router.refresh sonrası)
     useEffect(() => { setLocalWorkflows(workflows) }, [workflows])
@@ -349,6 +351,7 @@ export function OutreachDashboard({
                                 onLaunch={() => handleLaunch(w.id, w.name)}
                                 onStop={() => handleStop(w.id, w.name)}
                                 onMonitor={() => setMonitoringWorkflow({ id: w.id, name: w.name })}
+                                onLog={() => setLogWorkflow({ id: w.id, name: w.name })}
                                 isLaunching={launching === w.id}
                                 isStopping={stopping === w.id}
                             />
@@ -368,6 +371,14 @@ export function OutreachDashboard({
                     />
                 </TabsContent>
             </Tabs>
+
+            {/* Workflow Log Dialog */}
+            <WorkflowLogDialog
+                open={!!logWorkflow}
+                onOpenChange={(v) => { if (!v) setLogWorkflow(null) }}
+                workflowId={logWorkflow?.id || ''}
+                workflowName={logWorkflow?.name || ''}
+            />
         </div>
     )
 }
@@ -376,8 +387,8 @@ export function OutreachDashboard({
 
 
 
-function WorkflowCard({ workflow, hasTrigger, onToggle, onEdit, onDelete, onLaunch, onStop, onMonitor, isLaunching, isStopping }: {
-    workflow: any; hasTrigger: boolean; onToggle: () => void; onEdit: () => void; onDelete: () => void; onLaunch: () => void; onStop: () => void; onMonitor: () => void; isLaunching: boolean; isStopping: boolean
+function WorkflowCard({ workflow, hasTrigger, onToggle, onEdit, onDelete, onLaunch, onStop, onMonitor, onLog, isLaunching, isStopping }: {
+    workflow: any; hasTrigger: boolean; onToggle: () => void; onEdit: () => void; onDelete: () => void; onLaunch: () => void; onStop: () => void; onMonitor: () => void; onLog: () => void; isLaunching: boolean; isStopping: boolean
 }) {
     return (
         <Card className="hover:bg-muted/50 transition-colors">
@@ -495,6 +506,10 @@ function WorkflowCard({ workflow, hasTrigger, onToggle, onEdit, onDelete, onLaun
                         className="gap-1.5 text-xs border-blue-500/30 text-blue-400 hover:bg-blue-500/10">
                         <BarChart3 className="h-3 w-3" />
                         Canlı Takip
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={onLog}
+                        className="gap-1.5 text-xs text-muted-foreground hover:text-foreground" title="Günlük">
+                        <FileText className="h-3.5 w-3.5" />
                     </Button>
                     <div className="flex-1" />
                     <Button variant="ghost" size="sm" onClick={onDelete}

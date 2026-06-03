@@ -1440,3 +1440,52 @@ export async function resetOutreachSystem(options: { clearStuckCalls?: boolean; 
     revalidatePath('/outreach')
     return { success: true, results }
 }
+
+// ─── Workflow Execution Log ──────────────────────────────────
+
+export async function getWorkflowLog(workflowId: string) {
+    const { supabase, tenantId } = await getAuthContext()
+    if (!tenantId) return { error: 'No tenant' }
+
+    // Son 200 execution'ı çek (tarih bazlı sıralı)
+    const { data: executions } = await supabase.from('outreach_executions')
+        .select(`
+            id, status, created_at, completed_at, current_step_order,
+            customers(id, full_name, phone)
+        `)
+        .eq('workflow_id', workflowId)
+        .eq('tenant_id', tenantId)
+        .order('created_at', { ascending: false })
+        .limit(200)
+
+    // Son 500 step log'u çek
+    const execIds = (executions || []).map(e => e.id)
+    let stepLogs: any[] = []
+    if (execIds.length > 0) {
+        const chunks: string[][] = []
+        for (let i = 0; i < execIds.length; i += 100) {
+            chunks.push(execIds.slice(i, i + 100))
+        }
+        for (const chunk of chunks) {
+            const { data } = await supabase.from('outreach_step_logs')
+                .select('id, execution_id, channel, status, template_name, executed_at, error_message, duration_seconds')
+                .in('execution_id', chunk)
+                .order('executed_at', { ascending: false })
+                .limit(300)
+            stepLogs.push(...(data || []))
+        }
+    }
+
+    // Özet istatistikler
+    const stats = {
+        total: executions?.length || 0,
+        active: (executions || []).filter(e => e.status === 'active').length,
+        waiting: (executions || []).filter(e => e.status === 'waiting').length,
+        completed: (executions || []).filter(e => e.status === 'completed').length,
+        converted: (executions || []).filter(e => e.status === 'converted').length,
+        stopped: (executions || []).filter(e => e.status === 'stopped').length,
+        failed: (executions || []).filter(e => e.status === 'failed').length,
+    }
+
+    return { executions: executions || [], stepLogs, stats }
+}
