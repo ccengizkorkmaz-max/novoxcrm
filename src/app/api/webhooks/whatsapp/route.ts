@@ -145,6 +145,12 @@ export async function POST(req: NextRequest) {
 
                     aiReply = await extractAndCreateLead(supabase, tenantId, normalizedPhone, payload.channel, aiReply);
 
+                    // WhatsApp markdown link desteği yok — [text](url) → "text: url" formatına çevir
+                    aiReply = aiReply.replace(/\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g, '$1: $2');
+                    // Kalan markdown kalıntıları temizle (bold, italic vb. WA formatına uyumlu)
+                    // **bold** → *bold* (WA formatı)
+                    aiReply = aiReply.replace(/\*\*([^*]+)\*\*/g, '*$1*');
+
                     // Mesajı gönder
                     const accessToken = tenantData.wa_access_token;
                     let sendSuccess = false;
