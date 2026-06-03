@@ -234,11 +234,13 @@ export async function POST(req: NextRequest) {
                                 type: 'object',
                                 properties: {
                                     lead_score: { type: 'string', enum: ['hot', 'warm', 'follow_up', 'disqualified'], description: 'Müşterinin sıcaklık skoru' },
-                                    interested: { type: 'boolean', description: 'Müşteri ilgileniyor mu?' },
+                                    interested: { type: 'boolean', description: 'Müşteri projeye/ürüne ilgi gösteriyor mu?' },
+                                    available: { type: 'boolean', description: 'Müşteri şu an konuşmaya müsait miydi? (false = müsait değildi, meşguldü, daha sonra aranmak istedi vb.)' },
+                                    callback_requested: { type: 'boolean', description: 'Müşteri daha sonra tekrar aranmak istedi mi?' },
                                     notes: { type: 'string', description: 'Görüşme hakkında kısa not (Türkçe)' },
                                     customer_name: { type: 'string', description: 'Konuşma sırasında müşterinin belirttiği ad soyad (eğer ilk başta bilinmiyorsa)' }
                                 },
-                                required: ['lead_score', 'interested', 'notes'],
+                                required: ['lead_score', 'interested', 'available', 'notes'],
                             },
                             summaryPrompt: 'Bu telefon görüşmesini Türkçe olarak 2-3 cümleyle özetle.',
                             successEvaluationPrompt: 'Müşteri randevu aldı veya detaylı bilgi talep etti ise başarılı say.',

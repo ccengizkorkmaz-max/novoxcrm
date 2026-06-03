@@ -1315,34 +1315,14 @@ async function handleRetryOrAdvance(execution: any, step: any, config: StepConfi
 
     let shouldRetry = false
 
+    // KURAL: Sadece cevapsız veya ulaşılamaz ise tekrar ara.
+    // Müşteri telefonu açtıysa (ne derse desin) bir daha AI arama YAPMA.
     if (retry?.enabled && (execution.current_retry_count || 0) < (retry.max_attempts || 3)) {
-        if (retry.criteria) {
-            const criteria = retry.criteria
-            if (outcome === 'busy') {
-                shouldRetry = criteria.busy !== false;
-            } else if (outcome === 'no_answer') {
-                if (duration !== undefined && duration !== null && duration > 0) {
-                    // Call answered but hung up quickly (duration <= 30 seconds)
-                    if (criteria.hung_up?.enabled) {
-                        const maxSecs = criteria.hung_up.max_seconds || 10;
-                        shouldRetry = duration <= maxSecs;
-                    } else {
-                        // If hung_up is disabled or not set, we do not retry answered calls
-                        shouldRetry = false;
-                    }
-                } else {
-                    // Unanswered call (no duration)
-                    shouldRetry = criteria.no_answer !== false;
-                }
-            } else if (outcome === 'success') {
-                shouldRetry = false; // Never retry successful conversations
-            } else {
-                shouldRetry = true; // Fallback for other steps/channels
-            }
-        } else {
-            // Default legacy behavior: retry anything that is not a success
-            shouldRetry = outcome !== 'success';
+        // Only retry if customer was unreachable
+        if (outcome === 'no_answer' || outcome === 'busy') {
+            shouldRetry = true
         }
+        // Müşteri telefonu açtıysa (success, hung_up, callback_requested, answered) → ASLA retry yapma
     }
 
     if (shouldRetry) {
@@ -1518,11 +1498,24 @@ export async function handleVapiCallResult(callData: {
         }
     }
 
-    // Check AI analysis for interest
+    // Check AI analysis for interest — but also verify availability
     const interested = callData.analysis?.structuredData?.interested
-    if (interested === true) {
+    const available = callData.analysis?.structuredData?.available
+    const callbackRequested = callData.analysis?.structuredData?.callback_requested
+
+    // Transkript bazlı "müsait değil" kontrolü (fallback when AI fields missing)
+    const notAvailableKeywords = ['müsait değil', 'meşgulüm', 'uygun değil', 'daha sonra', 'sonra ara', 'şu an olmaz', 'devlet dairesi', 'toplantıda']
+    const isNotAvailable = available === false || 
+        callbackRequested === true ||
+        notAvailableKeywords.some(kw => transcriptText.toLowerCase().includes(kw))
+
+    if (interested === true && !isNotAvailable) {
         outcome = 'success'
         logStatus = 'converted'
+    } else if (interested === true && isNotAvailable) {
+        // Müşteri ilgili ama müsait değil — tekrar aranmalı
+        outcome = 'callback_requested'
+        logStatus = 'answered'
     }
 
     // Update the step log
@@ -1609,13 +1602,13 @@ export async function handleVapiCallResult(callData: {
             priority: 'High',
         })
     } else {
-        // Log non-converted calls too (answered, no_answer, busy)
+        // Log non-converted calls too (answered, no_answer, busy, callback_requested)
         let answeredSummary = `🤖 AI Arama — Görüşme Yapıldı (${durationText})`
         if (logStatus === 'answered') {
-            const interested = callData.analysis?.structuredData?.interested
-            if (interested === false) {
+            const interestedForLabel = callData.analysis?.structuredData?.interested
+            if (interestedForLabel === false) {
                 answeredSummary = `🤖 AI Arama — Görüşüldü, İlgilenmedi ❌ (${durationText})`
-            } else if (interested === undefined || interested === null) {
+            } else if (interestedForLabel === undefined || interestedForLabel === null) {
                 answeredSummary = `🤖 AI Arama — Görüşüldü (${durationText})`
             }
         }
@@ -1632,10 +1625,12 @@ export async function handleVapiCallResult(callData: {
             busy: 'Low',
         }
 
-        // For hung_up outcome, use the hung_up summary
+        // Outcome-specific summaries
         let summary = summaryMap[logStatus] || `🤖 AI Arama — ${logStatus} (${durationText})`
         if (outcome === 'hung_up') {
             summary = `🤖 AI Arama — Açtı ama Kapattı 📵 (${durationText})`
+        } else if (outcome === 'callback_requested') {
+            summary = `🤖 AI Arama — Müsait Değil, Tekrar Aranacak 📞 (${durationText})`
         }
 
         await supabase.from('activities').insert({
@@ -1647,7 +1642,7 @@ export async function handleVapiCallResult(callData: {
             description: `${callData.summary || `Arama sonucu: ${outcome}`}${transcriptBlock}${recordingBlock}\n\n[Call ID: ${callData.callId}]`,
             due_date: new Date().toISOString(),
             status: 'Completed',
-            priority: priorityMap[logStatus] || 'Low',
+            priority: outcome === 'callback_requested' ? 'Medium' : (priorityMap[logStatus] || 'Low'),
         })
 
         // Update sales.updated_at so lead exits "inactive" segments
