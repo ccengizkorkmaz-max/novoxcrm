@@ -450,9 +450,6 @@ function WorkflowCard({ workflow, hasTrigger, onToggle, onEdit, onDelete, onLaun
                                             <span className="text-green-400">✅ {workflow._exec_stats.converted} dönüşüm</span>
                                         )}
                                         <span className="text-emerald-400">{workflow._exec_stats.completed} tamamlandı</span>
-                                        {(workflow._exec_stats.stopped || 0) > 0 && (
-                                            <span className="text-slate-400">⏹ {workflow._exec_stats.stopped} durduruldu</span>
-                                        )}
                                         {workflow._exec_stats.failed > 0 && (
                                             <span className="text-red-400">{workflow._exec_stats.failed} başarısız</span>
                                         )}
