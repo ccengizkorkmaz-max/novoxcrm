@@ -192,11 +192,16 @@ export async function submitPublicLead(brokerId: string, tenantId: string, formD
     // --- CRM INTEGRATION ---
     // 1. Create or Update Customer in main CRM
     let customerId: string | null = null
+    // Normalize phone for matching (strip spaces, dashes, +90 prefix)
+    const normalizedPhone = phone.replace(/[\s\-\(\)\.]/g, '').replace(/^\+?90/, '').replace(/^0/, '')
+    const phoneLast10 = normalizedPhone.slice(-10)
+
+    // Try multiple phone formats
     const { data: existingCustomer } = await supabase
         .from('customers')
         .select('id')
         .eq('tenant_id', tenantId)
-        .or(`phone.eq.${phone}${email ? `,email.eq.${email}` : ''}`)
+        .or(`phone.ilike.%${phoneLast10}${email ? `,email.eq.${email}` : ''}`)
         .maybeSingle()
 
     if (existingCustomer) {
