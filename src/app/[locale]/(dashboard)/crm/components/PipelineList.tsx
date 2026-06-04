@@ -934,6 +934,10 @@ export default function PipelineList({
                                                     </TableCell>
                                                 )
                                                 if (colId === 'remaining') {
+                                                    const isExternalBroker = sale.profiles?.is_external === true
+                                                    if (!sale.profiles?.full_name || !isExternalBroker) {
+                                                        return <TableCell key="remaining" className={cellCls}><span className="text-muted-foreground text-[10px]">—</span></TableCell>
+                                                    }
                                                     const createdAt = new Date(sale.created_at)
                                                     const now = new Date()
                                                     const elapsedMs = now.getTime() - createdAt.getTime()
