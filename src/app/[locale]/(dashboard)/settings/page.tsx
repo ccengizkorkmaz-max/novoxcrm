@@ -30,7 +30,8 @@ import SeoSettingsTab from './components/SeoSettingsTab'
 import BrandSettingsTab from './components/BrandSettingsTab'
 import DomainSettingsTab from './components/DomainSettingsTab'
 import UnitFieldOptionsTab from './components/UnitFieldOptionsTab'
-import { FileWarning, Palette, Link2 } from 'lucide-react'
+import NotificationCatalogTab from './components/NotificationCatalogTab'
+import { FileWarning, Palette, Link2, ListChecks } from 'lucide-react'
 
 export default async function SettingsPage() {
     const supabase = await createClient()
@@ -206,6 +207,12 @@ export default async function SettingsPage() {
                         <FileWarning className="w-4 h-4 mr-2 shrink-0" />
                         <span className="hidden md:inline truncate">İşlem Logları</span>
                     </TabsTrigger>
+                    {(profile.role === 'owner' || profile.role === 'admin') && (
+                        <TabsTrigger value="notification-catalog" className="justify-start w-full py-2 px-3 rounded-lg text-sm data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-sm transition-all focus:outline-none">
+                            <ListChecks className="w-4 h-4 mr-2 shrink-0" />
+                            <span className="hidden md:inline truncate">Bildirim Yönetimi</span>
+                        </TabsTrigger>
+                    )}
                 </TabsList>
 
                 {/* Tab Content Area */}
@@ -319,6 +326,16 @@ export default async function SettingsPage() {
                         hasError={hasLogsTableError} 
                     />
                 </TabsContent>
+
+                {/* Notification Catalog Tab */}
+                {(profile.role === 'owner' || profile.role === 'admin') && (
+                    <TabsContent value="notification-catalog" className="space-y-4">
+                        <NotificationCatalogTab
+                            users={(users || []).map((u: any) => ({ id: u.id, full_name: u.full_name, email: u.email, role: u.role, phone: u.phone, is_active: u.is_active }))}
+                            currentUserId={user.id}
+                        />
+                    </TabsContent>
+                )}
                 </div>{/* end content area */}
                 </div>{/* end flex container */}
             </Tabs>

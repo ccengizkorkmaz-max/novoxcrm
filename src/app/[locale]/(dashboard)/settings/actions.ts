@@ -1129,3 +1129,123 @@ export async function updateUserPhone(userId: string, phone: string) {
     revalidatePath('/settings')
     return { success: true }
 }
+
+// ── Notification Preferences ──
+
+export async function getNotificationPreferences() {
+    const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized', data: [] }
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id, role')
+        .eq('id', user.id)
+        .single()
+
+    if (!profile?.tenant_id) return { error: 'No tenant', data: [] }
+
+    // Admins see all users' preferences, regular users see only their own
+    const isAdmin = ['owner', 'admin'].includes(profile.role)
+
+    let query = supabase
+        .from('user_notification_preferences')
+        .select('*')
+        .eq('tenant_id', profile.tenant_id)
+
+    if (!isAdmin) {
+        query = query.eq('user_id', user.id)
+    }
+
+    const { data, error } = await query
+
+    if (error) {
+        console.error('getNotificationPreferences error:', error)
+        return { error: error.message, data: [] }
+    }
+
+    return { data: data || [], tenantId: profile.tenant_id, isAdmin }
+}
+
+export async function upsertNotificationPreference(
+    userId: string,
+    notificationType: string,
+    channels: {
+        channel_in_app?: boolean
+        channel_email?: boolean
+        channel_whatsapp?: boolean
+        channel_sms?: boolean
+        is_enabled?: boolean
+    }
+) {
+    const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id, role')
+        .eq('id', user.id)
+        .single()
+
+    if (!profile?.tenant_id) return { error: 'No tenant' }
+
+    // Only admins can change other users' preferences
+    const isAdmin = ['owner', 'admin'].includes(profile.role)
+    if (userId !== user.id && !isAdmin) {
+        return { error: 'Yetkiniz yok.' }
+    }
+
+    // Upsert: insert or update on conflict
+    const { error } = await supabase
+        .from('user_notification_preferences')
+        .upsert({
+            tenant_id: profile.tenant_id,
+            user_id: userId,
+            notification_type: notificationType,
+            ...channels,
+            updated_at: new Date().toISOString()
+        }, {
+            onConflict: 'tenant_id,user_id,notification_type'
+        })
+
+    if (error) {
+        console.error('upsertNotificationPreference error:', error)
+        return { error: error.message }
+    }
+
+    return { success: true }
+}
+
+export async function resetNotificationPreferences() {
+    const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id, role')
+        .eq('id', user.id)
+        .single()
+
+    if (!profile?.tenant_id) return { error: 'No tenant' }
+    if (!['owner', 'admin'].includes(profile.role)) {
+        return { error: 'Bu işlem için yetkiniz yok.' }
+    }
+
+    const { error } = await supabase
+        .from('user_notification_preferences')
+        .delete()
+        .eq('tenant_id', profile.tenant_id)
+
+    if (error) {
+        console.error('resetNotificationPreferences error:', error)
+        return { error: error.message }
+    }
+
+    revalidatePath('/settings')
+    return { success: true }
+}
