@@ -486,11 +486,11 @@ export default function PipelineList({
 
     const activeFilterCount = Object.values(colFilters).filter(v => v.length > 0).length
 
-    // Get unique values for select filters
+    // Get unique values for select filters — use full dataset props, not paginated sales
     const ALL_STATUSES = ['Lead', 'Prospect', 'Reservation', 'Opsiyon - Kapora Bekleniyor', 'Proposal', 'Teklif - Kapora Bekleniyor', 'Negotiation', 'Sold', 'Completed', 'Lost']
     const uniqueStatuses = ALL_STATUSES
-    const uniqueProjects = [...new Set(sales.map(s => s.units?.projects?.name || s.projects?.name).filter(Boolean))]
-    const uniqueReps = [...new Set(sales.map(s => s.profiles?.full_name).filter(Boolean))]
+    const uniqueProjects = projects.map(p => p.name).filter(Boolean)
+    const uniqueReps = profiles.map(p => p.full_name).filter(Boolean)
 
     const filterableColumns = colOrder
         .filter(colId => !(isBroker && (colId === 'project' || colId === 'unit')) && !hiddenCols.includes(colId))
