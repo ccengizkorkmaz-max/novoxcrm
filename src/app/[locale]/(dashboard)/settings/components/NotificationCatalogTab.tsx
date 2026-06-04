@@ -197,14 +197,14 @@ export default function NotificationCatalogTab({ users, currentUserId }: Notific
 
     useEffect(() => { loadPreferences() }, [loadPreferences])
 
-    // Get preference for a user/type (with defaults)
+    // Get preference for a user/type (with defaults — all OFF by default)
     const getPref = (userId: string, notifType: string) => {
         return preferences[userId]?.[notifType] ?? {
-            channel_in_app: true,
-            channel_email: true,
+            channel_in_app: false,
+            channel_email: false,
             channel_whatsapp: false,
             channel_sms: false,
-            is_enabled: true
+            is_enabled: false
         }
     }
 
@@ -218,7 +218,7 @@ export default function NotificationCatalogTab({ users, currentUserId }: Notific
             const copy = { ...prev }
             if (!copy[userId]) copy[userId] = {}
             if (!copy[userId][notifType]) {
-                copy[userId][notifType] = { channel_in_app: true, channel_email: true, channel_whatsapp: false, channel_sms: false, is_enabled: true }
+                copy[userId][notifType] = { channel_in_app: false, channel_email: false, channel_whatsapp: false, channel_sms: false, is_enabled: false }
             }
             copy[userId][notifType] = { ...copy[userId][notifType], [channel]: value }
             return copy
@@ -241,7 +241,7 @@ export default function NotificationCatalogTab({ users, currentUserId }: Notific
             const copy = { ...prev }
             if (!copy[userId]) copy[userId] = {}
             if (!copy[userId][notifType]) {
-                copy[userId][notifType] = { channel_in_app: true, channel_email: true, channel_whatsapp: false, channel_sms: false, is_enabled: true }
+                copy[userId][notifType] = { channel_in_app: false, channel_email: false, channel_whatsapp: false, channel_sms: false, is_enabled: false }
             }
             copy[userId][notifType] = { ...copy[userId][notifType], is_enabled: value }
             return copy
