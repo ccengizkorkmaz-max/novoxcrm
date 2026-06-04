@@ -10,7 +10,8 @@ import {
     MapPin,
     Calendar,
     PlusCircle,
-    X
+    X,
+    Timer
 } from "lucide-react"
 import Link from "next/link"
 import { Input } from "@/components/ui/input"
@@ -24,10 +25,11 @@ interface Lead {
     created_at: string
     budget_min?: number
     budget_max?: number
+    ownership_expires_at?: string
     projects?: { name: string }[] | { name: string } | null
 }
 
-export function BrokerLeadsClient({ leads, locale }: { leads: Lead[]; locale: string }) {
+export function BrokerLeadsClient({ leads, locale, leadOwnershipDays }: { leads: Lead[]; locale: string; leadOwnershipDays: number }) {
     const t = useTranslations('BrokerLeads')
     const [search, setSearch] = useState('')
     const [statusFilter, setStatusFilter] = useState<string | null>(null)
@@ -159,7 +161,31 @@ export function BrokerLeadsClient({ leads, locale }: { leads: Lead[]; locale: st
                                                 </div>
                                             </div>
                                         </div>
-                                        <div className="flex items-center justify-between sm:justify-end gap-4 border-t sm:border-t-0 pt-3 sm:pt-0">
+                                        <div className="flex items-center justify-between sm:justify-end gap-3 border-t sm:border-t-0 pt-3 sm:pt-0">
+                                            {(() => {
+                                                const createdAt = new Date(lead.created_at)
+                                                const now = new Date()
+                                                const elapsedMs = now.getTime() - createdAt.getTime()
+                                                const elapsedDays = Math.floor(elapsedMs / (1000 * 60 * 60 * 24))
+                                                const remainingDays = leadOwnershipDays - elapsedDays
+                                                const isExpired = remainingDays <= 0
+                                                const isUrgent = remainingDays > 0 && remainingDays <= 7
+                                                const isWarning = remainingDays > 7 && remainingDays <= 30
+                                                return (
+                                                    <span suppressHydrationWarning className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold border ${
+                                                        isExpired
+                                                            ? 'bg-red-100 text-red-700 border-red-200 animate-pulse'
+                                                            : isUrgent
+                                                                ? 'bg-red-50 text-red-600 border-red-200'
+                                                                : isWarning
+                                                                    ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                                                    : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                                    }`}>
+                                                        <Timer className="h-3 w-3" />
+                                                        {isExpired ? 'Süre Doldu' : `${remainingDays} gün`}
+                                                    </span>
+                                                )
+                                            })()}
                                             <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold border ${getStatusStyle(lead.status)}`}>
                                                 {t(`status.${lead.status}`)}
                                             </span>
