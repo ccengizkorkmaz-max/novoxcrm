@@ -6,8 +6,6 @@
 export function exportToExcel(data: Record<string, any>[], filename: string, sheetTitle?: string) {
     if (!data.length) return
 
-    // BOM for UTF-8 Turkish characters
-    const BOM = '\uFEFF'
     const headers = Object.keys(data[0])
     const headerRow = headers.join(';')
     const rows = data.map(row =>
@@ -21,8 +19,21 @@ export function exportToExcel(data: Record<string, any>[], filename: string, she
         }).join(';')
     )
 
-    const csv = BOM + [headerRow, ...rows].join('\r\n')
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const csvContent = [headerRow, ...rows].join('\r\n')
+
+    // Encode as explicit UTF-8 bytes to prevent browser UTF-16 encoding issues
+    const encoder = new TextEncoder()
+    const csvBytes = encoder.encode(csvContent)
+
+    // UTF-8 BOM bytes (EF BB BF) - ensures Excel/Sheets recognizes UTF-8 encoding
+    const bom = new Uint8Array([0xEF, 0xBB, 0xBF])
+
+    // Combine BOM + CSV bytes
+    const combined = new Uint8Array(bom.length + csvBytes.length)
+    combined.set(bom, 0)
+    combined.set(csvBytes, bom.length)
+
+    const blob = new Blob([combined], { type: 'text/csv;charset=utf-8;' })
     downloadBlob(blob, `${filename}.csv`)
 }
 
