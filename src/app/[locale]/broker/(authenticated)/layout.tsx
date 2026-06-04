@@ -16,7 +16,8 @@ import {
     ChevronRight,
     UserCircle,
     MessageSquare,
-    Share2
+    Share2,
+    CalendarCheck
 } from 'lucide-react'
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import LanguageSwitcher from '@/components/LanguageSwitcher'
@@ -25,6 +26,7 @@ const NAV_ITEMS = [
     { href: '/broker', label: 'Dashboard', icon: LayoutDashboard, exact: true },
     { href: '/broker/projects', label: 'Projeler & Envanter', icon: Building2 },
     { href: '/broker/leads', label: 'Müşterilerim', icon: Users },
+    { href: '/broker/activities', label: 'Aktivitelerim', icon: CalendarCheck },
     { href: '/broker/leads/new', label: 'Yeni Lead Ekle', icon: PlusCircle },
     { href: '/broker/commissions', label: 'Kazançlarım', icon: BadgeTurkishLira },
     { href: '/broker/commission-plans', label: 'Komisyon Planları', icon: TrendingUp },
