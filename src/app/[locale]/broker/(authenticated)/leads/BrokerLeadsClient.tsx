@@ -132,6 +132,20 @@ export function BrokerLeadsClient({ leads, locale, leadOwnershipDays }: { leads:
 
             {/* Leads List */}
             <div className="grid gap-3">
+                {/* Column Headers */}
+                {filteredLeads.length > 0 && (
+                    <div className="hidden sm:flex items-center px-4 py-2 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                        <div className="flex items-center gap-3 flex-1">
+                            <div className="h-10 w-10 shrink-0" />
+                            <span>Müşteri</span>
+                        </div>
+                        <div className="flex items-center gap-3 justify-end">
+                            <span className="w-24 text-center">Mülkiyet Süresi</span>
+                            <span className="w-24 text-center">CRM Durum</span>
+                            <span className="w-4" />
+                        </div>
+                    </div>
+                )}
                 {filteredLeads.length > 0 ? (
                     filteredLeads.map((lead) => (
                         <Link key={lead.id} href={`/broker/leads/${lead.id}`}>
