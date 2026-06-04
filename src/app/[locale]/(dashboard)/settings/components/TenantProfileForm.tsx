@@ -17,13 +17,14 @@ interface TenantProfileFormProps {
         user_limit: number
         subscription_end_date: string | null
         country: string | null
+        lead_ownership_days?: number | null
     }
     userCount: number
 }
 
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
-import { CreditCard, Calendar, Users, ShieldCheck } from "lucide-react"
+import { CreditCard, Calendar, Users, ShieldCheck, Clock } from "lucide-react"
 import { useTranslations, useLocale } from 'next-intl'
 
 export default function TenantProfileForm({ tenant, userCount }: TenantProfileFormProps) {
@@ -87,6 +88,29 @@ export default function TenantProfileForm({ tenant, userCount }: TenantProfileFo
                     {t('profile.logoNote')}
                 </p>
             </div>
+
+            <div className="pt-4 border-t">
+                <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-orange-500" />
+                    Lead Mülkiyet Süresi
+                </h3>
+                <div className="space-y-2">
+                    <Label htmlFor="lead_ownership_days">Süre (Gün)</Label>
+                    <Input
+                        id="lead_ownership_days"
+                        name="lead_ownership_days"
+                        type="number"
+                        min={1}
+                        max={365}
+                        defaultValue={tenant.lead_ownership_days ?? 90}
+                        className="w-32"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                        Bir lead oluşturulduktan sonra temsilcinin sahiplik süresi. Bu süre dolduğunda lead yeniden atanabilir. CRM tablosunda kalan süre gösterilir.
+                    </p>
+                </div>
+            </div>
+
 
             <div className="pt-6 border-t">
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">

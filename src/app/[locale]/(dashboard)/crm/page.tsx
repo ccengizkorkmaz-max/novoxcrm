@@ -60,15 +60,16 @@ export default async function CRMPage(props: {
     const userTenantId = userProfile?.tenant_id
 
     const { data: tenantData } = userTenantId
-        ? await supabase.from('tenants').select('tenant_type').eq('id', userTenantId).single()
+        ? await supabase.from('tenants').select('tenant_type, lead_ownership_days').eq('id', userTenantId).single()
         : { data: null }
     const tenantType = (tenantData as any)?.tenant_type || 'developer'
+    const leadOwnershipDays = (tenantData as any)?.lead_ownership_days ?? 90
     const isBroker = tenantType === 'broker'
 
     // Build sales list query (THE CRITICAL 50 RECORDS)
     let baseQuery = supabase
         .from('sales')
-        .select('*, customers!inner(id, full_name, email, phone, customer_number, lead_qualifications(last_call_at, interest_level, call_notes)), units(unit_number, price, currency, projects(id, name)), projects(id, name), profiles(full_name)', { count: 'exact' })
+        .select('*, customers!inner(id, full_name, email, phone, customer_number, lead_qualifications(last_call_at, interest_level, call_notes)), units(unit_number, price, currency, projects(id, name)), projects(id, name), profiles(full_name, is_external)', { count: 'exact' })
         .neq('status', 'Inbox')
 
     if (!isManager && user) {
@@ -223,6 +224,7 @@ export default async function CRMPage(props: {
                 initialPage={page}
                 isAdmin={isAdmin}
                 tenantType={tenantType}
+                leadOwnershipDays={leadOwnershipDays}
             />
         </div>
     )

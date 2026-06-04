@@ -57,16 +57,16 @@ import { revertSaleToQualification } from '@/app/[locale]/(dashboard)/lead-quali
 import { useTranslations, useLocale } from 'next-intl'
 import { useSupabaseRealtime } from '@/hooks/useSupabaseRealtime'
 
-type PipelineColId = 'customer' | 'project' | 'unit' | 'status' | 'date' | 'amount' | 'rep' | 'actions' | 'quickicons'
-const DEFAULT_PIPELINE_COL_ORDER: PipelineColId[] = ['customer', 'project', 'unit', 'status', 'date', 'amount', 'rep', 'actions', 'quickicons']
-const PIPELINE_COL_ORDER_KEY = 'pipeline_list_column_order'
-const PIPELINE_COL_WIDTHS_KEY = 'pipeline_list_column_widths'
-const PIPELINE_HIDDEN_COLS_KEY = 'pipeline_list_hidden_cols'
+type PipelineColId = 'customer' | 'project' | 'unit' | 'status' | 'lead_score' | 'date' | 'amount' | 'rep' | 'remaining' | 'actions' | 'quickicons'
+const DEFAULT_PIPELINE_COL_ORDER: PipelineColId[] = ['customer', 'project', 'unit', 'status', 'lead_score', 'date', 'amount', 'rep', 'remaining', 'actions', 'quickicons']
+const PIPELINE_COL_ORDER_KEY = 'pipeline_list_column_order_v2'
+const PIPELINE_COL_WIDTHS_KEY = 'pipeline_list_column_widths_v2'
+const PIPELINE_HIDDEN_COLS_KEY = 'pipeline_list_hidden_cols_v2'
 const DEFAULT_PIPELINE_WIDTHS: Record<PipelineColId, number> = {
-    customer: 240, project: 200, unit: 100, status: 160, date: 140, amount: 160, rep: 180, actions: 180, quickicons: 130
+    customer: 240, project: 200, unit: 100, status: 160, lead_score: 100, date: 140, amount: 160, rep: 180, remaining: 110, actions: 180, quickicons: 130
 }
 const PIPELINE_COL_LABELS: Record<PipelineColId, string> = {
-    customer: 'Müşteri', project: 'Proje', unit: 'Birim', status: 'Durum', date: 'Tarih', amount: 'Tutar', rep: 'Temsilci', actions: 'İşlemler', quickicons: 'Kısayollar'
+    customer: 'Müşteri', project: 'Proje', unit: 'Birim', status: 'Durum', lead_score: 'Lead Skor', date: 'Tarih', amount: 'Tutar', rep: 'Temsilci', remaining: 'Kalan Süre', actions: 'İşlemler', quickicons: 'Kısayollar'
 }
 
 export default function PipelineList({
@@ -78,7 +78,8 @@ export default function PipelineList({
     isAdmin = false,
     profiles = [],
     projects = [],
-    tenantType = 'developer'
+    tenantType = 'developer',
+    leadOwnershipDays = 90
 }: {
     sales: any[],
     customers: any[],
@@ -88,7 +89,8 @@ export default function PipelineList({
     isAdmin?: boolean,
     profiles?: any[],
     projects?: any[],
-    tenantType?: string
+    tenantType?: string,
+    leadOwnershipDays?: number
 }) {
     const t = useTranslations('CRM')
     const locale = useLocale()
@@ -500,7 +502,7 @@ export default function PipelineList({
             if (colId === 'unit') return { id: colId, label: 'Birim', type: 'text' as const }
             if (colId === 'date') return { id: colId, label: 'Tarih', type: 'date' as const }
             if (colId === 'amount') return { id: colId, label: 'Tutar', type: 'text' as const }
-            if (colId === 'actions' || colId === 'quickicons') return { id: colId, label: colId, type: 'none' as const }
+            if (colId === 'actions' || colId === 'quickicons' || colId === 'lead_score' || colId === 'remaining') return { id: colId, label: colId, type: 'none' as const }
             return { id: colId, label: colId, type: 'text' as const }
         })
 
@@ -649,9 +651,11 @@ export default function PipelineList({
                                                 {colId === 'project' && t('table.project')}
                                                 {colId === 'unit' && t('table.unit')}
                                                 {colId === 'status' && (isBroker ? 'Aşama' : t('table.status'))}
+                                                {colId === 'lead_score' && 'Lead Skor'}
                                                 {colId === 'date' && t('table.date')}
                                                 {colId === 'amount' && t('table.amount')}
                                                 {colId === 'rep' && (isBroker ? 'Danışman' : t('table.rep'))}
+                                                {colId === 'remaining' && 'Kalan Süre'}
                                                 {colId === 'actions' && t('table.actions')}
                                                 {colId === 'quickicons' && 'Kısayollar'}
                                             </div>
@@ -816,6 +820,31 @@ export default function PipelineList({
                                                         )}
                                                     </TableCell>
                                                 )
+                                                if (colId === 'lead_score') {
+                                                    const interestLevel = sale.customers?.lead_qualifications?.[0]?.interest_level
+                                                    const getScoreBadge = (score: string | null | undefined) => {
+                                                        switch (score) {
+                                                            case 'hot': return { label: '🔥 Hot', cls: 'bg-red-100 text-red-700 border-red-200' }
+                                                            case 'warm': return { label: '🌡️ Warm', cls: 'bg-amber-100 text-amber-700 border-amber-200' }
+                                                            case 'cold': return { label: '❄️ Cold', cls: 'bg-blue-100 text-blue-700 border-blue-200' }
+                                                            case 'call_requested': return { label: '📞 Arama', cls: 'bg-purple-100 text-purple-700 border-purple-200' }
+                                                            case 'disqualified': return { label: '⛔ DQ', cls: 'bg-slate-100 text-slate-500 border-slate-200' }
+                                                            default: return null
+                                                        }
+                                                    }
+                                                    const badge = getScoreBadge(interestLevel)
+                                                    return (
+                                                        <TableCell key="lead_score" className={cellCls}>
+                                                            {badge ? (
+                                                                <span className={`inline-flex items-center rounded-md border px-1.5 py-0.5 text-[10px] font-bold ${badge.cls}`}>
+                                                                    {badge.label}
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-muted-foreground text-[10px]">—</span>
+                                                            )}
+                                                        </TableCell>
+                                                    )
+                                                }
                                                 if (colId === 'date') return (
                                                     <TableCell key="date" className="px-2.5 py-1 align-middle text-muted-foreground font-medium text-xs border-r border-border/50">
                                                         <span suppressHydrationWarning>
@@ -839,6 +868,11 @@ export default function PipelineList({
                                                                 <div className="flex items-center gap-1.5 text-xs bg-muted/30 pl-1 pr-1.5 py-0.5 rounded-full border border-transparent hover:border-border transition-colors group/rep">
                                                                     <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center text-primary text-[9px] font-bold">{sale.profiles.full_name.substring(0, 2).toUpperCase()}</div>
                                                                     <span className="font-medium text-foreground text-[11px] leading-none">{sale.profiles.full_name}</span>
+                                                                    {sale.profiles.is_external && (
+                                                                        <span title="Dış Broker" className="inline-flex items-center justify-center h-4 w-4 rounded bg-orange-100 text-orange-600 flex-shrink-0 text-[9px]" aria-label="Dış Broker">
+                                                                            🏢
+                                                                        </span>
+                                                                    )}
                                                                     {isAdmin && (
                                                                         <Popover open={assignPopoverOpen === sale.id} onOpenChange={(open) => setAssignPopoverOpen(open ? sale.id : null)}>
                                                                             <PopoverTrigger asChild>
@@ -899,6 +933,32 @@ export default function PipelineList({
                                                         </div>
                                                     </TableCell>
                                                 )
+                                                if (colId === 'remaining') {
+                                                    const createdAt = new Date(sale.created_at)
+                                                    const now = new Date()
+                                                    const elapsedMs = now.getTime() - createdAt.getTime()
+                                                    const elapsedDays = Math.floor(elapsedMs / (1000 * 60 * 60 * 24))
+                                                    const remainingDays = leadOwnershipDays - elapsedDays
+                                                    const isExpired = remainingDays <= 0
+                                                    const isUrgent = remainingDays > 0 && remainingDays <= 7
+                                                    const isWarning = remainingDays > 7 && remainingDays <= 30
+
+                                                    return (
+                                                        <TableCell key="remaining" className={cellCls}>
+                                                            <span suppressHydrationWarning className={`inline-flex items-center rounded-md border px-1.5 py-0.5 text-[10px] font-bold ${
+                                                                isExpired 
+                                                                    ? 'bg-red-100 text-red-700 border-red-200 animate-pulse' 
+                                                                    : isUrgent 
+                                                                        ? 'bg-red-50 text-red-600 border-red-200'
+                                                                        : isWarning 
+                                                                            ? 'bg-amber-50 text-amber-700 border-amber-200' 
+                                                                            : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                                            }`}>
+                                                                {isExpired ? 'Süresi Doldu' : `${remainingDays} gün`}
+                                                            </span>
+                                                        </TableCell>
+                                                    )
+                                                }
                                                 if (colId === 'actions') return (
                                                     <TableCell key="actions" className="px-2.5 py-1 align-middle border-r border-border/50">
                                                         <div className="flex items-center gap-1">

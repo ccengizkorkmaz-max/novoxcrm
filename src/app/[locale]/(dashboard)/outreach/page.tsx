@@ -14,7 +14,7 @@ async function getAllTenantExecutions(supabaseAdmin: any, tenantId: string) {
             .select('workflow_id, status, started_at')
             .eq('tenant_id', tenantId)
             .range(from, from + 999)
-        
+
         if (error) {
             console.error('[getAllTenantExecutions] error:', error)
             break

@@ -21,10 +21,14 @@ export async function updateTenantProfile(formData: FormData) {
         return { error: 'No tenant found' }
     }
 
-    const updates = {
+    const leadOwnershipDays = formData.get('lead_ownership_days')
+    const updates: Record<string, any> = {
         name: formData.get('name') as string,
         logo_url: formData.get('logo_url') as string,
         country: formData.get('country') as string,
+    }
+    if (leadOwnershipDays !== null && leadOwnershipDays !== '') {
+        updates.lead_ownership_days = Number(leadOwnershipDays)
     }
 
     const { error } = await supabase
