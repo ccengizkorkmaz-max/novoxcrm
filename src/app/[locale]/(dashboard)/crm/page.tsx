@@ -95,14 +95,13 @@ export default async function CRMPage(props: {
     const [salesListRes, profilesRes, projectsRes, templatesRes] = await Promise.all([
         baseQuery.order('created_at', { ascending: false }).range(from, to),
         supabase.from('profiles')
-            .select('id, full_name')
+            .select('id, full_name, is_external')
             .eq('tenant_id', userTenantId)
             .not('full_name', 'is', null)
             .neq('full_name', '')
             .neq('full_name', '1')
-            .or('is_external.is.null,is_external.eq.false')
             .eq('is_active', true)
-            .in('role', ['admin', 'owner', 'manager', 'sales'])
+            .in('role', ['admin', 'owner', 'manager', 'sales', 'broker'])
             .order('full_name'),
         supabase.from('projects').select('id, name').order('name'),
         supabase.from('payment_plan_templates').select('*, project_id').order('name', { ascending: true })
