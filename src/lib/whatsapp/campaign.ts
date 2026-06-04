@@ -102,7 +102,7 @@ export async function handleCampaignReply(
                             const params = [
                                 normalizedPhone,
                                 customerName,
-                                new Date().toLocaleString('tr-TR'),
+                                new Date().toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' }),
                                 `[ARAMA TALEBİ] Müşteri kampanya şablonuna "Evet arayın" yanıtını verdi. Arama talep ediyor.`
                             ].map(p => typeof p === 'string' ? p.replace(/[\r\n\t]+/g, ' ').replace(/\s{2,}/g, ' ').trim() : p);
 

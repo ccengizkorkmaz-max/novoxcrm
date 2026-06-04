@@ -198,7 +198,7 @@ export async function processHotLeadDetection(
                 const params = [
                     normalizedPhone,
                     customerName,
-                    new Date().toLocaleString('tr-TR'),
+                    new Date().toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' }),
                     leadLabel + (conversationSummary ? conversationSummary.substring(0, 480).replace(/\n/g, ' ') : 'Özet oluşturulamadı')
                 ].map(p => typeof p === 'string' ? p.replace(/[\r\n\t]+/g, ' ').replace(/\s{2,}/g, ' ').trim() : p);
 
