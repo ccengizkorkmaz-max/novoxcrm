@@ -60,7 +60,7 @@ export function BrokerLeadsClient({ leads, locale, leadOwnershipDays }: { leads:
     const hasFilters = search.trim() !== '' || statusFilter !== null
 
     return (
-        <div className="space-y-5 pb-12">
+        <div className="space-y-5 pb-12 max-w-3xl">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900">{t('title')}</h1>
