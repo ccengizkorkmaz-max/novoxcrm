@@ -143,6 +143,11 @@ export function NovoxSidebar({
                 </NavItem>
             )}
             {!isBroker && (
+                <NavItem href="/calls" icon={Phone} onClick={onElementClick} isCollapsed={isCollapsed}>
+                    Aramalar
+                </NavItem>
+            )}
+            {!isBroker && (
                 <NavItem href="/lead-qualification" icon={Target} onClick={onElementClick} isCollapsed={isCollapsed}>
                     Ön Değerlendirme
                 </NavItem>
