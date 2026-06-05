@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Phone, Server, Shield, Save, Loader2, Eye, EyeOff, Info } from 'lucide-react'
 import { toast } from 'sonner'
 import { updateSipSettings } from '../actions'
@@ -15,6 +16,7 @@ interface SipSettingsTabProps {
         id: string
         netgsm_sip_username?: string | null
         netgsm_sip_password?: string | null
+        ai_outreach_settings?: Record<string, any> | null
     }
 }
 
@@ -23,6 +25,7 @@ export default function SipSettingsTab({ tenant }: SipSettingsTabProps) {
     const [showPassword, setShowPassword] = useState(false)
 
     const hasConfig = !!(tenant.netgsm_sip_username && tenant.netgsm_sip_password)
+    const currentMaxCalls = tenant.ai_outreach_settings?.max_concurrent_calls || 8
 
     // Derive DID (phone number) from username: 2129099559 → 0212 909 95 59
     const formatDID = (username: string) => {
@@ -116,6 +119,40 @@ export default function SipSettingsTab({ tenant }: SipSettingsTabProps) {
                                         </button>
                                     </div>
                                 </div>
+
+                            {/* Concurrent Calls Limit */}
+                            <div className="space-y-4 pt-2">
+                                <div className="space-y-2">
+                                    <Label htmlFor="max_concurrent_calls" className="flex items-center gap-2">
+                                        Eş Zamanlı Arama Limiti
+                                        <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <Info className="h-3.5 w-3.5 text-slate-400 cursor-help" />
+                                                </TooltipTrigger>
+                                                <TooltipContent className="max-w-xs">
+                                                    <p>Outreach workflow&apos;larının aynı anda kaç arama yapabileceğini belirler. Gelen aramalar için 2 slot boş bırakılması önerilir. Vapi planınız max 10 eş zamanlı arama destekler.</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                    </Label>
+                                    <div className="flex items-center gap-3">
+                                        <Input
+                                            id="max_concurrent_calls"
+                                            name="max_concurrent_calls"
+                                            type="number"
+                                            min={1}
+                                            max={10}
+                                            defaultValue={currentMaxCalls}
+                                            className="w-24"
+                                        />
+                                        <span className="text-xs text-slate-500">/ 10 (Vapi limiti)</span>
+                                    </div>
+                                    <p className="text-[10px] text-slate-400">
+                                        Gelen aramalar için en az 2 slot boş bırakılması önerilir.
+                                    </p>
+                                </div>
+                            </div>
                             </div>
 
                             {/* Info Panel */}
@@ -157,15 +194,14 @@ export default function SipSettingsTab({ tenant }: SipSettingsTabProps) {
                                         </p>
                                     </div>
 
-                                    <div className="p-3 bg-amber-50 rounded-xl border border-amber-100 space-y-1.5">
-                                        <div className="flex items-center gap-2 text-amber-700 text-xs font-medium">
-                                            <Info className="h-3.5 w-3.5" />
+                                    <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-100 space-y-1.5">
+                                        <div className="flex items-center gap-2 text-emerald-700 text-xs font-medium">
+                                            <Phone className="h-3.5 w-3.5" />
                                             Gelen Arama Durumu
                                         </div>
-                                        <p className="text-[11px] text-amber-600 leading-relaxed">
-                                            0212 numaranıza gelen aramaların AI tarafından karşılanması için
-                                            Netgsm'in inbound SIP forwarding desteği gereklidir.
-                                            Netgsm'den teyit bekleniyor.
+                                        <p className="text-[11px] text-emerald-600 leading-relaxed">
+                                            ✅ Aktif — 0212 numaranıza gelen aramalar AI asistan (Çiçek) tarafından karşılanıyor.
+                                            Netgsm SIP → Vapi entegrasyonu çalışıyor.
                                         </p>
                                     </div>
                                 </div>

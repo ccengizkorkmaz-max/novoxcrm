@@ -1267,9 +1267,23 @@ export async function updateSipSettings(formData: FormData) {
         return { error: 'Yalnızca yönetici yetkisi olanlar bu ayarları değiştirebilir.' }
     }
 
+    const maxConcurrentCalls = parseInt(formData.get('max_concurrent_calls') as string) || 8
+    const clampedMaxCalls = Math.min(10, Math.max(1, maxConcurrentCalls))
+
+    // Get current ai_outreach_settings to merge
+    const { data: currentTenant } = await supabase
+        .from('tenants')
+        .select('ai_outreach_settings')
+        .eq('id', profile.tenant_id)
+        .single()
+
     const updates = {
         netgsm_sip_username: (formData.get('netgsm_sip_username') as string)?.trim() || null,
         netgsm_sip_password: (formData.get('netgsm_sip_password') as string)?.trim() || null,
+        ai_outreach_settings: {
+            ...(currentTenant?.ai_outreach_settings || {}),
+            max_concurrent_calls: clampedMaxCalls,
+        },
     }
 
     const { error } = await supabase
