@@ -7,6 +7,10 @@
     {
       "path": "/api/cron/outreach",
       "schedule": "*/5 5-21 * * 1-6"
+    },
+    {
+      "path": "/api/seo/ping-engines",
+      "schedule": "0 6 * * *"
     }
   ]
 }
