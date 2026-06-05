@@ -211,8 +211,8 @@ export function DashboardLayoutWrapper({
                         </div>
                     </header>
 
-                    {/* Top Right Utilities */}
-                    <div className="hidden md:flex items-center justify-end gap-2 absolute top-2 right-4 z-50 print:hidden">
+                    {/* Top Right Utilities — flow-based, not absolute */}
+                    <div className="hidden md:flex items-center justify-end gap-2 px-4 pt-2 pb-0 print:hidden shrink-0">
                         <LanguageSwitcher />
                         {isAuthorizedForSettings && (
                             <Link href="/settings">
@@ -224,7 +224,7 @@ export function DashboardLayoutWrapper({
                         <NotificationBell />
                     </div>
 
-                    <main className="flex-1 items-start p-2 sm:px-4 sm:py-4 md:pr-4 overflow-auto">
+                    <main className="flex-1 items-start p-2 sm:px-4 sm:py-2 md:pr-4 overflow-auto">
                         {children}
                     </main>
                 </div>
