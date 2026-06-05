@@ -372,8 +372,122 @@ export async function POST(req: Request) {
             })
         }
 
-        // --- Default Flow: Inbox Items ---
-        const { data: inboxItem, error: inboxError } = await supabase
+        // --- Default Flow: Auto-CRM + Archive in Inbox ---
+        // Web form leads are now auto-processed (like Facebook Ads) instead of waiting for manual approval.
+        // A copy is saved in inbox as 'approved' for archive/audit purposes.
+        console.log('Auto-processing web form lead to CRM...')
+
+        // ── 1. Customer deduplication ─────────────────
+        let customerId: string | null = null
+
+        // Check by email first
+        if (email) {
+            const { data: byEmail } = await supabase
+                .from('customers')
+                .select('id')
+                .eq('tenant_id', tenant_id)
+                .eq('email', email)
+                .limit(1)
+                .maybeSingle()
+            if (byEmail) customerId = byEmail.id
+        }
+
+        // Then by phone
+        if (!customerId && phone) {
+            const normalizedPhone = phone.replace(/[\s\-\(\)\.]/g, '')
+            const last10 = normalizedPhone.slice(-10)
+            if (last10.length >= 7) {
+                const { data: byPhone } = await supabase
+                    .from('customers')
+                    .select('id, phone')
+                    .eq('tenant_id', tenant_id)
+                    .not('phone', 'is', null)
+                
+                if (byPhone) {
+                    const match = byPhone.find((c: any) =>
+                        c.phone && c.phone.replace(/[\s\-\(\)\.]/g, '').slice(-10) === last10
+                    )
+                    if (match) customerId = match.id
+                }
+            }
+        }
+
+        // Create new customer if not found
+        if (!customerId) {
+            const { data: newCustomer, error: customerError } = await supabase
+                .from('customers')
+                .insert({
+                    tenant_id: tenant_id,
+                    full_name: name,
+                    email: email || null,
+                    phone: phone || null,
+                    source: source
+                })
+                .select('id')
+                .single()
+
+            if (customerError || !newCustomer) {
+                console.error('Error creating customer:', customerError)
+                return NextResponse.json({ error: 'Failed to create customer' }, { status: 500 })
+            }
+            customerId = newCustomer.id
+            console.log('🆕 New customer created:', customerId)
+        } else {
+            console.log('✅ Existing customer found:', customerId)
+            // Update missing fields
+            const { data: existing } = await supabase.from('customers').select('phone, email').eq('id', customerId).single()
+            const updates: any = {}
+            if (existing && !existing.phone && phone) updates.phone = phone
+            if (existing && !existing.email && email) updates.email = email
+            if (Object.keys(updates).length > 0) {
+                await supabase.from('customers').update(updates).eq('id', customerId)
+            }
+        }
+
+        // ── 2. Create sale (Lead) record ─────────────────
+        // Check for existing active lead for same customer first
+        const { data: existingSale } = await supabase
+            .from('sales')
+            .select('id')
+            .eq('tenant_id', tenant_id)
+            .eq('customer_id', customerId)
+            .eq('status', 'Lead')
+            .maybeSingle()
+
+        let saleId: string
+
+        if (existingSale) {
+            saleId = existingSale.id
+            if (projectId) {
+                await supabase.from('sales').update({ project_id: projectId }).eq('id', saleId)
+            }
+            await supabase.from('sales').update({
+                description: `${finalMessage.trim()}\\n\\n--- Ek form gönderimi ---`
+            }).eq('id', saleId)
+            console.log('📝 Existing sale updated:', saleId)
+        } else {
+            const { data: newSale, error: saleError } = await supabase
+                .from('sales')
+                .insert({
+                    tenant_id: tenant_id,
+                    customer_id: customerId,
+                    project_id: projectId,
+                    status: 'Lead',
+                    description: finalMessage.trim() || 'Web Form Lead'
+                })
+                .select('id')
+                .single()
+
+            if (saleError || !newSale) {
+                console.error('Error creating sale:', saleError)
+                return NextResponse.json({ error: 'Failed to create sale' }, { status: 500 })
+            }
+            saleId = newSale.id
+            console.log('✅ New sale created:', saleId)
+        }
+
+        // ── 3. Save copy in inbox as 'approved' (archive) ─────────────────
+        await supabase
             .from('inbox_items')
             .insert({
                 tenant_id: tenant_id,
@@ -382,28 +496,26 @@ export async function POST(req: Request) {
                 phone: phone || null,
                 message: finalMessage.trim() || 'No message provided',
                 source: source,
-                status: 'pending',
-                project_id: projectId
+                status: 'approved',
+                project_id: projectId,
+                sale_id: saleId,
+                approved_at: new Date().toISOString()
             })
-            .select()
-            .single()
 
-        if (inboxError) {
-            console.error('Error creating inbox item:', inboxError)
-            return NextResponse.json({
-                error: `Failed to create inbox item: ${inboxError.message}`,
-                details: inboxError
-            }, { status: 500 })
-        }
-
-        console.log('Inbox item created successfully:', inboxItem.id)
+        console.log('📁 Inbox archive copy saved')
 
         revalidatePath('/[locale]/(dashboard)/inbox')
+        revalidatePath('/[locale]/(dashboard)/crm')
+        revalidatePath('/[locale]/(dashboard)/customers')
 
         return NextResponse.json({
             success: true,
-            message: 'Lead received and added to Inbox for approval.',
-            inbox_item_id: inboxItem.id
+            message: existingSale
+                ? 'Existing customer sale updated (auto-approved).'
+                : 'Lead auto-created in CRM and archived in inbox.',
+            lead_id: saleId,
+            customer_id: customerId,
+            was_duplicate: !!existingSale
         })
     } catch (error: any) {
         console.error('Unexpected error in external lead route:', error)
