@@ -86,27 +86,36 @@ export async function POST(req: Request) {
         }
 
         // Parse customer info from message content if available (Regex parsing)
+        // ALWAYS try body parsing first — top-level fields may be the form sender, not the customer
         if (bodyMessage && typeof bodyMessage === 'string') {
             const nameMatch = bodyMessage.match(/Ad\s+Soyad:\s*([^:\n\r]+?)(?=\s*(?:E-posta|Telefon|Konu|Proje|$)|\r|\n)/i)
-            if (nameMatch && (!name || name.toLowerCase() === 'novo')) {
-                name = nameMatch[1].trim()
+            if (nameMatch) {
+                name = nameMatch[1].replace(/\\n/g, '').trim()
             }
 
             const emailMatch = bodyMessage.match(/(?:E-posta Adresi|E-posta):\s*([^:\n\r\s]+?)(?=\s*(?:Ad Soyad|Telefon|Konu|Proje|$)|\r|\n)/i)
-            if (emailMatch && (!email || email === 'web@novosirketlergrubu.com')) {
-                email = emailMatch[1].trim()
+            if (emailMatch) {
+                email = emailMatch[1].replace(/\\n/g, '').trim()
             }
 
-            const phoneMatch = bodyMessage.match(/(?:Telefon Numarası|Telefon No|Telefon|Tel):\s*([^:\n\r\s]+?)(?=\s*(?:Ad Soyad|E-posta|Konu|Proje|$)|\r|\n)/i)
+            const phoneMatch = bodyMessage.match(/(?:Telefon Numarası|Telefon No|Telefon|Tel):\s*([\d\s\+\-\(\)\.\\n]+?)(?=\s*(?:Ad Soyad|E-posta|Konu|Proje|Mesaj|Not|$)|\r|\n)/i)
             if (phoneMatch) {
                 phone = phoneMatch[1].replace(/\\n/g, '').replace(/\n/g, '').trim()
             }
         }
 
+        // Filter out known form sender addresses — these are NOT real customers
+        const FORM_SENDER_EMAILS = ['web@novosirketlergrubu.com']
+        const FORM_SENDER_NAMES = ['novo']
+        if (email && FORM_SENDER_EMAILS.includes(email.toLowerCase())) email = null
+        if (name && FORM_SENDER_NAMES.includes(name.toLowerCase()) && email === null) name = null
+
         // Final fallback for missing fields - capture from any possible top-level keys
         if (!name) name = body.full_name || body.Ad || body['Ad Soyad'] || body.sender_name || subject || email || 'Yeni Dış Kaynak Adayı'
         if (!email) email = body.Email || body.eposta || body.sender_email || null
         if (!phone) phone = body.Phone || body.telefon || null
+        // Filter form senders again after fallback
+        if (email && FORM_SENDER_EMAILS.includes(email.toLowerCase())) email = null
 
         // Tenant Protection: Ensure we have a tenant_id
         if (!tenant_id) {
