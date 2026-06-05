@@ -144,7 +144,7 @@ export function NovoxSidebar({
             )}
             {!isBroker && (
                 <NavItem href="/calls" icon={Phone} onClick={onElementClick} isCollapsed={isCollapsed}>
-                    Aramalar
+                    Gelen Aramalar
                 </NavItem>
             )}
             {!isBroker && (
