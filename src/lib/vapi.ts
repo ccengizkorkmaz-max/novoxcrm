@@ -635,13 +635,15 @@ export async function handleManualVapiCallResult(callData: {
     const customerId = callData.metadata?.customer_id
     const saleId = callData.metadata?.sale_id
     const tenantId = callData.metadata?.tenant_id
+    const callerPhone = callData.metadata?.caller_phone
+    const isInbound = callData.metadata?.call_direction === 'inbound'
 
-    if (!customerId || !tenantId) {
-        console.warn('[Vapi Webhook] Manual call finished but missing customer_id or tenant_id in metadata')
+    if (!tenantId) {
+        console.warn('[Vapi Webhook] Manual call finished but missing tenant_id in metadata')
         return
     }
 
-    console.log(`[Vapi Webhook] Processing manual call result for customer: ${customerId}, sale: ${saleId}`)
+    console.log(`[Vapi Webhook] Processing ${isInbound ? 'inbound' : 'manual'} call result — customer: ${customerId || 'unknown'}, phone: ${callerPhone}`)
 
     // Determine call outcome/status
     let outcome: 'Success' | 'Failed' | 'Busy' | 'No Answer' = 'No Answer'
@@ -715,9 +717,43 @@ export async function handleManualVapiCallResult(callData: {
         outcome = 'Success'
         logStatus = 'answered'
     }
+    // ─── 0. Update inbound_calls record (if inbound) ─────────
+    if (isInbound && callData.callId) {
+        const outcomeMap: Record<string, string> = {
+            'Success': 'answered', 'Failed': 'no_answer', 'Busy': 'busy', 'No Answer': 'no_answer'
+        }
+        const { error: icError } = await supabase
+            .from('inbound_calls')
+            .update({
+                status: 'ended',
+                ended_at: new Date().toISOString(),
+                duration: callData.duration || 0,
+                outcome: outcomeMap[outcome] || 'no_answer',
+                ended_reason: callData.endedReason || null,
+                lead_score: leadScore || null,
+                interested: interested || false,
+                transcript: callData.transcript || null,
+                summary: callData.summary || notes || null,
+                recording_url: callData.recordingUrl || null,
+                cost: callData.cost || null,
+                analysis: callData.analysis || null,
+                caller_name: extractedCustomerName || undefined,
+            })
+            .eq('vapi_call_id', callData.callId)
+        
+        if (icError) {
+            console.warn(`[Vapi Webhook] Failed to update inbound_calls: ${icError.message}`)
+        } else {
+            console.log(`[Vapi Webhook] ✅ inbound_calls updated for ${callData.callId}`)
+        }
+    }
 
-    // ─── 1. Log to Customer Timeline (Activities) ─────────
-    const isInbound = callData.metadata?.call_direction === 'inbound'
+    // ─── 1. Log to Customer Timeline (Activities) — only if customer exists ─────────
+    if (!customerId) {
+        console.log(`[Vapi Webhook] No customer_id — skipping activity/lead updates for unknown caller ${callerPhone}`)
+        return // Unknown caller — inbound_calls already updated above
+    }
+
     const activityTopic = isInbound ? 'Inbound Call' : 'Sales'
     const durationText = callData.duration ? `${Math.floor(callData.duration / 60)}dk ${callData.duration % 60}sn` : ''
     const transcriptBlock = callData.transcript

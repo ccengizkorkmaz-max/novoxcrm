@@ -28,74 +28,57 @@ export default async function CallsPage({
 
     if (!profile?.tenant_id) return <div className="p-8 text-center text-slate-500">Tenant bulunamadı</div>
 
-    // Query activities with type 'Transcript' and join customer info
-    // These are inbound/manual AI call records
     const from = (page - 1) * PAGE_SIZE
     const to = from + PAGE_SIZE - 1
 
-    const { data: activities, count: totalCount } = await supabase
-        .from('activities')
+    // Query from dedicated inbound_calls table
+    const { data: calls, count: totalCount } = await supabase
+        .from('inbound_calls')
         .select(`
             id,
+            tenant_id,
             customer_id,
-            summary,
-            description,
-            notes,
+            caller_phone,
+            caller_name,
+            vapi_call_id,
+            started_at,
+            ended_at,
+            duration,
+            status,
             outcome,
-            priority,
-            due_date,
-            completed_at,
-            created_at,
-            customers(id, full_name, phone)
+            ended_reason,
+            lead_score,
+            interested,
+            transcript,
+            summary,
+            recording_url,
+            cost,
+            analysis
         `, { count: 'exact' })
         .eq('tenant_id', profile.tenant_id)
-        .eq('type', 'Transcript')
-        .eq('topic', 'Inbound Call')
-        .order('created_at', { ascending: false })
+        .order('started_at', { ascending: false })
         .range(from, to)
 
-    // Parse activity data into call records
-    const calls = (activities || []).map((act: any) => {
-        const desc = act.description || ''
-        const customer = act.customers as any
-
-        // Extract recording URL from description [RECORDING]: url
-        const recordingMatch = desc.match(/\[RECORDING\]:\s*(https?:\/\/\S+)/)
-        const recordingUrl = recordingMatch ? recordingMatch[1] : null
-
-        // Extract transcript from description (after 📝 Transkript:)
-        const transcriptMatch = desc.match(/📝 Transkript:\n([\s\S]*?)(?=\n\n\[|$)/)
-        const transcript = transcriptMatch ? transcriptMatch[1].trim() : (act.notes || '')
-
-        // Extract lead score from summary (Skor HOT, WARM, etc.)
-        const scoreMatch = (act.summary || '').match(/Skor\s+(HOT|WARM|FOLLOW_UP|COLD|DISQUALIFIED)/i)
-        const leadScore = scoreMatch ? scoreMatch[1].toLowerCase() : null
-
-        // Extract duration from summary (e.g., "2dk 15sn")
-        const durationMatch = (act.summary || '').match(/(\d+)dk\s*(\d+)?sn/)
-        let duration = 0
-        if (durationMatch) {
-            duration = parseInt(durationMatch[1]) * 60 + (parseInt(durationMatch[2]) || 0)
-        }
-
-        // Summary is the first line of description (before transcript)
-        const summaryText = desc.split('\n\n📝')[0]?.trim() || act.summary || ''
-
-        return {
-            id: act.id,
-            customer_id: customer?.id || act.customer_id,
-            customer_name: customer?.full_name || 'Bilinmeyen',
-            customer_phone: customer?.phone || '-',
-            date: act.completed_at || act.created_at,
-            duration,
-            outcome: act.outcome || 'No Answer',
-            lead_score: leadScore,
-            summary: summaryText,
-            transcript,
-            recording_url: recordingUrl,
-            cost: null,
-        }
-    })
+    // Map to client-friendly format
+    const mappedCalls = (calls || []).map((call: any) => ({
+        id: call.id,
+        customer_id: call.customer_id || '',
+        customer_name: call.caller_name || 'Bilinmeyen Arayan',
+        customer_phone: call.caller_phone || '-',
+        date: call.started_at || call.created_at,
+        duration: call.duration || 0,
+        outcome: call.outcome === 'answered' ? 'Success' 
+            : call.outcome === 'busy' ? 'Busy' 
+            : call.outcome === 'no_answer' ? 'No Answer' 
+            : call.status === 'ringing' ? 'Devam Ediyor'
+            : 'No Answer',
+        lead_score: call.lead_score,
+        summary: call.summary || '',
+        transcript: call.transcript || '',
+        recording_url: call.recording_url,
+        cost: call.cost ? parseFloat(call.cost) : null,
+        is_known_customer: !!call.customer_id,
+    }))
 
     return (
         <div className="flex-1 space-y-4 p-4 md:p-6 pt-4">
@@ -106,7 +89,7 @@ export default async function CallsPage({
                 </div>
             </div>
             <InboundCallsClient
-                calls={calls}
+                calls={mappedCalls}
                 totalCount={totalCount || 0}
                 page={page}
                 pageSize={PAGE_SIZE}

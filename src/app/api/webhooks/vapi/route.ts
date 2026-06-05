@@ -100,31 +100,29 @@ export async function POST(req: NextRequest) {
                     .ilike('phone', `%${cleanPhone}%`)
                     .limit(1)
 
-                let customer = customers?.[0]
-                let isNewCustomer = false
+                const customer = customers?.[0] || null
+                const isExistingCustomer = !!customer
 
-                if (!customer) {
-                    // Create new customer dynamically
-                    const { data: newCustomer, error: createError } = await adminSupabase
-                        .from('customers')
-                        .insert({
-                            tenant_id: tenant_id,
-                            full_name: 'Yeni Gelen Arama Adayı',
-                            phone: customerPhone,
-                            source: 'Gelen Arama'
-                        })
-                        .select('id, full_name')
-                        .single()
-
-                    if (createError || !newCustomer) {
-                        console.error('[Vapi Webhook] Failed to create customer dynamically for inbound call:', createError)
-                        return NextResponse.json({ error: 'Failed to register inbound call customer' }, { status: 500 })
-                    }
-                    customer = newCustomer
-                    isNewCustomer = true
-                    console.log(`[Vapi Webhook] Registered new customer for inbound call: ${customer.id}`)
-                } else {
+                if (customer) {
                     console.log(`[Vapi Webhook] Matched existing customer: ${customer.full_name} (${customer.id})`)
+                } else {
+                    console.log(`[Vapi Webhook] Unknown caller: ${customerPhone} — no customer record will be created`)
+                }
+
+                // Create inbound_calls record immediately (before call starts)
+                const vapiCallId = body.message?.call?.id || body.call?.id || null
+                try {
+                    await adminSupabase.from('inbound_calls').insert({
+                        tenant_id: tenant_id,
+                        customer_id: customer?.id || null,
+                        caller_phone: customerPhone,
+                        caller_name: customer?.full_name || null,
+                        vapi_call_id: vapiCallId,
+                        status: 'ringing',
+                    })
+                    console.log(`[Vapi Webhook] Inbound call record created: ${vapiCallId}`)
+                } catch (e: any) {
+                    console.warn(`[Vapi Webhook] Failed to create inbound_calls record: ${e.message}`)
                 }
 
                 // Fetch tenant instructions and knowledge base
@@ -140,16 +138,33 @@ export async function POST(req: NextRequest) {
                     ? 'nPczCjzI2devNBz1zQrb' // Mert (Brian)
                     : 'uvU9jrgGLWNPeNA4NgNT' // Çiçek (İrem)
 
-                // Build System Prompt
-                let systemPrompt = tenantData?.ai_assistant_instructions || `Sen Novo Gayrimenkul için çalışan profesyonel sesli yapay zeka asistanısın. Adın ${assistantName}. Amacın, gelen aramaları nazik, profesyonel ve etkileşimli bir şekilde karşılamak, sorularını bilgi bankasına göre yanıtlamak ve randevu almak. Müşterinin sözünü kesmesine izin ver, her cümleden sonra cevabını bekle.`
+                // Build System Prompt — strict, knowledge-base-only behavior
+                const defaultInboundPrompt = `Sen ${assistantName}, Novo Gayrimenkul'ün sesli asistanısın.
+
+## GÖREV
+Gelen aramaları karşıla, bilgi bankasındaki proje bilgilerini paylaş, randevu al.
+
+## DAVRANIŞKURALLARI
+1. SADECE bilgi bankasında yazan bilgileri paylaş. Bilgi bankasında olmayan hiçbir detayı (fiyat, metrekare, ödeme planı, teslim tarihi vb.) KENDİN UYDURMA.
+2. Bilmediğin bir soru sorulursa şöyle söyle: "Bu konuda size en doğru bilgiyi satış danışmanımız verebilir, sizi aratmamı ister misiniz?"
+3. Kısa ve öz konuş. Her cevabın 2-3 cümleyi geçmesin.
+4. Müşterinin sözünü kesme, cevabını bekle.
+5. Konu dışı sorulara (siyaset, hava durumu, şirket dışı konular) "Ben sadece projelerimiz hakkında bilgi verebiliyorum" de.
+6. Randevu almaya çalış: "Size uygun bir zamanda satış uzmanımızla görüşme ayarlayabilir miyim?"
+7. Fiyat sorulursa: Bilgi bankasında varsa söyle, yoksa "Güncel fiyat bilgisi için sizi aratmamı ister misiniz?" de.
+8. Profesyonel, sıcak ve samimi ol ama laubali olma.`
+
+                let systemPrompt = tenantData?.ai_assistant_instructions || defaultInboundPrompt
                 
                 if (tenantData?.ai_knowledge_base) {
-                    systemPrompt += `\n\n--- ŞİRKET BİLGİ BANKASI VE AKTİF PROJELER ---\n${tenantData.ai_knowledge_base}\n\nÖNEMLİ KURAL: Projeler hakkında SADECE yukarıdaki BİLGİ BANKASI'nda yazan bilgileri kullan. Bilmediğin veya bilgi bankasında yazmayan bir detay (fiyat, metrekare, teslim tarihi vb.) sorulursa ASLA uydurma, 'Bu detay şu an sistemimde mevcut değil, dilerseniz ilgili satış uzmanımızın size net bilgi vermesini sağlayabilirim' şeklinde yanıt ver.\n`
+                    systemPrompt += `\n\n--- ŞİRKET BİLGİ BANKASI VE AKTİF PROJELER ---\n${tenantData.ai_knowledge_base}\n\n⛔ KRİTİK KURAL: Yukarıdaki bilgi bankasında YAZMAYAN hiçbir bilgiyi paylaşma. Uydurma, tahmin etme, yaklaşık rakam verme. Bilmediğin her konuda "Bu detayı satış uzmanımız size iletecektir, sizi aratmamı ister misiniz?" de.\n`
+                } else {
+                    systemPrompt += `\n\n⚠️ BİLGİ BANKASI TANIMLANMAMIŞ. Tüm proje detayları için müşteriyi satış ekibine yönlendir: "Detaylı bilgi için sizi aratmamı ister misiniz?"\n`
                 }
 
                 // Dynamic First Greeting Message
                 let firstMessage = `Merhaba, Novo Gayrimenkul'e hoş geldiniz. Ben ${assistantName}, size nasıl yardımcı olabilirim?`
-                if (!isNewCustomer && customer.full_name && customer.full_name !== 'Yeni Gelen Arama Adayı') {
+                if (isExistingCustomer && customer.full_name && customer.full_name !== 'Yeni Gelen Arama Adayı') {
                     const nameWithTitle = getTurkishNameTitle(customer.full_name)
                     firstMessage = `Merhaba ${nameWithTitle}, Novo Gayrimenkul'e hoş geldiniz. Ben ${assistantName}, size nasıl yardımcı olabilirim?`
                 }
@@ -248,14 +263,15 @@ export async function POST(req: NextRequest) {
                         },
                         metadata: {
                             tenant_id: tenant_id,
-                            customer_id: customer.id,
+                            customer_id: customer?.id || null,
+                            caller_phone: customerPhone,
                             type: 'manual_call',
                             call_direction: 'inbound'
                         }
                     }
                 }
 
-                console.log(`[Vapi Webhook] Dinamik asistan yapılandırması başarıyla oluşturuldu: ${customer.id}`)
+                console.log(`[Vapi Webhook] Dinamik asistan yapılandırması oluşturuldu — müşteri: ${customer?.id || 'bilinmiyor'}, telefon: ${customerPhone}`)
                 return NextResponse.json(assistantResponse, { status: 200 })
             }
 
