@@ -168,7 +168,7 @@ export async function POST(req: Request) {
 
             // ── 1. Create customer (NO DEDUPLICATION) ─────────────────
             // User request (25 Mar 2026): We completely bypassed duplicate checking. Every incoming lead creates a brand new customer.
-            
+
             let customerId: string
             let isNewCustomer = false
 
@@ -211,7 +211,7 @@ export async function POST(req: Request) {
                     console.error('Error creating customer for Facebook Ads:', customerError)
                     return NextResponse.json({ error: 'Failed to create customer' }, { status: 500 })
                 }
-                
+
                 customerId = newCustomer.id
                 isNewCustomer = true
                 console.log('🆕 New customer created:', customerId)
@@ -297,7 +297,7 @@ export async function POST(req: Request) {
                                 wa_first_message_sent: true,
                                 wa_first_message_at: new Date().toISOString()
                             }).eq('id', newSale.id);
-                            
+
                             // Aktivite olarak kaydet
                             await supabase.from('activities').insert({
                                 tenant_id: tenant_id,
@@ -402,7 +402,7 @@ export async function POST(req: Request) {
                     .select('id, phone')
                     .eq('tenant_id', tenant_id)
                     .not('phone', 'is', null)
-                
+
                 if (byPhone) {
                     const match = byPhone.find((c: any) =>
                         c.phone && c.phone.replace(/[\s\-\(\)\.]/g, '').slice(-10) === last10
