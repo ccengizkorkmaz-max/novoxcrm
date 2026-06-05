@@ -50,6 +50,7 @@ export default async function CallsPage({
         `, { count: 'exact' })
         .eq('tenant_id', profile.tenant_id)
         .eq('type', 'Transcript')
+        .eq('topic', 'Inbound Call')
         .order('created_at', { ascending: false })
         .range(from, to)
 

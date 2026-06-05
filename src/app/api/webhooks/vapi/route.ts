@@ -249,7 +249,8 @@ export async function POST(req: NextRequest) {
                         metadata: {
                             tenant_id: tenant_id,
                             customer_id: customer.id,
-                            type: 'manual_call'
+                            type: 'manual_call',
+                            call_direction: 'inbound'
                         }
                     }
                 }

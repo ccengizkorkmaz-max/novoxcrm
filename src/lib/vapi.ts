@@ -717,6 +717,8 @@ export async function handleManualVapiCallResult(callData: {
     }
 
     // ─── 1. Log to Customer Timeline (Activities) ─────────
+    const isInbound = callData.metadata?.call_direction === 'inbound'
+    const activityTopic = isInbound ? 'Inbound Call' : 'Sales'
     const durationText = callData.duration ? `${Math.floor(callData.duration / 60)}dk ${callData.duration % 60}sn` : ''
     const transcriptBlock = callData.transcript
         ? `\n\n📝 Transkript:\n${callData.transcript}`
@@ -729,7 +731,7 @@ export async function handleManualVapiCallResult(callData: {
     const callIdTag = callData.callId ? `\n\n[Call ID: ${callData.callId}]` : ''
 
     const activityPayload = {
-        summary: `🤖 AI Arama: ${leadScore ? 'Skor ' + leadScore.toUpperCase() : 'Görüşme Tamamlandı'} (${durationText})`,
+        summary: `${isInbound ? '📞 Gelen Arama' : '🤖 AI Arama'}: ${leadScore ? 'Skor ' + leadScore.toUpperCase() : 'Görüşme Tamamlandı'} (${durationText})`,
         description: `${summaryBlock}${transcriptBlock}${recordingBlock}${callIdTag}`,
         notes: callData.transcript || '',
         status: 'Completed' as const,
@@ -762,7 +764,7 @@ export async function handleManualVapiCallResult(callData: {
                 tenant_id: tenantId,
                 customer_id: customerId,
                 type: 'Transcript',
-                topic: 'Sales',
+                topic: activityTopic,
                 due_date: new Date().toISOString(),
                 ...activityPayload
             })
@@ -774,7 +776,7 @@ export async function handleManualVapiCallResult(callData: {
             tenant_id: tenantId,
             customer_id: customerId,
             type: 'Transcript',
-            topic: 'Sales',
+            topic: activityTopic,
             due_date: new Date().toISOString(),
             ...activityPayload
         })
