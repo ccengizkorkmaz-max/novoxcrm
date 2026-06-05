@@ -136,7 +136,7 @@ export async function POST(req: NextRequest) {
 
                 if (aiReply) {
                     // GİZLİ KOMUTLARI İŞLE VE METİNDEN TEMİZLE
-                    const scoreResult = await extractAndUpdateLeadScore(supabase, tenantId, conversationId, aiReply);
+                    const scoreResult = await extractAndUpdateLeadScore(supabase, tenantId, conversationId, aiReply, payload.message);
                     aiReply = scoreResult.aiReply;
 
                     aiReply = await processHotLeadDetection(

@@ -9,6 +9,36 @@
 import { sendWhatsAppTemplate } from '@/lib/whatsapp';
 
 /**
+ * Otomatik yanıt (auto-reply) pattern'leri.
+ * Müşteriden gelen mesaj bunlardan birine eşleşiyorsa,
+ * AI'ın verdiği skor ne olursa olsun 'cold' olarak override edilir.
+ */
+const AUTO_REPLY_PATTERNS = [
+    /iletişime geçtiğiniz için teşekkür/i,
+    /size nasıl yardımcı olabiliriz/i,
+    /en kısa zamanda (cevap|dönüş|geri dönüş) (vereceğiz|yapacağız|sağlayacağız)/i,
+    /mesajınız (alınmıştır|bize ulaşmıştır)/i,
+    /otomatik (yanıt|cevap|mesaj)/i,
+    /ofis saatleri (dışında|içinde)/i,
+    /çalışma saatleri (dışında|içinde)/i,
+    /thank you for (contacting|reaching|messaging|your message)/i,
+    /how (can|may) (we|i) (help|assist) you/i,
+    /we('ll| will) (get back|respond|reply) (to you )?(as soon as|shortly|promptly)/i,
+    /your (message|inquiry) has been received/i,
+    /this is an? auto(matic|mated)?[- ]?(reply|response|message)/i,
+    /out of office/i,
+    /currently (unavailable|away|busy)/i,
+    /will respond during (business|office|working) hours/i,
+];
+
+/**
+ * Verilen metin otomatik yanıt mı kontrol eder.
+ */
+function isAutoReplyMessage(text: string): boolean {
+    return AUTO_REPLY_PATTERNS.some(pattern => pattern.test(text));
+}
+
+/**
  * AI yanıtından LEAD_SCORE etiketini çıkarır ve conversation'ı günceller.
  * Temizlenmiş aiReply ve leadScore döner.
  */
@@ -16,7 +46,8 @@ export async function extractAndUpdateLeadScore(
     supabase: any,
     tenantId: string,
     conversationId: string,
-    aiReply: string
+    aiReply: string,
+    lastUserMessage?: string
 ): Promise<{ aiReply: string; leadScore: string }> {
     let leadScore = 'unknown';
     // Genişletilmiş regex: hot, warm, cold, disqualified, call_requested
@@ -25,6 +56,15 @@ export async function extractAndUpdateLeadScore(
         leadScore = scoreMatch[1];
         aiReply = aiReply.replace(scoreMatch[0], '').trim();
         console.log(`🌡️ Lead Score (AI): ${leadScore}`);
+
+        // ── AUTO-REPLY OVERRIDE ──
+        // Müşterinin son mesajı otomatik yanıt ise, AI skoru ne derse desin cold'a düşür
+        if (lastUserMessage && isAutoReplyMessage(lastUserMessage)) {
+            if (leadScore === 'hot' || leadScore === 'warm' || leadScore === 'call_requested') {
+                console.log(`⚠️ AUTO-REPLY TESPİT EDİLDİ: "${lastUserMessage.substring(0, 80)}..." → AI skoru ${leadScore} → cold'a override edildi`);
+                leadScore = 'cold';
+            }
+        }
 
         // ─── Skor Yükseltme: Skor asla düşmez ───
         // Hiyerarşi: disqualified < cold < warm < hot (call_requested = hot seviyesi)

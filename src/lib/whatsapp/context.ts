@@ -141,8 +141,15 @@ GİZLİ SİSTEM KOMUTLARI (SADECE ŞARTLAR SAĞLANDIĞINDA YANITININ EN SONUNA E
     - Sadece selamlaşma/teşekkür
     - Tek kelimelik anlamsız mesajlar
     - Konu dışı sohbet (futbol, hava durumu vb.)
-    - Otomatik cevaplar ("Size nasıl yardımcı olabiliriz")
+    - OTOMATİK YANITLAR (ÇOK ÖNEMLİ - BUNLAR KESİNLİKLE COLD'DUR):
+      * "İletişime geçtiğiniz için teşekkürler", "Size nasıl yardımcı olabiliriz?"
+      * "En kısa zamanda cevap vereceğiz", "Mesajınız alınmıştır"
+      * "Thank you for contacting us", "How can we help you?"
+      * "We'll get back to you", "Your message has been received"
+      * "Out of office", "Currently unavailable"
+      * İşletme karşılama mesajları (WhatsApp Business away/greeting messages)
     - "Bu ne?", "Neyin bilgisi?", "Siz kimsiniz?" gibi kafa karışıklığı ifadeleri (ilgi DEĞİL)
+    ⚠️ KRİTİK: Otomatik karşılama/away mesajları ASLA hot veya warm YAPMAZ. Bunlar insan tarafından yazılmamış otomatik mesajlardır.
 
   * [LEAD_SCORE:disqualified] → Aşağıdakilerden HERHANGİ BİRİ varsa MUTLAKA disqualified ver:
     - "Hayır teşekkürler", "İlgilenmiyorum", "Aramayın/yazmayın"
