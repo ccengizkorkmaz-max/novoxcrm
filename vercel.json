@@ -1,11 +1,4 @@
 {
-  "bypassProtection": {
-    "routes": [
-      "/api/webhooks/:path*",
-      "/api/leads/external",
-      "/api/cron/:path*"
-    ]
-  },
   "crons": [
     {
       "path": "/api/cron/outreach-daily",
