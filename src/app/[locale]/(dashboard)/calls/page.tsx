@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import InboundCallsClient from './InboundCallsClient'
 
 export const metadata = {
@@ -15,6 +16,7 @@ export default async function CallsPage({
 }) {
     const params = await searchParams
     const supabase = await createClient()
+    const adminSupabase = createAdminClient()
     const page = parseInt(params.page || '1')
 
     const { data: { user } } = await supabase.auth.getUser()
@@ -31,8 +33,8 @@ export default async function CallsPage({
     const from = (page - 1) * PAGE_SIZE
     const to = from + PAGE_SIZE - 1
 
-    // Query from dedicated inbound_calls table
-    const { data: calls, count: totalCount } = await supabase
+    // Query from dedicated inbound_calls table (admin client bypasses RLS)
+    const { data: calls, count: totalCount } = await adminSupabase
         .from('inbound_calls')
         .select(`
             id,

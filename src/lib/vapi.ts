@@ -722,13 +722,11 @@ export async function handleManualVapiCallResult(callData: {
         const outcomeMap: Record<string, string> = {
             'Success': 'answered', 'Failed': 'no_answer', 'Busy': 'busy', 'No Answer': 'no_answer'
         }
-        const { error: icError } = await supabase
-            .from('inbound_calls')
-            .update({
+        const updateData: Record<string, any> = {
                 status: 'ended',
                 ended_at: new Date().toISOString(),
                 duration: callData.duration || 0,
-                outcome: outcomeMap[outcome] || 'no_answer',
+                outcome: outcome === 'Success' ? 'answered' : outcome === 'Busy' ? 'busy' : 'no_answer',
                 ended_reason: callData.endedReason || null,
                 lead_score: leadScore || null,
                 interested: interested || false,
@@ -737,8 +735,13 @@ export async function handleManualVapiCallResult(callData: {
                 recording_url: callData.recordingUrl || null,
                 cost: callData.cost || null,
                 analysis: callData.analysis || null,
-                caller_name: extractedCustomerName || undefined,
-            })
+            }
+            if (extractedCustomerName) {
+                updateData.caller_name = extractedCustomerName
+            }
+            const { error: icError } = await supabase
+            .from('inbound_calls')
+            .update(updateData)
             .eq('vapi_call_id', callData.callId)
         
         if (icError) {
