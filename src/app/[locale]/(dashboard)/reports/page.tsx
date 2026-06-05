@@ -16,7 +16,8 @@ import {
     ArrowRight,
     Megaphone,
     Flame,
-    Zap
+    Zap,
+    AlertTriangle
 } from "lucide-react"
 import Link from "next/link"
 import { getTranslations } from 'next-intl/server'
@@ -63,6 +64,13 @@ const reportCards = [
         icon: CalendarCheck,
         color: "text-purple-600",
         bgColor: "bg-purple-100"
+    },
+    {
+        id: "activity-tracking",
+        href: "/reports/activity-tracking",
+        icon: AlertTriangle,
+        color: "text-red-600",
+        bgColor: "bg-red-100"
     },
     {
         id: "marketing",

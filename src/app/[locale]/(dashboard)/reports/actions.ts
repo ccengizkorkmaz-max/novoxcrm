@@ -1495,3 +1495,169 @@ export async function getMetaAutomationAnalytics() {
 }
 
 
+export async function getActivityTrackingReport() {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id, role')
+        .eq('id', user.id)
+        .single()
+
+    if (!profile?.tenant_id) return { error: 'No tenant' }
+    if (!['manager', 'admin', 'owner'].includes(profile.role)) return { error: 'Yetkisiz' }
+
+    const now = new Date()
+
+    // 1. Get all activities for this tenant (last 90 days for context)
+    const ninetyDaysAgo = new Date(now)
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
+
+    const { data: activities } = await supabase
+        .from('activities')
+        .select(`
+            id, type, status, outcome, summary, notes, priority,
+            due_date, created_at, completed_at,
+            owner_id,
+            customer_id,
+            profiles:owner_id(full_name),
+            customers:customer_id(full_name, phone)
+        `)
+        .eq('tenant_id', profile.tenant_id)
+        .gte('created_at', ninetyDaysAgo.toISOString())
+        .order('due_date', { ascending: true })
+
+    if (!activities) return { error: 'No activity data' }
+
+    // 2. Get sales data for pipeline stage context
+    const { data: sales } = await supabase
+        .from('sales')
+        .select('id, customer_id, status, project_id, projects(name), assigned_to, profiles!sales_assigned_to_fkey(full_name)')
+        .eq('tenant_id', profile.tenant_id)
+        .not('status', 'in', '("Lost","Cancelled","Transferred")')
+
+    const salesByCustomer: Record<string, any> = {}
+    ;(sales || []).forEach(s => {
+        salesByCustomer[s.customer_id] = {
+            status: s.status,
+            project: (s.projects as any)?.name || '-',
+            assignedTo: (s.profiles as any)?.full_name || '-'
+        }
+    })
+
+    // 3. Build per-rep data
+    const repMap: Record<string, {
+        name: string
+        total: number
+        completed: number
+        planned: number
+        overdue: number
+        avgIdleDays: number
+        lastActivityDate: string | null
+        activities: any[]
+    }> = {}
+
+    const typeLabels: Record<string, string> = {
+        'Call': 'Telefon', 'Phone': 'Telefon', 'Meeting': 'Toplantı',
+        'Site Visit': 'Saha Gezisi', 'Visit': 'Saha Gezisi',
+        'Email': 'E-posta', 'Whatsapp': 'WhatsApp', 'Other': 'Diğer'
+    }
+
+    const priorityLabels: Record<string, string> = {
+        'High': 'Yüksek', 'Medium': 'Orta', 'Low': 'Düşük', 'Urgent': 'Acil'
+    }
+
+    for (const act of activities) {
+        const repName = (act.profiles as any)?.full_name || 'Atanmamış'
+        const repId = act.owner_id || 'unknown'
+
+        if (!repMap[repId]) {
+            repMap[repId] = {
+                name: repName,
+                total: 0, completed: 0, planned: 0, overdue: 0,
+                avgIdleDays: 0, lastActivityDate: null,
+                activities: []
+            }
+        }
+
+        const rep = repMap[repId]
+        rep.total++
+
+        const isCompleted = act.status === 'Completed'
+        const isPlanned = act.status === 'Planned' || act.status === 'Pending'
+        const dueDate = act.due_date ? new Date(act.due_date) : null
+        const isOverdue = isPlanned && dueDate && dueDate < now
+
+        if (isCompleted) rep.completed++
+        if (isPlanned) rep.planned++
+        if (isOverdue) rep.overdue++
+
+        // Track last activity
+        if (!rep.lastActivityDate || new Date(act.created_at) > new Date(rep.lastActivityDate)) {
+            rep.lastActivityDate = act.created_at
+        }
+
+        const customerName = (act.customers as any)?.full_name || '-'
+        const customerPhone = (act.customers as any)?.phone || ''
+        const saleInfo = act.customer_id ? salesByCustomer[act.customer_id] : null
+        const daysSinceDue = dueDate ? Math.floor((now.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)) : null
+
+        rep.activities.push({
+            id: act.id,
+            type: typeLabels[act.type] || act.type || 'Diğer',
+            status: act.status,
+            outcome: act.outcome || '-',
+            summary: act.summary || act.notes || '-',
+            priority: priorityLabels[act.priority] || act.priority || 'Orta',
+            dueDate: act.due_date,
+            createdAt: act.created_at,
+            completedAt: act.completed_at,
+            isOverdue: !!isOverdue,
+            daysSinceDue,
+            customerName,
+            customerPhone,
+            pipelineStage: saleInfo?.status || '-',
+            projectName: saleInfo?.project || '-',
+        })
+    }
+
+    // Calculate idle days for each rep
+    const repData = Object.values(repMap).map(rep => {
+        const idleDays = rep.lastActivityDate
+            ? Math.floor((now.getTime() - new Date(rep.lastActivityDate).getTime()) / (1000 * 60 * 60 * 24))
+            : 999
+
+        // Sort: overdue first, then by due_date ascending
+        rep.activities.sort((a, b) => {
+            if (a.isOverdue && !b.isOverdue) return -1
+            if (!a.isOverdue && b.isOverdue) return 1
+            return new Date(a.dueDate || 0).getTime() - new Date(b.dueDate || 0).getTime()
+        })
+
+        return {
+            ...rep,
+            idleDays,
+            completionRate: rep.total > 0 ? Math.round((rep.completed / rep.total) * 100) : 0,
+        }
+    }).sort((a, b) => b.overdue - a.overdue) // Reps with most overdue first
+
+    // Summary stats
+    const totalOverdue = repData.reduce((sum, r) => sum + r.overdue, 0)
+    const totalPlanned = repData.reduce((sum, r) => sum + r.planned, 0)
+    const totalCompleted = repData.reduce((sum, r) => sum + r.completed, 0)
+    const totalActivities = repData.reduce((sum, r) => sum + r.total, 0)
+
+    return {
+        repData,
+        summary: {
+            totalReps: repData.length,
+            totalActivities,
+            totalCompleted,
+            totalPlanned,
+            totalOverdue,
+            completionRate: totalActivities > 0 ? Math.round((totalCompleted / totalActivities) * 100) : 0
+        }
+    }
+}

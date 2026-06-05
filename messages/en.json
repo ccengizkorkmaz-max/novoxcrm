@@ -929,6 +929,10 @@
                 "title": "Field & Team Efficiency",
                 "description": "Team-based activity counts, appointment efficiency, and performance tracking."
             },
+            "activity-tracking": {
+                "title": "Activity Tracking & Alerts",
+                "description": "Per-rep overdue activities, idle periods, and pipeline tracking. Early warning system for managers."
+            },
             "marketing": {
                 "title": "Marketing Analytics",
                 "description": "Form and ad sourced lead pipeline performance and conversions."
