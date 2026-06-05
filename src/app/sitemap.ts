@@ -6,13 +6,14 @@ import { getSitemapUrls } from '@/lib/sitemap-utils'
 const URLS_PER_SITEMAP = 5000
 
 /**
- * Generate sitemap index — splits large sitemap into 5000-URL chunks.
- * Next.js automatically creates /sitemap.xml as an index pointing to
- * /sitemap/0.xml, /sitemap/1.xml, etc.
+ * Generate sitemap index — returns static IDs for sitemap chunks.
+ * We estimate ~19,000 URLs based on known data arrays (cities×sectors×locales×domains).
+ * This avoids calling getSitemapUrls() at build time which requires request context.
  */
 export async function generateSitemaps() {
-    const allUrls = await getSitemapUrls()
-    const totalSitemaps = Math.ceil(allUrls.length / URLS_PER_SITEMAP)
+    // Static estimate: ~19,000 URLs → 4 sitemaps of 5000 each
+    const ESTIMATED_TOTAL = 19000
+    const totalSitemaps = Math.ceil(ESTIMATED_TOTAL / URLS_PER_SITEMAP)
 
     return Array.from({ length: totalSitemaps }, (_, i) => ({ id: i }))
 }
