@@ -6,7 +6,8 @@ import { sendWhatsAppTemplate, sendWhatsAppMessage } from '@/lib/whatsapp'
 import { sendPoliSms, normalizePhone } from '@/lib/sms'
 
 // ─── Eşzamanlı Arama Limiti ────────────────────────────────
-const MAX_CONCURRENT_CALLS = Number(process.env.MAX_CONCURRENT_CALLS) || 5
+// Vapi planı: max 10 eş zamanlı arama. 2 slot gelen aramalar için ayrılmış.
+const MAX_CONCURRENT_CALLS = Number(process.env.MAX_CONCURRENT_CALLS) || 8
 
 // ─── Types ───────────────────────────────────────────────────
 
