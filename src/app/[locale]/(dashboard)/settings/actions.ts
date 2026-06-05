@@ -1249,3 +1249,39 @@ export async function resetNotificationPreferences() {
     revalidatePath('/settings')
     return { success: true }
 }
+
+export async function updateSipSettings(formData: FormData) {
+    const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id, role')
+        .eq('id', user.id)
+        .single()
+
+    if (!profile?.tenant_id) return { error: 'No tenant found' }
+    if (profile.role !== 'owner' && profile.role !== 'admin') {
+        return { error: 'Yalnızca yönetici yetkisi olanlar bu ayarları değiştirebilir.' }
+    }
+
+    const updates = {
+        netgsm_sip_username: (formData.get('netgsm_sip_username') as string)?.trim() || null,
+        netgsm_sip_password: (formData.get('netgsm_sip_password') as string)?.trim() || null,
+    }
+
+    const { error } = await supabase
+        .from('tenants')
+        .update(updates)
+        .eq('id', profile.tenant_id)
+
+    if (error) {
+        console.error('Update SIP Settings Error:', error)
+        return { error: 'SIP ayarları güncellenirken bir hata oluştu: ' + error.message }
+    }
+
+    revalidatePath('/settings')
+    return { success: true }
+}
