@@ -504,6 +504,105 @@ export async function POST(req: Request) {
 
         console.log('📁 Inbox archive copy saved')
 
+        // ── 4. Auto WhatsApp template (same as Facebook Ads flow) ─────────────────
+        if (phone && !existingSale) {
+            try {
+                const { data: tenantSettings } = await supabase
+                    .from('tenants')
+                    .select('wa_auto_template_enabled, wa_auto_template_name, wa_auto_template_rule')
+                    .eq('id', tenant_id)
+                    .single()
+
+                const isAutoEnabled = tenantSettings?.wa_auto_template_enabled ?? false
+                const templateName = tenantSettings?.wa_auto_template_name || 'novo_talep_alindi'
+                const templateRule = tenantSettings?.wa_auto_template_rule || 'new_lead'
+
+                if (isAutoEnabled && templateRule !== 'disabled') {
+                    let projectName = 'Novo'
+                    if (projectId) {
+                        const { data: proj } = await supabase.from('projects').select('name').eq('id', projectId).single()
+                        if (proj) projectName = proj.name
+                    } else if (form_name) {
+                        projectName = form_name
+                    }
+
+                    let wpPhone = String(phone).replace(/[^\d]/g, '')
+                    if (wpPhone.startsWith('0')) wpPhone = '90' + wpPhone.substring(1)
+                    if (!wpPhone.startsWith('90') && wpPhone.length === 10) wpPhone = '90' + wpPhone
+
+                    const customerName = name?.trim() || 'Değerli Müşterimiz'
+
+                    const templateResult = await sendWhatsAppTemplate(
+                        wpPhone,
+                        templateName,
+                        [customerName, projectName]
+                    )
+
+                    if (templateResult.success) {
+                        console.log(`📩 WhatsApp "${templateName}" gönderildi (Web Form): ${wpPhone}`)
+                        await supabase.from('sales').update({
+                            wa_first_message_sent: true,
+                            wa_first_message_at: new Date().toISOString()
+                        }).eq('id', saleId)
+
+                        await supabase.from('activities').insert({
+                            tenant_id: tenant_id,
+                            customer_id: customerId,
+                            project_id: projectId,
+                            type: 'Whatsapp',
+                            topic: 'Sales',
+                            summary: `💬 WhatsApp Mesajı Gönderildi (${templateName})`,
+                            description: `Web form sonrası otomatik şablon mesajı gönderildi.`,
+                            status: 'Completed',
+                            due_date: new Date().toISOString(),
+                            priority: 'Medium'
+                        })
+
+                        // Conversation history
+                        try {
+                            let { data: existingConv } = await supabase
+                                .from('whatsapp_conversations')
+                                .select('id')
+                                .eq('tenant_id', tenant_id)
+                                .eq('phone_number', wpPhone)
+                                .maybeSingle()
+
+                            if (!existingConv) {
+                                const { data: newConv } = await supabase.from('whatsapp_conversations').insert({
+                                    tenant_id: tenant_id,
+                                    phone_number: wpPhone,
+                                    customer_id: customerId,
+                                    channel: 'whatsapp',
+                                    ai_enabled: true,
+                                    last_message_preview: `[Şablon] ${templateName}`,
+                                    unread_count: 0
+                                }).select('id').single()
+                                existingConv = newConv
+                            }
+
+                            if (existingConv) {
+                                await supabase.from('whatsapp_messages').insert({
+                                    conversation_id: existingConv.id,
+                                    tenant_id: tenant_id,
+                                    role: 'assistant',
+                                    direction: 'outbound',
+                                    sender_type: 'bot',
+                                    content: `[Şablon: ${templateName}] Müşteriye ${projectName} projesi hakkında bilgi mesajı gönderildi. Müşteri adı: ${customerName}.`,
+                                    status: 'delivered',
+                                })
+                            }
+                        } catch (convErr) {
+                            console.warn('Conversation log hatası (non-blocking):', convErr)
+                        }
+                    } else {
+                        console.warn('⚠️ WhatsApp şablon gönderilemedi (Web Form):', templateResult.error)
+                    }
+                }
+            } catch (waError) {
+                console.warn('⚠️ WhatsApp auto-send error (non-blocking):', waError)
+            }
+        }
+
         revalidatePath('/[locale]/(dashboard)/inbox')
         revalidatePath('/[locale]/(dashboard)/crm')
         revalidatePath('/[locale]/(dashboard)/customers')
