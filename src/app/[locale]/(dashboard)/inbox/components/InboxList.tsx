@@ -53,11 +53,13 @@ interface InboxItem {
 interface InboxListProps {
     initialItems: InboxItem[]
     archivedItems?: InboxItem[]
+    pendingCount?: number
+    archivedCount?: number
 }
 
 type Tab = 'pending' | 'archive'
 
-export function InboxList({ initialItems, archivedItems = [] }: InboxListProps) {
+export function InboxList({ initialItems, archivedItems = [], pendingCount, archivedCount }: InboxListProps) {
     const t = useTranslations('Sidebar.Inbox')
     const locale = useLocale()
     const router = useRouter()
@@ -283,9 +285,9 @@ export function InboxList({ initialItems, archivedItems = [] }: InboxListProps) 
                 >
                     <Mail className="h-4 w-4" />
                     Bekleyen
-                    {initialItems.length > 0 && (
+                    {(pendingCount ?? initialItems.length) > 0 && (
                         <span className="bg-amber-100 text-amber-700 text-xs font-bold px-1.5 py-0.5 rounded-full">
-                            {initialItems.length}
+                            {pendingCount ?? initialItems.length}
                         </span>
                     )}
                 </button>
@@ -299,9 +301,9 @@ export function InboxList({ initialItems, archivedItems = [] }: InboxListProps) 
                 >
                     <Archive className="h-4 w-4" />
                     Arşiv
-                    {archivedItems.length > 0 && (
+                    {(archivedCount ?? archivedItems.length) > 0 && (
                         <span className="bg-slate-200 text-slate-600 text-xs font-bold px-1.5 py-0.5 rounded-full">
-                            {archivedItems.length}
+                            {archivedCount ?? archivedItems.length}
                         </span>
                     )}
                 </button>

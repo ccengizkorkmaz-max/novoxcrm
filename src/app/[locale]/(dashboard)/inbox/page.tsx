@@ -20,17 +20,17 @@ export default async function InboxPage(props: {
     }
 
     // Fetch pending items
-    const { data: pendingItems } = await supabase
+    const { data: pendingItems, count: pendingCount } = await supabase
         .from('inbox_items')
-        .select('*')
+        .select('*', { count: 'exact' })
         .eq('status', 'pending')
         .order('created_at', { ascending: false })
         .limit(100)
 
     // Fetch archived items (approved + rejected)
-    const { data: archivedItems } = await supabase
+    const { data: archivedItems, count: archivedCount } = await supabase
         .from('inbox_items')
-        .select('*')
+        .select('*', { count: 'exact' })
         .in('status', ['approved', 'rejected'])
         .order('created_at', { ascending: false })
         .limit(100)
@@ -47,6 +47,8 @@ export default async function InboxPage(props: {
             <InboxList 
                 initialItems={pendingItems || []} 
                 archivedItems={archivedItems || []} 
+                pendingCount={pendingCount || 0}
+                archivedCount={archivedCount || 0}
             />
         </div>
     )
