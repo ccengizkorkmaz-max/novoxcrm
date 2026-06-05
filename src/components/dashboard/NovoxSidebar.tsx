@@ -33,7 +33,8 @@ import {
     Phone,
     MessageCircle,
     Flame,
-    Brain
+    Brain,
+    AlertTriangle
 } from 'lucide-react'
 import {
     Accordion,
@@ -485,6 +486,9 @@ export function NovoxSidebar({
                         <NavItem href="/reports/ai-feedback" icon={Brain} onClick={onElementClick} isCollapsed={isCollapsed} isSubItem>
                             {'AI Geri Bildirim'}
                         </NavItem>
+                        <NavItem href="/reports/activity-tracking" icon={AlertTriangle} onClick={onElementClick} isCollapsed={isCollapsed} isSubItem>
+                            {'Aktivite Takip'}
+                        </NavItem>
                     </>
                 ) : (
                     <Accordion type="multiple" className="w-full border-none">
@@ -563,6 +567,9 @@ export function NovoxSidebar({
                                 </NavItem>
                                 <NavItem href="/reports/ai-feedback" icon={Brain} onClick={onElementClick} isSubItem>
                                     {'AI Geri Bildirim'}
+                                </NavItem>
+                                <NavItem href="/reports/activity-tracking" icon={AlertTriangle} onClick={onElementClick} isSubItem>
+                                    {'Aktivite Takip'}
                                 </NavItem>
                             </AccordionContent>
                         </AccordionItem>
