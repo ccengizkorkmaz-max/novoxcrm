@@ -489,3 +489,54 @@
 [data-brand="oikos"] .bg-\[\#0a0f1d\] {
     background-color: #F4FAF8 !important;
 }
+
+/* ── Comparison Section readability overrides for Oikos light theme ── */
+[data-brand="oikos"] .bg-red-950\/20 {
+    background-color: #FFF5F5 !important;
+    border-color: #FEE2E2 !important;
+}
+
+[data-brand="oikos"] .bg-green-950\/20 {
+    background-color: #F0FDF4 !important;
+    border-color: #DCFCE7 !important;
+}
+
+[data-brand="oikos"] .text-red-400 {
+    color: #DC2626 !important;
+}
+
+[data-brand="oikos"] .text-green-400 {
+    color: #15803D !important;
+}
+
+[data-brand="oikos"] .text-red-200\/60 {
+    color: #7F1D1D !important;
+}
+
+[data-brand="oikos"] .text-green-100 {
+    color: #14532D !important;
+}
+
+[data-brand="oikos"] .text-red-500\/50 {
+    color: #EF4444 !important;
+}
+
+[data-brand="oikos"] .text-green-500 {
+    color: #22C55E !important;
+}
+
+[data-brand="oikos"] .bg-red-950\/10 {
+    background-color: rgba(239, 68, 68, 0.02) !important;
+}
+
+[data-brand="oikos"] .bg-green-950\/10 {
+    background-color: rgba(34, 197, 94, 0.02) !important;
+}
+
+[data-brand="oikos"] .border-red-900\/20 {
+    border-color: rgba(239, 68, 68, 0.08) !important;
+}
+
+[data-brand="oikos"] .border-green-900\/20 {
+    border-color: rgba(34, 197, 94, 0.08) !important;
+}
