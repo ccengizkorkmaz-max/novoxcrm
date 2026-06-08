@@ -40,6 +40,8 @@ interface AiSettingsTabProps {
         wa_auto_template_rule?: string | null
         // Outreach
         ai_outreach_settings?: { max_concurrent_calls?: number } | null
+        // Yeni Lead Aksiyonu
+        auto_action_on_new_lead?: string | null
     }
 }
 
@@ -269,23 +271,61 @@ export default function AiSettingsTab({ tenant }: AiSettingsTabProps) {
                             </div>
                         </div>
 
-                        {/* WhatsApp Otomasyon Section */}
+                        {/* Yeni Lead Aksiyonu Section */}
                         <div className="p-4 rounded-xl border bg-emerald-50/50 space-y-4">
-                            <div className="flex items-center justify-between">
-                                <div className="space-y-0.5">
-                                    <Label className="text-base flex items-center gap-2">
-                                        <Zap className="h-4 w-4 text-emerald-600" />
-                                        WhatsApp Otomasyon
-                                    </Label>
-                                    <p className="text-xs text-muted-foreground">Yeni lead geldiğinde otomatik WhatsApp şablon mesajı gönderir.</p>
-                                </div>
-                                <Switch
-                                    name="wa_auto_template_enabled"
-                                    defaultChecked={tenant.wa_auto_template_enabled ?? false}
-                                />
+                            <div className="space-y-0.5">
+                                <Label className="text-base flex items-center gap-2">
+                                    <Zap className="h-4 w-4 text-emerald-600" />
+                                    Yeni Lead Aksiyonu
+                                </Label>
+                                <p className="text-xs text-muted-foreground">Yeni bir lead geldiğinde otomatik olarak ne yapılacağını belirleyin.</p>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="auto_action_on_new_lead" className="text-xs text-slate-500 flex items-center gap-1">
+                                    <Zap className="h-3 w-3" /> Otomatik Aksiyon
+                                </Label>
+                                <Select
+                                    onValueChange={(val) => {
+                                        const input = document.getElementById('auto_action_input') as HTMLInputElement;
+                                        if (input) input.value = val;
+                                        // Show/hide WA settings based on selection
+                                        const waSettings = document.getElementById('wa_template_settings');
+                                        if (waSettings) waSettings.style.display = val === 'whatsapp' ? 'grid' : 'none';
+                                    }}
+                                    defaultValue={tenant.auto_action_on_new_lead || 'whatsapp'}
+                                >
+                                    <SelectTrigger className="w-full bg-white">
+                                        <SelectValue placeholder="Aksiyon Seçin" />
+                                    </SelectTrigger>
+                                    <SelectContent position="popper">
+                                        <SelectItem value="whatsapp">💬 WhatsApp Şablon Mesajı Gönder</SelectItem>
+                                        <SelectItem value="ai_call">📞 AI Sesli Arama Yap (Vapi)</SelectItem>
+                                        <SelectItem value="none">⛔ Hiçbir Şey Yapma</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <input
+                                    type="hidden"
+                                    id="auto_action_input"
+                                    name="auto_action_on_new_lead"
+                                    defaultValue={tenant.auto_action_on_new_lead || 'whatsapp'}
+                                />
+                                <p className="text-[10px] text-muted-foreground">
+                                    {(tenant.auto_action_on_new_lead || 'whatsapp') === 'ai_call' 
+                                        ? '🤖 Yeni lead geldiğinde AI asistan otomatik olarak müşteriyi arayacak ve proje hakkında bilgi verecektir.'
+                                        : (tenant.auto_action_on_new_lead || 'whatsapp') === 'none'
+                                        ? '⛔ Yeni lead geldiğinde otomatik aksiyon alınmaz. Sadece CRM\'e kaydedilir.'
+                                        : '💬 Yeni lead geldiğinde WhatsApp üzerinden otomatik şablon mesajı gönderilir.'
+                                    }
+                                </p>
+                            </div>
+
+                            {/* WhatsApp Template Settings — only visible when whatsapp is selected */}
+                            <div 
+                                id="wa_template_settings"
+                                className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                                style={{ display: (tenant.auto_action_on_new_lead || 'whatsapp') === 'whatsapp' ? 'grid' : 'none' }}
+                            >
                                 <div className="space-y-2">
                                     <Label htmlFor="wa_auto_template_name" className="text-xs text-slate-500 flex items-center gap-1">
                                         <Send className="h-3 w-3" /> Şablon Adı

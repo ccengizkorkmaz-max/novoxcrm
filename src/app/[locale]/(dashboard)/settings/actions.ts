@@ -749,11 +749,17 @@ export async function updateAiSettings(formData: FormData) {
     // WhatsApp Otomasyon fields
     const waAutoTemplateName = formData.get('wa_auto_template_name') as string
     const waAutoTemplateRule = formData.get('wa_auto_template_rule') as string
-    const waAutoTemplateEnabled = formData.get('wa_auto_template_enabled')
+    const autoActionOnNewLead = formData.get('auto_action_on_new_lead') as string
 
     if (waAutoTemplateName !== null) updates.wa_auto_template_name = waAutoTemplateName || 'novo_talep_alindi'
     if (waAutoTemplateRule !== null) updates.wa_auto_template_rule = waAutoTemplateRule || 'new_lead'
-    updates.wa_auto_template_enabled = waAutoTemplateEnabled === 'on'
+    
+    // New: auto_action_on_new_lead controls the behavior
+    if (autoActionOnNewLead) {
+        updates.auto_action_on_new_lead = autoActionOnNewLead
+        // Keep wa_auto_template_enabled in sync for backward compatibility
+        updates.wa_auto_template_enabled = autoActionOnNewLead === 'whatsapp'
+    }
 
     const { error } = await supabase
         .from('tenants')
