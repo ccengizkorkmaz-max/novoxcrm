@@ -804,10 +804,44 @@ export default function SaasAdminPage() {
                                     </Button>
                                 </div>
                             </div>
-                            {backupProgress && (
-                                <div className="mt-3 flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 px-3 py-2 rounded-lg border border-emerald-200">
-                                    <CheckCircle2 className="h-4 w-4" />
-                                    {backupProgress}
+
+                            {/* Loading State — Prominent */}
+                            {backupLoading && (
+                                <div className="mt-4 bg-blue-50 border border-blue-200 rounded-xl p-5 animate-pulse">
+                                    <div className="flex items-center gap-3 mb-3">
+                                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                                            <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />
+                                        </div>
+                                        <div>
+                                            <p className="font-bold text-blue-900 text-base">Yedek Alınıyor...</p>
+                                            <p className="text-sm text-blue-600">
+                                                Tüm tablolar sorgulanıyor ve JSON dosyası hazırlanıyor. Bu işlem veritabanı boyutuna göre 10-60 saniye sürebilir.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="w-full bg-blue-200 rounded-full h-2 overflow-hidden">
+                                        <div className="bg-blue-600 h-2 rounded-full animate-[indeterminate_1.5s_ease-in-out_infinite]" style={{ width: '40%', animation: 'indeterminate 1.5s ease-in-out infinite' }} />
+                                    </div>
+                                    <style>{`
+                                        @keyframes indeterminate {
+                                            0% { margin-left: 0%; width: 20%; }
+                                            50% { margin-left: 30%; width: 40%; }
+                                            100% { margin-left: 80%; width: 20%; }
+                                        }
+                                    `}</style>
+                                </div>
+                            )}
+
+                            {/* Success State */}
+                            {!backupLoading && backupProgress && (
+                                <div className="mt-4 flex items-center gap-3 text-sm text-emerald-700 bg-emerald-50 px-4 py-3 rounded-xl border border-emerald-200">
+                                    <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                                        <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                                    </div>
+                                    <div>
+                                        <p className="font-bold text-emerald-800">Yedek Başarıyla İndirildi</p>
+                                        <p className="text-emerald-600">{backupProgress}</p>
+                                    </div>
                                 </div>
                             )}
                         </CardHeader>
