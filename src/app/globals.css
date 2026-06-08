@@ -320,3 +320,172 @@
   0% { transform: translateX(-100%); }
   100% { transform: translateX(100%); }
 }
+
+/* ── Oikos CRM Brand Overrides (Light mint theme for marketing pages) ── */
+[data-brand="oikos"] {
+    background-color: #F4FAF8 !important;
+    color: #1A1A1A !important;
+}
+
+[data-brand="oikos"] .bg-slate-950,
+[data-brand="oikos"] .bg-slate-900,
+[data-brand="oikos"] .bg-slate-950\/80,
+[data-brand="oikos"] .bg-slate-900\/50,
+[data-brand="oikos"] .bg-slate-900\/80,
+[data-brand="oikos"] .bg-slate-900\/40,
+[data-brand="oikos"] .bg-slate-900\/95,
+[data-brand="oikos"] .bg-slate-900\/30,
+[data-brand="oikos"] .bg-slate-950\/30,
+[data-brand="oikos"] .bg-slate-950\/50,
+[data-brand="oikos"] .bg-slate-950\/60,
+[data-brand="oikos"] .bg-slate-950\/70,
+[data-brand="oikos"] .bg-slate-950\/90,
+[data-brand="oikos"] .bg-slate-950\/95,
+[data-brand="oikos"] .bg-slate-900\/20,
+[data-brand="oikos"] .bg-slate-900\/10,
+[data-brand="oikos"] .bg-slate-950\/10,
+[data-brand="oikos"] .bg-slate-950\/20 {
+    background-color: #F4FAF8 !important;
+}
+
+[data-brand="oikos"] .bg-slate-850,
+[data-brand="oikos"] .bg-slate-800,
+[data-brand="oikos"] .bg-slate-800\/80,
+[data-brand="oikos"] .bg-slate-800\/50,
+[data-brand="oikos"] .bg-slate-800\/30,
+[data-brand="oikos"] .bg-slate-800\/40,
+[data-brand="oikos"] .bg-slate-800\/90,
+[data-brand="oikos"] .bg-slate-800\/95,
+[data-brand="oikos"] .bg-slate-800\/20,
+[data-brand="oikos"] .bg-slate-800\/10,
+[data-brand="oikos"] .bg-\[\#0F172A\],
+[data-brand="oikos"] .bg-slate-900\/60 {
+    background-color: #E1F5EE !important; /* light tint green */
+}
+
+[data-brand="oikos"] .bg-slate-700,
+[data-brand="oikos"] .bg-slate-700\/80,
+[data-brand="oikos"] .bg-slate-700\/50,
+[data-brand="oikos"] .bg-slate-700\/30,
+[data-brand="oikos"] .bg-slate-700\/40,
+[data-brand="oikos"] .bg-slate-700\/90,
+[data-brand="oikos"] .bg-slate-700\/95,
+[data-brand="oikos"] .bg-slate-700\/20,
+[data-brand="oikos"] .bg-slate-700\/10 {
+    background-color: #D8F0E8 !important; /* medium tint green */
+}
+
+[data-brand="oikos"] .text-slate-400,
+[data-brand="oikos"] .text-slate-500,
+[data-brand="oikos"] .text-slate-300,
+[data-brand="oikos"] .text-slate-200,
+[data-brand="oikos"] .text-slate-100,
+[data-brand="oikos"] .text-gray-400,
+[data-brand="oikos"] .text-gray-500,
+[data-brand="oikos"] .text-gray-300,
+[data-brand="oikos"] .text-gray-200,
+[data-brand="oikos"] .text-gray-100,
+[data-brand="oikos"] .text-slate-600 {
+    color: #445550 !important; /* legible text color matching theme */
+}
+
+[data-brand="oikos"] .text-white,
+[data-brand="oikos"] .text-slate-50,
+[data-brand="oikos"] .text-gray-50,
+[data-brand="oikos"] .text-foreground {
+    color: #085041 !important; /* dark green text for headers and emphasis */
+}
+
+[data-brand="oikos"] .text-blue-400,
+[data-brand="oikos"] .text-blue-500,
+[data-brand="oikos"] .text-blue-600,
+[data-brand="oikos"] .text-blue-300,
+[data-brand="oikos"] .text-indigo-400,
+[data-brand="oikos"] .text-indigo-500,
+[data-brand="oikos"] .text-indigo-600,
+[data-brand="oikos"] .text-indigo-300,
+[data-brand="oikos"] .text-primary {
+    color: #0F6E56 !important; /* green brand accent text */
+}
+
+[data-brand="oikos"] .border-slate-800,
+[data-brand="oikos"] .border-slate-900,
+[data-brand="oikos"] .border-slate-700,
+[data-brand="oikos"] .border-slate-600,
+[data-brand="oikos"] .border-gray-800,
+[data-brand="oikos"] .border-gray-900,
+[data-brand="oikos"] .border-gray-700,
+[data-brand="oikos"] .border-gray-600,
+[data-brand="oikos"] .border-border {
+    border-color: #D8F0E8 !important; /* soft green borders */
+}
+
+/* Custom buttons overriding blue to dark green */
+[data-brand="oikos"] .bg-blue-600,
+[data-brand="oikos"] .bg-indigo-600,
+[data-brand="oikos"] .bg-blue-500,
+[data-brand="oikos"] .bg-indigo-500,
+[data-brand="oikos"] .bg-primary {
+    background-color: #085041 !important;
+    color: #ffffff !important;
+}
+
+[data-brand="oikos"] .bg-blue-600:hover,
+[data-brand="oikos"] .bg-indigo-600:hover,
+[data-brand="oikos"] .bg-blue-500:hover,
+[data-brand="oikos"] .bg-indigo-500:hover,
+[data-brand="oikos"] .bg-primary:hover {
+    background-color: #0F6E56 !important;
+}
+
+/* Custom button hover borders */
+[data-brand="oikos"] .border-blue-600,
+[data-brand="oikos"] .border-indigo-600,
+[data-brand="oikos"] .border-blue-500 {
+    border-color: #085041 !important;
+}
+
+/* Shadows */
+[data-brand="oikos"] .shadow-blue-900\/20,
+[data-brand="oikos"] .shadow-blue-600\/20,
+[data-brand="oikos"] .shadow-blue-900\/40,
+[data-brand="oikos"] .shadow-indigo-900\/20,
+[data-brand="oikos"] .shadow-indigo-600\/20,
+[data-brand="oikos"] .shadow-indigo-900\/40 {
+    box-shadow: 0 4px 12px rgba(8, 80, 65, 0.15) !important;
+}
+
+/* Hero Grid background adjustments */
+[data-brand="oikos"] .hero-grid {
+    background-image:
+        linear-gradient(to right, rgba(159, 225, 203, 0.25) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(159, 225, 203, 0.25) 1px, transparent 1px) !important;
+}
+
+/* Hide gradient glow highlights */
+[data-brand="oikos"] .bg-blue-600\/20.blur-\[100px\],
+[data-brand="oikos"] .bg-indigo-600\/10.blur-\[120px\],
+[data-brand="oikos"] .bg-blue-500\/10.blur-\[100px\],
+[data-brand="oikos"] .bg-blue-600\/10.blur-\[100px\],
+[data-brand="oikos"] .bg-indigo-600\/20.blur-\[100px\],
+[data-brand="oikos"] .from-blue-600\/20,
+[data-brand="oikos"] .to-indigo-900\/40 {
+    display: none !important;
+}
+
+/* Fix specific cards that might get dark colors or backgrounds */
+[data-brand="oikos"] [data-slot="card"],
+[data-brand="oikos"] .card,
+[data-brand="oikos"] .rounded-3xl.bg-slate-900,
+[data-brand="oikos"] .bg-slate-900\/60,
+[data-brand="oikos"] .bg-slate-900\/40,
+[data-brand="oikos"] .bg-slate-900 {
+    background-color: #ffffff !important;
+    border: 1px solid #D8F0E8 !important;
+}
+
+[data-brand="oikos"] .bg-slate-950\/40,
+[data-brand="oikos"] .bg-slate-950\/20,
+[data-brand="oikos"] .bg-\[\#0a0f1d\] {
+    background-color: #F4FAF8 !important;
+}

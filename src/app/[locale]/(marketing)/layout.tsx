@@ -63,10 +63,13 @@ export default async function MarketingLayout(props: {
 
     return (
         <BrandProvider brandName={brandName} brandDomain={brandDomain}>
-            <div className={cn(
-                "flex min-h-screen flex-col font-sans antialiased text-foreground",
-                brandName === 'Oikos CRM' ? "bg-[#F4FAF8] text-[#1A1A1A]" : "bg-slate-950"
-            )}>
+            <div 
+                className={cn(
+                    "flex min-h-screen flex-col font-sans antialiased text-foreground",
+                    brandName === 'Oikos CRM' ? "bg-[#F4FAF8] text-[#1A1A1A]" : "bg-slate-950"
+                )}
+                data-brand={brandName === 'Oikos CRM' ? 'oikos' : undefined}
+            >
                 <Navbar />
                 <script
                     type="application/ld+json"
