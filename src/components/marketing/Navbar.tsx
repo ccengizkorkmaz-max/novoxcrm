@@ -76,7 +76,10 @@ export function Navbar() {
                     ? "bg-slate-950/80 backdrop-blur-md border-slate-800 py-3"
                     : "bg-transparent border-transparent py-5")
         )}>
-            <div className="container mx-auto px-4 flex items-center justify-between">
+            <div className={cn(
+                "flex items-center justify-between mx-auto",
+                isOikos ? "w-full px-6 md:px-10" : "container px-4"
+            )}>
                 {/* Logo */}
                 <Link href="/" className="flex items-center gap-2.5 text-white font-bold text-xl group">
                     {isOikos ? (

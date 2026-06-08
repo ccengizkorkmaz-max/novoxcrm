@@ -540,3 +540,41 @@
 [data-brand="oikos"] .border-green-900\/20 {
     border-color: rgba(34, 197, 94, 0.08) !important;
 }
+
+/* Fix navbar text and link colors on Oikos CRM dark green header (prevent green-on-green override) */
+[data-brand="oikos"] nav .text-white,
+[data-brand="oikos"] nav .text-slate-50,
+[data-brand="oikos"] nav .text-gray-50,
+[data-brand="oikos"] nav .text-foreground {
+    color: #ffffff !important;
+}
+
+[data-brand="oikos"] nav .text-\[\#9FE1CB\] {
+    color: #9FE1CB !important;
+}
+
+[data-brand="oikos"] nav .hover\:text-white:hover {
+    color: #ffffff !important;
+}
+
+/* Fix text-white inside solid buttons, CTA sections and components that have dark backgrounds (prevent green-on-green override) */
+[data-brand="oikos"] button.text-white,
+[data-brand="oikos"] button.bg-\[\#085041\],
+[data-brand="oikos"] .bg-\[\#085041\],
+[data-brand="oikos"] .bg-\[\#085041\] .text-white,
+[data-brand="oikos"] .bg-\[\#085041\] .text-slate-50,
+[data-brand="oikos"] .bg-\[\#085041\] .text-gray-50,
+[data-brand="oikos"] .bg-\[\#085041\] .text-neutral-50,
+[data-brand="oikos"] .bg-\[\#04342C\],
+[data-brand="oikos"] .bg-\[\#04342C\] .text-white,
+[data-brand="oikos"] .bg-\[\#04342C\] .text-slate-50,
+[data-brand="oikos"] .bg-\[\#04342C\] .text-gray-50,
+[data-brand="oikos"] .bg-\[\#04342C\] .text-neutral-50,
+[data-brand="oikos"] .bg-blue-600 .text-white,
+[data-brand="oikos"] .bg-indigo-600 .text-white,
+[data-brand="oikos"] .bg-primary .text-white,
+[data-brand="oikos"] .btn-submit,
+[data-brand="oikos"] .btn-gold,
+[data-brand="oikos"] .btn-solid {
+    color: #ffffff !important;
+}
