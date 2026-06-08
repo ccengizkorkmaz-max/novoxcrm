@@ -25,6 +25,9 @@ export async function generateMetadata(
         },
         description: `Orta olcekli insaat firmalari icin Proje Satis CRM'i. Satis ofisi, broker yonetimi ve odeme plani takibini tek platformda birlestirin.`,
         keywords: ['gayrimenkul crm', 'insaat crm', 'proje satis crm', 'konut satis crm', 'real estate crm turkey', 'broker yonetim sistemi'],
+        icons: {
+            icon: brandName === 'Oikos CRM' ? '/oikos-logo.svg' : '/favicon.ico',
+        },
         alternates: {
             canonical: '/',
             languages: {

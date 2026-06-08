@@ -51,7 +51,7 @@ export async function generateMetadata(): Promise<Metadata> {
       title: brandName,
     },
     icons: {
-      icon: "/icon-512.png",
+      icon: brandName === 'Oikos CRM' ? '/oikos-logo.svg' : '/favicon.ico',
       apple: "/icon-512.png",
     },
     formatDetection: {
