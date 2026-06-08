@@ -10,20 +10,73 @@ export function Footer() {
 
     if (brandName === 'Oikos CRM') {
         return (
-            <footer className="bg-[#F4FAF8] border-t border-[#D8F0E8] py-8 px-4 md:px-10 text-gray-500">
-                <div className="max-w-5xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4 text-xs md:text-sm">
-                    <div>
-                        <span className="text-base font-semibold text-[#085041] block mb-1">Oikos CRM</span>
-                        <p className="text-gray-400">© 2025 Oikos · BT Proses Teknoloji bünyesinde</p>
+            <footer className="bg-[#F4FAF8] text-gray-600 border-t border-[#D8F0E8] py-12 md:py-16">
+                <div className="container mx-auto px-4 max-w-6xl">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-12">
+                        {/* Oikos Brand Column */}
+                        <div>
+                            <span className="text-lg font-bold text-[#085041] flex items-center gap-2 mb-4">
+                                <svg width="24" height="24" viewBox="0 0 32 32">
+                                    <rect width="32" height="32" rx="7" fill="#0F6E56"></rect>
+                                    <circle cx="16" cy="13" r="7" fill="none" stroke="#fff" strokeWidth="2.2" opacity="0.9"></circle>
+                                    <polygon points="16,7 22,13 10,13" fill="#fff" opacity="0.95"></polygon>
+                                    <line x1="13" y1="13" x2="13" y2="17" stroke="#5DCAA5" stroke-width="1.8" stroke-linecap="round"></line>
+                                    <line x1="19" y1="13" x2="19" y2="17" stroke="#5DCAA5" stroke-width="1.8" stroke-linecap="round"></line>
+                                    <rect x="14" y="20" width="4" height="8" rx="2" fill="#fff" opacity="0.9"></rect>
+                                    <rect x="18" y="24" width="3" height="2.5" rx="1" fill="#5DCAA5"></rect>
+                                    <circle cx="16" cy="7" r="2.5" fill="#EF9F27"></circle>
+                                </svg>
+                                Oikos CRM
+                            </span>
+                            <p className="text-xs md:text-sm text-gray-500 leading-relaxed">
+                                Gayrimenkul geliştirme şirketleri & ulusal/uluslararası emlak ağları için yapay zeka destekli CRM platformu.
+                            </p>
+                        </div>
+
+                        {/* Çözümler */}
+                        <div>
+                            <h4 className="font-bold text-[#085041] mb-4 text-sm md:text-base">Çözümler</h4>
+                            <ul className="space-y-3 text-xs md:text-sm text-gray-500">
+                                <li><Link href="/solutions/gayrimenkul-crm" className="hover:text-[#085041] transition-colors">Gayrimenkul CRM</Link></li>
+                                <li><Link href="/solutions/insaat-crm" className="hover:text-[#085041] transition-colors">İnşaat CRM</Link></li>
+                                <li><Link href="/payment-plan-calculator" className="hover:text-[#085041] transition-colors">Ödeme Planı Sihirbazı</Link></li>
+                            </ul>
+                        </div>
+
+                        {/* Ücretsiz Araçlar */}
+                        <div>
+                            <h4 className="font-bold text-[#085041] mb-4 text-sm md:text-base">Ücretsiz Araçlar</h4>
+                            <ul className="space-y-3 text-xs md:text-sm text-gray-500">
+                                <li><Link href="/tools/serefiye-hesaplayici" className="hover:text-[#085041] transition-colors">Şerefiye Hesaplayıcı</Link></li>
+                                <li><Link href="/tools/tapu-harci-hesaplayici" className="hover:text-[#085041] transition-colors">Tapu Harcı Hesaplayıcı</Link></li>
+                                <li><Link href="/tools/emlak-vergisi-hesaplayici" className="hover:text-[#085041] transition-colors">Emlak Vergisi Hesaplayıcı</Link></li>
+                                <li><Link href="/tools/konut-kredisi-karsilastirma" className="hover:text-[#085041] transition-colors">Kredi Karşılaştırma</Link></li>
+                            </ul>
+                        </div>
+
+                        {/* Kurumsal */}
+                        <div>
+                            <h4 className="font-bold text-[#085041] mb-4 text-sm md:text-base">Kurumsal</h4>
+                            <ul className="space-y-3 text-xs md:text-sm text-gray-500">
+                                <li><Link href="/hakkimizda" className="hover:text-[#085041] transition-colors">Hakkımızda</Link></li>
+                                <li><Link href="/wiki" className="hover:text-[#085041] transition-colors">Bilgi Bankası (Wiki)</Link></li>
+                                <li><Link href="/gizlilik-sozlesmesi" className="hover:text-[#085041] transition-colors">Gizlilik Sözleşmesi</Link></li>
+                            </ul>
+                        </div>
                     </div>
-                    <div className="flex items-center gap-2 text-gray-400">
-                        <svg width="16" height="16" viewBox="0 0 16 16"><rect width="16" height="16" rx="3.5" fill="#185FA5"></rect><line x1="3" y1="7" x2="7" y2="7" stroke="#378ADD" stroke-width="1.2" stroke-linecap="round"></line><line x1="2" y1="9" x2="7" y2="9" stroke="#378ADD" stroke-width="1.2" stroke-linecap="round"></line><path d="M8.5 9 L12 9" fill="none" stroke="#fff" stroke-width="1.2" stroke-linecap="round"></path><polygon points="12,7 14,9 12,11" fill="#fff"></polygon><circle cx="13" cy="4" r="1.5" fill="#EF9F27"></circle></svg>
-                        <span>BT Proses teknoloji ürünü</span>
-                    </div>
-                    <div className="flex gap-6">
-                        <a className="hover:text-[#085041] cursor-pointer">Gizlilik</a>
-                        <a className="hover:text-[#085041] cursor-pointer">Kullanım şartları</a>
-                        <a className="hover:text-[#085041] cursor-pointer">Destek</a>
+
+                    <div className="pt-8 border-t border-[#D8F0E8] flex flex-col md:flex-row justify-between items-center gap-6 text-xs text-gray-400">
+                        <div className="flex items-center gap-4 flex-wrap">
+                            <span>© 2026 Oikos CRM · BT Proses Teknoloji bünyesinde</span>
+                            <div className="flex items-center gap-1">
+                                <svg width="16" height="16" viewBox="0 0 16 16"><rect width="16" height="16" rx="3.5" fill="#185FA5"></rect><line x1="3" y1="7" x2="7" y2="7" stroke="#378ADD" stroke-width="1.2" stroke-linecap="round"></line><line x1="2" y1="9" x2="7" y2="9" stroke="#378ADD" stroke-width="1.2" stroke-linecap="round"></line><path d="M8.5 9 L12 9" fill="none" stroke="#fff" stroke-width="1.2" stroke-linecap="round"></path><polygon points="12,7 14,9 12,11" fill="#fff"></polygon><circle cx="13" cy="4" r="1.5" fill="#EF9F27"></circle></svg>
+                                <span>BT Proses teknoloji ürünü</span>
+                            </div>
+                        </div>
+                        <div className="flex gap-6">
+                            <Link href="/gizlilik-sozlesmesi" className="hover:text-[#085041] transition-colors">Gizlilik</Link>
+                            <Link href="/mesafeli-satis-sozlesmesi" className="hover:text-[#085041] transition-colors">Kullanım Şartları</Link>
+                        </div>
                     </div>
                 </div>
             </footer>

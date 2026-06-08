@@ -8,6 +8,7 @@ import { LeadCaptureModal } from '@/components/marketing/LeadCaptureModal'
 import { getTranslations } from 'next-intl/server'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 import { getBrandNameFromHost, getHostFromHeaders } from '@/lib/tenant/resolve-brand-from-host'
+import { cn } from '@/lib/utils'
 
 export default async function LoginPage(props: {
     searchParams: Promise<{ message: string, error: string, email: string }>
@@ -17,22 +18,45 @@ export default async function LoginPage(props: {
     const host = await getHostFromHeaders()
     const brandName = await getBrandNameFromHost(host)
 
+    const isOikos = brandName === 'Oikos CRM'
+
     return (
         <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2">
 
             {/* Left Side: Visuals & Branding */}
-            <div className="hidden bg-slate-900 lg:block relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 to-indigo-900/40 z-10" />
+            <div className={cn(
+                "hidden lg:block relative overflow-hidden",
+                isOikos ? "bg-[#04342C]" : "bg-slate-900"
+            )}>
+                <div className={cn(
+                    "absolute inset-0 z-10",
+                    isOikos 
+                        ? "bg-gradient-to-br from-[#085041]/60 to-[#04342C]/40" 
+                        : "bg-gradient-to-br from-blue-600/20 to-indigo-900/40"
+                )} />
                 {/* Abstract Pattern */}
                 <div className="absolute inset-0 opacity-20"
                     style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0)', backgroundSize: '40px 40px' }}>
                 </div>
 
                 <div className="relative z-20 flex flex-col h-full justify-between p-12 text-white">
-                    <div className="flex items-center gap-2 text-lg font-medium">
-                        <div className="bg-white/10 p-2 rounded-lg backdrop-blur-sm">
-                            <Building2 className="h-6 w-6" />
-                        </div>
+                    <div className="flex items-center gap-2.5 text-lg font-medium">
+                        {isOikos ? (
+                            <svg width="32" height="32" viewBox="0 0 32 32">
+                                <rect width="32" height="32" rx="7" fill="#0F6E56"></rect>
+                                <circle cx="16" cy="13" r="7" fill="none" stroke="#fff" strokeWidth="2.2" opacity="0.9"></circle>
+                                <polygon points="16,7 22,13 10,13" fill="#fff" opacity="0.95"></polygon>
+                                <line x1="13" y1="13" x2="13" y2="17" stroke="#5DCAA5" stroke-width="1.8" stroke-linecap="round"></line>
+                                <line x1="19" y1="13" x2="19" y2="17" stroke="#5DCAA5" stroke-width="1.8" stroke-linecap="round"></line>
+                                <rect x="14" y="20" width="4" height="8" rx="2" fill="#fff" opacity="0.9"></rect>
+                                <rect x="18" y="24" width="3" height="2.5" rx="1" fill="#5DCAA5"></rect>
+                                <circle cx="16" cy="7" r="2.5" fill="#EF9F27"></circle>
+                            </svg>
+                        ) : (
+                            <div className="bg-white/10 p-2 rounded-lg backdrop-blur-sm">
+                                <Building2 className="h-6 w-6" />
+                            </div>
+                        )}
                         <span className="tracking-tight font-bold">{brandName}</span>
                     </div>
 
@@ -65,9 +89,22 @@ export default async function LoginPage(props: {
                 <div className="mx-auto grid w-full max-w-[400px] gap-8">
                     <div className="flex flex-col space-y-2 text-center">
                         <div className="lg:hidden flex justify-center mb-4">
-                            <div className="bg-primary/10 p-3 rounded-xl inline-flex text-primary">
-                                <Building2 className="h-8 w-8" />
-                            </div>
+                            {isOikos ? (
+                                <svg width="48" height="48" viewBox="0 0 32 32">
+                                    <rect width="32" height="32" rx="7" fill="#0F6E56"></rect>
+                                    <circle cx="16" cy="13" r="7" fill="none" stroke="#fff" strokeWidth="2.2" opacity="0.9"></circle>
+                                    <polygon points="16,7 22,13 10,13" fill="#fff" opacity="0.95"></polygon>
+                                    <line x1="13" y1="13" x2="13" y2="17" stroke="#5DCAA5" stroke-width="1.8" stroke-linecap="round"></line>
+                                    <line x1="19" y1="13" x2="19" y2="17" stroke="#5DCAA5" stroke-width="1.8" stroke-linecap="round"></line>
+                                    <rect x="14" y="20" width="4" height="8" rx="2" fill="#fff" opacity="0.9"></rect>
+                                    <rect x="18" y="24" width="3" height="2.5" rx="1" fill="#5DCAA5"></rect>
+                                    <circle cx="16" cy="7" r="2.5" fill="#EF9F27"></circle>
+                                </svg>
+                            ) : (
+                                <div className="bg-primary/10 p-3 rounded-xl inline-flex text-primary">
+                                    <Building2 className="h-8 w-8" />
+                                </div>
+                            )}
                         </div>
                         <h1 className="text-3xl font-bold tracking-tight">{t('welcome')}</h1>
                         <p className="text-muted-foreground">
@@ -96,7 +133,10 @@ export default async function LoginPage(props: {
                                 placeholder={t('emailPlaceholder')}
                                 required
                                 defaultValue={params?.email || ''}
-                                className="h-11 border-gray-200 focus:border-blue-500 transition-colors"
+                                className={cn(
+                                    "h-11 border-gray-200 transition-colors", 
+                                    isOikos ? "focus:border-[#085041] focus:ring-[#085041]" : "focus:border-blue-500"
+                                )}
                             />
                         </div>
                         <div className="grid gap-2">
@@ -108,16 +148,35 @@ export default async function LoginPage(props: {
                                 name="password"
                                 type="password"
                                 required
-                                className="h-11 border-gray-200 focus:border-blue-500 transition-colors"
+                                className={cn(
+                                    "h-11 border-gray-200 transition-colors", 
+                                    isOikos ? "focus:border-[#085041] focus:ring-[#085041]" : "focus:border-blue-500"
+                                )}
                                 placeholder={t('passwordPlaceholder')}
                             />
                         </div>
 
                         <div className="flex flex-col gap-3 pt-2">
-                            <Button formAction={login} className="h-11 w-full bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-lg shadow-blue-600/20 transition-all">
+                            <Button 
+                                formAction={login} 
+                                className={cn(
+                                    "h-11 w-full text-white font-medium transition-all cursor-pointer",
+                                    isOikos 
+                                        ? "bg-[#085041] hover:bg-[#0F6E56] shadow-lg shadow-[#085041]/20 border-none" 
+                                        : "bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-600/20"
+                                )}
+                            >
                                 {t('loginButton')} <ArrowRight className="ml-2 h-4 w-4" />
                             </Button>
-                            <Button formAction={resetPassword} formNoValidate variant="ghost" className="h-9 w-full text-sm text-slate-500 hover:text-blue-600 font-medium">
+                            <Button 
+                                formAction={resetPassword} 
+                                formNoValidate 
+                                variant="ghost" 
+                                className={cn(
+                                    "h-9 w-full text-sm font-medium cursor-pointer",
+                                    isOikos ? "text-slate-500 hover:text-[#085041] hover:bg-[#085041]/5" : "text-slate-500 hover:text-blue-600"
+                                )}
+                            >
                                 {t('forgotPassword')}
                             </Button>
                         </div>
@@ -126,7 +185,10 @@ export default async function LoginPage(props: {
                     <div className="flex flex-col items-center gap-1">
                         <Link
                             href="/broker/apply"
-                            className="text-center text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline py-1"
+                            className={cn(
+                                "text-center text-sm font-medium hover:underline py-1",
+                                isOikos ? "text-[#085041] hover:text-[#0F6E56]" : "text-blue-600 hover:text-blue-700"
+                            )}
                         >
                             {t('brokerLink')}
                         </Link>
@@ -136,7 +198,7 @@ export default async function LoginPage(props: {
                             title={t('registerModalTitle')}
                             description={t('registerModalDesc')}
                         >
-                            <button type="button" className="text-center text-xs font-medium text-slate-500 hover:text-slate-700 hover:underline py-1">
+                            <button type="button" className="text-center text-xs font-medium text-slate-500 hover:text-slate-700 hover:underline py-1 cursor-pointer">
                                 {t('registerLink')}
                             </button>
                         </LeadCaptureModal>

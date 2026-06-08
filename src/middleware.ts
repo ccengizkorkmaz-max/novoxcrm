@@ -21,6 +21,7 @@ function isCacheableMarketingPath(pathname: string): boolean {
     // Exact match public marketing pages
     if (
         pathWithoutLocale === '/' ||
+        pathWithoutLocale === '/detayli-tanitim' ||
         pathWithoutLocale === '/sitemap.xml' ||
         pathWithoutLocale === '/robots.txt' ||
         pathWithoutLocale === '/gizlilik-sozlesmesi' ||

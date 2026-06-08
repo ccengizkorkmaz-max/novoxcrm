@@ -57,6 +57,7 @@ export async function updateSession(request: NextRequest, response?: NextRespons
     // 1. Handle Public Routes first
     const isPublicRoute =
         pathWithoutLocale === '/' ||
+        pathWithoutLocale === '/detayli-tanitim' ||
         pathWithoutLocale === '/sitemap.xml' ||
         pathWithoutLocale === '/robots.txt' ||
         pathWithoutLocale.startsWith('/api') ||
@@ -119,6 +120,7 @@ export async function updateSession(request: NextRequest, response?: NextRespons
         const isPublicPath = pathWithoutLocale.startsWith('/p/')
         const isMarketingPath =
             pathWithoutLocale === '/' ||
+            pathWithoutLocale === '/detayli-tanitim' ||
             pathWithoutLocale.startsWith('/payment-plan-calculator') ||
             pathWithoutLocale.startsWith('/solutions') ||
             pathWithoutLocale.startsWith('/system-details') ||
