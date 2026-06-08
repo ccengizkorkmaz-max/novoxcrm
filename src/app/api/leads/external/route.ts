@@ -148,7 +148,16 @@ export async function POST(req: Request) {
         if (name && FORM_SENDER_NAMES.includes(name.toLowerCase()) && email === null) name = null
 
         // Final fallback for missing fields - capture from any possible top-level keys
-        if (!name) name = body.full_name || body.Ad || body['Ad Soyad'] || body.sender_name || subject || email || 'Yeni Dış Kaynak Adayı'
+        if (!name) {
+            // Try common Facebook Ads field combinations
+            const firstName = body.first_name || body.firstName || body.ad || body.Ad || ''
+            const lastName = body.last_name || body.lastName || body.soyad || body.Soyad || ''
+            if (firstName || lastName) {
+                name = `${firstName} ${lastName}`.trim()
+            } else {
+                name = body.full_name || body.fullName || body.Ad || body['Ad Soyad'] || body['ad_soyad'] || body.sender_name || body.customer_name || subject || email || 'Yeni Dış Kaynak Adayı'
+            }
+        }
         if (!email) email = body.Email || body.eposta || body.sender_email || null
         if (!phone) phone = body.Phone || body.telefon || null
         // Filter form senders again after fallback
