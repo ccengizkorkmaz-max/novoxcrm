@@ -329,10 +329,44 @@ Gelen aramaları karşıla, bilgi bankasındaki proje bilgilerini paylaş, rande
             }
 
             case 'status-update':
-            case 'call.status':
-                // Call in progress — just log
+            case 'call.status': {
                 console.log(`[Vapi Webhook] Status update: ${parsed.callId} → ${parsed.status}`)
+                
+                // Update inbound_calls table to reflect the current call state
+                // This prevents calls from staying stuck as 'ringing' forever
+                if (parsed.callId && parsed.status) {
+                    const statusMap: Record<string, string> = {
+                        'ringing': 'ringing',
+                        'in-progress': 'in-progress',
+                        'forwarding': 'in-progress',
+                        'ended': 'ended',
+                    }
+                    const newStatus = statusMap[parsed.status] || parsed.status
+                    
+                    try {
+                        const adminSupabase = createAdminClient()
+                        const updateData: Record<string, any> = { status: newStatus }
+                        
+                        // If the status is 'ended' from a status-update (without end-of-call-report),
+                        // set ended_at and a fallback outcome
+                        if (newStatus === 'ended') {
+                            updateData.ended_at = new Date().toISOString()
+                            updateData.outcome = updateData.outcome || 'no_answer'
+                        }
+                        
+                        await adminSupabase
+                            .from('inbound_calls')
+                            .update(updateData)
+                            .eq('vapi_call_id', parsed.callId)
+                            .eq('status', 'ringing') // Only update if still ringing (don't overwrite ended status)
+                        
+                        console.log(`[Vapi Webhook] Updated inbound_calls status: ${parsed.callId} → ${newStatus}`)
+                    } catch (e: any) {
+                        console.warn(`[Vapi Webhook] Failed to update inbound_calls status: ${e.message}`)
+                    }
+                }
                 break
+            }
 
             case 'function-call':
                 // AI agent wants to execute a function

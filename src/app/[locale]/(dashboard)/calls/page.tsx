@@ -62,25 +62,45 @@ export default async function CallsPage({
         .range(from, to)
 
     // Map to client-friendly format
-    const mappedCalls = (calls || []).map((call: any) => ({
-        id: call.id,
-        customer_id: call.customer_id || '',
-        customer_name: call.caller_name || 'Bilinmeyen Arayan',
-        customer_phone: call.caller_phone || '-',
-        date: call.started_at || call.created_at,
-        duration: call.duration || 0,
-        outcome: call.outcome === 'answered' ? 'Success' 
-            : call.outcome === 'busy' ? 'Busy' 
-            : call.outcome === 'no_answer' ? 'No Answer' 
-            : call.status === 'ringing' ? 'Devam Ediyor'
-            : 'No Answer',
-        lead_score: call.lead_score,
-        summary: call.summary || '',
-        transcript: call.transcript || '',
-        recording_url: call.recording_url,
-        cost: call.cost ? parseFloat(call.cost) : null,
-        is_known_customer: !!call.customer_id,
-    }))
+    const mappedCalls = (calls || []).map((call: any) => {
+        // Determine outcome based on stored outcome and status
+        let mappedOutcome: string
+        if (call.outcome === 'answered') {
+            mappedOutcome = 'Success'
+        } else if (call.outcome === 'busy') {
+            mappedOutcome = 'Busy'
+        } else if (call.outcome === 'no_answer') {
+            mappedOutcome = 'No Answer'
+        } else if (call.status === 'ringing' || call.status === 'in-progress') {
+            // Check if the call is stale (started more than 30 minutes ago)
+            const startedAt = call.started_at ? new Date(call.started_at).getTime() : 0
+            const thirtyMinAgo = Date.now() - 30 * 60 * 1000
+            if (startedAt && startedAt < thirtyMinAgo) {
+                // Stale call — webhook for end-of-call probably never arrived
+                mappedOutcome = 'No Answer'
+            } else {
+                mappedOutcome = 'Devam Ediyor'
+            }
+        } else {
+            mappedOutcome = 'No Answer'
+        }
+
+        return {
+            id: call.id,
+            customer_id: call.customer_id || '',
+            customer_name: call.caller_name || 'Bilinmeyen Arayan',
+            customer_phone: call.caller_phone || '-',
+            date: call.started_at || call.created_at,
+            duration: call.duration || 0,
+            outcome: mappedOutcome,
+            lead_score: call.lead_score,
+            summary: call.summary || '',
+            transcript: call.transcript || '',
+            recording_url: call.recording_url,
+            cost: call.cost ? parseFloat(call.cost) : null,
+            is_known_customer: !!call.customer_id,
+        }
+    })
 
     return (
         <div className="flex-1 space-y-4 p-4 md:p-6 pt-4">
