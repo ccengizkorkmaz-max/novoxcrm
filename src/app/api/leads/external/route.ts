@@ -87,6 +87,7 @@ export async function POST(req: Request) {
 
         // Parse customer info from message content if available (Regex parsing)
         // ALWAYS try body parsing first — top-level fields may be the form sender, not the customer
+        let parsedProject: string | null = null
         if (bodyMessage && typeof bodyMessage === 'string') {
             const nameMatch = bodyMessage.match(/Ad\s+Soyad:\s*([^:\n\r]+?)(?=\s*(?:E-posta|Telefon|Konu|Proje|$)|\r|\n)/i)
             if (nameMatch) {
@@ -98,10 +99,45 @@ export async function POST(req: Request) {
                 email = emailMatch[1].replace(/\\n/g, '').trim()
             }
 
-            const phoneMatch = bodyMessage.match(/(?:Telefon Numarası|Telefon No|Telefon|Tel):\s*([\d\s\+\-\(\)\.\\n]+?)(?=\s*(?:Ad Soyad|E-posta|Konu|Proje|Mesaj|Not|$)|\r|\n)/i)
+            const phoneMatch = bodyMessage.match(/(?:Telefon Numarası|Telefon No|Telefon|Tel):\s*([\d\s\+\-\(\)\.\\n]+?)(?=\s*(?:Ad Soyad|E-posta|Konu|Proje|Mesaj|Not|KVKK|Se|$)|\r|\n)/i)
             if (phoneMatch) {
                 phone = phoneMatch[1].replace(/\\n/g, '').replace(/\n/g, '').trim()
             }
+
+            // Parse "Seçilen Proje: NOVO City İzmir" from web form emails
+            const projectMatch = bodyMessage.match(/(?:Seçilen Proje|Proje|İlgilenilen Proje|Project):\s*([^\n\r]+?)(?=\s*(?:KVKK|Mesaj|Not|--|$)|\r|\n)/i)
+            if (projectMatch) {
+                parsedProject = projectMatch[1].replace(/\\n/g, '').trim()
+                console.log('📋 Parsed project from message body:', parsedProject)
+            }
+        }
+
+        // --- WEB FORM VALIDATION ---
+        // Only process emails that contain the web form signature
+        // This prevents random emails (newsletters, spam, personal) from becoming leads
+        const isWebFormEmail = source === 'WEB Form' || source === 'Web Form'
+        if (isWebFormEmail && bodyMessage) {
+            const hasWebFormSignature =
+                bodyMessage.includes('iletişim formu') ||
+                bodyMessage.includes('web sitesindeki') ||
+                bodyMessage.includes('Ad Soyad:') ||
+                bodyMessage.includes('Seçilen Proje:') ||
+                bodyMessage.includes('KVKK') ||
+                bodyMessage.includes('Telefon Numarası:')
+            
+            if (!hasWebFormSignature) {
+                console.log('⛔ Email rejected — no web form signature detected. Subject:', subject)
+                return NextResponse.json({
+                    success: false,
+                    message: 'Email rejected: not a web form submission.',
+                    rejected: true
+                })
+            }
+        }
+
+        // If form_name wasn't provided but we parsed project from the body, use it
+        if (!form_name && parsedProject) {
+            form_name = parsedProject
         }
 
         // Filter out known form sender addresses — these are NOT real customers
@@ -127,13 +163,17 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'System Error: No valid tenant found to assign this lead.' }, { status: 500 })
         }
 
-        // --- NEW: Try to link to a Project ---
+        // --- Try to link to a Project ---
         let projectId = null
-        const projectSearchTerm = form_name || subject
+        const projectSearchTerm = form_name || parsedProject || subject
         if (projectSearchTerm && tenant_id) {
+            // Try exact-ish match first with each word
+            const searchTerms = projectSearchTerm.split(/\s+/).filter((w: string) => w.length > 2)
+            
+            // Try full term first
             const { data: project } = await supabase
                 .from('projects')
-                .select('id')
+                .select('id, name')
                 .eq('tenant_id', tenant_id)
                 .ilike('name', `%${projectSearchTerm}%`)
                 .limit(1)
@@ -141,6 +181,23 @@ export async function POST(req: Request) {
 
             if (project) {
                 projectId = project.id
+                console.log('🏗️ Project matched:', project.name, '→', projectId)
+            } else if (searchTerms.length > 1) {
+                // Fallback: try matching each significant word
+                for (const term of searchTerms) {
+                    const { data: proj } = await supabase
+                        .from('projects')
+                        .select('id, name')
+                        .eq('tenant_id', tenant_id)
+                        .ilike('name', `%${term}%`)
+                        .limit(1)
+                        .maybeSingle()
+                    if (proj) {
+                        projectId = proj.id
+                        console.log('🏗️ Project matched (word fallback):', proj.name, '→', projectId)
+                        break
+                    }
+                }
             }
         }
 
