@@ -16,7 +16,13 @@ import { getTranslations } from 'next-intl/server'
 import { getBrandNameFromHost, getHostFromHeaders } from '@/lib/tenant/resolve-brand-from-host'
 import { getCanonicalBaseUrl } from '@/lib/seo-constants'
 
-export async function OldMarketingPage({ params }: { params: Promise<{ locale: string }> }) {
+export async function OldMarketingPage({ 
+    params, 
+    showPricing = true 
+}: { 
+    params: Promise<{ locale: string }>; 
+    showPricing?: boolean 
+}) {
     const { locale } = await params;
     const t = await getTranslations({ locale, namespace: 'Marketing_CTA' })
     const faqT = await getTranslations({ locale, namespace: 'FAQSection' })
@@ -112,7 +118,7 @@ export async function OldMarketingPage({ params }: { params: Promise<{ locale: s
                 <SolutionSection />
             </div>
             <PersonaSection />
-            <PricingSection />
+            {showPricing && <PricingSection />}
             <ResourcesSection />
             <FAQSection />
 

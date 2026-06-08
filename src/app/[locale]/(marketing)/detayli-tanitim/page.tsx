@@ -12,5 +12,5 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function DetayliTanitimPage({ params }: { params: Promise<{ locale: string }> }) {
-    return <OldMarketingPage params={params} />
+    return <OldMarketingPage params={params} showPricing={false} />
 }
