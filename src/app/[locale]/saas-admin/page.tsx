@@ -33,8 +33,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Switch } from "@/components/ui/switch"
-import { Users, Building2, AlertTriangle, CheckCircle, XCircle, Search, Mail, Phone, Trash2, CreditCard } from "lucide-react"
-import { getAllTenants, updateTenantSubscription, updateTenantStatus, provisionTenant, getSaasLeads, deleteSaasLead, resetTenantPassword, updateTenantAdminInfo, getGlobalStats } from './actions'
+import { Users, Building2, AlertTriangle, CheckCircle, XCircle, Search, Mail, Phone, Trash2, CreditCard, HardDrive, Download, Upload, RefreshCw, Clock, FileText, Shield, AlertCircle, Loader2, CheckCircle2 } from "lucide-react"
+import { getAllTenants, updateTenantSubscription, updateTenantStatus, provisionTenant, getSaasLeads, deleteSaasLead, resetTenantPassword, updateTenantAdminInfo, getGlobalStats, getBackupHistory } from './actions'
 import { useEffect } from 'react'
 import { formatCurrency } from '@/lib/utils'
 import { format } from 'date-fns'
@@ -62,6 +62,18 @@ export default function SaasAdminPage() {
     const [dialogOpen, setDialogOpen] = useState(false)
     const [globalStats, setGlobalStats] = useState<any>(null)
 
+    // Backup State
+    const [backupLoading, setBackupLoading] = useState(false)
+    const [backupProgress, setBackupProgress] = useState('')
+    const [backupHistory, setBackupHistory] = useState<any[]>([])
+    const [restoreFile, setRestoreFile] = useState<File | null>(null)
+    const [restorePreview, setRestorePreview] = useState<any>(null)
+    const [restoreLoading, setRestoreLoading] = useState(false)
+    const [restoreConfirm, setRestoreConfirm] = useState(false)
+    const [restoreConfirmText, setRestoreConfirmText] = useState('')
+    const [backupScope, setBackupScope] = useState<'all' | 'tenant'>('all')
+    const [backupTenantId, setBackupTenantId] = useState<string>('')
+
     useEffect(() => {
         loadData()
     }, [])
@@ -78,6 +90,11 @@ export default function SaasAdminPage() {
         if (leadsRes.leads) setLeads(leadsRes.leads)
         if (statsRes && !statsRes.error) setGlobalStats(statsRes)
         setLoading(false)
+    }
+
+    const loadBackupHistory = async () => {
+        const res = await getBackupHistory()
+        if (res.history) setBackupHistory(res.history)
     }
 
     async function handleDeleteLead(id: string) {
@@ -327,7 +344,7 @@ export default function SaasAdminPage() {
             )}
 
             <Tabs defaultValue="tenants" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 max-w-[400px]">
+                <TabsList className="grid w-full grid-cols-3 max-w-[600px]">
                     <TabsTrigger value="tenants">Kayıtlı Firmalar</TabsTrigger>
                     <TabsTrigger value="leads" className="relative">
                         Gelen Talepler
@@ -336,6 +353,10 @@ export default function SaasAdminPage() {
                                 {leads.length}
                             </span>
                         )}
+                    </TabsTrigger>
+                    <TabsTrigger value="backup" className="gap-1.5">
+                        <HardDrive className="h-4 w-4" />
+                        Yedekleme
                     </TabsTrigger>
                 </TabsList>
 
@@ -666,6 +687,348 @@ export default function SaasAdminPage() {
                             </TableBody>
                         </Table>
                     </div>
+                </TabsContent>
+
+                {/* ─── BACKUP TAB ─── */}
+                <TabsContent value="backup" className="mt-6 space-y-6">
+                    {/* Quick Backup Section */}
+                    <Card className="border-slate-200 shadow-sm">
+                        <CardHeader className="border-b bg-gradient-to-r from-slate-50 to-blue-50/30">
+                            <div className="flex flex-col gap-4">
+                                <div>
+                                    <CardTitle className="flex items-center gap-2 text-lg">
+                                        <HardDrive className="h-5 w-5 text-blue-600" />
+                                        Veritabanı Yedekleme
+                                    </CardTitle>
+                                    <p className="text-sm text-muted-foreground mt-1">
+                                        Tüm platformun veya belirli bir firmanın tam JSON yedeğini alın.
+                                    </p>
+                                </div>
+
+                                {/* Scope Selection */}
+                                <div className="flex items-center gap-3 bg-white rounded-lg border border-slate-200 p-3">
+                                    <span className="text-sm font-medium text-slate-600 whitespace-nowrap">Yedek Kapsamı:</span>
+                                    <div className="flex gap-2">
+                                        <Button
+                                            variant={backupScope === 'all' ? 'default' : 'outline'}
+                                            size="sm"
+                                            onClick={() => { setBackupScope('all'); setBackupTenantId('') }}
+                                            className="gap-1.5"
+                                        >
+                                            <Building2 className="h-3.5 w-3.5" />
+                                            Tüm Platform
+                                        </Button>
+                                        <Button
+                                            variant={backupScope === 'tenant' ? 'default' : 'outline'}
+                                            size="sm"
+                                            onClick={() => setBackupScope('tenant')}
+                                            className="gap-1.5"
+                                        >
+                                            <Users className="h-3.5 w-3.5" />
+                                            Firma Bazlı
+                                        </Button>
+                                    </div>
+
+                                    {backupScope === 'tenant' && (
+                                        <Select value={backupTenantId} onValueChange={setBackupTenantId}>
+                                            <SelectTrigger className="w-[260px]">
+                                                <SelectValue placeholder="Firma seçin..." />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {tenants.map((t) => (
+                                                    <SelectItem key={t.id} value={t.id}>
+                                                        {t.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+
+                                    <Button
+                                        size="default"
+                                        className="bg-blue-600 hover:bg-blue-700 text-white gap-2 shadow-md ml-auto"
+                                        disabled={backupLoading || (backupScope === 'tenant' && !backupTenantId)}
+                                        onClick={async () => {
+                                            setBackupLoading(true)
+                                            setBackupProgress('Yedek hazırlanıyor...')
+                                            try {
+                                                const payload: any = { mode: backupScope }
+                                                if (backupScope === 'tenant' && backupTenantId) {
+                                                    payload.tenant_id = backupTenantId
+                                                }
+                                                const res = await fetch('/api/backup/export', {
+                                                    method: 'POST',
+                                                    headers: { 'Content-Type': 'application/json' },
+                                                    body: JSON.stringify(payload),
+                                                })
+                                                if (!res.ok) {
+                                                    const err = await res.json()
+                                                    throw new Error(err.error || 'Yedekleme başarısız')
+                                                }
+
+                                                const tableCount = res.headers.get('X-Table-Count') || '?'
+                                                const recordCount = res.headers.get('X-Record-Count') || '?'
+                                                const durationMs = res.headers.get('X-Duration-Ms') || '?'
+                                                const scope = res.headers.get('X-Backup-Scope') || backupScope
+
+                                                const scopeText = scope === 'all' ? 'Tüm platform' : 'Firma'
+                                                setBackupProgress(`${scopeText}: ${tableCount} tablo, ${recordCount} kayıt yedeklendi (${(Number(durationMs) / 1000).toFixed(1)}sn)`)
+
+                                                const blob = await res.blob()
+                                                const url = URL.createObjectURL(blob)
+                                                const a = document.createElement('a')
+                                                a.href = url
+                                                const disposition = res.headers.get('Content-Disposition')
+                                                const fileName = disposition?.match(/filename="(.+)"/)?.[1] || `novocrm_backup.json`
+                                                a.download = fileName
+                                                document.body.appendChild(a)
+                                                a.click()
+                                                a.remove()
+                                                URL.revokeObjectURL(url)
+
+                                                toast.success(`Yedek başarıyla indirildi: ${tableCount} tablo, ${recordCount} kayıt`)
+                                                loadBackupHistory()
+                                            } catch (err: any) {
+                                                setBackupProgress('')
+                                                toast.error(err.message || 'Yedekleme hatası')
+                                            } finally {
+                                                setBackupLoading(false)
+                                            }
+                                        }}
+                                    >
+                                        {backupLoading ? (
+                                            <><Loader2 className="h-4 w-4 animate-spin" /> Yedekleniyor...</>
+                                        ) : (
+                                            <><Download className="h-4 w-4" /> Yedek Al</>
+                                        )}
+                                    </Button>
+                                </div>
+                            </div>
+                            {backupProgress && (
+                                <div className="mt-3 flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 px-3 py-2 rounded-lg border border-emerald-200">
+                                    <CheckCircle2 className="h-4 w-4" />
+                                    {backupProgress}
+                                </div>
+                            )}
+                        </CardHeader>
+                    </Card>
+
+                    {/* Backup History */}
+                    <Card className="border-slate-200 shadow-sm">
+                        <CardHeader className="pb-3">
+                            <div className="flex items-center justify-between">
+                                <CardTitle className="flex items-center gap-2 text-base">
+                                    <Clock className="h-4 w-4 text-slate-500" />
+                                    Yedek Geçmişi
+                                </CardTitle>
+                                <Button variant="outline" size="sm" onClick={loadBackupHistory} className="gap-1.5">
+                                    <RefreshCw className="h-3 w-3" /> Yenile
+                                </Button>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow className="bg-slate-50/50">
+                                        <TableHead>Tarih</TableHead>
+                                        <TableHead>Tür</TableHead>
+                                        <TableHead>Durum</TableHead>
+                                        <TableHead>Tablolar</TableHead>
+                                        <TableHead>Kayıtlar</TableHead>
+                                        <TableHead>Boyut</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {backupHistory.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={6} className="text-center py-8 text-slate-400">
+                                                <HardDrive className="h-6 w-6 mx-auto mb-2 opacity-40" />
+                                                Henüz yedek kaydı yok
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : (
+                                        backupHistory.map((b) => (
+                                            <TableRow key={b.id}>
+                                                <TableCell className="text-sm">
+                                                    {b.created_at ? format(new Date(b.created_at), 'dd MMM yyyy HH:mm', { locale: tr }) : '-'}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge variant="outline" className={b.backup_type === 'restore' ? 'border-amber-200 text-amber-700 bg-amber-50' : 'border-blue-200 text-blue-700 bg-blue-50'}>
+                                                        {b.backup_type === 'manual' ? 'Manuel' : b.backup_type === 'auto' ? 'Otomatik' : 'Geri Yükleme'}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge variant="outline" className={b.status === 'completed' ? 'border-emerald-200 text-emerald-700 bg-emerald-50' : b.status === 'failed' ? 'border-red-200 text-red-700 bg-red-50' : 'border-slate-200 text-slate-500'}>
+                                                        {b.status === 'completed' ? 'Tamamlandı' : b.status === 'failed' ? 'Başarısız' : 'Devam Ediyor'}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="font-mono text-sm">{b.table_count || '-'}</TableCell>
+                                                <TableCell className="font-mono text-sm">{b.record_count?.toLocaleString('tr-TR') || '-'}</TableCell>
+                                                <TableCell className="text-sm text-slate-500">
+                                                    {b.file_size_bytes ? `${(b.file_size_bytes / 1024 / 1024).toFixed(2)} MB` : '-'}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
+
+                    {/* Restore Section */}
+                    <Card className="border-amber-200 shadow-sm bg-gradient-to-br from-amber-50/30 to-white">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2 text-lg">
+                                <Upload className="h-5 w-5 text-amber-600" />
+                                Yedekten Geri Yükleme
+                            </CardTitle>
+                            <p className="text-sm text-muted-foreground">
+                                Daha önce alınmış bir JSON yedek dosyasını yükleyerek veritabanını geri yükleyebilirsiniz.
+                            </p>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            {/* File Upload */}
+                            <div className="flex items-center gap-4">
+                                <div className="flex-1">
+                                    <Input
+                                        type="file"
+                                        accept=".json"
+                                        className="cursor-pointer"
+                                        onChange={async (e) => {
+                                            const file = e.target.files?.[0]
+                                            if (!file) return
+                                            setRestoreFile(file)
+                                            setRestoreConfirm(false)
+                                            setRestoreConfirmText('')
+                                            
+                                            try {
+                                                const text = await file.text()
+                                                const json = JSON.parse(text)
+                                                if (!json._meta || !json.data) {
+                                                    toast.error('Geçersiz yedek dosyası formatı')
+                                                    setRestorePreview(null)
+                                                    return
+                                                }
+                                                setRestorePreview(json._meta)
+                                            } catch {
+                                                toast.error('JSON dosyası okunamadı')
+                                                setRestorePreview(null)
+                                            }
+                                        }}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Preview */}
+                            {restorePreview && (
+                                <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-3">
+                                    <h4 className="font-semibold text-slate-800 flex items-center gap-2">
+                                        <FileText className="h-4 w-4 text-blue-600" />
+                                        Yedek Dosyası Önizleme
+                                    </h4>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                        <div className="bg-slate-50 rounded-lg p-3 text-center">
+                                            <p className="text-2xl font-bold text-slate-900">{restorePreview.table_count || '?'}</p>
+                                            <p className="text-[10px] text-slate-500 font-medium">Tablo</p>
+                                        </div>
+                                        <div className="bg-slate-50 rounded-lg p-3 text-center">
+                                            <p className="text-2xl font-bold text-slate-900">{restorePreview.total_records?.toLocaleString('tr-TR') || '?'}</p>
+                                            <p className="text-[10px] text-slate-500 font-medium">Kayıt</p>
+                                        </div>
+                                        <div className="bg-slate-50 rounded-lg p-3 text-center">
+                                            <p className="text-sm font-bold text-slate-900">{restorePreview.created_at ? format(new Date(restorePreview.created_at), 'dd MMM yyyy HH:mm', { locale: tr }) : '?'}</p>
+                                            <p className="text-[10px] text-slate-500 font-medium">Yedek Tarihi</p>
+                                        </div>
+                                        <div className="bg-slate-50 rounded-lg p-3 text-center">
+                                            <p className="text-sm font-bold text-slate-900">{restorePreview.created_by || '?'}</p>
+                                            <p className="text-[10px] text-slate-500 font-medium">Oluşturan</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Table list */}
+                                    {restorePreview.tables && (
+                                        <div className="bg-slate-50 rounded-lg p-3">
+                                            <p className="text-xs font-semibold text-slate-500 mb-2">Tablolar:</p>
+                                            <div className="flex flex-wrap gap-1.5">
+                                                {Object.entries(restorePreview.tables).map(([name, count]: [string, any]) => (
+                                                    <Badge key={name} variant="outline" className="text-[10px] bg-white">
+                                                        {name}: {count}
+                                                    </Badge>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Double Confirmation */}
+                                    <div className="bg-red-50 border border-red-200 rounded-lg p-4 space-y-3">
+                                        <div className="flex items-start gap-2">
+                                            <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+                                            <div>
+                                                <p className="text-sm font-bold text-red-800">Dikkat: Bu işlem mevcut verilerin üzerine yazacak!</p>
+                                                <p className="text-xs text-red-600 mt-1">
+                                                    Geri yükleme, yedekteki tablolardaki mevcut kayıtları günceller ve yeni kayıtları ekler.
+                                                    İşlemi onaylamak için aşağıya <strong>GERI YUKLE</strong> yazın.
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <Input
+                                                placeholder='Onaylamak için "GERI YUKLE" yazın'
+                                                value={restoreConfirmText}
+                                                onChange={(e) => {
+                                                    setRestoreConfirmText(e.target.value)
+                                                    setRestoreConfirm(e.target.value === 'GERI YUKLE')
+                                                }}
+                                                className="bg-white border-red-200 max-w-xs"
+                                            />
+                                            <Button
+                                                variant="destructive"
+                                                disabled={!restoreConfirm || restoreLoading || !restoreFile}
+                                                className="gap-2"
+                                                onClick={async () => {
+                                                    if (!restoreFile || !restoreConfirm) return
+                                                    setRestoreLoading(true)
+                                                    try {
+                                                        const text = await restoreFile.text()
+                                                        const json = JSON.parse(text)
+                                                        
+                                                        const res = await fetch('/api/backup/restore', {
+                                                            method: 'POST',
+                                                            headers: { 'Content-Type': 'application/json' },
+                                                            body: JSON.stringify(json),
+                                                        })
+                                                        
+                                                        const result = await res.json()
+                                                        
+                                                        if (!res.ok) {
+                                                            throw new Error(result.error || 'Geri yükleme başarısız')
+                                                        }
+                                                        
+                                                        toast.success(`Geri yükleme tamamlandı: ${result.summary?.tables_restored} tablo, ${result.summary?.total_records} kayıt`)
+                                                        setRestoreFile(null)
+                                                        setRestorePreview(null)
+                                                        setRestoreConfirmText('')
+                                                        setRestoreConfirm(false)
+                                                        loadBackupHistory()
+                                                    } catch (err: any) {
+                                                        toast.error(err.message || 'Geri yükleme hatası')
+                                                    } finally {
+                                                        setRestoreLoading(false)
+                                                    }
+                                                }}
+                                            >
+                                                {restoreLoading ? (
+                                                    <><Loader2 className="h-4 w-4 animate-spin" /> Yükleniyor...</>
+                                                ) : (
+                                                    <><Shield className="h-4 w-4" /> Geri Yükle</>
+                                                )}
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
                 </TabsContent>
             </Tabs>
 

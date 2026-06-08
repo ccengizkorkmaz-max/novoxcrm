@@ -363,3 +363,26 @@ export async function updateTenantAdminInfo(tenantId: string, adminName: string,
     return { success: true }
 }
 
+export async function getBackupHistory() {
+    const isAdmin = await checkSuperAdmin()
+    if (!isAdmin) return { error: 'Unauthorized', history: [] }
+
+    const adminClient = createAdminClient()
+
+    const { data, error } = await adminClient
+        .from('backup_history')
+        .select('*, profiles(full_name)')
+        .order('created_at', { ascending: false })
+        .limit(50)
+
+    if (error) {
+        // Table might not exist yet
+        if (error.code === '42P01' || error.code === 'PGRST205') {
+            return { history: [], error: 'Tablo henüz oluşturulmamış. Migration çalıştırın.' }
+        }
+        return { error: error.message, history: [] }
+    }
+
+    return { history: data || [] }
+}
+
