@@ -8,6 +8,28 @@ export function Footer() {
     const t = useBrandedTranslations('Footer')
     const { brandName, brandDomain } = useBrand()
 
+    if (brandName === 'Oikos CRM') {
+        return (
+            <footer className="bg-[#F4FAF8] border-t border-[#D8F0E8] py-8 px-4 md:px-10 text-gray-500">
+                <div className="max-w-5xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4 text-xs md:text-sm">
+                    <div>
+                        <span className="text-base font-semibold text-[#085041] block mb-1">Oikos CRM</span>
+                        <p className="text-gray-400">© 2025 Oikos · BT Proses Teknoloji bünyesinde</p>
+                    </div>
+                    <div className="flex items-center gap-2 text-gray-400">
+                        <svg width="16" height="16" viewBox="0 0 16 16"><rect width="16" height="16" rx="3.5" fill="#185FA5"></rect><line x1="3" y1="7" x2="7" y2="7" stroke="#378ADD" stroke-width="1.2" stroke-linecap="round"></line><line x1="2" y1="9" x2="7" y2="9" stroke="#378ADD" stroke-width="1.2" stroke-linecap="round"></line><path d="M8.5 9 L12 9" fill="none" stroke="#fff" stroke-width="1.2" stroke-linecap="round"></path><polygon points="12,7 14,9 12,11" fill="#fff"></polygon><circle cx="13" cy="4" r="1.5" fill="#EF9F27"></circle></svg>
+                        <span>BT Proses teknoloji ürünü</span>
+                    </div>
+                    <div className="flex gap-6">
+                        <a className="hover:text-[#085041] cursor-pointer">Gizlilik</a>
+                        <a className="hover:text-[#085041] cursor-pointer">Kullanım şartları</a>
+                        <a className="hover:text-[#085041] cursor-pointer">Destek</a>
+                    </div>
+                </div>
+            </footer>
+        )
+    }
+
     return (
         <footer className="bg-slate-950 text-slate-400 border-t border-slate-900 py-12 md:py-20">
             <div className="container mx-auto px-4">

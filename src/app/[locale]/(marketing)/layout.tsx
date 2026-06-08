@@ -6,6 +6,7 @@ import { Navbar } from '@/components/marketing/Navbar'
 import { getBrandNameFromHost, getHostFromHeaders } from '@/lib/tenant/resolve-brand-from-host'
 import { BrandProvider } from '@/components/providers/BrandProvider'
 import { getCanonicalBaseUrl } from '@/lib/seo-constants'
+import { cn } from '@/lib/utils'
 
 export async function generateMetadata(
     props: { params: Promise<{ locale: string }> }
@@ -62,7 +63,10 @@ export default async function MarketingLayout(props: {
 
     return (
         <BrandProvider brandName={brandName} brandDomain={brandDomain}>
-            <div className="flex min-h-screen flex-col bg-slate-950 font-sans antialiased text-foreground">
+            <div className={cn(
+                "flex min-h-screen flex-col font-sans antialiased text-foreground",
+                brandName === 'Oikos CRM' ? "bg-[#F4FAF8] text-[#1A1A1A]" : "bg-slate-950"
+            )}>
                 <Navbar />
                 <script
                     type="application/ld+json"
