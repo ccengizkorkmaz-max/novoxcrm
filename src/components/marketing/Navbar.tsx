@@ -166,15 +166,12 @@ export function Navbar() {
                 {/* Desktop Actions */}
                 <div className="hidden md:flex items-center gap-4">
                     {isOikos ? (
-                        <LeadCaptureModal
-                            title="Oikos CRM İletişim"
-                            description="Formu doldurun, ekibimiz en kısa sürede sizinle iletişime geçsin."
-                            resourceName="Oikos_Navbar_Contact"
+                        <Button 
+                            className="bg-transparent hover:bg-[#0F6E56] border border-[#5DCAA5] text-[#9FE1CB] hover:text-white rounded-lg px-5 py-2 font-medium text-sm transition-all cursor-pointer"
+                            onClick={() => window.dispatchEvent(new CustomEvent('oikos-open-contact'))}
                         >
-                            <Button className="bg-transparent hover:bg-[#0F6E56] border border-[#5DCAA5] text-[#9FE1CB] hover:text-white rounded-lg px-5 py-2 font-medium text-sm transition-all cursor-pointer">
-                                İletişime geçin
-                            </Button>
-                        </LeadCaptureModal>
+                            İletişime geçin
+                        </Button>
                     ) : (
                         <>
                             <LanguageSwitcher variant="dark" />
@@ -253,15 +250,16 @@ export function Navbar() {
 
                 <div className="mt-auto flex flex-col gap-4">
                     {isOikos ? (
-                        <LeadCaptureModal
-                            title="Oikos CRM İletişim"
-                            description="Formu doldurun, ekibimiz en kısa sürede sizinle iletişime geçsin."
-                            resourceName="MobileNavbar_Oikos_Contact"
+                        <Button 
+                            size="lg" 
+                            className="w-full bg-[#EF9F27] hover:bg-[#FAC775] text-[#412402] font-semibold"
+                            onClick={() => {
+                                setIsMobileMenuOpen(false)
+                                window.dispatchEvent(new CustomEvent('oikos-open-contact'))
+                            }}
                         >
-                            <Button size="lg" className="w-full bg-[#EF9F27] hover:bg-[#FAC775] text-[#412402] font-semibold">
-                                İletişime geçin
-                            </Button>
-                        </LeadCaptureModal>
+                            İletişime geçin
+                        </Button>
                     ) : (
                         <>
                             <Button variant="outline" size="lg" className="w-full border-slate-800 text-white" asChild>

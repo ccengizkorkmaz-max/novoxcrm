@@ -33,20 +33,11 @@ export function Footer() {
                             </p>
                         </div>
 
-                        {/* Çözümler */}
-                        <div>
-                            <h4 className="font-bold text-[#085041] mb-4 text-sm md:text-base">Çözümler</h4>
-                            <ul className="space-y-3 text-xs md:text-sm text-gray-500">
-                                <li><Link href="/solutions/gayrimenkul-crm" className="hover:text-[#085041] transition-colors">Gayrimenkul CRM</Link></li>
-                                <li><Link href="/solutions/insaat-crm" className="hover:text-[#085041] transition-colors">İnşaat CRM</Link></li>
-                                <li><Link href="/payment-plan-calculator" className="hover:text-[#085041] transition-colors">Ödeme Planı Sihirbazı</Link></li>
-                            </ul>
-                        </div>
-
                         {/* Ücretsiz Araçlar */}
                         <div>
                             <h4 className="font-bold text-[#085041] mb-4 text-sm md:text-base">Ücretsiz Araçlar</h4>
                             <ul className="space-y-3 text-xs md:text-sm text-gray-500">
+                                <li><Link href="/payment-plan-calculator" className="hover:text-[#085041] transition-colors">Ödeme Planı Sihirbazı</Link></li>
                                 <li><Link href="/tools/serefiye-hesaplayici" className="hover:text-[#085041] transition-colors">Şerefiye Hesaplayıcı</Link></li>
                                 <li><Link href="/tools/tapu-harci-hesaplayici" className="hover:text-[#085041] transition-colors">Tapu Harcı Hesaplayıcı</Link></li>
                                 <li><Link href="/tools/emlak-vergisi-hesaplayici" className="hover:text-[#085041] transition-colors">Emlak Vergisi Hesaplayıcı</Link></li>
@@ -58,7 +49,7 @@ export function Footer() {
                         <div>
                             <h4 className="font-bold text-[#085041] mb-4 text-sm md:text-base">Kurumsal</h4>
                             <ul className="space-y-3 text-xs md:text-sm text-gray-500">
-                                <li><Link href="/hakkimizda" className="hover:text-[#085041] transition-colors">Hakkımızda</Link></li>
+                                <li><a href="https://btproses.com" target="_blank" rel="noopener noreferrer" className="hover:text-[#085041] transition-colors">Hakkımızda</a></li>
                                 <li><Link href="/wiki" className="hover:text-[#085041] transition-colors">Bilgi Bankası (Wiki)</Link></li>
                                 <li><Link href="/gizlilik-sozlesmesi" className="hover:text-[#085041] transition-colors">Gizlilik Sözleşmesi</Link></li>
                             </ul>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { captureMarketingLead } from '@/app/broker/actions'
 import { toast } from 'sonner'
 
@@ -8,6 +8,13 @@ export function OikosMarketingPage() {
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [isSubmitted, setIsSubmitted] = useState(false)
     const [loading, setLoading] = useState(false)
+
+    // Listen for Navbar's contact button click
+    useEffect(() => {
+        const handler = () => setIsModalOpen(true)
+        window.addEventListener('oikos-open-contact', handler)
+        return () => window.removeEventListener('oikos-open-contact', handler)
+    }, [])
 
     // Form inputs state
     const [formData, setFormData] = useState({
@@ -346,7 +353,7 @@ export function OikosMarketingPage() {
                     </div>
                     <div className="bg-[#F4FAF8] border border-[#D8F0E8] rounded-2xl p-6">
                         <div className="text-2xl mb-3 text-[#085041]">📊</div>
-                        <h3 className="text-base font-semibold text-[#085041] mb-2">Developer odaklı portföy zekâsı</h3>
+                        <h3 className="text-base font-semibold text-[#085041] mb-2">Gayrimenkul geliştirme odaklı portföy zekâsı</h3>
                         <p className="text-xs md:text-sm text-gray-600 leading-relaxed">
                             Yüzlerce bağımsız birimi olan projelerde her müşteriye en uygun birimi önerir, fiyat optimizasyonu yapar, satış hızını artırır.
                         </p>
@@ -472,37 +479,6 @@ export function OikosMarketingPage() {
                 </div>
             </section>
 
-            {/* SOCIAL PROOF */}
-            <section className="py-16 md:py-24 px-4 md:px-10 max-w-5xl mx-auto">
-                <div className="text-xs font-bold text-[#085041] tracking-[0.2em] mb-4">MÜŞTERİ DENEYİMLERİ</div>
-                <h2 className="text-2xl md:text-4xl font-medium text-[#1A1A1A] mb-8">Onlar kullandı, farkı gördü</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="bg-white border border-[#D8F0E8] rounded-2xl p-6 shadow-sm">
-                        <p className="text-sm text-gray-600 leading-relaxed italic mb-4">
-                            "Oikos ile müşteri takibimiz tamamen değişti. AI önerileri sayesinde doğru müşteriyle doğru mülkü buluşturuyorum."
-                        </p>
-                        <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-full bg-[#E1F5EE] text-[#085041] text-xs font-semibold flex items-center justify-center shrink-0">MK</div>
-                            <div>
-                                <div className="text-sm font-semibold text-gray-800">Murat Koç</div>
-                                <div className="text-xs text-gray-400">Gayrimenkul danışmanı · İstanbul</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="bg-white border border-[#D8F0E8] rounded-2xl p-6 shadow-sm">
-                        <p className="text-sm text-gray-600 leading-relaxed italic mb-4">
-                            "Satış tahmin özelliği inanılmaz doğru. Hangi müşteriye ne zaman odaklanacağımı artık AI söylüyor."
-                        </p>
-                        <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-full bg-[#E1F5EE] text-[#085041] text-xs font-semibold flex items-center justify-center shrink-0">EY</div>
-                            <div>
-                                <div className="text-sm font-semibold text-gray-800">Elif Yıldız</div>
-                                <div className="text-xs text-gray-400">Ofis müdürü · Ankara</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
 
             {/* PRICING */}
             <section className="pricing py-16 md:py-24 px-4 md:px-10" id="fiyatlar">
@@ -511,8 +487,8 @@ export function OikosMarketingPage() {
                     <h2 className="text-2xl md:text-4xl font-medium text-[#1A1A1A] mb-8">Ekibinize göre plan seçin</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-10">
                         <div className="bg-white border-2 border-[#D8F0E8] rounded-2xl p-8 relative shadow-sm">
-                            <h3 className="text-lg font-semibold text-gray-800">Başlangıç</h3>
-                            <div className="text-3xl md:text-4xl font-bold text-[#085041] my-4">₺2.490 <span className="text-sm font-normal text-gray-400">/ ay</span></div>
+                            <h3 className="text-lg font-semibold text-gray-800">Oikos</h3>
+                            <div className="text-3xl md:text-4xl font-bold text-[#085041] my-4">₺2.900 <span className="text-sm font-normal text-gray-400">/ ay</span></div>
                             <p className="text-sm text-gray-500 mb-6">Bireysel danışmanlar ve küçük ofisler için</p>
                             <div className="space-y-3">
                                 <div className="flex items-center gap-2 text-sm text-gray-700">✓ 5 kullanıcıya kadar</div>
@@ -529,8 +505,8 @@ export function OikosMarketingPage() {
                         </div>
                         <div className="bg-white border-2 border-[#085041] rounded-2xl p-8 relative shadow-md">
                             <div className="absolute top-4 right-4 bg-[#E1F5EE] text-[#085041] text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">En popüler</div>
-                            <h3 className="text-lg font-semibold text-gray-800">Profesyonel</h3>
-                            <div className="text-3xl md:text-4xl font-bold text-[#085041] my-4">₺5.990 <span className="text-sm font-normal text-gray-400">/ ay</span></div>
+                            <h3 className="text-lg font-semibold text-gray-800">OikosPro</h3>
+                            <div className="text-3xl md:text-4xl font-bold text-[#085041] my-4">₺3.900 <span className="text-sm font-normal text-gray-400">/ ay</span></div>
                             <p className="text-sm text-gray-500 mb-6">Büyüyen ofisler ve ekipler için tam AI gücü</p>
                             <div className="space-y-3">
                                 <div className="flex items-center gap-2 text-sm text-gray-700">✓ Sınırsız kullanıcı</div>
