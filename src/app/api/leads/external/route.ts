@@ -36,6 +36,19 @@ export async function POST(req: Request) {
 
         console.log('External Lead Incoming Body:', JSON.stringify(body, null, 2))
 
+        // 🔍 Diagnostic: Raw payload'ı kaydet (name sorunu debug için)
+        try {
+            await supabase.from('api_debug_logs').insert({
+                endpoint: '/api/leads/external',
+                method: 'POST',
+                payload: body,
+                created_at: new Date().toISOString()
+            })
+        } catch (e) {
+            // Tablo yoksa sessizce geç
+            console.warn('Debug log insert failed (table may not exist):', e)
+        }
+
         // If the payload is wrapped inside a "json" string key (e.g. from Make.com)
         if (body && typeof body.json === 'string') {
             try {
@@ -150,12 +163,28 @@ export async function POST(req: Request) {
         // Final fallback for missing fields - capture from any possible top-level keys
         if (!name) {
             // Try common Facebook Ads field combinations
-            const firstName = body.first_name || body.firstName || body.ad || body.Ad || ''
-            const lastName = body.last_name || body.lastName || body.soyad || body.Soyad || ''
+            // Facebook Lead Ads forms use different field names depending on form config:
+            // Standard: full_name, first_name/last_name
+            // Turkish custom: adi_soyadi, ad_soyad, Ad, Soyad
+            // Make.com might send these as top-level body fields
+            const firstName = body.first_name || body.firstName || body.ad || body.Ad || body.İsim || body.isim || ''
+            const lastName = body.last_name || body.lastName || body.soyad || body.Soyad || body.soyadi || ''
             if (firstName || lastName) {
                 name = `${firstName} ${lastName}`.trim()
             } else {
-                name = body.full_name || body.fullName || body.Ad || body['Ad Soyad'] || body['ad_soyad'] || body.sender_name || body.customer_name || subject || email || 'Yeni Dış Kaynak Adayı'
+                name = body.full_name || body.fullName || body['Full name'] || body['full name'] 
+                    || body.adi_soyadi || body['adi_soyadi'] || body['Ad Soyad'] || body['ad_soyad'] 
+                    || body.Ad || body.sender_name || body.customer_name 
+                    || subject || email || null
+            }
+            
+            // If still no name but we have a phone, use phone as identifier instead of generic fallback
+            if (!name && phone) {
+                name = `FB Lead ${phone}`
+                console.warn('⚠️ Facebook Ads lead geldi ama isim alanı boş! Phone:', phone, '| Body keys:', Object.keys(body).join(', '))
+            } else if (!name) {
+                name = 'Yeni Dış Kaynak Adayı'
+                console.warn('⚠️ Lead geldi ama ne isim ne telefon var! Body:', JSON.stringify(body).substring(0, 300))
             }
         }
         if (!email) email = body.Email || body.eposta || body.sender_email || null
