@@ -200,7 +200,7 @@ export default function SipSettingsTab({ tenant }: SipSettingsTabProps) {
                                             Gelen Arama Durumu
                                         </div>
                                         <p className="text-[11px] text-emerald-600 leading-relaxed">
-                                            ✅ Aktif — 0212 numaranıza gelen aramalar AI asistan (Çiçek) tarafından karşılanıyor.
+                                            ✅ Aktif — 0212 numaranıza gelen aramalar AI asistan (Maya) tarafından karşılanıyor.
                                             Netgsm SIP → Vapi entegrasyonu çalışıyor.
                                         </p>
                                     </div>

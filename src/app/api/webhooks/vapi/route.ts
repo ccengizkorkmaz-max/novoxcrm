@@ -132,11 +132,11 @@ export async function POST(req: NextRequest) {
                     .eq('id', tenant_id)
                     .single()
 
-                const assistantName = tenantData?.ai_assistant_name || 'Çiçek'
+                const assistantName = tenantData?.ai_assistant_name || 'Maya'
                 const assistantGender = tenantData?.ai_assistant_gender || 'female'
                 const voiceId = assistantGender === 'male' 
                     ? 'nPczCjzI2devNBz1zQrb' // Mert (Brian)
-                    : 'uvU9jrgGLWNPeNA4NgNT' // Çiçek (İrem)
+                    : 'uvU9jrgGLWNPeNA4NgNT' // Maya (İrem)
 
                 // Build System Prompt — strict, knowledge-base-only behavior
                 const defaultInboundPrompt = `Sen ${assistantName}, Novo Gayrimenkul'ün sesli asistanısın.

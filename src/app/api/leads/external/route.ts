@@ -410,12 +410,12 @@ export async function POST(req: Request) {
                         console.log(`📞 AI Arama başlatılıyor: ${phone} → ${projectName}`);
 
                         const knowledgeBase = tenantSettings?.ai_knowledge_base || '';
-                        const systemPrompt = `Sen Novo İnşaat için çalışan profesyonel sesli yapay zeka asistanısın. Adın Çiçek.
+                        const systemPrompt = `Sen Novo İnşaat için çalışan profesyonel sesli yapay zeka asistanısın. Adın Maya.
 Müşteri az önce ${projectName} projesi hakkında bir form doldurarak bilgi talep etti. Şimdi onu arıyorsun.
 
 === KONUŞMA AKIŞI ===
 1. GİRİŞ: "${customerName}" diye hitap et. Kendini tanıt.
-   "Merhaba ${customerName}, ben Çiçek, Novo İnşaat'tan arıyorum. ${projectName} projemizle ilgilendiğinizi gördük, kısaca bilgi vermek istiyorum. Uygun musunuz?"
+   "Merhaba ${customerName}, ben Maya, Novo İnşaat'tan arıyorum. ${projectName} projemizle ilgilendiğinizi gördük, kısaca bilgi vermek istiyorum. Uygun musunuz?"
 2. Müşteri uygunsa, proje hakkında KISA bilgi ver (max 2-3 cümle).
 3. İlgileniyorsa satış danışmanına yönlendireceğini söyle ve vedalaş.
 4. İlgilenmiyorsa veya müsait değilse nazikçe vedalaş.
@@ -431,7 +431,7 @@ ${knowledgeBase || 'Proje detayları için satış danışmanına yönlendir.'}
                         const callResult = await makeOutboundCall({
                             phoneNumber: phone,
                             systemPrompt,
-                            firstMessage: `Merhaba ${customerName}, ben Çiçek, Novo İnşaat'tan arıyorum. Nasılsınız?`,
+                            firstMessage: `Merhaba ${customerName}, ben Maya, Novo İnşaat'tan arıyorum. Nasılsınız?`,
                             metadata: {
                                 tenant_id, customer_id: customerId, sale_id: newSale.id,
                                 project_name: projectName, source: 'auto_new_lead'
@@ -679,12 +679,12 @@ ${knowledgeBase || 'Proje detayları için satış danışmanına yönlendir.'}
                 } else if (autoAction === 'ai_call') {
                     console.log(`📞 AI Arama başlatılıyor (Web Form): ${phone} → ${projectName}`)
                     const knowledgeBase = tenantSettings?.ai_knowledge_base || ''
-                    const systemPrompt = `Sen Novo İnşaat için çalışan profesyonel sesli yapay zeka asistanısın. Adın Çiçek.
+                    const systemPrompt = `Sen Novo İnşaat için çalışan profesyonel sesli yapay zeka asistanısın. Adın Maya.
 Müşteri az önce ${projectName} projesi hakkında web sitesinden bilgi talep etti. Şimdi onu arıyorsun.
 
 === KONUŞMA AKIŞI ===
 1. GİRİŞ: "${customerName}" diye hitap et. Kendini tanıt.
-   "Merhaba ${customerName}, ben Çiçek, Novo İnşaat'tan arıyorum. ${projectName} projemizle ilgilendiğinizi gördük, kısaca bilgi vermek istiyorum. Uygun musunuz?"
+   "Merhaba ${customerName}, ben Maya, Novo İnşaat'tan arıyorum. ${projectName} projemizle ilgilendiğinizi gördük, kısaca bilgi vermek istiyorum. Uygun musunuz?"
 2. Müşteri uygunsa, proje hakkında KISA bilgi ver (max 2-3 cümle).
 3. İlgileniyorsa satış danışmanına yönlendireceğini söyle ve vedalaş.
 4. İlgilenmiyorsa veya müsait değilse nazikçe vedalaş.
@@ -700,7 +700,7 @@ ${knowledgeBase || 'Proje detayları için satış danışmanına yönlendir.'}
                     const callResult = await makeOutboundCall({
                         phoneNumber: phone,
                         systemPrompt,
-                        firstMessage: `Merhaba ${customerName}, ben Çiçek, Novo İnşaat'tan arıyorum. Nasılsınız?`,
+                        firstMessage: `Merhaba ${customerName}, ben Maya, Novo İnşaat'tan arıyorum. Nasılsınız?`,
                         metadata: {
                             tenant_id, customer_id: customerId, sale_id: saleId,
                             project_name: projectName, source: 'auto_new_lead_webform'

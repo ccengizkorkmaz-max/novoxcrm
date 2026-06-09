@@ -175,7 +175,7 @@ export async function POST(request: NextRequest) {
     const finalPrompt = `${systemPrompt}\n\n=== CRM BİLGİSİ ===\n${crmContext}`;
 
     const nameWithTitle = getTurkishNameTitle(crmCustomer?.full_name || customerName);
-    const resolvedFirstMessage = customFirstMessage || (nameWithTitle ? `Merhaba ${nameWithTitle}, size Novo İnşaat'tan ulaşıyorum. Ben Çiçek, nasılsınız?` : "Merhaba, size Novo İnşaat'tan ulaşıyorum. Ben Çiçek, nasılsınız?");
+    const resolvedFirstMessage = customFirstMessage || (nameWithTitle ? `Merhaba ${nameWithTitle}, size Novo İnşaat'tan ulaşıyorum. Ben Maya, nasılsınız?` : "Merhaba, size Novo İnşaat'tan ulaşıyorum. Ben Maya, nasılsınız?");
 
     const result = await makeOutboundCall({
       phoneNumber,

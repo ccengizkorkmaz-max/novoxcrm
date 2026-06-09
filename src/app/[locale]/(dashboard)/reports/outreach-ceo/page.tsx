@@ -324,7 +324,7 @@ export default function OutreachCeoReportPage() {
                         <div className="flex gap-3 p-3 rounded-lg bg-indigo-500/5 border border-indigo-500/10">
                             <span className="text-sm font-bold text-indigo-500">1</span>
                             <div>
-                                <h4 className="text-sm font-semibold">AI Telefon Araması (Çiçek)</h4>
+                                <h4 className="text-sm font-semibold">AI Telefon Araması (Maya)</h4>
                                 <p className="text-xs text-muted-foreground mt-0.5">
                                     Yatırım fırsatları tanıtılır. Cevapsız veya meşgul durumunda 30 dk ara ile 1 kez daha denenir.
                                 </p>
