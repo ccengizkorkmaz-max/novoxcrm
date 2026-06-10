@@ -358,6 +358,38 @@ export function SegmentManager({ segments: initialSegments, projects, profiles, 
                         <p className="text-[11px] text-muted-foreground">
                             Hedef kitlenizi doğal dilde tanımlayın, AI filtreleri otomatik oluşturur.
                         </p>
+
+                        {/* Usage Tips */}
+                        <div className="rounded-xl bg-violet-500/5 border border-violet-500/10 p-3.5 space-y-2.5">
+                            <p className="text-[10px] font-bold text-violet-400 uppercase tracking-widest">💡 Örnek Kullanımlar</p>
+                            <div className="space-y-1.5">
+                                {[
+                                    'Son 30 günde gelen İstanbul\'daki premium yatırımcı müşteriler',
+                                    '3+1 arayan, 500K-1M bütçeli aileler',
+                                    '7 gündür takip edilmeyen atanmamış lead\'ler',
+                                    'Avukat veya doktor olan, nakit ödeme yapabilecek müşteriler',
+                                    'Novo Park Vista projesine ilgi gösteren prospect\'ler',
+                                ].map((tip, i) => (
+                                    <button
+                                        key={i}
+                                        type="button"
+                                        onClick={() => setAiPrompt(tip)}
+                                        className="block w-full text-left text-[11px] text-violet-300/70 hover:text-violet-300 hover:bg-violet-500/10 rounded-lg px-2.5 py-1.5 transition-colors cursor-pointer"
+                                    >
+                                        <span className="text-violet-400/50 mr-1.5">→</span>{tip}
+                                    </button>
+                                ))}
+                            </div>
+                            <div className="pt-2 border-t border-violet-500/10">
+                                <p className="text-[10px] font-bold text-violet-400/60 uppercase tracking-widest mb-1.5">🎯 Desteklenen Kriterler</p>
+                                <div className="flex flex-wrap gap-1">
+                                    {['Statü', 'Etiket', 'Şehir', 'Tarih Aralığı', 'Hareketsizlik', 'Bütçe', 'Oda Tipi', 'Meslek', 'Gelir Segmenti', 'Proje', 'Temsilci', 'Atanmamış'].map(c => (
+                                        <span key={c} className="text-[9px] px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-400/60 border border-violet-500/10">{c}</span>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
                         <Textarea
                             value={aiPrompt}
                             onChange={e => setAiPrompt(e.target.value)}
