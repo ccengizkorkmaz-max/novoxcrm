@@ -28,9 +28,15 @@ Kullanılabilir filtre alanları:
   "city": "şehir",                                    // Müşteri şehri
   "profile_data": {                                   // Profil filtreleri
     "occupation": "meslek",
+    "education": "eğitim düzeyi",
     "income_segment": "A+|A|B+|B|C",
     "age_range": "18-25|25-35|35-45|45-55|55-65|65+",
-    "marital_status": "married|single|divorced"
+    "marital_status": "married|single|divorced",
+    "vehicle_info": "araç markası veya modeli (BMW, Mercedes, Audi vb.)",
+    "children_count": sayı,
+    "hobbies": "hobi anahtar kelimesi",
+    "team": "tuttuğu takım (Fenerbahçe, Galatasaray vb.)",
+    "notes_ai": "AI notu içinde geçen anahtar kelime"
   },
   "demand_filters": {                                 // Talep filtreleri
     "room_count": ["1+1", "2+1", "3+1", "4+1", "Villa"],
@@ -56,7 +62,11 @@ KURALLAR:
 8. Oda tipi geçiyorsa demand_filters.room_count kullan
 9. Emin olmadığın alanları EKLEME
 10. Sadece JSON döndür, başka metin ekleme
-11. Segment adı ve açıklama ÖNERMEYİ UNUTMA`
+11. Segment adı ve açıklama ÖNERMEYİ UNUTMA
+12. Araç markası/modeli geçiyorsa profile_data.vehicle_info kullan (örn: "BMW", "Mercedes")
+13. "Evli" = profile_data.marital_status: "married", "Bekar" = "single"
+14. "Çocuklu" = profile_data.children_count: 1 (en az 1 çocuk demek)
+15. Meslek geçiyorsa hem profile_data.occupation hem de uygun tag kullan`
 
 export interface ParsedSegmentFilters {
     source?: string
@@ -173,9 +183,15 @@ function validateFilters(filters: ParsedSegmentFilters): ParsedSegmentFilters {
     if (filters.profile_data && typeof filters.profile_data === 'object') {
         const pd: Record<string, any> = {}
         if (filters.profile_data.occupation) pd.occupation = filters.profile_data.occupation
+        if (filters.profile_data.education) pd.education = filters.profile_data.education
         if (filters.profile_data.income_segment) pd.income_segment = filters.profile_data.income_segment
         if (filters.profile_data.age_range) pd.age_range = filters.profile_data.age_range
         if (filters.profile_data.marital_status) pd.marital_status = filters.profile_data.marital_status
+        if (filters.profile_data.vehicle_info) pd.vehicle_info = filters.profile_data.vehicle_info
+        if (typeof filters.profile_data.children_count === 'number') pd.children_count = filters.profile_data.children_count
+        if (filters.profile_data.hobbies) pd.hobbies = filters.profile_data.hobbies
+        if (filters.profile_data.team) pd.team = filters.profile_data.team
+        if (filters.profile_data.notes_ai) pd.notes_ai = filters.profile_data.notes_ai
         if (Object.keys(pd).length > 0) valid.profile_data = pd
     }
 

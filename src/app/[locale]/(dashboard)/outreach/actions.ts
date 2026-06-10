@@ -107,7 +107,7 @@ export async function previewSegment(filters: any) {
     if (filters.tags?.length) query = query.contains('customers.tags', filters.tags)
     if (filters.city) query = query.ilike('customers.city', `%${filters.city}%`)
 
-    const { data, count } = await query.limit(10)
+    const { data, count } = await query.limit(200)
 
     // Client-side filtering for profile_data and demand_filters (JSONB fields can't be easily filtered in Supabase)
     let filteredData = data || []
@@ -118,8 +118,21 @@ export async function previewSegment(filters: any) {
         filteredData = filteredData.filter((item: any) => {
             const pd = item.customers?.profile_data
             if (!pd) return false
-            for (const [key, value] of Object.entries(filters.profile_data)) {
-                if (pd[key] !== value) return false
+            for (const [key, filterValue] of Object.entries(filters.profile_data)) {
+                const actualValue = pd[key]
+                if (actualValue === undefined || actualValue === null) return false
+                // Numeric comparison (children_count): filter means "at least this many"
+                if (typeof filterValue === 'number') {
+                    if (typeof actualValue !== 'number' || actualValue < filterValue) return false
+                    continue
+                }
+                // String comparison: case-insensitive contains (e.g. "BMW" matches "BMW X5")
+                if (typeof filterValue === 'string' && typeof actualValue === 'string') {
+                    if (!actualValue.toLowerCase().includes(filterValue.toLowerCase())) return false
+                    continue
+                }
+                // Fallback: exact match
+                if (actualValue !== filterValue) return false
             }
             return true
         })

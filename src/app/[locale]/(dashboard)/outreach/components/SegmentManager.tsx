@@ -364,11 +364,11 @@ export function SegmentManager({ segments: initialSegments, projects, profiles, 
                             <p className="text-[10px] font-bold text-violet-400 uppercase tracking-widest">💡 Örnek Kullanımlar</p>
                             <div className="space-y-1.5">
                                 {[
-                                    'Son 30 günde gelen İstanbul\'daki premium yatırımcı müşteriler',
-                                    '3+1 arayan, 500K-1M bütçeli aileler',
+                                    'Son 30 günde gelen evli ve arabası BMW olanlar',
+                                    'İstanbul\'daki premium yatırımcı müşteriler, 3+1 arayan',
                                     '7 gündür takip edilmeyen atanmamış lead\'ler',
-                                    'Avukat veya doktor olan, nakit ödeme yapabilecek müşteriler',
-                                    'Novo Park Vista projesine ilgi gösteren prospect\'ler',
+                                    'Çocuklu avukat aileler, nakit ödeme yapabilecekler',
+                                    'Fenerbahçeli, 35-45 yaş arası, A segmenti müşteriler',
                                 ].map((tip, i) => (
                                     <button
                                         key={i}
@@ -383,7 +383,7 @@ export function SegmentManager({ segments: initialSegments, projects, profiles, 
                             <div className="pt-2 border-t border-violet-500/10">
                                 <p className="text-[10px] font-bold text-violet-400/60 uppercase tracking-widest mb-1.5">🎯 Desteklenen Kriterler</p>
                                 <div className="flex flex-wrap gap-1">
-                                    {['Statü', 'Etiket', 'Şehir', 'Tarih Aralığı', 'Hareketsizlik', 'Bütçe', 'Oda Tipi', 'Meslek', 'Gelir Segmenti', 'Proje', 'Temsilci', 'Atanmamış'].map(c => (
+                                    {['Statü', 'Etiket', 'Şehir', 'Tarih', 'Hareketsizlik', 'Bütçe', 'Oda Tipi', 'Meslek', 'Gelir', 'Araç', 'Medeni Hal', 'Çocuk', 'Yaş', 'Eğitim', 'Takım', 'Hobi', 'Proje', 'Temsilci'].map(c => (
                                         <span key={c} className="text-[9px] px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-400/60 border border-violet-500/10">{c}</span>
                                     ))}
                                 </div>
@@ -498,6 +498,36 @@ export function SegmentManager({ segments: initialSegments, projects, profiles, 
                                     {aiFilters.unassigned && (
                                         <Badge variant="outline" className="text-[10px] bg-rose-50 dark:bg-rose-500/10 border-rose-300 dark:border-rose-500/30 text-rose-700 dark:text-rose-200">
                                             👤 Atanmamış
+                                        </Badge>
+                                    )}
+                                    {aiFilters.profile_data?.vehicle_info && (
+                                        <Badge variant="outline" className="text-[10px] bg-slate-50 dark:bg-slate-500/10 border-slate-300 dark:border-slate-500/30 text-slate-700 dark:text-slate-200">
+                                            🚗 {aiFilters.profile_data.vehicle_info}
+                                        </Badge>
+                                    )}
+                                    {aiFilters.profile_data?.education && (
+                                        <Badge variant="outline" className="text-[10px] bg-indigo-50 dark:bg-indigo-500/10 border-indigo-300 dark:border-indigo-500/30 text-indigo-700 dark:text-indigo-200">
+                                            🎓 {aiFilters.profile_data.education}
+                                        </Badge>
+                                    )}
+                                    {aiFilters.profile_data?.marital_status && (
+                                        <Badge variant="outline" className="text-[10px] bg-pink-50 dark:bg-pink-500/10 border-pink-300 dark:border-pink-500/30 text-pink-700 dark:text-pink-200">
+                                            {aiFilters.profile_data.marital_status === 'married' ? '💍 Evli' : aiFilters.profile_data.marital_status === 'single' ? '👤 Bekar' : '👤 Boşanmış'}
+                                        </Badge>
+                                    )}
+                                    {typeof aiFilters.profile_data?.children_count === 'number' && (
+                                        <Badge variant="outline" className="text-[10px] bg-cyan-50 dark:bg-cyan-500/10 border-cyan-300 dark:border-cyan-500/30 text-cyan-700 dark:text-cyan-200">
+                                            👶 {aiFilters.profile_data.children_count}+ çocuk
+                                        </Badge>
+                                    )}
+                                    {aiFilters.profile_data?.age_range && (
+                                        <Badge variant="outline" className="text-[10px] bg-orange-50 dark:bg-orange-500/10 border-orange-300 dark:border-orange-500/30 text-orange-700 dark:text-orange-200">
+                                            📊 {aiFilters.profile_data.age_range} yaş
+                                        </Badge>
+                                    )}
+                                    {aiFilters.profile_data?.hobbies && (
+                                        <Badge variant="outline" className="text-[10px] bg-lime-50 dark:bg-lime-500/10 border-lime-300 dark:border-lime-500/30 text-lime-700 dark:text-lime-200">
+                                            ⚽ {aiFilters.profile_data.hobbies}
                                         </Badge>
                                     )}
                                 </div>
