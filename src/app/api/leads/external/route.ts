@@ -138,7 +138,7 @@ export async function POST(req: Request) {
                 bodyMessage.includes('Seçilen Proje:') ||
                 bodyMessage.includes('KVKK') ||
                 bodyMessage.includes('Telefon Numarası:')
-            
+
             if (!hasWebFormSignature) {
                 console.log('⛔ Email rejected — no web form signature detected. Subject:', subject)
                 return NextResponse.json({
@@ -172,12 +172,12 @@ export async function POST(req: Request) {
             if (firstName || lastName) {
                 name = `${firstName} ${lastName}`.trim()
             } else {
-                name = body.full_name || body.fullName || body['Full name'] || body['full name'] 
-                    || body.adi_soyadi || body['adi_soyadi'] || body['Ad Soyad'] || body['ad_soyad'] 
-                    || body.Ad || body.sender_name || body.customer_name 
+                name = body.full_name || body.fullName || body['Full name'] || body['full name']
+                    || body.adi_soyadi || body['adi_soyadi'] || body['Ad Soyad'] || body['ad_soyad']
+                    || body.Ad || body.sender_name || body.customer_name
                     || subject || email || null
             }
-            
+
             // If still no name but we have a phone, use phone as identifier instead of generic fallback
             if (!name && phone) {
                 name = `FB Lead ${phone}`
@@ -208,7 +208,7 @@ export async function POST(req: Request) {
         if (projectSearchTerm && tenant_id) {
             // Try exact-ish match first with each word
             const searchTerms = projectSearchTerm.split(/\s+/).filter((w: string) => w.length > 2)
-            
+
             // Try full term first
             const { data: project } = await supabase
                 .from('projects')
@@ -366,7 +366,7 @@ export async function POST(req: Request) {
                         .single();
 
                     // New field takes priority, fallback to old wa_auto_template_enabled
-                    const autoAction = tenantSettings?.auto_action_on_new_lead 
+                    const autoAction = tenantSettings?.auto_action_on_new_lead
                         || (tenantSettings?.wa_auto_template_enabled ? 'whatsapp' : 'none');
 
                     // Proje adını bul (tüm aksiyonlar için ortak)
@@ -641,7 +641,7 @@ ${knowledgeBase || 'Proje detayları için satış danışmanına yönlendir.'}
                     .eq('id', tenant_id)
                     .single()
 
-                const autoAction = tenantSettings?.auto_action_on_new_lead 
+                const autoAction = tenantSettings?.auto_action_on_new_lead
                     || (tenantSettings?.wa_auto_template_enabled ? 'whatsapp' : 'none')
 
                 let projectName = 'Novo'
