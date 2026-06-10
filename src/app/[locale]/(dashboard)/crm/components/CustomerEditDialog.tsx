@@ -1,8 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
-import { useParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -15,7 +13,7 @@ import {
 } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from '@/components/ui/textarea'
-import { updateCustomer, createCustomer, getSurveyTemplates, sendSurveyToCustomer, getCustomerSurveyHistory } from '../actions'
+import { updateCustomer, createCustomer } from '../actions'
 import { toast } from 'sonner'
 import CustomerDemands from './CustomerDemands'
 import CustomerProfileTab from './CustomerProfileTab'
@@ -49,31 +47,7 @@ interface CustomerEditDialogProps {
 
 export function CustomerEditDialog({ customer, isOpen, onOpenChange }: CustomerEditDialogProps) {
     const t = useTranslations('Customers')
-    const { locale } = useParams()
-    const [surveys, setSurveys] = useState<{ id: string; title: string }[]>([])
-    const [sentSurveys, setSentSurveys] = useState<any[]>([])
-
     const isCreateMode = !customer
-
-    useEffect(() => {
-        if (isOpen && customer) {
-            getSurveyTemplates().then((data: any) => setSurveys(data?.map((s: any) => ({ id: s.id, title: s.title })) || []))
-            getCustomerSurveyHistory(customer.id).then(setSentSurveys)
-        }
-    }, [isOpen, customer])
-
-    const handleSendSurvey = async (templateId: string) => {
-        if (!customer) return
-        const result = await sendSurveyToCustomer(templateId, customer.id)
-        if (result?.error) {
-            toast.error(result.error)
-        } else if (result?.slug) {
-            const surveyUrl = `${window.location.origin}/${locale}/s/${result.slug}`
-            await navigator.clipboard?.writeText(surveyUrl).catch(() => {})
-            toast.success('Anket linki oluşturuldu ve kopyalandı!')
-            getCustomerSurveyHistory(customer.id).then(setSentSurveys)
-        }
-    }
 
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -193,9 +167,6 @@ export function CustomerEditDialog({ customer, isOpen, onOpenChange }: CustomerE
                                     initialTags={customer.tags || []}
                                     initialProfileData={customer.profile_data || {}}
                                     onClose={() => onOpenChange(false)}
-                                    surveys={surveys}
-                                    sentSurveys={sentSurveys}
-                                    onSendSurvey={handleSendSurvey}
                                 />
                             </TabsContent>
                         </>
