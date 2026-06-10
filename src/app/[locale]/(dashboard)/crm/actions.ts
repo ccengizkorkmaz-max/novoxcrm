@@ -256,6 +256,35 @@ export async function createCustomer(formData: FormData) {
                 priority: 'Medium'
             })
         }
+
+        // Save profile data and tags if provided (from InlineProfileFields component)
+        const tagsJson = formData.get('tags_json') as string
+        const profileDataJson = formData.get('profile_data_json') as string
+        
+        if (tagsJson || profileDataJson) {
+            const profileUpdate: Record<string, any> = {}
+            
+            try {
+                const parsedTags = tagsJson ? JSON.parse(tagsJson) : []
+                if (Array.isArray(parsedTags) && parsedTags.length > 0) {
+                    profileUpdate.tags = parsedTags
+                }
+            } catch {}
+            
+            try {
+                const parsedProfile = profileDataJson ? JSON.parse(profileDataJson) : {}
+                if (typeof parsedProfile === 'object' && Object.keys(parsedProfile).length > 0) {
+                    profileUpdate.profile_data = parsedProfile
+                }
+            } catch {}
+            
+            if (Object.keys(profileUpdate).length > 0) {
+                await adminSupabase
+                    .from('customers')
+                    .update(profileUpdate)
+                    .eq('id', data.id)
+            }
+        }
     }
 
     // Notification: new customer added

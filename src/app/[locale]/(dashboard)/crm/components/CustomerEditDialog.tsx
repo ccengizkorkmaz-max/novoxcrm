@@ -17,6 +17,7 @@ import { updateCustomer, createCustomer } from '../actions'
 import { toast } from 'sonner'
 import CustomerDemands from './CustomerDemands'
 import CustomerProfileTab from './CustomerProfileTab'
+import InlineProfileFields from './InlineProfileFields'
 
 export interface Customer {
     id: string
@@ -64,10 +65,10 @@ export function CustomerEditDialog({ customer, isOpen, onOpenChange }: CustomerE
                 </DialogHeader>
                 <Tabs defaultValue="details" className="w-full flex-1 flex flex-col min-h-0">
                     <div className="px-4 sm:px-6 py-2 shrink-0 border-b">
-                        <TabsList className={`grid w-full ${isCreateMode ? 'grid-cols-1' : 'grid-cols-3'}`}>
+                        <TabsList className={`grid w-full ${isCreateMode ? 'grid-cols-2' : 'grid-cols-3'}`}>
                             <TabsTrigger value="details">{t('tabs.details')}</TabsTrigger>
                             {!isCreateMode && <TabsTrigger value="demands">{t('tabs.demands')}</TabsTrigger>}
-                            {!isCreateMode && <TabsTrigger value="profile">Profil</TabsTrigger>}
+                            <TabsTrigger value="profile">Profil</TabsTrigger>
                         </TabsList>
                     </div>
                     <TabsContent value="details" forceMount={true} className="flex-1 min-h-0 data-[state=inactive]:hidden flex flex-col">
@@ -170,6 +171,13 @@ export function CustomerEditDialog({ customer, isOpen, onOpenChange }: CustomerE
                                 />
                             </TabsContent>
                         </>
+                    )}
+                    {isCreateMode && (
+                        <TabsContent value="profile" forceMount={true} className="flex-1 min-h-0 data-[state=inactive]:hidden flex flex-col">
+                            <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4">
+                                <InlineProfileFields />
+                            </div>
+                        </TabsContent>
                     )}
                 </Tabs>
             </DialogContent>

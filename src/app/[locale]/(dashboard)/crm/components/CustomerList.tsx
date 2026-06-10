@@ -40,6 +40,7 @@ import { CustomerImportDialog } from '@/components/customers/customer-import-dia
 import { CustomerEditDialog, type Customer } from './CustomerEditDialog'
 import { MergeDuplicatesDialog } from './MergeDuplicatesDialog'
 import { ActivityForm } from '@/components/activities/activity-form'
+import InlineProfileFields from './InlineProfileFields'
 import { toast } from 'sonner'
 import { useRouter, useSearchParams } from 'next/navigation'
 
@@ -498,12 +499,15 @@ export default function CustomerList({
                                     </div>
 
                                     <Tabs defaultValue="general" className="w-full">
-                                        <TabsList className={cn("grid w-full mb-5 bg-slate-100 p-1 rounded-xl", customerType === 'corporate' ? "grid-cols-3" : "grid-cols-2")}>
+                                        <TabsList className={cn("grid w-full mb-5 bg-slate-100 p-1 rounded-xl", customerType === 'corporate' ? "grid-cols-3" : "grid-cols-3")}>
                                             <TabsTrigger value="general" className="rounded-lg font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">{t('tabs.details')}</TabsTrigger>
                                             {customerType === 'corporate' && (
                                                 <TabsTrigger value="company" className="rounded-lg font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">Firma Bilgileri</TabsTrigger>
                                             )}
                                             <TabsTrigger value="demands" className="rounded-lg font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">{t('tabs.demands')}</TabsTrigger>
+                                            {customerType === 'individual' && (
+                                                <TabsTrigger value="profile" className="rounded-lg font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">Profil</TabsTrigger>
+                                            )}
                                         </TabsList>
                                         <TabsContent value="general" forceMount={true} className="data-[state=inactive]:hidden space-y-3">
                                             <div className="grid grid-cols-3 gap-4">
@@ -648,6 +652,11 @@ export default function CustomerList({
                                                 <Textarea name="notes" placeholder={t('form.notesPlaceholder')} className="bg-slate-50 border-slate-200 rounded-xl resize-none min-h-[70px]" />
                                             </div>
                                         </TabsContent>
+                                        {customerType === 'individual' && (
+                                            <TabsContent value="profile" forceMount={true} className="data-[state=inactive]:hidden space-y-4">
+                                                <InlineProfileFields />
+                                            </TabsContent>
+                                        )}
                                     </Tabs>
                                 </div>
                                 <DialogFooter className="p-5 bg-slate-50 border-t border-slate-100">
