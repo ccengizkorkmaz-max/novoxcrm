@@ -1,6 +1,8 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
+import { useParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -13,9 +15,10 @@ import {
 } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from '@/components/ui/textarea'
-import { updateCustomer } from '../actions'
+import { updateCustomer, getSurveyTemplates, sendSurveyToCustomer, getCustomerSurveyHistory } from '../actions'
 import { toast } from 'sonner'
 import CustomerDemands from './CustomerDemands'
+import CustomerProfileTab from './CustomerProfileTab'
 
 export interface Customer {
     id: string
@@ -34,6 +37,8 @@ export interface Customer {
     created_at: string
     customer_demands?: any[]
     contract_customers?: any[]
+    profile_data?: Record<string, any>
+    tags?: string[]
 }
 
 interface CustomerEditDialogProps {
@@ -44,6 +49,29 @@ interface CustomerEditDialogProps {
 
 export function CustomerEditDialog({ customer, isOpen, onOpenChange }: CustomerEditDialogProps) {
     const t = useTranslations('Customers')
+    const { locale } = useParams()
+    const [surveys, setSurveys] = useState<{ id: string; title: string }[]>([])
+    const [sentSurveys, setSentSurveys] = useState<any[]>([])
+
+    useEffect(() => {
+        if (isOpen && customer) {
+            getSurveyTemplates().then((data: any) => setSurveys(data?.map((s: any) => ({ id: s.id, title: s.title })) || []))
+            getCustomerSurveyHistory(customer.id).then(setSentSurveys)
+        }
+    }, [isOpen, customer])
+
+    const handleSendSurvey = async (templateId: string) => {
+        if (!customer) return
+        const result = await sendSurveyToCustomer(templateId, customer.id)
+        if (result?.error) {
+            toast.error(result.error)
+        } else if (result?.slug) {
+            const surveyUrl = `${window.location.origin}/${locale}/s/${result.slug}`
+            await navigator.clipboard?.writeText(surveyUrl).catch(() => {})
+            toast.success('Anket linki oluşturuldu ve kopyalandı!')
+            getCustomerSurveyHistory(customer.id).then(setSentSurveys)
+        }
+    }
 
     if (!customer) return null
 
@@ -62,9 +90,10 @@ export function CustomerEditDialog({ customer, isOpen, onOpenChange }: CustomerE
                 </DialogHeader>
                 <Tabs defaultValue="details" className="w-full flex-1 flex flex-col min-h-0">
                     <div className="px-4 sm:px-6 py-2 shrink-0 border-b">
-                        <TabsList className="grid w-full grid-cols-2">
+                        <TabsList className="grid w-full grid-cols-3">
                             <TabsTrigger value="details">{t('tabs.details')}</TabsTrigger>
                             <TabsTrigger value="demands">{t('tabs.demands')}</TabsTrigger>
+                            <TabsTrigger value="profile">Profil</TabsTrigger>
                         </TabsList>
                     </div>
                     <TabsContent value="details" forceMount={true} className="flex-1 min-h-0 data-[state=inactive]:hidden flex flex-col">
@@ -142,6 +171,17 @@ export function CustomerEditDialog({ customer, isOpen, onOpenChange }: CustomerE
                             customerId={customer.id}
                             demand={Array.isArray(customer.customer_demands) ? customer.customer_demands[0] : customer.customer_demands}
                             onClose={() => onOpenChange(false)}
+                        />
+                    </TabsContent>
+                    <TabsContent value="profile" forceMount={true} className="flex-1 min-h-0 data-[state=inactive]:hidden flex flex-col">
+                        <CustomerProfileTab
+                            customerId={customer.id}
+                            initialTags={customer.tags || []}
+                            initialProfileData={customer.profile_data || {}}
+                            onClose={() => onOpenChange(false)}
+                            surveys={surveys}
+                            sentSurveys={sentSurveys}
+                            onSendSurvey={handleSendSurvey}
                         />
                     </TabsContent>
                 </Tabs>

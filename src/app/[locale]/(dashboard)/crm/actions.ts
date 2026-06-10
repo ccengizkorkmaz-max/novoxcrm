@@ -2278,3 +2278,396 @@ export async function syncCallResult(callId: string) {
         return { error: err.message || 'Sync hatası' }
     }
 }
+
+// =====================================================
+// CUSTOMER PROFILING & SEGMENTATION
+// =====================================================
+
+export async function updateCustomerProfile(
+    customerId: string,
+    profileData: Record<string, any>,
+    tags: string[]
+) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Not authenticated' }
+
+    const { error } = await supabase
+        .from('customers')
+        .update({
+            profile_data: profileData,
+            tags: tags
+        })
+        .eq('id', customerId)
+
+    if (error) {
+        console.error('Update Customer Profile Error:', error)
+        return { error: 'Profil güncellenemedi: ' + error.message }
+    }
+
+    revalidatePath('/crm')
+    return { success: true }
+}
+
+export async function parseCustomerNote(customerId: string, note: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Not authenticated' }
+
+    try {
+        const { default: OpenAI } = await import('openai')
+        const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+
+        const response = await openai.chat.completions.create({
+            model: 'gpt-4o-mini',
+            temperature: 0.1,
+            response_format: { type: 'json_object' },
+            messages: [
+                {
+                    role: 'system',
+                    content: `Sen bir gayrimenkul CRM asistanısın. Sana verilen serbest metin notundan müşteri profil bilgilerini çıkar.
+
+JSON formatında döndür:
+{
+  "tags": ["tag1", "tag2"],
+  "profile_data": {
+    "occupation": "meslek",
+    "education": "üniversite/eğitim",
+    "marital_status": "married|single|divorced",
+    "children_count": sayı veya null,
+    "vehicle_info": "marka model",
+    "team": "takım",
+    "income_segment": "A+|A|B+|B|C",
+    "age_range": "18-25|25-35|35-45|45-55|55-65|65+",
+    "hobbies": "hobi1, hobi2"
+  }
+}
+
+Tag seçenekleri: Premium, Orta-Üst, Orta, Ekonomik, Yatırımcı, Oturum, Tatil, Çocuk İçin, Aile, Bekar, Çift, Nakit, Kredi, Taksit, Takas, Doktor, Avukat, Mühendis, İşadamı, Memur, Emekli, Serbest Meslek, SUV, Lüks Sedan, Ekonomik Araç, Araç Yok
+
+Sadece metinde geçen veya güçlü çıkarım yapılabilen bilgileri doldur. Emin olmadığın alanları boş bırak. Gelir segmentini araç, meslek ve genel ifadelerden çıkar.`
+                },
+                {
+                    role: 'user',
+                    content: note
+                }
+            ]
+        })
+
+        const content = response.choices[0]?.message?.content
+        if (!content) return { error: 'AI yanıt vermedi.' }
+
+        const parsed = JSON.parse(content)
+
+        // Auto-save parsed data to customer
+        const { data: existing } = await supabase
+            .from('customers')
+            .select('profile_data, tags')
+            .eq('id', customerId)
+            .single()
+
+        const mergedProfileData = {
+            ...(existing?.profile_data || {}),
+            ...parsed.profile_data,
+            notes_ai: note
+        }
+        // Remove null/empty values from parsed
+        Object.keys(mergedProfileData).forEach(key => {
+            if (mergedProfileData[key] === null || mergedProfileData[key] === '') {
+                delete mergedProfileData[key]
+            }
+        })
+
+        const mergedTags = [...new Set([...(existing?.tags || []), ...(parsed.tags || [])])]
+
+        await supabase
+            .from('customers')
+            .update({
+                profile_data: mergedProfileData,
+                tags: mergedTags
+            })
+            .eq('id', customerId)
+
+        revalidatePath('/crm')
+        return { success: true, parsed }
+    } catch (err: any) {
+        console.error('Parse Customer Note Error:', err)
+        return { error: 'AI analiz hatası: ' + err.message }
+    }
+}
+
+// =====================================================
+// SURVEY MODULE
+// =====================================================
+
+export async function getSurveyTemplates() {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return []
+
+    const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single()
+    if (!profile?.tenant_id) return []
+
+    const { data, error } = await supabase
+        .from('survey_templates')
+        .select('*')
+        .eq('tenant_id', profile.tenant_id)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+
+    if (error) {
+        console.error('Get Survey Templates Error:', error)
+        return []
+    }
+    return data || []
+}
+
+export async function createSurveyTemplate(title: string, description: string, questions: any[]) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Not authenticated' }
+
+    const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single()
+    if (!profile?.tenant_id) return { error: 'Tenant not found' }
+
+    const { data, error } = await supabase
+        .from('survey_templates')
+        .insert({
+            tenant_id: profile.tenant_id,
+            title,
+            description,
+            questions,
+            created_by: user.id
+        })
+        .select()
+        .single()
+
+    if (error) {
+        console.error('Create Survey Template Error:', error)
+        return { error: 'Anket oluşturulamadı: ' + error.message }
+    }
+
+    revalidatePath('/crm/surveys')
+    return { success: true, template: data }
+}
+
+export async function updateSurveyTemplate(id: string, title: string, description: string, questions: any[]) {
+    const supabase = await createClient()
+
+    const { error } = await supabase
+        .from('survey_templates')
+        .update({ title, description, questions, updated_at: new Date().toISOString() })
+        .eq('id', id)
+
+    if (error) return { error: error.message }
+
+    revalidatePath('/crm/surveys')
+    return { success: true }
+}
+
+export async function deleteSurveyTemplate(id: string) {
+    const supabase = await createClient()
+
+    const { error } = await supabase
+        .from('survey_templates')
+        .update({ is_active: false })
+        .eq('id', id)
+
+    if (error) return { error: error.message }
+
+    revalidatePath('/crm/surveys')
+    return { success: true }
+}
+
+export async function sendSurveyToCustomer(templateId: string, customerId: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Not authenticated' }
+
+    const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single()
+    if (!profile?.tenant_id) return { error: 'Tenant not found' }
+
+    // Generate unique slug
+    const slug = Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10)
+
+    const { data, error } = await supabase
+        .from('survey_responses')
+        .insert({
+            tenant_id: profile.tenant_id,
+            template_id: templateId,
+            customer_id: customerId,
+            slug,
+            status: 'pending',
+            sent_via: 'manual'
+        })
+        .select()
+        .single()
+
+    if (error) {
+        console.error('Send Survey Error:', error)
+        return { error: 'Anket gönderilemedi: ' + error.message }
+    }
+
+    revalidatePath('/crm')
+    return { success: true, slug: data.slug }
+}
+
+export async function getPublicSurvey(slug: string) {
+    const { createAdminClient } = await import('@/lib/supabase/admin')
+    const supabase = createAdminClient()
+
+    const { data: response, error } = await supabase
+        .from('survey_responses')
+        .select('*, survey_templates(*)')
+        .eq('slug', slug)
+        .eq('status', 'pending')
+        .maybeSingle()
+
+    if (error || !response) return null
+    return response
+}
+
+export async function submitSurveyResponse(slug: string, answers: Record<string, any>) {
+    const { createAdminClient } = await import('@/lib/supabase/admin')
+    const supabase = createAdminClient()
+
+    // Get the response record
+    const { data: response, error: fetchError } = await supabase
+        .from('survey_responses')
+        .select('*, survey_templates(questions)')
+        .eq('slug', slug)
+        .maybeSingle()
+
+    if (fetchError || !response) return { error: 'Anket bulunamadı.' }
+    if (response.status === 'completed') return { error: 'Bu anket zaten yanıtlanmış.' }
+
+    // Update response
+    const { error } = await supabase
+        .from('survey_responses')
+        .update({
+            answers,
+            status: 'completed',
+            completed_at: new Date().toISOString()
+        })
+        .eq('slug', slug)
+
+    if (error) return { error: 'Yanıtlar kaydedilemedi.' }
+
+    // Auto-sync to customer profile
+    await syncSurveyToCustomerProfile(response.customer_id, answers, response.survey_templates?.questions || [])
+
+    return { success: true }
+}
+
+async function syncSurveyToCustomerProfile(customerId: string, answers: Record<string, any>, questions: any[]) {
+    const { createAdminClient } = await import('@/lib/supabase/admin')
+    const supabase = createAdminClient()
+
+    // Get existing profile
+    const { data: customer } = await supabase
+        .from('customers')
+        .select('profile_data, tags')
+        .eq('id', customerId)
+        .single()
+
+    const profileData = { ...(customer?.profile_data || {}) }
+    const tags = [...(customer?.tags || [])]
+
+    // Map common question labels to profile fields
+    const fieldMap: Record<string, string> = {
+        'mesleğiniz': 'occupation',
+        'meslek': 'occupation',
+        'medeni durumunuz': 'marital_status',
+        'medeni durum': 'marital_status',
+        'çocuk sayınız': 'children_count',
+        'çocuk sayısı': 'children_count',
+        'aracınız': 'vehicle_info',
+        'araç': 'vehicle_info',
+        'satın alma amacınız': 'investment_purpose',
+        'ödeme tercihiniz': 'payment_preference',
+        'mezun olduğunuz üniversite': 'education',
+        'üniversite': 'education',
+        'eğitim': 'education',
+    }
+
+    // Tag-worthy answer values
+    const tagMap: Record<string, string> = {
+        'oturum': 'Oturum',
+        'yatırım': 'Yatırımcı',
+        'tatil': 'Tatil',
+        'çocuk için': 'Çocuk İçin',
+        'nakit': 'Nakit',
+        'banka kredisi': 'Kredi',
+        'taksitli': 'Taksit',
+        'takas': 'Takas',
+        'doktor': 'Doktor',
+        'avukat': 'Avukat',
+        'mühendis': 'Mühendis',
+        'işadamı': 'İşadamı',
+        'memur': 'Memur',
+        'serbest meslek': 'Serbest Meslek',
+        'emekli': 'Emekli',
+        'suv/jeep': 'SUV',
+        'sedan lüks': 'Lüks Sedan',
+        'sedan ekonomik': 'Ekonomik Araç',
+        'evli': 'Aile',
+        'bekar': 'Bekar',
+    }
+
+    for (const q of questions) {
+        const answer = answers[q.id]
+        if (!answer) continue
+
+        const labelLower = (q.label || '').toLowerCase().trim()
+        const answerLower = String(answer).toLowerCase().trim()
+
+        // Map to profile field
+        const profileField = fieldMap[labelLower]
+        if (profileField) {
+            if (profileField === 'children_count') {
+                profileData[profileField] = parseInt(answer) || 0
+            } else if (profileField === 'marital_status') {
+                profileData[profileField] = answerLower === 'evli' ? 'married' : answerLower === 'bekar' ? 'single' : answer
+            } else {
+                profileData[profileField] = answer
+            }
+        }
+
+        // Map to tags
+        const tagValue = tagMap[answerLower]
+        if (tagValue && !tags.includes(tagValue)) {
+            tags.push(tagValue)
+        }
+    }
+
+    profileData.survey_synced_at = new Date().toISOString()
+
+    await supabase
+        .from('customers')
+        .update({ profile_data: profileData, tags })
+        .eq('id', customerId)
+
+    // Mark as synced
+    await supabase
+        .from('survey_responses')
+        .update({ synced_to_profile: true })
+        .eq('customer_id', customerId)
+        .eq('status', 'completed')
+        .eq('synced_to_profile', false)
+}
+
+export async function getCustomerSurveyHistory(customerId: string) {
+    const supabase = await createClient()
+
+    const { data, error } = await supabase
+        .from('survey_responses')
+        .select('id, status, sent_at, completed_at, template_id, survey_templates(title)')
+        .eq('customer_id', customerId)
+        .order('sent_at', { ascending: false })
+
+    if (error) return []
+    return (data || []).map((sr: any) => ({
+        ...sr,
+        template_title: sr.survey_templates?.title || 'Anket'
+    }))
+}
