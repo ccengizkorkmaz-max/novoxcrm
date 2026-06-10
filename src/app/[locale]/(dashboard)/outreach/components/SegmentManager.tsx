@@ -350,18 +350,18 @@ export function SegmentManager({ segments: initialSegments, projects, profiles, 
                     </Card>
 
                     {/* AI Segment Builder */}
-                    <Card className="p-5 space-y-4 border-violet-500/20 bg-gradient-to-b from-violet-500/5 to-transparent">
+                    <Card className="p-5 space-y-4 border-slate-200 bg-white">
                         <h2 className="font-semibold text-sm flex items-center gap-2">
-                            <Sparkles className="h-4 w-4 text-violet-400" />
+                            <Sparkles className="h-4 w-4 text-amber-500" />
                             AI ile Segment Oluştur
                         </h2>
-                        <p className="text-[11px] text-muted-foreground">
+                        <p className="text-[11px] text-slate-500">
                             Hedef kitlenizi doğal dilde tanımlayın, AI filtreleri otomatik oluşturur.
                         </p>
 
                         {/* Usage Tips */}
-                        <div className="rounded-xl bg-violet-500/5 border border-violet-500/10 p-3.5 space-y-2.5">
-                            <p className="text-[10px] font-bold text-violet-400 uppercase tracking-widest">💡 Örnek Kullanımlar</p>
+                        <div className="rounded-xl bg-slate-50 border border-slate-200 p-3.5 space-y-2.5">
+                            <p className="text-[10px] font-bold text-slate-700 uppercase tracking-widest">💡 Örnek Kullanımlar</p>
                             <div className="space-y-1.5">
                                 {[
                                     'Son 30 günde gelen evli ve arabası BMW olanlar',
@@ -374,17 +374,17 @@ export function SegmentManager({ segments: initialSegments, projects, profiles, 
                                         key={i}
                                         type="button"
                                         onClick={() => setAiPrompt(tip)}
-                                        className="block w-full text-left text-[11px] text-violet-300/70 hover:text-violet-300 hover:bg-violet-500/10 rounded-lg px-2.5 py-1.5 transition-colors cursor-pointer"
+                                        className="block w-full text-left text-[11px] text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg px-2.5 py-1.5 transition-colors cursor-pointer"
                                     >
-                                        <span className="text-violet-400/50 mr-1.5">→</span>{tip}
+                                        <span className="text-slate-400 mr-1.5">→</span>{tip}
                                     </button>
                                 ))}
                             </div>
-                            <div className="pt-2 border-t border-violet-500/10">
-                                <p className="text-[10px] font-bold text-violet-400/60 uppercase tracking-widest mb-1.5">🎯 Desteklenen Kriterler</p>
+                            <div className="pt-2 border-t border-slate-200">
+                                <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-1.5">🎯 Desteklenen Kriterler</p>
                                 <div className="flex flex-wrap gap-1">
                                     {['Statü', 'Etiket', 'Şehir', 'Tarih', 'Hareketsizlik', 'Bütçe', 'Oda Tipi', 'Meslek', 'Gelir', 'Araç', 'Medeni Hal', 'Çocuk', 'Yaş', 'Eğitim', 'Takım', 'Hobi', 'Proje', 'Temsilci'].map(c => (
-                                        <span key={c} className="text-[9px] px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-400/60 border border-violet-500/10">{c}</span>
+                                        <span key={c} className="text-[9px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 font-medium">{c}</span>
                                     ))}
                                 </div>
                             </div>
@@ -394,7 +394,7 @@ export function SegmentManager({ segments: initialSegments, projects, profiles, 
                             value={aiPrompt}
                             onChange={e => setAiPrompt(e.target.value)}
                             placeholder="Örn: Son 30 günde gelen İstanbul'daki premium yatırımcı müşteriler, 3+1 arayan, 500K-1M bütçeli..."
-                            className="min-h-[80px] text-xs resize-none border-violet-500/20 focus:border-violet-500/40"
+                            className="min-h-[80px] text-xs resize-none border-slate-200 focus:border-slate-400"
                         />
                         <Button
                             type="button"
@@ -435,7 +435,7 @@ export function SegmentManager({ segments: initialSegments, projects, profiles, 
                                 setAiParsing(false)
                             }}
                             disabled={aiParsing || !aiPrompt.trim()}
-                            className="w-full gap-2 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-xs font-bold"
+                            className="w-full gap-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold"
                         >
                             {aiParsing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
                             {aiParsing ? 'AI Analiz Ediyor...' : 'AI ile Filtrele'}
@@ -447,11 +447,11 @@ export function SegmentManager({ segments: initialSegments, projects, profiles, 
 
                         {/* AI Parsed Filters Display */}
                         {aiFilters && (
-                            <div className="space-y-2 pt-2 border-t border-violet-500/20">
-                                <p className="text-[10px] font-bold text-violet-600 dark:text-violet-300 uppercase tracking-widest">AI Önerisi</p>
+                            <div className="space-y-2 pt-2 border-t border-slate-200">
+                                <p className="text-[10px] font-bold text-slate-700 uppercase tracking-widest">AI Önerisi</p>
                                 <div className="flex flex-wrap gap-1.5">
                                     {aiFilters.statuses?.map(s => (
-                                        <Badge key={s} variant="outline" className="text-[10px] bg-violet-50 dark:bg-violet-500/10 border-violet-300 dark:border-violet-500/30 text-violet-700 dark:text-violet-200">
+                                        <Badge key={s} variant="outline" className="text-[10px] bg-indigo-50 border-indigo-200 text-indigo-800">
                                             📊 {s}
                                         </Badge>
                                     ))}
