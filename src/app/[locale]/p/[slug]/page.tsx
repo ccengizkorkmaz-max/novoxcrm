@@ -1,7 +1,9 @@
 import { unstable_noStore as noStore } from 'next/cache'
 import { getAgentPublicProfile } from './actions'
+import { getPublicInventoryLinkBySlug } from '@/app/[locale]/(dashboard)/inventory/actions'
 import { notFound } from 'next/navigation'
 import { ContactForm } from './ContactForm'
+import PublicInventoryView from './components/PublicInventoryView'
 import { ProjectTabs } from './ProjectTabs'
 import {
     Phone, Mail, MapPin, Instagram, Linkedin, Youtube, Globe,
@@ -11,10 +13,21 @@ import type { Metadata } from 'next'
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
     const { slug } = await params
+
+    // First check if this is a public inventory link
+    const inventoryLink = await getPublicInventoryLinkBySlug(slug)
+    if (inventoryLink && !('expired' in inventoryLink)) {
+        return {
+            title: `${inventoryLink.title} | Novo CRM Katalog`,
+            description: `${inventoryLink.units?.length || 0} ünite içeren özel envanter kataloğu`,
+        }
+    }
+
+    // Otherwise check for agent profile
     const data = await getAgentPublicProfile(slug)
 
     if (!data) {
-        return { title: 'Profil Bulunamadı' }
+        return { title: 'Sayfa Bulunamadı' }
     }
 
     const { agent } = data
@@ -52,6 +65,30 @@ const PROPERTY_TYPE_LABELS: Record<string, string> = {
 export default async function AgentPublicPage(props: { params: Promise<{ slug: string }> }) {
     noStore()
     const { slug } = await props.params
+
+    // First check if this is a public inventory link
+    const inventoryLink = await getPublicInventoryLinkBySlug(slug)
+    if (inventoryLink) {
+        if ('expired' in inventoryLink && inventoryLink.expired) {
+            return (
+                <div className="min-h-screen flex items-center justify-center bg-slate-50">
+                    <div className="text-center max-w-md p-8">
+                        <div className="h-20 w-20 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center mx-auto mb-6">
+                            <Calendar className="h-10 w-10 text-amber-400" />
+                        </div>
+                        <h1 className="text-2xl font-black text-slate-900 mb-2">Katalog Süresi Doldu</h1>
+                        <p className="text-sm text-slate-500">
+                            Bu paylaşım linkinin geçerlilik süresi dolmuştur. Lütfen danışmanınızdan yeni bir link talep edin.
+                        </p>
+                    </div>
+                </div>
+            )
+        }
+        // Valid inventory link — render catalog view
+        return <PublicInventoryView linkData={inventoryLink} />
+    }
+
+    // Otherwise check for agent profile
     const data = await getAgentPublicProfile(slug)
 
     if (!data) {
@@ -61,9 +98,9 @@ export default async function AgentPublicPage(props: { params: Promise<{ slug: s
                     <div className="h-20 w-20 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-6">
                         <Building2 className="h-10 w-10 text-slate-500" />
                     </div>
-                    <h1 className="text-2xl font-black text-white mb-2">Profil Bulunamadı</h1>
+                    <h1 className="text-2xl font-black text-white mb-2">Sayfa Bulunamadı</h1>
                     <p className="text-sm text-slate-400">
-                        <strong className="text-slate-300">/p/{slug}</strong> adresinde yayınlanmış bir danışman profili bulunamadı.
+                        <strong className="text-slate-300">/p/{slug}</strong> adresinde yayınlanmış bir sayfa bulunamadı.
                     </p>
                 </div>
             </div>

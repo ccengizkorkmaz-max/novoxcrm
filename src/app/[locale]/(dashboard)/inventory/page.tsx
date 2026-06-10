@@ -322,7 +322,7 @@ export default async function InventoryPage(props: {
                 <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
                 <div className="flex items-center gap-2 flex-wrap">
 
-                    <PublicLinkCreator unitIds={units?.map(u => u.id) || []} unitsCount={units?.length || 0} />
+                    <PublicLinkCreator units={units || []} />
                     <InventoryPdfExport units={units || []} />
                     {isManager && <InventoryExport projects={projects || []} />}
                     {isManager && <NewUnitDialog projects={projects || []} unitTypes={unitTypes || []} />}
