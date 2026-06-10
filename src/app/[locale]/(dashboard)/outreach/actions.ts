@@ -83,7 +83,7 @@ export async function previewSegment(filters: any) {
     }
 
     // Default: Sales source
-    let query = supabase.from('sales').select('id, customers!inner(full_name, phone)', { count: 'exact', head: false }).neq('status', 'Inbox')
+    let query = supabase.from('sales').select('id, customers!inner(full_name, phone)', { count: 'exact', head: false }).eq('tenant_id', tenantId).neq('status', 'Inbox')
     if (filters.statuses?.length) query = query.in('status', filters.statuses)
     if (filters.project_id) query = query.eq('project_id', filters.project_id)
     if (filters.unassigned) query = query.is('assigned_to', null)
