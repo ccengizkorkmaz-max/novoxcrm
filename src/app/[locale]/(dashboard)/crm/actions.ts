@@ -2315,17 +2315,22 @@ export async function parseCustomerNote(customerId: string, note: string) {
     if (!user) return { error: 'Not authenticated' }
 
     try {
-        const { default: OpenAI } = await import('openai')
-        const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+        // Get tenant's Gemini key
+        const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single()
+        const { data: tenant } = await supabase
+            .from('tenants')
+            .select('gemini_api_key, gemini_model')
+            .eq('id', profile?.tenant_id)
+            .single()
 
-        const response = await openai.chat.completions.create({
-            model: 'gpt-4o-mini',
-            temperature: 0.1,
-            response_format: { type: 'json_object' },
-            messages: [
-                {
-                    role: 'system',
-                    content: `Sen bir gayrimenkul CRM asistanısın. Sana verilen serbest metin notundan müşteri profil bilgilerini çıkar.
+        const apiKey = tenant?.gemini_api_key || process.env.GEMINI_API_KEY
+        if (!apiKey) return { error: 'Gemini API key bulunamadı. Ayarlar > AI bölümünden ekleyin.' }
+
+        const { GoogleGenerativeAI } = await import('@google/generative-ai')
+        const genAI = new GoogleGenerativeAI(apiKey)
+        const model = genAI.getGenerativeModel({ model: tenant?.gemini_model || 'gemini-2.5-flash' })
+
+        const prompt = `Sen bir gayrimenkul CRM asistanısın. Sana verilen serbest metin notundan müşteri profil bilgilerini çıkar.
 
 JSON formatında döndür:
 {
@@ -2345,19 +2350,16 @@ JSON formatında döndür:
 
 Tag seçenekleri: Premium, Orta-Üst, Orta, Ekonomik, Yatırımcı, Oturum, Tatil, Çocuk İçin, Aile, Bekar, Çift, Nakit, Kredi, Taksit, Takas, Doktor, Avukat, Mühendis, İşadamı, Memur, Emekli, Serbest Meslek, SUV, Lüks Sedan, Ekonomik Araç, Araç Yok
 
-Sadece metinde geçen veya güçlü çıkarım yapılabilen bilgileri doldur. Emin olmadığın alanları boş bırak. Gelir segmentini araç, meslek ve genel ifadelerden çıkar.`
-                },
-                {
-                    role: 'user',
-                    content: note
-                }
-            ]
-        })
+Sadece metinde geçen veya güçlü çıkarım yapılabilen bilgileri doldur. Emin olmadığın alanları boş bırak. Gelir segmentini araç, meslek ve genel ifadelerden çıkar. Sadece JSON döndür, başka hiçbir metin ekleme.
 
-        const content = response.choices[0]?.message?.content
-        if (!content) return { error: 'AI yanıt vermedi.' }
+Müşteri Notu: ${note}`
 
-        const parsed = JSON.parse(content)
+        const result = await model.generateContent(prompt)
+        const responseText = result.response.text()
+        const jsonMatch = responseText.match(/\{[\s\S]*\}/)
+        if (!jsonMatch) return { error: 'AI yanıt parse edilemedi.' }
+
+        const parsed = JSON.parse(jsonMatch[0])
 
         // Auto-save parsed data to customer
         const { data: existing } = await supabase
