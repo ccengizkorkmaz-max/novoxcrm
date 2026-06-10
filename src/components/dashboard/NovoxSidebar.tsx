@@ -34,7 +34,8 @@ import {
     MessageCircle,
     Flame,
     Brain,
-    AlertTriangle
+    AlertTriangle,
+    ClipboardList
 } from 'lucide-react'
 import {
     Accordion,
@@ -259,6 +260,11 @@ export function NovoxSidebar({
                             <NavItem href="/crm" icon={Activity} onClick={onElementClick} isCollapsed={isCollapsed} isSubItem>
                                 {labels.salesManagement || 'Sales Management'}
                             </NavItem>
+                            {isManager && (
+                                <NavItem href="/crm/surveys" icon={ClipboardList} onClick={onElementClick} isCollapsed={isCollapsed} isSubItem>
+                                    Anketler
+                                </NavItem>
+                            )}
 
                             {isDeveloper && (
                                 <>
@@ -313,6 +319,11 @@ export function NovoxSidebar({
                                     <NavItem href="/crm" icon={Activity} onClick={onElementClick} isSubItem>
                                         {labels.salesManagement || 'Sales Management'}
                                     </NavItem>
+                                    {isManager && (
+                                        <NavItem href="/crm/surveys" icon={ClipboardList} onClick={onElementClick} isSubItem>
+                                            Anketler
+                                        </NavItem>
+                                    )}
 
                                     {/* Developer'a özel satış adımları */}
                                     {isDeveloper && (
