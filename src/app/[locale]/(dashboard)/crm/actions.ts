@@ -2561,7 +2561,7 @@ export async function submitSurveyResponse(slug: string, answers: Record<string,
     return { success: true }
 }
 
-async function syncSurveyToCustomerProfile(customerId: string, answers: Record<string, any>, questions: any[]) {
+async function syncSurveyToCustomerProfile(customerId: string, answers: Record<string, any>, surveyJSON: any) {
     const { createAdminClient } = await import('@/lib/supabase/admin')
     const supabase = createAdminClient()
 
@@ -2575,7 +2575,18 @@ async function syncSurveyToCustomerProfile(customerId: string, answers: Record<s
     const profileData = { ...(customer?.profile_data || {}) }
     const tags = [...(customer?.tags || [])]
 
-    // Map common question labels to profile fields
+    // Extract all elements from SurveyJS pages format
+    const allElements: any[] = []
+    if (surveyJSON?.pages) {
+        for (const page of surveyJSON.pages) {
+            if (page.elements) allElements.push(...page.elements)
+        }
+    } else if (Array.isArray(surveyJSON)) {
+        // Legacy format: flat array of questions
+        allElements.push(...surveyJSON)
+    }
+
+    // Map common question titles/names to profile fields
     const fieldMap: Record<string, string> = {
         'mesleğiniz': 'occupation',
         'meslek': 'occupation',
@@ -2590,6 +2601,8 @@ async function syncSurveyToCustomerProfile(customerId: string, answers: Record<s
         'mezun olduğunuz üniversite': 'education',
         'üniversite': 'education',
         'eğitim': 'education',
+        'hobiler': 'hobbies',
+        'tuttuğunuz takım': 'team',
     }
 
     // Tag-worthy answer values
@@ -2616,29 +2629,40 @@ async function syncSurveyToCustomerProfile(customerId: string, answers: Record<s
         'bekar': 'Bekar',
     }
 
-    for (const q of questions) {
-        const answer = answers[q.id]
+    for (const q of allElements) {
+        // SurveyJS uses 'name' as key, 'title' as display label
+        const qName = q.name || q.id
+        const answer = answers[qName]
         if (!answer) continue
 
-        const labelLower = (q.label || '').toLowerCase().trim()
-        const answerLower = String(answer).toLowerCase().trim()
+        const labelLower = (q.title || q.label || q.name || '').toLowerCase().trim()
+        const answerStr = Array.isArray(answer) ? answer.join(', ') : String(answer)
+        const answerLower = answerStr.toLowerCase().trim()
 
         // Map to profile field
         const profileField = fieldMap[labelLower]
         if (profileField) {
             if (profileField === 'children_count') {
-                profileData[profileField] = parseInt(answer) || 0
+                profileData[profileField] = parseInt(answerStr) || 0
             } else if (profileField === 'marital_status') {
-                profileData[profileField] = answerLower === 'evli' ? 'married' : answerLower === 'bekar' ? 'single' : answer
+                profileData[profileField] = answerLower === 'evli' ? 'married' : answerLower === 'bekar' ? 'single' : answerStr
             } else {
-                profileData[profileField] = answer
+                profileData[profileField] = answerStr
             }
         }
 
-        // Map to tags
-        const tagValue = tagMap[answerLower]
-        if (tagValue && !tags.includes(tagValue)) {
-            tags.push(tagValue)
+        // Map to tags — check each answer value
+        const valuesToCheck = Array.isArray(answer) ? answer : [answerStr]
+        for (const val of valuesToCheck) {
+            const tagValue = tagMap[String(val).toLowerCase().trim()]
+            if (tagValue && !tags.includes(tagValue)) {
+                tags.push(tagValue)
+            }
+        }
+
+        // Also store raw answer in profile for custom questions
+        if (!profileField) {
+            profileData[`survey_${qName}`] = answerStr
         }
     }
 

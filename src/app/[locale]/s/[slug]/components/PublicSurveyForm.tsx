@@ -1,148 +1,114 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
+import { Model } from 'survey-core'
+import { Survey } from 'survey-react-ui'
+import 'survey-core/defaultV2.min.css'
+import 'survey-core/i18n/turkish'
 import { submitSurveyResponse } from '@/app/[locale]/(dashboard)/crm/actions'
 import { toast } from 'sonner'
 
-interface Question {
-    id: string
-    type: 'select' | 'text' | 'number'
-    label: string
-    options?: string[]
-}
-
 interface PublicSurveyFormProps {
     slug: string
-    questions: Question[]
+    questions: any // SurveyJS JSON
 }
 
 export default function PublicSurveyForm({ slug, questions }: PublicSurveyFormProps) {
-    const [answers, setAnswers] = useState<Record<string, any>>({})
-    const [isSubmitting, setIsSubmitting] = useState(false)
     const [isSubmitted, setIsSubmitted] = useState(false)
 
-    const updateAnswer = (questionId: string, value: any) => {
-        setAnswers(prev => ({ ...prev, [questionId]: value }))
-    }
+    const survey = useCallback(() => {
+        const surveyModel = new Model(questions)
+        surveyModel.locale = 'tr'
 
-    const handleSubmit = async () => {
-        // Check if all required answered
-        const unanswered = questions.filter(q => !answers[q.id] && answers[q.id] !== 0)
-        if (unanswered.length > 0) {
-            toast.error(`Lütfen tüm soruları yanıtlayınız. (${unanswered.length} soru eksik)`)
-            return
-        }
+        // Apply NovoCRM theme
+        surveyModel.applyTheme({
+            isPanelless: false,
+            cssVariables: {
+                '--sjs-primary-backcolor': '#2563eb',
+                '--sjs-primary-backcolor-dark': '#1d4ed8',
+                '--sjs-primary-backcolor-light': '#dbeafe',
+                '--sjs-primary-forecolor': '#ffffff',
+                '--sjs-corner-radius': '16px',
+                '--sjs-base-unit': '8px',
+                '--sjs-font-family': 'Inter, system-ui, sans-serif',
+                '--sjs-shadow-small': '0 1px 3px 0 rgba(0, 0, 0, 0.08)',
+                '--sjs-shadow-medium': '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                '--sjs-border-default': '#e2e8f0',
+                '--sjs-general-backcolor': '#ffffff',
+                '--sjs-general-backcolor-dim': '#f8fafc',
+            }
+        })
 
-        setIsSubmitting(true)
-        const result = await submitSurveyResponse(slug, answers)
-        setIsSubmitting(false)
-
-        if (result?.error) {
-            toast.error(result.error)
-        } else {
-            setIsSubmitted(true)
-        }
-    }
-
-    if (isSubmitted) {
-        return (
-            <div className="bg-white rounded-2xl shadow-lg border border-slate-100 p-8 text-center">
-                <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg className="w-8 h-8 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+        // Customize completion page
+        surveyModel.completedHtml = `
+            <div style="text-align: center; padding: 48px 24px;">
+                <div style="width: 64px; height: 64px; background: #dcfce7; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M5 13l4 4L19 7"/>
                     </svg>
                 </div>
-                <h2 className="text-xl font-bold text-slate-900 mb-2">Teşekkür Ederiz!</h2>
-                <p className="text-sm text-slate-500">Yanıtlarınız başarıyla kaydedildi. Size en uygun hizmeti sunmak için bu bilgileri kullanacağız.</p>
+                <h2 style="font-size: 20px; font-weight: 700; color: #0f172a; margin-bottom: 8px;">Teşekkür Ederiz!</h2>
+                <p style="font-size: 14px; color: #64748b;">Yanıtlarınız başarıyla kaydedildi.</p>
             </div>
-        )
+        `
+
+        // Handle completion
+        surveyModel.onComplete.add(async (sender) => {
+            const answers = sender.data
+            const result = await submitSurveyResponse(slug, answers)
+            if (result?.error) {
+                toast.error(result.error)
+            } else {
+                setIsSubmitted(true)
+            }
+        })
+
+        return surveyModel
+    }, [questions, slug])
+
+    if (isSubmitted) {
+        return null // SurveyJS will show completedHtml
     }
 
     return (
-        <div className="space-y-4">
-            {questions.map((q, idx) => (
-                <div
-                    key={q.id}
-                    className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 transition-all hover:shadow-md"
-                >
-                    <div className="flex items-start gap-3 mb-3">
-                        <span className="w-7 h-7 bg-blue-50 rounded-lg flex items-center justify-center text-xs font-black text-blue-600 flex-shrink-0 mt-0.5">
-                            {idx + 1}
-                        </span>
-                        <label className="text-sm font-semibold text-slate-800">{q.label}</label>
-                    </div>
-
-                    {q.type === 'select' && q.options && (
-                        <div className="grid grid-cols-2 gap-2 pl-10">
-                            {q.options.map(opt => {
-                                const isSelected = answers[q.id] === opt
-                                return (
-                                    <button
-                                        key={opt}
-                                        type="button"
-                                        onClick={() => updateAnswer(q.id, opt)}
-                                        className={`
-                                            px-4 py-2.5 rounded-xl text-sm font-medium transition-all border text-left
-                                            ${isSelected
-                                                ? 'bg-blue-50 border-blue-300 text-blue-700 ring-2 ring-blue-100'
-                                                : 'bg-white border-slate-200 text-slate-600 hover:border-blue-200 hover:bg-blue-50/50'
-                                            }
-                                        `}
-                                    >
-                                        {opt}
-                                    </button>
-                                )
-                            })}
-                        </div>
-                    )}
-
-                    {q.type === 'text' && (
-                        <div className="pl-10">
-                            <input
-                                type="text"
-                                value={answers[q.id] || ''}
-                                onChange={(e) => updateAnswer(q.id, e.target.value)}
-                                placeholder="Yanıtınızı yazın..."
-                                className="w-full h-11 px-4 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all"
-                            />
-                        </div>
-                    )}
-
-                    {q.type === 'number' && (
-                        <div className="pl-10">
-                            <input
-                                type="number"
-                                min={0}
-                                value={answers[q.id] ?? ''}
-                                onChange={(e) => updateAnswer(q.id, e.target.value ? parseInt(e.target.value) : '')}
-                                placeholder="0"
-                                className="w-24 h-11 px-4 rounded-xl border border-slate-200 text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all"
-                            />
-                        </div>
-                    )}
-                </div>
-            ))}
-
-            {/* Submit Button */}
-            <button
-                type="button"
-                onClick={handleSubmit}
-                disabled={isSubmitting}
-                className="w-full py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-lg shadow-blue-200 transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-                {isSubmitting ? (
-                    <>
-                        <span className="animate-spin h-4 w-4 border-2 border-white/20 border-t-white rounded-full" />
-                        Gönderiliyor...
-                    </>
-                ) : (
-                    'Yanıtları Gönder'
-                )}
-            </button>
-
-            <p className="text-center text-[10px] text-slate-400">
-                Yanıtlarınız gizli tutulacak ve sadece size daha iyi hizmet vermek için kullanılacaktır.
-            </p>
+        <div className="surveyjs-public-wrapper">
+            <Survey model={survey()} />
+            <style jsx global>{`
+                .surveyjs-public-wrapper {
+                    max-width: 720px;
+                    margin: 0 auto;
+                }
+                .surveyjs-public-wrapper .sd-root-modern {
+                    background: transparent;
+                }
+                .surveyjs-public-wrapper .sd-body {
+                    padding: 0;
+                }
+                .surveyjs-public-wrapper .sd-page {
+                    padding: 0;
+                }
+                .surveyjs-public-wrapper .sd-question {
+                    background: #ffffff;
+                    border-radius: 16px;
+                    border: 1px solid #e2e8f0;
+                    padding: 20px 24px;
+                    margin-bottom: 12px;
+                    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
+                    transition: box-shadow 0.2s ease;
+                }
+                .surveyjs-public-wrapper .sd-question:hover {
+                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08);
+                }
+                .surveyjs-public-wrapper .sd-btn {
+                    border-radius: 16px;
+                    font-weight: 700;
+                    height: 48px;
+                    font-size: 14px;
+                }
+                .surveyjs-public-wrapper .sd-footer {
+                    padding: 16px 0;
+                }
+            `}</style>
         </div>
     )
 }

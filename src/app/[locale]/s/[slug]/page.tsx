@@ -35,11 +35,12 @@ export default async function PublicSurveyPage({ params }: { params: Promise<{ s
     }
 
     const template = survey.survey_templates
-    const questions = template?.questions || []
+    // SurveyJS JSON — pages with elements
+    const surveyJSON = template?.questions || {}
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-amber-50">
-            <div className="max-w-lg mx-auto px-4 py-8">
+            <div className="max-w-2xl mx-auto px-4 py-8">
                 {/* Header */}
                 <div className="text-center mb-8">
                     <div className="w-14 h-14 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
@@ -56,7 +57,11 @@ export default async function PublicSurveyPage({ params }: { params: Promise<{ s
                     </p>
                 </div>
 
-                <PublicSurveyForm slug={slug} questions={questions} />
+                <PublicSurveyForm slug={slug} questions={surveyJSON} />
+
+                <p className="text-center text-[10px] text-slate-400 mt-6">
+                    Yanıtlarınız gizli tutulacak ve sadece size daha iyi hizmet vermek için kullanılacaktır.
+                </p>
             </div>
         </div>
     )

@@ -1,12 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
     Dialog,
     DialogContent,
@@ -14,24 +13,24 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog'
-import { ClipboardList, Plus, Pencil, Trash2, GripVertical, ChevronLeft, BarChart3, Loader2, X } from 'lucide-react'
+import { ClipboardList, Plus, Pencil, Trash2, ChevronLeft, BarChart3, Loader2, Eye } from 'lucide-react'
 import { toast } from 'sonner'
 import { createSurveyTemplate, updateSurveyTemplate, deleteSurveyTemplate } from '../../actions'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
-interface Question {
-    id: string
-    type: 'select' | 'text' | 'number'
-    label: string
-    options?: string[]
-}
+// SurveyJS imports
+import { SurveyCreatorComponent, SurveyCreator } from 'survey-creator-react'
+import 'survey-core/defaultV2.min.css'
+import 'survey-creator-core/survey-creator-core.min.css'
+import 'survey-creator-core/i18n/turkish'
+import 'survey-core/i18n/turkish'
 
 interface SurveyTemplate {
     id: string
     title: string
     description: string
-    questions: Question[]
+    questions: any
     created_at: string
 }
 
@@ -40,119 +39,101 @@ interface SurveyManagerProps {
     responseCounts: Record<string, { total: number; completed: number }>
 }
 
-const DEFAULT_QUESTIONS: Question[] = [
-    { id: 'q1', type: 'select', label: 'Mesleğiniz', options: ['Doktor', 'Avukat', 'Mühendis', 'İşadamı', 'Memur', 'Serbest Meslek', 'Emekli', 'Diğer'] },
-    { id: 'q2', type: 'select', label: 'Medeni Durumunuz', options: ['Evli', 'Bekar', 'Boşanmış'] },
-    { id: 'q3', type: 'number', label: 'Çocuk Sayınız' },
-    { id: 'q4', type: 'select', label: 'Aracınız', options: ['SUV/Jeep', 'Sedan Lüks', 'Sedan Ekonomik', 'Ticari', 'Yok'] },
-    { id: 'q5', type: 'select', label: 'Satın Alma Amacınız', options: ['Oturum', 'Yatırım', 'Tatil', 'Çocuk İçin'] },
-    { id: 'q6', type: 'select', label: 'Ödeme Tercihiniz', options: ['Nakit', 'Banka Kredisi', 'Taksitli', 'Takas'] },
-    { id: 'q7', type: 'text', label: 'Mezun Olduğunuz Üniversite' },
-]
-
 export default function SurveyManager({ initialTemplates, responseCounts }: SurveyManagerProps) {
     const router = useRouter()
     const [templates, setTemplates] = useState(initialTemplates)
-    const [isDialogOpen, setIsDialogOpen] = useState(false)
+    const [isCreatorOpen, setIsCreatorOpen] = useState(false)
     const [editingTemplate, setEditingTemplate] = useState<SurveyTemplate | null>(null)
     const [isPending, setIsPending] = useState(false)
-
-    // Form state
     const [title, setTitle] = useState('')
     const [description, setDescription] = useState('')
-    const [questions, setQuestions] = useState<Question[]>(DEFAULT_QUESTIONS)
+    const [creator, setCreator] = useState<SurveyCreator | null>(null)
+
+    const initCreator = useCallback((surveyJSON?: any) => {
+        const creatorInstance = new SurveyCreator({
+            showLogicTab: false,
+            showTranslationTab: false,
+            showEmbeddedSurveyTab: false,
+            isAutoSave: false,
+            showJSONEditorTab: false,
+            showSidebar: true,
+            questionTypes: [
+                'text', 'comment', 'radiogroup', 'checkbox', 'dropdown',
+                'rating', 'boolean', 'matrix', 'matrixdropdown',
+                'multipletext', 'panel', 'paneldynamic', 'html',
+                'imagepicker', 'ranking', 'signaturepad', 'expression'
+            ]
+        })
+        creatorInstance.locale = 'tr'
+
+        // Set default survey locale
+        creatorInstance.survey.locale = 'tr'
+
+        // Custom theme to match NovoCRM
+        creatorInstance.survey.applyTheme({
+            isPanelless: false,
+            cssVariables: {
+                '--sjs-primary-backcolor': '#2563eb',
+                '--sjs-primary-backcolor-dark': '#1d4ed8',
+                '--sjs-primary-backcolor-light': '#dbeafe',
+                '--sjs-primary-forecolor': '#ffffff',
+                '--sjs-corner-radius': '12px',
+                '--sjs-base-unit': '8px',
+                '--sjs-font-family': 'Inter, system-ui, sans-serif',
+            }
+        })
+
+        if (surveyJSON) {
+            creatorInstance.JSON = surveyJSON
+        }
+
+        setCreator(creatorInstance)
+        return creatorInstance
+    }, [])
 
     const openCreate = () => {
         setEditingTemplate(null)
         setTitle('')
         setDescription('')
-        setQuestions(DEFAULT_QUESTIONS)
-        setIsDialogOpen(true)
+        initCreator()
+        setIsCreatorOpen(true)
     }
 
     const openEdit = (template: SurveyTemplate) => {
         setEditingTemplate(template)
         setTitle(template.title)
         setDescription(template.description || '')
-        setQuestions(template.questions || [])
-        setIsDialogOpen(true)
-    }
-
-    const addQuestion = () => {
-        const newId = `q${Date.now()}`
-        setQuestions([...questions, { id: newId, type: 'text', label: '', options: [] }])
-    }
-
-    const removeQuestion = (id: string) => {
-        setQuestions(questions.filter(q => q.id !== id))
-    }
-
-    const updateQuestion = (id: string, field: string, value: any) => {
-        setQuestions(questions.map(q => {
-            if (q.id !== id) return q
-            const updated = { ...q, [field]: value }
-            if (field === 'type' && value === 'select' && !updated.options?.length) {
-                updated.options = ['Seçenek 1', 'Seçenek 2']
-            }
-            return updated
-        }))
-    }
-
-    const updateOption = (qId: string, optIdx: number, value: string) => {
-        setQuestions(questions.map(q => {
-            if (q.id !== qId) return q
-            const opts = [...(q.options || [])]
-            opts[optIdx] = value
-            return { ...q, options: opts }
-        }))
-    }
-
-    const addOption = (qId: string) => {
-        setQuestions(questions.map(q => {
-            if (q.id !== qId) return q
-            return { ...q, options: [...(q.options || []), ''] }
-        }))
-    }
-
-    const removeOption = (qId: string, optIdx: number) => {
-        setQuestions(questions.map(q => {
-            if (q.id !== qId) return q
-            const opts = [...(q.options || [])]
-            opts.splice(optIdx, 1)
-            return { ...q, options: opts }
-        }))
+        initCreator(template.questions)
+        setIsCreatorOpen(true)
     }
 
     const handleSave = async () => {
         if (!title.trim()) {
-            toast.error('Lütfen bir başlık giriniz.')
+            toast.error('Lütfen bir anket başlığı giriniz.')
             return
         }
-        if (questions.length === 0) {
-            toast.error('En az 1 soru eklemelisiniz.')
-            return
-        }
-        // Validate questions have labels
-        const emptyLabel = questions.find(q => !q.label.trim())
-        if (emptyLabel) {
-            toast.error('Tüm sorular için başlık giriniz.')
+        if (!creator) return
+
+        const surveyJSON = creator.JSON
+        if (!surveyJSON?.pages?.length || surveyJSON.pages.every((p: any) => !p.elements?.length)) {
+            toast.error('Lütfen en az 1 soru ekleyiniz.')
             return
         }
 
         setIsPending(true)
 
         if (editingTemplate) {
-            const res = await updateSurveyTemplate(editingTemplate.id, title, description, questions)
+            const res = await updateSurveyTemplate(editingTemplate.id, title, description, surveyJSON)
             if (res?.error) toast.error(res.error)
             else toast.success('Anket güncellendi.')
         } else {
-            const res = await createSurveyTemplate(title, description, questions)
+            const res = await createSurveyTemplate(title, description, surveyJSON)
             if (res?.error) toast.error(res.error)
             else toast.success('Anket oluşturuldu.')
         }
 
         setIsPending(false)
-        setIsDialogOpen(false)
+        setIsCreatorOpen(false)
         router.refresh()
     }
 
@@ -164,6 +145,13 @@ export default function SurveyManager({ initialTemplates, responseCounts }: Surv
             toast.success('Anket silindi.')
             setTemplates(templates.filter(t => t.id !== id))
         }
+    }
+
+    const getQuestionCount = (questions: any): number => {
+        if (!questions?.pages) return 0
+        return questions.pages.reduce((acc: number, page: any) => {
+            return acc + (page.elements?.length || 0)
+        }, 0)
     }
 
     return (
@@ -181,7 +169,7 @@ export default function SurveyManager({ initialTemplates, responseCounts }: Surv
                             <ClipboardList className="h-5 w-5 text-blue-600" />
                             Anket Yönetimi
                         </h1>
-                        <p className="text-xs text-slate-500">Müşterilerinize gönderilecek anket şablonlarını yönetin</p>
+                        <p className="text-xs text-slate-500">SurveyJS tabanlı profesyonel anket builder</p>
                     </div>
                 </div>
                 <Button onClick={openCreate} className="bg-blue-600 hover:bg-blue-700 h-9 text-xs font-bold gap-1.5">
@@ -196,7 +184,7 @@ export default function SurveyManager({ initialTemplates, responseCounts }: Surv
                     <CardContent className="flex flex-col items-center justify-center py-12 text-center">
                         <ClipboardList className="h-10 w-10 text-slate-300 mb-3" />
                         <h3 className="font-bold text-slate-600 mb-1">Henüz anket oluşturulmamış</h3>
-                        <p className="text-xs text-slate-400 mb-4">Müşterilerinize gönderilecek ilk anketi oluşturun.</p>
+                        <p className="text-xs text-slate-400 mb-4">Profesyonel anket builder ile ilk anketi oluşturun.</p>
                         <Button onClick={openCreate} size="sm" className="bg-blue-600 hover:bg-blue-700 text-xs font-bold gap-1.5">
                             <Plus className="h-3.5 w-3.5" />
                             İlk Anketi Oluştur
@@ -207,6 +195,7 @@ export default function SurveyManager({ initialTemplates, responseCounts }: Surv
                 <div className="grid gap-3">
                     {templates.map(template => {
                         const counts = responseCounts[template.id] || { total: 0, completed: 0 }
+                        const qCount = getQuestionCount(template.questions)
                         return (
                             <Card key={template.id} className="hover:shadow-md transition-shadow">
                                 <CardContent className="flex items-center justify-between p-4">
@@ -221,7 +210,10 @@ export default function SurveyManager({ initialTemplates, responseCounts }: Surv
                                             )}
                                             <div className="flex items-center gap-2 mt-1">
                                                 <Badge variant="outline" className="text-[9px] px-1.5 py-0">
-                                                    {template.questions?.length || 0} soru
+                                                    {qCount} soru
+                                                </Badge>
+                                                <Badge variant="outline" className="text-[9px] px-1.5 py-0">
+                                                    {template.questions?.pages?.length || 0} sayfa
                                                 </Badge>
                                                 <Badge variant="outline" className="text-[9px] px-1.5 py-0 text-blue-600 border-blue-200">
                                                     <BarChart3 className="h-2.5 w-2.5 mr-1" />
@@ -245,114 +237,45 @@ export default function SurveyManager({ initialTemplates, responseCounts }: Surv
                 </div>
             )}
 
-            {/* Create/Edit Dialog */}
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col">
-                    <DialogHeader>
-                        <DialogTitle>
-                            {editingTemplate ? 'Anketi Düzenle' : 'Yeni Anket Oluştur'}
-                        </DialogTitle>
-                    </DialogHeader>
-
-                    <div className="space-y-4 py-2 flex-1 overflow-y-auto">
-                        <div className="grid gap-3">
-                            <div className="grid gap-1.5">
-                                <Label className="text-xs font-bold">Anket Başlığı</Label>
+            {/* SurveyJS Creator Dialog - Full screen */}
+            <Dialog open={isCreatorOpen} onOpenChange={setIsCreatorOpen}>
+                <DialogContent className="max-w-[95vw] w-full h-[95vh] rounded-2xl flex flex-col p-0 overflow-hidden">
+                    <DialogHeader className="px-6 py-3 shrink-0 border-b flex flex-row items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <DialogTitle className="text-base">
+                                {editingTemplate ? 'Anketi Düzenle' : 'Yeni Anket Oluştur'}
+                            </DialogTitle>
+                            <div className="flex items-center gap-2">
                                 <Input
                                     value={title}
                                     onChange={(e) => setTitle(e.target.value)}
-                                    placeholder="Örn: Müşteri Tanıma Anketi"
-                                    className="h-9 text-sm"
+                                    placeholder="Anket Başlığı *"
+                                    className="h-8 text-sm w-60"
                                 />
-                            </div>
-                            <div className="grid gap-1.5">
-                                <Label className="text-xs font-bold">Açıklama (Opsiyonel)</Label>
                                 <Input
                                     value={description}
                                     onChange={(e) => setDescription(e.target.value)}
-                                    placeholder="Kısa açıklama..."
-                                    className="h-9 text-sm"
+                                    placeholder="Açıklama (opsiyonel)"
+                                    className="h-8 text-sm w-48"
                                 />
                             </div>
                         </div>
-
-                        {/* Questions Builder */}
-                        <div className="space-y-3">
-                            <div className="flex items-center justify-between">
-                                <Label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Sorular</Label>
-                                <Button type="button" variant="outline" size="sm" className="h-7 text-[10px] gap-1" onClick={addQuestion}>
-                                    <Plus className="h-3 w-3" /> Soru Ekle
-                                </Button>
-                            </div>
-
-                            {questions.map((q, qIdx) => (
-                                <Card key={q.id} className="border-slate-200">
-                                    <CardContent className="p-3 space-y-2">
-                                        <div className="flex items-start gap-2">
-                                            <GripVertical className="h-4 w-4 text-slate-300 mt-2.5 flex-shrink-0 cursor-grab" />
-                                            <div className="flex-1 grid gap-2">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-[10px] font-black text-slate-400 w-5 flex-shrink-0">{qIdx + 1}.</span>
-                                                    <Input
-                                                        value={q.label}
-                                                        onChange={(e) => updateQuestion(q.id, 'label', e.target.value)}
-                                                        placeholder="Soru metni..."
-                                                        className="h-8 text-xs flex-1"
-                                                    />
-                                                    <Select
-                                                        value={q.type}
-                                                        onValueChange={(val) => updateQuestion(q.id, 'type', val)}
-                                                    >
-                                                        <SelectTrigger className="h-8 text-[10px] w-28 flex-shrink-0">
-                                                            <SelectValue />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="select">Seçmeli</SelectItem>
-                                                            <SelectItem value="text">Metin</SelectItem>
-                                                            <SelectItem value="number">Sayı</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-red-400 hover:text-red-600 flex-shrink-0" onClick={() => removeQuestion(q.id)}>
-                                                        <X className="h-3.5 w-3.5" />
-                                                    </Button>
-                                                </div>
-
-                                                {q.type === 'select' && (
-                                                    <div className="pl-5 space-y-1.5">
-                                                        {(q.options || []).map((opt, optIdx) => (
-                                                            <div key={optIdx} className="flex items-center gap-1.5">
-                                                                <span className="text-[9px] text-slate-300 w-3">•</span>
-                                                                <Input
-                                                                    value={opt}
-                                                                    onChange={(e) => updateOption(q.id, optIdx, e.target.value)}
-                                                                    placeholder="Seçenek..."
-                                                                    className="h-7 text-[11px] flex-1"
-                                                                />
-                                                                <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-slate-300 hover:text-red-500" onClick={() => removeOption(q.id, optIdx)}>
-                                                                    <X className="h-3 w-3" />
-                                                                </Button>
-                                                            </div>
-                                                        ))}
-                                                        <Button type="button" variant="ghost" size="sm" className="h-6 text-[10px] text-blue-500 hover:text-blue-600 pl-4" onClick={() => addOption(q.id)}>
-                                                            + Seçenek Ekle
-                                                        </Button>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            ))}
+                        <div className="flex items-center gap-2">
+                            <Button variant="outline" size="sm" onClick={() => setIsCreatorOpen(false)} className="h-8 text-xs">
+                                Vazgeç
+                            </Button>
+                            <Button onClick={handleSave} disabled={isPending} size="sm" className="h-8 text-xs bg-blue-600 hover:bg-blue-700">
+                                {isPending && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />}
+                                {editingTemplate ? 'Güncelle' : 'Kaydet'}
+                            </Button>
                         </div>
-                    </div>
+                    </DialogHeader>
 
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Vazgeç</Button>
-                        <Button onClick={handleSave} disabled={isPending} className="bg-blue-600 hover:bg-blue-700">
-                            {isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                            {editingTemplate ? 'Güncelle' : 'Oluştur'}
-                        </Button>
-                    </DialogFooter>
+                    <div className="flex-1 min-h-0 overflow-hidden">
+                        {creator && (
+                            <SurveyCreatorComponent creator={creator} />
+                        )}
+                    </div>
                 </DialogContent>
             </Dialog>
         </div>
