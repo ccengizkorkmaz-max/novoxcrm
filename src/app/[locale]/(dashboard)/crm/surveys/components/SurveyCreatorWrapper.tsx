@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react'
 
 // SurveyJS imports — client-only
 import { SurveyCreatorComponent, SurveyCreator } from 'survey-creator-react'
-import 'survey-core/defaultV2.min.css'
+import 'survey-core/survey-core.min.css'
 import 'survey-creator-core/survey-creator-core.min.css'
 import 'survey-creator-core/i18n/turkish'
 import 'survey-core/i18n/turkish'
