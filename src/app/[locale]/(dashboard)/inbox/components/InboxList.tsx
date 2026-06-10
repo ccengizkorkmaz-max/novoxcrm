@@ -19,9 +19,11 @@ import {
     Archive,
     Trash2,
     CheckSquare,
-    Square
+    Square,
+    Upload,
+    Loader2
 } from 'lucide-react'
-import { approveInboxItem, rejectInboxItem, deleteArchivedItems, deleteAllArchivedItems } from '../actions'
+import { approveInboxItem, rejectInboxItem, deleteArchivedItems, deleteAllArchivedItems, bulkApproveWebForms } from '../actions'
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -70,6 +72,9 @@ export function InboxList({ initialItems, archivedItems = [], pendingCount, arch
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
     const [deleting, setDeleting] = useState(false)
     const [showDeleteConfirm, setShowDeleteConfirm] = useState<'selected' | 'all' | null>(null)
+    const [bulkImporting, setBulkImporting] = useState(false)
+    const [showBulkConfirm, setShowBulkConfirm] = useState(false)
+    const [bulkResult, setBulkResult] = useState<{total: number, approved: number, duplicates: number, errors: number} | null>(null)
 
     // Real-time updates
     useSupabaseRealtime({ table: 'inbox_items' })
@@ -264,6 +269,27 @@ export function InboxList({ initialItems, archivedItems = [], pendingCount, arch
 
     const currentItems = activeTab === 'pending' ? initialItems : archivedItems
 
+    // All pending items can be bulk imported
+    const webFormItems = initialItems.filter(item => item.status === 'pending')
+
+    const handleBulkImport = async () => {
+        setBulkImporting(true)
+        setShowBulkConfirm(false)
+        const result = await bulkApproveWebForms()
+        setBulkImporting(false)
+        if (result.success) {
+            setBulkResult({
+                total: result.total || 0,
+                approved: result.approved || 0,
+                duplicates: result.duplicates || 0,
+                errors: result.errors || 0
+            })
+            router.refresh()
+        } else {
+            toast.error(result.error || 'Toplu aktarım başarısız.')
+        }
+    }
+
     const renderStatusBadge = (status: string) => {
         if (status === 'approved') return <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">Onaylandı</Badge>
         if (status === 'rejected') return <Badge variant="outline" className="text-xs bg-red-50 text-red-700 border-red-200">Reddedildi</Badge>
@@ -359,6 +385,31 @@ export function InboxList({ initialItems, archivedItems = [], pendingCount, arch
                             title="Taramayı Başlat (Yeni Mailler ve Formlar)"
                         >
                             <RefreshCw className={`h-4 w-4 ${scanning ? 'animate-spin' : ''}`} />
+                        </Button>
+                    </div>
+                )}
+
+                {/* Bulk Import Button for Pending Web Forms */}
+                {activeTab === 'pending' && webFormItems.length > 0 && (
+                    <div className="px-4 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-100 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <Upload className="h-4 w-4 text-blue-600" />
+                            <span className="text-sm font-medium text-blue-800">
+                                {webFormItems.length} kayıt CRM'e aktarılmayı bekliyor
+                            </span>
+                        </div>
+                        <Button
+                            size="sm"
+                            onClick={() => setShowBulkConfirm(true)}
+                            disabled={bulkImporting}
+                            className="gap-2 bg-blue-600 hover:bg-blue-700 text-xs font-bold"
+                        >
+                            {bulkImporting ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                                <Upload className="h-3.5 w-3.5" />
+                            )}
+                            {bulkImporting ? 'Aktarılıyor...' : 'Tümünü CRM\'e Aktar'}
                         </Button>
                     </div>
                 )}
@@ -589,6 +640,81 @@ export function InboxList({ initialItems, archivedItems = [], pendingCount, arch
                             disabled={deleting}
                         >
                             {deleting ? 'Siliniyor...' : 'Evet, Kalıcı Olarak Sil'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Bulk Import Confirmation Dialog */}
+            <Dialog open={showBulkConfirm} onOpenChange={setShowBulkConfirm}>
+                <DialogContent className="max-w-md bg-white">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-blue-700">
+                            <Upload className="h-5 w-5" />
+                            Toplu CRM Aktarımı
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-3">
+                        <p className="text-sm text-slate-600">
+                            <strong>{webFormItems.length}</strong> adet web formu otomatik olarak CRM'e aktarılacak.
+                        </p>
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-blue-700 space-y-1">
+                            <p>✅ Her form için müşteri kaydı oluşturulur</p>
+                            <p>✅ Mükerrer kayıtlar otomatik algılanır</p>
+                            <p>✅ Proje eşleştirmesi otomatik yapılır</p>
+                            <p>✅ Takip aktivitesi otomatik oluşturulur</p>
+                        </div>
+                    </div>
+                    <DialogFooter className="gap-2">
+                        <Button variant="outline" onClick={() => setShowBulkConfirm(false)}>
+                            Vazgeç
+                        </Button>
+                        <Button
+                            onClick={handleBulkImport}
+                            className="bg-blue-600 hover:bg-blue-700 gap-2"
+                        >
+                            <Upload className="h-4 w-4" />
+                            Evet, Tümünü Aktar
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Bulk Result Dialog */}
+            <Dialog open={!!bulkResult} onOpenChange={() => setBulkResult(null)}>
+                <DialogContent className="max-w-md bg-white">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-green-700">
+                            <Check className="h-5 w-5" />
+                            Aktarım Tamamlandı
+                        </DialogTitle>
+                    </DialogHeader>
+                    {bulkResult && (
+                        <div className="space-y-3">
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
+                                    <p className="text-2xl font-bold text-green-700">{bulkResult.approved}</p>
+                                    <p className="text-xs text-green-600">Yeni Kayıt</p>
+                                </div>
+                                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-center">
+                                    <p className="text-2xl font-bold text-amber-700">{bulkResult.duplicates}</p>
+                                    <p className="text-xs text-amber-600">Mükerrer (Güncellendi)</p>
+                                </div>
+                            </div>
+                            {bulkResult.errors > 0 && (
+                                <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-center">
+                                    <p className="text-lg font-bold text-red-700">{bulkResult.errors}</p>
+                                    <p className="text-xs text-red-600">Hata</p>
+                                </div>
+                            )}
+                            <p className="text-xs text-slate-500 text-center">
+                                Toplam {bulkResult.total} form işlendi.
+                            </p>
+                        </div>
+                    )}
+                    <DialogFooter>
+                        <Button onClick={() => setBulkResult(null)} className="bg-green-600 hover:bg-green-700">
+                            Tamam
                         </Button>
                     </DialogFooter>
                 </DialogContent>
