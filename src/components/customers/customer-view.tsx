@@ -11,18 +11,8 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { ShieldCheck, Pencil, ChevronDown, ChevronUp } from 'lucide-react'
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from "@/components/ui/dialog"
+import { CustomerEditDialog } from '@/app/[locale]/(dashboard)/crm/components/CustomerEditDialog'
 import { useTranslations } from 'next-intl'
-import { updateCustomer } from '@/app/[locale]/(dashboard)/crm/actions'
-import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
 import { BackButton } from '@/components/back-button'
 
@@ -98,85 +88,15 @@ export function CustomerView({ customer, activities, contracts = [], profiles = 
                     </Badge>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-                        <DialogTrigger asChild>
-                            <Button variant="outline" size="sm" className="gap-2">
-                                <Pencil className="h-4 w-4" />
-                                {t('table.edit')}
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-lg w-full sm:w-[95vw] h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[90dvh] rounded-none sm:rounded-2xl flex flex-col p-0 overflow-hidden">
-                            <DialogHeader className="p-4 sm:p-6 pb-2 shrink-0 border-b">
-                                <DialogTitle>{t('editCustomer')}</DialogTitle>
-                            </DialogHeader>
-                            <form action={async (formData) => {
-                                const res = await updateCustomer(formData)
-                                if (res?.error) {
-                                    toast.error(res.error)
-                                } else {
-                                    toast.success(t('createModal.updateSuccess') || 'Müşteri bilgileri başarıyla güncellendi.')
-                                    setIsEditDialogOpen(false)
-                                }
-                            }} className="flex flex-col flex-1 min-h-0">
-                                <input type="hidden" name="id" value={customer.id} />
-
-                                <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
-                                    <div className="grid gap-2">
-                                        <Label>{t('form.fullName')}</Label>
-                                        <Input name="full_name" defaultValue={customer.full_name} required />
-                                    </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div className="grid gap-2">
-                                            <Label>{t('form.phone')}</Label>
-                                            <Input name="phone" defaultValue={customer.phone} required />
-                                        </div>
-                                        <div className="grid gap-2">
-                                            <Label>{t('form.email')}</Label>
-                                            <Input name="email" type="email" defaultValue={customer.email} />
-                                        </div>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="grid gap-2">
-                                            <Label>{t('form.source')}</Label>
-                                            <Input name="source" defaultValue={customer.source} />
-                                        </div>
-                                        <div className="grid gap-2">
-                                            <Label>Kayıt Tarihi</Label>
-                                            <Input type="date" name="created_at" defaultValue={customer.created_at ? new Date(customer.created_at).toISOString().split('T')[0] : ''} />
-                                        </div>
-                                    </div>
-                                    <div className="grid gap-2">
-                                        <Label>{t('form.address')}</Label>
-                                        <Textarea name="address" defaultValue={customer.address} />
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="grid gap-2">
-                                            <Label>{t('form.city')}</Label>
-                                            <Input name="city" defaultValue={customer.city} />
-                                        </div>
-                                        <div className="grid gap-2">
-                                            <Label>{t('form.district')}</Label>
-                                            <Input name="district" defaultValue={customer.district} />
-                                        </div>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="grid gap-2">
-                                            <Label>{t('form.postalCode')}</Label>
-                                            <Input name="postal_code" defaultValue={customer.postal_code} />
-                                        </div>
-                                        <div className="grid gap-2">
-                                            <Label>{t('form.country')}</Label>
-                                            <Input name="country" defaultValue={customer.country || 'Türkiye'} />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <DialogFooter className="p-4 sm:p-6 border-t bg-slate-50 dark:bg-slate-900/50 shrink-0">
-                                    <Button type="submit" className="w-full sm:w-auto">{t('createModal.update')}</Button>
-                                </DialogFooter>
-                            </form>
-                        </DialogContent>
-                    </Dialog>
+                    <Button variant="outline" size="sm" className="gap-2" onClick={() => setIsEditDialogOpen(true)}>
+                        <Pencil className="h-4 w-4" />
+                        {t('table.edit')}
+                    </Button>
+                    <CustomerEditDialog
+                        customer={customer}
+                        isOpen={isEditDialogOpen}
+                        onOpenChange={setIsEditDialogOpen}
+                    />
                 </div>
             </div>
 
