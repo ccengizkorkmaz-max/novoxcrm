@@ -259,22 +259,22 @@ export function SegmentManager({ segments: initialSegments, projects, profiles, 
                                                     )}
                                                     <div className="flex flex-wrap gap-1.5 mt-2">
                                                         {f.statuses?.map((s: string) => (
-                                                            <Badge key={s} variant="outline" className="text-[10px] border-violet-500/30 text-violet-400 bg-violet-500/10">
+                                                            <Badge key={s} variant="outline" className="text-[10px] border-violet-300 dark:border-violet-500/30 text-violet-700 dark:text-violet-300 bg-violet-50 dark:bg-violet-500/10">
                                                                 {s}
                                                             </Badge>
                                                         ))}
                                                         {f.project_id && (
-                                                            <Badge variant="outline" className="text-[10px] border-blue-500/30 text-blue-400 bg-blue-500/10">
+                                                            <Badge variant="outline" className="text-[10px] border-blue-300 dark:border-blue-500/30 text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-500/10">
                                                                 📁 {projects.find(p => p.id === f.project_id)?.name || 'Proje'}
                                                             </Badge>
                                                         )}
                                                         {f.days_inactive && (
-                                                            <Badge variant="outline" className="text-[10px] border-amber-500/30 text-amber-400 bg-amber-500/10">
+                                                            <Badge variant="outline" className="text-[10px] border-amber-300 dark:border-amber-500/30 text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/10">
                                                                 ⏰ {f.days_inactive} gün hareketsiz
                                                             </Badge>
                                                         )}
                                                         {f.unassigned && (
-                                                            <Badge variant="outline" className="text-[10px] border-rose-500/30 text-rose-400 bg-rose-500/10">
+                                                            <Badge variant="outline" className="text-[10px] border-rose-300 dark:border-rose-500/30 text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-500/10">
                                                                 Atanmamış
                                                             </Badge>
                                                         )}
@@ -448,55 +448,55 @@ export function SegmentManager({ segments: initialSegments, projects, profiles, 
                         {/* AI Parsed Filters Display */}
                         {aiFilters && (
                             <div className="space-y-2 pt-2 border-t border-violet-500/20">
-                                <p className="text-[10px] font-bold text-violet-400 uppercase tracking-widest">AI Önerisi</p>
+                                <p className="text-[10px] font-bold text-violet-600 dark:text-violet-300 uppercase tracking-widest">AI Önerisi</p>
                                 <div className="flex flex-wrap gap-1.5">
                                     {aiFilters.statuses?.map(s => (
-                                        <Badge key={s} variant="outline" className="text-[10px] bg-violet-500/10 border-violet-500/30 text-violet-300">
+                                        <Badge key={s} variant="outline" className="text-[10px] bg-violet-50 dark:bg-violet-500/10 border-violet-300 dark:border-violet-500/30 text-violet-700 dark:text-violet-200">
                                             📊 {s}
                                         </Badge>
                                     ))}
                                     {aiFilters.tags?.map(t => (
-                                        <Badge key={t} variant="outline" className="text-[10px] bg-amber-500/10 border-amber-500/30 text-amber-300">
+                                        <Badge key={t} variant="outline" className="text-[10px] bg-amber-50 dark:bg-amber-500/10 border-amber-300 dark:border-amber-500/30 text-amber-700 dark:text-amber-200">
                                             🏷️ {t}
                                         </Badge>
                                     ))}
                                     {aiFilters.city && (
-                                        <Badge variant="outline" className="text-[10px] bg-blue-500/10 border-blue-500/30 text-blue-300">
+                                        <Badge variant="outline" className="text-[10px] bg-blue-50 dark:bg-blue-500/10 border-blue-300 dark:border-blue-500/30 text-blue-700 dark:text-blue-200">
                                             📍 {aiFilters.city}
                                         </Badge>
                                     )}
                                     {aiFilters.date_from && (
-                                        <Badge variant="outline" className="text-[10px] bg-emerald-500/10 border-emerald-500/30 text-emerald-300">
+                                        <Badge variant="outline" className="text-[10px] bg-emerald-50 dark:bg-emerald-500/10 border-emerald-300 dark:border-emerald-500/30 text-emerald-700 dark:text-emerald-200">
                                             📅 {aiFilters.date_from}{aiFilters.date_to ? ` → ${aiFilters.date_to}` : ' →'}
                                         </Badge>
                                     )}
                                     {aiFilters.days_inactive && (
-                                        <Badge variant="outline" className="text-[10px] bg-amber-500/10 border-amber-500/30 text-amber-300">
+                                        <Badge variant="outline" className="text-[10px] bg-amber-50 dark:bg-amber-500/10 border-amber-300 dark:border-amber-500/30 text-amber-700 dark:text-amber-200">
                                             ⏰ {aiFilters.days_inactive} gün hareketsiz
                                         </Badge>
                                     )}
                                     {aiFilters.profile_data?.occupation && (
-                                        <Badge variant="outline" className="text-[10px] bg-teal-500/10 border-teal-500/30 text-teal-300">
+                                        <Badge variant="outline" className="text-[10px] bg-teal-50 dark:bg-teal-500/10 border-teal-300 dark:border-teal-500/30 text-teal-700 dark:text-teal-200">
                                             💼 {aiFilters.profile_data.occupation}
                                         </Badge>
                                     )}
                                     {aiFilters.profile_data?.income_segment && (
-                                        <Badge variant="outline" className="text-[10px] bg-teal-500/10 border-teal-500/30 text-teal-300">
+                                        <Badge variant="outline" className="text-[10px] bg-teal-50 dark:bg-teal-500/10 border-teal-300 dark:border-teal-500/30 text-teal-700 dark:text-teal-200">
                                             💰 {aiFilters.profile_data.income_segment}
                                         </Badge>
                                     )}
                                     {aiFilters.demand_filters?.room_count?.map((rc: string) => (
-                                        <Badge key={rc} variant="outline" className="text-[10px] bg-pink-500/10 border-pink-500/30 text-pink-300">
+                                        <Badge key={rc} variant="outline" className="text-[10px] bg-pink-50 dark:bg-pink-500/10 border-pink-300 dark:border-pink-500/30 text-pink-700 dark:text-pink-200">
                                             🏠 {rc}
                                         </Badge>
                                     ))}
                                     {(aiFilters.demand_filters?.min_price || aiFilters.demand_filters?.max_price) && (
-                                        <Badge variant="outline" className="text-[10px] bg-pink-500/10 border-pink-500/30 text-pink-300">
+                                        <Badge variant="outline" className="text-[10px] bg-pink-50 dark:bg-pink-500/10 border-pink-300 dark:border-pink-500/30 text-pink-700 dark:text-pink-200">
                                             💵 {aiFilters.demand_filters.min_price ? `${(aiFilters.demand_filters.min_price/1000).toFixed(0)}K` : '0'} - {aiFilters.demand_filters.max_price ? `${(aiFilters.demand_filters.max_price/1000).toFixed(0)}K` : '∞'}
                                         </Badge>
                                     )}
                                     {aiFilters.unassigned && (
-                                        <Badge variant="outline" className="text-[10px] bg-rose-500/10 border-rose-500/30 text-rose-300">
+                                        <Badge variant="outline" className="text-[10px] bg-rose-50 dark:bg-rose-500/10 border-rose-300 dark:border-rose-500/30 text-rose-700 dark:text-rose-200">
                                             👤 Atanmamış
                                         </Badge>
                                     )}
@@ -528,8 +528,8 @@ export function SegmentManager({ segments: initialSegments, projects, profiles, 
                                 {SOURCE_OPTIONS.map(opt => (
                                     <Badge key={opt.value} variant="outline"
                                         className={`cursor-pointer text-xs px-4 py-2 transition-all hover:scale-105 ${source === opt.value
-                                            ? 'bg-blue-500/20 border-blue-500/40 text-blue-300 shadow-sm shadow-blue-500/10'
-                                            : 'hover:border-blue-500/30'
+                                            ? 'bg-blue-50 dark:bg-blue-500/20 border-blue-400 dark:border-blue-500/40 text-blue-700 dark:text-blue-200 shadow-sm'
+                                            : 'hover:border-blue-400 dark:hover:border-blue-500/30'
                                             }`}
                                         onClick={() => handleSourceChange(opt.value)}>
                                         {source === opt.value && '✓ '}{opt.label}
@@ -545,8 +545,8 @@ export function SegmentManager({ segments: initialSegments, projects, profiles, 
                                 {currentStatusOptions.map(s => (
                                     <Badge key={s} variant="outline"
                                         className={`cursor-pointer text-xs px-3 py-1.5 transition-all hover:scale-105 ${statuses.includes(s)
-                                            ? 'bg-violet-500/20 border-violet-500/40 text-violet-300 shadow-sm shadow-violet-500/10'
-                                            : 'hover:border-violet-500/30'
+                                            ? 'bg-violet-50 dark:bg-violet-500/20 border-violet-400 dark:border-violet-500/40 text-violet-700 dark:text-violet-200 shadow-sm'
+                                            : 'hover:border-violet-400 dark:hover:border-violet-500/30'
                                             }`}
                                         onClick={() => setStatuses(prev =>
                                             prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]
@@ -604,26 +604,26 @@ export function SegmentManager({ segments: initialSegments, projects, profiles, 
                         <div className="flex flex-wrap gap-1.5 pt-2 border-t">
                             <span className="text-xs text-muted-foreground mr-1">Aktif filtreler:</span>
                             {statuses.map(s => (
-                                <Badge key={s} variant="outline" className="text-[10px] gap-1 bg-violet-500/10 border-violet-500/30 text-violet-400">
+                                <Badge key={s} variant="outline" className="text-[10px] gap-1 bg-violet-50 dark:bg-violet-500/10 border-violet-300 dark:border-violet-500/30 text-violet-700 dark:text-violet-300">
                                     {s}
                                     <X className="h-2.5 w-2.5 cursor-pointer hover:text-red-400"
                                         onClick={() => setStatuses(prev => prev.filter(x => x !== s))} />
                                 </Badge>
                             ))}
                             {projectId && projectId !== 'all' && (
-                                <Badge variant="outline" className="text-[10px] gap-1 bg-blue-500/10 border-blue-500/30 text-blue-400">
+                                <Badge variant="outline" className="text-[10px] gap-1 bg-blue-50 dark:bg-blue-500/10 border-blue-300 dark:border-blue-500/30 text-blue-700 dark:text-blue-300">
                                     📁 {projects.find(p => p.id === projectId)?.name}
                                     <X className="h-2.5 w-2.5 cursor-pointer hover:text-red-400" onClick={() => setProjectId('')} />
                                 </Badge>
                             )}
                             {assignedTo === 'unassigned' && (
-                                <Badge variant="outline" className="text-[10px] gap-1 bg-rose-500/10 border-rose-500/30 text-rose-400">
+                                <Badge variant="outline" className="text-[10px] gap-1 bg-rose-50 dark:bg-rose-500/10 border-rose-300 dark:border-rose-500/30 text-rose-700 dark:text-rose-300">
                                     Atanmamış
                                     <X className="h-2.5 w-2.5 cursor-pointer hover:text-red-400" onClick={() => setAssignedTo('any')} />
                                 </Badge>
                             )}
                             {daysInactive && (
-                                <Badge variant="outline" className="text-[10px] gap-1 bg-amber-500/10 border-amber-500/30 text-amber-400">
+                                <Badge variant="outline" className="text-[10px] gap-1 bg-amber-50 dark:bg-amber-500/10 border-amber-300 dark:border-amber-500/30 text-amber-700 dark:text-amber-300">
                                     ⏰ {daysInactive} gün
                                     <X className="h-2.5 w-2.5 cursor-pointer hover:text-red-400" onClick={() => setDaysInactive('')} />
                                 </Badge>
@@ -646,7 +646,7 @@ export function SegmentManager({ segments: initialSegments, projects, profiles, 
                                 <Loader2 className="h-6 w-6 animate-spin text-emerald-400 mx-auto" />
                             ) : (
                                 <>
-                                    <p className="text-4xl font-bold text-emerald-400">
+                                    <p className="text-4xl font-bold text-emerald-600 dark:text-emerald-400">
                                         {previewCount !== null ? previewCount : '—'}
                                     </p>
                                     <p className="text-xs text-muted-foreground mt-1">eşleşen lead</p>
@@ -716,7 +716,7 @@ function SegmentPreviewCard({ segmentId, filters }: { segmentId: string; filters
     return (
         <div className="mt-3 pt-3 border-t">
             <div className="flex items-center gap-4 mb-2">
-                <Badge variant="outline" className="text-xs border-emerald-500/30 text-emerald-400 bg-emerald-500/10 gap-1">
+                <Badge variant="outline" className="text-xs border-emerald-300 dark:border-emerald-500/30 text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-500/10 gap-1">
                     <Users className="h-3 w-3" />
                     {count} lead
                 </Badge>
