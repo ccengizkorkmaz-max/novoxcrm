@@ -1,30 +1,28 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import {
     Dialog,
     DialogContent,
-    DialogFooter,
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog'
-import { ClipboardList, Plus, Pencil, Trash2, ChevronLeft, BarChart3, Loader2, Eye } from 'lucide-react'
+import { ClipboardList, Plus, Pencil, Trash2, ChevronLeft, BarChart3, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { createSurveyTemplate, updateSurveyTemplate, deleteSurveyTemplate } from '../../actions'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
 
-// SurveyJS imports
-import { SurveyCreatorComponent, SurveyCreator } from 'survey-creator-react'
-import 'survey-core/defaultV2.min.css'
-import 'survey-creator-core/survey-creator-core.min.css'
-import 'survey-creator-core/i18n/turkish'
-import 'survey-core/i18n/turkish'
+// Dynamic import — SSR disabled for SurveyJS
+const SurveyCreatorWrapper = dynamic(
+    () => import('./SurveyCreatorWrapper'),
+    { ssr: false, loading: () => <div className="flex items-center justify-center h-full"><Loader2 className="h-6 w-6 animate-spin text-blue-500" /></div> }
+)
 
 interface SurveyTemplate {
     id: string
@@ -47,55 +45,15 @@ export default function SurveyManager({ initialTemplates, responseCounts }: Surv
     const [isPending, setIsPending] = useState(false)
     const [title, setTitle] = useState('')
     const [description, setDescription] = useState('')
-    const [creator, setCreator] = useState<SurveyCreator | null>(null)
-
-    const initCreator = useCallback((surveyJSON?: any) => {
-        const creatorInstance = new SurveyCreator({
-            showLogicTab: false,
-            showTranslationTab: false,
-            showEmbeddedSurveyTab: false,
-            isAutoSave: false,
-            showJSONEditorTab: false,
-            showSidebar: true,
-            questionTypes: [
-                'text', 'comment', 'radiogroup', 'checkbox', 'dropdown',
-                'rating', 'boolean', 'matrix', 'matrixdropdown',
-                'multipletext', 'panel', 'paneldynamic', 'html',
-                'imagepicker', 'ranking', 'signaturepad', 'expression'
-            ]
-        })
-        creatorInstance.locale = 'tr'
-
-        // Set default survey locale
-        creatorInstance.survey.locale = 'tr'
-
-        // Custom theme to match NovoCRM
-        creatorInstance.survey.applyTheme({
-            isPanelless: false,
-            cssVariables: {
-                '--sjs-primary-backcolor': '#2563eb',
-                '--sjs-primary-backcolor-dark': '#1d4ed8',
-                '--sjs-primary-backcolor-light': '#dbeafe',
-                '--sjs-primary-forecolor': '#ffffff',
-                '--sjs-corner-radius': '12px',
-                '--sjs-base-unit': '8px',
-                '--sjs-font-family': 'Inter, system-ui, sans-serif',
-            }
-        })
-
-        if (surveyJSON) {
-            creatorInstance.JSON = surveyJSON
-        }
-
-        setCreator(creatorInstance)
-        return creatorInstance
-    }, [])
+    const [creatorInstance, setCreatorInstance] = useState<any>(null)
+    const [creatorKey, setCreatorKey] = useState(0) // Force re-mount
 
     const openCreate = () => {
         setEditingTemplate(null)
         setTitle('')
         setDescription('')
-        initCreator()
+        setCreatorInstance(null)
+        setCreatorKey(k => k + 1)
         setIsCreatorOpen(true)
     }
 
@@ -103,7 +61,8 @@ export default function SurveyManager({ initialTemplates, responseCounts }: Surv
         setEditingTemplate(template)
         setTitle(template.title)
         setDescription(template.description || '')
-        initCreator(template.questions)
+        setCreatorInstance(null)
+        setCreatorKey(k => k + 1)
         setIsCreatorOpen(true)
     }
 
@@ -112,9 +71,12 @@ export default function SurveyManager({ initialTemplates, responseCounts }: Surv
             toast.error('Lütfen bir anket başlığı giriniz.')
             return
         }
-        if (!creator) return
+        if (!creatorInstance) {
+            toast.error('Anket editor henüz hazır değil.')
+            return
+        }
 
-        const surveyJSON = creator.JSON
+        const surveyJSON = creatorInstance.JSON
         if (!surveyJSON?.pages?.length || surveyJSON.pages.every((p: any) => !p.elements?.length)) {
             toast.error('Lütfen en az 1 soru ekleyiniz.')
             return
@@ -122,14 +84,18 @@ export default function SurveyManager({ initialTemplates, responseCounts }: Surv
 
         setIsPending(true)
 
-        if (editingTemplate) {
-            const res = await updateSurveyTemplate(editingTemplate.id, title, description, surveyJSON)
-            if (res?.error) toast.error(res.error)
-            else toast.success('Anket güncellendi.')
-        } else {
-            const res = await createSurveyTemplate(title, description, surveyJSON)
-            if (res?.error) toast.error(res.error)
-            else toast.success('Anket oluşturuldu.')
+        try {
+            if (editingTemplate) {
+                const res = await updateSurveyTemplate(editingTemplate.id, title, description, surveyJSON)
+                if (res?.error) toast.error(res.error)
+                else toast.success('Anket güncellendi.')
+            } else {
+                const res = await createSurveyTemplate(title, description, surveyJSON)
+                if (res?.error) toast.error(res.error)
+                else toast.success('Anket oluşturuldu.')
+            }
+        } catch (e) {
+            toast.error('Bir hata oluştu.')
         }
 
         setIsPending(false)
@@ -272,8 +238,12 @@ export default function SurveyManager({ initialTemplates, responseCounts }: Surv
                     </DialogHeader>
 
                     <div className="flex-1 min-h-0 overflow-hidden">
-                        {creator && (
-                            <SurveyCreatorComponent creator={creator} />
+                        {isCreatorOpen && (
+                            <SurveyCreatorWrapper
+                                key={creatorKey}
+                                surveyJSON={editingTemplate?.questions}
+                                onCreatorReady={setCreatorInstance}
+                            />
                         )}
                     </div>
                 </DialogContent>
