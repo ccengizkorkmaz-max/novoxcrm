@@ -65,7 +65,7 @@ export async function previewSegment(filters: any) {
     // Lead Qualifications source
     if (filters.source === 'lead_qualifications') {
         let query = supabase.from('lead_qualifications')
-            .select('id, status, customers!inner(full_name, phone)', { count: 'exact', head: false })
+            .select('id, status, customers!inner(full_name, phone, tags, city, profile_data)', { count: 'exact', head: false })
             .eq('tenant_id', tenantId)
         if (filters.statuses?.length) query = query.in('status', filters.statuses)
         if (filters.exclude_statuses?.length) {
@@ -78,20 +78,78 @@ export async function previewSegment(filters: any) {
         if (filters.unassigned) query = query.is('assigned_to', null)
         if (filters.date_from) query = query.gte('created_at', filters.date_from)
         if (filters.date_to) query = query.lte('created_at', filters.date_to + 'T23:59:59')
+        // Extended filters
+        if (filters.tags?.length) query = query.contains('customers.tags', filters.tags)
+        if (filters.city) query = query.ilike('customers.city', `%${filters.city}%`)
         const { data, count } = await query.limit(10)
         return { count: count || 0, preview: data || [] }
     }
 
-    // Default: Sales source
-    let query = supabase.from('sales').select('id, customers!inner(full_name, phone)', { count: 'exact', head: false }).eq('tenant_id', tenantId).neq('status', 'Inbox')
+    // Default: Sales source — determine if we need demand joins
+    const needsDemandJoin = !!(filters.demand_filters?.room_count || filters.demand_filters?.min_price || 
+        filters.demand_filters?.max_price || filters.demand_filters?.property_type || filters.demand_filters?.investment_purpose)
+    
+    const selectFields = needsDemandJoin 
+        ? 'id, customers!inner(full_name, phone, tags, city, profile_data), customer_demands(room_count, min_price, max_price, property_type, investment_purpose)'
+        : 'id, customers!inner(full_name, phone, tags, city, profile_data)'
+
+    let query = supabase.from('sales').select(selectFields, { count: 'exact', head: false })
+        .eq('tenant_id', tenantId).neq('status', 'Inbox')
+    
     if (filters.statuses?.length) query = query.in('status', filters.statuses)
     if (filters.project_id) query = query.eq('project_id', filters.project_id)
     if (filters.unassigned) query = query.is('assigned_to', null)
     if (filters.assigned_to) query = query.eq('assigned_to', filters.assigned_to)
     if (filters.date_from) query = query.gte('created_at', filters.date_from)
     if (filters.date_to) query = query.lte('created_at', filters.date_to + 'T23:59:59')
+    
+    // Extended customer filters
+    if (filters.tags?.length) query = query.contains('customers.tags', filters.tags)
+    if (filters.city) query = query.ilike('customers.city', `%${filters.city}%`)
+
     const { data, count } = await query.limit(10)
-    return { count: count || 0, preview: data || [] }
+
+    // Client-side filtering for profile_data and demand_filters (JSONB fields can't be easily filtered in Supabase)
+    let filteredData = data || []
+    let adjustedCount = count || 0
+
+    if (filters.profile_data && Object.keys(filters.profile_data).length > 0) {
+        const beforeLen = filteredData.length
+        filteredData = filteredData.filter((item: any) => {
+            const pd = item.customers?.profile_data
+            if (!pd) return false
+            for (const [key, value] of Object.entries(filters.profile_data)) {
+                if (pd[key] !== value) return false
+            }
+            return true
+        })
+        // Estimate adjusted count based on filter ratio
+        if (beforeLen > 0) {
+            adjustedCount = Math.round(adjustedCount * (filteredData.length / beforeLen))
+        }
+    }
+
+    if (needsDemandJoin && filters.demand_filters) {
+        const df = filters.demand_filters
+        const beforeLen = filteredData.length
+        filteredData = filteredData.filter((item: any) => {
+            const demands = Array.isArray(item.customer_demands) ? item.customer_demands : [item.customer_demands].filter(Boolean)
+            if (demands.length === 0) return false
+            return demands.some((d: any) => {
+                if (df.room_count?.length && (!d.room_count || !df.room_count.some((rc: string) => d.room_count?.includes(rc)))) return false
+                if (df.min_price && (!d.max_price || d.max_price < df.min_price)) return false
+                if (df.max_price && (!d.min_price || d.min_price > df.max_price)) return false
+                if (df.property_type && d.property_type !== df.property_type) return false
+                if (df.investment_purpose && d.investment_purpose !== df.investment_purpose) return false
+                return true
+            })
+        })
+        if (beforeLen > 0) {
+            adjustedCount = Math.round(adjustedCount * (filteredData.length / beforeLen))
+        }
+    }
+
+    return { count: adjustedCount, preview: filteredData.slice(0, 10) }
 }
 
 // ─── Scripts ─────────────────────────────────────────────────

@@ -9,9 +9,11 @@ import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import {
     Target, Plus, ArrowLeft, Trash2, Save, Users, Search,
-    Pencil, Eye, Filter, X, Loader2, ChevronRight
+    Pencil, Eye, Filter, X, Loader2, ChevronRight, Sparkles
 } from 'lucide-react'
+import { Textarea } from '@/components/ui/textarea'
 import { createSegment, updateSegment, deleteSegment, previewSegment } from '../actions'
+import { aiParseSegmentFilters, type ParsedSegmentFilters } from '@/lib/ai/segment-parser'
 
 const SALES_STATUS_OPTIONS = ['Lead', 'Prospect', 'Potential', 'Lost', 'Customer', 'Contacted']
 const LQ_STATUS_OPTIONS = ['new', 'follow_up', 'unreachable', 'qualified', 'disqualified']
@@ -54,6 +56,12 @@ export function SegmentManager({ segments: initialSegments, projects, profiles, 
     const [previewLeads, setPreviewLeads] = useState<any[]>([])
     const [previewing, setPreviewing] = useState(false)
 
+    // AI state
+    const [aiPrompt, setAiPrompt] = useState('')
+    const [aiParsing, setAiParsing] = useState(false)
+    const [aiFilters, setAiFilters] = useState<ParsedSegmentFilters | null>(null)
+    const [aiError, setAiError] = useState('')
+
     const resetForm = () => {
         setName('')
         setDescription('')
@@ -66,6 +74,9 @@ export function SegmentManager({ segments: initialSegments, projects, profiles, 
         setDaysInactive('')
         setPreviewCount(null)
         setPreviewLeads([])
+        setAiPrompt('')
+        setAiFilters(null)
+        setAiError('')
     }
 
     const openCreate = () => {
@@ -99,6 +110,11 @@ export function SegmentManager({ segments: initialSegments, projects, profiles, 
         if (dateFrom) filters.date_from = dateFrom
         if (dateTo) filters.date_to = dateTo
         if (daysInactive) filters.days_inactive = Number(daysInactive)
+        // Extended filters from AI
+        if (aiFilters?.tags?.length) filters.tags = aiFilters.tags
+        if (aiFilters?.city) filters.city = aiFilters.city
+        if (aiFilters?.profile_data && Object.keys(aiFilters.profile_data).length > 0) filters.profile_data = aiFilters.profile_data
+        if (aiFilters?.demand_filters && Object.keys(aiFilters.demand_filters).length > 0) filters.demand_filters = aiFilters.demand_filters
         return filters
     }
 
@@ -123,14 +139,14 @@ export function SegmentManager({ segments: initialSegments, projects, profiles, 
             setPreviewLeads(result.preview || [])
         } catch { /* ignore */ }
         setPreviewing(false)
-    }, [statuses, projectId, assignedTo, dateFrom, dateTo, daysInactive, source])
+    }, [statuses, projectId, assignedTo, dateFrom, dateTo, daysInactive, source, aiFilters])
 
     // Auto-preview on filter change (debounced)
     useEffect(() => {
         if (view !== 'create' && view !== 'edit') return
         const timer = setTimeout(() => { handlePreview() }, 600)
         return () => clearTimeout(timer)
-    }, [statuses, projectId, assignedTo, dateFrom, dateTo, daysInactive, source, view, handlePreview])
+    }, [statuses, projectId, assignedTo, dateFrom, dateTo, daysInactive, source, view, handlePreview, aiFilters])
 
     const handleSave = async () => {
         if (!name.trim()) return alert('Segment adı gerekli')
@@ -331,6 +347,139 @@ export function SegmentManager({ segments: initialSegments, projects, profiles, 
                                     placeholder="Kısa açıklama..." className="h-9" />
                             </div>
                         </div>
+                    </Card>
+
+                    {/* AI Segment Builder */}
+                    <Card className="p-5 space-y-4 border-violet-500/20 bg-gradient-to-b from-violet-500/5 to-transparent">
+                        <h2 className="font-semibold text-sm flex items-center gap-2">
+                            <Sparkles className="h-4 w-4 text-violet-400" />
+                            AI ile Segment Oluştur
+                        </h2>
+                        <p className="text-[11px] text-muted-foreground">
+                            Hedef kitlenizi doğal dilde tanımlayın, AI filtreleri otomatik oluşturur.
+                        </p>
+                        <Textarea
+                            value={aiPrompt}
+                            onChange={e => setAiPrompt(e.target.value)}
+                            placeholder="Örn: Son 30 günde gelen İstanbul'daki premium yatırımcı müşteriler, 3+1 arayan, 500K-1M bütçeli..."
+                            className="min-h-[80px] text-xs resize-none border-violet-500/20 focus:border-violet-500/40"
+                        />
+                        <Button
+                            type="button"
+                            onClick={async () => {
+                                if (!aiPrompt.trim()) return
+                                setAiParsing(true)
+                                setAiError('')
+                                setAiFilters(null)
+                                const result = await aiParseSegmentFilters(
+                                    aiPrompt,
+                                    projects.map(p => p.name),
+                                    profiles.map(p => p.full_name)
+                                )
+                                if (result.error) {
+                                    setAiError(result.error)
+                                } else if (result.filters) {
+                                    setAiFilters(result.filters)
+                                    // Apply parsed filters to form
+                                    if (result.filters.source) handleSourceChange(result.filters.source)
+                                    if (result.filters.statuses?.length) setStatuses(result.filters.statuses)
+                                    if (result.filters.date_from) setDateFrom(result.filters.date_from)
+                                    if (result.filters.date_to) setDateTo(result.filters.date_to)
+                                    if (result.filters.days_inactive) setDaysInactive(result.filters.days_inactive.toString())
+                                    if (result.filters.unassigned) setAssignedTo('unassigned')
+                                    if (result.filters.segment_name && !name) setName(result.filters.segment_name)
+                                    if (result.filters.segment_description && !description) setDescription(result.filters.segment_description)
+                                    // Match project name to ID
+                                    if (result.filters.project_name) {
+                                        const match = projects.find(p => p.name.toLowerCase().includes(result.filters!.project_name!.toLowerCase()))
+                                        if (match) setProjectId(match.id)
+                                    }
+                                    // Match assigned_to_name to ID
+                                    if (result.filters.assigned_to_name) {
+                                        const match = profiles.find(p => p.full_name.toLowerCase().includes(result.filters!.assigned_to_name!.toLowerCase()))
+                                        if (match) setAssignedTo(match.id)
+                                    }
+                                }
+                                setAiParsing(false)
+                            }}
+                            disabled={aiParsing || !aiPrompt.trim()}
+                            className="w-full gap-2 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-xs font-bold"
+                        >
+                            {aiParsing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                            {aiParsing ? 'AI Analiz Ediyor...' : 'AI ile Filtrele'}
+                        </Button>
+
+                        {aiError && (
+                            <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg p-2">{aiError}</p>
+                        )}
+
+                        {/* AI Parsed Filters Display */}
+                        {aiFilters && (
+                            <div className="space-y-2 pt-2 border-t border-violet-500/20">
+                                <p className="text-[10px] font-bold text-violet-400 uppercase tracking-widest">AI Önerisi</p>
+                                <div className="flex flex-wrap gap-1.5">
+                                    {aiFilters.statuses?.map(s => (
+                                        <Badge key={s} variant="outline" className="text-[10px] bg-violet-500/10 border-violet-500/30 text-violet-300">
+                                            📊 {s}
+                                        </Badge>
+                                    ))}
+                                    {aiFilters.tags?.map(t => (
+                                        <Badge key={t} variant="outline" className="text-[10px] bg-amber-500/10 border-amber-500/30 text-amber-300">
+                                            🏷️ {t}
+                                        </Badge>
+                                    ))}
+                                    {aiFilters.city && (
+                                        <Badge variant="outline" className="text-[10px] bg-blue-500/10 border-blue-500/30 text-blue-300">
+                                            📍 {aiFilters.city}
+                                        </Badge>
+                                    )}
+                                    {aiFilters.date_from && (
+                                        <Badge variant="outline" className="text-[10px] bg-emerald-500/10 border-emerald-500/30 text-emerald-300">
+                                            📅 {aiFilters.date_from}{aiFilters.date_to ? ` → ${aiFilters.date_to}` : ' →'}
+                                        </Badge>
+                                    )}
+                                    {aiFilters.days_inactive && (
+                                        <Badge variant="outline" className="text-[10px] bg-amber-500/10 border-amber-500/30 text-amber-300">
+                                            ⏰ {aiFilters.days_inactive} gün hareketsiz
+                                        </Badge>
+                                    )}
+                                    {aiFilters.profile_data?.occupation && (
+                                        <Badge variant="outline" className="text-[10px] bg-teal-500/10 border-teal-500/30 text-teal-300">
+                                            💼 {aiFilters.profile_data.occupation}
+                                        </Badge>
+                                    )}
+                                    {aiFilters.profile_data?.income_segment && (
+                                        <Badge variant="outline" className="text-[10px] bg-teal-500/10 border-teal-500/30 text-teal-300">
+                                            💰 {aiFilters.profile_data.income_segment}
+                                        </Badge>
+                                    )}
+                                    {aiFilters.demand_filters?.room_count?.map((rc: string) => (
+                                        <Badge key={rc} variant="outline" className="text-[10px] bg-pink-500/10 border-pink-500/30 text-pink-300">
+                                            🏠 {rc}
+                                        </Badge>
+                                    ))}
+                                    {(aiFilters.demand_filters?.min_price || aiFilters.demand_filters?.max_price) && (
+                                        <Badge variant="outline" className="text-[10px] bg-pink-500/10 border-pink-500/30 text-pink-300">
+                                            💵 {aiFilters.demand_filters.min_price ? `${(aiFilters.demand_filters.min_price/1000).toFixed(0)}K` : '0'} - {aiFilters.demand_filters.max_price ? `${(aiFilters.demand_filters.max_price/1000).toFixed(0)}K` : '∞'}
+                                        </Badge>
+                                    )}
+                                    {aiFilters.unassigned && (
+                                        <Badge variant="outline" className="text-[10px] bg-rose-500/10 border-rose-500/30 text-rose-300">
+                                            👤 Atanmamış
+                                        </Badge>
+                                    )}
+                                </div>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => { setAiFilters(null); setAiPrompt('') }}
+                                    className="text-[10px] text-muted-foreground h-6 px-2"
+                                >
+                                    <X className="h-3 w-3 mr-1" /> Temizle
+                                </Button>
+                            </div>
+                        )}
                     </Card>
 
                     {/* Filters */}
