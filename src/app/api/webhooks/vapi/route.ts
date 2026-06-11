@@ -153,7 +153,7 @@ Gelen aramaları karşıla, bilgi bankasındaki proje bilgilerini paylaş, rande
 6. Randevu almaya çalış: "Size uygun bir zamanda satış uzmanımızla görüşme ayarlayabilir miyim?"
 7. Fiyat sorulursa: Bilgi bankasında varsa söyle, yoksa "Güncel fiyat bilgisi için sizi aratmamı ister misiniz?" de.
 8. Profesyonel, sıcak ve samimi ol ama laubali olma.
-9. ⚠️ KRİTİK: Müşteri "satış danışmanı ile görüşmek istiyorum", "bir yetkili ile konuşayım", "biri beni arasın", "satış uzmanıyla görüşeyim" gibi doğrudan bir kişiyle konuşma talebi iletirse, ASLA sadece vedalaşıp kapatma! Şöyle söyle: "Elbette, en kısa sürede bir satış danışmanımız sizi arayacaktır. İyi günler dilerim." ve ardından "endCall" aracıyla görüşmeyi sonlandır.`
+9. ⚠️ KRİTİK: Müşteri "satış danışmanı ile görüşmek istiyorum", "bir yetkili ile konuşayım", "biri beni arasın", "satış uzmanıyla görüşeyim", "gidip görüşmek istiyorum" gibi doğrudan bir kişiyle konuşma veya yüz yüze görüşme talebi iletirse, ASLA sadece vedalaşıp kapatma! HARFİ HARFİNE şu cümleyi söyle (kısaltma, değiştirme yapma): "Elbette, en kısa sürede bir satış danışmanımız sizi arayacaktır. İyi günler dilerim." Bu cümleyi BİREBİR söyledikten sonra "endCall" aracıyla görüşmeyi sonlandır.`
 
                 let systemPrompt = tenantData?.ai_assistant_instructions || defaultInboundPrompt
                 
@@ -334,7 +334,6 @@ Gelen aramaları karşıla, bilgi bankasındaki proje bilgilerini paylaş, rande
                 console.log(`[Vapi Webhook] Status update: ${parsed.callId} → ${parsed.status}`)
                 
                 // Update inbound_calls table to reflect the current call state
-                // This prevents calls from staying stuck as 'ringing' forever
                 if (parsed.callId && parsed.status) {
                     const statusMap: Record<string, string> = {
                         'ringing': 'ringing',
@@ -348,20 +347,36 @@ Gelen aramaları karşıla, bilgi bankasındaki proje bilgilerini paylaş, rande
                         const adminSupabase = createAdminClient()
                         const updateData: Record<string, any> = { status: newStatus }
                         
-                        // If the status is 'ended' from a status-update (without end-of-call-report),
-                        // set ended_at and a fallback outcome
+                        // If the status is 'ended', set ended_at and compute duration
                         if (newStatus === 'ended') {
                             updateData.ended_at = new Date().toISOString()
-                            updateData.outcome = updateData.outcome || 'no_answer'
+                            // Try to compute duration from started_at
+                            const { data: callRecord } = await adminSupabase
+                                .from('inbound_calls')
+                                .select('started_at, status')
+                                .eq('vapi_call_id', parsed.callId)
+                                .maybeSingle()
+                            
+                            if (callRecord?.started_at) {
+                                const durationSec = Math.round((Date.now() - new Date(callRecord.started_at).getTime()) / 1000)
+                                if (durationSec > 0) updateData.duration = durationSec
+                            }
+                            // If was in-progress, call was answered; otherwise no_answer
+                            updateData.outcome = callRecord?.status === 'in-progress' ? 'answered' : 'no_answer'
                         }
                         
-                        await adminSupabase
+                        // Allow transition from ringing→in-progress→ended (not just ringing)
+                        const { error: statusErr } = await adminSupabase
                             .from('inbound_calls')
                             .update(updateData)
                             .eq('vapi_call_id', parsed.callId)
-                            .eq('status', 'ringing') // Only update if still ringing (don't overwrite ended status)
+                            .in('status', ['ringing', 'in-progress']) // Allow both transitions
                         
-                        console.log(`[Vapi Webhook] Updated inbound_calls status: ${parsed.callId} → ${newStatus}`)
+                        if (statusErr) {
+                            console.warn(`[Vapi Webhook] Failed to update inbound_calls status: ${statusErr.message}`)
+                        } else {
+                            console.log(`[Vapi Webhook] Updated inbound_calls status: ${parsed.callId} → ${newStatus}`)
+                        }
                     } catch (e: any) {
                         console.warn(`[Vapi Webhook] Failed to update inbound_calls status: ${e.message}`)
                     }
