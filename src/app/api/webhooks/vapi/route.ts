@@ -152,7 +152,8 @@ Gelen aramaları karşıla, bilgi bankasındaki proje bilgilerini paylaş, rande
 5. Konu dışı sorulara (siyaset, hava durumu, şirket dışı konular) "Ben sadece projelerimiz hakkında bilgi verebiliyorum" de.
 6. Randevu almaya çalış: "Size uygun bir zamanda satış uzmanımızla görüşme ayarlayabilir miyim?"
 7. Fiyat sorulursa: Bilgi bankasında varsa söyle, yoksa "Güncel fiyat bilgisi için sizi aratmamı ister misiniz?" de.
-8. Profesyonel, sıcak ve samimi ol ama laubali olma.`
+8. Profesyonel, sıcak ve samimi ol ama laubali olma.
+9. ⚠️ KRİTİK: Müşteri "satış danışmanı ile görüşmek istiyorum", "bir yetkili ile konuşayım", "biri beni arasın", "satış uzmanıyla görüşeyim" gibi doğrudan bir kişiyle konuşma talebi iletirse, ASLA sadece vedalaşıp kapatma! Şöyle söyle: "Elbette, en kısa sürede bir satış danışmanımız sizi arayacaktır. İyi günler dilerim." ve ardından "endCall" aracıyla görüşmeyi sonlandır.`
 
                 let systemPrompt = tenantData?.ai_assistant_instructions || defaultInboundPrompt
                 
