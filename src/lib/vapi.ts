@@ -507,6 +507,12 @@ export function parseVapiWebhook(body: any): {
     analysis?: any
     metadata?: Record<string, any>
 } {
+    // Vapi sends data in multiple locations depending on version/event type:
+    // - Older: body.message.transcript, body.message.recordingUrl
+    // - Newer (end-of-call-report): body.message.artifact.transcript, body.message.artifact.recordingUrl
+    // - Call object: body.message.call.transcript
+    const artifact = body.message?.artifact || {}
+
     const startedAt = body.message?.call?.startedAt || body.call?.startedAt || body.startedAt
     const endedAt = body.message?.call?.endedAt || body.call?.endedAt || body.endedAt
     let duration = body.message?.call?.duration || body.call?.duration || body.duration
@@ -514,16 +520,25 @@ export function parseVapiWebhook(body: any): {
         duration = Math.round((new Date(endedAt).getTime() - new Date(startedAt).getTime()) / 1000)
     }
 
+    // Build transcript from artifact.messages[] if plain transcript is missing
+    let transcript = body.message?.transcript || body.transcript || artifact.transcript || body.message?.call?.transcript || body.call?.transcript
+    if (!transcript && artifact.messages && Array.isArray(artifact.messages)) {
+        transcript = artifact.messages
+            .filter((m: any) => m.role && m.message)
+            .map((m: any) => `${m.role === 'assistant' ? 'AI' : m.role === 'user' ? 'User' : m.role}: ${m.message}`)
+            .join('\n')
+    }
+
     return {
         type: body.message?.type || body.type || 'unknown',
         callId: body.message?.call?.id || body.call?.id || body.id || '',
         status: body.message?.call?.status || body.call?.status || body.status,
         endedReason: body.message?.endedReason || body.endedReason || body.message?.call?.endedReason || body.call?.endedReason,
-        transcript: body.message?.transcript || body.transcript || body.message?.call?.transcript || body.call?.transcript,
-        summary: body.message?.summary || body.summary || body.message?.analysis?.summary || body.message?.call?.summary || body.call?.summary,
-        recordingUrl: body.message?.recordingUrl || body.recordingUrl || body.message?.call?.recordingUrl || body.call?.recordingUrl,
+        transcript: transcript || undefined,
+        summary: body.message?.summary || body.summary || body.message?.analysis?.summary || artifact.summary || body.message?.call?.summary || body.call?.summary,
+        recordingUrl: body.message?.recordingUrl || body.recordingUrl || artifact.recordingUrl || artifact.stereoRecordingUrl || body.message?.call?.recordingUrl || body.call?.recordingUrl,
         duration: duration ? Number(duration) : undefined,
-        cost: body.message?.call?.cost || body.call?.cost || body.cost || body.message?.call?.costBreakdown?.total || body.costBreakdown?.total || body.costBreakdown?.total,
+        cost: body.message?.call?.cost || body.call?.cost || body.cost || body.message?.call?.costBreakdown?.total || body.costBreakdown?.total,
         analysis: body.message?.analysis || body.analysis || body.message?.call?.analysis || body.call?.analysis,
         metadata: body.message?.call?.metadata || body.call?.metadata || body.metadata,
     }
@@ -632,11 +647,27 @@ export async function handleManualVapiCallResult(callData: {
 }) {
     const { createAdminClient } = await import('@/lib/supabase/admin')
     const supabase = createAdminClient()
-    const customerId = callData.metadata?.customer_id
+    let customerId = callData.metadata?.customer_id
     const saleId = callData.metadata?.sale_id
-    const tenantId = callData.metadata?.tenant_id
+    let tenantId = callData.metadata?.tenant_id
     const callerPhone = callData.metadata?.caller_phone
-    const isInbound = callData.metadata?.call_direction === 'inbound'
+    let isInbound = callData.metadata?.call_direction === 'inbound'
+
+    // ─── Fallback: metadata eksikse inbound_calls tablosundan kontrol et ───
+    if (callData.callId && (!tenantId || !isInbound)) {
+        const { data: inboundRecord } = await supabase
+            .from('inbound_calls')
+            .select('tenant_id, customer_id, caller_phone')
+            .eq('vapi_call_id', callData.callId)
+            .maybeSingle()
+
+        if (inboundRecord) {
+            isInbound = true
+            if (!tenantId) tenantId = inboundRecord.tenant_id
+            if (!customerId) customerId = inboundRecord.customer_id
+            console.log(`[Vapi Webhook] 📞 Inbound call detected via inbound_calls table fallback (callId: ${callData.callId})`)
+        }
+    }
 
     if (!tenantId) {
         console.warn('[Vapi Webhook] Manual call finished but missing tenant_id in metadata')

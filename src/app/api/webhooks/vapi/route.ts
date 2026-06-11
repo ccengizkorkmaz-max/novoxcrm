@@ -277,7 +277,7 @@ Gelen aramaları karşıla, bilgi bankasındaki proje bilgilerini paylaş, rande
 
             case 'end-of-call-report':
             case 'call.ended': {
-                console.log(`[Vapi Webhook] Call ended: ${parsed.callId}, reason: ${parsed.endedReason}`)
+                console.log(`[Vapi Webhook] Call ended: ${parsed.callId}, reason: ${parsed.endedReason}, duration: ${parsed.duration}s, hasTranscript: ${!!parsed.transcript}, hasRecording: ${!!parsed.recordingUrl}, hasSummary: ${!!parsed.summary}, hasAnalysis: ${!!parsed.analysis}, callDirection: ${parsed.metadata?.call_direction || 'unknown'}, type: ${parsed.metadata?.type || 'unknown'}, hasArtifact: ${!!body.message?.artifact}`)
                 
                 // ─── NON-BLOCKING: Return 200 immediately, process in background ───
                 // Vapi expects a response within 3-5 seconds. DB operations (timeline,
