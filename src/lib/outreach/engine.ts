@@ -1761,8 +1761,8 @@ export async function handleVapiCallResult(callData: {
             priority: structuredData.lead_score === 'hot' ? 'High' : 'Medium',
         })
 
-        // HOT Lead → WhatsApp notification to assigned rep
-        if (structuredData.lead_score === 'hot' && assignedTo) {
+        // HOT/WARM Lead → WhatsApp notification to assigned rep + hot lead managers
+        if (structuredData.lead_score === 'hot' || structuredData.lead_score === 'warm') {
             try {
                 const { data: customer } = await supabase
                     .from('customers')
@@ -1770,35 +1770,70 @@ export async function handleVapiCallResult(callData: {
                     .eq('id', execution.customer_id)
                     .single()
 
-                const { data: rep } = await supabase
-                    .from('profiles')
-                    .select('phone, full_name')
-                    .eq('id', assignedTo)
+                const { data: tenant } = await supabase
+                    .from('tenants')
+                    .select('wa_phone_number_id, wa_access_token')
+                    .eq('id', execution.tenant_id)
                     .single()
 
-                if (rep?.phone && customer) {
-                    const { data: tenant } = await supabase
-                        .from('tenants')
-                        .select('wa_phone_number_id, wa_access_token')
-                        .eq('id', execution.tenant_id)
-                        .single()
+                if (tenant?.wa_phone_number_id && tenant?.wa_access_token && customer) {
+                    const { sendWhatsAppTemplate } = await import('@/lib/whatsapp')
+                    const leadLabel = structuredData.lead_score === 'warm' ? '[ILIK LEAD - Outreach] ' : '[SICAK LEAD - Outreach] '
+                    const params = [
+                        customer.phone || '-',
+                        customer.full_name || 'Müşteri',
+                        new Date().toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' }),
+                        leadLabel + (structuredData.notes || `AI arama sonucu ${structuredData.lead_score.toUpperCase()} olarak değerlendirildi`)
+                    ].map(p => typeof p === 'string' ? p.replace(/[\r\n\t]+/g, ' ').replace(/\s{2,}/g, ' ').trim().substring(0, 500) : p)
 
-                    if (tenant?.wa_phone_number_id && tenant?.wa_access_token) {
-                        const { sendWhatsAppTemplate } = await import('@/lib/whatsapp')
-                        await sendWhatsAppTemplate(
-                            rep.phone.replace(/\D/g, ''),
-                            'crm_operasyonel_durum_bildirimi',
-                            [
-                                customer.phone || '-',
-                                customer.full_name || 'Müşteri',
-                                new Date().toLocaleString('tr-TR'),
-                                structuredData.notes || 'AI arama sonucu HOT olarak değerlendirildi'
-                            ].map(p => typeof p === 'string' ? p.replace(/[\r\n\t]+/g, ' ').replace(/\s{2,}/g, ' ').trim() : p),
-                            'tr',
-                            tenant.wa_phone_number_id,
-                            tenant.wa_access_token
-                        )
-                        console.log(`[Outreach] 🔥 HOT lead bildirim gönderildi → ${rep.full_name}`)
+                    // 1. Atanmış danışmana bildirim
+                    if (assignedTo) {
+                        const { data: rep } = await supabase
+                            .from('profiles')
+                            .select('phone, full_name')
+                            .eq('id', assignedTo)
+                            .single()
+
+                        if (rep?.phone) {
+                            await sendWhatsAppTemplate(
+                                rep.phone.replace(/\D/g, ''),
+                                'crm_operasyonel_durum_bildirimi',
+                                params,
+                                'tr',
+                                tenant.wa_phone_number_id,
+                                tenant.wa_access_token
+                            )
+                            console.log(`[Outreach] 🔥 ${structuredData.lead_score.toUpperCase()} lead bildirim → atanmış danışman: ${rep.full_name}`)
+                        }
+                    }
+
+                    // 2. Tüm hot lead manager'lara bildirim
+                    const { data: hotLeadManagers } = await supabase
+                        .from('profiles')
+                        .select('id, full_name, phone')
+                        .eq('tenant_id', execution.tenant_id)
+                        .eq('is_hot_lead_manager', true)
+                        .eq('is_active', true)
+
+                    if (hotLeadManagers && hotLeadManagers.length > 0) {
+                        for (const manager of hotLeadManagers) {
+                            // Atanmış danışman zaten bildirim aldıysa tekrar gönderme
+                            if (manager.phone && manager.id !== assignedTo) {
+                                try {
+                                    await sendWhatsAppTemplate(
+                                        manager.phone,
+                                        'crm_operasyonel_durum_bildirimi',
+                                        params,
+                                        'tr',
+                                        tenant.wa_phone_number_id,
+                                        tenant.wa_access_token
+                                    )
+                                    console.log(`[Outreach] 🔥 Hot Lead Manager bildirimi gönderildi: ${manager.full_name} (${manager.phone})`)
+                                } catch (sendErr: any) {
+                                    console.error(`[Outreach] Hot Lead Manager bildirim hatası (${manager.full_name}):`, sendErr.message)
+                                }
+                            }
+                        }
                     }
                 }
             } catch (notifErr: any) {

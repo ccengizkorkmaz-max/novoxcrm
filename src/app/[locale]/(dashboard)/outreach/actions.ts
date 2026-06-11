@@ -479,19 +479,20 @@ export async function getExecutionLogs(executionId: string) {
     return data || []
 }
 
-export async function getDetailedCallLogs(limit: number = 50) {
-    const { supabase } = await getAuthContext()
+export async function getDetailedCallLogs(limit: number = 200) {
+    const { supabase, tenantId } = await getAuthContext()
     const { data } = await supabase.from('outreach_step_logs')
         .select(`
             *,
             outreach_steps(name, action_type, config),
-            outreach_executions(
-                id, status, current_step_order,
+            outreach_executions!inner(
+                id, status, current_step_order, tenant_id,
                 customers(id, full_name, phone, email),
                 sales(id, status, projects(name)),
                 outreach_workflows(name)
             )
         `)
+        .eq('outreach_executions.tenant_id', tenantId)
         .in('channel', ['ai_call', 'whatsapp', 'sms'])
         .order('executed_at', { ascending: false })
         .limit(limit)

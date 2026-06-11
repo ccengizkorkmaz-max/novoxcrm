@@ -33,7 +33,7 @@ export default async function OutreachReportsPage() {
         .eq('outreach_executions.tenant_id', tenantId)
         .in('channel', ['ai_call', 'whatsapp', 'sms'])
         .order('executed_at', { ascending: false })
-        .limit(100)
+        .limit(200)
 
     // Fetch workflows for WhatsApp filter
     const { data: workflows } = await supabase

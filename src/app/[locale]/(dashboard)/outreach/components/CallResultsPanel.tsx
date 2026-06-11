@@ -81,7 +81,15 @@ function timeAgo(dateStr: string): string {
     const hours = Math.floor(mins / 60)
     if (hours < 24) return `${hours}sa önce`
     const days = Math.floor(hours / 24)
-    return `${days}g önce`
+    if (days < 7) return `${days}g önce`
+    return new Date(dateStr).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })
+}
+
+function formatFullDate(dateStr: string): string {
+    return new Date(dateStr).toLocaleString('tr-TR', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+    })
 }
 
 // ─── Component ───────────────────────────────────────────────
@@ -95,7 +103,7 @@ export function CallResultsPanel({ initialLogs }: { initialLogs: any[] }) {
 
     const handleRefresh = async () => {
         setLoading(true)
-        const fresh = await getDetailedCallLogs(50)
+        const fresh = await getDetailedCallLogs(200)
         setLogs(fresh)
         setLoading(false)
     }
@@ -204,7 +212,7 @@ function CallLogCard({ log, isExpanded, onToggle }: { log: any; isExpanded: bool
                     {/* Customer Info */}
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                            <span className="font-semibold text-sm truncate">{customer?.full_name || 'Bilinmiyor'}</span>
+                            <span className="font-semibold text-sm truncate">{customer?.full_name || customer?.phone || 'Bilinmiyor'}</span>
                             {project && <Badge variant="outline" className="text-[10px] border-blue-500/30 text-blue-400">{project}</Badge>}
                         </div>
                         <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
@@ -236,7 +244,10 @@ function CallLogCard({ log, isExpanded, onToggle }: { log: any; isExpanded: bool
                     )}
 
                     {/* Time */}
-                    <span className="text-[10px] text-muted-foreground whitespace-nowrap min-w-[50px] text-right">
+                    <span
+                        className="text-[10px] text-muted-foreground whitespace-nowrap min-w-[70px] text-right"
+                        title={log.executed_at ? formatFullDate(log.executed_at) : ''}
+                    >
                         {log.executed_at ? timeAgo(log.executed_at) : '—'}
                     </span>
 

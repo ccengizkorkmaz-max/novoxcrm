@@ -896,11 +896,64 @@ export async function handleManualVapiCallResult(callData: {
         // Check if there is an assigned rep on customer/sale
         const { data: customer } = await supabase
             .from('customers')
-            .select('full_name, assigned_to')
+            .select('full_name, phone, assigned_to')
             .eq('id', customerId)
             .single()
 
         const assignedTo = customer?.assigned_to || null
+
+        // ─── HOT/WARM Lead → WhatsApp bildirim (hot lead manager'lara) ───
+        if (leadScore === 'hot' || leadScore === 'warm') {
+            try {
+                // Tüm hot lead manager'ları bul
+                const { data: hotLeadManagers } = await supabase
+                    .from('profiles')
+                    .select('id, full_name, phone')
+                    .eq('tenant_id', tenantId)
+                    .eq('is_hot_lead_manager', true)
+                    .eq('is_active', true)
+
+                if (hotLeadManagers && hotLeadManagers.length > 0) {
+                    // Tenant WhatsApp bilgilerini al
+                    const { data: tenant } = await supabase
+                        .from('tenants')
+                        .select('wa_phone_number_id, wa_access_token')
+                        .eq('id', tenantId)
+                        .single()
+
+                    if (tenant?.wa_phone_number_id && tenant?.wa_access_token) {
+                        const { sendWhatsAppTemplate } = await import('@/lib/whatsapp')
+                        const leadLabel = leadScore === 'warm' ? '[ILIK LEAD - CRM Arama] ' : '[SICAK LEAD - CRM Arama] '
+                        const params = [
+                            customer?.phone || callerPhone || '-',
+                            customer?.full_name || 'Müşteri',
+                            new Date().toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' }),
+                            leadLabel + (callData.summary || notes || 'AI arama sonucu ilgili olarak değerlendirildi')
+                        ].map(p => typeof p === 'string' ? p.replace(/[\r\n\t]+/g, ' ').replace(/\s{2,}/g, ' ').trim().substring(0, 500) : p)
+
+                        for (const manager of hotLeadManagers) {
+                            if (manager.phone) {
+                                try {
+                                    await sendWhatsAppTemplate(
+                                        manager.phone,
+                                        'crm_operasyonel_durum_bildirimi',
+                                        params,
+                                        'tr',
+                                        tenant.wa_phone_number_id,
+                                        tenant.wa_access_token
+                                    )
+                                    console.log(`[Vapi Webhook] 🔥 Hot Lead Manager bildirimi gönderildi: ${manager.full_name} (${manager.phone})`)
+                                } catch (sendErr: any) {
+                                    console.error(`[Vapi Webhook] Hot Lead Manager bildirim hatası (${manager.full_name}):`, sendErr.message)
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (hotLeadNotifyError: any) {
+                console.error('[Vapi Webhook] Hot Lead Manager bildirim hatası:', hotLeadNotifyError.message)
+            }
+        }
 
         // UNASSIGNED WARM/HOT Lead → Create follow-up task and notify admins
         if ((leadScore === 'hot' || leadScore === 'warm') && !assignedTo) {
