@@ -532,7 +532,7 @@ export function parseVapiWebhook(body: any): {
     return {
         type: body.message?.type || body.type || 'unknown',
         callId: body.message?.call?.id || body.call?.id || body.id || '',
-        status: body.message?.call?.status || body.call?.status || body.status,
+        status: body.message?.status || body.message?.call?.status || body.call?.status || body.status,
         endedReason: body.message?.endedReason || body.endedReason || body.message?.call?.endedReason || body.call?.endedReason,
         transcript: transcript || undefined,
         summary: body.message?.summary || body.summary || body.message?.analysis?.summary || artifact.summary || body.message?.call?.summary || body.call?.summary,
