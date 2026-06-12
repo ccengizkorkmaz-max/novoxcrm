@@ -14,6 +14,7 @@ import PipelineList from './components/PipelineList'
 import CRMSearch from './components/CRMSearch'
 import SalesExportButton from './components/SalesExportButton'
 import BulkAutoAssignButton from './components/BulkAutoAssignButton'
+import BulkRevertDqButton from './components/BulkRevertDqButton'
 import DeferredPipelineStats from './components/DeferredPipelineStats'
 import { CollapsibleSection } from '@/components/ui/collapsible-section'
 import DeferredCRMToolbar from './components/DeferredCRMToolbar'
@@ -190,7 +191,12 @@ export default async function CRMPage(props: {
                                 dateTo: filterDateTo
                             }}
                         />
-                        {!isBroker && isAdmin && <BulkAutoAssignButton />}
+                        {!isBroker && isAdmin && (
+                            <>
+                                <BulkAutoAssignButton />
+                                <BulkRevertDqButton />
+                            </>
+                        )}
                     </div>
                 </div>
 

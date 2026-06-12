@@ -324,3 +324,92 @@ export async function bulkDisqualifyColdLeads() {
     return { error: null, count: data?.length || 0 }
 }
 
+export async function bulkRevertDqSalesToQualification() {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    
+    if (!user) return { error: 'Not authenticated' }
+
+    // Get user profile for tenant_id and role
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id, role')
+        .eq('id', user.id)
+        .single()
+        
+    if (!profile) return { error: 'Profile not found' }
+    
+    const isAdmin = profile.role === 'admin' || profile.role === 'owner'
+    if (!isAdmin) return { error: 'Bu işlem için yetkiniz bulunmamaktadır.' }
+
+    // Find all qualifications for the tenant with interest_level = 'disqualified' and active sale_id
+    const { data: qualifications, error: fetchError } = await supabase
+        .from('lead_qualifications')
+        .select('id, sale_id, customer_id')
+        .eq('tenant_id', profile.tenant_id)
+        .eq('interest_level', 'disqualified')
+        .not('sale_id', 'is', null)
+
+    if (fetchError) {
+        console.error('Error fetching DQ qualifications:', fetchError)
+        return { error: fetchError.message }
+    }
+
+    if (!qualifications || qualifications.length === 0) {
+        return { count: 0, error: null }
+    }
+
+    const saleIds = qualifications.map(q => q.sale_id).filter(Boolean) as string[]
+    const qualIds = qualifications.map(q => q.id)
+
+    // 1. Delete sales records
+    const { error: deleteError } = await supabase
+        .from('sales')
+        .delete()
+        .in('id', saleIds)
+
+    if (deleteError) {
+        console.error('Error deleting sales in bulk:', deleteError)
+        return { error: deleteError.message }
+    }
+
+    // 2. Update lead qualifications
+    const { error: updateError } = await supabase
+        .from('lead_qualifications')
+        .update({
+            status: 'disqualified',
+            sale_id: null,
+            converted_at: null,
+            disqualify_reason: 'Toplu Ön Değerlendirmeye İade'
+        })
+        .in('id', qualIds)
+
+    if (updateError) {
+        console.error('Error updating qualifications in bulk:', updateError)
+        return { error: updateError.message }
+    }
+
+    // 3. Insert activity records for tracking
+    try {
+        const activities = qualifications.map(q => ({
+            tenant_id: profile.tenant_id,
+            customer_id: q.customer_id,
+            user_id: user.id,
+            type: 'Note',
+            summary: 'Ön Değerlendirmeye İade (Toplu)',
+            notes: 'Fırsat DQ (disqualified) olduğu için toplu işlemle Ön Değerlendirme Elenenler aşamasına geri gönderildi.',
+            status: 'Completed'
+        }))
+
+        await supabase.from('activities').insert(activities)
+    } catch (actErr) {
+        console.error('Error inserting activities in bulk:', actErr)
+        // Non-blocking
+    }
+
+    revalidatePath('/[locale]/(dashboard)/lead-qualification', 'page')
+    revalidatePath('/[locale]/(dashboard)/crm', 'page')
+
+    return { error: null, count: qualifications.length }
+}
+
