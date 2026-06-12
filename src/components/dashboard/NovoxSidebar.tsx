@@ -35,7 +35,8 @@ import {
     Flame,
     Brain,
     AlertTriangle,
-    ClipboardList
+    ClipboardList,
+    Video
 } from 'lucide-react'
 import {
     Accordion,
@@ -356,6 +357,9 @@ export function NovoxSidebar({
 
                     <NavItem href="/activities" icon={CalendarCheck} onClick={onElementClick} isCollapsed={isCollapsed}>
                         {labels.activities || 'Activities'}
+                    </NavItem>
+                    <NavItem href="/meetings" icon={Video} onClick={onElementClick} isCollapsed={isCollapsed}>
+                        Toplantılar
                     </NavItem>
                     {isManager && (
                         isCollapsed ? (
