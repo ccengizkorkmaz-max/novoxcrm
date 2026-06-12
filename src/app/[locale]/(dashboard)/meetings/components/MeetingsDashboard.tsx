@@ -14,12 +14,20 @@ import {
     CheckCircle, XCircle, AlertCircle, Play, Loader2
 } from 'lucide-react'
 import { toast } from 'sonner'
-import {
-    cancelMeeting, deleteMeeting,
-    MEETING_TYPE_LABELS, MEETING_STATUS_LABELS, MEETING_OUTCOME_LABELS,
-} from '../actions'
+import { cancelMeeting, deleteMeeting } from '../actions'
+import { MEETING_TYPE_LABELS, MEETING_STATUS_LABELS, MEETING_OUTCOME_LABELS } from '../constants'
 import { useRouter } from 'next/navigation'
 import { useLocale } from 'next-intl'
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
 interface MeetingsDashboardProps {
     meetings: any[]
@@ -51,6 +59,8 @@ export function MeetingsDashboard({ meetings: initialMeetings, profiles, project
     const [view, setView] = useState<'list' | 'create'>('list')
     const [filter, setFilter] = useState<'all' | 'upcoming' | 'today' | 'past'>('upcoming')
     const [saving, setSaving] = useState(false)
+    const [meetingToCancel, setMeetingToCancel] = useState<string | null>(null)
+    const [meetingToDelete, setMeetingToDelete] = useState<string | null>(null)
 
     // Create form state
     const [title, setTitle] = useState('')
@@ -186,7 +196,6 @@ export function MeetingsDashboard({ meetings: initialMeetings, profiles, project
     }
 
     const handleCancel = async (id: string) => {
-        if (!confirm('Bu toplantı iptal edilsin mi?')) return
         const result = await cancelMeeting(id)
         if (result.error) {
             toast.error('Hata: ' + result.error)
@@ -197,7 +206,6 @@ export function MeetingsDashboard({ meetings: initialMeetings, profiles, project
     }
 
     const handleDelete = async (id: string) => {
-        if (!confirm('Bu toplantı kalıcı olarak silinsin mi?')) return
         const result = await deleteMeeting(id)
         if (result.error) {
             toast.error('Hata: ' + result.error)
@@ -517,13 +525,13 @@ export function MeetingsDashboard({ meetings: initialMeetings, profiles, project
                                                 </Button>
                                             )}
                                             {meeting.status === 'scheduled' && (
-                                                <Button variant="ghost" size="sm" onClick={() => handleCancel(meeting.id)}
+                                                <Button variant="ghost" size="sm" onClick={() => setMeetingToCancel(meeting.id)}
                                                     className="h-8 w-8 p-0 text-muted-foreground hover:text-amber-400">
                                                     <XCircle className="h-3.5 w-3.5" />
                                                 </Button>
                                             )}
                                             {(meeting.status === 'cancelled' || meeting.status === 'completed') && (
-                                                <Button variant="ghost" size="sm" onClick={() => handleDelete(meeting.id)}
+                                                <Button variant="ghost" size="sm" onClick={() => setMeetingToDelete(meeting.id)}
                                                     className="h-8 w-8 p-0 text-muted-foreground hover:text-red-400">
                                                     <Trash2 className="h-3.5 w-3.5" />
                                                 </Button>
@@ -536,6 +544,40 @@ export function MeetingsDashboard({ meetings: initialMeetings, profiles, project
                     })}
                 </div>
             )}
+
+            <AlertDialog open={!!meetingToCancel} onOpenChange={open => !open && setMeetingToCancel(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Toplantıyı İptal Et</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Bu toplantıyı iptal etmek istediğinize emin misiniz? Müşteri katılım linki devre dışı bırakılacaktır.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Vazgeç</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => meetingToCancel && handleCancel(meetingToCancel)} className="bg-amber-600 hover:bg-amber-700 text-white">
+                            Evet, İptal Et
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            <AlertDialog open={!!meetingToDelete} onOpenChange={open => !open && setMeetingToDelete(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Toplantıyı Sil</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Bu toplantıyı kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>İptal</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => meetingToDelete && handleDelete(meetingToDelete)} className="bg-red-600 hover:bg-red-700 text-white">
+                            Evet, Sil
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     )
 }

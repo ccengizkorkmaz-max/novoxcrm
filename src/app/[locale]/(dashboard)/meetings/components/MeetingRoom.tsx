@@ -12,8 +12,19 @@ import {
     Save, ArrowLeft, Loader2, CheckCircle, AlertCircle, Maximize2, Minimize2
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { startMeeting, endMeeting, updateMeeting, MEETING_OUTCOME_LABELS } from '../actions'
+import { startMeeting, endMeeting, updateMeeting } from '../actions'
+import { MEETING_OUTCOME_LABELS } from '../constants'
 import { useRouter } from 'next/navigation'
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
 interface MeetingRoomProps {
     meeting: any
@@ -33,6 +44,7 @@ export function MeetingRoom({ meeting, activities, sales, userName }: MeetingRoo
     const [ending, setEnding] = useState(false)
     const [isFullscreen, setIsFullscreen] = useState(false)
     const [elapsed, setElapsed] = useState(0)
+    const [showEndConfirm, setShowEndConfirm] = useState(false)
 
     // Start meeting when joining
     useEffect(() => {
@@ -72,7 +84,6 @@ export function MeetingRoom({ meeting, activities, sales, userName }: MeetingRoo
     }
 
     const handleEnd = async () => {
-        if (!confirm('Toplantıyı sonlandırmak istediğinize emin misiniz?')) return
         setEnding(true)
         const result = await endMeeting(meeting.id, {
             outcome: outcome || undefined,
@@ -133,7 +144,7 @@ export function MeetingRoom({ meeting, activities, sales, userName }: MeetingRoo
                         </Badge>
                     </div>
                 )}
-                <Button variant="destructive" size="sm" onClick={handleEnd} disabled={ending} className="gap-1.5">
+                <Button variant="destructive" size="sm" onClick={() => setShowEndConfirm(true)} disabled={ending} className="gap-1.5">
                     {ending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <PhoneIcon className="h-3.5 w-3.5" />}
                     Toplantıyı Bitir
                 </Button>
@@ -279,6 +290,23 @@ export function MeetingRoom({ meeting, activities, sales, userName }: MeetingRoo
                     </div>
                 )}
             </div>
+
+            <AlertDialog open={showEndConfirm} onOpenChange={setShowEndConfirm}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Toplantıyı Sonlandır</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Toplantıyı sonlandırmak istediğinize emin misiniz? Bu işlem geri alınamaz ve görüşme tamamlandı olarak kaydedilecektir.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>İptal</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleEnd} className="bg-red-600 hover:bg-red-700 text-white">
+                            Evet, Bitir
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     )
 }

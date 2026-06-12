@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createRoom, createMeetingToken, deleteRoom, buildGuestMeetingUrl, buildHostMeetingUrl } from '@/lib/daily'
 import { sendWhatsAppTemplate } from '@/lib/whatsapp'
+import { MEETING_TYPE_LABELS, MEETING_STATUS_LABELS, MEETING_OUTCOME_LABELS } from './constants'
 
 // ─── Types ──────────────────────────────────────────────────
 
@@ -29,30 +30,7 @@ export interface UpdateMeetingInput {
     next_action_date?: string
 }
 
-// ─── Meeting Type Labels ─────────────────────────────────────
 
-export const MEETING_TYPE_LABELS: Record<string, string> = {
-    project_presentation: 'Proje Sunumu',
-    sales_meeting: 'Satış Toplantısı',
-    follow_up: 'Takip Görüşmesi',
-    general: 'Genel Toplantı',
-}
-
-export const MEETING_STATUS_LABELS: Record<string, string> = {
-    scheduled: 'Planlandı',
-    in_progress: 'Devam Ediyor',
-    completed: 'Tamamlandı',
-    cancelled: 'İptal Edildi',
-    no_show: 'Katılmadı',
-}
-
-export const MEETING_OUTCOME_LABELS: Record<string, string> = {
-    interested: 'İlgili',
-    very_interested: 'Çok İlgili',
-    needs_time: 'Düşünecek',
-    not_interested: 'İlgilenmiyor',
-    follow_up: 'Takip Gerekli',
-}
 
 // ─── Fetch Meetings ──────────────────────────────────────────
 
@@ -294,8 +272,8 @@ export async function createMeeting(input: CreateMeetingInput) {
 // ─── Update Meeting ──────────────────────────────────────────
 
 export async function updateMeeting(id: string, input: UpdateMeetingInput) {
-    const supabase = await createClient()
-    const { data, error } = await supabase
+    const admin = createAdminClient()
+    const { data, error } = await admin
         .from('meetings')
         .update({ ...input, updated_at: new Date().toISOString() })
         .eq('id', id)
@@ -309,8 +287,8 @@ export async function updateMeeting(id: string, input: UpdateMeetingInput) {
 // ─── Start Meeting ───────────────────────────────────────────
 
 export async function startMeeting(id: string) {
-    const supabase = await createClient()
-    const { data, error } = await supabase
+    const admin = createAdminClient()
+    const { data, error } = await admin
         .from('meetings')
         .update({
             status: 'in_progress',
@@ -333,10 +311,10 @@ export async function endMeeting(id: string, input: {
     next_action?: string
     next_action_date?: string
 }) {
-    const supabase = await createClient()
+    const admin = createAdminClient()
 
     // Get meeting data
-    const { data: meeting } = await supabase
+    const { data: meeting } = await admin
         .from('meetings')
         .select('*, customer:customers(id, full_name, phone)')
         .eq('id', id)
@@ -349,7 +327,7 @@ export async function endMeeting(id: string, input: {
     const durationSeconds = Math.round((endedAt.getTime() - startedAt.getTime()) / 1000)
 
     // Update meeting
-    const { error } = await supabase
+    const { error } = await admin
         .from('meetings')
         .update({
             status: 'completed',
