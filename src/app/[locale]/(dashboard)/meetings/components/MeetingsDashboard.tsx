@@ -545,24 +545,31 @@ export function MeetingsDashboard({ meetings: initialMeetings, profiles, project
                 </div>
             )}
 
-            <AlertDialog open={!!meetingToCancel} onOpenChange={open => !open && setMeetingToCancel(null)}>
+            {/* Cancel Confirm Dialog */}
+            <AlertDialog open={!!meetingToCancel} onOpenChange={(open) => !open && setMeetingToCancel(null)}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>Toplantıyı İptal Et</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Bu toplantıyı iptal etmek istediğinize emin misiniz? Müşteri katılım linki devre dışı bırakılacaktır.
+                            Bu toplantıyı iptal etmek istediğinize emin misiniz? Müşteriye gönderilen katılım bağlantısı pasif hale gelecektir.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel>Vazgeç</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => meetingToCancel && handleCancel(meetingToCancel)} className="bg-amber-600 hover:bg-amber-700 text-white">
+                        <AlertDialogAction onClick={() => {
+                            if (meetingToCancel) {
+                                handleCancel(meetingToCancel)
+                                setMeetingToCancel(null)
+                            }
+                        }} className="bg-amber-600 hover:bg-amber-700 text-white">
                             Evet, İptal Et
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
 
-            <AlertDialog open={!!meetingToDelete} onOpenChange={open => !open && setMeetingToDelete(null)}>
+            {/* Delete Confirm Dialog */}
+            <AlertDialog open={!!meetingToDelete} onOpenChange={(open) => !open && setMeetingToDelete(null)}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>Toplantıyı Sil</AlertDialogTitle>
@@ -571,9 +578,14 @@ export function MeetingsDashboard({ meetings: initialMeetings, profiles, project
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>İptal</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => meetingToDelete && handleDelete(meetingToDelete)} className="bg-red-600 hover:bg-red-700 text-white">
-                            Evet, Sil
+                        <AlertDialogCancel>Vazgeç</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => {
+                            if (meetingToDelete) {
+                                handleDelete(meetingToDelete)
+                                setMeetingToDelete(null)
+                            }
+                        }} className="bg-red-600 hover:bg-red-700 text-white">
+                            Kalıcı Olarak Sil
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

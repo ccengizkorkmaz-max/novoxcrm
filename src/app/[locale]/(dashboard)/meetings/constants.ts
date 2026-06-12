@@ -1,3 +1,4 @@
+// Meeting Type Labels
 export const MEETING_TYPE_LABELS: Record<string, string> = {
     project_presentation: 'Proje Sunumu',
     sales_meeting: 'Satış Toplantısı',
@@ -5,6 +6,7 @@ export const MEETING_TYPE_LABELS: Record<string, string> = {
     general: 'Genel Toplantı',
 }
 
+// Meeting Status Labels
 export const MEETING_STATUS_LABELS: Record<string, string> = {
     scheduled: 'Planlandı',
     in_progress: 'Devam Ediyor',
@@ -13,6 +15,7 @@ export const MEETING_STATUS_LABELS: Record<string, string> = {
     no_show: 'Katılmadı',
 }
 
+// Meeting Outcome Labels
 export const MEETING_OUTCOME_LABELS: Record<string, string> = {
     interested: 'İlgili',
     very_interested: 'Çok İlgili',

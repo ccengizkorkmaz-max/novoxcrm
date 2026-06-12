@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createRoom, createMeetingToken, deleteRoom, buildGuestMeetingUrl, buildHostMeetingUrl } from '@/lib/daily'
 import { sendWhatsAppTemplate } from '@/lib/whatsapp'
-import { MEETING_TYPE_LABELS, MEETING_STATUS_LABELS, MEETING_OUTCOME_LABELS } from './constants'
+import { MEETING_OUTCOME_LABELS, MEETING_TYPE_LABELS } from './constants'
 
 // ─── Types ──────────────────────────────────────────────────
 
@@ -30,7 +30,7 @@ export interface UpdateMeetingInput {
     next_action_date?: string
 }
 
-
+// Constants moved to constants.ts
 
 // ─── Fetch Meetings ──────────────────────────────────────────
 
