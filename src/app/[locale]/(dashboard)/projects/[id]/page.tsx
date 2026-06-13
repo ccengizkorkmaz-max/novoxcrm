@@ -27,11 +27,7 @@ import { ProjectSaveButton } from '@/components/projects/ProjectSaveButton'
 import { UnitExportButton } from '@/components/projects/UnitExportButton'
 import { DeleteAllUnitsButton } from '@/components/projects/DeleteAllUnitsButton'
 import { UnitListClient } from './components/UnitListClient'
-
-const AMENITIES_LIST = [
-    "Yetişkin Havuzu", "Güvenlik", "Çocuk Yüzme Havuzu", "Yürüyüş Parkuru",
-    "Fitness", "Çocuk oyun parkı", "Cafe", "Market", "Tenis kortu", "Basketbol sahası"
-]
+import { DynamicAmenities } from '@/components/projects/DynamicAmenities'
 
 export const dynamic = 'force-dynamic'
 
@@ -464,22 +460,7 @@ export default async function ProjectDetailPage(props: {
                                 </div>
 
                                 {/* Amenities */}
-                                <div className="space-y-2">
-                                    <Label>Projedeki Sosyal Alanlar</Label>
-                                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 p-4 border rounded-lg bg-muted/30">
-                                        {AMENITIES_LIST.map((item) => {
-                                            const isChecked = project.amenities?.includes(item)
-                                            return (
-                                                <div key={item} className="flex items-center space-x-2">
-                                                    <Checkbox id={`amenity-${item}`} name="amenities" value={item} defaultChecked={isChecked} />
-                                                    <Label htmlFor={`amenity-${item}`} className="text-sm font-normal cursor-pointer">
-                                                        {item}
-                                                    </Label>
-                                                </div>
-                                            )
-                                        })}
-                                    </div>
-                                </div>
+                                <DynamicAmenities selectedAmenities={project.amenities || []} />
                             </CardContent>
                         </Card>
                     </ProjectEditForm>
