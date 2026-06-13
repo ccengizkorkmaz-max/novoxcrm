@@ -605,7 +605,6 @@ export async function getHotLeadsReport() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return []
 
-    // Get user's tenant_id from profiles
     const { data: profile } = await supabase
         .from('profiles')
         .select('tenant_id')
@@ -614,7 +613,7 @@ export async function getHotLeadsReport() {
 
     if (!profile?.tenant_id) return []
 
-    // Fetch conversations scored as hot, warm, or call_requested for this tenant
+    // ─── STEP 1: Fetch all hot/warm/call_requested conversations with customer join ───
     const { data: convs, error } = await supabase
         .from('whatsapp_conversations')
         .select(`
@@ -624,6 +623,7 @@ export async function getHotLeadsReport() {
             hot_lead_notified,
             created_at,
             updated_at,
+            customer_id,
             customers (
                 id,
                 full_name,
@@ -635,78 +635,143 @@ export async function getHotLeadsReport() {
         .in('lead_score', ['hot', 'warm', 'call_requested'])
         .order('updated_at', { ascending: false })
 
-    if (error) {
-        console.error('getHotLeadsReport error:', error)
+    if (error || !convs || convs.length === 0) {
+        if (error) console.error('getHotLeadsReport error:', error)
         return []
     }
 
-    // Match unmatched sessions with customers table by last 10 digits
-    const formattedConvs = []
-    for (const c of (convs || [])) {
-        let customerId = (c.customers as any)?.id || null
+    // ─── STEP 2: Collect unmatched phones → batch lookup in customers table ───
+    const unmatchedPhones: string[] = []
+    const phoneToConvIds: Record<string, string[]> = {}
+
+    convs.forEach(c => {
+        if (!(c.customers as any)?.full_name && c.phone_number) {
+            const last10 = c.phone_number.replace(/\D/g, '').slice(-10)
+            if (last10.length >= 10) {
+                unmatchedPhones.push(last10)
+                if (!phoneToConvIds[last10]) phoneToConvIds[last10] = []
+                phoneToConvIds[last10].push(c.id)
+            }
+        }
+    })
+
+    // Batch phone lookup (single query for all unmatched)
+    const phoneMatches: Record<string, any> = {}
+    if (unmatchedPhones.length > 0) {
+        // Use OR filter with ilike for batch phone matching
+        const uniquePhones = [...new Set(unmatchedPhones)]
+        // Process in chunks of 50 to avoid query limits
+        for (let i = 0; i < uniquePhones.length; i += 50) {
+            const chunk = uniquePhones.slice(i, i + 50)
+            const orFilter = chunk.map(p => `phone.ilike.%${p}%`).join(',')
+            const { data: matches } = await supabase
+                .from('customers')
+                .select('id, full_name, phone, source')
+                .or(orFilter)
+
+            if (matches) {
+                matches.forEach(m => {
+                    const mLast10 = m.phone?.replace(/\D/g, '').slice(-10) || ''
+                    if (mLast10) phoneMatches[mLast10] = m
+                })
+            }
+        }
+    }
+
+    // ─── STEP 3: Batch fetch project names from lead_qualifications ───
+    const allCustomerIds = convs
+        .map(c => (c.customers as any)?.id || (c.customer_id))
+        .filter(Boolean)
+
+    // Also add phone-matched customer IDs
+    Object.values(phoneMatches).forEach(m => {
+        if (m.id && !allCustomerIds.includes(m.id)) {
+            allCustomerIds.push(m.id)
+        }
+    })
+
+    const projectMap: Record<string, string> = {}
+    if (allCustomerIds.length > 0) {
+        // Batch fetch all lead qualifications for these customers
+        const uniqueCustomerIds = [...new Set(allCustomerIds)]
+        for (let i = 0; i < uniqueCustomerIds.length; i += 100) {
+            const chunk = uniqueCustomerIds.slice(i, i + 100)
+            const { data: quals } = await supabase
+                .from('lead_qualifications')
+                .select(`customer_id, projects:project_id (name)`)
+                .in('customer_id', chunk)
+                .order('created_at', { ascending: false })
+
+            if (quals) {
+                quals.forEach(q => {
+                    if (!projectMap[q.customer_id]) {
+                        const projObj = q.projects as any
+                        if (projObj) {
+                            if (Array.isArray(projObj) && projObj.length > 0) {
+                                projectMap[q.customer_id] = projObj[0].name || 'Genel'
+                            } else if (projObj.name) {
+                                projectMap[q.customer_id] = projObj.name
+                            }
+                        }
+                    }
+                })
+            }
+        }
+    }
+
+    // ─── STEP 4: Batch fetch recent messages (last 3 per conversation) ───
+    const convIds = convs.map(c => c.id)
+    const messageMap: Record<string, string> = {}
+    
+    // Fetch messages for all conversations in batch (limit total to prevent huge results)
+    for (let i = 0; i < convIds.length; i += 50) {
+        const chunk = convIds.slice(i, i + 50)
+        const { data: messages } = await supabase
+            .from('whatsapp_messages')
+            .select('conversation_id, role, content, created_at')
+            .in('conversation_id', chunk)
+            .order('created_at', { ascending: false })
+            .limit(chunk.length * 5) // ~5 messages per conversation
+
+        if (messages) {
+            // Group by conversation_id, keep only latest 3 per conversation
+            const grouped: Record<string, any[]> = {}
+            messages.forEach(m => {
+                if (!grouped[m.conversation_id]) grouped[m.conversation_id] = []
+                if (grouped[m.conversation_id].length < 3) {
+                    grouped[m.conversation_id].push(m)
+                }
+            })
+
+            Object.entries(grouped).forEach(([convId, msgs]) => {
+                messageMap[convId] = msgs
+                    .reverse()
+                    .map(m => `${m.role === 'user' ? 'Müşteri' : 'AI'}: ${m.content.substring(0, 100).replace(/\n/g, ' ')}`)
+                    .join(' | ')
+            })
+        }
+    }
+
+    // ─── STEP 5: Assemble results (no more DB queries) ───
+    return convs.map(c => {
+        let customerId = (c.customers as any)?.id || c.customer_id || null
         let customerName = (c.customers as any)?.full_name || ''
         let customerPhone = (c.customers as any)?.phone || c.phone_number
         let customerSource = (c.customers as any)?.source || 'WhatsApp'
 
+        // Try phone match fallback
         if (!customerName && c.phone_number) {
             const last10 = c.phone_number.replace(/\D/g, '').slice(-10)
-            if (last10.length >= 10) {
-                const { data: matches } = await supabase
-                    .from('customers')
-                    .select('id, full_name, phone, source')
-                    .ilike('phone', `%${last10}%`)
-                    .limit(1)
-                if (matches && matches.length > 0) {
-                    customerName = matches[0].full_name || ''
-                    customerPhone = matches[0].phone || c.phone_number
-                    customerSource = matches[0].source || 'WhatsApp'
-                    customerId = matches[0].id
-                }
+            const match = phoneMatches[last10]
+            if (match) {
+                customerName = match.full_name || ''
+                customerPhone = match.phone || c.phone_number
+                customerSource = match.source || 'WhatsApp'
+                customerId = match.id
             }
         }
 
-        // Fetch interested project from lead_qualifications
-        let projectName = 'Genel'
-        if (customerId) {
-            const { data: qual } = await supabase
-                .from('lead_qualifications')
-                .select(`
-                    projects:project_id (
-                        name
-                    )
-                `)
-                .eq('customer_id', customerId)
-                .order('created_at', { ascending: false })
-                .limit(1)
-                .maybeSingle()
-
-            const projObj = qual?.projects as any
-            if (projObj) {
-                if (Array.isArray(projObj) && projObj.length > 0) {
-                    projectName = projObj[0].name || 'Genel'
-                } else if (projObj.name) {
-                    projectName = projObj.name
-                }
-            }
-        }
-
-        // Fetch recent messages to show a quick excerpt
-        const { data: recentMessages } = await supabase
-            .from('whatsapp_messages')
-            .select('role, content, created_at')
-            .eq('conversation_id', c.id)
-            .order('created_at', { ascending: false })
-            .limit(5)
-
-        let summary = ''
-        if (recentMessages && recentMessages.length > 0) {
-            summary = recentMessages
-                .reverse()
-                .map(m => `${m.role === 'user' ? 'Müşteri' : 'AI'}: ${m.content.substring(0, 100).replace(/\n/g, ' ')}`)
-                .join(' | ')
-        }
-
-        formattedConvs.push({
+        return {
             id: c.id,
             customerName: customerName || 'Bilinmeyen Müşteri',
             customerPhone,
@@ -715,12 +780,10 @@ export async function getHotLeadsReport() {
             hotLeadNotified: c.hot_lead_notified,
             updatedAt: c.updated_at,
             createdAt: c.created_at,
-            summary: summary || '-',
-            projectName
-        })
-    }
-
-    return formattedConvs
+            summary: messageMap[c.id] || '-',
+            projectName: (customerId && projectMap[customerId]) || 'Genel'
+        }
+    })
 }
 
 export async function getOutreachCeoReportData() {
