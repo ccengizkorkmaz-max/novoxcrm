@@ -952,6 +952,34 @@
             "meta-automation": {
                 "title": "Meta Ads & Automation Health",
                 "description": "Real-time Meta Ads form integrations, Make.com webhook statuses, and financial credit savings report."
+            },
+            "ai-call-performance": {
+                "title": "AI Call Performance",
+                "description": "AI call success rates, outcome distribution, hourly performance analysis and lead scoring."
+            },
+            "whatsapp-analytics": {
+                "title": "WhatsApp Conversation Analytics",
+                "description": "WhatsApp bot conversation lead scoring distribution, daily trends and message length analysis."
+            },
+            "project-performance": {
+                "title": "Project-based Performance",
+                "description": "Sales velocity, inventory depletion estimates and revenue comparison per project."
+            },
+            "broker-performance": {
+                "title": "Broker / Team Performance",
+                "description": "Team-based sales, revenue, activity and conversion rate comparison."
+            },
+            "lead-funnel": {
+                "title": "Lead Conversion Funnel",
+                "description": "Conversion rates across Lead → Prospect → Offer → Sale stages and bottleneck analysis."
+            },
+            "maya-tracking": {
+                "title": "MAYA Tracking Report",
+                "description": "Task status and completion analysis for AI sales assistant MAYA."
+            },
+            "period-comparison": {
+                "title": "Period Comparison",
+                "description": "This month vs last month performance analysis with 6-month sales, lead and revenue trends."
             }
         }
     },

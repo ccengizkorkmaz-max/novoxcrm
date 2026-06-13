@@ -1724,3 +1724,634 @@ export async function getActivityTrackingReport() {
         }
     }
 }
+
+// ─── AI CALL PERFORMANCE REPORT ──────────────────────────────────
+export async function getAICallPerformance() {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single()
+    if (!profile?.tenant_id) return { error: 'No tenant' }
+
+    // Fetch all outreach call logs with external_id (actual calls)
+    const allLogs: any[] = []
+    let page = 0
+    while (true) {
+        const { data, error } = await supabase
+            .from('outreach_step_logs')
+            .select(`id, channel, status, call_duration_seconds, call_outcome, call_summary, call_recording_url, external_id, executed_at, outreach_executions!inner(customer_id, tenant_id, customers(full_name, phone))`)
+            .eq('channel', 'ai_call')
+            .eq('outreach_executions.tenant_id', profile.tenant_id)
+            .not('external_id', 'is', null)
+            .order('executed_at', { ascending: false })
+            .range(page * 1000, (page + 1) * 1000 - 1)
+        if (error || !data || data.length === 0) break
+        allLogs.push(...data)
+        if (data.length < 1000) break
+        page++
+    }
+
+    // Also fetch manual AI call activities
+    const { data: manualCalls } = await supabase
+        .from('activities')
+        .select('id, summary, description, created_at, customer_id, customers(full_name, phone)')
+        .eq('tenant_id', profile.tenant_id)
+        .eq('type', 'Call')
+        .ilike('summary', '%AI Arama%')
+        .order('created_at', { ascending: false })
+        .limit(5000)
+
+    // Classify outreach logs
+    let spoke = 0, noAnswer = 0, busy = 0, hungUp = 0
+    let totalDuration = 0, durationCount = 0
+
+    const leadScores: Record<string, number> = { hot: 0, warm: 0, follow_up: 0, disqualified: 0 }
+    const dailyMap: Record<string, { spoke: number, noAnswer: number, busy: number }> = {}
+    const hourlyMap: Record<string, { total: number, spoke: number }> = {}
+
+    allLogs.forEach(l => {
+        // Outcome
+        if (l.call_summary) {
+            spoke++
+            // Parse lead score from summary
+            const summary = (l.call_summary || '').toLowerCase()
+            if (summary.includes('hot') || summary.includes('sıcak')) leadScores.hot++
+            else if (summary.includes('warm') || summary.includes('ılık')) leadScores.warm++
+            else if (summary.includes('follow') || summary.includes('takip')) leadScores.follow_up++
+            else leadScores.disqualified++
+        } else if (l.call_recording_url) {
+            hungUp++
+        } else if (l.status === 'busy' || l.call_outcome === 'busy') {
+            busy++
+        } else {
+            noAnswer++
+        }
+
+        // Duration
+        if (l.call_duration_seconds && l.call_duration_seconds > 0) {
+            totalDuration += l.call_duration_seconds
+            durationCount++
+        }
+
+        // Daily trend
+        const day = l.executed_at?.substring(0, 10) || 'unknown'
+        if (!dailyMap[day]) dailyMap[day] = { spoke: 0, noAnswer: 0, busy: 0 }
+        if (l.call_summary) dailyMap[day].spoke++
+        else if (l.status === 'busy' || l.call_outcome === 'busy') dailyMap[day].busy++
+        else dailyMap[day].noAnswer++
+
+        // Hourly
+        if (l.executed_at) {
+            const hour = new Date(l.executed_at).getHours().toString().padStart(2, '0') + ':00'
+            if (!hourlyMap[hour]) hourlyMap[hour] = { total: 0, spoke: 0 }
+            hourlyMap[hour].total++
+            if (l.call_summary) hourlyMap[hour].spoke++
+        }
+    })
+
+    // Add manual calls
+    ;(manualCalls || []).forEach(mc => {
+        const summary = mc.summary || ''
+        if (summary.includes('Meşgul')) busy++
+        else if (summary.includes('Cevapsız') || summary.includes('Cevap Yok')) noAnswer++
+        else if (summary.includes('Ulaşılamadı') || summary.includes('Başarısız')) noAnswer++
+        else spoke++
+
+        const day = mc.created_at?.substring(0, 10) || 'unknown'
+        if (!dailyMap[day]) dailyMap[day] = { spoke: 0, noAnswer: 0, busy: 0 }
+        if (!summary.includes('Meşgul') && !summary.includes('Cevapsız') && !summary.includes('Ulaşılamadı') && !summary.includes('Başarısız')) {
+            dailyMap[day].spoke++
+        }
+    })
+
+    const totalCalls = spoke + noAnswer + busy + hungUp
+    const avgDuration = durationCount > 0 ? Math.round(totalDuration / durationCount) : 0
+    const successRate = totalCalls > 0 ? Math.round((spoke / totalCalls) * 100) : 0
+
+    // Format daily trend (last 14 days)
+    const dailyTrend = Object.entries(dailyMap)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .slice(-14)
+        .map(([date, v]) => ({
+            date: format(new Date(date + 'T00:00:00'), 'd MMM', { locale: tr }),
+            ...v
+        }))
+
+    // Format hourly
+    const hourlyPerformance = Array.from({ length: 24 }, (_, i) => {
+        const hour = i.toString().padStart(2, '0') + ':00'
+        return { hour, ...(hourlyMap[hour] || { total: 0, spoke: 0 }) }
+    }).filter(h => h.total > 0)
+
+    // Recent calls (last 50)
+    const recentCalls = allLogs.slice(0, 50).map(l => {
+        const exec = l.outreach_executions as any
+        const cust = exec?.customers as any
+        let outcome = 'no_answer'
+        if (l.call_summary) outcome = 'spoke'
+        else if (l.call_recording_url) outcome = 'hung_up'
+        else if (l.status === 'busy' || l.call_outcome === 'busy') outcome = 'busy'
+
+        return {
+            id: l.id,
+            customerName: cust?.full_name || 'Bilinmeyen',
+            phone: cust?.phone || '-',
+            outcome,
+            duration: l.call_duration_seconds,
+            leadScore: l.call_outcome,
+            summary: l.call_summary,
+            recordingUrl: l.call_recording_url,
+            executedAt: l.executed_at
+        }
+    })
+
+    return {
+        kpis: { totalCalls, spoke, noAnswer, busy, hungUp, avgDuration, successRate },
+        outcomeDistribution: [
+            { name: 'Konuşulan', value: spoke },
+            { name: 'Cevapsız', value: noAnswer },
+            { name: 'Meşgul', value: busy },
+            { name: 'Açıp Kapatan', value: hungUp }
+        ].filter(d => d.value > 0),
+        dailyTrend,
+        hourlyPerformance,
+        leadScoreDistribution: [
+            { name: 'Sıcak (HOT)', value: leadScores.hot },
+            { name: 'Ilık (WARM)', value: leadScores.warm },
+            { name: 'Takip', value: leadScores.follow_up },
+            { name: 'Disqualified', value: leadScores.disqualified }
+        ].filter(d => d.value > 0),
+        recentCalls
+    }
+}
+
+// ─── WHATSAPP ANALYTICS REPORT ──────────────────────────────────
+export async function getWhatsAppAnalytics() {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single()
+    if (!profile?.tenant_id) return { error: 'No tenant' }
+
+    // Fetch all conversations
+    const { data: convs } = await supabase
+        .from('whatsapp_conversations')
+        .select('id, lead_score, created_at, updated_at, phone_number, customer_id, customers(full_name)')
+        .eq('tenant_id', profile.tenant_id)
+        .order('updated_at', { ascending: false })
+
+    // Fetch message counts per conversation
+    const { data: messages } = await supabase
+        .from('whatsapp_messages')
+        .select('conversation_id, role, created_at')
+        .limit(50000)
+
+    const allConvs = convs || []
+    const allMsgs = messages || []
+
+    // Message counts per conversation
+    const msgCounts: Record<string, { total: number, user: number, ai: number }> = {}
+    allMsgs.forEach(m => {
+        if (!msgCounts[m.conversation_id]) msgCounts[m.conversation_id] = { total: 0, user: 0, ai: 0 }
+        msgCounts[m.conversation_id].total++
+        if (m.role === 'user') msgCounts[m.conversation_id].user++
+        else msgCounts[m.conversation_id].ai++
+    })
+
+    // KPIs
+    const totalConversations = allConvs.length
+    const scoreDist: Record<string, number> = {}
+    allConvs.forEach(c => {
+        const s = c.lead_score || 'unknown'
+        scoreDist[s] = (scoreDist[s] || 0) + 1
+    })
+
+    let totalMsgs = 0, totalUserMsgs = 0
+    Object.values(msgCounts).forEach(v => { totalMsgs += v.total; totalUserMsgs += v.user })
+    const avgMsgsPerConv = totalConversations > 0 ? Math.round(totalMsgs / totalConversations * 10) / 10 : 0
+    const botResponseRate = totalMsgs > 0 ? Math.round(((totalMsgs - totalUserMsgs) / totalMsgs) * 100) : 0
+
+    // Lead score distribution for chart
+    const scoreLabels: Record<string, string> = { hot: '🔥 Sıcak', warm: '🍊 Ilık', cold: '❄️ Soğuk', disqualified: '❌ DQ', call_requested: '📞 Arama', unknown: '❓ Belirsiz' }
+    const leadScoreChart = Object.entries(scoreDist)
+        .map(([key, value]) => ({ name: scoreLabels[key] || key, value }))
+        .sort((a, b) => b.value - a.value)
+
+    // Daily trend (last 30 days)
+    const dailyMap: Record<string, number> = {}
+    allConvs.forEach(c => {
+        const day = c.created_at?.substring(0, 10)
+        if (day) dailyMap[day] = (dailyMap[day] || 0) + 1
+    })
+    const dailyTrend = Object.entries(dailyMap)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .slice(-30)
+        .map(([date, count]) => ({
+            date: format(new Date(date + 'T00:00:00'), 'd MMM', { locale: tr }),
+            count
+        }))
+
+    // Day of week distribution
+    const dowMap: Record<string, number> = { 'Pzt': 0, 'Sal': 0, 'Çar': 0, 'Per': 0, 'Cum': 0, 'Cmt': 0, 'Paz': 0 }
+    const dowNames = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt']
+    allConvs.forEach(c => {
+        if (c.created_at) {
+            const dow = new Date(c.created_at).getDay()
+            dowMap[dowNames[dow]]++
+        }
+    })
+    const dowChart = Object.entries(dowMap).map(([name, value]) => ({ name, value }))
+
+    // Message length distribution
+    const lengthBuckets = { '1 mesaj': 0, '2-5': 0, '6-10': 0, '10+': 0 }
+    allConvs.forEach(c => {
+        const count = msgCounts[c.id]?.total || 0
+        if (count <= 1) lengthBuckets['1 mesaj']++
+        else if (count <= 5) lengthBuckets['2-5']++
+        else if (count <= 10) lengthBuckets['6-10']++
+        else lengthBuckets['10+']++
+    })
+    const lengthChart = Object.entries(lengthBuckets).map(([name, value]) => ({ name, value }))
+
+    // Recent conversations
+    const recentConvs = allConvs.slice(0, 50).map(c => ({
+        id: c.id,
+        customerName: (c.customers as any)?.full_name || 'Bilinmeyen',
+        phone: c.phone_number || '-',
+        leadScore: c.lead_score,
+        messageCount: msgCounts[c.id]?.total || 0,
+        updatedAt: c.updated_at
+    }))
+
+    return {
+        kpis: { totalConversations, avgMsgsPerConv, botResponseRate, totalMessages: totalMsgs },
+        scoreDist,
+        leadScoreChart,
+        dailyTrend,
+        dowChart,
+        lengthChart,
+        recentConvs
+    }
+}
+
+// ─── PROJECT PERFORMANCE REPORT ──────────────────────────────────
+export async function getProjectPerformance() {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single()
+    if (!profile?.tenant_id) return { error: 'No tenant' }
+
+    const { data: projects } = await supabase
+        .from('projects')
+        .select('id, name, status, created_at')
+        .eq('tenant_id', profile.tenant_id)
+        .neq('status', 'Archived')
+
+    const { data: units } = await supabase
+        .from('units')
+        .select('id, project_id, status, price, currency')
+
+    const { data: sales } = await supabase
+        .from('sales')
+        .select('id, final_price, currency, status, created_at, units!inner(project_id)')
+
+    const allProjects = projects || []
+    const allUnits = units || []
+    const allSales = sales || []
+
+    // Calculate per-project stats
+    const projectStats = allProjects.map(p => {
+        const pUnits = allUnits.filter(u => u.project_id === p.id)
+        const totalUnits = pUnits.length
+        const soldUnits = pUnits.filter(u => u.status === 'Sold' || u.status === 'Delivered').length
+        const forSaleUnits = pUnits.filter(u => u.status === 'For Sale' || u.status === 'Stock').length
+        const reservedUnits = pUnits.filter(u => u.status === 'Reserved' || u.status === 'Option').length
+
+        const pSales = allSales.filter(s => {
+            const su = s.units as any
+            return su?.project_id === p.id
+        })
+        const totalRevenue = pSales.reduce((sum, s) => sum + (Number(s.final_price) || 0), 0)
+
+        // Sales velocity (last 3 months)
+        const threeMonthsAgo = subMonths(new Date(), 3)
+        const recentSales = pSales.filter(s => new Date(s.created_at) > threeMonthsAgo)
+        const monthlyVelocity = Math.round(recentSales.length / 3 * 10) / 10
+
+        // Estimated depletion
+        const depletionMonths = monthlyVelocity > 0 ? Math.round(forSaleUnits / monthlyVelocity) : null
+
+        const occupancyRate = totalUnits > 0 ? Math.round((soldUnits / totalUnits) * 100) : 0
+
+        return {
+            id: p.id,
+            name: p.name,
+            totalUnits,
+            soldUnits,
+            forSaleUnits,
+            reservedUnits,
+            totalRevenue,
+            monthlyVelocity,
+            depletionMonths,
+            occupancyRate,
+            salesCount: pSales.length
+        }
+    }).sort((a, b) => b.totalRevenue - a.totalRevenue)
+
+    // Monthly sales trend by project (last 6 months)
+    const monthlySales: Record<string, Record<string, number>> = {}
+    for (let i = 5; i >= 0; i--) {
+        const monthDate = subMonths(new Date(), i)
+        const monthKey = format(monthDate, 'MMM yy', { locale: tr })
+        monthlySales[monthKey] = {}
+        allProjects.forEach(p => { monthlySales[monthKey][p.name] = 0 })
+    }
+
+    allSales.forEach(s => {
+        const monthKey = format(new Date(s.created_at), 'MMM yy', { locale: tr })
+        const su = s.units as any
+        const pName = allProjects.find(p => p.id === su?.project_id)?.name
+        if (pName && monthlySales[monthKey]) {
+            monthlySales[monthKey][pName] = (monthlySales[monthKey][pName] || 0) + 1
+        }
+    })
+
+    const monthlyTrend = Object.entries(monthlySales).map(([month, projects]) => ({
+        month,
+        ...projects
+    }))
+
+    return { projectStats, monthlyTrend, projectNames: allProjects.map(p => p.name) }
+}
+
+// ─── BROKER PERFORMANCE REPORT ──────────────────────────────────
+export async function getBrokerPerformance() {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single()
+    if (!profile?.tenant_id) return { error: 'No tenant' }
+
+    // Get all brokers/team
+    const { data: team } = await supabase
+        .from('profiles')
+        .select('id, full_name, role')
+        .eq('tenant_id', profile.tenant_id)
+        .in('role', ['broker', 'sales_rep', 'manager', 'owner', 'crm_manager'])
+
+    // Get sales with owner
+    const { data: sales } = await supabase
+        .from('sales')
+        .select('id, final_price, currency, status, created_at, owner_id')
+
+    // Get activities last 30 days
+    const thirtyDaysAgo = subMonths(new Date(), 1).toISOString()
+    const { data: activities } = await supabase
+        .from('activities')
+        .select('id, type, owner_id, created_at, status')
+        .eq('tenant_id', profile.tenant_id)
+        .gte('created_at', thirtyDaysAgo)
+
+    const allTeam = team || []
+    const allSales = sales || []
+    const allActs = activities || []
+
+    const brokerStats = allTeam.map(member => {
+        const memberSales = allSales.filter(s => s.owner_id === member.id)
+        const soldSales = memberSales.filter(s => ['Sold', 'Completed', 'Contract'].includes(s.status))
+        const totalRevenue = soldSales.reduce((sum, s) => sum + (Number(s.final_price) || 0), 0)
+
+        const memberActs = allActs.filter(a => a.owner_id === member.id)
+        const calls = memberActs.filter(a => a.type === 'Call' || a.type === 'Phone').length
+        const meetings = memberActs.filter(a => a.type === 'Meeting' || a.type === 'Site Visit' || a.type === 'Visit').length
+        const others = memberActs.length - calls - meetings
+
+        const lastActivity = memberActs.length > 0
+            ? memberActs.sort((a, b) => b.created_at.localeCompare(a.created_at))[0].created_at
+            : null
+
+        return {
+            id: member.id,
+            name: member.full_name || 'İsimsiz',
+            role: member.role,
+            salesCount: soldSales.length,
+            totalLeads: memberSales.length,
+            totalRevenue,
+            activityCount: memberActs.length,
+            calls,
+            meetings,
+            others,
+            lastActivity,
+            conversionRate: memberSales.length > 0 ? Math.round((soldSales.length / memberSales.length) * 100) : 0
+        }
+    }).sort((a, b) => b.salesCount - a.salesCount)
+
+    // Top 10 by sales
+    const topBySales = brokerStats.slice(0, 10).map(b => ({ name: b.name.split(' ')[0], value: b.salesCount }))
+    const topByRevenue = [...brokerStats].sort((a, b) => b.totalRevenue - a.totalRevenue).slice(0, 10).map(b => ({
+        name: b.name.split(' ')[0],
+        value: Math.round(b.totalRevenue / 1000000 * 100) / 100
+    }))
+
+    return { brokerStats, topBySales, topByRevenue }
+}
+
+// ─── LEAD FUNNEL REPORT ──────────────────────────────────────────
+export async function getLeadFunnel() {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single()
+    if (!profile?.tenant_id) return { error: 'No tenant' }
+
+    const { data: sales } = await supabase
+        .from('sales')
+        .select('id, status, created_at')
+
+    const allSales = sales || []
+    const statusMap: Record<string, number> = {}
+    allSales.forEach(s => {
+        statusMap[s.status] = (statusMap[s.status] || 0) + 1
+    })
+
+    // Define funnel stages
+    const funnel = [
+        { stage: 'Lead', count: statusMap['Lead'] || 0, color: '#3b82f6' },
+        { stage: 'Prospect', count: statusMap['Prospect'] || 0, color: '#6366f1' },
+        { stage: 'Teklif', count: (statusMap['Proposal'] || 0) + (statusMap['Teklif - Kapora Bekleniyor'] || 0), color: '#8b5cf6' },
+        { stage: 'Opsiyon', count: (statusMap['Reservation'] || 0) + (statusMap['Opsiyon - Kapora Bekleniyor'] || 0) + (statusMap['Reserved'] || 0), color: '#a855f7' },
+        { stage: 'Pazarlık', count: statusMap['Negotiation'] || 0, color: '#d946ef' },
+        { stage: 'Sözleşme', count: statusMap['Contract'] || 0, color: '#ec4899' },
+        { stage: 'Satış', count: (statusMap['Sold'] || 0) + (statusMap['Completed'] || 0), color: '#10b981' },
+    ]
+
+    // Conversion rates between stages
+    const conversions = funnel.map((stage, i) => {
+        if (i === 0) return { ...stage, conversionFromPrev: 100 }
+        const prev = funnel[i - 1].count
+        return { ...stage, conversionFromPrev: prev > 0 ? Math.round((stage.count / prev) * 100) : 0 }
+    })
+
+    // Lost/cancelled
+    const lost = (statusMap['Lost'] || 0) + (statusMap['Cancelled'] || 0) + (statusMap['Transferred'] || 0)
+
+    return { funnel: conversions, totalSales: allSales.length, lost, statusMap }
+}
+
+// ─── MAYA TRACKING REPORT ──────────────────────────────────────────
+export async function getMayaTracking() {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single()
+    if (!profile?.tenant_id) return { error: 'No tenant' }
+
+    const MAYA_USER_ID = '66a35e7c-1c1f-4b79-b8cc-ccf52042c279'
+
+    const { data: tasks } = await supabase
+        .from('activities')
+        .select('id, summary, description, status, priority, due_date, created_at, customer_id, customers(full_name, phone)')
+        .eq('tenant_id', profile.tenant_id)
+        .eq('owner_id', MAYA_USER_ID)
+        .order('created_at', { ascending: false })
+
+    const allTasks = tasks || []
+
+    if (allTasks.length === 0) {
+        return { isEmpty: true, kpis: { total: 0, pending: 0, completed: 0, overdue: 0, completionRate: 0, todayTasks: 0 }, tasks: [], dailyTrend: [], statusChart: [] }
+    }
+
+    const now = new Date()
+    const pending = allTasks.filter(t => t.status === 'Pending').length
+    const completed = allTasks.filter(t => t.status === 'Completed').length
+    const overdue = allTasks.filter(t => t.status === 'Pending' && t.due_date && new Date(t.due_date) < now).length
+    const todayTasks = allTasks.filter(t => t.due_date && isToday(new Date(t.due_date))).length
+    const completionRate = allTasks.length > 0 ? Math.round((completed / allTasks.length) * 100) : 0
+
+    // Daily trend
+    const dailyMap: Record<string, number> = {}
+    allTasks.forEach(t => {
+        const day = t.created_at?.substring(0, 10)
+        if (day) dailyMap[day] = (dailyMap[day] || 0) + 1
+    })
+    const dailyTrend = Object.entries(dailyMap)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .slice(-14)
+        .map(([date, count]) => ({
+            date: format(new Date(date + 'T00:00:00'), 'd MMM', { locale: tr }),
+            count
+        }))
+
+    const statusChart = [
+        { name: 'Bekleyen', value: pending - overdue, color: '#f97316' },
+        { name: 'Geciken', value: overdue, color: '#ef4444' },
+        { name: 'Tamamlanan', value: completed, color: '#10b981' },
+    ].filter(d => d.value > 0)
+
+    const formattedTasks = allTasks.slice(0, 50).map(t => ({
+        id: t.id,
+        summary: t.summary,
+        customerName: (t.customers as any)?.full_name || 'Bilinmeyen',
+        phone: (t.customers as any)?.phone || '-',
+        status: t.status,
+        priority: t.priority,
+        dueDate: t.due_date,
+        createdAt: t.created_at,
+        isOverdue: t.status === 'Pending' && t.due_date && new Date(t.due_date) < now
+    }))
+
+    return {
+        isEmpty: false,
+        kpis: { total: allTasks.length, pending, completed, overdue, completionRate, todayTasks },
+        tasks: formattedTasks,
+        dailyTrend,
+        statusChart
+    }
+}
+
+// ─── PERIOD COMPARISON REPORT ──────────────────────────────────────
+export async function getPeriodComparison() {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single()
+    if (!profile?.tenant_id) return { error: 'No tenant' }
+
+    const now = new Date()
+    const thisMonthStart = startOfMonth(now)
+    const lastMonthStart = startOfMonth(subMonths(now, 1))
+    const lastMonthEnd = thisMonthStart
+
+    // Sales
+    const { data: sales } = await supabase
+        .from('sales')
+        .select('id, final_price, status, created_at')
+        .gte('created_at', subMonths(now, 6).toISOString())
+
+    // Activities
+    const { data: activities } = await supabase
+        .from('activities')
+        .select('id, created_at')
+        .eq('tenant_id', profile.tenant_id)
+        .gte('created_at', subMonths(now, 6).toISOString())
+
+    // Customers (new leads)
+    const { data: customers } = await supabase
+        .from('customers')
+        .select('id, created_at')
+        .eq('tenant_id', profile.tenant_id)
+        .gte('created_at', subMonths(now, 6).toISOString())
+
+    const allSales = sales || []
+    const allActs = activities || []
+    const allCusts = customers || []
+
+    // This month vs last month
+    const thisMonthSales = allSales.filter(s => new Date(s.created_at) >= thisMonthStart)
+    const lastMonthSales = allSales.filter(s => new Date(s.created_at) >= lastMonthStart && new Date(s.created_at) < lastMonthEnd)
+
+    const thisMonthRevenue = thisMonthSales.reduce((sum, s) => sum + (Number(s.final_price) || 0), 0)
+    const lastMonthRevenue = lastMonthSales.reduce((sum, s) => sum + (Number(s.final_price) || 0), 0)
+
+    const thisMonthActs = allActs.filter(a => new Date(a.created_at) >= thisMonthStart).length
+    const lastMonthActs = allActs.filter(a => new Date(a.created_at) >= lastMonthStart && new Date(a.created_at) < lastMonthEnd).length
+
+    const thisMonthLeads = allCusts.filter(c => new Date(c.created_at) >= thisMonthStart).length
+    const lastMonthLeads = allCusts.filter(c => new Date(c.created_at) >= lastMonthStart && new Date(c.created_at) < lastMonthEnd).length
+
+    const calcChange = (curr: number, prev: number) => prev > 0 ? Math.round(((curr - prev) / prev) * 100) : curr > 0 ? 100 : 0
+
+    const comparison = {
+        sales: { thisMonth: thisMonthSales.length, lastMonth: lastMonthSales.length, change: calcChange(thisMonthSales.length, lastMonthSales.length) },
+        revenue: { thisMonth: thisMonthRevenue, lastMonth: lastMonthRevenue, change: calcChange(thisMonthRevenue, lastMonthRevenue) },
+        activities: { thisMonth: thisMonthActs, lastMonth: lastMonthActs, change: calcChange(thisMonthActs, lastMonthActs) },
+        leads: { thisMonth: thisMonthLeads, lastMonth: lastMonthLeads, change: calcChange(thisMonthLeads, lastMonthLeads) }
+    }
+
+    // 6-month trend
+    const sixMonthTrend = []
+    for (let i = 5; i >= 0; i--) {
+        const monthDate = subMonths(now, i)
+        const mStart = startOfMonth(monthDate)
+        const mEnd = i > 0 ? startOfMonth(subMonths(now, i - 1)) : now
+        const label = format(monthDate, 'MMM yy', { locale: tr })
+
+        sixMonthTrend.push({
+            month: label,
+            sales: allSales.filter(s => new Date(s.created_at) >= mStart && new Date(s.created_at) < mEnd).length,
+            revenue: Math.round(allSales.filter(s => new Date(s.created_at) >= mStart && new Date(s.created_at) < mEnd).reduce((sum, s) => sum + (Number(s.final_price) || 0), 0) / 1000000 * 100) / 100,
+            leads: allCusts.filter(c => new Date(c.created_at) >= mStart && new Date(c.created_at) < mEnd).length,
+            activities: allActs.filter(a => new Date(a.created_at) >= mStart && new Date(a.created_at) < mEnd).length
+        })
+    }
+
+    return { comparison, sixMonthTrend }
+}

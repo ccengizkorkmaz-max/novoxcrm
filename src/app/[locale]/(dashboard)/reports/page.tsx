@@ -17,7 +17,12 @@ import {
     Megaphone,
     Flame,
     Zap,
-    AlertTriangle
+    AlertTriangle,
+    Phone,
+    MessageSquare,
+    Filter,
+    Bot,
+    ArrowUpDown
 } from "lucide-react"
 import Link from "next/link"
 import { getTranslations } from 'next-intl/server'
@@ -87,6 +92,55 @@ const reportCards = [
         bgColor: "bg-red-50"
     },
     {
+        id: "ai-call-performance",
+        href: "/reports/ai-call-performance",
+        icon: Phone,
+        color: "text-blue-600",
+        bgColor: "bg-blue-50"
+    },
+    {
+        id: "whatsapp-analytics",
+        href: "/reports/whatsapp-analytics",
+        icon: MessageSquare,
+        color: "text-green-600",
+        bgColor: "bg-green-50"
+    },
+    {
+        id: "project-performance",
+        href: "/reports/project-performance",
+        icon: Building2,
+        color: "text-emerald-600",
+        bgColor: "bg-emerald-50"
+    },
+    {
+        id: "broker-performance",
+        href: "/reports/broker-performance",
+        icon: Users,
+        color: "text-indigo-600",
+        bgColor: "bg-indigo-50"
+    },
+    {
+        id: "lead-funnel",
+        href: "/reports/lead-funnel",
+        icon: Filter,
+        color: "text-purple-600",
+        bgColor: "bg-purple-50"
+    },
+    {
+        id: "maya-tracking",
+        href: "/reports/maya-tracking",
+        icon: Bot,
+        color: "text-violet-600",
+        bgColor: "bg-violet-50"
+    },
+    {
+        id: "period-comparison",
+        href: "/reports/period-comparison",
+        icon: ArrowUpDown,
+        color: "text-cyan-600",
+        bgColor: "bg-cyan-50"
+    },
+    {
         id: "outreach-ceo",
         href: "/reports/outreach-ceo",
         icon: BarChart3,
@@ -108,6 +162,7 @@ const reportCards = [
         bgColor: "bg-amber-100"
     }
 ]
+
 
 export default async function ReportsPage() {
     const t = await getTranslations('Reports')

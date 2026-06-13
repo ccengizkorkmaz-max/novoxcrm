@@ -978,6 +978,34 @@
             "meta-automation": {
                 "title": "Meta Ads & Otomasyon Sağlığı",
                 "description": "Meta Reklam Formları entegrasyon durumu, Make.com senaryoları anlık durumu ve kredi/maliyet tasarruf raporu."
+            },
+            "ai-call-performance": {
+                "title": "AI Arama Performans Raporu",
+                "description": "Yapay zeka aramalarının başarı oranı, sonuç dağılımı, saatlik performans ve lead skor analizi."
+            },
+            "whatsapp-analytics": {
+                "title": "WhatsApp Konuşma Analizi",
+                "description": "WhatsApp bot konuşmalarının lead skorlama dağılımı, günlük trend ve mesaj uzunluğu analizi."
+            },
+            "project-performance": {
+                "title": "Proje Bazlı Performans",
+                "description": "Her projenin satış hızı, envanter tükenme tahmini ve ciro karşılaştırması."
+            },
+            "broker-performance": {
+                "title": "Broker / Danışman Performans",
+                "description": "Ekip bazlı satış, ciro, aktivite ve dönüşüm oranı karşılaştırması."
+            },
+            "lead-funnel": {
+                "title": "Lead Dönüşüm Hunisi",
+                "description": "Lead → Prospect → Teklif → Satış aşamalarındaki dönüşüm oranları ve darboğaz analizi."
+            },
+            "maya-tracking": {
+                "title": "MAYA Takip Raporu",
+                "description": "Yapay zeka satış asistanı MAYA'ya atanan görevlerin durumu ve tamamlanma analizi."
+            },
+            "period-comparison": {
+                "title": "Dönemsel Karşılaştırma",
+                "description": "Bu ay vs geçen ay performans analizi, 6 aylık satış, lead ve ciro trendleri."
             }
         }
     },
