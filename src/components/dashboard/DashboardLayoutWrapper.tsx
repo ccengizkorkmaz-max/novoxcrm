@@ -60,13 +60,13 @@ export function DashboardLayoutWrapper({
 
     if (!mounted) {
         return (
-            <div className="flex h-screen w-full bg-muted/40 font-sans opacity-0" style={cssVars as React.CSSProperties} />
+            <div className="flex min-h-screen w-full bg-muted/40 font-sans opacity-0" style={cssVars as React.CSSProperties} />
         )
     }
 
     return (
         <TooltipProvider delayDuration={100}>
-            <div className="flex h-screen w-full bg-muted/40 font-sans transition-all duration-300" style={cssVars as React.CSSProperties} data-ui-style={brand.uiStyle || 'default'}>
+            <div className="flex min-h-screen w-full bg-muted/40 font-sans transition-all duration-300" style={cssVars as React.CSSProperties} data-ui-style={brand.uiStyle || 'default'}>
                 {/* Sidebar */}
                 <aside 
                     className={cn(
@@ -224,7 +224,7 @@ export function DashboardLayoutWrapper({
                         <NotificationBell />
                     </div>
 
-                    <main className="flex-1 items-start p-2 sm:px-4 sm:py-2 md:pr-4 overflow-auto">
+                    <main className="flex-1 items-start p-2 sm:px-4 sm:py-2 md:pr-4">
                         {children}
                     </main>
                 </div>
