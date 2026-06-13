@@ -150,7 +150,7 @@ export async function POST(request: NextRequest) {
     if (cleanPhone.startsWith('90')) cleanPhone = cleanPhone.substring(2);
 
     const { data: customers } = await adminSupabase.from('customers')
-      .select('id, full_name, phone')
+      .select('id, full_name, phone, notes, budget_min, budget_max, desired_rooms, desired_districts')
       .eq('tenant_id', profile.tenant_id)
       .ilike('phone', `%${cleanPhone}%`)
       .limit(1);
@@ -159,14 +159,27 @@ export async function POST(request: NextRequest) {
     let crmContext = `Müşteri Adı: ${crmCustomer?.full_name || customerName || 'Bilinmiyor'}\n`;
 
     if (crmCustomer) {
+      if (crmCustomer.notes) crmContext += `Müşteri CRM Notları: ${crmCustomer.notes}\n`;
+      if (crmCustomer.budget_min || crmCustomer.budget_max) crmContext += `Bütçe: ${crmCustomer.budget_min || '?'} - ${crmCustomer.budget_max || '?'} TL\n`;
+      if (crmCustomer.desired_rooms) crmContext += `Aranan Daire Tipi: ${crmCustomer.desired_rooms}\n`;
+      if (crmCustomer.desired_districts) crmContext += `Aranan Bölge/İlçe: ${crmCustomer.desired_districts}\n`;
+
       const { data: activities } = await adminSupabase.from('activities')
-        .select('type, description, created_at')
+        .select('type, summary, description, created_at')
         .eq('customer_id', crmCustomer.id)
         .order('created_at', { ascending: false })
-        .limit(1);
+        .limit(5);
 
       if (activities && activities.length > 0) {
-        crmContext += `Son Etkileşim: ${activities[0].type} - ${activities[0].description}\n`;
+        crmContext += `\n📋 MÜŞTERİ ETKİLEŞİM GEÇMİŞİ (Son ${activities.length} aktivite):\n`;
+        for (const act of activities) {
+          crmContext += `- [${act.type}] ${act.summary}`;
+          if (act.description && act.description !== act.summary) {
+            crmContext += ` | Not: ${act.description.substring(0, 150)}`;
+          }
+          crmContext += '\n';
+        }
+        crmContext += `\n⚠️ DAVRANIŞ KURALI: Yukarıdaki geçmişi kullanarak müşterinin daha önce ilgilendiği projelere veya önceki konuşmalarına referans ver. Örneğin "Önceki konuşmamızda belirttiğiniz gibi" veya "Daha önce ... projesi hakkında bilgi almıştınız" diyerek doğal ve samimi bir konuşma yürüt. Müşteriye "sistemimizde kayıtlısınız", "numaranız bizde var" gibi CRM/teknik kelimeleri ASLA söyleme.`;
       } else {
         crmContext += `Son Etkileşim: Yok (İlk Arama)\n`;
       }

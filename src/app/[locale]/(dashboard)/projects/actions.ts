@@ -29,12 +29,14 @@ export async function createProject(formData: FormData) {
 
     const name = formData.get('name') as string
     const city = formData.get('city') as string
+    const website_url = formData.get('website_url') as string
 
     const { error } = await supabase
         .from('projects')
         .insert({
             name,
             city,
+            website_url: website_url || null,
             tenant_id: profile.tenant_id
         })
 
@@ -62,7 +64,7 @@ export async function archiveProject(projectId: string) {
         .eq('id', user.id)
         .single()
 
-    if (!profile || !['admin', 'owner', 'manager'].includes(profile.role)) {
+    if (!profile || !['admin', 'owner', 'crm_manager', 'manager'].includes(profile.role)) {
         return { error: 'Unauthorized: Only administrators can archive projects.' }
     }
 
@@ -95,7 +97,7 @@ export async function restoreProject(projectId: string) {
         .eq('id', user.id)
         .single()
 
-    if (!profile || !['admin', 'owner', 'manager'].includes(profile.role)) {
+    if (!profile || !['admin', 'owner', 'crm_manager', 'manager'].includes(profile.role)) {
         return { error: 'Unauthorized: Only administrators can restore projects.' }
     }
 

@@ -86,17 +86,16 @@ export async function POST(req: NextRequest) {
                     }
                 }
 
-                // Clean/normalize phone number for search (e.g. remove country code and plus sign)
-                let cleanPhone = customerPhone.replace('+', '')
-                if (cleanPhone.startsWith('90')) {
-                    cleanPhone = cleanPhone.substring(2)
+                // Clean/normalize phone number for search to match last 10 digits (Turkish mobile: 5XXXXXXXXX)
+                let cleanPhone = customerPhone.replace(/\D/g, '')
+                if (cleanPhone.length > 10) {
+                    cleanPhone = cleanPhone.substring(cleanPhone.length - 10)
                 }
 
-                // Query customer in database
+                // Query customer globally across all tenants first to resolve tenant routing
                 const { data: customers } = await adminSupabase
                     .from('customers')
-                    .select('id, full_name')
-                    .eq('tenant_id', tenant_id)
+                    .select('id, full_name, tenant_id')
                     .ilike('phone', `%${cleanPhone}%`)
                     .limit(1)
 
@@ -104,9 +103,10 @@ export async function POST(req: NextRequest) {
                 const isExistingCustomer = !!customer
 
                 if (customer) {
-                    console.log(`[Vapi Webhook] Matched existing customer: ${customer.full_name} (${customer.id})`)
+                    console.log(`[Vapi Webhook] Matched existing customer globally: ${customer.full_name} (${customer.id}) under tenant ${customer.tenant_id}`)
+                    tenant_id = customer.tenant_id // Override resolved tenant_id to customer's actual tenant
                 } else {
-                    console.log(`[Vapi Webhook] Unknown caller: ${customerPhone} — no customer record will be created`)
+                    console.log(`[Vapi Webhook] Unknown caller: ${customerPhone} — no customer record will be created, using resolved tenant_id: ${tenant_id}`)
                 }
 
                 // Create inbound_calls record immediately (before call starts)
@@ -163,6 +163,47 @@ Gelen aramaları karşıla, bilgi bankasındaki proje bilgilerini paylaş, rande
                     systemPrompt += `\n\n⚠️ BİLGİ BANKASI TANIMLANMAMIŞ. Tüm proje detayları için müşteriyi satış ekibine yönlendir: "Detaylı bilgi için sizi aratmamı ister misiniz?"\n`
                 }
 
+                // Fetch customer details and activities for dynamic context (Yapay Zeka Geçmiş Hafızası)
+                let customerContext = ''
+                if (customer) {
+                    const { data: crmCustomer } = await adminSupabase
+                        .from('customers')
+                        .select('notes, budget_min, budget_max, desired_rooms, desired_districts')
+                        .eq('id', customer.id)
+                        .maybeSingle()
+
+                    if (crmCustomer) {
+                        customerContext += `\n\n--- MÜŞTERİ BİLGİSİ (KENDİ BİLGİN İÇİN KULLAN - MÜŞTERİYE KAYITLISINIZ VB. SÖYLEME) ---`
+                        customerContext += `\nMüşteri Adı: ${customer.full_name}`
+                        if (crmCustomer.notes) customerContext += `\nMüşteri CRM Notları: ${crmCustomer.notes}`
+                        if (crmCustomer.budget_min || crmCustomer.budget_max) customerContext += `\nBütçe: ${crmCustomer.budget_min || '?'} - ${crmCustomer.budget_max || '?'} TL`
+                        if (crmCustomer.desired_rooms) customerContext += `\nAranan Daire Tipi: ${crmCustomer.desired_rooms}`
+                        if (crmCustomer.desired_districts) customerContext += `\nAranan Bölge/İlçe: ${crmCustomer.desired_districts}`
+                    }
+
+                    const { data: activities } = await adminSupabase
+                        .from('activities')
+                        .select('type, summary, description, created_at')
+                        .eq('customer_id', customer.id)
+                        .order('created_at', { ascending: false })
+                        .limit(5)
+
+                    if (activities && activities.length > 0) {
+                        customerContext += `\n\n📋 MÜŞTERİ ETKİLEŞİM GEÇMİŞİ (Son ${activities.length} aktivite):`
+                        for (const act of activities) {
+                            customerContext += `\n- [${act.type}] ${act.summary}`
+                            if (act.description && act.description !== act.summary) {
+                                customerContext += ` | ${act.description.substring(0, 150)}`
+                            }
+                        }
+                        customerContext += `\n\n⚠️ DAVRANIŞ KURALI: Yukarıdaki geçmişi kullanarak müşterinin daha önce ilgilendiği projelere veya önceki konuşmalarına referans ver. Örneğin "Daha önce bizimle görüşüp ... projesi hakkında bilgi almıştınız" veya "Önceki konuşmamızda belirttiğiniz gibi" diyerek doğal ve samimi bir konuşma yürüt. Müşterinin aklındaki soruları daha hızlı cevaplamaya çalış. Ancak müşteriye "sistemimizde kayıtlısınız", "numaranız bizde var" gibi CRM/teknik sistem kelimeleri ASLA söyleme. Doğal bir satış temsilcisi gibi konuş.`
+                    }
+                }
+
+                if (customerContext) {
+                    systemPrompt += customerContext
+                }
+
                 // Dynamic First Greeting Message
                 let firstMessage = `Merhaba, Novo Gayrimenkul'e hoş geldiniz. Ben ${assistantName}, size nasıl yardımcı olabilirim?`
                 if (isExistingCustomer && customer.full_name && customer.full_name !== 'Yeni Gelen Arama Adayı') {
@@ -203,6 +244,15 @@ Gelen aramaları karşıla, bilgi bankasındaki proje bilgilerini paylaş, rande
                             provider: 'deepgram',
                             model: 'nova-3',
                             language: 'tr',
+                            keywords: [
+                                'Novapark Vista:3', 'Novapark Viva:3', 'NovoCity:3', 'Novo Park:3',
+                                'Novapark:3', 'Nova:2', 'Montenegro:2',
+                                'Turkcell:2', 'Vodafone:2', 'Türk Telekom:2',
+                                'metrekare:2', 'dubleks:2', 'daire:2',
+                                'Kocaeli:2', 'Körfez:2', 'Torbalı:2', 'İzmir:2',
+                                'telesekreter:3', 'mesaj bırakın:3', 'ulaşılamıyor:3',
+                                'en uzun kayıt:3', 'sinyal sesinden:3',
+                            ],
                         },
                         voice: {
                             provider: '11labs',
@@ -245,14 +295,17 @@ Gelen aramaları karşıla, bilgi bankasındaki proje bilgilerini paylaş, rande
                             ]
                         },
                         analysisPlan: {
-                            structuredDataPrompt: 'Görüşme transkriptini analiz et ve aşağıdaki JSON yapısını doldur.',
+                            structuredDataPrompt: 'Görüşme transkriptini analiz et ve aşağıdaki JSON yapısını doldur. Eğer müşteri ilgili ama şu an müsait değilse veya daha sonra aranmak istiyorsa lead_score "follow_up" olmalıdır. callback_datetime alanına müşterinin belirttiği zaman bilgisini aynen yaz (örn: "yarın saat 5", "akşam 6 buçuk").',
                             structuredDataSchema: {
                                 type: 'object',
                                 properties: {
-                                    lead_score: { type: 'string', enum: ['hot', 'warm', 'follow_up', 'disqualified'], description: 'Müşterinin sıcaklık skoru' },
+                                    lead_score: { type: 'string', enum: ['hot', 'warm', 'follow_up', 'disqualified'], description: 'Müşterinin sıcaklık skoru. Müsait değilse veya daha sonra aranmak istiyorsa "follow_up" kullan.' },
                                     interested: { type: 'boolean', description: 'Müşteri projeye/ürüne ilgi gösteriyor mu?' },
                                     available: { type: 'boolean', description: 'Müşteri şu an konuşmaya müsait miydi? (false = müsait değildi, meşguldü, daha sonra aranmak istedi vb.)' },
                                     callback_requested: { type: 'boolean', description: 'Müşteri daha sonra tekrar aranmak istedi mi?' },
+                                    callback_datetime: { type: 'string', description: 'Müşteri tekrar aranmak istiyorsa, belirttiği tarih/saat ifadesi. Örnekler: "yarın saat 5", "yarın öğlen", "akşam 6 buçuk". Müşterinin söylediği ifadeyi aynen yaz.' },
+                                    wants_catalog: { type: 'boolean', description: 'Müşteri katalog, broşür, fiyat listesi veya doküman istedi mi?' },
+                                    project_interested: { type: 'string', description: 'Müşterinin ilgilendiği proje adı (Novapark Vista, NovoCity İzmir, Novapark Viva Körfez, Novapark Montenegro vb.)' },
                                     notes: { type: 'string', description: 'Görüşme hakkında kısa not (Türkçe)' },
                                     customer_name: { type: 'string', description: 'Konuşma sırasında müşterinin belirttiği ad soyad (eğer ilk başta bilinmiyorsa)' }
                                 },
@@ -262,13 +315,13 @@ Gelen aramaları karşıla, bilgi bankasındaki proje bilgilerini paylaş, rande
                             successEvaluationPrompt: 'Müşteri randevu aldı veya detaylı bilgi talep etti ise başarılı say.',
                             successEvaluationRubric: 'PassFail',
                         },
-                        metadata: {
-                            tenant_id: tenant_id,
-                            customer_id: customer?.id || null,
-                            caller_phone: customerPhone,
-                            type: 'manual_call',
-                            call_direction: 'inbound'
-                        }
+                    },
+                    metadata: {
+                        tenant_id: tenant_id,
+                        customer_id: customer?.id || null,
+                        caller_phone: customerPhone,
+                        type: 'manual_call',
+                        call_direction: 'inbound'
                     }
                 }
 
@@ -314,10 +367,11 @@ Gelen aramaları karşıla, bilgi bankasındaki proje bilgilerini paylaş, rande
                             }
                         }
 
-                        if (callEndData.metadata?.type === 'manual_call') {
-                            await handleManualVapiCallResult(callEndData)
-                        } else {
+                        const isCampaign = !!(callEndData.metadata?.execution_id || callEndData.metadata?.campaign_id)
+                        if (isCampaign) {
                             await handleVapiCallResult(callEndData)
+                        } else {
+                            await handleManualVapiCallResult(callEndData)
                         }
                         console.log(`[Vapi Webhook] ✅ Background processing completed for ${callEndData.callId}`)
                     } catch (afterErr: any) {

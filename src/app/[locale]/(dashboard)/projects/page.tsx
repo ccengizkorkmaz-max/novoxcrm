@@ -40,7 +40,7 @@ export default async function ProjectsPage(props: {
         .eq('id', user?.id)
         .single()
 
-    const isManager = profile?.role === 'manager' || profile?.role === 'admin' || profile?.role === 'owner'
+    const isManager = profile?.role === 'manager' || profile?.role === 'admin' || profile?.role === 'owner' || profile?.role === 'crm_manager'
 
     // Get projects for this user's tenant with unit counts
     const { data: projects, error } = await supabase
@@ -94,6 +94,12 @@ export default async function ProjectsPage(props: {
                                             {t('createModal.cityLabel')}
                                         </Label>
                                         <Input id="city" name="city" className="col-span-3" />
+                                    </div>
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label htmlFor="website_url" className="text-right">
+                                            Web Sitesi
+                                        </Label>
+                                        <Input id="website_url" name="website_url" type="url" placeholder="https://..." className="col-span-3" />
                                     </div>
                                 </div>
                                 <DialogFooter>

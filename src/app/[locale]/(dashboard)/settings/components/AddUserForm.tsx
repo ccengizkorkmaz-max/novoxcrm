@@ -61,6 +61,7 @@ export default function AddUserForm({ onClose }: { onClose: () => void }) {
                         <option value="user">{t('users.roles.user')}</option>
                         <option value="sales">Satış Temsilcisi (Sales)</option>
                         <option value="manager">{t('users.roles.manager')}</option>
+                        <option value="crm_manager">CRM Manager</option>
                         <option value="admin">{t('users.roles.admin')}</option>
                         <option value="broker">Dış Broker</option>
                     </select>

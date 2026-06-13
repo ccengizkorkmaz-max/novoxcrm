@@ -103,7 +103,7 @@ async function handleCriticalSystemFailure(tenantId: string, reason: string, wor
     });
 
     // Find admin user to send WA message
-    const { data: admins } = await supabase.from('profiles').select('phone').eq('tenant_id', tenantId).in('role', ['admin', 'owner']).limit(1);
+    const { data: admins } = await supabase.from('profiles').select('phone').eq('tenant_id', tenantId).in('role', ['admin', 'owner', 'crm_manager']).limit(1);
     if (admins && admins.length > 0 && admins[0].phone) {
         const adminPhone = admins[0].phone;
         await sendWhatsAppMessage(adminPhone, `⚠️ DİKKAT: Novo CRM Outreach sistemi kredi/bakiye yetersizliği sebebiyle durduruldu.\nDetay: ${reason.substring(0, 100)}\nLütfen panelden kontrol ediniz.`);
@@ -1849,7 +1849,7 @@ export async function handleVapiCallResult(callData: {
                     .from('profiles')
                     .select('id, full_name')
                     .eq('tenant_id', execution.tenant_id)
-                    .in('role', ['admin', 'owner'])
+                    .in('role', ['admin', 'owner', 'crm_manager'])
                     .limit(1)
 
                 const adminId = admins?.[0]?.id || null
@@ -1883,6 +1883,145 @@ export async function handleVapiCallResult(callData: {
                 console.log(`[Outreach] 🔔 Unassigned lead action created for ${execution.customer_id}`)
             } catch (err: any) {
                 console.error('[Outreach] Error creating unassigned lead action:', err.message)
+            }
+        }
+
+        // ─── FOLLOW-UP: Takip edilmeli → MAYA'ya görev ata ─────
+        if (structuredData.lead_score === 'follow_up' || structuredData.callback_requested === true) {
+            try {
+                const MAYA_USER_ID = '8e800daf-42bf-411e-b3b0-a69563e3e126'
+                const { parseCallbackDate } = await import('@/lib/utils/parse-callback-date')
+                const callbackDueDate = parseCallbackDate(structuredData.callback_datetime)
+
+                const customerName = execution.customers?.full_name || 'Müşteri'
+
+                await supabase.from('activities').insert({
+                    tenant_id: execution.tenant_id,
+                    customer_id: execution.customer_id,
+                    owner_id: MAYA_USER_ID,
+                    type: 'Call',
+                    topic: 'Sales',
+                    summary: `📞 MAYA Takip Görevi — ${customerName}`,
+                    description: [
+                        `Müşteri daha sonra aranmak istedi.`,
+                        structuredData.callback_datetime ? `📅 İstenen Zaman: ${structuredData.callback_datetime}` : null,
+                        structuredData.notes ? `📝 Notlar: ${structuredData.notes}` : null,
+                        `🤖 AI Lead Skoru: ${structuredData.lead_score?.toUpperCase() || 'FOLLOW_UP'}`,
+                    ].filter(Boolean).join('\n'),
+                    due_date: callbackDueDate,
+                    status: 'Pending',
+                    priority: 'High',
+                })
+
+                console.log(`[Outreach] 📞 MAYA follow-up task created for ${customerName} (${execution.customer_id}) → due: ${callbackDueDate}`)
+            } catch (followUpErr: any) {
+                console.error('[Outreach] Error creating MAYA follow-up task:', followUpErr.message)
+            }
+        }
+
+        // ─── KATALOG/DOKÜMAN: WhatsApp ile gönder veya Aybike'ye görev ata ─────
+        if (structuredData.wants_catalog === true) {
+            try {
+                const AYBIKE_USER_ID = '2ab043ff-da77-46d0-9977-8d6fdf1973fc'
+                const customerName = execution.customers?.full_name || 'Müşteri'
+                const projectName = structuredData.project_interested || ''
+
+                // Get customer phone
+                const { data: custData } = await supabase
+                    .from('customers')
+                    .select('phone')
+                    .eq('id', execution.customer_id)
+                    .single()
+
+                const customerPhone = custData?.phone
+
+                // Try to find project website_url from DB
+                let projectUrl: string | null = null
+                if (projectName) {
+                    const { data: projects } = await supabase
+                        .from('projects')
+                        .select('name, website_url')
+                        .eq('tenant_id', execution.tenant_id)
+
+                    if (projects) {
+                        const normalizedSearch = projectName.toLowerCase().replace(/[^a-zçğıöşü0-9]/gi, '')
+                        const match = projects.find(p => {
+                            const normalizedName = p.name.toLowerCase().replace(/[^a-zçğıöşü0-9]/gi, '')
+                            return normalizedName.includes(normalizedSearch) || normalizedSearch.includes(normalizedName)
+                        })
+                        projectUrl = match?.website_url || null
+                    }
+                }
+
+                // Get tenant WA credentials
+                const { data: tenant } = await supabase
+                    .from('tenants')
+                    .select('wa_phone_number_id, wa_access_token')
+                    .eq('id', execution.tenant_id)
+                    .single()
+
+                const hasWa = tenant?.wa_phone_number_id && tenant?.wa_access_token && customerPhone
+
+                if (hasWa && projectUrl) {
+                    // ✅ Send project website link via WhatsApp
+                    const { sendWhatsAppMessage } = await import('@/lib/whatsapp')
+                    const message = `Merhaba ${customerName} 👋\n\n` +
+                        `${projectName ? `*${projectName}* projemize` : 'Projelerimize'} gösterdiğiniz ilgi için teşekkür ederiz.\n\n` +
+                        `📋 Detaylı bilgi ve katalog için: ${projectUrl}\n\n` +
+                        `Sorularınız için bize ulaşabilirsiniz.`
+                    
+                    await sendWhatsAppMessage(
+                        customerPhone,
+                        message,
+                        tenant.wa_phone_number_id,
+                        tenant.wa_access_token
+                    )
+                    console.log(`[Outreach] 📄 WhatsApp catalog link sent to ${customerName} (${customerPhone}) → ${projectUrl}`)
+                } else {
+                    // ❌ No WA or no URL → Create task for Aybike
+                    await supabase.from('activities').insert({
+                        tenant_id: execution.tenant_id,
+                        customer_id: execution.customer_id,
+                        owner_id: AYBIKE_USER_ID,
+                        type: 'Call',
+                        topic: 'Sales',
+                        summary: `📋 Doküman Talebi — ${customerName}`,
+                        description: [
+                            `Müşteri katalog/broşür/fiyat listesi talep etti.`,
+                            projectName ? `🏗️ İlgilendiği Proje: ${projectName}` : null,
+                            projectUrl ? `🔗 Proje Linki: ${projectUrl}` : '⚠️ Proje web sitesi bulunamadı — lütfen manuel gönderin.',
+                            !customerPhone ? '⚠️ Müşteri telefon numarası eksik!' : null,
+                            structuredData.notes ? `📝 Notlar: ${structuredData.notes}` : null,
+                        ].filter(Boolean).join('\n'),
+                        due_date: new Date().toISOString(),
+                        status: 'Pending',
+                        priority: 'High',
+                    })
+
+                    // Send WhatsApp notification to Aybike
+                    if (tenant?.wa_phone_number_id && tenant?.wa_access_token) {
+                        const { sendWhatsAppTemplate } = await import('@/lib/whatsapp')
+                        const { data: aybike } = await supabase.from('profiles').select('phone').eq('id', AYBIKE_USER_ID).single()
+                        if (aybike?.phone) {
+                            await sendWhatsAppTemplate(
+                                aybike.phone,
+                                'crm_operasyonel_durum_bildirimi',
+                                [
+                                    customerPhone || '-',
+                                    customerName,
+                                    new Date().toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' }),
+                                    `📋 Doküman Talebi — ${projectName || 'Genel'}: Müşteri katalog/broşür istedi. Lütfen CRM'den kontrol edin.`
+                                ],
+                                'tr',
+                                tenant.wa_phone_number_id,
+                                tenant.wa_access_token
+                            )
+                        }
+                    }
+                    console.log(`[Outreach] 📋 Catalog request task assigned to Aybike for ${customerName}`)
+                }
+            } catch (catalogErr: any) {
+                console.error('[Outreach] Error handling catalog request:', catalogErr.message)
             }
         }
     }

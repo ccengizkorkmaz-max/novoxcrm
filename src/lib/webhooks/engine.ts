@@ -134,7 +134,7 @@ export async function createTenantWebhook(eventType: string, targetUrl: string, 
         .single()
 
     if (!profile?.tenant_id) throw new Error('No tenant')
-    if (!['admin', 'owner'].includes(profile.role)) throw new Error('Insufficient permissions')
+    if (!['admin', 'owner', 'crm_manager'].includes(profile.role)) throw new Error('Insufficient permissions')
 
     const { data, error } = await supabase
         .from('tenant_webhooks')

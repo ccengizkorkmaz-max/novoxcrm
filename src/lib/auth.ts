@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 
-export type UserRole = 'owner' | 'manager' | 'sales' | 'admin'
+export type UserRole = 'owner' | 'crm_manager' | 'manager' | 'sales' | 'admin'
 
 export interface UserPermission {
     canManageSettings: boolean
@@ -13,6 +13,13 @@ export interface UserPermission {
 
 export const PERMISSIONS: Record<UserRole, UserPermission> = {
     owner: {
+        canManageSettings: true,
+        canManageUsers: true,
+        canDeleteData: true,
+        canViewAllSales: true,
+        canViewReports: true,
+    },
+    crm_manager: { // CRM Manager — owner ile aynı yetkiler
         canManageSettings: true,
         canManageUsers: true,
         canDeleteData: true,

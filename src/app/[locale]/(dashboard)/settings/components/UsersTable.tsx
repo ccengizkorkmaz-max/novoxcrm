@@ -46,7 +46,7 @@ export default function UsersTable({ users, currentUserRole }: UsersTableProps) 
     const [optimisticHotLead, setOptimisticHotLead] = useState<Record<string, boolean>>({})
 
     // Only owner/admin can change roles and external flag
-    const canManage = currentUserRole === 'owner' || currentUserRole === 'admin'
+    const canManage = currentUserRole === 'owner' || currentUserRole === 'admin' || currentUserRole === 'crm_manager'
 
     const handleRoleChange = async (userId: string, newRole: string) => {
         const promise = updateUserRole(userId, newRole)
@@ -140,6 +140,7 @@ export default function UsersTable({ users, currentUserRole }: UsersTableProps) 
         switch (role) {
             case 'admin': return t('users.roles.admin')
             case 'owner': return t('users.roles.owner')
+            case 'crm_manager': return 'CRM Manager'
             case 'manager': return t('users.roles.manager')
             case 'sales': return "Satış Temsilcisi"
             case 'broker': return "Dış Broker"
@@ -265,6 +266,7 @@ export default function UsersTable({ users, currentUserRole }: UsersTableProps) 
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="owner">{t('users.roles.owner')}</SelectItem>
+                                            <SelectItem value="crm_manager">CRM Manager</SelectItem>
                                             <SelectItem value="manager">{t('users.roles.manager')}</SelectItem>
                                             <SelectItem value="sales">Satış Temsilcisi</SelectItem>
                                             <SelectItem value="broker">Dış Broker</SelectItem>

@@ -43,6 +43,18 @@ export const TURKISH_VOICE_RULES = `
 13. Görüşme Sonlandırma: Görüşmeyi bitirirken her zaman nezaketle "İyi günler dilerim, görüşmek üzere" diyerek telefonu kapat.
 === DİL KURALLARI SONU ===
 
+=== YAPAY ZEKA KİMLİĞİ İTİRAZ YÖNETİMİ (KRİTİK) ===
+Müşteri "Yapay zeka mısınız?", "Robot musunuz?", "Gerçek bir insan mısınız?", "Sen bot musun?" gibi sorular sorarsa:
+→ KESİNLİKLE inkar etme! "Ben satış danışmanıyım" deme!
+→ Dürüst ve özgüvenli cevap ver:
+   "Evet, ben Nova'nın dijital satış asistanıyım. Size vakit kaybettirmemek adına hızlıca kriterlerinizi alıp sizi bekletmeden canlı uzmanımıza aktarmak için buradayım."
+→ Hemen konuyu geri çevir:
+   "Hangi bölgedeki projelerimiz ilginizi çekiyor?"
+→ Müşteri hâlâ itiraz ederse ve gerçek insanla konuşmak istediğini belirtirse:
+   "Tabii ki, sizi hemen canlı satış uzmanımıza bağlayalım. Size en kısa sürede dönüş yapacaklar. İyi günler dilerim." de ve aramayı sonlandır
+→ Bu durumda lead_score: "follow_up" olarak işaretle, callback_requested: true yap
+=== YAPAY ZEKA KİMLİĞİ İTİRAZ YÖNETİMİ SONU ===
+
 === RET YÖNETİMİ (KRİTİK — KESİNLİKLE UYULMALIDIR) ===
 1. Müşteri "ilgilenmiyorum", "istemiyorum", "aramayın", "beni bir daha aramayın" gibi net ret ifadesi kullanırsa:
    → Kesinlikle satış danışmanına yönlendirme YAPMA
@@ -284,17 +296,29 @@ export async function makeOutboundCall(options: VapiCallOptions): Promise<VapiCa
                     provider: 'deepgram',
                     model: 'nova-3',
                     language: 'tr',
+                    keywords: [
+                        'Novapark Vista:3', 'Novapark Viva:3', 'NovoCity:3', 'Novo Park:3',
+                        'Novapark:3', 'Nova:2', 'Montenegro:2',
+                        'Turkcell:2', 'Vodafone:2', 'Türk Telekom:2',
+                        'metrekare:2', 'dubleks:2', 'daire:2',
+                        'Kocaeli:2', 'Körfez:2', 'Torbalı:2', 'İzmir:2',
+                        'telesekreter:3', 'mesaj bırakın:3', 'ulaşılamıyor:3',
+                        'en uzun kayıt:3', 'sinyal sesinden:3',
+                    ],
                 },
                 silenceTimeoutSeconds: 45,
                 analysisPlan: {
-                    structuredDataPrompt: 'Görüşme transkriptini analiz et ve aşağıdaki JSON yapısını doldur.',
+                    structuredDataPrompt: 'Görüşme transkriptini analiz et ve aşağıdaki JSON yapısını doldur. Eğer müşteri ilgili ama şu an müsait değilse veya daha sonra aranmak istiyorsa lead_score "follow_up" olmalıdır. callback_datetime alanına müşterinin belirttiği zaman bilgisini aynen yaz.',
                     structuredDataSchema: {
                         type: 'object',
                         properties: {
-                            lead_score: { type: 'string', enum: ['hot', 'warm', 'follow_up', 'disqualified'], description: 'Müşterinin sıcaklık skoru' },
+                            lead_score: { type: 'string', enum: ['hot', 'warm', 'follow_up', 'disqualified'], description: 'Müşterinin sıcaklık skoru. Müsait değilse veya daha sonra aranmak istiyorsa "follow_up" kullan.' },
                             interested: { type: 'boolean', description: 'Müşteri projeye/ürüne ilgi gösteriyor mu?' },
                             available: { type: 'boolean', description: 'Müşteri şu an konuşmaya müsait miydi? (false = müsait değildi, meşguldü, devlet dairesindeydi, toplantıdaydı, daha sonra aranmak istedi vb.)' },
                             callback_requested: { type: 'boolean', description: 'Müşteri daha sonra tekrar aranmak istedi mi? (Örn: "sonra arayın", "şimdi müsait değilim ama ilgileniyorum")' },
+                            callback_datetime: { type: 'string', description: 'Müşteri tekrar aranmak istiyorsa, belirttiği tarih/saat ifadesi. Örnekler: "yarın saat 5", "yarın öğlen". Müşterinin söylediği ifadeyi aynen yaz.' },
+                            wants_catalog: { type: 'boolean', description: 'Müşteri katalog, broşür, fiyat listesi veya doküman istedi mi?' },
+                            project_interested: { type: 'string', description: 'Müşterinin ilgilendiği proje adı (Novapark Vista, NovoCity İzmir, Novapark Viva Körfez, Novapark Montenegro vb.)' },
                             notes: { type: 'string', description: 'Görüşme hakkında kısa not (Türkçe)' },
                         },
                         required: ['lead_score', 'interested', 'available', 'notes'],
@@ -675,6 +699,39 @@ export async function handleManualVapiCallResult(callData: {
         }
     }
 
+    // ─── Fallback 2: customerId yoksa veritabanından telefon numarasına göre eşleştir ───
+    if (!customerId) {
+        let searchPhone = callerPhone
+        if (!searchPhone && callData.callId) {
+            const { data: inboundRecord } = await supabase
+                .from('inbound_calls')
+                .select('caller_phone')
+                .eq('vapi_call_id', callData.callId)
+                .maybeSingle()
+            if (inboundRecord?.caller_phone) {
+                searchPhone = inboundRecord.caller_phone
+            }
+        }
+        if (searchPhone) {
+            let cleanPhone = searchPhone.replace(/\D/g, '')
+            if (cleanPhone.length > 10) {
+                cleanPhone = cleanPhone.substring(cleanPhone.length - 10)
+            }
+            const { data: matchedCust } = await supabase
+                .from('customers')
+                .select('id, tenant_id')
+                .ilike('phone', `%${cleanPhone}%`)
+                .limit(1)
+                .maybeSingle()
+
+            if (matchedCust) {
+                customerId = matchedCust.id
+                if (!tenantId) tenantId = matchedCust.tenant_id
+                console.log(`[Vapi Webhook] 📞 Customer matched via end-of-call phone fallback: ${customerId} under tenant ${tenantId}`)
+            }
+        }
+    }
+
     if (!tenantId) {
         console.warn('[Vapi Webhook] Manual call finished but missing tenant_id in metadata')
         return
@@ -794,7 +851,7 @@ export async function handleManualVapiCallResult(callData: {
         return // Unknown caller — inbound_calls already updated above
     }
 
-    const activityTopic = isInbound ? 'Inbound Call' : 'Sales'
+    const activityTopic = 'Sales'
     const durationText = callData.duration ? `${Math.floor(callData.duration / 60)}dk ${callData.duration % 60}sn` : ''
     const transcriptBlock = callData.transcript
         ? `\n\n📝 Transkript:\n${callData.transcript}`
@@ -1000,7 +1057,7 @@ export async function handleManualVapiCallResult(callData: {
                     .from('profiles')
                     .select('id, full_name')
                     .eq('tenant_id', tenantId)
-                    .in('role', ['admin', 'owner'])
+                    .in('role', ['admin', 'owner', 'crm_manager'])
                     .limit(1)
 
                 const adminId = admins?.[0]?.id || null
@@ -1034,6 +1091,127 @@ export async function handleManualVapiCallResult(callData: {
                 console.log(`[Vapi Webhook] 🔔 Unassigned lead action created for customer ${customerId}`)
             } catch (err: any) {
                 console.error('[Vapi Webhook] Error creating unassigned manual lead action:', err.message)
+            }
+        }
+
+        // ─── FOLLOW-UP: Takip edilmeli → MAYA'ya görev ata ─────
+        if (leadScore === 'follow_up' || structuredData?.callback_requested === true) {
+            try {
+                const MAYA_USER_ID = '8e800daf-42bf-411e-b3b0-a69563e3e126'
+                const { parseCallbackDate } = await import('@/lib/utils/parse-callback-date')
+                const callbackDatetime = callData.analysis?.structuredData?.callback_datetime
+                const callbackDueDate = parseCallbackDate(callbackDatetime)
+
+                const customerName = customer?.full_name || 'Müşteri'
+
+                await supabase.from('activities').insert({
+                    tenant_id: tenantId,
+                    customer_id: customerId,
+                    owner_id: MAYA_USER_ID,
+                    type: 'Call',
+                    topic: 'Sales',
+                    summary: `📞 MAYA Takip Görevi — ${customerName}`,
+                    description: [
+                        `Müşteri daha sonra aranmak istedi.`,
+                        callbackDatetime ? `📅 İstenen Zaman: ${callbackDatetime}` : null,
+                        notes ? `📝 Notlar: ${notes}` : null,
+                        `🤖 AI Lead Skoru: ${leadScore?.toUpperCase() || 'FOLLOW_UP'}`,
+                    ].filter(Boolean).join('\n'),
+                    due_date: callbackDueDate,
+                    status: 'Pending',
+                    priority: 'High',
+                })
+
+                console.log(`[Vapi Webhook] 📞 MAYA follow-up task created for ${customerName} (${customerId}) → due: ${callbackDueDate}`)
+            } catch (followUpErr: any) {
+                console.error('[Vapi Webhook] Error creating MAYA follow-up task:', followUpErr.message)
+            }
+        }
+
+        // ─── KATALOG/DOKÜMAN: WhatsApp ile gönder veya Aybike'ye görev ata ─────
+        if (structuredData?.wants_catalog === true) {
+            try {
+                const AYBIKE_USER_ID = '2ab043ff-da77-46d0-9977-8d6fdf1973fc'
+                const customerName = customer?.full_name || 'Müşteri'
+                const projectName = structuredData?.project_interested || ''
+                const customerPhone = customer?.phone
+
+                // Try to find project website_url from DB
+                let projectUrl: string | null = null
+                if (projectName) {
+                    const { data: projects } = await supabase
+                        .from('projects')
+                        .select('name, website_url')
+                        .eq('tenant_id', tenantId)
+
+                    if (projects) {
+                        const normalizedSearch = projectName.toLowerCase().replace(/[^a-zçğıöşü0-9]/gi, '')
+                        const match = projects.find((p: any) => {
+                            const normalizedName = p.name.toLowerCase().replace(/[^a-zçğıöşü0-9]/gi, '')
+                            return normalizedName.includes(normalizedSearch) || normalizedSearch.includes(normalizedName)
+                        })
+                        projectUrl = match?.website_url || null
+                    }
+                }
+
+                // Get tenant WA credentials
+                const { data: tenantWa } = await supabase
+                    .from('tenants')
+                    .select('wa_phone_number_id, wa_access_token')
+                    .eq('id', tenantId)
+                    .single()
+
+                const hasWa = tenantWa?.wa_phone_number_id && tenantWa?.wa_access_token && customerPhone
+
+                if (hasWa && projectUrl) {
+                    const { sendWhatsAppMessage } = await import('@/lib/whatsapp')
+                    const message = `Merhaba ${customerName} 👋\n\n` +
+                        `${projectName ? `*${projectName}* projemize` : 'Projelerimize'} gösterdiğiniz ilgi için teşekkür ederiz.\n\n` +
+                        `📋 Detaylı bilgi ve katalog için: ${projectUrl}\n\n` +
+                        `Sorularınız için bize ulaşabilirsiniz.`
+
+                    await sendWhatsAppMessage(customerPhone, message, tenantWa.wa_phone_number_id, tenantWa.wa_access_token)
+                    console.log(`[Vapi Webhook] 📄 WhatsApp catalog link sent to ${customerName} → ${projectUrl}`)
+                } else {
+                    // Fallback: assign to Aybike
+                    await supabase.from('activities').insert({
+                        tenant_id: tenantId,
+                        customer_id: customerId,
+                        owner_id: AYBIKE_USER_ID,
+                        type: 'Call',
+                        topic: 'Sales',
+                        summary: `📋 Doküman Talebi — ${customerName}`,
+                        description: [
+                            `Müşteri katalog/broşür/fiyat listesi talep etti.`,
+                            projectName ? `🏗️ İlgilendiği Proje: ${projectName}` : null,
+                            projectUrl ? `🔗 Proje Linki: ${projectUrl}` : '⚠️ Proje web sitesi bulunamadı — lütfen manuel gönderin.',
+                            !customerPhone ? '⚠️ Müşteri telefon numarası eksik!' : null,
+                            notes ? `📝 Notlar: ${notes}` : null,
+                        ].filter(Boolean).join('\n'),
+                        due_date: new Date().toISOString(),
+                        status: 'Pending',
+                        priority: 'High',
+                    })
+
+                    // WhatsApp notification to Aybike
+                    if (tenantWa?.wa_phone_number_id && tenantWa?.wa_access_token) {
+                        const { sendWhatsAppTemplate } = await import('@/lib/whatsapp')
+                        const { data: aybike } = await supabase.from('profiles').select('phone').eq('id', AYBIKE_USER_ID).single()
+                        if (aybike?.phone) {
+                            await sendWhatsAppTemplate(
+                                aybike.phone,
+                                'crm_operasyonel_durum_bildirimi',
+                                [customerPhone || '-', customerName, new Date().toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' }), `📋 Doküman Talebi — ${projectName || 'Genel'}`],
+                                'tr',
+                                tenantWa.wa_phone_number_id,
+                                tenantWa.wa_access_token
+                            )
+                        }
+                    }
+                    console.log(`[Vapi Webhook] 📋 Catalog request task assigned to Aybike for ${customerName}`)
+                }
+            } catch (catalogErr: any) {
+                console.error('[Vapi Webhook] Error handling catalog request:', catalogErr.message)
             }
         }
     }

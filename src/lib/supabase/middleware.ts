@@ -146,7 +146,7 @@ export async function updateSession(request: NextRequest, response?: NextRespons
         }
 
         // If employee tries to access portal, redirect to dashboard 
-        const isInternalStaff = ['admin', 'owner', 'sales'].includes(profile?.role || '')
+        const isInternalStaff = ['admin', 'owner', 'crm_manager', 'sales'].includes(profile?.role || '')
         const isBroker = profile?.role === 'broker'
 
         // 1. Redirect unauthorized users away from portal
