@@ -238,7 +238,7 @@ export async function getCallCDR(period: PeriodKey, page: number = 1, pageSize: 
     // 1. Manuel aramalar (activities)
     const { data: manualCalls, count: manualCount } = await supabase
         .from('activities')
-        .select('id, created_at, summary, status, customer:customers(full_name, phone), creator:profiles!user_id(full_name)', { count: 'exact' })
+        .select('id, created_at, summary, description, status, customer:customers(full_name, phone), creator:profiles!user_id(full_name)', { count: 'exact' })
         .eq('type', 'Call')
         .eq('tenant_id', profile.tenant_id)
         .gte('created_at', fromTs)
@@ -271,12 +271,28 @@ export async function getCallCDR(period: PeriodKey, page: number = 1, pageSize: 
 
     // Map manual calls
     for (const c of manualCalls || []) {
+        let cName = (c.customer as any)?.full_name || null
+        let cPhone = (c.customer as any)?.phone || null
+
+        // Fallback: parse from description if customer_id is null
+        if (!cName && (c as any).description) {
+            const bracketMatch = (c as any).description.match(/\[([^\]]+)\]/)
+            if (bracketMatch) {
+                const parts = bracketMatch[1].split(',').map((s: string) => s.trim())
+                if (parts[0] && !parts[0].match(/^\d/)) cName = parts[0]
+            }
+        }
+        if (!cPhone && (c as any).description) {
+            const phoneMatch = (c as any).description.match(/Telefon:\s*(\+?\d[\d\s-]{8,})/)?.[1]
+            if (phoneMatch) cPhone = phoneMatch.replace(/[\s-]/g, '')
+        }
+
         records.push({
             id: c.id,
             type: 'manuel',
             date: c.created_at,
-            customer_name: (c.customer as any)?.full_name || null,
-            phone: (c.customer as any)?.phone || null,
+            customer_name: cName,
+            phone: cPhone,
             created_by: (c.creator as any)?.full_name || null,
             summary: c.summary,
             status: c.status,
@@ -363,11 +379,34 @@ export async function getWhatsAppCDR(period: PeriodKey, page: number = 1, pageSi
     const records: WhatsAppCDRRecord[] = (data || []).map(r => {
         // Extract template name from summary: "💬 WhatsApp Mesajı Gönderildi (template_name)"
         const tmplMatch = r.summary?.match(/\(([^)]+)\)/)
+        
+        // Customer name from relation or fallback from description
+        let customerName = (r.customer as any)?.full_name || null
+        let customerPhone = (r.customer as any)?.phone || null
+
+        if (!customerName && r.description) {
+            // Pattern 1: "Template: xxx [Müşteri Adı, Şirket]" — parametre listesi
+            const bracketMatch = r.description.match(/\[([^\]]+)\]/)
+            if (bracketMatch) {
+                const parts = bracketMatch[1].split(',').map((s: string) => s.trim())
+                if (parts[0] && !parts[0].match(/^\d/) && parts[0] !== 'Değerli Müşterimiz') {
+                    customerName = parts[0]
+                }
+            }
+            // Pattern 2: Serbest metin — "Merhaba X Hanım/Bey" veya direkt mesaj
+        }
+
+        if (!customerPhone && r.description) {
+            // Telefon numarası bulmaya çalış (5xx veya 90xxx pattern)
+            const phoneMatch = r.description.match(/(\+?90?\s?)?([05]\d{2}[\s-]?\d{3}[\s-]?\d{2}[\s-]?\d{2})/)?.[0]
+            if (phoneMatch) customerPhone = phoneMatch.replace(/[\s-]/g, '')
+        }
+
         return {
             id: r.id,
             date: r.created_at,
-            customer_name: (r.customer as any)?.full_name || null,
-            phone: (r.customer as any)?.phone || null,
+            customer_name: customerName,
+            phone: customerPhone,
             created_by: (r.creator as any)?.full_name || 'Sistem',
             template: tmplMatch?.[1] || 'Bilinmiyor',
             summary: r.summary,
