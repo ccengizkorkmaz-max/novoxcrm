@@ -206,3 +206,174 @@ export async function getPerformanceAnalytics(): Promise<PerformanceData> {
 
     return { periods, daily_trend, wa_breakdown: periodBreakdowns, calls_breakdown: callsBreakdowns, last_updated: lastUpdated }
 }
+
+// ─── CDR: Telefon Detay Kayıtları ──────────────────────────
+
+export interface CallCDRRecord {
+    id: string
+    type: 'manuel' | 'ai_outbound' | 'ai_inbound'
+    date: string
+    customer_name: string | null
+    phone: string | null
+    created_by: string | null
+    summary: string | null
+    status: string | null
+    duration_seconds: number | null
+    interest_level: string | null
+}
+
+export async function getCallCDR(period: PeriodKey, page: number = 1, pageSize: number = 50): Promise<{ records: CallCDRRecord[]; total: number }> {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { records: [], total: 0 }
+
+    const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single()
+    if (!profile?.tenant_id) return { records: [], total: 0 }
+
+    const range = getDateRange(period)
+    const fromTs = `${range.from}T00:00:00`
+    const toTs = `${range.to}T23:59:59`
+    const offset = (page - 1) * pageSize
+
+    // 1. Manuel aramalar (activities)
+    const { data: manualCalls, count: manualCount } = await supabase
+        .from('activities')
+        .select('id, created_at, summary, status, customer:customers(full_name, phone), creator:profiles!user_id(full_name)', { count: 'exact' })
+        .eq('type', 'Call')
+        .eq('tenant_id', profile.tenant_id)
+        .gte('created_at', fromTs)
+        .lte('created_at', toTs)
+        .order('created_at', { ascending: false })
+        .range(offset, offset + pageSize - 1)
+
+    // 2. AI Outbound (lead_qualifications)
+    const { data: aiOutbound, count: aiOutCount } = await supabase
+        .from('lead_qualifications')
+        .select('id, last_call_at, interest_level, call_duration_seconds, call_notes, customer:customers(full_name, phone)', { count: 'exact' })
+        .eq('tenant_id', profile.tenant_id)
+        .not('last_call_at', 'is', null)
+        .gte('last_call_at', fromTs)
+        .lte('last_call_at', toTs)
+        .order('last_call_at', { ascending: false })
+        .range(offset, offset + pageSize - 1)
+
+    // 3. AI Inbound (inbound_calls)
+    const { data: inboundCalls, count: inboundCount } = await supabase
+        .from('inbound_calls')
+        .select('id, started_at, caller_phone, duration_seconds, summary, customer:customers(full_name)', { count: 'exact' })
+        .eq('tenant_id', profile.tenant_id)
+        .gte('started_at', fromTs)
+        .lte('started_at', toTs)
+        .order('started_at', { ascending: false })
+        .range(offset, offset + pageSize - 1)
+
+    const records: CallCDRRecord[] = []
+
+    // Map manual calls
+    for (const c of manualCalls || []) {
+        records.push({
+            id: c.id,
+            type: 'manuel',
+            date: c.created_at,
+            customer_name: (c.customer as any)?.full_name || null,
+            phone: (c.customer as any)?.phone || null,
+            created_by: (c.creator as any)?.full_name || null,
+            summary: c.summary,
+            status: c.status,
+            duration_seconds: null,
+            interest_level: null,
+        })
+    }
+
+    // Map AI outbound
+    for (const c of aiOutbound || []) {
+        records.push({
+            id: c.id,
+            type: 'ai_outbound',
+            date: c.last_call_at!,
+            customer_name: (c.customer as any)?.full_name || null,
+            phone: (c.customer as any)?.phone || null,
+            created_by: 'Maya AI',
+            summary: c.call_notes,
+            status: c.interest_level === 'hot' ? 'Hot Lead' : c.interest_level === 'warm' ? 'Ilık Lead' : 'Tamamlandı',
+            duration_seconds: c.call_duration_seconds,
+            interest_level: c.interest_level,
+        })
+    }
+
+    // Map AI inbound
+    for (const c of inboundCalls || []) {
+        records.push({
+            id: c.id,
+            type: 'ai_inbound',
+            date: c.started_at,
+            customer_name: (c.customer as any)?.full_name || null,
+            phone: c.caller_phone,
+            created_by: 'Maya AI (Gelen)',
+            summary: c.summary,
+            status: 'Karşılandı',
+            duration_seconds: c.duration_seconds,
+            interest_level: null,
+        })
+    }
+
+    // Sort all by date desc
+    records.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+
+    const total = (manualCount || 0) + (aiOutCount || 0) + (inboundCount || 0)
+    return { records: records.slice(0, pageSize), total }
+}
+
+// ─── CDR: WhatsApp Detay Kayıtları ─────────────────────────
+
+export interface WhatsAppCDRRecord {
+    id: string
+    date: string
+    customer_name: string | null
+    phone: string | null
+    created_by: string | null
+    template: string | null
+    summary: string | null
+    description: string | null
+}
+
+export async function getWhatsAppCDR(period: PeriodKey, page: number = 1, pageSize: number = 50): Promise<{ records: WhatsAppCDRRecord[]; total: number }> {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { records: [], total: 0 }
+
+    const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single()
+    if (!profile?.tenant_id) return { records: [], total: 0 }
+
+    const range = getDateRange(period)
+    const fromTs = `${range.from}T00:00:00`
+    const toTs = `${range.to}T23:59:59`
+    const offset = (page - 1) * pageSize
+
+    const { data, count } = await supabase
+        .from('activities')
+        .select('id, created_at, summary, description, customer:customers(full_name, phone), creator:profiles!user_id(full_name)', { count: 'exact' })
+        .eq('type', 'Whatsapp')
+        .eq('tenant_id', profile.tenant_id)
+        .gte('created_at', fromTs)
+        .lte('created_at', toTs)
+        .order('created_at', { ascending: false })
+        .range(offset, offset + pageSize - 1)
+
+    const records: WhatsAppCDRRecord[] = (data || []).map(r => {
+        // Extract template name from summary: "💬 WhatsApp Mesajı Gönderildi (template_name)"
+        const tmplMatch = r.summary?.match(/\(([^)]+)\)/)
+        return {
+            id: r.id,
+            date: r.created_at,
+            customer_name: (r.customer as any)?.full_name || null,
+            phone: (r.customer as any)?.phone || null,
+            created_by: (r.creator as any)?.full_name || 'Sistem',
+            template: tmplMatch?.[1] || 'Bilinmiyor',
+            summary: r.summary,
+            description: r.description?.substring(0, 200) || null,
+        }
+    })
+
+    return { records, total: count || 0 }
+}

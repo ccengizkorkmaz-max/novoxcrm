@@ -2,14 +2,16 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { cn } from '@/lib/utils'
-import { getPerformanceAnalytics, type PeriodKey, type PeriodStats, type PerformanceData } from './actions'
+import { getPerformanceAnalytics, getCallCDR, getWhatsAppCDR, type PeriodKey, type PeriodStats, type PerformanceData, type CallCDRRecord, type WhatsAppCDRRecord } from './actions'
 import {
     MessageSquare, Phone, PhoneIncoming, PhoneOutgoing, Snowflake, Sun, Flame,
     TrendingUp, TrendingDown, Minus, ArrowLeft, RefreshCw,
-    BarChart3, Activity, Clock
+    BarChart3, Activity, Clock, ChevronLeft, ChevronRight, Search
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useRouter } from 'next/navigation'
+
+type TabKey = 'dashboard' | 'telefon' | 'whatsapp'
 
 const PERIODS: { key: PeriodKey; label: string; shortLabel: string }[] = [
     { key: 'today', label: 'Bugün', shortLabel: 'Bugün' },
@@ -84,6 +86,14 @@ export default function PerformanceDashboard() {
     const [data, setData] = useState<PerformanceData | null>(null)
     const [loading, setLoading] = useState(true)
     const [activePeriod, setActivePeriod] = useState<PeriodKey>('today')
+    const [activeTab, setActiveTab] = useState<TabKey>('dashboard')
+
+    // CDR state
+    const [callCDR, setCallCDR] = useState<{ records: CallCDRRecord[]; total: number }>({ records: [], total: 0 })
+    const [waCDR, setWaCDR] = useState<{ records: WhatsAppCDRRecord[]; total: number }>({ records: [], total: 0 })
+    const [cdrPage, setCdrPage] = useState(1)
+    const [cdrLoading, setCdrLoading] = useState(false)
+    const CDR_PAGE_SIZE = 50
 
     const fetchData = useCallback(async () => {
         setLoading(true)
@@ -96,6 +106,32 @@ export default function PerformanceDashboard() {
     }, [])
 
     useEffect(() => { fetchData() }, [fetchData])
+
+    // Fetch CDR when tab or period changes
+    useEffect(() => {
+        if (activeTab === 'telefon') {
+            setCdrLoading(true)
+            setCdrPage(1)
+            getCallCDR(activePeriod, 1, CDR_PAGE_SIZE).then(setCallCDR).finally(() => setCdrLoading(false))
+        } else if (activeTab === 'whatsapp') {
+            setCdrLoading(true)
+            setCdrPage(1)
+            getWhatsAppCDR(activePeriod, 1, CDR_PAGE_SIZE).then(setWaCDR).finally(() => setCdrLoading(false))
+        }
+    }, [activeTab, activePeriod])
+
+    const loadCDRPage = async (page: number) => {
+        setCdrLoading(true)
+        setCdrPage(page)
+        if (activeTab === 'telefon') {
+            const result = await getCallCDR(activePeriod, page, CDR_PAGE_SIZE)
+            setCallCDR(result)
+        } else {
+            const result = await getWhatsAppCDR(activePeriod, page, CDR_PAGE_SIZE)
+            setWaCDR(result)
+        }
+        setCdrLoading(false)
+    }
 
     const currentStats = data?.periods.find(p => p.period === activePeriod)
 
@@ -144,6 +180,28 @@ export default function PerformanceDashboard() {
                 </div>
             </div>
 
+            {/* ═══════ TOP TABS ═══════ */}
+            <div className="flex gap-1 bg-slate-100/80 rounded-2xl p-1 w-fit">
+                {[
+                    { key: 'dashboard' as TabKey, label: '📊 Dashboard', icon: BarChart3 },
+                    { key: 'telefon' as TabKey, label: '📞 Telefon CDR', icon: Phone },
+                    { key: 'whatsapp' as TabKey, label: '💬 WhatsApp CDR', icon: MessageSquare },
+                ].map(tab => (
+                    <button
+                        key={tab.key}
+                        onClick={() => setActiveTab(tab.key)}
+                        className={cn(
+                            "px-5 py-2.5 rounded-xl text-sm font-black transition-all duration-200 flex items-center gap-2",
+                            activeTab === tab.key
+                                ? "bg-white text-slate-800 shadow-md"
+                                : "text-slate-500 hover:text-slate-700 hover:bg-white/50"
+                        )}
+                    >
+                        {tab.label}
+                    </button>
+                ))}
+            </div>
+
             {/* ═══════ PERIOD SELECTOR ═══════ */}
             <div className="flex gap-1.5 bg-slate-100/80 rounded-2xl p-1.5 w-fit">
                 {PERIODS.map(p => (
@@ -173,7 +231,7 @@ export default function PerformanceDashboard() {
                         </div>
                     ))}
                 </div>
-            ) : (
+            ) : activeTab === 'dashboard' ? (
                 <>
                     {/* ═══════ KPI CARDS — 6 columns ═══════ */}
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
@@ -639,6 +697,177 @@ export default function PerformanceDashboard() {
                         </div>
                     </div>
                 </>
+            ) : activeTab === 'telefon' ? (
+                /* ═══════ TELEFON CDR TAB ═══════ */
+                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                    <div className="px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-blue-50 to-indigo-50 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="h-9 w-9 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center">
+                                <Phone className="h-4 w-4" />
+                            </div>
+                            <div>
+                                <h2 className="text-sm font-black text-slate-700 uppercase tracking-wider">Telefon Arama Kayıtları (CDR)</h2>
+                                <p className="text-[11px] text-slate-400">{PERIODS.find(p => p.key === activePeriod)?.label} — {callCDR.total.toLocaleString('tr-TR')} kayıt</p>
+                            </div>
+                        </div>
+                    </div>
+                    {cdrLoading ? (
+                        <div className="p-12 text-center"><RefreshCw className="h-6 w-6 animate-spin text-slate-400 mx-auto" /></div>
+                    ) : callCDR.records.length === 0 ? (
+                        <div className="p-12 text-center text-slate-400 font-bold">Bu dönemde arama kaydı yok</div>
+                    ) : (
+                        <>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                    <thead>
+                                        <tr className="bg-slate-50/80">
+                                            <th className="text-left px-4 py-3 text-[11px] font-black text-slate-500 uppercase">Tarih / Saat</th>
+                                            <th className="text-left px-4 py-3 text-[11px] font-black text-slate-500 uppercase">Tür</th>
+                                            <th className="text-left px-4 py-3 text-[11px] font-black text-slate-500 uppercase">Müşteri</th>
+                                            <th className="text-left px-4 py-3 text-[11px] font-black text-slate-500 uppercase">Telefon</th>
+                                            <th className="text-left px-4 py-3 text-[11px] font-black text-slate-500 uppercase">Arayan</th>
+                                            <th className="text-left px-4 py-3 text-[11px] font-black text-slate-500 uppercase">Durum</th>
+                                            <th className="text-right px-4 py-3 text-[11px] font-black text-slate-500 uppercase">Süre</th>
+                                            <th className="text-left px-4 py-3 text-[11px] font-black text-slate-500 uppercase">Özet</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {callCDR.records.map(r => (
+                                            <tr key={`${r.type}-${r.id}`} className="border-t border-slate-50 hover:bg-slate-50/60 transition-colors">
+                                                <td className="px-4 py-3 whitespace-nowrap text-slate-600 font-medium">
+                                                    {new Date(r.date).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit' })}{' '}
+                                                    <span className="text-slate-400">{new Date(r.date).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</span>
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <span className={cn(
+                                                        "text-[10px] font-black px-2 py-1 rounded-md",
+                                                        r.type === 'manuel' ? "bg-blue-50 text-blue-700" :
+                                                        r.type === 'ai_outbound' ? "bg-sky-50 text-sky-700" :
+                                                        "bg-indigo-50 text-indigo-700"
+                                                    )}>
+                                                        {r.type === 'manuel' ? '📞 Manuel' : r.type === 'ai_outbound' ? '🤖 AI Giden' : '📥 Gelen'}
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 py-3 font-bold text-slate-700">{r.customer_name || '—'}</td>
+                                                <td className="px-4 py-3 text-slate-500 font-mono text-xs">{r.phone || '—'}</td>
+                                                <td className="px-4 py-3 text-slate-600">{r.created_by || '—'}</td>
+                                                <td className="px-4 py-3">
+                                                    <span className={cn(
+                                                        "text-[10px] font-black px-2 py-0.5 rounded-md",
+                                                        r.interest_level === 'hot' ? "bg-red-50 text-red-700" :
+                                                        r.interest_level === 'warm' ? "bg-amber-50 text-amber-700" :
+                                                        "bg-slate-100 text-slate-600"
+                                                    )}>
+                                                        {r.status || '—'}
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 py-3 text-right text-slate-500 font-mono text-xs">
+                                                    {r.duration_seconds != null ? `${Math.floor(r.duration_seconds / 60)}:${String(r.duration_seconds % 60).padStart(2, '0')}` : '—'}
+                                                </td>
+                                                <td className="px-4 py-3 text-slate-500 text-xs max-w-[250px] truncate">{r.summary || '—'}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {/* Pagination */}
+                            {callCDR.total > CDR_PAGE_SIZE && (
+                                <div className="px-6 py-3 border-t border-slate-100 flex items-center justify-between">
+                                    <span className="text-xs text-slate-400">
+                                        Sayfa {cdrPage} / {Math.ceil(callCDR.total / CDR_PAGE_SIZE)} ({callCDR.total} kayıt)
+                                    </span>
+                                    <div className="flex gap-2">
+                                        <Button variant="outline" size="sm" disabled={cdrPage <= 1} onClick={() => loadCDRPage(cdrPage - 1)} className="h-8 gap-1">
+                                            <ChevronLeft className="h-3 w-3" /> Önceki
+                                        </Button>
+                                        <Button variant="outline" size="sm" disabled={cdrPage >= Math.ceil(callCDR.total / CDR_PAGE_SIZE)} onClick={() => loadCDRPage(cdrPage + 1)} className="h-8 gap-1">
+                                            Sonraki <ChevronRight className="h-3 w-3" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
+                        </>
+                    )}
+                </div>
+            ) : (
+                /* ═══════ WHATSAPP CDR TAB ═══════ */
+                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                    <div className="px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-green-50 to-emerald-50 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="h-9 w-9 rounded-lg bg-green-100 text-green-600 flex items-center justify-center">
+                                <MessageSquare className="h-4 w-4" />
+                            </div>
+                            <div>
+                                <h2 className="text-sm font-black text-slate-700 uppercase tracking-wider">WhatsApp Mesaj Kayıtları</h2>
+                                <p className="text-[11px] text-slate-400">{PERIODS.find(p => p.key === activePeriod)?.label} — {waCDR.total.toLocaleString('tr-TR')} mesaj</p>
+                            </div>
+                        </div>
+                    </div>
+                    {cdrLoading ? (
+                        <div className="p-12 text-center"><RefreshCw className="h-6 w-6 animate-spin text-slate-400 mx-auto" /></div>
+                    ) : waCDR.records.length === 0 ? (
+                        <div className="p-12 text-center text-slate-400 font-bold">Bu dönemde WhatsApp kaydı yok</div>
+                    ) : (
+                        <>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                    <thead>
+                                        <tr className="bg-slate-50/80">
+                                            <th className="text-left px-4 py-3 text-[11px] font-black text-slate-500 uppercase">Tarih / Saat</th>
+                                            <th className="text-left px-4 py-3 text-[11px] font-black text-slate-500 uppercase">Müşteri</th>
+                                            <th className="text-left px-4 py-3 text-[11px] font-black text-slate-500 uppercase">Telefon</th>
+                                            <th className="text-left px-4 py-3 text-[11px] font-black text-slate-500 uppercase">Şablon</th>
+                                            <th className="text-left px-4 py-3 text-[11px] font-black text-slate-500 uppercase">Gönderen</th>
+                                            <th className="text-left px-4 py-3 text-[11px] font-black text-slate-500 uppercase">İçerik</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {waCDR.records.map(r => (
+                                            <tr key={r.id} className="border-t border-slate-50 hover:bg-slate-50/60 transition-colors">
+                                                <td className="px-4 py-3 whitespace-nowrap text-slate-600 font-medium">
+                                                    {new Date(r.date).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit' })}{' '}
+                                                    <span className="text-slate-400">{new Date(r.date).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</span>
+                                                </td>
+                                                <td className="px-4 py-3 font-bold text-slate-700">{r.customer_name || '—'}</td>
+                                                <td className="px-4 py-3 text-slate-500 font-mono text-xs">{r.phone || '—'}</td>
+                                                <td className="px-4 py-3">
+                                                    <span className={cn(
+                                                        "text-[10px] font-black px-2 py-1 rounded-md",
+                                                        r.template === 'Serbest Metin' ? "bg-green-50 text-green-700" :
+                                                        r.template?.includes('bilgilendirme') ? "bg-blue-50 text-blue-700" :
+                                                        r.template?.includes('cicek') ? "bg-pink-50 text-pink-700" :
+                                                        r.template?.includes('talep') ? "bg-amber-50 text-amber-700" :
+                                                        "bg-slate-100 text-slate-600"
+                                                    )}>
+                                                        {r.template || '—'}
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 py-3 text-slate-600">{r.created_by || '—'}</td>
+                                                <td className="px-4 py-3 text-slate-500 text-xs max-w-[300px] truncate">{r.description || '—'}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {/* Pagination */}
+                            {waCDR.total > CDR_PAGE_SIZE && (
+                                <div className="px-6 py-3 border-t border-slate-100 flex items-center justify-between">
+                                    <span className="text-xs text-slate-400">
+                                        Sayfa {cdrPage} / {Math.ceil(waCDR.total / CDR_PAGE_SIZE)} ({waCDR.total} mesaj)
+                                    </span>
+                                    <div className="flex gap-2">
+                                        <Button variant="outline" size="sm" disabled={cdrPage <= 1} onClick={() => loadCDRPage(cdrPage - 1)} className="h-8 gap-1">
+                                            <ChevronLeft className="h-3 w-3" /> Önceki
+                                        </Button>
+                                        <Button variant="outline" size="sm" disabled={cdrPage >= Math.ceil(waCDR.total / CDR_PAGE_SIZE)} onClick={() => loadCDRPage(cdrPage + 1)} className="h-8 gap-1">
+                                            Sonraki <ChevronRight className="h-3 w-3" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
+                        </>
+                    )}
+                </div>
             )}
         </div>
     )
