@@ -103,6 +103,9 @@ export async function createCustomer(formData: FormData) {
     const company_phone = (formData.get('company_phone') as string)?.trim() || null
     const company_website = (formData.get('company_website') as string)?.trim() || null
     const company_email = (formData.get('company_email') as string)?.trim() || null
+    const gender = (formData.get('gender') as string)?.trim() || null
+    const heard_from = (formData.get('heard_from') as string)?.trim() || null
+    const referral_name = (formData.get('referral_name') as string)?.trim() || null
 
     const { data, error } = await adminSupabase
         .from('customers')
@@ -127,7 +130,10 @@ export async function createCustomer(formData: FormData) {
             company_address,
             company_phone,
             company_website,
-            company_email
+            company_email,
+            gender,
+            heard_from,
+            referral_name
         })
         .select()
         .single()
@@ -303,6 +309,103 @@ export async function createCustomer(formData: FormData) {
     return { success: true }
 }
 
+export async function getSourceOptions() {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Not authenticated', options: [] }
+
+    const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single()
+    if (!profile?.tenant_id) return { error: 'No tenant', options: [] }
+
+    const { data, error } = await supabase
+        .from('customer_source_options')
+        .select('id, label, sort_order')
+        .eq('tenant_id', profile.tenant_id)
+        .order('sort_order', { ascending: true })
+
+    if (error) return { error: error.message, options: [] }
+    return { options: data || [] }
+}
+
+export async function addSourceOption(label: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Not authenticated' }
+
+    const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single()
+    if (!profile?.tenant_id) return { error: 'No tenant' }
+
+    const { data: maxOrder } = await supabase
+        .from('customer_source_options')
+        .select('sort_order')
+        .eq('tenant_id', profile.tenant_id)
+        .order('sort_order', { ascending: false })
+        .limit(1)
+        .single()
+
+    const { data, error } = await supabase
+        .from('customer_source_options')
+        .insert({
+            tenant_id: profile.tenant_id,
+            label: label.trim(),
+            is_default: false,
+            sort_order: (maxOrder?.sort_order || 0) + 1
+        })
+        .select()
+        .single()
+
+    if (error) {
+        if (error.message.includes('unique') || error.message.includes('duplicate')) {
+            return { error: 'Bu kaynak zaten mevcut.' }
+        }
+        return { error: error.message }
+    }
+    return { success: true, option: data }
+}
+
+export async function getSalesReps() {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Not authenticated', reps: [] }
+
+    const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single()
+    if (!profile?.tenant_id) return { error: 'No tenant', reps: [] }
+
+    const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, role')
+        .eq('tenant_id', profile.tenant_id)
+        .in('role', ['sales', 'admin', 'owner', 'crm_manager'])
+        .order('full_name')
+
+    if (error) return { error: error.message, reps: [] }
+    return { reps: data || [] }
+}
+
+export async function getCustomerMeta(customerId: string) {
+    const supabase = await createClient()
+    const { createAdminClient } = await import('@/lib/supabase/admin')
+    const adminSupabase = createAdminClient()
+
+    const { data } = await adminSupabase
+        .from('customers')
+        .select(`
+            created_at,
+            updated_at,
+            created_by,
+            updated_by,
+            gender,
+            heard_from,
+            referral_name,
+            creator:profiles!customers_created_by_fkey(full_name),
+            updater:profiles!customers_updated_by_fkey(full_name)
+        `)
+        .eq('id', customerId)
+        .single()
+
+    return data
+}
+
 function mapSourceToCategory(source: string | null): string {
     if (!source) return 'company'
     const s = source.toLowerCase()
@@ -334,6 +437,9 @@ export async function updateCustomer(formData: FormData) {
     const portal_username = (formData.get('portal_username') as string)?.trim() || null
     const portal_password = (formData.get('portal_password') as string)?.trim() || null
     const created_at_input = formData.get('created_at') as string
+    const gender = (formData.get('gender') as string)?.trim() || null
+    const heard_from = (formData.get('heard_from') as string)?.trim() || null
+    const referral_name = (formData.get('referral_name') as string)?.trim() || null
 
     let validCreatedAt = null;
     if (created_at_input) {
@@ -359,6 +465,10 @@ export async function updateCustomer(formData: FormData) {
             country,
             portal_username,
             portal_password,
+            gender,
+            heard_from,
+            referral_name,
+            updated_by: user.id,
             ...(validCreatedAt ? { created_at: validCreatedAt } : {})
         })
         .eq('id', id)

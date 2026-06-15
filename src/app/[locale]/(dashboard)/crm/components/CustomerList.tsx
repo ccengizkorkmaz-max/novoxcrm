@@ -26,7 +26,7 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { cn } from '@/lib/utils'
-import { UserPlus, Pencil, Trash, Mail, Phone, Tag, CalendarPlus, AlertTriangle, Users, Search, ArrowUpDown, ArrowUp, ArrowDown, PieChart, Target, TrendingUp, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, Filter, X } from 'lucide-react'
+import { UserPlus, Pencil, Trash, Mail, Phone, Tag, CalendarPlus, AlertTriangle, Users, Search, ArrowUpDown, ArrowUp, ArrowDown, PieChart, Target, TrendingUp, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, Filter, X, Plus } from 'lucide-react'
 import ColumnVisibilityPicker from '@/components/ui/column-visibility-picker'
 import ColumnFilterRow from '@/components/ui/column-filter-row'
 import { Badge } from '@/components/ui/badge'
@@ -34,7 +34,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent } from "@/components/ui/card"
-import { createCustomer, updateCustomer, deleteCustomer } from '../actions'
+import { createCustomer, updateCustomer, deleteCustomer, getSourceOptions, addSourceOption, getSalesReps } from '../actions'
 import CustomerDemands from './CustomerDemands'
 import { CustomerImportDialog } from '@/components/customers/customer-import-dialog'
 import { CustomerEditDialog, type Customer } from './CustomerEditDialog'
@@ -92,6 +92,40 @@ export default function CustomerList({
     const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null)
     const [isPending, setIsPending] = useState(false)
     const [customerType, setCustomerType] = useState<'individual' | 'corporate'>('individual')
+
+    // New customer fields state
+    const [createSourceOptions, setCreateSourceOptions] = useState<{ id: string; label: string }[]>([])
+    const [createSelectedSource, setCreateSelectedSource] = useState('')
+    const [createNewSourceLabel, setCreateNewSourceLabel] = useState('')
+    const [createShowNewSource, setCreateShowNewSource] = useState(false)
+    const [createGender, setCreateGender] = useState('')
+    const [createHeardFrom, setCreateHeardFrom] = useState('')
+    const [createSalesReps, setCreateSalesReps] = useState<{ id: string; full_name: string; role: string }[]>([])
+
+    useEffect(() => {
+        if (isCreateOpen) {
+            getSourceOptions().then(res => { if (res.options) setCreateSourceOptions(res.options) })
+            getSalesReps().then(res => { if (res.reps) setCreateSalesReps(res.reps) })
+            setCreateSelectedSource('')
+            setCreateGender('')
+            setCreateHeardFrom('')
+            setCreateShowNewSource(false)
+            setCreateNewSourceLabel('')
+        }
+    }, [isCreateOpen])
+
+    const handleCreateAddSource = async () => {
+        if (!createNewSourceLabel.trim()) return
+        const res = await addSourceOption(createNewSourceLabel.trim())
+        if (res?.error) { toast.error(res.error) }
+        else if (res?.option) {
+            setCreateSourceOptions(prev => [...prev, { id: res.option.id, label: res.option.label }])
+            setCreateSelectedSource(res.option.label)
+            setCreateShowNewSource(false)
+            setCreateNewSourceLabel('')
+            toast.success('Yeni kaynak eklendi')
+        }
+    }
 
     const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '')
     const [sortConfig, setSortConfig] = useState<{ key: SortKey; order: SortOrder }>({
@@ -524,10 +558,78 @@ export default function CustomerList({
                                                     <Input name="email" type="email" className="h-10 bg-slate-50 border-slate-200 rounded-xl" />
                                                 </div>
                                             </div>
+                                            {/* Hidden fields for new data */}
+                                            <input type="hidden" name="gender" value={createGender} />
+                                            <input type="hidden" name="heard_from" value={createHeardFrom} />
+                                            <input type="hidden" name="source" value={createSelectedSource} />
+
+                                            {/* Gender */}
+                                            <div className="grid gap-1.5">
+                                                <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Cinsiyet</Label>
+                                                <div className="flex gap-2">
+                                                    {[
+                                                        { value: 'male', label: '👨 Erkek' },
+                                                        { value: 'female', label: '👩 Kadın' },
+                                                        { value: 'other', label: 'Diğer' }
+                                                    ].map(opt => (
+                                                        <button
+                                                            key={opt.value}
+                                                            type="button"
+                                                            onClick={() => setCreateGender(opt.value)}
+                                                            className={cn(
+                                                                "px-4 py-2 rounded-xl text-xs font-bold border transition-all",
+                                                                createGender === opt.value
+                                                                    ? "bg-blue-600 text-white border-blue-600 shadow-sm shadow-blue-200"
+                                                                    : "bg-white text-slate-500 border-slate-200 hover:border-blue-300 hover:text-blue-600"
+                                                            )}
+                                                        >
+                                                            {opt.label}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+
                                             <div className="grid grid-cols-3 gap-4">
+                                                {/* Source — dynamic dropdown */}
                                                 <div className="grid gap-1.5">
                                                     <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{t('form.source')}</Label>
-                                                    <Input name="source" placeholder={t('form.sourcePlaceholder')} className="h-10 bg-slate-50 border-slate-200 rounded-xl" />
+                                                    {createShowNewSource ? (
+                                                        <div className="flex gap-1">
+                                                            <Input
+                                                                value={createNewSourceLabel}
+                                                                onChange={(e) => setCreateNewSourceLabel(e.target.value)}
+                                                                placeholder="Yeni kaynak..."
+                                                                className="h-10 bg-slate-50 border-slate-200 rounded-xl text-sm flex-1"
+                                                                onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleCreateAddSource())}
+                                                                autoFocus
+                                                            />
+                                                            <Button type="button" size="sm" className="h-10 px-2 rounded-xl" onClick={handleCreateAddSource}>
+                                                                <Plus className="h-3.5 w-3.5" />
+                                                            </Button>
+                                                            <Button type="button" size="sm" variant="ghost" className="h-10 px-2 rounded-xl text-[10px]" onClick={() => setCreateShowNewSource(false)}>İptal</Button>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex gap-1">
+                                                            <Select value={createSelectedSource} onValueChange={setCreateSelectedSource}>
+                                                                <SelectTrigger className="h-10 bg-slate-50 border-slate-200 rounded-xl text-sm flex-1">
+                                                                    <SelectValue placeholder="Kaynak seçin..." />
+                                                                </SelectTrigger>
+                                                                <SelectContent className="rounded-xl shadow-xl">
+                                                                    {createSourceOptions.map(opt => (
+                                                                        <SelectItem key={opt.id} value={opt.label}>{opt.label}</SelectItem>
+                                                                    ))}
+                                                                </SelectContent>
+                                                            </Select>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setCreateShowNewSource(true)}
+                                                                className="h-10 w-10 rounded-xl border border-dashed border-slate-300 flex items-center justify-center text-slate-400 hover:border-blue-400 hover:text-blue-600 transition-all shrink-0"
+                                                                title="Yeni kaynak ekle"
+                                                            >
+                                                                <Plus className="h-4 w-4" />
+                                                            </button>
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 <div className="grid gap-1.5">
                                                     <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{t('form.city')}</Label>
