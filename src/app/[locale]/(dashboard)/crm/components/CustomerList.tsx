@@ -7,14 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import {
-    Dialog,
-    DialogContent,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from "@/components/ui/dialog"
+
 import {
     AlertDialog,
     AlertDialogAction,
@@ -34,7 +27,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { updateCustomer, deleteCustomer } from '../actions'
 import CustomerDemands from './CustomerDemands'
 import { CustomerImportDialog } from '@/components/customers/customer-import-dialog'
-import { CustomerEditDialog, type Customer } from './CustomerEditDialog'
+import type { Customer } from './CustomerForm'
 import { MergeDuplicatesDialog } from './MergeDuplicatesDialog'
 import { ActivityForm } from '@/components/activities/activity-form'
 import InlineProfileFields from './InlineProfileFields'
@@ -80,9 +73,7 @@ export default function CustomerList({
     const t = useTranslations('Customers')
     const router = useRouter()
     const searchParams = useSearchParams()
-    const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null)
-    const [isEditOpen, setIsEditOpen] = useState(false)
-    const [isCreateOpen, setIsCreateOpen] = useState(false)
+
     const [isMergeOpen, setIsMergeOpen] = useState(false)
     const [isActivityOpen, setIsActivityOpen] = useState(false)
     const [selectedCustomerForActivity, setSelectedCustomerForActivity] = useState<Customer | null>(null)
@@ -260,10 +251,7 @@ export default function CustomerList({
         .sort((a, b) => b[1] - a[1])
         .slice(0, 6) // Updated to show more sources as requested
 
-    const handleEditClick = (customer: Customer) => {
-        setEditingCustomer(customer)
-        setIsEditOpen(true)
-    }
+
 
     const handleCreateActivity = (customer: Customer) => {
         setSelectedCustomerForActivity(customer)
@@ -450,15 +438,11 @@ export default function CustomerList({
                         <Users className="mr-2 h-5 w-5" /> Mükerrerleri Birleştir
                     </Button>
 
-                    <Button variant="default" className="shadow-lg shadow-blue-100 bg-blue-600 hover:bg-blue-700 h-11 px-6 rounded-xl font-bold transition-all active:scale-95 whitespace-nowrap" onClick={() => setIsCreateOpen(true)}>
-                        <UserPlus className="mr-2 h-5 w-5" /> {t('addCustomer')}
-                    </Button>
-                    {/* Create customer — uses shared dialog */}
-                    <CustomerEditDialog
-                        customer={null}
-                        isOpen={isCreateOpen}
-                        onOpenChange={setIsCreateOpen}
-                    />
+                    <Link href="/crm/new">
+                        <Button variant="default" className="shadow-lg shadow-blue-100 bg-blue-600 hover:bg-blue-700 h-11 px-6 rounded-xl font-bold transition-all active:scale-95 whitespace-nowrap">
+                            <UserPlus className="mr-2 h-5 w-5" /> {t('addCustomer')}
+                        </Button>
+                    </Link>
                 </div>
 
 
@@ -706,9 +690,11 @@ export default function CustomerList({
                                                         <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg" onClick={() => handleCreateActivity(c)} title="Aktivite Ekle">
                                                             <CalendarPlus className="h-3.5 w-3.5" />
                                                         </Button>
-                                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg" onClick={() => handleEditClick(c)} title={t('table.edit')}>
-                                                            <Pencil className="h-3.5 w-3.5" />
-                                                        </Button>
+                                                        <Link href={`/crm/${c.id}`}>
+                                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg" title={t('table.edit')}>
+                                                                <Pencil className="h-3.5 w-3.5" />
+                                                            </Button>
+                                                        </Link>
                                                         {isManager && (
                                                             <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg" onClick={() => setCustomerToDelete(c)} title={t('table.delete')}>
                                                                 <Trash className="h-3.5 w-3.5" />
@@ -797,9 +783,11 @@ export default function CustomerList({
                                     <Button variant="outline" size="sm" className="h-10 px-4 rounded-xl flex-1 border-blue-100 text-blue-600 font-black text-xs uppercase transition-all active:scale-95" onClick={() => handleCreateActivity(c)}>
                                         <CalendarPlus className="h-4 w-4 mr-2" /> Aktivite
                                     </Button>
-                                    <Button variant="outline" size="sm" className="h-10 px-4 rounded-xl flex-1 border-slate-200 text-slate-700 font-black text-xs uppercase transition-all active:scale-95" onClick={() => handleEditClick(c)}>
-                                        <Pencil className="h-4 w-4 mr-2" /> Düzenle
-                                    </Button>
+                                    <Link href={`/crm/${c.id}`} className="flex-1">
+                                        <Button variant="outline" size="sm" className="h-10 px-4 rounded-xl w-full border-slate-200 text-slate-700 font-black text-xs uppercase transition-all active:scale-95">
+                                            <Pencil className="h-4 w-4 mr-2" /> Düzenle
+                                        </Button>
+                                    </Link>
                                 </div>
                                 {isManager && (
                                     <Button variant="ghost" size="icon" className="h-10 w-10 text-red-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all active:scale-90" onClick={() => setCustomerToDelete(c)}>
@@ -932,11 +920,7 @@ export default function CustomerList({
                 </div>
             )}
 
-            <CustomerEditDialog
-                customer={editingCustomer}
-                isOpen={isEditOpen}
-                onOpenChange={setIsEditOpen}
-            />
+
 
             <ActivityForm
                 open={isActivityOpen}
