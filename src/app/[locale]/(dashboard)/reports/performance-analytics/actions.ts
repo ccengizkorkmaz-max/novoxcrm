@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 export type PeriodKey = 'today' | 'yesterday' | 'this_week' | 'this_month' | 'last_month'
 
@@ -101,13 +102,29 @@ export async function getPerformanceAnalytics(): Promise<PerformanceData> {
                 .gte('created_at', range.from)
                 .lte('created_at', range.to)
 
-            // Call activities count
+            // Call activities count (manual calls logged by reps)
             const callQuery = supabase
                 .from('activities')
                 .select('id', { count: 'exact', head: true })
                 .eq('type', 'Call')
                 .gte('created_at', range.from)
                 .lte('created_at', range.to)
+
+            // AI Call count (from lead_qualifications.last_call_at — single + outreach AI calls)
+            const aiCallQuery = supabase
+                .from('lead_qualifications')
+                .select('id', { count: 'exact', head: true })
+                .not('last_call_at', 'is', null)
+                .gte('last_call_at', range.from)
+                .lte('last_call_at', range.to)
+
+            // Inbound calls (AI asistan gelen aramalar)
+            const adminSupabase = createAdminClient()
+            const inboundCallQuery = adminSupabase
+                .from('inbound_calls')
+                .select('id', { count: 'exact', head: true })
+                .gte('started_at', range.from)
+                .lte('started_at', range.to)
 
             // Lead interest levels — count current state filtered by updated_at
             const coldQuery = supabase
@@ -131,15 +148,18 @@ export async function getPerformanceAnalytics(): Promise<PerformanceData> {
                 .gte('updated_at', range.from)
                 .lte('updated_at', range.to)
 
-            const [waRes, callRes, coldRes, warmRes, hotRes] = await Promise.all([
-                waQuery, callQuery, coldQuery, warmQuery, hotQuery
+            const [waRes, callRes, aiCallRes, inboundRes, coldRes, warmRes, hotRes] = await Promise.all([
+                waQuery, callQuery, aiCallQuery, inboundCallQuery, coldQuery, warmQuery, hotQuery
             ])
+
+            // Total calls = manual rep calls + AI outbound calls + inbound AI calls
+            const totalCalls = (callRes.count || 0) + (aiCallRes.count || 0) + (inboundRes.count || 0)
 
             return {
                 period: key,
                 label,
                 whatsapp_count: waRes.count || 0,
-                call_count: callRes.count || 0,
+                call_count: totalCalls,
                 cold_count: coldRes.count || 0,
                 warm_count: warmRes.count || 0,
                 hot_count: hotRes.count || 0
@@ -159,6 +179,22 @@ export async function getPerformanceAnalytics(): Promise<PerformanceData> {
         .gte('created_at', fourteenDaysAgo.toISOString())
         .order('created_at')
 
+    // AI calls from lead_qualifications (last_call_at tracks when AI call happened)
+    const { data: recentAiCalls } = await supabase
+        .from('lead_qualifications')
+        .select('last_call_at')
+        .not('last_call_at', 'is', null)
+        .gte('last_call_at', fourteenDaysAgo.toISOString())
+        .order('last_call_at')
+
+    // Inbound AI calls
+    const adminSupabaseTrend = createAdminClient()
+    const { data: recentInbound } = await adminSupabaseTrend
+        .from('inbound_calls')
+        .select('started_at')
+        .gte('started_at', fourteenDaysAgo.toISOString())
+        .order('started_at')
+
     // Group by date
     const dayMap: Record<string, { whatsapp: number; calls: number }> = {}
     for (let i = 0; i < 14; i++) {
@@ -174,6 +210,22 @@ export async function getPerformanceAnalytics(): Promise<PerformanceData> {
                 if (act.type === 'Whatsapp') dayMap[dateKey].whatsapp++
                 else if (act.type === 'Call') dayMap[dateKey].calls++
             }
+        }
+    }
+
+    // Add AI outbound calls to daily trend
+    if (recentAiCalls) {
+        for (const lq of recentAiCalls) {
+            const dateKey = new Date(lq.last_call_at).toISOString().split('T')[0]
+            if (dayMap[dateKey]) dayMap[dateKey].calls++
+        }
+    }
+
+    // Add inbound AI calls to daily trend
+    if (recentInbound) {
+        for (const call of recentInbound) {
+            const dateKey = new Date(call.started_at).toISOString().split('T')[0]
+            if (dayMap[dateKey]) dayMap[dateKey].calls++
         }
     }
 

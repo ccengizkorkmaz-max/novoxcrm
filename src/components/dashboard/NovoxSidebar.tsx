@@ -461,6 +461,9 @@ export function NovoxSidebar({
                                 </NavItem>
                             </>
                         )}
+                        <NavItem href="/reports/performance-analytics" icon={BarChart3} onClick={onElementClick} isCollapsed={isCollapsed} isSubItem>
+                            {'Performans & Lead Analitik'}
+                        </NavItem>
                         <NavItem href="/reports/sales" icon={Activity} onClick={onElementClick} isCollapsed={isCollapsed} isSubItem>
                             {labels.reports?.sales || 'Sales Performance'}
                         </NavItem>
@@ -543,6 +546,9 @@ export function NovoxSidebar({
                                 <span>{labels.reports?.title || 'Reports'}</span>
                             </AccordionTrigger>
                             <AccordionContent className="pt-1 pb-2 pl-4 grid gap-0.5">
+                                <NavItem href="/reports/performance-analytics" icon={BarChart3} onClick={onElementClick} isSubItem>
+                                    {'Performans & Lead Analitik'}
+                                </NavItem>
                                 <NavItem href="/reports/sales" icon={Activity} onClick={onElementClick} isSubItem>
                                     {labels.reports?.sales || 'Sales Performance'}
                                 </NavItem>
