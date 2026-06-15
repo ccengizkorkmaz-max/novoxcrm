@@ -205,10 +205,10 @@ Gelen aramaları karşıla, bilgi bankasındaki proje bilgilerini paylaş, rande
                 }
 
                 // Dynamic First Greeting Message
-                let firstMessage = `Merhaba, Novo Gayrimenkul'e hoş geldiniz. Ben ${assistantName}, Novo'nun AI asistanıyım. Size nasıl yardımcı olabilirim?`
+                let firstMessage = `Merhaba, Novo Gayrimenkul'e hoş geldiniz. Ben ${assistantName}, Novo AI asistanıyım. Size nasıl yardımcı olabilirim?`
                 if (isExistingCustomer && customer.full_name && customer.full_name !== 'Yeni Gelen Arama Adayı') {
                     const nameWithTitle = getTurkishNameTitle(customer.full_name)
-                    firstMessage = `Merhaba ${nameWithTitle}, Novo Gayrimenkul'e hoş geldiniz. Ben ${assistantName}, Novo'nun AI asistanıyım. Size nasıl yardımcı olabilirim?`
+                    firstMessage = `Merhaba ${nameWithTitle}, Novo Gayrimenkul'e hoş geldiniz. Ben ${assistantName}, Novo AI asistanıyım. Size nasıl yardımcı olabilirim?`
                 }
 
                 // Define Webhook server URL for function calling/status tracking

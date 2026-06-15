@@ -2290,7 +2290,7 @@ ${projectDetails || 'Detaylar sistemde mevcut değil.'}
 Müşterinin adı: ${customerName}. Ona ismiyle hitap et (Örn: "${customerName}" erkek ise "... Bey", kadın ise "... Hanım").
 `
 
-    const firstMessage = `Merhaba ${customerName}, ben Maya, Novo Gayrimenkul'ün AI satış asistanıyım. Daha önce ilgilenmiş olduğunuz ${projectName} projesi hakkında görüşmek için aramıştım, müsaitseniz kısaca bilgi aktarabilir miyim?`
+    const firstMessage = `Merhaba ${customerName}, ben Maya, Novo AI satış asistanıyım. Daha önce ilgilenmiş olduğunuz ${projectName} projesi hakkında görüşmek için aramıştım, müsaitseniz kısaca bilgi aktarabilir miyim?`
 
     const result = await makeOutboundCall({
         phoneNumber: sale.customers.phone,

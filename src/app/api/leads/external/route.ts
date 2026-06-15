@@ -460,7 +460,7 @@ ${knowledgeBase || 'Proje detayları için satış danışmanına yönlendir.'}
                         const callResult = await makeOutboundCall({
                             phoneNumber: phone,
                             systemPrompt,
-                            firstMessage: `Merhaba ${customerName}, ben Maya, Novo İnşaat'ın AI satış asistanıyım. Nasılsınız?`,
+                            firstMessage: `Merhaba ${customerName}, ben Maya, Novo AI satış asistanıyım. Nasılsınız?`,
                             metadata: {
                                 tenant_id, customer_id: customerId, sale_id: newSale.id,
                                 project_name: projectName, source: 'auto_new_lead'
@@ -729,7 +729,7 @@ ${knowledgeBase || 'Proje detayları için satış danışmanına yönlendir.'}
                     const callResult = await makeOutboundCall({
                         phoneNumber: phone,
                         systemPrompt,
-                        firstMessage: `Merhaba ${customerName}, ben Maya, Novo İnşaat'ın AI satış asistanıyım. Nasılsınız?`,
+                        firstMessage: `Merhaba ${customerName}, ben Maya, Novo AI satış asistanıyım. Nasılsınız?`,
                         metadata: {
                             tenant_id, customer_id: customerId, sale_id: saleId,
                             project_name: projectName, source: 'auto_new_lead_webform'

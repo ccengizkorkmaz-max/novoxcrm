@@ -858,7 +858,7 @@ async function executeAiCall(execution: any, step: any, config: StepConfig, phon
     }
 
     const nameWithTitle = getTurkishNameTitle(customer?.full_name);
-    const resolvedFirstMessage = execution.metadata?.personalized_message || (nameWithTitle ? `Merhaba ${nameWithTitle}, ben Maya, Novo İnşaat'ın AI satış asistanıyım. Nasılsınız?` : "Merhaba, ben Maya, Novo İnşaat'ın AI satış asistanıyım. Nasılsınız?");
+    const resolvedFirstMessage = execution.metadata?.personalized_message || (nameWithTitle ? `Merhaba ${nameWithTitle}, ben Maya, Novo AI satış asistanıyım. Nasılsınız?` : "Merhaba, ben Maya, Novo AI satış asistanıyım. Nasılsınız?");
 
     const result = await makeOutboundCall({
         phoneNumber: cleanPhone,
