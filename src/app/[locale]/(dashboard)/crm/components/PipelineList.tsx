@@ -1053,12 +1053,13 @@ export default function PipelineList({
                                 <div className="flex justify-between items-start">
                                     <div className="flex flex-col">
                                         <div className="flex items-center gap-2">
-                                            <Link
-                                                href={`/crm/${sale.customers?.id}`}
+                                            <button
+                                                type="button"
+                                                onClick={() => handleOpenCustomerProfile(sale.customers)}
                                                 className="font-bold text-slate-900 text-left hover:text-blue-600 hover:underline transition-colors"
                                             >
                                                 {sale.customers?.full_name}
-                                            </Link>
+                                            </button>
                                             {sale.customers?.lead_qualifications?.[0] && (
                                                 <AiSignalBadge 
                                                     lastCallAt={sale.customers.lead_qualifications[0].last_call_at} 
