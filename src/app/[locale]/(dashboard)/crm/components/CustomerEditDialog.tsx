@@ -172,7 +172,7 @@ export function CustomerEditDialog({ customer, isOpen, onOpenChange }: CustomerE
 
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-[96vw] w-[1280px] h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[94dvh] rounded-none sm:rounded-2xl flex flex-col p-0 overflow-hidden border-none shadow-2xl">
+            <DialogContent className="!max-w-[96vw] w-[96vw] sm:max-h-[85dvh] rounded-2xl flex flex-col p-0 overflow-hidden border-none shadow-2xl gap-0">
                 {/* ═══════ HEADER ═══════ */}
                 <DialogHeader className="px-7 py-4 shrink-0 border-b bg-gradient-to-r from-white via-blue-50/30 to-white">
                     <DialogTitle className="flex items-center gap-3">
