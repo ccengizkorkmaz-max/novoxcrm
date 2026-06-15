@@ -235,7 +235,7 @@ export async function getCallCDR(period: PeriodKey, page: number = 1, pageSize: 
     const toTs = `${range.to}T23:59:59`
     const offset = (page - 1) * pageSize
 
-    // 1. Manuel aramalar (activities)
+    // 1. Manuel aramalar (activities) — görev/bildirim kayıtlarını hariç tut
     const { data: manualCalls, count: manualCount } = await supabase
         .from('activities')
         .select('id, created_at, summary, description, status, customer:customers(full_name, phone), creator:profiles!user_id(full_name)', { count: 'exact' })
@@ -243,6 +243,11 @@ export async function getCallCDR(period: PeriodKey, page: number = 1, pageSize: 
         .eq('tenant_id', profile.tenant_id)
         .gte('created_at', fromTs)
         .lte('created_at', toTs)
+        .not('summary', 'ilike', '%MAYA Takip%')
+        .not('summary', 'ilike', '%Atama Bekleyen%')
+        .not('summary', 'ilike', '%ARAMA TALEBİ%')
+        .not('summary', 'ilike', '%ACİL SATIŞ%')
+        .not('summary', 'ilike', '%ILIK SATIŞ%')
         .order('created_at', { ascending: false })
         .range(offset, offset + pageSize - 1)
 
