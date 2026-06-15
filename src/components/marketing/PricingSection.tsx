@@ -1,7 +1,6 @@
 'use client'
 
-import { useState } from 'react'
-import { Check, X, Sparkles } from 'lucide-react'
+import { Check, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { LeadCaptureModal } from '@/components/marketing/LeadCaptureModal'
 import { useBrandedTranslations } from '@/components/providers/BrandProvider'
@@ -9,42 +8,25 @@ import { motion } from 'framer-motion'
 
 export function PricingSection() {
     const t = useBrandedTranslations('PricingSection')
-    const [isYearly, setIsYearly] = useState(false)
 
     const plans = [
         {
             key: "starter",
-            monthlyPrice: t('plans.starter.price'),
-            yearlyPrice: t('plans.starter.yearlyPrice'),
-            period: t('plans.starter.period'),
-            perUser: true,
             popular: false,
             accent: 'slate',
         },
         {
             key: "professional",
-            monthlyPrice: t('plans.professional.price'),
-            yearlyPrice: t('plans.professional.yearlyPrice'),
-            period: t('plans.professional.period'),
-            perUser: true,
             popular: true,
             accent: 'blue',
         },
         {
             key: "business",
-            monthlyPrice: t('plans.business.price'),
-            yearlyPrice: t('plans.business.yearlyPrice'),
-            period: t('plans.business.period'),
-            perUser: true,
             popular: false,
             accent: 'violet',
         },
         {
             key: "enterprise",
-            monthlyPrice: t('plans.enterprise.price'),
-            yearlyPrice: t('plans.enterprise.price'),
-            period: t('plans.enterprise.period'),
-            perUser: false,
             popular: false,
             accent: 'amber',
         }
@@ -62,31 +44,6 @@ export function PricingSection() {
                     <p className="text-lg text-slate-400 mb-8">
                         {t('description')}
                     </p>
-
-                    {/* Billing Toggle */}
-                    <div className="inline-flex items-center gap-3 p-1.5 rounded-full bg-slate-900 border border-slate-800">
-                        <button
-                            onClick={() => setIsYearly(false)}
-                            className={`px-5 py-2 rounded-full text-sm font-semibold transition-all ${!isYearly
-                                ? 'bg-blue-600 text-white shadow-lg'
-                                : 'text-slate-400 hover:text-white'
-                                }`}
-                        >
-                            {t('monthly')}
-                        </button>
-                        <button
-                            onClick={() => setIsYearly(true)}
-                            className={`px-5 py-2 rounded-full text-sm font-semibold transition-all flex items-center gap-2 ${isYearly
-                                ? 'bg-blue-600 text-white shadow-lg'
-                                : 'text-slate-400 hover:text-white'
-                                }`}
-                        >
-                            {t('yearly')}
-                            <span className="text-[10px] bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full font-bold">
-                                {t('yearlySave')}
-                            </span>
-                        </button>
-                    </div>
                 </div>
 
                 <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5 max-w-7xl mx-auto">
@@ -114,14 +71,10 @@ export function PricingSection() {
                                 <h3 className="text-lg font-bold mb-1.5 text-white">{t(`plans.${plan.key}.name`)}</h3>
                                 <p className="text-xs text-slate-500 mb-5 leading-relaxed">{t(`plans.${plan.key}.description`)}</p>
                                 <div className="flex items-baseline gap-1">
-                                    <span className={`text-3xl md:text-4xl font-black ${plan.popular ? 'text-blue-400' : 'text-white'}`}>
-                                        {isYearly ? plan.yearlyPrice : plan.monthlyPrice}
+                                    <span className={`text-xl md:text-2xl font-bold ${plan.popular ? 'text-blue-400' : 'text-slate-300'}`}>
+                                        {t('requestInfo')}
                                     </span>
-                                    <span className="text-slate-500 text-sm">{plan.period}</span>
                                 </div>
-                                {plan.perUser && (
-                                    <p className="text-[11px] text-slate-600 mt-1">{t('perUser')}</p>
-                                )}
                             </div>
 
                             <div className="h-px bg-slate-800 w-full mb-6" />

@@ -177,20 +177,21 @@
         ]
     },
     "PricingSection": {
-        "title": "Şeffaf Fiyatlandırma",
-        "description": "Gizli maliyet yok. 14 gün ücretsiz deneyin, kredi kartı gerekmez.",
+        "title": "Çözüm Paketlerimiz",
+        "description": "İhtiyacınıza uygun paketi seçin, size özel fiyat teklifi için ekibimizle iletişime geçin.",
         "popularTag": "En Popüler",
         "monthly": "Aylık",
         "yearly": "Yıllık",
         "yearlySave": "%17 Tasarruf",
         "perUser": "kullanıcı başına",
-        "bottomNote": "Tüm planlar 14 gün ücretsiz deneme içerir. İstediğiniz zaman iptal edebilirsiniz. Fiyatlara KDV dahil değildir.",
+        "bottomNote": "Tüm paketler 14 gün ücretsiz deneme içerir. Fiyatlandırma, kullanıcı sayısı ve ihtiyaçlarınıza göre özelleştirilir.",
+        "requestInfo": "Bilgi İsteyin",
         "plans": {
             "starter": {
                 "name": "Starter",
-                "price": "₺999",
-                "yearlyPrice": "₺829",
-                "period": "/ay",
+                "price": "Bilgi İsteyin",
+                "yearlyPrice": "Bilgi İsteyin",
+                "period": "",
                 "description": "Küçük emlak ofisleri ve butik satış ekipleri için temel CRM.",
                 "features": [
                     "CRM & Satış Pipeline",
@@ -201,13 +202,13 @@
                     "5 Kullanıcıya Kadar",
                     "E-posta Bildirimleri"
                 ],
-                "cta": "Ücretsiz Deneyin"
+                "cta": "Bilgi İsteyin"
             },
             "professional": {
                 "name": "Professional",
-                "price": "₺1.999",
-                "yearlyPrice": "₺1.659",
-                "period": "/ay",
+                "price": "Bilgi İsteyin",
+                "yearlyPrice": "Bilgi İsteyin",
+                "period": "",
                 "description": "AI destekli satış, WhatsApp ve finans yönetimi ile büyüyen ekipler için.",
                 "features": [
                     "Starter dahil her şey",
@@ -220,13 +221,13 @@
                     "Gelişmiş Raporlar",
                     "500 AI İşlem Limiti/Ay"
                 ],
-                "cta": "Ücretsiz Deneyin"
+                "cta": "Bilgi İsteyin"
             },
             "business": {
                 "name": "Business",
-                "price": "₺3.499",
-                "yearlyPrice": "₺2.799",
-                "period": "/ay",
+                "price": "Bilgi İsteyin",
+                "yearlyPrice": "Bilgi İsteyin",
+                "period": "",
                 "description": "AI sesli arama, outreach otomasyonu ve broker ağı yönetimi ile tam güç.",
                 "features": [
                     "Professional dahil her şey",
@@ -239,12 +240,12 @@
                     "2.000 AI İşlem Limiti/Ay",
                     "Öncelikli Destek"
                 ],
-                "cta": "Ücretsiz Deneyin"
+                "cta": "Bilgi İsteyin"
             },
             "enterprise": {
                 "name": "Enterprise",
-                "price": "Özel Teklif",
-                "yearlyPrice": "Özel Teklif",
+                "price": "Bilgi İsteyin",
+                "yearlyPrice": "Bilgi İsteyin",
                 "period": "",
                 "description": "Holding yapıları, çoklu marka ve 50+ kullanıcı için özel çözüm.",
                 "features": [
@@ -258,7 +259,7 @@
                     "Sınırsız Kullanıcı",
                     "Dedicated Account Manager"
                 ],
-                "cta": "İletişime Geçin"
+                "cta": "Bilgi İsteyin"
             }
         }
     },
