@@ -15,7 +15,7 @@ export default async function WebhookSettingsPage() {
         .eq('id', user.id)
         .single()
 
-    if (!['admin', 'owner'].includes(profile?.role || '')) redirect('/dashboard')
+    if (!['admin', 'owner', 'crm_manager'].includes(profile?.role || '')) redirect('/dashboard')
 
     const { data: tenant } = profile?.tenant_id ? await supabase
         .from('tenants')

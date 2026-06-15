@@ -32,7 +32,7 @@ export default async function UnitDetailPage(props: {
     // Get user role
     const { data: { user } } = await supabase.auth.getUser()
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user?.id).single()
-    const isManager = profile?.role === 'manager' || profile?.role === 'admin' || profile?.role === 'owner'
+    const isManager = profile?.role === 'manager' || profile?.role === 'admin' || profile?.role === 'owner' || profile?.role === 'crm_manager'
 
     // Fetch unit with project name
     const { data: unit } = await supabase

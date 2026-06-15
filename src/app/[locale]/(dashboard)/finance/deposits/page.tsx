@@ -34,7 +34,7 @@ export default function DepositsPage() {
             const { data: { user } } = await supabase.auth.getUser()
             if (user) {
                 const { data } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-                setIsAdmin(data?.role === 'admin' || data?.role === 'owner')
+                setIsAdmin(data?.role === 'admin' || data?.role === 'owner' || data?.role === 'crm_manager')
             }
         }
         checkRole()

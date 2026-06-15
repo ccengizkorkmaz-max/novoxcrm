@@ -25,7 +25,7 @@ export default async function HRPage(props: {
         .eq('id', user.id)
         .single()
 
-    if (profile?.role !== 'owner' && profile?.role !== 'admin') {
+    if (profile?.role !== 'owner' && profile?.role !== 'admin' && profile?.role !== 'crm_manager') {
         redirect(`/${locale}/dashboard`)
     }
 

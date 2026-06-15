@@ -35,7 +35,7 @@ export async function setCustomDomain(domain: string) {
         .single()
 
     if (!profile?.tenant_id) return { error: 'Tenant bulunamadı' }
-    if (!['owner', 'admin'].includes(profile.role)) {
+    if (!['owner', 'admin', 'crm_manager'].includes(profile.role)) {
         return { error: 'Bu işlem için yönetici yetkisi gereklidir.' }
     }
 
@@ -172,7 +172,7 @@ export async function removeCustomDomain() {
         .single()
 
     if (!profile?.tenant_id) return { error: 'Tenant bulunamadı' }
-    if (!['owner', 'admin'].includes(profile.role)) {
+    if (!['owner', 'admin', 'crm_manager'].includes(profile.role)) {
         return { error: 'Bu işlem için yönetici yetkisi gereklidir.' }
     }
 

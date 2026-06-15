@@ -59,7 +59,7 @@ export async function updateFinancialSettings(formData: FormData) {
         .single()
 
     if (!profile?.tenant_id) return { error: 'No tenant found' }
-    if (profile.role !== 'owner' && profile.role !== 'admin') {
+    if (profile.role !== 'owner' && profile.role !== 'admin' && profile.role !== 'crm_manager') {
         return { error: 'Yetkisiz işlem' }
     }
 
@@ -289,7 +289,7 @@ export async function deleteUser(userId: string, transferToUserId?: string) {
         .eq('id', user.id)
         .single()
 
-    if (!adminProfile || !['owner', 'admin'].includes(adminProfile.role)) {
+    if (!adminProfile || !['owner', 'admin', 'crm_manager'].includes(adminProfile.role)) {
         return { error: 'Bu işlem için yetkiniz yok.' }
     }
 
@@ -566,7 +566,7 @@ export async function updateUserRole(userId: string, newRole: string) {
         .eq('id', user.id)
         .single()
 
-    if (currentUserProfile?.role !== 'owner' && currentUserProfile?.role !== 'admin') {
+    if (currentUserProfile?.role !== 'owner' && currentUserProfile?.role !== 'admin' && currentUserProfile?.role !== 'crm_manager') {
         return { error: 'Bu işlem için yetkiniz yok.' }
     }
 
@@ -724,7 +724,7 @@ export async function updateAiSettings(formData: FormData) {
         .single()
 
     if (!profile?.tenant_id) return { error: 'No tenant found' }
-    if (profile.role !== 'owner' && profile.role !== 'admin') {
+    if (profile.role !== 'owner' && profile.role !== 'admin' && profile.role !== 'crm_manager') {
         return { error: 'Yalnızca yönetici yetkisi olanlar bu ayarları değiştirebilir.' }
     }
 
@@ -789,7 +789,7 @@ export async function updateAiAssistantCharacter(formData: FormData) {
         .single()
 
     if (!profile?.tenant_id) return { error: 'No tenant found' }
-    if (profile.role !== 'owner' && profile.role !== 'admin') {
+    if (profile.role !== 'owner' && profile.role !== 'admin' && profile.role !== 'crm_manager') {
         return { error: 'Yalnızca yönetici yetkisi olanlar bu ayarları değiştirebilir.' }
     }
 
@@ -873,7 +873,7 @@ export async function saveEmailAccount(data: any) {
         .single()
 
     if (!profile?.tenant_id) return { error: 'No tenant found' }
-    if (profile.role !== 'owner' && profile.role !== 'admin') {
+    if (profile.role !== 'owner' && profile.role !== 'admin' && profile.role !== 'crm_manager') {
         return { error: 'Yetkisiz işlem.' }
     }
 
@@ -918,7 +918,7 @@ export async function deleteEmailAccount(id: string) {
         .eq('id', user.id)
         .single()
 
-    if (profile?.role !== 'owner' && profile?.role !== 'admin') {
+    if (profile?.role !== 'owner' && profile?.role !== 'admin' && profile?.role !== 'crm_manager') {
         return { error: 'Yetkisiz işlem.' }
     }
 
@@ -950,7 +950,7 @@ export async function updateSmsSettings(formData: FormData) {
         .single()
 
     if (!profile?.tenant_id) return { error: 'No tenant found' }
-    if (profile.role !== 'owner' && profile.role !== 'admin') {
+    if (profile.role !== 'owner' && profile.role !== 'admin' && profile.role !== 'crm_manager') {
         return { error: 'Yalnızca yönetici yetkisi olanlar bu ayarları değiştirebilir.' }
     }
 
@@ -1032,7 +1032,7 @@ export async function toggleUserExternal(userId: string, isExternal: boolean) {
 
     // Check permissions (Admin/Owner)
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-    if (!profile || !['owner', 'admin'].includes(profile.role)) {
+    if (!profile || !['owner', 'admin', 'crm_manager'].includes(profile.role)) {
         return { error: 'Bu işlem için yetkiniz yok.' }
     }
 
@@ -1057,7 +1057,7 @@ export async function toggleUserActive(userId: string, isActive: boolean) {
 
     // Check permissions (Admin/Owner)
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-    if (!profile || !['owner', 'admin'].includes(profile.role)) {
+    if (!profile || !['owner', 'admin', 'crm_manager'].includes(profile.role)) {
         return { error: 'Bu işlem için yetkiniz yok.' }
     }
 
@@ -1087,7 +1087,7 @@ export async function toggleHotLeadManager(userId: string, isHotLeadManager: boo
 
     // Check permissions (Admin/Owner)
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-    if (!profile || !['owner', 'admin'].includes(profile.role)) {
+    if (!profile || !['owner', 'admin', 'crm_manager'].includes(profile.role)) {
         return { error: 'Bu işlem için yetkiniz yok.' }
     }
 
@@ -1119,7 +1119,7 @@ export async function updateUserPhone(userId: string, phone: string) {
 
     // Check permissions (Admin/Owner)
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-    if (!profile || !['owner', 'admin'].includes(profile.role)) {
+    if (!profile || !['owner', 'admin', 'crm_manager'].includes(profile.role)) {
         return { error: 'Bu işlem için yetkiniz yok.' }
     }
 
@@ -1153,7 +1153,7 @@ export async function getNotificationPreferences() {
     if (!profile?.tenant_id) return { error: 'No tenant', data: [] }
 
     // Admins see all users' preferences, regular users see only their own
-    const isAdmin = ['owner', 'admin'].includes(profile.role)
+    const isAdmin = ['owner', 'admin', 'crm_manager'].includes(profile.role)
 
     let query = supabase
         .from('user_notification_preferences')
@@ -1199,7 +1199,7 @@ export async function upsertNotificationPreference(
     if (!profile?.tenant_id) return { error: 'No tenant' }
 
     // Only admins can change other users' preferences
-    const isAdmin = ['owner', 'admin'].includes(profile.role)
+    const isAdmin = ['owner', 'admin', 'crm_manager'].includes(profile.role)
     if (userId !== user.id && !isAdmin) {
         return { error: 'Yetkiniz yok.' }
     }
@@ -1238,7 +1238,7 @@ export async function resetNotificationPreferences() {
         .single()
 
     if (!profile?.tenant_id) return { error: 'No tenant' }
-    if (!['owner', 'admin'].includes(profile.role)) {
+    if (!['owner', 'admin', 'crm_manager'].includes(profile.role)) {
         return { error: 'Bu işlem için yetkiniz yok.' }
     }
 
@@ -1269,7 +1269,7 @@ export async function updateSipSettings(formData: FormData) {
         .single()
 
     if (!profile?.tenant_id) return { error: 'No tenant found' }
-    if (profile.role !== 'owner' && profile.role !== 'admin') {
+    if (profile.role !== 'owner' && profile.role !== 'admin' && profile.role !== 'crm_manager') {
         return { error: 'Yalnızca yönetici yetkisi olanlar bu ayarları değiştirebilir.' }
     }
 

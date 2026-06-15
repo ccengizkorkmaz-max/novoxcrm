@@ -47,7 +47,7 @@ export async function updateNotificationSettings(data: NotificationSettings) {
     const { data: profile } = await supabase.from('profiles').select('tenant_id, role').eq('id', user.id).single()
 
     if (!profile?.tenant_id) return { error: 'Tenant not found' }
-    if (profile.role !== 'owner' && profile.role !== 'admin') {
+    if (profile.role !== 'owner' && profile.role !== 'admin' && profile.role !== 'crm_manager') {
         return { error: 'Bu ayarları sadece yönetici değiştirebilir.' }
     }
 
@@ -165,7 +165,7 @@ export async function deleteAllNotifications() {
         .single()
 
     if (!profile?.tenant_id) return { error: 'Tenant not found' }
-    if (profile.role !== 'owner' && profile.role !== 'admin') {
+    if (profile.role !== 'owner' && profile.role !== 'admin' && profile.role !== 'crm_manager') {
         return { error: 'Bu işlemi sadece yönetici yapabilir.' }
     }
 

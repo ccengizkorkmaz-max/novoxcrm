@@ -56,8 +56,8 @@ export function AgentTransactionsView({ transactions, commissionSettings, agents
     const [calcPrice, setCalcPrice] = useState<number>(0)
     const [calcRate, setCalcRate] = useState<number>(4)
 
-    const isManager = ['manager', 'admin', 'owner'].includes(userRole)
-    const isOwner = ['admin', 'owner'].includes(userRole)
+    const isManager = ['manager', 'admin', 'owner', 'crm_manager'].includes(userRole)
+    const isOwner = ['admin', 'owner', 'crm_manager'].includes(userRole)
 
     // Stats
     const totalGCI = transactions.reduce((s, t) => s + (t.gross_commission || 0), 0)

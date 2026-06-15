@@ -64,7 +64,7 @@ export function PortfolioList({ portfolios, userRole }: PortfolioListProps) {
     const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid')
     const [showNewDialog, setShowNewDialog] = useState(false)
 
-    const isManager = ['manager', 'admin', 'owner'].includes(userRole)
+    const isManager = ['manager', 'admin', 'owner', 'crm_manager'].includes(userRole)
 
     // Filter portfolios
     const filtered = portfolios.filter(p => {

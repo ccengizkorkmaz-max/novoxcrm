@@ -46,7 +46,7 @@ async function getDashboardStats(t: any, locale: string) {
   const metaTenantId = user.user_metadata?.tenant_id
   let tenant_id = profile?.tenant_id
 
-  const isManager = profile?.role === 'manager' || profile?.role === 'owner' || profile?.role === 'admin'
+  const isManager = profile?.role === 'manager' || profile?.role === 'owner' || profile?.role === 'admin' || profile?.role === 'crm_manager'
 
   // SELF-CORRECTION: If profile tenant doesn't match metadata tenant, trust metadata (official)
   if (metaTenantId && metaTenantId !== tenant_id) {

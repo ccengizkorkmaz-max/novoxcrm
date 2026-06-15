@@ -53,7 +53,7 @@ export function PortfolioDetailView({ portfolio, agent, transactions, activities
     const coverImage = images.find((img: any) => img.is_cover) || images[0]
     const statusCfg = STATUS_CONFIG[p.status] || { label: p.status, color: 'bg-slate-400 text-white' }
 
-    const isManager = ['manager', 'admin', 'owner'].includes(userRole)
+    const isManager = ['manager', 'admin', 'owner', 'crm_manager'].includes(userRole)
 
     // Authorization days remaining
     const authDaysLeft = p.authorization_end

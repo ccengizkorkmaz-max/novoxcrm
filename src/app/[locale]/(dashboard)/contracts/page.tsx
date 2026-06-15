@@ -62,7 +62,7 @@ export default async function ContractsPage(props: {
         return <div>Tenant not found</div>
     }
 
-    const isManager = profile?.role === 'manager' || profile?.role === 'admin' || profile?.role === 'owner'
+    const isManager = profile?.role === 'manager' || profile?.role === 'admin' || profile?.role === 'owner' || profile?.role === 'crm_manager'
 
     // Fetch Contracts (critical path)
     let baseQuery = supabase

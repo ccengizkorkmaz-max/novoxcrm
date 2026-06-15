@@ -1380,7 +1380,7 @@ function normalizeTurkish(str: string): string {
 
 export async function getSystemHealth() {
     const { supabase, tenantId, profile } = await getAuthContext()
-    if (!['admin', 'owner'].includes(profile?.role || '')) {
+    if (!['admin', 'owner', 'crm_manager'].includes(profile?.role || '')) {
         return { error: 'Yetkisiz erişim' }
     }
 
@@ -1468,7 +1468,7 @@ export async function getSystemHealth() {
 
 export async function resetOutreachSystem(options: { clearStuckCalls?: boolean; releaseLock?: boolean; resetWaiting?: boolean }) {
     const { supabase, tenantId, profile } = await getAuthContext()
-    if (!['admin', 'owner'].includes(profile?.role || '')) {
+    if (!['admin', 'owner', 'crm_manager'].includes(profile?.role || '')) {
         return { error: 'Yetkisiz erişim' }
     }
 

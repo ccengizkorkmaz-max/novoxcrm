@@ -122,7 +122,7 @@ export default async function ProjectDetailPage(props: {
     ])
 
     const currentUser = currentUserRes.data
-    const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'super_admin' || currentUser?.role === 'owner' || currentUser?.role === 'manager'
+    const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'super_admin' || currentUser?.role === 'owner' || currentUser?.role === 'manager' || currentUser?.role === 'crm_manager'
     const { data: unitProgress } = unitProgressRes
     const { data: allBrokers } = allBrokersRes
 

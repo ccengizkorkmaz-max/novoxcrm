@@ -117,7 +117,7 @@ export async function deleteDocument(documentId: string) {
         .eq('id', user.id)
         .single()
 
-    const isManager = ['manager', 'admin', 'owner'].includes(profile?.role || '')
+    const isManager = ['manager', 'admin', 'owner', 'crm_manager'].includes(profile?.role || '')
 
     // Get document to check ownership
     const { data: doc } = await supabase.from('documents').select('uploaded_by, file_url').eq('id', documentId).single()

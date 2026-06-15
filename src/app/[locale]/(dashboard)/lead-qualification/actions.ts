@@ -339,7 +339,7 @@ export async function bulkRevertDqSalesToQualification() {
         
     if (!profile) return { error: 'Profile not found' }
     
-    const isAdmin = profile.role === 'admin' || profile.role === 'owner'
+    const isAdmin = profile.role === 'admin' || profile.role === 'owner' || profile.role === 'crm_manager'
     if (!isAdmin) return { error: 'Bu işlem için yetkiniz bulunmamaktadır.' }
 
     // Find all qualifications for the tenant with interest_level = 'disqualified' and active sale_id

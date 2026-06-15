@@ -21,7 +21,7 @@ export default async function AnalyticsPage() {
 
     if ((tenant as any)?.tenant_type !== 'broker') redirect('/')
     
-    const isManager = ['manager', 'admin', 'owner'].includes(profile?.role || '')
+    const isManager = ['manager', 'admin', 'owner', 'crm_manager'].includes(profile?.role || '')
     if (!isManager) redirect('/dashboard')
 
     // === DATA FETCHING ===

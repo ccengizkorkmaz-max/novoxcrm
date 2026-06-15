@@ -17,7 +17,7 @@ export async function getDeposits() {
     const { data: profile } = await supabase.from('profiles').select('tenant_id, role').eq('id', user.id).single()
     if (!profile?.tenant_id) return []
 
-    const isManager = profile?.role === 'manager' || profile?.role === 'admin' || profile?.role === 'owner'
+    const isManager = profile?.role === 'manager' || profile?.role === 'admin' || profile?.role === 'owner' || profile?.role === 'crm_manager'
 
     const { data: deposits, error } = await supabase
         .from('deposits')

@@ -74,7 +74,7 @@ export default async function DashboardLayout(props: {
     }
     const cssVars = brandToCssVars(brand)
 
-    const isAuthorizedForSettings = profile?.role === 'admin' || profile?.role === 'owner'
+    const isAuthorizedForSettings = profile?.role === 'admin' || profile?.role === 'owner' || profile?.role === 'crm_manager'
     const sidebarLabels = {
         overview: sidebarT('overview'),
         inbox: sidebarT('inbox'),

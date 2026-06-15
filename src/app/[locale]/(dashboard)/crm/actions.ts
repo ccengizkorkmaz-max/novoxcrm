@@ -1959,7 +1959,7 @@ export async function autoAssignAllSales() {
     const { data: { user } } = await supabase.auth.getUser()
 
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user?.id).single()
-    const isAdmin = profile?.role === 'admin' || profile?.role === 'owner' || profile?.role === 'manager'
+    const isAdmin = profile?.role === 'admin' || profile?.role === 'owner' || profile?.role === 'manager' || profile?.role === 'crm_manager'
     if (!isAdmin) return { error: 'Bu işlem için yetkiniz yok.' }
 
     const { data: sales, error, count: remainingCount } = await supabase

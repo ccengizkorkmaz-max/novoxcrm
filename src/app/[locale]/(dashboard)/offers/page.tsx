@@ -23,7 +23,7 @@ export default async function OffersPage(props: {
     ])
 
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user?.id).single()
-    const isManager = profile?.role === 'manager' || profile?.role === 'admin' || profile?.role === 'owner'
+    const isManager = profile?.role === 'manager' || profile?.role === 'admin' || profile?.role === 'owner' || profile?.role === 'crm_manager'
 
     // Fetch Offers
     let baseQuery = supabase

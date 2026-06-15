@@ -9,7 +9,7 @@ export default async function CommissionPlansPage() {
     if (!user) redirect('/login')
 
     const { data: profile } = await supabase.from('profiles').select('tenant_id, role').eq('id', user.id).single()
-    const isManager = ['admin', 'owner'].includes(profile?.role || '')
+    const isManager = ['admin', 'owner', 'crm_manager'].includes(profile?.role || '')
     if (!isManager) redirect('/dashboard')
 
     const { data: tenant } = profile?.tenant_id ? await supabase

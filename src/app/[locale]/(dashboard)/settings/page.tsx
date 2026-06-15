@@ -212,7 +212,7 @@ export default async function SettingsPage() {
                         <FileWarning className="w-4 h-4 mr-2 shrink-0" />
                         <span className="hidden md:inline truncate">İşlem Logları</span>
                     </TabsTrigger>
-                    {(profile.role === 'owner' || profile.role === 'admin') && (
+                    {(profile.role === 'owner' || profile.role === 'admin' || profile.role === 'crm_manager') && (
                         <TabsTrigger value="notification-catalog" className="justify-start w-full py-2 px-3 rounded-lg text-sm data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-sm transition-all focus:outline-none">
                             <ListChecks className="w-4 h-4 mr-2 shrink-0" />
                             <span className="hidden md:inline truncate">Bildirim Yönetimi</span>
@@ -338,7 +338,7 @@ export default async function SettingsPage() {
                 </TabsContent>
 
                 {/* Notification Catalog Tab */}
-                {(profile.role === 'owner' || profile.role === 'admin') && (
+                {(profile.role === 'owner' || profile.role === 'admin' || profile.role === 'crm_manager') && (
                     <TabsContent value="notification-catalog" className="space-y-4">
                         <NotificationCatalogTab
                             users={(users || []).map((u: any) => ({ id: u.id, full_name: u.full_name, email: u.email, role: u.role, phone: u.phone, is_active: u.is_active }))}

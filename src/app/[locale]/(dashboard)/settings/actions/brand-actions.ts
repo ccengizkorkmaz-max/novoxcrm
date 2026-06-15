@@ -23,7 +23,7 @@ export async function updateBrandConfig(brandConfig: Partial<BrandConfig>) {
         .single()
 
     if (!profile?.tenant_id) throw new Error('Tenant bulunamadı')
-    if (!['owner', 'admin'].includes(profile.role || '')) {
+    if (!['owner', 'admin', 'crm_manager'].includes(profile.role || '')) {
         throw new Error('Bu işlem için yetkiniz yok')
     }
 
@@ -65,7 +65,7 @@ export async function resetBrandConfig() {
         .single()
 
     if (!profile?.tenant_id) throw new Error('Tenant bulunamadı')
-    if (!['owner', 'admin'].includes(profile.role || '')) {
+    if (!['owner', 'admin', 'crm_manager'].includes(profile.role || '')) {
         throw new Error('Bu işlem için yetkiniz yok')
     }
 

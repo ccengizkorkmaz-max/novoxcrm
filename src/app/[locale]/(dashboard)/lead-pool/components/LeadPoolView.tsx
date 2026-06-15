@@ -58,7 +58,7 @@ export function LeadPoolView({ leads, agents, currentRule, userRole }: LeadPoolV
     const [timeoutMinutes, setTimeoutMinutes] = useState(currentRule?.timeout_minutes || 15)
     const [savingRule, setSavingRule] = useState(false)
 
-    const isOwner = ['admin', 'owner'].includes(userRole)
+    const isOwner = ['admin', 'owner', 'crm_manager'].includes(userRole)
 
     async function handleAssign(leadId: string, agentId: string) {
         setAssigning(leadId)

@@ -14,7 +14,7 @@ export default async function AIFeedbackPage({ params }: PageProps) {
     const locale = resolvedParams.locale
 
     const role = await getCurrentUserRole()
-    const isAdmin = ['admin', 'owner'].includes(role)
+    const isAdmin = ['admin', 'owner', 'crm_manager'].includes(role)
 
     let calls: any[] = []
     let analytics: any = null

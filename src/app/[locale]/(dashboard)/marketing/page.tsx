@@ -9,7 +9,7 @@ export default async function MarketingPage() {
     if (!user) redirect('/login')
 
     const { data: profile } = await supabase.from('profiles').select('tenant_id, role').eq('id', user.id).single()
-    const isManager = ['manager', 'admin', 'owner'].includes(profile?.role || '')
+    const isManager = ['manager', 'admin', 'owner', 'crm_manager'].includes(profile?.role || '')
     if (!isManager) redirect('/dashboard')
 
     const campaigns = await getCampaigns()

@@ -12,7 +12,7 @@ export default async function InboxPage(props: {
     // Role-based access control
     const { data: { user } } = await supabase.auth.getUser()
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user?.id).single()
-    const isManager = profile?.role === 'manager' || profile?.role === 'admin' || profile?.role === 'owner'
+    const isManager = profile?.role === 'manager' || profile?.role === 'admin' || profile?.role === 'owner' || profile?.role === 'crm_manager'
 
     if (!isManager) {
         const { redirect } = await import('next/navigation')

@@ -15,7 +15,7 @@ export async function updateCommissionRule(formData: FormData) {
     if (!user) return { error: 'Unauthorized' }
 
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-    if (!['admin', 'owner', 'manager'].includes(profile?.role || '')) {
+    if (!['admin', 'owner', 'manager', 'crm_manager'].includes(profile?.role || '')) {
         return { error: 'Bu işlem için yetkiniz yok.' }
     }
 
@@ -57,7 +57,7 @@ export async function createCommissionRule(formData: FormData) {
     if (!user) return { error: 'Unauthorized' }
 
     const { data: profile } = await supabase.from('profiles').select('role, tenant_id').eq('id', user.id).single()
-    if (!profile || !['admin', 'owner'].includes(profile.role || '')) {
+    if (!profile || !['admin', 'owner', 'crm_manager'].includes(profile.role || '')) {
         return { error: 'Bu işlem için yetkiniz yok.' }
     }
 
@@ -102,7 +102,7 @@ export async function deleteCommissionRule(ruleId: string) {
     if (!user) return { error: 'Unauthorized' }
 
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-    if (!['admin', 'owner'].includes(profile?.role || '')) {
+    if (!['admin', 'owner', 'crm_manager'].includes(profile?.role || '')) {
         return { error: 'Bu işlem için yetkiniz yok.' }
     }
 

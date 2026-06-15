@@ -63,7 +63,7 @@ export default async function NotificationsPage(props: {
         .select('role')
         .eq('id', user.id)
         .single()
-    const isAdminOrOwner = profile?.role === 'admin' || profile?.role === 'owner'
+    const isAdminOrOwner = profile?.role === 'admin' || profile?.role === 'owner' || profile?.role === 'crm_manager'
 
     let notifications = await getSystemNotifications()
 

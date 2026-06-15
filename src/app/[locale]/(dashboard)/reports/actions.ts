@@ -1570,7 +1570,7 @@ export async function getActivityTrackingReport() {
         .single()
 
     if (!profile?.tenant_id) return { error: 'No tenant' }
-    if (!['manager', 'admin', 'owner'].includes(profile.role)) return { error: 'Yetkisiz' }
+    if (!['manager', 'admin', 'owner', 'crm_manager'].includes(profile.role)) return { error: 'Yetkisiz' }
 
     const now = new Date()
 

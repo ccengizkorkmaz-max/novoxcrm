@@ -25,7 +25,7 @@ export default async function LeadPoolPage() {
         redirect('/')
     }
 
-    const isManager = ['manager', 'admin', 'owner'].includes(profile?.role || '')
+    const isManager = ['manager', 'admin', 'owner', 'crm_manager'].includes(profile?.role || '')
     if (!isManager) redirect('/')
 
     const [leads, agents, rules] = await Promise.all([

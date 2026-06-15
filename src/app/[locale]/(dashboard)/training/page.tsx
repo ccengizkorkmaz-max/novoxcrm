@@ -9,7 +9,7 @@ export default async function TrainingPage() {
     if (!user) redirect('/login')
 
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-    const isManager = ['admin', 'owner'].includes(profile?.role || '')
+    const isManager = ['admin', 'owner', 'crm_manager'].includes(profile?.role || '')
 
     const courses = await getAllCourses()
     const progress = await getUserProgress(user.id)

@@ -228,7 +228,7 @@ export async function submitCallFeedback(input: FeedbackInput): Promise<{ succes
     if (!profile?.tenant_id) return { success: false, error: 'Tenant bulunamadı' }
 
     // All internal staff can submit feedback
-    if (!['admin', 'owner', 'manager', 'sales'].includes(profile.role)) {
+    if (!['admin', 'owner', 'manager', 'sales', 'crm_manager'].includes(profile.role)) {
         return { success: false, error: 'Yetkiniz yok' }
     }
 
@@ -374,7 +374,7 @@ export async function getFeedbackAnalytics() {
 // ─── 4. Prompt Versions ──────────────────────────────────────
 
 export async function getPromptVersions() {
-    await checkRole(['admin', 'owner'])
+    await checkRole(['admin', 'owner', 'crm_manager'])
 
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -397,7 +397,7 @@ export async function getPromptVersions() {
 // ─── 5. Generate Prompt Suggestion ───────────────────────────
 
 export async function generatePromptSuggestion(promptType: string = 'standard'): Promise<{ suggestion: string; analysis: string } | { error: string }> {
-    await checkRole(['admin', 'owner'])
+    await checkRole(['admin', 'owner', 'crm_manager'])
 
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -495,7 +495,7 @@ GÖREV:
 // ─── 6. Create Prompt Version ────────────────────────────────
 
 export async function createPromptVersion(input: PromptVersionInput): Promise<{ success: boolean; error?: string }> {
-    await checkRole(['admin', 'owner'])
+    await checkRole(['admin', 'owner', 'crm_manager'])
 
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -539,7 +539,7 @@ export async function createPromptVersion(input: PromptVersionInput): Promise<{ 
 // ─── 7. Apply Prompt Version ─────────────────────────────────
 
 export async function applyPromptVersion(versionId: string): Promise<{ success: boolean; error?: string }> {
-    await checkRole(['admin', 'owner'])
+    await checkRole(['admin', 'owner', 'crm_manager'])
 
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()

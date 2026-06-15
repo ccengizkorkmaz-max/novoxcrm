@@ -56,7 +56,7 @@ export async function createCourse(formData: FormData) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) redirect('/login')
     const { data: profile } = await supabase.from('profiles').select('tenant_id, role').eq('id', user.id).single()
-    if (!['admin', 'owner'].includes(profile?.role || '')) throw new Error('Yetkiniz yok')
+    if (!['admin', 'owner', 'crm_manager'].includes(profile?.role || '')) throw new Error('Yetkiniz yok')
 
     const { error } = await supabase.from('training_courses').insert({
         tenant_id: profile?.tenant_id,
