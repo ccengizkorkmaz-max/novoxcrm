@@ -4,9 +4,9 @@ import { useState, useEffect, useCallback } from 'react'
 import { cn } from '@/lib/utils'
 import { getPerformanceAnalytics, type PeriodKey, type PeriodStats, type PerformanceData } from './actions'
 import {
-    MessageSquare, Phone, Snowflake, Sun, Flame,
+    MessageSquare, Phone, PhoneIncoming, PhoneOutgoing, Snowflake, Sun, Flame,
     TrendingUp, TrendingDown, Minus, ArrowLeft, RefreshCw,
-    BarChart3, Activity
+    BarChart3, Activity, Clock
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useRouter } from 'next/navigation'
@@ -110,6 +110,7 @@ export default function PerformanceDashboard() {
 
     const totalLeads = (currentStats?.cold_count || 0) + (currentStats?.warm_count || 0) + (currentStats?.hot_count || 0)
     const hotPct = totalLeads > 0 ? Math.round((currentStats?.hot_count || 0) / totalLeads * 100) : 0
+    const totalCalls = (currentStats?.outbound_call_count || 0) + (currentStats?.inbound_call_count || 0)
 
     return (
         <div className="max-w-[1600px] mx-auto space-y-6">
@@ -126,13 +127,21 @@ export default function PerformanceDashboard() {
                             </div>
                             Performans & Lead Analitik
                         </h1>
-                        <p className="text-sm text-slate-500 mt-0.5 ml-14">WhatsApp, Arama ve Lead sıcaklık raporları</p>
+                        <p className="text-sm text-slate-500 mt-0.5 ml-14">WhatsApp, Giden/Gelen Arama ve Lead sıcaklık raporları</p>
                     </div>
                 </div>
-                <Button variant="outline" size="sm" onClick={fetchData} disabled={loading} className="gap-2 rounded-xl h-10 px-5 font-bold">
-                    <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
-                    Yenile
-                </Button>
+                <div className="flex items-center gap-3">
+                    {data?.last_updated && (
+                        <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1 bg-slate-50 px-3 py-1.5 rounded-lg">
+                            <Clock className="h-3 w-3" />
+                            Son güncelleme: {new Date(data.last_updated).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                    )}
+                    <Button variant="outline" size="sm" onClick={fetchData} disabled={loading} className="gap-2 rounded-xl h-10 px-5 font-bold">
+                        <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
+                        Yenile
+                    </Button>
+                </div>
             </div>
 
             {/* ═══════ PERIOD SELECTOR ═══════ */}
@@ -155,8 +164,8 @@ export default function PerformanceDashboard() {
             </div>
 
             {loading ? (
-                <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-                    {[1,2,3,4,5].map(i => (
+                <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
+                    {[1,2,3,4,5,6].map(i => (
                         <div key={i} className="bg-white rounded-2xl border border-slate-100 p-6 animate-pulse">
                             <div className="h-4 w-20 bg-slate-200 rounded mb-4" />
                             <div className="h-10 w-24 bg-slate-200 rounded mb-2" />
@@ -166,12 +175,12 @@ export default function PerformanceDashboard() {
                 </div>
             ) : (
                 <>
-                    {/* ═══════ KPI CARDS ═══════ */}
-                    <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+                    {/* ═══════ KPI CARDS — 6 columns ═══════ */}
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                         {/* WhatsApp */}
-                        <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl border border-green-100 p-6 hover:shadow-lg hover:shadow-green-100/40 transition-all group">
-                            <div className="flex items-center justify-between mb-4">
-                                <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-green-200/50 group-hover:scale-110 transition-transform">
+                        <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl border border-green-100 p-5 hover:shadow-lg hover:shadow-green-100/40 transition-all group">
+                            <div className="flex items-center justify-between mb-3">
+                                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-green-200/50 group-hover:scale-110 transition-transform">
                                     <MessageSquare className="h-5 w-5 text-white" />
                                 </div>
                                 {data?.daily_trend && (
@@ -182,69 +191,86 @@ export default function PerformanceDashboard() {
                                     />
                                 )}
                             </div>
-                            <p className="text-[11px] font-black text-green-700/60 uppercase tracking-widest mb-1">WhatsApp</p>
-                            <AnimatedNumber value={currentStats?.whatsapp_count || 0} className="text-3xl font-black text-green-800 block" />
-                            <div className="mt-2">
+                            <p className="text-[10px] font-black text-green-700/60 uppercase tracking-widest mb-1">WhatsApp</p>
+                            <AnimatedNumber value={currentStats?.whatsapp_count || 0} className="text-2xl font-black text-green-800 block" />
+                            <div className="mt-1.5">
                                 {prevStats && <TrendBadge current={currentStats?.whatsapp_count || 0} previous={prevStats.whatsapp_count} />}
                             </div>
                         </div>
 
-                        {/* Telefon Araması */}
-                        <div className="bg-gradient-to-br from-blue-50 to-sky-50 rounded-2xl border border-blue-100 p-6 hover:shadow-lg hover:shadow-blue-100/40 transition-all group">
-                            <div className="flex items-center justify-between mb-4">
-                                <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-blue-500 to-sky-600 flex items-center justify-center shadow-lg shadow-blue-200/50 group-hover:scale-110 transition-transform">
-                                    <Phone className="h-5 w-5 text-white" />
+                        {/* Giden Aramalar */}
+                        <div className="bg-gradient-to-br from-blue-50 to-sky-50 rounded-2xl border border-blue-100 p-5 hover:shadow-lg hover:shadow-blue-100/40 transition-all group">
+                            <div className="flex items-center justify-between mb-3">
+                                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-sky-600 flex items-center justify-center shadow-lg shadow-blue-200/50 group-hover:scale-110 transition-transform">
+                                    <PhoneOutgoing className="h-5 w-5 text-white" />
                                 </div>
                                 {data?.daily_trend && (
                                     <MiniBarChart
-                                        data={data.daily_trend.map(d => d.calls)}
-                                        maxVal={Math.max(...data.daily_trend.map(d => d.calls), 1)}
+                                        data={data.daily_trend.map(d => d.outbound)}
+                                        maxVal={Math.max(...data.daily_trend.map(d => d.outbound), 1)}
                                         color="bg-blue-400"
                                     />
                                 )}
                             </div>
-                            <p className="text-[11px] font-black text-blue-700/60 uppercase tracking-widest mb-1">Telefon Araması</p>
-                            <AnimatedNumber value={currentStats?.call_count || 0} className="text-3xl font-black text-blue-800 block" />
-                            <div className="mt-2">
-                                {prevStats && <TrendBadge current={currentStats?.call_count || 0} previous={prevStats.call_count} />}
+                            <p className="text-[10px] font-black text-blue-700/60 uppercase tracking-widest mb-1">📤 Giden Arama</p>
+                            <AnimatedNumber value={currentStats?.outbound_call_count || 0} className="text-2xl font-black text-blue-800 block" />
+                            <p className="text-[9px] text-blue-500 mt-0.5 font-bold">Manuel + AI Outbound</p>
+                        </div>
+
+                        {/* Gelen Aramalar */}
+                        <div className="bg-gradient-to-br from-indigo-50 to-violet-50 rounded-2xl border border-indigo-100 p-5 hover:shadow-lg hover:shadow-indigo-100/40 transition-all group">
+                            <div className="flex items-center justify-between mb-3">
+                                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-200/50 group-hover:scale-110 transition-transform">
+                                    <PhoneIncoming className="h-5 w-5 text-white" />
+                                </div>
+                                {data?.daily_trend && (
+                                    <MiniBarChart
+                                        data={data.daily_trend.map(d => d.inbound)}
+                                        maxVal={Math.max(...data.daily_trend.map(d => d.inbound), 1)}
+                                        color="bg-indigo-400"
+                                    />
+                                )}
                             </div>
+                            <p className="text-[10px] font-black text-indigo-700/60 uppercase tracking-widest mb-1">📥 Gelen Arama</p>
+                            <AnimatedNumber value={currentStats?.inbound_call_count || 0} className="text-2xl font-black text-indigo-800 block" />
+                            <p className="text-[9px] text-indigo-500 mt-0.5 font-bold">AI Asistan Karşıladı</p>
                         </div>
 
                         {/* Cold Lead */}
-                        <div className="bg-gradient-to-br from-sky-50 to-cyan-50 rounded-2xl border border-sky-100 p-6 hover:shadow-lg hover:shadow-sky-100/40 transition-all group">
-                            <div className="flex items-center justify-between mb-4">
-                                <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-sky-400 to-cyan-500 flex items-center justify-center shadow-lg shadow-sky-200/50 group-hover:scale-110 transition-transform">
+                        <div className="bg-gradient-to-br from-sky-50 to-cyan-50 rounded-2xl border border-sky-100 p-5 hover:shadow-lg hover:shadow-sky-100/40 transition-all group">
+                            <div className="flex items-center justify-between mb-3">
+                                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-sky-400 to-cyan-500 flex items-center justify-center shadow-lg shadow-sky-200/50 group-hover:scale-110 transition-transform">
                                     <Snowflake className="h-5 w-5 text-white" />
                                 </div>
                             </div>
-                            <p className="text-[11px] font-black text-sky-700/60 uppercase tracking-widest mb-1">❄️ Cold Lead</p>
-                            <AnimatedNumber value={currentStats?.cold_count || 0} className="text-3xl font-black text-sky-800 block" />
-                            <p className="text-[10px] text-sky-600 mt-1 font-bold">Sıcak temas bekleyenler</p>
+                            <p className="text-[10px] font-black text-sky-700/60 uppercase tracking-widest mb-1">❄️ Cold Lead</p>
+                            <AnimatedNumber value={currentStats?.cold_count || 0} className="text-2xl font-black text-sky-800 block" />
+                            <p className="text-[9px] text-sky-600 mt-0.5 font-bold">Sıcak temas bekleyenler</p>
                         </div>
 
                         {/* Ilık Lead */}
-                        <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl border border-amber-100 p-6 hover:shadow-lg hover:shadow-amber-100/40 transition-all group">
-                            <div className="flex items-center justify-between mb-4">
-                                <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-200/50 group-hover:scale-110 transition-transform">
+                        <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl border border-amber-100 p-5 hover:shadow-lg hover:shadow-amber-100/40 transition-all group">
+                            <div className="flex items-center justify-between mb-3">
+                                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-200/50 group-hover:scale-110 transition-transform">
                                     <Sun className="h-5 w-5 text-white" />
                                 </div>
                             </div>
-                            <p className="text-[11px] font-black text-amber-700/60 uppercase tracking-widest mb-1">☀️ Ilık Lead</p>
-                            <AnimatedNumber value={currentStats?.warm_count || 0} className="text-3xl font-black text-amber-800 block" />
-                            <p className="text-[10px] text-amber-600 mt-1 font-bold">Takip edilmesi gerekenler</p>
+                            <p className="text-[10px] font-black text-amber-700/60 uppercase tracking-widest mb-1">☀️ Ilık Lead</p>
+                            <AnimatedNumber value={currentStats?.warm_count || 0} className="text-2xl font-black text-amber-800 block" />
+                            <p className="text-[9px] text-amber-600 mt-0.5 font-bold">Takip edilmesi gerekenler</p>
                         </div>
 
                         {/* Hot Lead */}
-                        <div className="bg-gradient-to-br from-red-50 to-rose-50 rounded-2xl border border-red-100 p-6 hover:shadow-lg hover:shadow-red-100/40 transition-all group">
-                            <div className="flex items-center justify-between mb-4">
-                                <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center shadow-lg shadow-red-200/50 group-hover:scale-110 transition-transform animate-pulse">
+                        <div className="bg-gradient-to-br from-red-50 to-rose-50 rounded-2xl border border-red-100 p-5 hover:shadow-lg hover:shadow-red-100/40 transition-all group">
+                            <div className="flex items-center justify-between mb-3">
+                                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center shadow-lg shadow-red-200/50 group-hover:scale-110 transition-transform animate-pulse">
                                     <Flame className="h-5 w-5 text-white" />
                                 </div>
                             </div>
-                            <p className="text-[11px] font-black text-red-700/60 uppercase tracking-widest mb-1">🔥 Hot Lead</p>
-                            <AnimatedNumber value={currentStats?.hot_count || 0} className="text-3xl font-black text-red-800 block" />
-                            <div className="mt-1 flex items-center gap-2">
-                                <span className="text-[10px] text-red-600 font-black">⚡ Dönüşüm: %{hotPct}</span>
+                            <p className="text-[10px] font-black text-red-700/60 uppercase tracking-widest mb-1">🔥 Hot Lead</p>
+                            <AnimatedNumber value={currentStats?.hot_count || 0} className="text-2xl font-black text-red-800 block" />
+                            <div className="mt-0.5">
+                                <span className="text-[9px] text-red-600 font-black">⚡ Dönüşüm: %{hotPct}</span>
                             </div>
                         </div>
                     </div>
@@ -267,24 +293,29 @@ export default function PerformanceDashboard() {
                                 <thead>
                                     <tr className="bg-slate-50/80">
                                         <th className="text-left px-6 py-3 text-[11px] font-black text-slate-500 uppercase tracking-widest">Dönem</th>
-                                        <th className="text-center px-4 py-3 text-[11px] font-black text-green-600 uppercase tracking-widest">
-                                            <span className="inline-flex items-center gap-1.5">
-                                                <MessageSquare className="h-3.5 w-3.5" /> WhatsApp
+                                        <th className="text-center px-3 py-3 text-[11px] font-black text-green-600 uppercase tracking-widest">
+                                            <span className="inline-flex items-center gap-1">
+                                                <MessageSquare className="h-3 w-3" /> WA
                                             </span>
                                         </th>
-                                        <th className="text-center px-4 py-3 text-[11px] font-black text-blue-600 uppercase tracking-widest">
-                                            <span className="inline-flex items-center gap-1.5">
-                                                <Phone className="h-3.5 w-3.5" /> Aramalar
+                                        <th className="text-center px-3 py-3 text-[11px] font-black text-blue-600 uppercase tracking-widest">
+                                            <span className="inline-flex items-center gap-1">
+                                                <PhoneOutgoing className="h-3 w-3" /> Giden
                                             </span>
                                         </th>
-                                        <th className="text-center px-4 py-3 text-[11px] font-black text-sky-600 uppercase tracking-widest">❄️ Cold</th>
-                                        <th className="text-center px-4 py-3 text-[11px] font-black text-amber-600 uppercase tracking-widest">☀️ Ilık</th>
-                                        <th className="text-center px-4 py-3 text-[11px] font-black text-red-600 uppercase tracking-widest">🔥 Hot</th>
-                                        <th className="text-center px-4 py-3 text-[11px] font-black text-slate-500 uppercase tracking-widest">Toplam Lead</th>
+                                        <th className="text-center px-3 py-3 text-[11px] font-black text-indigo-600 uppercase tracking-widest">
+                                            <span className="inline-flex items-center gap-1">
+                                                <PhoneIncoming className="h-3 w-3" /> Gelen
+                                            </span>
+                                        </th>
+                                        <th className="text-center px-3 py-3 text-[11px] font-black text-sky-600 uppercase tracking-widest">❄️ Cold</th>
+                                        <th className="text-center px-3 py-3 text-[11px] font-black text-amber-600 uppercase tracking-widest">☀️ Ilık</th>
+                                        <th className="text-center px-3 py-3 text-[11px] font-black text-red-600 uppercase tracking-widest">🔥 Hot</th>
+                                        <th className="text-center px-3 py-3 text-[11px] font-black text-slate-500 uppercase tracking-widest">Toplam</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {data?.periods.map((p, i) => {
+                                    {data?.periods.map((p) => {
                                         const isActive = p.period === activePeriod
                                         const total = p.cold_count + p.warm_count + p.hot_count
                                         return (
@@ -298,7 +329,7 @@ export default function PerformanceDashboard() {
                                                         : "hover:bg-slate-50/80"
                                                 )}
                                             >
-                                                <td className="px-6 py-4">
+                                                <td className="px-6 py-3.5">
                                                     <span className={cn(
                                                         "text-sm font-black",
                                                         isActive ? "text-violet-700" : "text-slate-700"
@@ -307,26 +338,31 @@ export default function PerformanceDashboard() {
                                                         {p.label}
                                                     </span>
                                                 </td>
-                                                <td className="text-center px-4 py-4">
-                                                    <span className="text-lg font-black text-green-700 bg-green-50 px-3 py-1 rounded-lg">
+                                                <td className="text-center px-3 py-3.5">
+                                                    <span className="text-base font-black text-green-700 bg-green-50 px-2.5 py-0.5 rounded-lg">
                                                         {p.whatsapp_count.toLocaleString('tr-TR')}
                                                     </span>
                                                 </td>
-                                                <td className="text-center px-4 py-4">
-                                                    <span className="text-lg font-black text-blue-700 bg-blue-50 px-3 py-1 rounded-lg">
-                                                        {p.call_count.toLocaleString('tr-TR')}
+                                                <td className="text-center px-3 py-3.5">
+                                                    <span className="text-base font-black text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-lg">
+                                                        {p.outbound_call_count.toLocaleString('tr-TR')}
                                                     </span>
                                                 </td>
-                                                <td className="text-center px-4 py-4">
+                                                <td className="text-center px-3 py-3.5">
+                                                    <span className="text-base font-black text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded-lg">
+                                                        {p.inbound_call_count.toLocaleString('tr-TR')}
+                                                    </span>
+                                                </td>
+                                                <td className="text-center px-3 py-3.5">
                                                     <span className="text-sm font-black text-sky-700">{p.cold_count.toLocaleString('tr-TR')}</span>
                                                 </td>
-                                                <td className="text-center px-4 py-4">
+                                                <td className="text-center px-3 py-3.5">
                                                     <span className="text-sm font-black text-amber-700">{p.warm_count.toLocaleString('tr-TR')}</span>
                                                 </td>
-                                                <td className="text-center px-4 py-4">
+                                                <td className="text-center px-3 py-3.5">
                                                     <span className="text-sm font-black text-red-700">{p.hot_count.toLocaleString('tr-TR')}</span>
                                                 </td>
-                                                <td className="text-center px-4 py-4">
+                                                <td className="text-center px-3 py-3.5">
                                                     <span className="text-sm font-bold text-slate-600">{total.toLocaleString('tr-TR')}</span>
                                                 </td>
                                             </tr>
@@ -337,7 +373,7 @@ export default function PerformanceDashboard() {
                         </div>
                     </div>
 
-                    {/* ═══════ TREND CHART (CSS-based) ═══════ */}
+                    {/* ═══════ TREND CHART (3 bars per day) ═══════ */}
                     {data?.daily_trend && data.daily_trend.length > 0 && (
                         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
                             <div className="flex items-center gap-3 mb-6">
@@ -346,37 +382,45 @@ export default function PerformanceDashboard() {
                                 </div>
                                 <div>
                                     <h2 className="text-sm font-black text-slate-700 uppercase tracking-wider">Son 14 Gün Trend</h2>
-                                    <p className="text-[11px] text-slate-400">Günlük WhatsApp ve Arama dağılımı</p>
+                                    <p className="text-[11px] text-slate-400">Günlük WhatsApp, Giden ve Gelen Arama dağılımı</p>
                                 </div>
                                 <div className="ml-auto flex items-center gap-4">
                                     <span className="flex items-center gap-1.5 text-[11px] font-bold text-green-600">
                                         <span className="h-3 w-3 rounded-sm bg-green-400" /> WhatsApp
                                     </span>
                                     <span className="flex items-center gap-1.5 text-[11px] font-bold text-blue-600">
-                                        <span className="h-3 w-3 rounded-sm bg-blue-400" /> Arama
+                                        <span className="h-3 w-3 rounded-sm bg-blue-400" /> Giden
+                                    </span>
+                                    <span className="flex items-center gap-1.5 text-[11px] font-bold text-indigo-600">
+                                        <span className="h-3 w-3 rounded-sm bg-indigo-400" /> Gelen
                                     </span>
                                 </div>
                             </div>
-                            <div className="flex items-end gap-1 h-40">
-                                {data.daily_trend.map((day, i) => {
+                            <div className="flex items-end gap-1 h-44">
+                                {data.daily_trend.map((day) => {
                                     const maxVal = Math.max(
-                                        ...data.daily_trend.map(d => Math.max(d.whatsapp, d.calls)),
+                                        ...data.daily_trend.map(d => Math.max(d.whatsapp, d.outbound, d.inbound)),
                                         1
                                     )
                                     const waHeight = (day.whatsapp / maxVal) * 100
-                                    const callHeight = (day.calls / maxVal) * 100
+                                    const outHeight = (day.outbound / maxVal) * 100
+                                    const inHeight = (day.inbound / maxVal) * 100
                                     const dayLabel = new Date(day.date).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit' })
                                     const isToday = day.date === new Date().toISOString().split('T')[0]
                                     return (
-                                        <div key={day.date} className="flex-1 flex flex-col items-center gap-1 group" title={`${dayLabel}\nWA: ${day.whatsapp} | Arama: ${day.calls}`}>
-                                            <div className="flex items-end gap-[1px] w-full justify-center" style={{ height: '120px' }}>
+                                        <div key={day.date} className="flex-1 flex flex-col items-center gap-1 group" title={`${dayLabel}\nWA: ${day.whatsapp} | Giden: ${day.outbound} | Gelen: ${day.inbound}`}>
+                                            <div className="flex items-end gap-[1px] w-full justify-center" style={{ height: '130px' }}>
                                                 <div
                                                     className="bg-green-400 rounded-t-sm transition-all duration-500 group-hover:bg-green-500 min-h-[2px]"
-                                                    style={{ height: `${Math.max(waHeight, 2)}%`, width: '40%' }}
+                                                    style={{ height: `${Math.max(waHeight, 2)}%`, width: '30%' }}
                                                 />
                                                 <div
                                                     className="bg-blue-400 rounded-t-sm transition-all duration-500 group-hover:bg-blue-500 min-h-[2px]"
-                                                    style={{ height: `${Math.max(callHeight, 2)}%`, width: '40%' }}
+                                                    style={{ height: `${Math.max(outHeight, 2)}%`, width: '30%' }}
+                                                />
+                                                <div
+                                                    className="bg-indigo-400 rounded-t-sm transition-all duration-500 group-hover:bg-indigo-500 min-h-[2px]"
+                                                    style={{ height: `${Math.max(inHeight, 2)}%`, width: '30%' }}
                                                 />
                                             </div>
                                             <span className={cn(
@@ -392,7 +436,7 @@ export default function PerformanceDashboard() {
                         </div>
                     )}
 
-                    {/* ═══════ LEAD DONUT (CSS-based) ═══════ */}
+                    {/* ═══════ LEAD DONUT + QUICK STATS ═══════ */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col items-center justify-center">
                             <h3 className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-4">Lead Dağılımı</h3>
@@ -435,24 +479,24 @@ export default function PerformanceDashboard() {
                             <div className="bg-gradient-to-br from-violet-50 to-purple-50 rounded-2xl border border-violet-100 p-5">
                                 <p className="text-[11px] font-black text-violet-600/70 uppercase tracking-widest">Toplam Aktivite</p>
                                 <p className="text-3xl font-black text-violet-800 mt-2">
-                                    {((currentStats?.whatsapp_count || 0) + (currentStats?.call_count || 0)).toLocaleString('tr-TR')}
+                                    {((currentStats?.whatsapp_count || 0) + totalCalls).toLocaleString('tr-TR')}
                                 </p>
-                                <p className="text-[11px] text-violet-500 mt-1">WhatsApp + Aramalar</p>
+                                <p className="text-[11px] text-violet-500 mt-1">WA + Giden + Gelen Aramalar</p>
                             </div>
                             <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl border border-emerald-100 p-5">
                                 <p className="text-[11px] font-black text-emerald-600/70 uppercase tracking-widest">Hot Lead Oranı</p>
                                 <p className="text-3xl font-black text-emerald-800 mt-2">%{hotPct}</p>
                                 <p className="text-[11px] text-emerald-500 mt-1">Dönüşüm potansiyeli</p>
                             </div>
-                            <div className="bg-gradient-to-br from-sky-50 to-blue-50 rounded-2xl border border-sky-100 p-5">
-                                <p className="text-[11px] font-black text-sky-600/70 uppercase tracking-widest">WA / Arama Oranı</p>
-                                <p className="text-3xl font-black text-sky-800 mt-2">
-                                    {(currentStats?.call_count || 0) > 0
-                                        ? ((currentStats?.whatsapp_count || 0) / (currentStats?.call_count || 1)).toFixed(1)
+                            <div className="bg-gradient-to-br from-blue-50 to-sky-50 rounded-2xl border border-blue-100 p-5">
+                                <p className="text-[11px] font-black text-blue-600/70 uppercase tracking-widest">Giden / Gelen Oranı</p>
+                                <p className="text-3xl font-black text-blue-800 mt-2">
+                                    {(currentStats?.inbound_call_count || 0) > 0
+                                        ? ((currentStats?.outbound_call_count || 0) / (currentStats?.inbound_call_count || 1)).toFixed(1)
                                         : '—'
                                     }x
                                 </p>
-                                <p className="text-[11px] text-sky-500 mt-1">Her arama başına WA</p>
+                                <p className="text-[11px] text-blue-500 mt-1">Her gelen başına giden arama</p>
                             </div>
                             <div className="bg-gradient-to-br from-rose-50 to-pink-50 rounded-2xl border border-rose-100 p-5">
                                 <p className="text-[11px] font-black text-rose-600/70 uppercase tracking-widest">Isınma Oranı</p>

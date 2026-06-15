@@ -1,56 +1,41 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
 
 export type PeriodKey = 'today' | 'yesterday' | 'this_week' | 'this_month' | 'last_month'
 
-interface PeriodRange {
-    from: string
-    to: string
+interface DateRange {
+    from: string  // YYYY-MM-DD
+    to: string    // YYYY-MM-DD
 }
 
-function getPeriodRange(period: PeriodKey): PeriodRange {
+function getDateRange(period: PeriodKey): DateRange {
     const now = new Date()
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const today = now.toISOString().split('T')[0]
     
     switch (period) {
-        case 'today': {
-            return {
-                from: todayStart.toISOString(),
-                to: new Date(todayStart.getTime() + 86400000 - 1).toISOString()
-            }
-        }
+        case 'today':
+            return { from: today, to: today }
         case 'yesterday': {
-            const yd = new Date(todayStart.getTime() - 86400000)
-            return {
-                from: yd.toISOString(),
-                to: new Date(todayStart.getTime() - 1).toISOString()
-            }
+            const yd = new Date(now)
+            yd.setDate(yd.getDate() - 1)
+            return { from: yd.toISOString().split('T')[0], to: yd.toISOString().split('T')[0] }
         }
         case 'this_week': {
             const day = now.getDay()
-            const diff = day === 0 ? 6 : day - 1 // Monday start
-            const weekStart = new Date(todayStart.getTime() - diff * 86400000)
-            return {
-                from: weekStart.toISOString(),
-                to: now.toISOString()
-            }
+            const diff = day === 0 ? 6 : day - 1
+            const weekStart = new Date(now)
+            weekStart.setDate(weekStart.getDate() - diff)
+            return { from: weekStart.toISOString().split('T')[0], to: today }
         }
         case 'this_month': {
             const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
-            return {
-                from: monthStart.toISOString(),
-                to: now.toISOString()
-            }
+            return { from: monthStart.toISOString().split('T')[0], to: today }
         }
         case 'last_month': {
             const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-            const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999)
-            return {
-                from: lastMonthStart.toISOString(),
-                to: lastMonthEnd.toISOString()
-            }
+            const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0)
+            return { from: lastMonthStart.toISOString().split('T')[0], to: lastMonthEnd.toISOString().split('T')[0] }
         }
     }
 }
@@ -59,7 +44,8 @@ export interface PeriodStats {
     period: PeriodKey
     label: string
     whatsapp_count: number
-    call_count: number
+    outbound_call_count: number
+    inbound_call_count: number
     cold_count: number
     warm_count: number
     hot_count: number
@@ -67,21 +53,51 @@ export interface PeriodStats {
 
 export interface PerformanceData {
     periods: PeriodStats[]
-    daily_trend: { date: string; whatsapp: number; calls: number }[]
+    daily_trend: { date: string; whatsapp: number; outbound: number; inbound: number }[]
+    last_updated: string | null
 }
 
 export async function getPerformanceAnalytics(): Promise<PerformanceData> {
     const supabase = await createClient()
     
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { periods: [], daily_trend: [] }
+    if (!user) return { periods: [], daily_trend: [], last_updated: null }
 
     const { data: profile } = await supabase
         .from('profiles')
-        .select('role, tenant_id')
+        .select('tenant_id')
         .eq('id', user.id)
         .single()
 
+    if (!profile?.tenant_id) return { periods: [], daily_trend: [], last_updated: null }
+
+    const tenantId = profile.tenant_id
+
+    // Fetch all needed data in a single query — last 60 days covers all periods
+    const sixtyDaysAgo = new Date()
+    sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60)
+    
+    const { data: stats } = await supabase
+        .from('report_daily_stats')
+        .select('stat_date, whatsapp_count, outbound_call_count, inbound_call_count, cold_count, warm_count, hot_count, updated_at')
+        .eq('tenant_id', tenantId)
+        .gte('stat_date', sixtyDaysAgo.toISOString().split('T')[0])
+        .order('stat_date', { ascending: true })
+
+    if (!stats || stats.length === 0) {
+        return { periods: [], daily_trend: [], last_updated: null }
+    }
+
+    // Build a date-keyed lookup
+    const dateMap = new Map<string, typeof stats[0]>()
+    for (const row of stats) {
+        dateMap.set(row.stat_date, row)
+    }
+
+    // Last updated timestamp
+    const lastUpdated = stats[stats.length - 1]?.updated_at || null
+
+    // Aggregate periods
     const periodKeys: { key: PeriodKey; label: string }[] = [
         { key: 'today', label: 'Bugün' },
         { key: 'yesterday', label: 'Dün' },
@@ -90,149 +106,49 @@ export async function getPerformanceAnalytics(): Promise<PerformanceData> {
         { key: 'last_month', label: 'Geçen Ay' }
     ]
 
-    const periods: PeriodStats[] = await Promise.all(
-        periodKeys.map(async ({ key, label }) => {
-            const range = getPeriodRange(key)
+    const periods: PeriodStats[] = periodKeys.map(({ key, label }) => {
+        const range = getDateRange(key)
+        let wa = 0, outbound = 0, inbound = 0, cold = 0, warm = 0, hot = 0
 
-            // WhatsApp activities count
-            const waQuery = supabase
-                .from('activities')
-                .select('id', { count: 'exact', head: true })
-                .eq('type', 'Whatsapp')
-                .gte('created_at', range.from)
-                .lte('created_at', range.to)
-
-            // Call activities count (manual calls logged by reps)
-            const callQuery = supabase
-                .from('activities')
-                .select('id', { count: 'exact', head: true })
-                .eq('type', 'Call')
-                .gte('created_at', range.from)
-                .lte('created_at', range.to)
-
-            // AI Call count (from lead_qualifications.last_call_at — single + outreach AI calls)
-            const aiCallQuery = supabase
-                .from('lead_qualifications')
-                .select('id', { count: 'exact', head: true })
-                .not('last_call_at', 'is', null)
-                .gte('last_call_at', range.from)
-                .lte('last_call_at', range.to)
-
-            // Inbound calls (AI asistan gelen aramalar)
-            const adminSupabase = createAdminClient()
-            const inboundCallQuery = adminSupabase
-                .from('inbound_calls')
-                .select('id', { count: 'exact', head: true })
-                .gte('started_at', range.from)
-                .lte('started_at', range.to)
-
-            // Lead interest levels — count current state filtered by updated_at
-            const coldQuery = supabase
-                .from('lead_qualifications')
-                .select('id', { count: 'exact', head: true })
-                .eq('interest_level', 'cold')
-                .gte('updated_at', range.from)
-                .lte('updated_at', range.to)
-
-            const warmQuery = supabase
-                .from('lead_qualifications')
-                .select('id', { count: 'exact', head: true })
-                .eq('interest_level', 'warm')
-                .gte('updated_at', range.from)
-                .lte('updated_at', range.to)
-
-            const hotQuery = supabase
-                .from('lead_qualifications')
-                .select('id', { count: 'exact', head: true })
-                .eq('interest_level', 'hot')
-                .gte('updated_at', range.from)
-                .lte('updated_at', range.to)
-
-            const [waRes, callRes, aiCallRes, inboundRes, coldRes, warmRes, hotRes] = await Promise.all([
-                waQuery, callQuery, aiCallQuery, inboundCallQuery, coldQuery, warmQuery, hotQuery
-            ])
-
-            // Total calls = manual rep calls + AI outbound calls + inbound AI calls
-            const totalCalls = (callRes.count || 0) + (aiCallRes.count || 0) + (inboundRes.count || 0)
-
-            return {
-                period: key,
-                label,
-                whatsapp_count: waRes.count || 0,
-                call_count: totalCalls,
-                cold_count: coldRes.count || 0,
-                warm_count: warmRes.count || 0,
-                hot_count: hotRes.count || 0
+        // Sum all days in the range
+        const fromDate = new Date(range.from)
+        const toDate = new Date(range.to)
+        const current = new Date(fromDate)
+        
+        while (current <= toDate) {
+            const dateKey = current.toISOString().split('T')[0]
+            const row = dateMap.get(dateKey)
+            if (row) {
+                wa += row.whatsapp_count || 0
+                outbound += row.outbound_call_count || 0
+                inbound += row.inbound_call_count || 0
+                cold += row.cold_count || 0
+                warm += row.warm_count || 0
+                hot += row.hot_count || 0
             }
-        })
-    )
+            current.setDate(current.getDate() + 1)
+        }
 
-    // Daily trend for the last 14 days (for line chart)
+        return { period: key, label, whatsapp_count: wa, outbound_call_count: outbound, inbound_call_count: inbound, cold_count: cold, warm_count: warm, hot_count: hot }
+    })
+
+    // Daily trend — last 14 days
+    const daily_trend: { date: string; whatsapp: number; outbound: number; inbound: number }[] = []
     const fourteenDaysAgo = new Date()
     fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 13)
-    fourteenDaysAgo.setHours(0, 0, 0, 0)
 
-    const { data: recentActivities } = await supabase
-        .from('activities')
-        .select('type, created_at')
-        .in('type', ['Whatsapp', 'Call'])
-        .gte('created_at', fourteenDaysAgo.toISOString())
-        .order('created_at')
-
-    // AI calls from lead_qualifications (last_call_at tracks when AI call happened)
-    const { data: recentAiCalls } = await supabase
-        .from('lead_qualifications')
-        .select('last_call_at')
-        .not('last_call_at', 'is', null)
-        .gte('last_call_at', fourteenDaysAgo.toISOString())
-        .order('last_call_at')
-
-    // Inbound AI calls
-    const adminSupabaseTrend = createAdminClient()
-    const { data: recentInbound } = await adminSupabaseTrend
-        .from('inbound_calls')
-        .select('started_at')
-        .gte('started_at', fourteenDaysAgo.toISOString())
-        .order('started_at')
-
-    // Group by date
-    const dayMap: Record<string, { whatsapp: number; calls: number }> = {}
     for (let i = 0; i < 14; i++) {
-        const d = new Date(fourteenDaysAgo.getTime() + i * 86400000)
-        const key = d.toISOString().split('T')[0]
-        dayMap[key] = { whatsapp: 0, calls: 0 }
+        const d = new Date(fourteenDaysAgo)
+        d.setDate(d.getDate() + i)
+        const dateKey = d.toISOString().split('T')[0]
+        const row = dateMap.get(dateKey)
+        daily_trend.push({
+            date: dateKey,
+            whatsapp: row?.whatsapp_count || 0,
+            outbound: row?.outbound_call_count || 0,
+            inbound: row?.inbound_call_count || 0
+        })
     }
 
-    if (recentActivities) {
-        for (const act of recentActivities) {
-            const dateKey = new Date(act.created_at).toISOString().split('T')[0]
-            if (dayMap[dateKey]) {
-                if (act.type === 'Whatsapp') dayMap[dateKey].whatsapp++
-                else if (act.type === 'Call') dayMap[dateKey].calls++
-            }
-        }
-    }
-
-    // Add AI outbound calls to daily trend
-    if (recentAiCalls) {
-        for (const lq of recentAiCalls) {
-            const dateKey = new Date(lq.last_call_at).toISOString().split('T')[0]
-            if (dayMap[dateKey]) dayMap[dateKey].calls++
-        }
-    }
-
-    // Add inbound AI calls to daily trend
-    if (recentInbound) {
-        for (const call of recentInbound) {
-            const dateKey = new Date(call.started_at).toISOString().split('T')[0]
-            if (dayMap[dateKey]) dayMap[dateKey].calls++
-        }
-    }
-
-    const daily_trend = Object.entries(dayMap).map(([date, counts]) => ({
-        date,
-        ...counts
-    }))
-
-    return { periods, daily_trend }
+    return { periods, daily_trend, last_updated: lastUpdated }
 }
