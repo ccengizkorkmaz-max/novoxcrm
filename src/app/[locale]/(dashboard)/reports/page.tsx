@@ -29,6 +29,13 @@ import { getTranslations } from 'next-intl/server'
 
 const reportCards = [
     {
+        id: "performance-analytics",
+        href: "/reports/performance-analytics",
+        icon: Activity,
+        color: "text-violet-600",
+        bgColor: "bg-violet-100"
+    },
+    {
         id: "sales",
         href: "/reports/sales",
         icon: Activity,

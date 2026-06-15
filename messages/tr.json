@@ -932,6 +932,10 @@
         "description": "İşletmenizin performansını detaylı raporlar ile analiz edin.",
         "note": "Not: Raporlar şu an taslak aşamasındadır. Yakında veri tabanınızdaki canlı verilerle grafiksel olarak güncellenecektir.",
         "cards": {
+            "performance-analytics": {
+                "title": "Performans & Lead Analitik",
+                "description": "WhatsApp mesajları, telefon aramaları ve Cold/Ilık/Hot lead sayılarını dönemsel olarak analiz edin."
+            },
             "sales": {
                 "title": "Satış Performansı",
                 "description": "Ciro, adet ve pipeline analizi ile satış hedeflerinizi takip edin."

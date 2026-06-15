@@ -906,6 +906,10 @@
         "description": "Analyze your business performance with detailed reports.",
         "note": "Note: Reports are currently in draft stage. Soon they will be graphically updated with live data from your database.",
         "cards": {
+            "performance-analytics": {
+                "title": "Performance & Lead Analytics",
+                "description": "Analyze WhatsApp messages, phone calls and Cold/Warm/Hot lead counts by period."
+            },
             "sales": {
                 "title": "Sales Performance",
                 "description": "Track your sales targets with turnover, volume, and pipeline analysis."

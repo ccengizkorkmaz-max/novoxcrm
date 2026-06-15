@@ -99,9 +99,6 @@ export default function CustomerDemands({ customerId, demand, onClose }: Custome
                 </div>
             </div>
 
-            <div className="flex justify-end p-4 sm:p-6 pt-4 border-t bg-slate-50 dark:bg-slate-900/50 shrink-0">
-                <Button type="submit" className="w-full sm:w-auto">{t('createModal.submit')}</Button>
-            </div>
         </form>
     )
 }
