@@ -11,6 +11,10 @@
     {
       "path": "/api/seo/ping-engines",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/report-stats",
+      "schedule": "*/5 7-22 * * *"
     }
   ]
 }
