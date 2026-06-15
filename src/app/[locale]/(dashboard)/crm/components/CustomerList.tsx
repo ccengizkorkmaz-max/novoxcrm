@@ -26,15 +26,12 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { cn } from '@/lib/utils'
-import { UserPlus, Pencil, Trash, Mail, Phone, Tag, CalendarPlus, AlertTriangle, Users, Search, ArrowUpDown, ArrowUp, ArrowDown, PieChart, Target, TrendingUp, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, Filter, X, Plus } from 'lucide-react'
+import { UserPlus, Pencil, Trash, Mail, Phone, Tag, CalendarPlus, AlertTriangle, Users, Search, ArrowUpDown, ArrowUp, ArrowDown, PieChart, Target, TrendingUp, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, Filter, X } from 'lucide-react'
 import ColumnVisibilityPicker from '@/components/ui/column-visibility-picker'
 import ColumnFilterRow from '@/components/ui/column-filter-row'
 import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Textarea } from '@/components/ui/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent } from "@/components/ui/card"
-import { createCustomer, updateCustomer, deleteCustomer, getSourceOptions, addSourceOption, getSalesReps } from '../actions'
+import { updateCustomer, deleteCustomer } from '../actions'
 import CustomerDemands from './CustomerDemands'
 import { CustomerImportDialog } from '@/components/customers/customer-import-dialog'
 import { CustomerEditDialog, type Customer } from './CustomerEditDialog'
@@ -91,41 +88,6 @@ export default function CustomerList({
     const [selectedCustomerForActivity, setSelectedCustomerForActivity] = useState<Customer | null>(null)
     const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null)
     const [isPending, setIsPending] = useState(false)
-    const [customerType, setCustomerType] = useState<'individual' | 'corporate'>('individual')
-
-    // New customer fields state
-    const [createSourceOptions, setCreateSourceOptions] = useState<{ id: string; label: string }[]>([])
-    const [createSelectedSource, setCreateSelectedSource] = useState('')
-    const [createNewSourceLabel, setCreateNewSourceLabel] = useState('')
-    const [createShowNewSource, setCreateShowNewSource] = useState(false)
-    const [createGender, setCreateGender] = useState('')
-    const [createHeardFrom, setCreateHeardFrom] = useState('')
-    const [createSalesReps, setCreateSalesReps] = useState<{ id: string; full_name: string; role: string }[]>([])
-
-    useEffect(() => {
-        if (isCreateOpen) {
-            getSourceOptions().then(res => { if (res.options) setCreateSourceOptions(res.options) })
-            getSalesReps().then(res => { if (res.reps) setCreateSalesReps(res.reps) })
-            setCreateSelectedSource('')
-            setCreateGender('')
-            setCreateHeardFrom('')
-            setCreateShowNewSource(false)
-            setCreateNewSourceLabel('')
-        }
-    }, [isCreateOpen])
-
-    const handleCreateAddSource = async () => {
-        if (!createNewSourceLabel.trim()) return
-        const res = await addSourceOption(createNewSourceLabel.trim())
-        if (res?.error) { toast.error(res.error) }
-        else if (res?.option) {
-            setCreateSourceOptions(prev => [...prev, { id: res.option.id, label: res.option.label }])
-            setCreateSelectedSource(res.option.label)
-            setCreateShowNewSource(false)
-            setCreateNewSourceLabel('')
-            toast.success('Yeni kaynak eklendi')
-        }
-    }
 
     const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '')
     const [sortConfig, setSortConfig] = useState<{ key: SortKey; order: SortOrder }>({
@@ -488,293 +450,18 @@ export default function CustomerList({
                         <Users className="mr-2 h-5 w-5" /> Mükerrerleri Birleştir
                     </Button>
 
-                    <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-                        <DialogTrigger asChild>
-                            <Button variant="default" className="shadow-lg shadow-blue-100 bg-blue-600 hover:bg-blue-700 h-11 px-6 rounded-xl font-bold transition-all active:scale-95 whitespace-nowrap">
-                                <UserPlus className="mr-2 h-5 w-5" /> {t('addCustomer')}
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-4xl w-[95vw] rounded-2xl p-0 overflow-hidden border-none shadow-2xl max-h-[90vh] overflow-y-auto">
-                            <DialogHeader className="p-5 bg-slate-50 border-b border-slate-100">
-                                <DialogTitle className="text-xl font-black text-slate-900">{t('createModal.title')}</DialogTitle>
-                            </DialogHeader>
-                            <form action={async (formData) => {
-                                formData.set('customer_type', customerType)
-                                setIsPending(true)
-                                try {
-                                    const res = await createCustomer(formData)
-                                    if (res?.error) {
-                                        toast.error(res.error)
-                                    } else {
-                                        toast.success(t('messages.created') || 'Müşteri oluşturuldu')
-                                        setIsCreateOpen(false)
-                                        setCustomerType('individual')
-                                        router.refresh()
-                                    }
-                                } finally {
-                                    setIsPending(false)
-                                }
-                            }}>
-                                <div className="p-5">
-                                    {/* Customer Type Toggle */}
-                                    <div className="flex items-center gap-3 mb-5 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                                        <Label className="text-[11px] font-black text-slate-500 uppercase tracking-widest whitespace-nowrap">Müşteri Tipi</Label>
-                                        <div className="flex gap-1 bg-white rounded-lg border border-slate-200 p-0.5">
-                                            <button type="button" onClick={() => setCustomerType('individual')}
-                                                className={cn("px-4 py-1.5 rounded-md text-xs font-bold transition-all", customerType === 'individual' ? "bg-blue-600 text-white shadow-sm" : "text-slate-500 hover:text-slate-700")}>
-                                                Bireysel
-                                            </button>
-                                            <button type="button" onClick={() => setCustomerType('corporate')}
-                                                className={cn("px-4 py-1.5 rounded-md text-xs font-bold transition-all", customerType === 'corporate' ? "bg-blue-600 text-white shadow-sm" : "text-slate-500 hover:text-slate-700")}>
-                                                Kurumsal
-                                            </button>
-                                        </div>
-                                        <input type="hidden" name="customer_type" value={customerType} />
-                                    </div>
-
-                                    <Tabs defaultValue="general" className="w-full">
-                                        <TabsList className={cn("grid w-full mb-5 bg-slate-100 p-1 rounded-xl", customerType === 'corporate' ? "grid-cols-3" : "grid-cols-3")}>
-                                            <TabsTrigger value="general" className="rounded-lg font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">{t('tabs.details')}</TabsTrigger>
-                                            {customerType === 'corporate' && (
-                                                <TabsTrigger value="company" className="rounded-lg font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">Firma Bilgileri</TabsTrigger>
-                                            )}
-                                            <TabsTrigger value="demands" className="rounded-lg font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">{t('tabs.demands')}</TabsTrigger>
-                                            {customerType === 'individual' && (
-                                                <TabsTrigger value="profile" className="rounded-lg font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm">Profil</TabsTrigger>
-                                            )}
-                                        </TabsList>
-                                        <TabsContent value="general" forceMount={true} className="data-[state=inactive]:hidden space-y-3">
-                                            <div className="grid grid-cols-3 gap-4">
-                                                <div className="grid gap-1.5">
-                                                    <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{t('form.fullName')}</Label>
-                                                    <Input name="full_name" required className="h-10 bg-slate-50 border-slate-200 rounded-xl" />
-                                                </div>
-                                                <div className="grid gap-1.5">
-                                                    <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{t('form.phone')}</Label>
-                                                    <Input name="phone" required className="h-10 bg-slate-50 border-slate-200 rounded-xl" />
-                                                </div>
-                                                <div className="grid gap-1.5">
-                                                    <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{t('form.email')}</Label>
-                                                    <Input name="email" type="email" className="h-10 bg-slate-50 border-slate-200 rounded-xl" />
-                                                </div>
-                                            </div>
-                                            {/* Hidden fields for new data */}
-                                            <input type="hidden" name="gender" value={createGender} />
-                                            <input type="hidden" name="heard_from" value={createHeardFrom} />
-                                            <input type="hidden" name="source" value={createSelectedSource} />
-
-                                            {/* Gender */}
-                                            <div className="grid gap-1.5">
-                                                <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Cinsiyet</Label>
-                                                <div className="flex gap-2">
-                                                    {[
-                                                        { value: 'male', label: '👨 Erkek' },
-                                                        { value: 'female', label: '👩 Kadın' },
-                                                        { value: 'other', label: 'Diğer' }
-                                                    ].map(opt => (
-                                                        <button
-                                                            key={opt.value}
-                                                            type="button"
-                                                            onClick={() => setCreateGender(opt.value)}
-                                                            className={cn(
-                                                                "px-4 py-2 rounded-xl text-xs font-bold border transition-all",
-                                                                createGender === opt.value
-                                                                    ? "bg-blue-600 text-white border-blue-600 shadow-sm shadow-blue-200"
-                                                                    : "bg-white text-slate-500 border-slate-200 hover:border-blue-300 hover:text-blue-600"
-                                                            )}
-                                                        >
-                                                            {opt.label}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
-
-                                            <div className="grid grid-cols-3 gap-4">
-                                                {/* Source — dynamic dropdown */}
-                                                <div className="grid gap-1.5">
-                                                    <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{t('form.source')}</Label>
-                                                    {createShowNewSource ? (
-                                                        <div className="flex gap-1">
-                                                            <Input
-                                                                value={createNewSourceLabel}
-                                                                onChange={(e) => setCreateNewSourceLabel(e.target.value)}
-                                                                placeholder="Yeni kaynak..."
-                                                                className="h-10 bg-slate-50 border-slate-200 rounded-xl text-sm flex-1"
-                                                                onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleCreateAddSource())}
-                                                                autoFocus
-                                                            />
-                                                            <Button type="button" size="sm" className="h-10 px-2 rounded-xl" onClick={handleCreateAddSource}>
-                                                                <Plus className="h-3.5 w-3.5" />
-                                                            </Button>
-                                                            <Button type="button" size="sm" variant="ghost" className="h-10 px-2 rounded-xl text-[10px]" onClick={() => setCreateShowNewSource(false)}>İptal</Button>
-                                                        </div>
-                                                    ) : (
-                                                        <div className="flex gap-1">
-                                                            <Select value={createSelectedSource} onValueChange={setCreateSelectedSource}>
-                                                                <SelectTrigger className="h-10 bg-slate-50 border-slate-200 rounded-xl text-sm flex-1">
-                                                                    <SelectValue placeholder="Kaynak seçin..." />
-                                                                </SelectTrigger>
-                                                                <SelectContent className="rounded-xl shadow-xl">
-                                                                    {createSourceOptions.map(opt => (
-                                                                        <SelectItem key={opt.id} value={opt.label}>{opt.label}</SelectItem>
-                                                                    ))}
-                                                                </SelectContent>
-                                                            </Select>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => setCreateShowNewSource(true)}
-                                                                className="h-10 w-10 rounded-xl border border-dashed border-slate-300 flex items-center justify-center text-slate-400 hover:border-blue-400 hover:text-blue-600 transition-all shrink-0"
-                                                                title="Yeni kaynak ekle"
-                                                            >
-                                                                <Plus className="h-4 w-4" />
-                                                            </button>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <div className="grid gap-1.5">
-                                                    <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{t('form.city')}</Label>
-                                                    <Input name="city" className="h-10 bg-slate-50 border-slate-200 rounded-xl" />
-                                                </div>
-                                                <div className="grid gap-1.5">
-                                                    <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{t('form.district')}</Label>
-                                                    <Input name="district" className="h-10 bg-slate-50 border-slate-200 rounded-xl" />
-                                                </div>
-                                            </div>
-                                            <div className="grid gap-1.5">
-                                                <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{t('form.address')}</Label>
-                                                <Textarea name="address" className="bg-slate-50 border-slate-200 rounded-xl resize-none min-h-[60px]" />
-                                            </div>
-                                            <div className="pt-3 border-t mt-2">
-                                                <Label className="text-blue-600 font-black text-[10px] uppercase tracking-widest">Portal Erişimi</Label>
-                                                <div className="grid grid-cols-2 gap-4 mt-2">
-                                                    <div className="grid gap-1">
-                                                        <Label className="text-[10px] font-bold text-slate-400 ml-1">{t('form.username')}</Label>
-                                                        <Input name="portal_username" placeholder={t('form.username')} className="h-9 bg-white border-slate-200 rounded-xl" />
-                                                    </div>
-                                                    <div className="grid gap-1">
-                                                        <Label className="text-[10px] font-bold text-slate-400 ml-1">{t('form.password')}</Label>
-                                                        <Input name="portal_password" type="password" placeholder={t('form.password')} className="h-9 bg-white border-slate-200 rounded-xl" />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </TabsContent>
-                                        {customerType === 'corporate' && (
-                                            <TabsContent value="company" forceMount={true} className="data-[state=inactive]:hidden space-y-3">
-                                                <div className="grid grid-cols-2 gap-4">
-                                                    <div className="grid gap-1.5">
-                                                        <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Firma Adı <span className="text-red-500">*</span></Label>
-                                                        <Input name="company_name" required={customerType === 'corporate'} className="h-10 bg-slate-50 border-slate-200 rounded-xl" />
-                                                    </div>
-                                                    <div className="grid gap-1.5">
-                                                        <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Firma Telefonu</Label>
-                                                        <Input name="company_phone" className="h-10 bg-slate-50 border-slate-200 rounded-xl" />
-                                                    </div>
-                                                </div>
-                                                <div className="grid grid-cols-2 gap-4">
-                                                    <div className="grid gap-1.5">
-                                                        <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Vergi Dairesi <span className="text-red-500">*</span></Label>
-                                                        <Input name="tax_office" required={customerType === 'corporate'} className="h-10 bg-slate-50 border-slate-200 rounded-xl" />
-                                                    </div>
-                                                    <div className="grid gap-1.5">
-                                                        <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Vergi Numarası <span className="text-red-500">*</span></Label>
-                                                        <Input name="tax_number" required={customerType === 'corporate'} className="h-10 bg-slate-50 border-slate-200 rounded-xl" />
-                                                    </div>
-                                                </div>
-                                                <div className="grid grid-cols-2 gap-4">
-                                                    <div className="grid gap-1.5">
-                                                        <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Firma E-posta</Label>
-                                                        <Input name="company_email" type="email" className="h-10 bg-slate-50 border-slate-200 rounded-xl" />
-                                                    </div>
-                                                    <div className="grid gap-1.5">
-                                                        <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Web Sitesi</Label>
-                                                        <Input name="company_website" placeholder="https://" className="h-10 bg-slate-50 border-slate-200 rounded-xl" />
-                                                    </div>
-                                                </div>
-                                                <div className="grid gap-1.5">
-                                                    <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Firma Adresi</Label>
-                                                    <Textarea name="company_address" className="bg-slate-50 border-slate-200 rounded-xl resize-none min-h-[60px]" />
-                                                </div>
-                                            </TabsContent>
-                                        )}
-                                        <TabsContent value="demands" forceMount={true} className="data-[state=inactive]:hidden space-y-3">
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div className="space-y-1.5">
-                                                    <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{t('form.minBudget')}</Label>
-                                                    <Input name="min_price" type="number" placeholder="0" className="h-10 bg-slate-50 border-slate-200 rounded-xl" />
-                                                </div>
-                                                <div className="space-y-1.5">
-                                                    <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{t('form.maxBudget')}</Label>
-                                                    <Input name="max_price" type="number" placeholder="0" className="h-10 bg-slate-50 border-slate-200 rounded-xl" />
-                                                </div>
-                                            </div>
-                                            <div className="space-y-1.5">
-                                                <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{t('form.roomCount')}</Label>
-                                                <div className="flex gap-2 flex-wrap">
-                                                    {['1+1', '2+1', '3+1', '4+1', 'Villa'].map(type => (
-                                                        <label key={type} className="flex items-center space-x-2 border border-slate-100 bg-slate-50/50 p-2 px-3 rounded-xl cursor-pointer hover:bg-white hover:border-blue-200 transition-all">
-                                                            <input type="checkbox" name="room_count" value={type} className="h-4 w-4 rounded-md border-slate-300 text-blue-600" />
-                                                            <span className="text-sm font-bold text-slate-700">{type}</span>
-                                                        </label>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                            <div className="grid grid-cols-3 gap-4">
-                                                <div className="space-y-1.5">
-                                                    <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{t('form.location')}</Label>
-                                                    <Input name="location_preference" placeholder={t('form.locationPlaceholder')} className="h-10 bg-slate-50 border-slate-200 rounded-xl" />
-                                                </div>
-                                                <div className="space-y-1.5">
-                                                    <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{t('form.propertyType')}</Label>
-                                                    <Select name="property_type">
-                                                        <SelectTrigger className="h-10 bg-slate-50 border-slate-200 rounded-xl"><SelectValue placeholder={t('form.select')} /></SelectTrigger>
-                                                        <SelectContent className="rounded-xl shadow-xl">
-                                                            <SelectItem value="Apartment">{t('types.Apartment')}</SelectItem>
-                                                            <SelectItem value="Villa">{t('types.Villa')}</SelectItem>
-                                                            <SelectItem value="Office">{t('types.Office')}</SelectItem>
-                                                            <SelectItem value="Shop">{t('types.Shop')}</SelectItem>
-                                                            <SelectItem value="Commercial">{t('types.Commercial')}</SelectItem>
-                                                            <SelectItem value="Land">{t('types.Land')}</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                </div>
-                                                <div className="space-y-1.5">
-                                                    <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{t('form.investmentPurpose')}</Label>
-                                                    <Select name="investment_purpose">
-                                                        <SelectTrigger className="h-10 bg-slate-50 border-slate-200 rounded-xl"><SelectValue placeholder={t('form.select')} /></SelectTrigger>
-                                                        <SelectContent className="rounded-xl shadow-xl">
-                                                            <SelectItem value="Living">{t('purposes.Living')}</SelectItem>
-                                                            <SelectItem value="Investment">{t('purposes.Investment')}</SelectItem>
-                                                            <SelectItem value="Holiday">{t('purposes.Holiday')}</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                </div>
-                                            </div>
-                                            <div className="space-y-1.5">
-                                                <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{t('form.notes')}</Label>
-                                                <Textarea name="notes" placeholder={t('form.notesPlaceholder')} className="bg-slate-50 border-slate-200 rounded-xl resize-none min-h-[70px]" />
-                                            </div>
-                                        </TabsContent>
-                                        {customerType === 'individual' && (
-                                            <TabsContent value="profile" forceMount={true} className="data-[state=inactive]:hidden space-y-4">
-                                                <InlineProfileFields />
-                                            </TabsContent>
-                                        )}
-                                    </Tabs>
-                                </div>
-                                <DialogFooter className="p-5 bg-slate-50 border-t border-slate-100">
-                                    <Button type="submit" disabled={isPending} className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-100 transition-all">
-                                        {isPending ? (
-                                            <div className="flex items-center gap-2">
-                                                <span className="animate-spin h-4 w-4 border-2 border-white/20 border-t-white rounded-full" />
-                                                <span>{t('createModal.submitting') || 'Kaydediliyor...'}</span>
-                                            </div>
-                                        ) : t('createModal.submit')}
-                                    </Button>
-                                </DialogFooter>
-                            </form>
-                        </DialogContent>
-                    </Dialog>
+                    <Button variant="default" className="shadow-lg shadow-blue-100 bg-blue-600 hover:bg-blue-700 h-11 px-6 rounded-xl font-bold transition-all active:scale-95 whitespace-nowrap" onClick={() => setIsCreateOpen(true)}>
+                        <UserPlus className="mr-2 h-5 w-5" /> {t('addCustomer')}
+                    </Button>
+                    {/* Create customer — uses shared dialog */}
+                    <CustomerEditDialog
+                        customer={null}
+                        isOpen={isCreateOpen}
+                        onOpenChange={setIsCreateOpen}
+                    />
                 </div>
+
+
                 <div className="relative flex-1 min-w-[220px] max-w-[400px]">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                     <Input
