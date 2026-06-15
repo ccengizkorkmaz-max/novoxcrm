@@ -54,6 +54,8 @@ export interface PeriodStats {
 export interface PerformanceData {
     periods: PeriodStats[]
     daily_trend: { date: string; whatsapp: number; outbound: number; inbound: number }[]
+    wa_breakdown: Record<string, Record<string, number>>
+    calls_breakdown: Record<string, Record<string, number>>
     last_updated: string | null
 }
 
@@ -61,7 +63,7 @@ export async function getPerformanceAnalytics(): Promise<PerformanceData> {
     const supabase = await createClient()
     
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { periods: [], daily_trend: [], last_updated: null }
+    if (!user) return { periods: [], daily_trend: [], wa_breakdown: {}, calls_breakdown: {}, last_updated: null }
 
     const { data: profile } = await supabase
         .from('profiles')
@@ -69,7 +71,7 @@ export async function getPerformanceAnalytics(): Promise<PerformanceData> {
         .eq('id', user.id)
         .single()
 
-    if (!profile?.tenant_id) return { periods: [], daily_trend: [], last_updated: null }
+    if (!profile?.tenant_id) return { periods: [], daily_trend: [], wa_breakdown: {}, calls_breakdown: {}, last_updated: null }
 
     const tenantId = profile.tenant_id
 
@@ -79,13 +81,13 @@ export async function getPerformanceAnalytics(): Promise<PerformanceData> {
     
     const { data: stats } = await supabase
         .from('report_daily_stats')
-        .select('stat_date, whatsapp_count, outbound_call_count, inbound_call_count, cold_count, warm_count, hot_count, updated_at')
+        .select('stat_date, whatsapp_count, outbound_call_count, inbound_call_count, cold_count, warm_count, hot_count, whatsapp_breakdown, calls_breakdown, updated_at')
         .eq('tenant_id', tenantId)
         .gte('stat_date', sixtyDaysAgo.toISOString().split('T')[0])
         .order('stat_date', { ascending: true })
 
     if (!stats || stats.length === 0) {
-        return { periods: [], daily_trend: [], last_updated: null }
+        return { periods: [], daily_trend: [], wa_breakdown: {}, calls_breakdown: {}, last_updated: null }
     }
 
     // Build a date-keyed lookup
@@ -106,11 +108,29 @@ export async function getPerformanceAnalytics(): Promise<PerformanceData> {
         { key: 'last_month', label: 'Geçen Ay' }
     ]
 
+    // Helper: aggregate wa_breakdown JSONB across date range
+    function aggregateBreakdown(fromStr: string, toStr: string): Record<string, number> {
+        const result: Record<string, number> = {}
+        const from = new Date(fromStr)
+        const to = new Date(toStr)
+        const cur = new Date(from)
+        while (cur <= to) {
+            const dk = cur.toISOString().split('T')[0]
+            const row = dateMap.get(dk)
+            if (row?.whatsapp_breakdown && typeof row.whatsapp_breakdown === 'object') {
+                for (const [tmpl, cnt] of Object.entries(row.whatsapp_breakdown as Record<string, number>)) {
+                    result[tmpl] = (result[tmpl] || 0) + (cnt || 0)
+                }
+            }
+            cur.setDate(cur.getDate() + 1)
+        }
+        return result
+    }
+
     const periods: PeriodStats[] = periodKeys.map(({ key, label }) => {
         const range = getDateRange(key)
         let wa = 0, outbound = 0, inbound = 0, cold = 0, warm = 0, hot = 0
 
-        // Sum all days in the range
         const fromDate = new Date(range.from)
         const toDate = new Date(range.to)
         const current = new Date(fromDate)
@@ -132,6 +152,40 @@ export async function getPerformanceAnalytics(): Promise<PerformanceData> {
         return { period: key, label, whatsapp_count: wa, outbound_call_count: outbound, inbound_call_count: inbound, cold_count: cold, warm_count: warm, hot_count: hot }
     })
 
+    // Aggregate WA breakdown for active period (this_month as default overview)
+    // We'll send all period breakdowns so client can switch
+    const periodBreakdowns: Record<string, Record<string, number>> = {}
+    for (const { key } of periodKeys) {
+        const range = getDateRange(key)
+        periodBreakdowns[key] = aggregateBreakdown(range.from, range.to)
+    }
+
+    // Aggregate calls breakdown per period
+    function aggregateCallsBreakdown(fromStr: string, toStr: string): Record<string, number> {
+        const result: Record<string, number> = { manuel_giden: 0, ai_giden: 0, gelen: 0 }
+        const from = new Date(fromStr)
+        const to = new Date(toStr)
+        const cur = new Date(from)
+        while (cur <= to) {
+            const dk = cur.toISOString().split('T')[0]
+            const row = dateMap.get(dk)
+            if (row?.calls_breakdown && typeof row.calls_breakdown === 'object') {
+                const cb = row.calls_breakdown as Record<string, number>
+                result.manuel_giden += cb.manuel_giden || 0
+                result.ai_giden += cb.ai_giden || 0
+                result.gelen += cb.gelen || 0
+            }
+            cur.setDate(cur.getDate() + 1)
+        }
+        return result
+    }
+
+    const callsBreakdowns: Record<string, Record<string, number>> = {}
+    for (const { key } of periodKeys) {
+        const range = getDateRange(key)
+        callsBreakdowns[key] = aggregateCallsBreakdown(range.from, range.to)
+    }
+
     // Daily trend — last 14 days
     const daily_trend: { date: string; whatsapp: number; outbound: number; inbound: number }[] = []
     const fourteenDaysAgo = new Date()
@@ -150,5 +204,5 @@ export async function getPerformanceAnalytics(): Promise<PerformanceData> {
         })
     }
 
-    return { periods, daily_trend, last_updated: lastUpdated }
+    return { periods, daily_trend, wa_breakdown: periodBreakdowns, calls_breakdown: callsBreakdowns, last_updated: lastUpdated }
 }

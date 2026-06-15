@@ -436,6 +436,137 @@ export default function PerformanceDashboard() {
                         </div>
                     )}
 
+                    {/* ═══════ WHATSAPP ŞABLON KIRILIMI ═══════ */}
+                    {data?.wa_breakdown && (() => {
+                        const breakdown = (data.wa_breakdown as any)[activePeriod] as Record<string, number> | undefined
+                        if (!breakdown || Object.keys(breakdown).length === 0) return null
+                        const sorted = Object.entries(breakdown).sort(([,a], [,b]) => b - a)
+                        const maxCount = sorted[0]?.[1] || 1
+                        const totalWa = sorted.reduce((sum, [, cnt]) => sum + cnt, 0)
+
+                        // Template display names and colors
+                        const templateMeta: Record<string, { label: string; color: string; emoji: string }> = {
+                            'Serbest Metin': { label: 'AI Chatbot Yanıtları', color: 'bg-green-400', emoji: '🤖' },
+                            'new_lead_bilgilendirme': { label: 'Yeni Lead Bilgilendirme', color: 'bg-blue-400', emoji: '📋' },
+                            'novo_takip_cicek_butonlu': { label: 'Takip (Çiçek Butonlu)', color: 'bg-pink-400', emoji: '🌸' },
+                            'novo_talep_alindi': { label: 'Talep Alındı', color: 'bg-amber-400', emoji: '✅' },
+                            'new_lead_bilgilendirme [Resent]': { label: 'Lead Bilgilendirme (Tekrar)', color: 'bg-indigo-400', emoji: '🔄' },
+                        }
+
+                        return (
+                            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                                <div className="px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-green-50 to-emerald-50">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="h-9 w-9 rounded-lg bg-green-100 text-green-600 flex items-center justify-center">
+                                                <MessageSquare className="h-4 w-4" />
+                                            </div>
+                                            <div>
+                                                <h2 className="text-sm font-black text-slate-700 uppercase tracking-wider">WhatsApp Şablon Kırılımı</h2>
+                                                <p className="text-[11px] text-slate-400">
+                                                    {PERIODS.find(p => p.key === activePeriod)?.label} — Toplam {totalWa.toLocaleString('tr-TR')} mesaj
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <span className="text-2xl font-black text-green-700">{totalWa.toLocaleString('tr-TR')}</span>
+                                    </div>
+                                </div>
+                                <div className="divide-y divide-slate-50">
+                                    {sorted.map(([template, count], idx) => {
+                                        const meta = templateMeta[template] || { label: template, color: 'bg-slate-400', emoji: '💬' }
+                                        const pct = totalWa > 0 ? Math.round((count / totalWa) * 100) : 0
+                                        const barWidth = Math.max((count / maxCount) * 100, 2)
+                                        return (
+                                            <div key={template} className="px-6 py-3.5 flex items-center gap-4 hover:bg-slate-50/60 transition-colors group">
+                                                <span className="text-lg w-8 text-center flex-shrink-0">{meta.emoji}</span>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center justify-between mb-1.5">
+                                                        <span className="text-sm font-bold text-slate-700 truncate">{meta.label}</span>
+                                                        <div className="flex items-center gap-2 flex-shrink-0 ml-3">
+                                                            <span className="text-xs font-black text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">%{pct}</span>
+                                                            <span className="text-base font-black text-green-700 min-w-[60px] text-right">{count.toLocaleString('tr-TR')}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                                                        <div
+                                                            className={cn("h-full rounded-full transition-all duration-700 group-hover:opacity-80", meta.color)}
+                                                            style={{ width: `${barWidth}%` }}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            </div>
+                        )
+                    })()}
+
+                    {/* ═══════ ARAMA KIRILIMI ═══════ */}
+                    {data?.calls_breakdown && (() => {
+                        const cb = (data.calls_breakdown as any)[activePeriod] as Record<string, number> | undefined
+                        if (!cb) return null
+                        const totalCb = (cb.manuel_giden || 0) + (cb.ai_giden || 0) + (cb.gelen || 0)
+                        if (totalCb === 0) return null
+                        const maxCb = Math.max(cb.manuel_giden || 0, cb.ai_giden || 0, cb.gelen || 0, 1)
+
+                        const items = [
+                            { key: 'manuel_giden', label: 'Manuel Giden Arama', emoji: '📞', color: 'bg-blue-400', sublabel: 'Satış ekibi aramaları', value: cb.manuel_giden || 0 },
+                            { key: 'ai_giden', label: 'AI Giden Arama', emoji: '🤖', color: 'bg-sky-400', sublabel: 'Maya AI outbound', value: cb.ai_giden || 0 },
+                            { key: 'gelen', label: 'Gelen Arama', emoji: '📥', color: 'bg-indigo-400', sublabel: 'AI Asistan karşıladı', value: cb.gelen || 0 },
+                        ]
+
+                        return (
+                            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                                <div className="px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-blue-50 to-indigo-50">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="h-9 w-9 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center">
+                                                <Phone className="h-4 w-4" />
+                                            </div>
+                                            <div>
+                                                <h2 className="text-sm font-black text-slate-700 uppercase tracking-wider">Arama Kırılımı</h2>
+                                                <p className="text-[11px] text-slate-400">
+                                                    {PERIODS.find(p => p.key === activePeriod)?.label} — Toplam {totalCb.toLocaleString('tr-TR')} arama
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <span className="text-2xl font-black text-blue-700">{totalCb.toLocaleString('tr-TR')}</span>
+                                    </div>
+                                </div>
+                                <div className="divide-y divide-slate-50">
+                                    {items.map(item => {
+                                        const pct = totalCb > 0 ? Math.round((item.value / totalCb) * 100) : 0
+                                        const barWidth = Math.max((item.value / maxCb) * 100, 2)
+                                        return (
+                                            <div key={item.key} className="px-6 py-4 flex items-center gap-4 hover:bg-slate-50/60 transition-colors group">
+                                                <span className="text-lg w-8 text-center flex-shrink-0">{item.emoji}</span>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center justify-between mb-1.5">
+                                                        <div>
+                                                            <span className="text-sm font-bold text-slate-700">{item.label}</span>
+                                                            <span className="text-[10px] text-slate-400 ml-2">{item.sublabel}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2 flex-shrink-0 ml-3">
+                                                            <span className="text-xs font-black text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">%{pct}</span>
+                                                            <span className="text-base font-black text-blue-700 min-w-[60px] text-right">{item.value.toLocaleString('tr-TR')}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                                                        <div
+                                                            className={cn("h-full rounded-full transition-all duration-700 group-hover:opacity-80", item.color)}
+                                                            style={{ width: `${barWidth}%` }}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            </div>
+                        )
+                    })()}
+
                     {/* ═══════ LEAD DONUT + QUICK STATS ═══════ */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col items-center justify-center">
