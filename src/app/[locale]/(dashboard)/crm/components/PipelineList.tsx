@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/popover"
 import { Pencil } from 'lucide-react'
 import dynamic from 'next/dynamic'
+import { Link } from '@/i18n/routing'
 import { RestartSaleButton } from './RestartSaleButton'
 import { toast } from 'sonner'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -44,7 +45,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 const PaymentPlanCalculator = dynamic(() => import('./PaymentPlanCalculator'), { ssr: false })
 const MatchUnitDialog = dynamic(() => import('./MatchUnitDialog'), { ssr: false })
 const PipelineReservationDialog = dynamic(() => import('./PipelineReservationDialog'), { ssr: false })
-const CustomerEditDialog = dynamic(() => import('./CustomerEditDialog').then(m => m.CustomerEditDialog), { ssr: false })
+
 const AiMatchDialog = dynamic(() => import('@/components/customers/AiMatchDialog').then(m => m.AiMatchDialog), { ssr: false })
 const ActivityForm = dynamic(() => import('@/components/activities/activity-form').then(m => m.ActivityForm), { ssr: false })
 const AiCallDialog = dynamic(() => import('./AiCallDialog'), { ssr: false })
@@ -143,8 +144,7 @@ export default function PipelineList({
     const [isAssigning, setIsAssigning] = useState<string | null>(null)
     const [assignPopoverOpen, setAssignPopoverOpen] = useState<string | null>(null)
     const [viewingLead, setViewingLead] = useState<any | null>(null)
-    const [editingCustomer, setEditingCustomer] = useState<any | null>(null)
-    const [isEditOpen, setIsEditOpen] = useState(false)
+
     const [isActivityOpen, setIsActivityOpen] = useState(false)
     const [selectedCustomerForActivity, setSelectedCustomerForActivity] = useState<any | null>(null)
     const [viewingCustomerProfile, setViewingCustomerProfile] = useState<any | null>(null)
@@ -377,10 +377,7 @@ export default function PipelineList({
         router.refresh()
     }
 
-    const handleCustomerEdit = (customer: any) => {
-        setEditingCustomer(customer)
-        setIsEditOpen(true)
-    }
+
 
     const handleCreateActivity = (customer: any) => {
         setSelectedCustomerForActivity(customer)
@@ -1056,13 +1053,12 @@ export default function PipelineList({
                                 <div className="flex justify-between items-start">
                                     <div className="flex flex-col">
                                         <div className="flex items-center gap-2">
-                                            <button
-                                                type="button"
-                                                onClick={() => handleCustomerEdit(sale.customers)}
+                                            <Link
+                                                href={`/crm/${sale.customers?.id}`}
                                                 className="font-bold text-slate-900 text-left hover:text-blue-600 hover:underline transition-colors"
                                             >
                                                 {sale.customers?.full_name}
-                                            </button>
+                                            </Link>
                                             {sale.customers?.lead_qualifications?.[0] && (
                                                 <AiSignalBadge 
                                                     lastCallAt={sale.customers.lead_qualifications[0].last_call_at} 
@@ -1470,12 +1466,7 @@ export default function PipelineList({
                 </DialogContent>
             </Dialog>
 
-            {/* Customer Details Dialog */}
-            <CustomerEditDialog
-                customer={editingCustomer}
-                isOpen={isEditOpen}
-                onOpenChange={setIsEditOpen}
-            />
+
 
             <Sheet open={isCustomerProfileOpen} onOpenChange={setIsCustomerProfileOpen}>
                 <SheetContent 

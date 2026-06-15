@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { ShieldCheck, Pencil, ChevronDown, ChevronUp } from 'lucide-react'
-import { CustomerEditDialog } from '@/app/[locale]/(dashboard)/crm/components/CustomerEditDialog'
+import { Link } from '@/i18n/routing'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
 import { BackButton } from '@/components/back-button'
@@ -44,7 +44,7 @@ const ACTIVITY_TOPICS = [
 
 export function CustomerView({ customer, activities, contracts = [], profiles = [], sales = [] }: CustomerViewProps) {
     const t = useTranslations('Customers')
-    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+
     const [isFiltersOpen, setIsFiltersOpen] = useState(false)
     const [selectedTypes, setSelectedTypes] = useState<string[]>([])
     const [selectedTopics, setSelectedTopics] = useState<string[]>([])
@@ -88,15 +88,12 @@ export function CustomerView({ customer, activities, contracts = [], profiles = 
                     </Badge>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" className="gap-2" onClick={() => setIsEditDialogOpen(true)}>
-                        <Pencil className="h-4 w-4" />
-                        {t('table.edit')}
-                    </Button>
-                    <CustomerEditDialog
-                        customer={customer}
-                        isOpen={isEditDialogOpen}
-                        onOpenChange={setIsEditDialogOpen}
-                    />
+                    <Link href={`/crm/${customer.id}`}>
+                        <Button variant="outline" size="sm" className="gap-2">
+                            <Pencil className="h-4 w-4" />
+                            {t('table.edit')}
+                        </Button>
+                    </Link>
                 </div>
             </div>
 
