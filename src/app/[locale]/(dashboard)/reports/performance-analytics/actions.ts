@@ -79,12 +79,54 @@ export async function getPerformanceAnalytics(): Promise<PerformanceData> {
     const sixtyDaysAgo = new Date()
     sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60)
     
-    const { data: stats } = await supabase
+    let { data: stats } = await supabase
         .from('report_daily_stats')
         .select('stat_date, whatsapp_count, outbound_call_count, inbound_call_count, cold_count, warm_count, hot_count, whatsapp_breakdown, calls_breakdown, updated_at')
         .eq('tenant_id', tenantId)
         .gte('stat_date', sixtyDaysAgo.toISOString().split('T')[0])
         .order('stat_date', { ascending: true })
+
+    // Auto-refresh/Self-healing check:
+    // If stats is empty, or today's row is missing, or the latest row's updated_at is older than 10 minutes, trigger the refresh RPC.
+    const now = new Date()
+    const todayStr = now.toISOString().split('T')[0]
+    
+    let hasTodayRow = false
+    let latestUpdate: Date | null = null
+    
+    if (stats && stats.length > 0) {
+        hasTodayRow = stats.some(s => s.stat_date === todayStr)
+        const timestamps = stats.map(s => s.updated_at ? new Date(s.updated_at).getTime() : 0)
+        const maxTimestamp = Math.max(...timestamps)
+        if (maxTimestamp > 0) {
+            latestUpdate = new Date(maxTimestamp)
+        }
+    }
+
+    const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000)
+    const shouldRefresh = !stats || stats.length === 0 || !hasTodayRow || !latestUpdate || latestUpdate < tenMinutesAgo
+
+    if (shouldRefresh) {
+        try {
+            const { createAdminClient } = await import('@/lib/supabase/admin')
+            const adminSupabase = createAdminClient()
+            await adminSupabase.rpc('refresh_report_daily_stats')
+            
+            // Re-fetch stats after refresh
+            const { data: refreshedStats } = await supabase
+                .from('report_daily_stats')
+                .select('stat_date, whatsapp_count, outbound_call_count, inbound_call_count, cold_count, warm_count, hot_count, whatsapp_breakdown, calls_breakdown, updated_at')
+                .eq('tenant_id', tenantId)
+                .gte('stat_date', sixtyDaysAgo.toISOString().split('T')[0])
+                .order('stat_date', { ascending: true })
+            
+            if (refreshedStats) {
+                stats = refreshedStats
+            }
+        } catch (err) {
+            console.error('[Performance Analytics] Failed to auto-refresh stats:', err)
+        }
+    }
 
     if (!stats || stats.length === 0) {
         return { periods: [], daily_trend: [], wa_breakdown: {}, calls_breakdown: {}, last_updated: null }

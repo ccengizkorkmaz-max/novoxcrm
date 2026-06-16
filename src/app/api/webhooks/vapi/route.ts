@@ -267,13 +267,7 @@ Gelen aramaları karşıla, bilgi bankasındaki proje bilgilerini paylaş, rande
                             messages: [{ role: 'system', content: TURKISH_VOICE_RULES + '\n\n' + systemPrompt }],
                             tools: [
                                 {
-                                    type: 'endCall',
-                                    messages: [
-                                        {
-                                            type: 'request-start',
-                                            content: 'Görüşmek üzere, iyi günler dilerim.'
-                                        }
-                                    ]
+                                    type: 'endCall'
                                 },
                                 {
                                     type: 'function',

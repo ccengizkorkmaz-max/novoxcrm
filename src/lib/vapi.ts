@@ -18,11 +18,11 @@ export const TURKISH_VOICE_RULES = `
    - "3+1" → "üç artı bir" olarak söyle
    - "4+1" → "dört artı bir" olarak söyle
    - "2+0" → "iki artı sıfır" olarak söyle
-3. Rakamları ve birimleri Türkçe oku:
-   - "m²" veya "metrekare" → "metrekare" olarak söyle
-   - "50 m²" → "elli metrekare" olarak söyle
-   - "TL" kısaltmasını konuşma metninde KESİNLİKLE kullanma! Her zaman "Türk Lirası" veya "lira" şeklinde açık olarak yaz. (Örn: "2.000.000 TL" → "iki milyon Türk Lirası" veya "iki milyon lira" olarak yaz ve oku).
-   - "%35" → "yüzde otuz beş" olarak söyle
+3. Rakamları, Küsuratları ve Birimleri KESİNLİKLE Yazıyla (Harflerle) Yaz:
+   - Konuşma çıktında KESİNLİKLE rakam karakterleri (0-9) kullanma! Tüm sayıları, küsuratları, yüzdeleri ve para miktarlarını tamamen Türkçe kelimelerle yazıyla yaz.
+   - Ondalık sayıları "virgül" kullanarak yazıyla yaz (Örn: "28.8" yerine "yirmi sekiz virgül sekiz" yaz. "41.44" yerine "kırk bir virgül kırk dört" yaz. Asla "." sembolü veya İngilizce telaffuz ("point") kullanma).
+   - Birimleri her zaman yazıyla yaz (Örn: "m²" yerine "metrekare" yaz. "28.8 m²" yerine "yirmi sekiz virgül sekiz metrekare" yaz).
+   - Fiyatları ve yüzdeleri her zaman yazıyla yaz (Örn: "3.990.000 TL" yerine "üç milyon dokuz yüz doksan bin lira" veya "üç milyon dokuz yüz doksan bin Türk Lirası" yaz. "%35" yerine "yüzde otuz beş" yaz).
 4. Proje isimlerini olduğu gibi Türkçe aksanla söyle:
    - "NOVO Park Vista" → "Novo Park Vista" (Türkçe aksanla)
    - "NOVO City İzmir" → "Novo Siti İzmir" (İngilizce aksanla "city" deme)
@@ -271,13 +271,7 @@ export async function makeOutboundCall(options: VapiCallOptions): Promise<VapiCa
                     messages: [{ role: 'system', content: TURKISH_VOICE_RULES + '\n\n' + options.systemPrompt }],
                     tools: [
                         {
-                            type: 'endCall',
-                            messages: [
-                                {
-                                    type: "request-start",
-                                    content: "Görüşmek üzere, iyi günler dilerim."
-                                }
-                            ]
+                            type: 'endCall'
                         }
                     ],
                 },
