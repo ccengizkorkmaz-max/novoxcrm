@@ -52,7 +52,7 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     icons: {
       icon: brandName === 'Oikos CRM' ? '/oikos-logo.svg' : '/favicon.ico',
-      apple: "/icon-512.png",
+      apple: brandName === 'Oikos CRM' ? '/oikos-logo.svg' : '/icon-512.png',
     },
     formatDetection: {
       telephone: false,

@@ -27,6 +27,7 @@ export async function generateMetadata(
         keywords: ['gayrimenkul crm', 'insaat crm', 'proje satis crm', 'konut satis crm', 'real estate crm turkey', 'broker yonetim sistemi'],
         icons: {
             icon: brandName === 'Oikos CRM' ? '/oikos-logo.svg' : '/favicon.ico',
+            apple: brandName === 'Oikos CRM' ? '/oikos-logo.svg' : '/icon-512.png',
         },
         alternates: {
             canonical: '/',
