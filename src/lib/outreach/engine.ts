@@ -858,12 +858,33 @@ async function executeAiCall(execution: any, step: any, config: StepConfig, phon
     }
 
     const nameWithTitle = getTurkishNameTitle(customer?.full_name);
-    const resolvedFirstMessage = execution.metadata?.personalized_message || (nameWithTitle ? `Merhaba ${nameWithTitle}, ben Maya, Novo AI satış asistanıyım. Nasılsınız?` : "Merhaba, ben Maya, Novo AI satış asistanıyım. Nasılsınız?");
+    const isOikosTenant = execution.tenant_id === '3de3c038-8ce7-44b1-b5ba-8b99d63301f4'
+    const brandName = isOikosTenant ? 'Oikos' : 'Novo'
+    
+    // Resolve Oikos-specific default prompt if no script prompt is fetched
+    if (isOikosTenant && !scriptPrompt) {
+        scriptPrompt = `Sen Oikos Green Valley projesinin yapay zeka satış asistanı Maya'sın.
+Müşterimiz {customer_name}, Bodrum Gümüşlük'te yer alan Oikos Green Valley lüks taş evler projemizle ilgileniyor.
+Amacın, müşterinin ilgisini doğrulamak, kısaca projenin lansman fiyat avantajını (12 milyon liradan başlayan fiyatlar ve peşin ödemede yüzde yirmi indirim) belirtmek ve daha fazla detay için bir satış temsilcisinin onu aramasına veya WhatsApp'tan katalog göndermemize onay vermesini sağlamaktır.
+Konuşurken kibar ve profesyonel ol. Kısa cümleler kur. Müşteri onay verirse aramayı nezaketle sonlandır ve endCall aracını çağır.`
+    }
+
+    if (scriptPrompt) {
+        scriptPrompt = scriptPrompt
+            .replace(/\{customer_name\}/g, customer?.full_name || 'Müşteri')
+            .replace(/\{project_name\}/g, execution.sales?.projects?.name || (isOikosTenant ? 'Oikos Green Valley' : 'projemiz'))
+    }
+
+    const resolvedFirstMessage = execution.metadata?.personalized_message || 
+        (nameWithTitle 
+            ? `Merhaba ${nameWithTitle}, ben Maya, ${brandName} AI satış asistanıyım. Nasılsınız?` 
+            : `Merhaba, ben Maya, ${brandName} AI satış asistanıyım. Nasılsınız?`);
 
     let result
-    const isOikosDemo = execution.tenant_id === '3de3c038-8ce7-44b1-b5ba-8b99d63301f4'
+    // Only simulate if it's Oikos tenant AND the phone is one of the seeded mock numbers starting with +9053211100
+    const isOikosMockCall = isOikosTenant && cleanPhone.startsWith('+9053211100')
 
-    if (isOikosDemo) {
+    if (isOikosMockCall) {
         // Simulate Vapi Outbound Call
         result = {
             success: true,
@@ -875,8 +896,6 @@ async function executeAiCall(execution: any, step: any, config: StepConfig, phon
         setTimeout(async () => {
             try {
                 const customerName = customer?.full_name || 'Müşteri'
-                const nameWithTitle = getTurkishNameTitle(customer?.full_name)
-                
                 const mockTranscript = `
 Assistant: Merhaba ${nameWithTitle || 'efendim'}, ben Oikos AI satış asistanıyım. Oikos Green Valley projemiz için bıraktığınız talebe istinaden aramıştım. Nasılsınız?
 User: Teşekkürler, iyiyim. Siz nasılsınız?
@@ -1048,7 +1067,8 @@ async function executeWhatsApp(execution: any, step: any, config: StepConfig, ph
     let result: { success: boolean; error?: string; data?: any }
     let messageContent: string = ''
 
-    const isOikosDemo = execution.tenant_id === '3de3c038-8ce7-44b1-b5ba-8b99d63301f4'
+    const isOikosTenant = execution.tenant_id === '3de3c038-8ce7-44b1-b5ba-8b99d63301f4'
+    const isOikosMockCall = isOikosTenant && phone.replace(/[^0-9+]/g, '').startsWith('+9053211100')
 
     if (config.template_name || config.template_map) {
         // Resolve template name — either static or project-based mapping
@@ -1067,12 +1087,24 @@ async function executeWhatsApp(execution: any, step: any, config: StepConfig, ph
             console.log(`[Outreach] Template map: project="${projectName}" → template="${templateName}"`)
         }
 
+        // If Oikos tenant and placing a real call, fallback to Novo's approved template to prevent Meta errors
+        if (isOikosTenant && !isOikosMockCall) {
+            templateName = 'novo_kampanya_genel_v2'
+        }
+
         // Send template message (for messages outside 24h window)
         const params = (config.template_params || []).map((p: string) =>
             p.replace('{customer_name}', customer?.full_name || 'Değerli Müşterimiz')
-                .replace('{project_name}', execution.metadata?.project_name || 'Novo Gayrimenkul')
+                .replace('{project_name}', isOikosTenant ? 'Oikos Green Valley' : (execution.metadata?.project_name || 'Novo Gayrimenkul'))
         )
-        if (isOikosDemo) {
+
+        // Ensure we have correct parameter counts for the fallback template
+        if (isOikosTenant && !isOikosMockCall && params.length < 2) {
+            params[0] = customer?.full_name || 'Değerli Müşterimiz'
+            params[1] = 'Oikos Green Valley'
+        }
+
+        if (isOikosMockCall) {
             result = { success: true, data: { messages: [{ id: 'mock_wa_' + Math.random().toString(36).substring(7) }] } }
         } else {
             result = await sendWhatsAppTemplate(phone, templateName, params)
@@ -1083,8 +1115,8 @@ async function executeWhatsApp(execution: any, step: any, config: StepConfig, ph
         let text = execution.metadata?.personalized_message || config.free_text
         text = text
             .replace('{customer_name}', customer?.full_name || '')
-            .replace('{project_name}', execution.metadata?.project_name || '')
-        if (isOikosDemo) {
+            .replace('{project_name}', isOikosTenant ? 'Oikos Green Valley' : (execution.metadata?.project_name || ''))
+        if (isOikosMockCall) {
             result = { success: true, data: { messages: [{ id: 'mock_wa_' + Math.random().toString(36).substring(7) }] } }
         } else {
             result = await sendWhatsAppMessage(phone, text)
