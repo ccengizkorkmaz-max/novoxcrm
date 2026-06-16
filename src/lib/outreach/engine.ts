@@ -860,19 +860,81 @@ async function executeAiCall(execution: any, step: any, config: StepConfig, phon
     const nameWithTitle = getTurkishNameTitle(customer?.full_name);
     const resolvedFirstMessage = execution.metadata?.personalized_message || (nameWithTitle ? `Merhaba ${nameWithTitle}, ben Maya, Novo AI satış asistanıyım. Nasılsınız?` : "Merhaba, ben Maya, Novo AI satış asistanıyım. Nasılsınız?");
 
-    const result = await makeOutboundCall({
-        phoneNumber: cleanPhone,
-        // Always use the default Vapi assistant, override with script prompt
-        systemPrompt: scriptPrompt,
-        firstMessage: resolvedFirstMessage,
-        metadata: {
-            execution_id: execution.id,
-            sale_id: execution.sale_id,
-            customer_id: execution.customer_id,
-            customer_name: customer?.full_name,
-            tenant_id: execution.tenant_id,
-        },
-    })
+    let result
+    const isOikosDemo = execution.tenant_id === '3de3c038-8ce7-44b1-b5ba-8b99d63301f4'
+
+    if (isOikosDemo) {
+        // Simulate Vapi Outbound Call
+        result = {
+            success: true,
+            callId: 'mock_call_' + Math.random().toString(36).substring(2, 11)
+        }
+        
+        // Schedule simulated webhook response after 6 seconds
+        const mockCallId = result.callId
+        setTimeout(async () => {
+            try {
+                const customerName = customer?.full_name || 'Müşteri'
+                const nameWithTitle = getTurkishNameTitle(customer?.full_name)
+                
+                const mockTranscript = `
+Assistant: Merhaba ${nameWithTitle || 'efendim'}, ben Oikos AI satış asistanıyım. Oikos Green Valley projemiz için bıraktığınız talebe istinaden aramıştım. Nasılsınız?
+User: Teşekkürler, iyiyim. Siz nasılsınız?
+Assistant: Ben de iyiyim, teşekkürler. Projemiz Gümüşlük'te, doğayla iç içe lüks bir yaşam sunuyor. Lansmana özel peşin ödemede yüzde yirmi indirimimiz var. Uygunluğunuzu sormak istemiştim.
+User: Evet, Bodrum'da bir yer bakıyordum aslında. WhatsApp'tan detayları gönderebilir misiniz?
+Assistant: Elbette! Bu telefon numaranıza WhatsApp üzerinden projenin fiyat listesini ve detaylı kataloğunu hemen iletiyorum. Ayrıca bir satış temsilcimiz de sizinle iletişime geçecek. İyi günler dilerim!
+User: Tamamdır, bekliyorum. Teşekkürler, iyi günler.
+Assistant: Görüşmek üzere, iyi günler dilerim.
+                `.trim()
+                
+                await handleVapiCallResult({
+                    callId: mockCallId,
+                    status: 'ended',
+                    endedReason: 'assistant-ended-call',
+                    transcript: mockTranscript,
+                    summary: `${customerName} Oikos Green Valley projesiyle ilgileniyor. Lansmana özel %20 peşin indirimini sordu, detaylı katalog ve fiyat listesinin WhatsApp üzerinden gönderilmesini talep etti.`,
+                    duration: 48,
+                    cost: 0.12,
+                    analysis: {
+                        structuredData: {
+                            interested: true,
+                            available: true,
+                            callback_requested: false
+                        }
+                    },
+                    metadata: {
+                        execution_id: execution.id,
+                        sale_id: execution.sale_id,
+                        customer_id: execution.customer_id,
+                        customer_name: customer?.full_name,
+                        tenant_id: execution.tenant_id
+                    }
+                })
+                
+                console.log(`[Outreach Demo] Simulated Vapi Call Completed for execution ${execution.id}`)
+                
+                // Immediately trigger queue process to run the next step (WhatsApp sending)
+                processOutreachQueue().catch(err => console.error('[Outreach Demo] Failed to auto-trigger next step:', err.message))
+                
+            } catch (e: any) {
+                console.error('[Outreach Demo] Failed to simulate Vapi callback:', e.message)
+            }
+        }, 6000)
+    } else {
+        result = await makeOutboundCall({
+            phoneNumber: cleanPhone,
+            // Always use the default Vapi assistant, override with script prompt
+            systemPrompt: scriptPrompt,
+            firstMessage: resolvedFirstMessage,
+            metadata: {
+                execution_id: execution.id,
+                sale_id: execution.sale_id,
+                customer_id: execution.customer_id,
+                customer_name: customer?.full_name,
+                tenant_id: execution.tenant_id,
+            },
+        })
+    }
 
     // Log the attempt
     await supabase.from('outreach_step_logs').insert({
@@ -986,6 +1048,8 @@ async function executeWhatsApp(execution: any, step: any, config: StepConfig, ph
     let result: { success: boolean; error?: string; data?: any }
     let messageContent: string = ''
 
+    const isOikosDemo = execution.tenant_id === '3de3c038-8ce7-44b1-b5ba-8b99d63301f4'
+
     if (config.template_name || config.template_map) {
         // Resolve template name — either static or project-based mapping
         let templateName = config.template_name || ''
@@ -1008,7 +1072,11 @@ async function executeWhatsApp(execution: any, step: any, config: StepConfig, ph
             p.replace('{customer_name}', customer?.full_name || 'Değerli Müşterimiz')
                 .replace('{project_name}', execution.metadata?.project_name || 'Novo Gayrimenkul')
         )
-        result = await sendWhatsAppTemplate(phone, templateName, params)
+        if (isOikosDemo) {
+            result = { success: true, data: { messages: [{ id: 'mock_wa_' + Math.random().toString(36).substring(7) }] } }
+        } else {
+            result = await sendWhatsAppTemplate(phone, templateName, params)
+        }
         messageContent = `Template: ${templateName} [${params.join(', ')}]`
     } else if (config.free_text) {
         // Send free-text message (only works within 24h window)
@@ -1016,7 +1084,11 @@ async function executeWhatsApp(execution: any, step: any, config: StepConfig, ph
         text = text
             .replace('{customer_name}', customer?.full_name || '')
             .replace('{project_name}', execution.metadata?.project_name || '')
-        result = await sendWhatsAppMessage(phone, text)
+        if (isOikosDemo) {
+            result = { success: true, data: { messages: [{ id: 'mock_wa_' + Math.random().toString(36).substring(7) }] } }
+        } else {
+            result = await sendWhatsAppMessage(phone, text)
+        }
         messageContent = text
     } else {
         await logAndAdvance(execution, step, 'skipped', 'whatsapp', 'No template or text configured')
@@ -1109,28 +1181,35 @@ async function executeSms(execution: any, step: any, config: StepConfig, phone: 
         return
     }
 
-    // Get tenant's SMS credentials
-    const { data: tenant } = await supabase
-        .from('tenants')
-        .select('sms_api_user, sms_api_password, sms_sender_id')
-        .eq('id', execution.tenant_id)
-        .single()
+    let result
+    const isOikosDemo = execution.tenant_id === '3de3c038-8ce7-44b1-b5ba-8b99d63301f4'
 
-    const smsUser = tenant?.sms_api_user || process.env.POLI_SMS_USER
-    const smsPass = tenant?.sms_api_password || process.env.POLI_SMS_PASS
+    if (isOikosDemo) {
+        result = { success: true, messageId: 'mock_sms_' + Math.random().toString(36).substring(7) }
+    } else {
+        // Get tenant's SMS credentials
+        const { data: tenant } = await supabase
+            .from('tenants')
+            .select('sms_api_user, sms_api_password, sms_sender_id')
+            .eq('id', execution.tenant_id)
+            .single()
 
-    if (!smsUser || !smsPass) {
-        await logAndAdvance(execution, step, 'skipped', 'sms', 'Tenant SMS credentials missing')
-        return
+        const smsUser = tenant?.sms_api_user || process.env.POLI_SMS_USER
+        const smsPass = tenant?.sms_api_password || process.env.POLI_SMS_PASS
+
+        if (!smsUser || !smsPass) {
+            await logAndAdvance(execution, step, 'skipped', 'sms', 'Tenant SMS credentials missing')
+            return
+        }
+
+        result = await sendPoliSms({
+            user: smsUser,
+            pass: smsPass,
+            message,
+            contacts: [phone],
+            header: tenant?.sms_sender_id || process.env.POLI_SMS_HEADER || 'NOVOEMLAK',
+        })
     }
-
-    const result = await sendPoliSms({
-        user: smsUser,
-        pass: smsPass,
-        message,
-        contacts: [phone],
-        header: tenant?.sms_sender_id || process.env.POLI_SMS_HEADER || 'NOVOEMLAK',
-    })
 
     await supabase.from('outreach_step_logs').insert({
         execution_id: execution.id,

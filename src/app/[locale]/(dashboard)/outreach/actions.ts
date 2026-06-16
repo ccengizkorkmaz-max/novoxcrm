@@ -691,6 +691,13 @@ export async function launchWorkflow(workflowId: string) {
 
     const result = await startWorkflowForLeads(workflowId, limited, tenantId)
 
+    // Proactively run the queue process so that campaigns start running immediately!
+    try {
+        processOutreachQueue().catch((err: any) => console.error('[launchWorkflow] processQueue background error:', err.message))
+    } catch (e: any) {
+        console.error('[launchWorkflow] processQueue error:', e.message)
+    }
+
     revalidatePath('/outreach')
     return { success: true, ...result, resumed, computed_params: computedParams }
 }
