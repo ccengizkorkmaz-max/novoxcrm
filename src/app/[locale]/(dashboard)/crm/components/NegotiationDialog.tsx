@@ -30,7 +30,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { Badge } from "@/components/ui/badge"
 import { calculatePaymentSchedule } from '@/lib/utils/payment-calc'
-import { Calculator, ReceiptText } from 'lucide-react'
+import { Calculator, ReceiptText, ChevronDown, ChevronUp } from 'lucide-react'
 import PaymentPlanCalculator from './PaymentPlanCalculator'
 import { getPaymentTemplates } from '../actions'
 
@@ -60,7 +60,15 @@ export default function NegotiationDialog({ offerId, currentPrice, currentCurren
     const [showPlanInputs, setShowPlanInputs] = useState(false)
     const [proposedPlan, setProposedPlan] = useState<any>(initialPaymentPlan || null)
     const [templates, setTemplates] = useState<any[]>([])
+    const [expandedPlans, setExpandedPlans] = useState<Record<string, boolean>>({})
     const router = useRouter()
+
+    const togglePlanExpand = (negId: string) => {
+        setExpandedPlans(prev => ({
+            ...prev,
+            [negId]: !prev[negId]
+        }))
+    }
 
     useEffect(() => {
         if (isOpen) {
@@ -362,11 +370,57 @@ export default function NegotiationDialog({ offerId, currentPrice, currentCurren
                                                         </span>
                                                     </div>
                                                     {neg.proposed_payment_plan && (
-                                                        <div className="flex items-center gap-2 mt-1">
-                                                            <Calculator className="h-3 w-3 text-blue-400" />
-                                                            <span className="text-[10px] font-bold text-blue-500 uppercase tracking-tight">
-                                                                {neg.proposed_payment_plan.installment_count || neg.proposed_payment_plan.payment_items?.filter((i: any) => i.payment_type === 'Installment').length || 0} Taksit Önerisi
-                                                            </span>
+                                                        <div className="flex flex-col gap-2 mt-1">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => togglePlanExpand(neg.id)}
+                                                                className="flex items-center gap-1.5 text-[10px] font-bold text-blue-600 hover:text-blue-700 bg-blue-50/50 hover:bg-blue-50 px-2 py-1 rounded-lg w-fit transition-all"
+                                                            >
+                                                                <Calculator className="h-3 w-3" />
+                                                                <span>
+                                                                    {neg.proposed_payment_plan.installment_count || neg.proposed_payment_plan.payment_items?.filter((i: any) => i.payment_type === 'Installment').length || 0} Taksit Önerisi
+                                                                </span>
+                                                                {expandedPlans[neg.id] ? (
+                                                                    <ChevronUp className="h-3 w-3" />
+                                                                ) : (
+                                                                    <ChevronDown className="h-3 w-3" />
+                                                                )}
+                                                            </button>
+
+                                                            {expandedPlans[neg.id] && (
+                                                                <div className="mt-1 border border-slate-100 rounded-xl overflow-hidden bg-slate-50/30 text-[10px] w-full max-w-md">
+                                                                    {neg.proposed_payment_plan.payment_items && neg.proposed_payment_plan.payment_items.length > 0 ? (
+                                                                        <table className="w-full text-left border-collapse">
+                                                                            <thead>
+                                                                                <tr className="bg-slate-100/80 text-slate-500 border-b border-slate-200">
+                                                                                    <th className="p-1.5 font-bold uppercase tracking-wider">Tarih</th>
+                                                                                    <th className="p-1.5 font-bold uppercase tracking-wider">Tür</th>
+                                                                                    <th className="p-1.5 text-right font-bold uppercase tracking-wider">Tutar</th>
+                                                                                </tr>
+                                                                            </thead>
+                                                                            <tbody className="divide-y divide-slate-150">
+                                                                                {neg.proposed_payment_plan.payment_items.map((item: any, idx: number) => (
+                                                                                    <tr key={idx} className="hover:bg-slate-50 text-slate-700 font-medium">
+                                                                                        <td className="p-1.5 whitespace-nowrap">
+                                                                                            {item.due_date ? new Date(item.due_date).toLocaleDateString(tMsg('locale', { defaultValue: 'tr-TR' })) : '-'}
+                                                                                        </td>
+                                                                                        <td className="p-1.5 text-slate-600 whitespace-nowrap">
+                                                                                            {item.payment_type === 'Down Payment' || item.payment_type === 'DownPayment' ? 'Peşinat' :
+                                                                                                item.payment_type === 'Installment' ? 'Taksit' :
+                                                                                                item.payment_type === 'Interim Payment' || item.payment_type === 'InterimPayment' || item.payment_type === 'Balloon' ? 'Ara Ödeme' : 'Final Ödeme'}
+                                                                                        </td>
+                                                                                        <td className="p-1.5 text-right font-bold text-slate-900 whitespace-nowrap">
+                                                                                            {formatCurrency(item.amount, neg.proposed_currency)}
+                                                                                        </td>
+                                                                                    </tr>
+                                                                                ))}
+                                                                            </tbody>
+                                                                        </table>
+                                                                    ) : (
+                                                                        <div className="text-slate-500 italic p-2">Ödeme planı detayı bulunmuyor.</div>
+                                                                    )}
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     )}
                                                 </div>

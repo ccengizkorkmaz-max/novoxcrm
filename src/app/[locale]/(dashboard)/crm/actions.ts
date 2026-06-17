@@ -1170,26 +1170,52 @@ export async function getNegotiationHistory(offerId: string) {
 
     console.log(`Fetching negotiation history for offerId: ${offerId}`)
 
+    // Query negotiations directly without joining profiles, as proposed_by has no explicit foreign key relation
     const { data: history, error } = await supabase
         .from('offer_negotiations')
-        .select('*, profiles!proposed_by(full_name)')
+        .select('*')
         .eq('offer_id', offerId)
         .order('created_at', { ascending: false })
 
     if (error) {
         console.error('Fetch Negotiation History Error:', error)
-        // Try without join as fallback
-        const { data: fallbackData } = await supabase
-            .from('offer_negotiations')
-            .select('*')
-            .eq('offer_id', offerId)
-            .order('created_at', { ascending: false })
-
-        return fallbackData || []
+        return []
     }
 
-    console.log(`Found ${history?.length || 0} negotiation records`)
-    return history
+    if (!history || history.length === 0) {
+        return []
+    }
+
+    // Get unique proposed_by IDs
+    const proposedByIds = Array.from(new Set(history.map(item => item.proposed_by).filter(Boolean)))
+
+    const profilesMap: Record<string, { full_name: string }> = {}
+
+    if (proposedByIds.length > 0) {
+        const { data: profiles, error: profilesError } = await supabase
+            .from('profiles')
+            .select('id, full_name')
+            .in('id', proposedByIds)
+
+        if (profilesError) {
+            console.error('Fetch Profiles Error in getNegotiationHistory:', profilesError)
+        } else if (profiles) {
+            profiles.forEach(p => {
+                if (p.id) {
+                    profilesMap[p.id] = { full_name: p.full_name || '' }
+                }
+            })
+        }
+    }
+
+    // Map profiles to negotiations
+    const historyWithProfiles = history.map(item => ({
+        ...item,
+        profiles: item.proposed_by ? profilesMap[item.proposed_by] : null
+    }))
+
+    console.log(`Found ${historyWithProfiles.length} negotiation records`)
+    return historyWithProfiles
 }
 
 
