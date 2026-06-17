@@ -91,7 +91,7 @@ export default function OptionList({ options, templates = [] }: { options: Optio
                         {options && options.length > 0 ? (
                             options.map((option) => {
                                 // Find the active reservation sale if it exists
-                                const activeSale = option.sales?.find(s => s.status === 'Reservation' || s.status === 'Lead' || s.status === 'Opsiyon - Kapora Bekleniyor')
+                                const activeSale = option.sales?.find(s => ['Reservation', 'Lead', 'Opsiyon - Kapora Bekleniyor', 'Prospect', 'Potential', 'Proposal', 'Opsiyonlu'].includes(s.status))
                                 const customerName = activeSale?.customers?.full_name || '-'
                                 const expiryDate = activeSale?.reservation_expiry
 

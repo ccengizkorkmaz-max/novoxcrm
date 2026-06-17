@@ -180,7 +180,7 @@ export async function updateReservation(formData: FormData) {
         .from('sales')
         .update({ reservation_expiry: expiryDate })
         .eq('unit_id', unitId)
-        .in('status', ['Reservation', 'Lead', 'Opsiyon - Kapora Bekleniyor'])
+        .in('status', ['Reservation', 'Lead', 'Opsiyon - Kapora Bekleniyor', 'Prospect', 'Potential', 'Proposal', 'Opsiyonlu'])
 
     if (saleError) {
         console.error('Update reservation error:', saleError)
@@ -222,10 +222,10 @@ export async function cancelReservation(unitId: string, saleId: string) {
             .from('sales')
             .select('id')
             .eq('unit_id', unitId)
-            .in('status', ['Reservation', 'Lead', 'Opsiyon - Kapora Bekleniyor', 'Prospect'])
+            .in('status', ['Reservation', 'Lead', 'Opsiyon - Kapora Bekleniyor', 'Prospect', 'Potential', 'Proposal', 'Opsiyonlu'])
             .order('created_at', { ascending: false })
             .limit(1)
-            .single()
+            .maybeSingle()
 
         resolvedSaleId = sale?.id || ''
     }
@@ -271,8 +271,10 @@ export async function convertReservationToOffer(unitId: string) {
         .from('sales')
         .select('*')
         .eq('unit_id', unitId)
-        .eq('status', 'Reservation')
-        .single()
+        .in('status', ['Reservation', 'Lead', 'Opsiyon - Kapora Bekleniyor', 'Prospect', 'Potential', 'Proposal', 'Opsiyonlu'])
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
 
     if (!sale) return { error: 'No active reservation found for this unit' }
 

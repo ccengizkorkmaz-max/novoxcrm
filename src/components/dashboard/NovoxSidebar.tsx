@@ -430,9 +430,25 @@ export function NovoxSidebar({
                 </NavItem>
             )}
 
-            <NavItem href="/customer-support" icon={MessageSquare} onClick={onElementClick} isCollapsed={isCollapsed}>
-                {labels.serviceRequests || 'Service Requests'}
-            </NavItem>
+            {isCollapsed ? (
+                <NavItem href="/customer-support" icon={ClipboardList} onClick={onElementClick} isCollapsed={isCollapsed}>
+                    {labels.serviceRequests || 'Service Requests'}
+                </NavItem>
+            ) : (
+                <Accordion type="multiple" className="w-full border-none">
+                    <AccordionItem value="after_sales" className="border-none">
+                        <AccordionTrigger className="px-3 py-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg hover:no-underline [&[data-state=open]]:text-white font-medium justify-start text-[13px] gap-3">
+                            <ClipboardList className="h-4 w-4" />
+                            <span>{labels.afterSales || 'Satış Sonrası'}</span>
+                        </AccordionTrigger>
+                        <AccordionContent className="pt-1 pb-2 pl-4 grid gap-0.5">
+                            <NavItem href="/customer-support" icon={MessageSquare} onClick={onElementClick} isSubItem>
+                                {labels.serviceRequests || 'Service Requests'}
+                            </NavItem>
+                        </AccordionContent>
+                    </AccordionItem>
+                </Accordion>
+            )}
 
             {isManager && (
                 isCollapsed ? (
