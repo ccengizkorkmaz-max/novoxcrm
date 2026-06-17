@@ -1103,6 +1103,40 @@ export async function createNegotiation(data: {
         return { error: `Failed to record negotiation proposal: ${error.message}` }
     }
 
+    // Insert activity log entry for negotiation history
+    try {
+        const { data: offer } = await supabase
+            .from('offers')
+            .select('*, units(*), customers(*)')
+            .eq('id', data.offer_id)
+            .single()
+
+        if (offer) {
+            const formattedPrice = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: data.proposed_currency, maximumFractionDigits: 0 }).format(data.proposed_price)
+            const sourceText = data.source === 'Sales' ? 'Satış Ekibi Teklifi' : 'Müşteri Önerisi'
+            const unitText = offer.units ? `${offer.units.unit_number || ''}` : ''
+            const planText = data.proposed_payment_plan 
+                ? `${data.proposed_payment_plan.installment_count || data.proposed_payment_plan.payment_items?.filter((i: any) => i.payment_type === 'Installment').length || 0} taksitli özel plan` 
+                : 'Varsayılan plan'
+
+            await supabase.from('activities').insert({
+                tenant_id: profile?.tenant_id,
+                customer_id: offer.customer_id,
+                owner_id: user?.id,
+                user_id: user?.id,
+                project_id: offer.units?.project_id || null,
+                type: 'System',
+                topic: 'Pazarlık',
+                summary: `Pazarlık Teklifi: ${formattedPrice} (${sourceText})`,
+                description: `Ünite: ${unitText} için yeni pazarlık teklifi girildi. Fiyat: ${formattedPrice}. Ödeme Planı: ${planText}. Not: ${data.notes || '-'}`,
+                status: 'Completed',
+                due_date: new Date().toISOString()
+            })
+        }
+    } catch (logErr) {
+        console.error('Failed to log negotiation activity:', logErr)
+    }
+
     // Check if Offer was Expired, and if this new proposal extends validity
     if (data.proposed_valid_until) {
         const { data: offer } = await supabase.from('offers').select('status').eq('id', data.offer_id).single()
@@ -1175,6 +1209,36 @@ export async function approveNegotiation(negotiationId: string, depositAmount: n
         payment_plan: neg.proposed_payment_plan
     }).eq('id', neg.offer_id)
     if (offerPriceError) return { success: false, error: offerPriceError.message }
+
+    // Log negotiation approval to activities
+    try {
+        const { data: offer } = await supabase
+            .from('offers')
+            .select('*, units(*)')
+            .eq('id', neg.offer_id)
+            .single()
+
+        if (offer) {
+            const formattedPrice = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: neg.proposed_currency, maximumFractionDigits: 0 }).format(neg.proposed_price)
+            const unitText = offer.units ? `${offer.units.unit_number || ''}` : ''
+
+            await supabase.from('activities').insert({
+                tenant_id: profile?.tenant_id,
+                customer_id: offer.customer_id,
+                owner_id: user?.id,
+                user_id: user?.id,
+                project_id: offer.units?.project_id || null,
+                type: 'System',
+                topic: 'Pazarlık',
+                summary: `Pazarlık Anlaşması Onaylandı: ${formattedPrice}`,
+                description: `Ünite: ${unitText} için yapılan pazarlık teklifi (${formattedPrice}) onaylandı ve kesinleşti. Satış süreci sözleşme aşamasına geçmeye hazır.`,
+                status: 'Completed',
+                due_date: new Date().toISOString()
+            })
+        }
+    } catch (logErr) {
+        console.error('Failed to log negotiation approval activity:', logErr)
+    }
 
     // 4. Sync Payment Plan to Sale Table (if present)
     if (neg.proposed_payment_plan && neg.proposed_payment_plan.payment_items) {
@@ -1740,10 +1804,54 @@ export async function saveCustomerDemand(formData: FormData) {
 export async function getPaymentPlan(sale_id: string) {
     const supabase = await createClient()
 
+    let targetSaleId = sale_id
+
+    // Check if it's a negotiation-prefixed ID
+    if (sale_id.startsWith('negotiation-')) {
+        const offerId = sale_id.replace('negotiation-', '')
+        
+        // 1. Fetch latest negotiation proposal
+        const { data: latestNeg } = await supabase
+            .from('offer_negotiations')
+            .select('*')
+            .eq('offer_id', offerId)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+
+        if (latestNeg?.proposed_payment_plan) {
+            const plan = latestNeg.proposed_payment_plan
+            if (plan.payment_items) {
+                plan.payment_items.sort((a: any, b: any) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())
+            }
+            return plan
+        }
+
+        // 2. Fallback to offer's payment plan
+        const { data: offer } = await supabase
+            .from('offers')
+            .select('*, payment_plan')
+            .eq('id', offerId)
+            .maybeSingle()
+
+        if (offer?.payment_plan) {
+            const plan = offer.payment_plan
+            if (plan.payment_items) {
+                plan.payment_items.sort((a: any, b: any) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())
+            }
+            return plan
+        }
+
+        // 3. Fallback to original sale's payment plan
+        if (offer?.sale_id) {
+            targetSaleId = offer.sale_id
+        }
+    }
+
     const { data: plan } = await supabase
         .from('payment_plans')
         .select('*, payment_items(*)')
-        .eq('sale_id', sale_id)
+        .eq('sale_id', targetSaleId)
         .single()
 
     if (!plan) return null

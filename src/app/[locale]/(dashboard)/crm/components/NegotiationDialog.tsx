@@ -40,9 +40,10 @@ interface NegotiationDialogProps {
     currentCurrency: string
     customerName: string
     unitInfo: string
+    initialPaymentPlan?: any
 }
 
-export default function NegotiationDialog({ offerId, currentPrice, currentCurrency, customerName, unitInfo }: NegotiationDialogProps) {
+export default function NegotiationDialog({ offerId, currentPrice, currentCurrency, customerName, unitInfo, initialPaymentPlan }: NegotiationDialogProps) {
     const t = useTranslations('Offers.dialog')
     const tMsg = useTranslations('Offers.messages')
     const tActions = useTranslations('Offers.actions')
@@ -57,7 +58,7 @@ export default function NegotiationDialog({ offerId, currentPrice, currentCurren
     const [approvalDeposit, setApprovalDeposit] = useState<number | string>(0)
     const [negToApprove, setNegToApprove] = useState<any>(null)
     const [showPlanInputs, setShowPlanInputs] = useState(false)
-    const [proposedPlan, setProposedPlan] = useState<any>(null)
+    const [proposedPlan, setProposedPlan] = useState<any>(initialPaymentPlan || null)
     const [templates, setTemplates] = useState<any[]>([])
     const router = useRouter()
 
@@ -68,8 +69,12 @@ export default function NegotiationDialog({ offerId, currentPrice, currentCurren
             const d = new Date()
             d.setDate(d.getDate() + 7)
             setValidityDate(d.toISOString().split('T')[0])
+            
+            // Default to offer price and plan initially
+            setNewPrice(currentPrice)
+            setProposedPlan(initialPaymentPlan || null)
         }
-    }, [offerId, isOpen])
+    }, [offerId, isOpen, currentPrice, initialPaymentPlan])
 
     const loadTemplates = async () => {
         const data = await getPaymentTemplates()
@@ -83,6 +88,14 @@ export default function NegotiationDialog({ offerId, currentPrice, currentCurren
             const data = await getNegotiationHistory(offerId)
             if (data) {
                 setHistory(data)
+                // Overwrite proposed price and plan with the latest negotiation proposal if it exists
+                if (data.length > 0) {
+                    const latest = data[0] // ordered by created_at desc
+                    setNewPrice(latest.proposed_price)
+                    if (latest.proposed_payment_plan) {
+                        setProposedPlan(latest.proposed_payment_plan)
+                    }
+                }
             } else {
                 setError(tMsg('historyError'))
             }

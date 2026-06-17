@@ -170,6 +170,7 @@ export default function OfferList({ offers, userRole }: { offers: Offer[], userR
                                                     currentCurrency={offer.currency}
                                                     customerName={offer.customers?.full_name || ''}
                                                     unitInfo={`${offer.units?.projects?.name || ''} - ${offer.units?.unit_number || ''}`}
+                                                    initialPaymentPlan={offer.payment_plan}
                                                 />
                                                 {/* <ApproveOfferButton
                                                     offerId={offer.id}
