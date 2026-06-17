@@ -2586,7 +2586,8 @@
             "status": "Status",
             "actions": {
                 "title": "Actions",
-                "edit": "Edit"
+                "edit": "Edit",
+                "delete": "Delete"
             },
             "sicilNo": "Registry No",
             "phone": "Phone",

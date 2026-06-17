@@ -2440,7 +2440,8 @@
             "status": "Durum",
             "actions": {
                 "title": "İşlemler",
-                "edit": "Düzenle"
+                "edit": "Düzenle",
+                "delete": "Sil"
             },
             "sicilNo": "Sicil No",
             "phone": "Telefon",

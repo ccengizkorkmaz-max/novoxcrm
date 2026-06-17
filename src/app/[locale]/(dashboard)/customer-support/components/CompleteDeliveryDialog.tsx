@@ -34,6 +34,7 @@ interface Appointment {
     status: string
     checklist_items?: any
     initial_meter_readings?: any
+    cancellation_reason?: string | null
     units: {
         id: string
         unit_number: string
@@ -67,11 +68,21 @@ function clearTurkishChars(str: string): string {
         .replace(/İ/g, 'I');
 }
 
+function formatDatetimeLocal(dateStr: string): string {
+    if (!dateStr) return ''
+    const d = new Date(dateStr)
+    const offset = d.getTimezoneOffset()
+    const localDate = new Date(d.getTime() - offset * 60 * 1000)
+    return localDate.toISOString().slice(0, 16)
+}
+
 export function CompleteDeliveryDialog({ appointment }: CompleteDeliveryDialogProps) {
     const t = useTranslations('Deliveries')
     const [isOpen, setIsOpen] = useState(false)
     const [status, setStatus] = useState(appointment.status)
     const [notes, setNotes] = useState(appointment.notes || '')
+    const [appointmentDate, setAppointmentDate] = useState(formatDatetimeLocal(appointment.appointment_date))
+    const [cancellationReason, setCancellationReason] = useState(appointment.cancellation_reason || '')
     const [loading, setLoading] = useState(false)
 
     // Checklist states
@@ -87,6 +98,11 @@ export function CompleteDeliveryDialog({ appointment }: CompleteDeliveryDialogPr
     const [gasReading, setGasReading] = useState(existingMeters.gas || '')
 
     const handleSave = async () => {
+        if (status === 'Cancelled' && (!cancellationReason || !cancellationReason.trim())) {
+            toast.error('İptal durumunda gerekçe girilmesi zorunludur.')
+            return
+        }
+
         setLoading(true)
         try {
             const checklist = []
@@ -106,10 +122,12 @@ export function CompleteDeliveryDialog({ appointment }: CompleteDeliveryDialogPr
             formData.append('initial_meter_readings', JSON.stringify(meters))
             formData.append('notes', notes)
             formData.append('status', status)
+            formData.append('appointment_date', appointmentDate)
+            formData.append('cancellation_reason', status === 'Cancelled' ? cancellationReason : '')
 
             const res = await completeDeliveryChecklist(formData)
             if (res.success) {
-                toast.success(t('successComplete'))
+                toast.success('Teslimat randevusu güncellendi.')
                 setIsOpen(false)
             } else {
                 toast.error(res.error || 'Güncelleme başarısız.')
@@ -120,6 +138,7 @@ export function CompleteDeliveryDialog({ appointment }: CompleteDeliveryDialogPr
             setLoading(false)
         }
     }
+
 
     const generatePDF = () => {
         const doc = new jsPDF()
@@ -324,6 +343,19 @@ export function CompleteDeliveryDialog({ appointment }: CompleteDeliveryDialogPr
                         </div>
                     </div>
 
+                    {/* Appointment Date */}
+                    <div className="grid gap-2 border-b pb-4">
+                        <Label htmlFor="appointment_date" className="font-semibold text-sm">{t('appointmentDate')}</Label>
+                        <Input
+                            id="appointment_date"
+                            type="datetime-local"
+                            value={appointmentDate}
+                            onChange={(e) => setAppointmentDate(e.target.value)}
+                            className="h-8 text-xs"
+                            required
+                        />
+                    </div>
+
                     {/* Appointment Status */}
                     <div className="grid gap-2 border-b pb-4">
                         <Label htmlFor="status" className="font-semibold text-sm">{t('status')}</Label>
@@ -339,6 +371,23 @@ export function CompleteDeliveryDialog({ appointment }: CompleteDeliveryDialogPr
                             </SelectContent>
                         </Select>
                     </div>
+
+                    {/* Cancellation Reason */}
+                    {status === 'Cancelled' && (
+                        <div className="grid gap-1.5 border-b pb-4">
+                            <Label htmlFor="cancellation_reason" className="font-semibold text-sm text-red-600 flex items-center gap-1">
+                                İptal Gerekçesi <span className="text-red-500">*</span>
+                            </Label>
+                            <Textarea
+                                id="cancellation_reason"
+                                value={cancellationReason}
+                                onChange={(e) => setCancellationReason(e.target.value)}
+                                placeholder="İptal edilme gerekçesini giriniz (zorunlu)..."
+                                className="text-xs border-red-200 focus-visible:ring-red-500"
+                                required
+                            />
+                        </div>
+                    )}
 
                     {/* Notes */}
                     <div className="grid gap-1.5">

@@ -272,6 +272,8 @@ export async function completeDeliveryChecklist(formData: FormData) {
     const initialMeterReadingsStr = formData.get('initial_meter_readings') as string
     const notes = formData.get('notes') as string
     const status = formData.get('status') as string || 'Completed'
+    const appointmentDate = formData.get('appointment_date') as string
+    const cancellationReason = formData.get('cancellation_reason') as string
 
     if (!id) return { error: 'Randevu ID gereklidir.' }
 
@@ -289,24 +291,41 @@ export async function completeDeliveryChecklist(formData: FormData) {
         return { error: 'Teslimat randevusu bulunamadı.' }
     }
 
-    // 2. Update Delivery Appointment
+    // 2. Validate cancellation reason
+    if (status === 'Cancelled' && (!cancellationReason || !cancellationReason.trim())) {
+        return { error: 'İptal durumunda gerekçe girilmesi zorunludur.' }
+    }
+
+    // 3. Update Delivery Appointment
+    const updateData: any = {
+        checklist_items: checklistItems,
+        initial_meter_readings: initialMeterReadings,
+        notes,
+        status,
+        updated_at: new Date().toISOString()
+    }
+
+    if (appointmentDate) {
+        updateData.appointment_date = appointmentDate
+    }
+
+    if (status === 'Cancelled') {
+        updateData.cancellation_reason = cancellationReason
+    } else {
+        updateData.cancellation_reason = null
+    }
+
     const { error: appError } = await supabase
         .from('delivery_appointments')
-        .update({
-            checklist_items: checklistItems,
-            initial_meter_readings: initialMeterReadings,
-            notes,
-            status,
-            updated_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('id', id)
 
     if (appError) {
         console.error('Complete checklist error:', appError)
-        return { error: 'Kontrol listesi kaydedilemedi.' }
+        return { error: 'Randevu güncellenemedi.' }
     }
 
-    // 3. If Completed, update Unit and Contract delivery status
+    // 4. If Completed, update Unit and Contract delivery status
     if (status === 'Completed') {
         // Find contract for the unit
         const { data: sale } = await supabase
@@ -330,6 +349,7 @@ export async function completeDeliveryChecklist(formData: FormData) {
     revalidatePath('/customer-support/deliveries')
     return { success: true }
 }
+
 
 // ==========================================
 // 4. CSAT FEEDBACK ACTIONS

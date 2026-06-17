@@ -11,12 +11,12 @@ import {
     ShieldCheck, FileText, Trash2, Plus, Download,
     ArrowLeft, Edit2, Wallet
 } from 'lucide-react'
-import { useRouter } from 'next/navigation'
-import { usePathname } from '@/i18n/routing'
+import { usePathname, useRouter } from '@/i18n/routing'
 import { format } from 'date-fns'
 import { tr } from 'date-fns/locale'
-import { deleteEmployeeDocument } from '../actions'
+import { deleteEmployeeDocument, deleteEmployee } from '../actions'
 import DocumentUploadDialog from './DocumentUploadDialog'
+import { toast } from 'sonner'
 
 interface EmployeeProfileProps {
     employee: any
@@ -47,6 +47,25 @@ export default function EmployeeProfile({ employee, documents }: EmployeeProfile
                     <Button variant="outline" onClick={() => router.push(`${employee.id}/edit`)}>
                         <Edit2 className="h-4 w-4 mr-2" />
                         {t('table.actions.edit')}
+                    </Button>
+                    <Button 
+                        variant="destructive" 
+                        onClick={async () => {
+                            if (confirm(t('messages.confirmDelete'))) {
+                                try {
+                                    await deleteEmployee(employee.id)
+                                    toast.success(t('messages.successDelete'))
+                                    router.push('/hr')
+                                    router.refresh()
+                                } catch (err) {
+                                    console.error(err)
+                                    toast.error(t('messages.error'))
+                                }
+                            }
+                        }}
+                    >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        {t('table.actions.delete')}
                     </Button>
                 </div>
             </div>

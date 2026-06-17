@@ -21,9 +21,11 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { useRouter, useSearchParams } from 'next/navigation'
-import { usePathname } from '@/i18n/routing'
+import { useSearchParams } from 'next/navigation'
+import { usePathname, useRouter } from '@/i18n/routing'
 import { Badge } from "@/components/ui/badge"
+import { deleteEmployee } from '../actions'
+import { toast } from 'sonner'
 
 interface Employee {
     id: string
@@ -149,8 +151,23 @@ export default function EmployeeList({ employees, totalRecords, initialPage }: E
                                                 <DropdownMenuItem onClick={() => router.push(`${pathname}/${employee.id}/edit`)}>
                                                     {t('table.actions.edit')}
                                                 </DropdownMenuItem>
-                                                <DropdownMenuItem className="text-destructive">
-                                                    {t('messages.confirmDelete')}
+                                                <DropdownMenuItem 
+                                                    className="text-destructive cursor-pointer"
+                                                    onClick={async (e) => {
+                                                        e.stopPropagation()
+                                                        if (confirm(t('messages.confirmDelete'))) {
+                                                            try {
+                                                                await deleteEmployee(employee.id)
+                                                                toast.success(t('messages.successDelete'))
+                                                                router.refresh()
+                                                            } catch (err) {
+                                                                console.error(err)
+                                                                toast.error(t('messages.error'))
+                                                            }
+                                                        }
+                                                    }}
+                                                >
+                                                    {t('table.actions.delete')}
                                                 </DropdownMenuItem>
                                             </DropdownMenuContent>
                                         </DropdownMenu>
