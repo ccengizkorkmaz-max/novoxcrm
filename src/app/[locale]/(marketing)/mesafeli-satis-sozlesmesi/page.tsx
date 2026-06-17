@@ -36,7 +36,7 @@ export default function MesafeliSatisSozlesmesiPage() {
                                     <ul className="list-disc pl-5 space-y-1 text-slate-400">
                                         <li><strong>Unvanı:</strong> BTPROSES Teknoloji Danışmanlık Ltd.Şti.</li>
                                         <li><strong>Adres:</strong> Burhaniye Mh. Üsküdar - İstanbul 34676</li>
-                                        <li><strong>İletişim:</strong> info@btproses.com</li>
+                                        <li><strong>İletişim:</strong> melis@btproses.com</li>
                                     </ul>
                                 </div>
                                 <div>
