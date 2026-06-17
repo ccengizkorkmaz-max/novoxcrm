@@ -1887,12 +1887,15 @@ export async function handleVapiCallResult(callData: {
 
                 if (tenant?.wa_phone_number_id && tenant?.wa_access_token && customer) {
                     const { sendWhatsAppTemplate } = await import('@/lib/whatsapp')
+                    const { extractAvailabilityPreferenceFromTranscript } = await import('@/lib/utils/availability')
+                    const availabilityPref = extractAvailabilityPreferenceFromTranscript(callData.transcript || '')
+                    const availabilityPrefix = availabilityPref ? `⚠️ [UYGUNLUK ZAMANI: ${availabilityPref.toUpperCase()}] ⚠️ ` : ''
                     const leadLabel = structuredData.lead_score === 'warm' ? '[ILIK LEAD - Outreach] ' : '[SICAK LEAD - Outreach] '
                     const params = [
                         customer.phone || '-',
                         customer.full_name || 'Müşteri',
                         new Date().toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' }),
-                        leadLabel + (structuredData.notes || `AI arama sonucu ${structuredData.lead_score.toUpperCase()} olarak değerlendirildi`)
+                        availabilityPrefix + leadLabel + (structuredData.notes || `AI arama sonucu ${structuredData.lead_score.toUpperCase()} olarak değerlendirildi`)
                     ].map(p => typeof p === 'string' ? p.replace(/[\r\n\t]+/g, ' ').replace(/\s{2,}/g, ' ').trim().substring(0, 500) : p)
 
                     // 1. Atanmış danışmana bildirim

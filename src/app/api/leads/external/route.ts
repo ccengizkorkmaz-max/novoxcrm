@@ -502,6 +502,63 @@ ${knowledgeBase || 'Proje detayları için satış danışmanına yönlendir.'}
         }
 
         // --- Default Flow: Auto-CRM + Archive in Inbox ---
+        // Fetch Tenant Settings
+        const { data: tenantConfig } = await supabase
+            .from('tenants')
+            .select('auto_approve_web_leads')
+            .eq('id', tenant_id)
+            .maybeSingle()
+
+        const shouldAutoApprove = tenantConfig?.auto_approve_web_leads !== false // Default to true if column is missing or true
+
+        if (!shouldAutoApprove) {
+            console.log('Auto-approve is disabled. Inserting web form lead as pending in inbox...')
+            
+            const { data: newInboxItem, error: inboxErr } = await supabase
+                .from('inbox_items')
+                .insert({
+                    tenant_id: tenant_id,
+                    name: name,
+                    email: email || null,
+                    phone: phone || null,
+                    message: finalMessage.trim() || 'No message provided',
+                    source: source,
+                    status: 'pending',
+                    project_id: projectId
+                })
+                .select('id')
+                .single()
+
+            if (inboxErr) {
+                console.error('Error inserting pending inbox item:', inboxErr)
+                return NextResponse.json({ error: 'Failed to save to inbox' }, { status: 500 })
+            }
+
+            // Create notification for new web form lead
+            try {
+                const { createNotification } = await import('@/lib/notifications/create')
+                await createNotification({
+                    tenant_id: tenant_id,
+                    type: 'Info',
+                    category: 'CRM',
+                    title: '📧 Yeni Web Form Talebi',
+                    message: `${name || 'Müşteri'} isimli kişiden gelen kutusuna yeni bir web form düştü.`,
+                    link: '/inbox'
+                })
+            } catch (notifErr) {
+                console.warn('Error creating notification for web form:', notifErr)
+            }
+
+            revalidatePath('/[locale]/(dashboard)/inbox')
+
+            return NextResponse.json({
+                success: true,
+                message: 'Lead saved as pending in inbox (manual approval required).',
+                inbox_item_id: newInboxItem.id,
+                auto_approved: false
+            })
+        }
+
         // Web form leads are now auto-processed (like Facebook Ads) instead of waiting for manual approval.
         // A copy is saved in inbox as 'approved' for archive/audit purposes.
         console.log('Auto-processing web form lead to CRM...')

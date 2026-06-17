@@ -18,13 +18,14 @@ interface TenantProfileFormProps {
         subscription_end_date: string | null
         country: string | null
         lead_ownership_days?: number | null
+        auto_approve_web_leads?: boolean | null
     }
     userCount: number
 }
 
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
-import { CreditCard, Calendar, Users, ShieldCheck, Clock } from "lucide-react"
+import { CreditCard, Calendar, Users, ShieldCheck, Clock, Building2 } from "lucide-react"
 import { useTranslations, useLocale } from 'next-intl'
 
 export default function TenantProfileForm({ tenant, userCount }: TenantProfileFormProps) {
@@ -108,6 +109,30 @@ export default function TenantProfileForm({ tenant, userCount }: TenantProfileFo
                     <p className="text-xs text-muted-foreground">
                         Bir lead oluşturulduktan sonra temsilcinin sahiplik süresi. Bu süre dolduğunda lead yeniden atanabilir. CRM tablosunda kalan süre gösterilir.
                     </p>
+                </div>
+            </div>
+
+            <div className="pt-4 border-t">
+                <h3 className="text-sm font-semibold mb-3 flex items-center gap-2 text-slate-900">
+                    <Building2 className="h-4 w-4 text-blue-500" />
+                    Web Form Ayarları
+                </h3>
+                <div className="flex items-start gap-2.5 pt-1">
+                    <input
+                        type="checkbox"
+                        id="auto_approve_web_leads"
+                        name="auto_approve_web_leads"
+                        defaultChecked={tenant.auto_approve_web_leads !== false}
+                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer mt-0.5"
+                    />
+                    <div className="grid gap-1.5 leading-none">
+                        <Label htmlFor="auto_approve_web_leads" className="text-sm font-bold leading-none cursor-pointer text-slate-800">
+                            Web Formlarını Otomatik Lead'e Dönüştür
+                        </Label>
+                        <p className="text-xs text-muted-foreground leading-normal">
+                            Etkinleştirildiğinde, web sitelerinden (novoxcrm.com, oikoscrm.com vb.) gelen tüm iletişim formları otomatik olarak CRM sisteminize yeni lead (satış adayı) olarak eklenir. Devre dışı bırakıldığında, gelen formlar "Gelen Kutusu" paneline düşer ve CRM'e aktarılması için yönetici onayını bekler.
+                        </p>
+                    </div>
                 </div>
             </div>
 

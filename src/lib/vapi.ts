@@ -1056,12 +1056,15 @@ export async function handleManualVapiCallResult(callData: {
 
                     if (tenant?.wa_phone_number_id && tenant?.wa_access_token) {
                         const { sendWhatsAppTemplate } = await import('@/lib/whatsapp')
+                        const { extractAvailabilityPreferenceFromTranscript } = await import('@/lib/utils/availability')
+                        const availabilityPref = extractAvailabilityPreferenceFromTranscript(callData.transcript || '')
+                        const availabilityPrefix = availabilityPref ? `⚠️ [UYGUNLUK ZAMANI: ${availabilityPref.toUpperCase()}] ⚠️ ` : ''
                         const leadLabel = leadScore === 'warm' ? '[ILIK LEAD - CRM Arama] ' : '[SICAK LEAD - CRM Arama] '
                         const params = [
                             customer?.phone || callerPhone || '-',
                             customer?.full_name || 'Müşteri',
                             new Date().toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' }),
-                            leadLabel + (callData.summary || notes || 'AI arama sonucu ilgili olarak değerlendirildi')
+                            availabilityPrefix + leadLabel + (callData.summary || notes || 'AI arama sonucu ilgili olarak değerlendirildi')
                         ].map(p => typeof p === 'string' ? p.replace(/[\r\n\t]+/g, ' ').replace(/\s{2,}/g, ' ').trim().substring(0, 500) : p)
 
                         for (const manager of hotLeadManagers) {
