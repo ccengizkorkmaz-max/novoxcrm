@@ -142,7 +142,16 @@ export default async function DeliveriesPage(props: {
                                             </span>
                                         </div>
                                     </TableCell>
-                                    <TableCell>{getStatusBadge(app.status)}</TableCell>
+                                    <TableCell>
+                                        <div className="flex flex-col gap-1 items-start">
+                                            {getStatusBadge(app.status)}
+                                            {app.status === 'Cancelled' && (app as any).cancellation_reason && (
+                                                <span className="text-[10px] text-red-600 bg-red-50 border border-red-100 rounded px-1.5 py-0.5 max-w-[150px] whitespace-normal leading-tight font-medium">
+                                                    Gerekçe: {(app as any).cancellation_reason}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </TableCell>
                                     <TableCell className="max-w-[200px] truncate text-slate-600">
                                         {app.notes || '-'}
                                     </TableCell>

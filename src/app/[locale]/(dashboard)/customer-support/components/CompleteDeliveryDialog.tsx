@@ -21,7 +21,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
-import { ClipboardCheck, FileText } from 'lucide-react'
+import { ClipboardCheck, FileText, CheckCircle, XCircle, AlertTriangle, Settings } from 'lucide-react'
 import { completeDeliveryChecklist } from '../actions'
 import { toast } from 'sonner'
 import { useTranslations } from 'next-intl'
@@ -255,17 +255,50 @@ export function CompleteDeliveryDialog({ appointment }: CompleteDeliveryDialogPr
         toast.success("Teslim protokolü PDF dosyası başarıyla indirildi.")
     }
 
+    const getTriggerButton = () => {
+        switch (appointment.status) {
+            case 'Completed':
+                return (
+                    <Button variant="outline" size="sm" className="gap-1.5 h-8 border-emerald-200 text-emerald-700 bg-emerald-50/30 hover:bg-emerald-50 hover:text-emerald-800 transition-all font-medium">
+                        <CheckCircle className="h-4 w-4 text-emerald-600" />
+                        Detay / Protokol
+                    </Button>
+                )
+            case 'Cancelled':
+                return (
+                    <Button variant="outline" size="sm" className="gap-1.5 h-8 border-red-200 text-red-700 bg-red-50/30 hover:bg-red-50 hover:text-red-800 transition-all font-medium">
+                        <XCircle className="h-4 w-4 text-red-600" />
+                        İptal Detayı
+                    </Button>
+                )
+            case 'No Show':
+                return (
+                    <Button variant="outline" size="sm" className="gap-1.5 h-8 border-amber-200 text-amber-700 bg-amber-50/30 hover:bg-amber-50 hover:text-amber-800 transition-all font-medium">
+                        <AlertTriangle className="h-4 w-4 text-amber-600" />
+                        Detay / Düzenle
+                    </Button>
+                )
+            default: // Scheduled
+                return (
+                    <Button variant="outline" size="sm" className="gap-1.5 h-8 border-blue-200 text-blue-700 bg-blue-50/30 hover:bg-blue-50 hover:text-blue-800 transition-all font-medium">
+                        <Settings className="h-4 w-4 text-blue-600" />
+                        Yönet / Düzenle / İptal
+                    </Button>
+                )
+        }
+    }
+
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-1.5 h-8">
-                    <ClipboardCheck className="h-4 w-4 text-blue-600" />
-                    {t('completeBtn')}
-                </Button>
+                {getTriggerButton()}
             </DialogTrigger>
             <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>{appointment.units.projects?.name} - Daire {appointment.units.unit_number}</DialogTitle>
+                    <p className="text-xs text-muted-foreground mt-1">
+                        {status === 'Cancelled' ? 'İptal İşlemi ve Gerekçesi' : 'Kabul Kontrol Listesi, Randevu Tarihi ve Randevu Durumu Yönetimi'}
+                    </p>
                 </DialogHeader>
 
                 <div className="space-y-4 py-4">
