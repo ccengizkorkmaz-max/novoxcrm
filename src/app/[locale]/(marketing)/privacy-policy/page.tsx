@@ -109,7 +109,7 @@ export default function PrivacyPolicyPage() {
                                 Contact Information
                             </h2>
                             <p className="pl-11 mb-2 text-slate-400">If you have any questions about this Privacy Policy, you may contact us at:</p>
-                            <p className="pl-11 font-bold text-xl text-blue-400 hover:text-blue-300 transition-colors">domainregpro99@gmail.com</p>
+                            <p className="pl-11 font-bold text-xl text-blue-400 hover:text-blue-300 transition-colors">info@btproses.com</p>
                         </section>
 
                         <div className="pt-4">
