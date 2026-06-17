@@ -257,11 +257,12 @@ export default function NegotiationDialog({ offerId, currentPrice, currentCurren
                                                     initialCurrency={currentCurrency}
                                                     templates={templates}
                                                     onClose={() => setShowPlanInputs(false)}
-                                                    confirmButtonText="Planı Onayla ve Ekle"
+                                                    confirmButtonText="Planı Onayla"
                                                     onConfirm={(plan, totals, curr) => {
                                                         setProposedPlan({
                                                             payment_items: plan,
                                                             total_amount: totals.grandTotal,
+                                                            interest_amount: totals.interest,
                                                             installment_count: plan.filter(i => i.payment_type === 'Installment').length
                                                         })
                                                         setShowPlanInputs(false)
@@ -369,60 +370,119 @@ export default function NegotiationDialog({ offerId, currentPrice, currentCurren
                                                             {neg.source === 'Sales' ? `${t('salesTeam')}: ${neg.profiles?.full_name || 'Bilinmiyor'}` : t('customerProposal')}
                                                         </span>
                                                     </div>
-                                                    {neg.proposed_payment_plan && (
-                                                        <div className="flex flex-col gap-2 mt-1">
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => togglePlanExpand(neg.id)}
-                                                                className="flex items-center gap-1.5 text-[10px] font-bold text-blue-600 hover:text-blue-700 bg-blue-50/50 hover:bg-blue-50 px-2 py-1 rounded-lg w-fit transition-all"
-                                                            >
-                                                                <Calculator className="h-3 w-3" />
-                                                                <span>
-                                                                    {neg.proposed_payment_plan.installment_count || neg.proposed_payment_plan.payment_items?.filter((i: any) => i.payment_type === 'Installment').length || 0} Taksit Önerisi
-                                                                </span>
-                                                                {expandedPlans[neg.id] ? (
-                                                                    <ChevronUp className="h-3 w-3" />
-                                                                ) : (
-                                                                    <ChevronDown className="h-3 w-3" />
-                                                                )}
-                                                            </button>
+                                                    {neg.proposed_payment_plan && (() => {
+                                                         const itemsSum = neg.proposed_payment_plan.payment_items?.reduce((acc: number, item: any) => acc + Number(item.amount || 0), 0) || 0;
+                                                         const interestAmount = neg.proposed_payment_plan.interest_amount || Math.max(0, itemsSum - neg.proposed_price);
+                                                         const grandTotal = neg.proposed_payment_plan.total_amount || itemsSum || neg.proposed_price;
+                                                         
+                                                         const downPayments = neg.proposed_payment_plan.payment_items?.filter((i: any) => i.payment_type === 'DownPayment' || i.payment_type === 'Down Payment') || [];
+                                                         const totalDownPayment = downPayments.reduce((acc: number, item: any) => acc + Number(item.amount || 0), 0);
+                                                         const downPaymentPercent = downPayments.reduce((acc: number, item: any) => acc + Number(item.percentage || 0), 0);
+                                                         
+                                                         const installments = neg.proposed_payment_plan.payment_items?.filter((i: any) => i.payment_type === 'Installment') || [];
+                                                         const installmentCount = neg.proposed_payment_plan.installment_count || installments.length;
+                                                         const singleInstallmentAmount = installments.length > 0 ? installments[0].amount : 0;
+                                                         
+                                                         const interims = neg.proposed_payment_plan.payment_items?.filter((i: any) => i.payment_type === 'InterimPayment' || i.payment_type === 'Interim Payment' || i.payment_type === 'Balloon') || [];
+                                                         const totalInterimAmount = interims.reduce((acc: number, item: any) => acc + Number(item.amount || 0), 0);
 
-                                                            {expandedPlans[neg.id] && (
-                                                                <div className="mt-1 border border-slate-100 rounded-xl overflow-hidden bg-slate-50/30 text-[10px] w-full max-w-md">
-                                                                    {neg.proposed_payment_plan.payment_items && neg.proposed_payment_plan.payment_items.length > 0 ? (
-                                                                        <table className="w-full text-left border-collapse">
-                                                                            <thead>
-                                                                                <tr className="bg-slate-100/80 text-slate-500 border-b border-slate-200">
-                                                                                    <th className="p-1.5 font-bold uppercase tracking-wider">Tarih</th>
-                                                                                    <th className="p-1.5 font-bold uppercase tracking-wider">Tür</th>
-                                                                                    <th className="p-1.5 text-right font-bold uppercase tracking-wider">Tutar</th>
-                                                                                </tr>
-                                                                            </thead>
-                                                                            <tbody className="divide-y divide-slate-150">
-                                                                                {neg.proposed_payment_plan.payment_items.map((item: any, idx: number) => (
-                                                                                    <tr key={idx} className="hover:bg-slate-50 text-slate-700 font-medium">
-                                                                                        <td className="p-1.5 whitespace-nowrap">
-                                                                                            {item.due_date ? new Date(item.due_date).toLocaleDateString(tMsg('locale', { defaultValue: 'tr-TR' })) : '-'}
-                                                                                        </td>
-                                                                                        <td className="p-1.5 text-slate-600 whitespace-nowrap">
-                                                                                            {item.payment_type === 'Down Payment' || item.payment_type === 'DownPayment' ? 'Peşinat' :
-                                                                                                item.payment_type === 'Installment' ? 'Taksit' :
-                                                                                                item.payment_type === 'Interim Payment' || item.payment_type === 'InterimPayment' || item.payment_type === 'Balloon' ? 'Ara Ödeme' : 'Final Ödeme'}
-                                                                                        </td>
-                                                                                        <td className="p-1.5 text-right font-bold text-slate-900 whitespace-nowrap">
-                                                                                            {formatCurrency(item.amount, neg.proposed_currency)}
-                                                                                        </td>
-                                                                                    </tr>
-                                                                                ))}
-                                                                            </tbody>
-                                                                        </table>
-                                                                    ) : (
-                                                                        <div className="text-slate-500 italic p-2">Ödeme planı detayı bulunmuyor.</div>
-                                                                    )}
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    )}
+                                                         return (
+                                                             <div className="flex flex-col gap-2 mt-1">
+                                                                 <button
+                                                                     type="button"
+                                                                     onClick={() => togglePlanExpand(neg.id)}
+                                                                     className="flex items-center gap-1.5 text-[10px] font-bold text-blue-600 hover:text-blue-700 bg-blue-50/50 hover:bg-blue-50 px-2 py-1 rounded-lg w-fit transition-all shadow-sm"
+                                                                 >
+                                                                     <Calculator className="h-3 w-3" />
+                                                                     <span>
+                                                                         {installmentCount > 0 ? `${installmentCount} Taksit` : 'Ödeme Planı'} Önerisi Detayları
+                                                                     </span>
+                                                                     {expandedPlans[neg.id] ? (
+                                                                         <ChevronUp className="h-3 w-3" />
+                                                                     ) : (
+                                                                         <ChevronDown className="h-3 w-3" />
+                                                                     )}
+                                                                 </button>
+
+                                                                 {expandedPlans[neg.id] && (
+                                                                     <div className="mt-1 border border-slate-100 rounded-xl overflow-hidden bg-slate-50/40 text-[10px] w-full max-w-md animate-in slide-in-from-top-1 duration-200">
+                                                                         <div className="grid grid-cols-2 gap-x-4 gap-y-2 p-3 bg-white border-b border-slate-100">
+                                                                             <div className="space-y-0.5">
+                                                                                 <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Teklif Bedeli</span>
+                                                                                 <p className="font-extrabold text-slate-700">{formatCurrency(neg.proposed_price, neg.proposed_currency)}</p>
+                                                                             </div>
+                                                                             <div className="space-y-0.5 text-right">
+                                                                                 <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Genel Toplam (Vade Dahil)</span>
+                                                                                 <p className="font-black text-slate-900">{formatCurrency(grandTotal, neg.proposed_currency)}</p>
+                                                                             </div>
+                                                                             {interestAmount > 0 && (
+                                                                                 <div className="space-y-0.5">
+                                                                                     <span className="text-[9px] text-blue-500 font-bold uppercase tracking-wider">Vade Farkı</span>
+                                                                                     <p className="font-extrabold text-blue-600">+{formatCurrency(interestAmount, neg.proposed_currency)}</p>
+                                                                                 </div>
+                                                                             )}
+                                                                             {totalDownPayment > 0 && (
+                                                                                 <div className={`space-y-0.5 ${interestAmount > 0 ? 'text-right' : ''}`}>
+                                                                                     <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Peşinat</span>
+                                                                                     <p className="font-extrabold text-slate-700">
+                                                                                         {formatCurrency(totalDownPayment, neg.proposed_currency)}
+                                                                                         {downPaymentPercent > 0 && ` (%${Math.round(downPaymentPercent)})`}
+                                                                                     </p>
+                                                                                 </div>
+                                                                             )}
+                                                                             {installmentCount > 0 && (
+                                                                                 <div className="space-y-0.5 col-span-2 pt-1.5 border-t border-dashed border-slate-100 flex justify-between items-center">
+                                                                                     <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Taksit Planı</span>
+                                                                                     <p className="font-extrabold text-slate-700">
+                                                                                         {installmentCount} Ay x {formatCurrency(singleInstallmentAmount, neg.proposed_currency)}
+                                                                                     </p>
+                                                                                 </div>
+                                                                             )}
+                                                                             {totalInterimAmount > 0 && (
+                                                                                 <div className="space-y-0.5 col-span-2 pt-1.5 border-t border-dashed border-slate-100 flex justify-between items-center">
+                                                                                     <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Toplam Ara Ödeme</span>
+                                                                                     <p className="font-extrabold text-slate-700">{formatCurrency(totalInterimAmount, neg.proposed_currency)}</p>
+                                                                                 </div>
+                                                                             )}
+                                                                         </div>
+
+                                                                         {neg.proposed_payment_plan.payment_items && neg.proposed_payment_plan.payment_items.length > 0 ? (
+                                                                             <div className="max-h-[160px] overflow-y-auto">
+                                                                                 <table className="w-full text-left border-collapse">
+                                                                                     <thead>
+                                                                                         <tr className="bg-slate-50/80 text-slate-400 border-b border-slate-200 sticky top-0">
+                                                                                             <th className="p-1.5 font-bold uppercase tracking-wider text-[9px]">Tarih</th>
+                                                                                             <th className="p-1.5 font-bold uppercase tracking-wider text-[9px]">Tür</th>
+                                                                                             <th className="p-1.5 text-right font-bold uppercase tracking-wider text-[9px]">Tutar</th>
+                                                                                         </tr>
+                                                                                     </thead>
+                                                                                     <tbody className="divide-y divide-slate-100 bg-slate-50/20">
+                                                                                         {neg.proposed_payment_plan.payment_items.map((item: any, idx: number) => (
+                                                                                             <tr key={idx} className="hover:bg-slate-50 text-slate-600 font-medium">
+                                                                                                 <td className="p-1.5 whitespace-nowrap">
+                                                                                                     {item.due_date ? new Date(item.due_date).toLocaleDateString(tMsg('locale', { defaultValue: 'tr-TR' })) : '-'}
+                                                                                                 </td>
+                                                                                                 <td className="p-1.5 whitespace-nowrap">
+                                                                                                     {item.payment_type === 'Down Payment' || item.payment_type === 'DownPayment' ? 'Peşinat' :
+                                                                                                         item.payment_type === 'Installment' ? 'Taksit' :
+                                                                                                         item.payment_type === 'Interim Payment' || item.payment_type === 'InterimPayment' || item.payment_type === 'Balloon' ? 'Ara Ödeme' : 'Final Ödeme'}
+                                                                                                 </td>
+                                                                                                 <td className="p-1.5 text-right font-bold text-slate-900 whitespace-nowrap">
+                                                                                                     {formatCurrency(item.amount, neg.proposed_currency)}
+                                                                                                 </td>
+                                                                                             </tr>
+                                                                                         ))}
+                                                                                     </tbody>
+                                                                                 </table>
+                                                                             </div>
+                                                                         ) : (
+                                                                             <div className="text-slate-400 italic p-3 text-center">Plan detayı bulunamadı.</div>
+                                                                         )}
+                                                                     </div>
+                                                                 )}
+                                                             </div>
+                                                         );
+                                                     })()}
                                                 </div>
                                                 <div className="flex flex-col items-end gap-2">
                                                     <Badge className={`text-[10px] font-black px-2 py-0.5 rounded-lg border-none uppercase tracking-widest ${neg.status === 'Approved' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-100' :
