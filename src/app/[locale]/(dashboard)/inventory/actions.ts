@@ -207,6 +207,10 @@ export async function cancelReservation(unitId: string, saleId: string) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) redirect('/login')
 
+    // Get current unit status for logging
+    const { data: currentUnit } = await supabase.from('units').select('status').eq('id', unitId).single()
+    const oldStatus = currentUnit?.status || 'Reserved'
+
     // 1. Update Unit status to For Sale
     const { error: unitError } = await supabase
         .from('units')
@@ -252,7 +256,7 @@ export async function cancelReservation(unitId: string, saleId: string) {
     }
 
     // Log activity
-    await logUnitActivity(unitId, 'status_change', 'Rezervasyon iptal edildi', 'Reserved', 'For Sale')
+    await logUnitActivity(unitId, 'status_change', 'Rezervasyon iptal edildi', oldStatus, 'For Sale')
 
     revalidatePath('/options')
     revalidatePath('/inventory')
@@ -278,16 +282,16 @@ export async function convertReservationToOffer(unitId: string) {
 
     if (!sale) return { error: 'No active reservation found for this unit' }
 
-    // 2. Update Unit status to For Sale (technically it's now in Proposal)
+    // 2. Update Unit status to Option so the lock is maintained under Option status while the offer is pending
     const { error: unitError } = await supabase
         .from('units')
-        .update({ status: 'For Sale' })
+        .update({ status: 'Option' })
         .eq('id', unitId)
 
     if (unitError) return { error: 'Failed to update unit status' }
 
     // Log conversion activity
-    await logUnitActivity(unitId, 'status_change', 'Rezervasyon teklife dönüştürüldü', 'Reserved', 'For Sale')
+    await logUnitActivity(unitId, 'status_change', 'Rezervasyon teklife dönüştürüldü (Opsiyon korundu)', 'Reserved', 'Option')
 
     // 3. Update Sales status to Proposal
     const { error: saleError } = await supabase

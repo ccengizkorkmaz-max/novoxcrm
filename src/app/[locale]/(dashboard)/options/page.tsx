@@ -37,7 +37,7 @@ export default async function OptionsPage(props: {
                 created_at
             )
         `)
-        .eq('status', 'Reserved')
+        .in('status', ['Reserved', 'Option'])
         .order('created_at', { ascending: false })
 
     let filteredOptions = options || []
