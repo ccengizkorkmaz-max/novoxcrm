@@ -505,6 +505,9 @@
         "activities": "Aktiviteler",
         "serviceRequests": "Servis Talepleri",
         "afterSales": "Satış Sonrası",
+        "snagList": "Eksik & Kusurlar",
+        "deliveries": "Teslimat & Kabul",
+        "subcontractors": "Taşeron Yönetimi",
         "commissions": "Primler",
         "finance": "Finans Yönetimi",
         "hr": "İnsan Kaynakları",
@@ -2724,8 +2727,99 @@
             "aiVoice": "Türkçe AI sesli asistan",
             "schedule": "Çalışma saati kontrolü",
             "retry": "Akıllı yeniden deneme",
-            "branch": "Koşullu dallanma",
             "realtime": "Anlık sonuç takibi"
         }
+    },
+    "Subcontractors": {
+        "title": "Taşeron Yönetimi",
+        "subtitle": "Kusur onarım ve periyodik bakım süreçlerinde yetkilendirilen alt yükleniciler.",
+        "addBtn": "Yeni Taşeron Ekle",
+        "editBtn": "Düzenle",
+        "deleteBtn": "Sil",
+        "name": "Taşeron Adı / Firma",
+        "category": "Kategori",
+        "contactName": "Yetkili Kişi",
+        "phone": "Telefon",
+        "email": "E-posta",
+        "actions": "İşlemler",
+        "empty": "Henüz tanımlanmış bir taşeron bulunmuyor.",
+        "categories": {
+            "Plumbing": "Sıhhi Tesisat",
+            "Electrical": "Elektrik",
+            "Paint": "Boya & Alçı",
+            "Carpentry": "Ahşap & Mobilya",
+            "Zemin": "Zemin / Seramik",
+            "HVAC": "Mekanik & Klima",
+            "Other": "Diğer"
+        },
+        "dialog": {
+            "title": "Taşeron Bilgileri",
+            "desc": "Alt yüklenici firmaya ait bilgileri buradan güncelleyebilirsiniz.",
+            "cancel": "Vazgeç",
+            "save": "Kaydet",
+            "successAdd": "Taşeron başarıyla eklendi.",
+            "successUpdate": "Taşeron başarıyla güncellendi.",
+            "successDelete": "Taşeron başarıyla silindi."
+        }
+    },
+    "SnagList": {
+        "title": "Eksik & Kusurlar (Snag List)",
+        "subtitle": "Dairelerde tespit edilen eksik ve arızaların takibi, taşeron atamaları ve onarım durumları.",
+        "addBtn": "Yeni Kusur Bildir",
+        "unit": "Bağımsız Bölüm / Daire",
+        "defectTitle": "Kusur Başlığı",
+        "description": "Açıklama",
+        "category": "Kategori",
+        "priority": "Öncelik",
+        "subcontractor": "Sorumlu Taşeron",
+        "status": "Durum",
+        "actions": "İşlemler",
+        "empty": "Kayıtlı herhangi bir eksik/kusur bulunmuyor.",
+        "selectUnit": "Daire Seçiniz",
+        "selectSub": "Taşeron Seçiniz (İsteğe bağlı)",
+        "priorities": {
+            "Low": "Düşük",
+            "Normal": "Normal",
+            "High": "Yüksek",
+            "Urgent": "Acil"
+        },
+        "statuses": {
+            "Pending": "Beklemede",
+            "In Progress": "Devam Ediyor",
+            "Repaired": "Onarıldı",
+            "Verified": "Onaylandı",
+            "Cancelled": "İptal"
+        },
+        "successAdd": "Kusur kaydı başarıyla oluşturuldu.",
+        "successStatus": "Kusur durumu güncellendi.",
+        "successAssign": "Taşeron ataması yapıldı."
+    },
+    "Deliveries": {
+        "title": "Teslimat & Kabul Yönetimi",
+        "subtitle": "Dairelerin teslim randevuları, sayaç okumaları, kontrol listesi (handover checklist) ve dijital Teslim Protokolü.",
+        "scheduleBtn": "Teslimat Randevusu Planla",
+        "appointmentDate": "Randevu Tarihi",
+        "status": "Randevu Durumu",
+        "notes": "Notlar",
+        "actions": "İşlemler",
+        "empty": "Planlanmış herhangi bir teslimat randevusu bulunmuyor.",
+        "checklist": "Teslimat Kontrol Listesi",
+        "meterReadings": "İlk Sayaç Değerleri",
+        "water": "Su Sayacı",
+        "electricity": "Elektrik Sayacı",
+        "gas": "Doğalgaz Sayacı",
+        "keys": "Daire Anahtarları Teslim Edildi",
+        "manuals": "Kullanım Kılavuzları ve Garanti Belgeleri Verildi",
+        "documents": "Tesisat ve Abonelik Belgeleri Teslim Edildi",
+        "protocolBtn": "Teslim Protokolü (PDF)",
+        "completeBtn": "Teslimatı Tamamla",
+        "statuses": {
+            "Scheduled": "Planlandı",
+            "Completed": "Teslim Edildi",
+            "Cancelled": "İptal Edildi",
+            "No Show": "Müşteri Gelmedi"
+        },
+        "successSchedule": "Teslimat randevusu oluşturuldu.",
+        "successComplete": "Teslimat işlemi başarıyla tamamlandı."
     }
 }

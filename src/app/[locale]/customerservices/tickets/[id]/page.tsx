@@ -3,13 +3,14 @@ import { notFound } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { MessageSquare, Clock, ArrowLeft, CheckCircle2 } from "lucide-react"
+import { MessageSquare, Clock, ArrowLeft, CheckCircle2, Star } from "lucide-react"
 import Link from 'next/link'
 import { MessageForm } from '../components/MessageForm'
 import { updateServiceRequestStatus } from '../actions'
 import { redirect } from 'next/navigation'
 import { CloseRequestButton } from '../components/CloseRequestButton'
 import { BackButton } from '@/components/back-button'
+import { RequestFeedbackForm } from '../components/RequestFeedbackForm'
 
 export default async function ServiceRequestDetail({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params
@@ -31,6 +32,13 @@ export default async function ServiceRequestDetail({ params }: { params: Promise
         .select('*, profiles(full_name)')
         .eq('service_request_id', id)
         .order('created_at', { ascending: true })
+
+    // Get feedback/CSAT rating
+    const { data: feedback } = await supabase
+        .from('service_request_feedback')
+        .select('*')
+        .eq('service_request_id', id)
+        .maybeSingle()
 
     return (
         <div className="max-w-4xl mx-auto space-y-6">
@@ -91,11 +99,43 @@ export default async function ServiceRequestDetail({ params }: { params: Promise
                     )}
                 </div>
 
-                <Card className="border-none shadow-sm rounded-2xl overflow-hidden mt-6">
-                    <CardContent className="p-4">
-                        <MessageForm requestId={id} />
-                    </CardContent>
-                </Card>
+                {request.status !== 'Resolved' && request.status !== 'Closed' && (
+                    <Card className="border-none shadow-sm rounded-2xl overflow-hidden mt-6">
+                        <CardContent className="p-4">
+                            <MessageForm requestId={id} />
+                        </CardContent>
+                    </Card>
+                )}
+
+                {(request.status === 'Resolved' || request.status === 'Closed') && (
+                    <div className="mt-8">
+                        {feedback ? (
+                            <Card className="border-none shadow-sm bg-emerald-50/20 border border-emerald-100/30 p-6 rounded-2xl">
+                                <div className="space-y-3">
+                                    <h4 className="font-bold text-slate-800 text-sm flex items-center gap-1.5">
+                                        <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                                        Geri Bildiriminiz Alınmıştır
+                                    </h4>
+                                    <div className="flex gap-0.5">
+                                        {Array.from({ length: 5 }).map((_, i) => (
+                                            <Star
+                                                key={i}
+                                                className={`h-5 w-5 ${i < feedback.rating ? 'fill-amber-400 text-amber-400' : 'text-slate-200'}`}
+                                            />
+                                        ))}
+                                    </div>
+                                    {feedback.comment && (
+                                        <p className="text-slate-600 italic bg-white p-3 rounded-xl border border-emerald-50 text-xs">
+                                            &ldquo;{feedback.comment}&rdquo;
+                                        </p>
+                                    )}
+                                </div>
+                            </Card>
+                        ) : (
+                            <RequestFeedbackForm requestId={id} />
+                        )}
+                    </div>
+                )}
             </div>
         </div>
     )

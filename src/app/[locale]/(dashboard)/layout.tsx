@@ -95,6 +95,9 @@ export default async function DashboardLayout(props: {
         hr: sidebarT('hr'),
         serviceRequests: sidebarT('serviceRequests'),
         afterSales: sidebarT('afterSales'),
+        snagList: sidebarT('snagList'),
+        deliveries: sidebarT('deliveries'),
+        subcontractors: sidebarT('subcontractors'),
         broker: {
             title: sidebarT('broker.title'),
             management: sidebarT('broker.management'),

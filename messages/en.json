@@ -478,6 +478,9 @@
         "activities": "Activities",
         "serviceRequests": "Service Requests",
         "afterSales": "After Sales",
+        "snagList": "Snag List (Defects)",
+        "deliveries": "Deliveries & Handover",
+        "subcontractors": "Subcontractors",
         "commissions": "Commissions",
         "finance": "Finance Management",
         "hr": "Human Resources",
@@ -2716,8 +2719,99 @@
             "aiVoice": "Turkish AI voice assistant",
             "schedule": "Working hours control",
             "retry": "Smart retry logic",
-            "branch": "Conditional branching",
             "realtime": "Real-time tracking"
         }
+    },
+    "Subcontractors": {
+        "title": "Subcontractor Management",
+        "subtitle": "Alt contractors authorized in defect repairs and periodic maintenance processes.",
+        "addBtn": "Add Subcontractor",
+        "editBtn": "Edit",
+        "deleteBtn": "Delete",
+        "name": "Subcontractor Name / Company",
+        "category": "Category",
+        "contactName": "Contact Person",
+        "phone": "Phone",
+        "email": "Email",
+        "actions": "Actions",
+        "empty": "No subcontractors defined yet.",
+        "categories": {
+            "Plumbing": "Plumbing",
+            "Electrical": "Electrical",
+            "Paint": "Paint & Plaster",
+            "Carpentry": "Carpentry & Furniture",
+            "Zemin": "Flooring & Ceramic",
+            "HVAC": "HVAC & Mechanical",
+            "Other": "Other"
+        },
+        "dialog": {
+            "title": "Subcontractor Details",
+            "desc": "You can manage the subcontractor details from here.",
+            "cancel": "Cancel",
+            "save": "Save",
+            "successAdd": "Subcontractor added successfully.",
+            "successUpdate": "Subcontractor updated successfully.",
+            "successDelete": "Subcontractor deleted successfully."
+        }
+    },
+    "SnagList": {
+        "title": "Snag List (Defect Tracking)",
+        "subtitle": "Track property defects, assign subcontractors, and monitor repair status.",
+        "addBtn": "Report Defect",
+        "unit": "Unit / Property",
+        "defectTitle": "Defect Title",
+        "description": "Description",
+        "category": "Category",
+        "priority": "Priority",
+        "subcontractor": "Assigned Contractor",
+        "status": "Status",
+        "actions": "Actions",
+        "empty": "No defects recorded yet.",
+        "selectUnit": "Select Unit",
+        "selectSub": "Select Contractor (Optional)",
+        "priorities": {
+            "Low": "Low",
+            "Normal": "Normal",
+            "High": "High",
+            "Urgent": "Urgent"
+        },
+        "statuses": {
+            "Pending": "Pending",
+            "In Progress": "In Progress",
+            "Repaired": "Repaired",
+            "Verified": "Verified",
+            "Cancelled": "Cancelled"
+        },
+        "successAdd": "Defect recorded successfully.",
+        "successStatus": "Defect status updated.",
+        "successAssign": "Subcontractor assigned successfully."
+    },
+    "Deliveries": {
+        "title": "Handover & Deliveries",
+        "subtitle": "Manage handover appointments, checklist confirmations, initial meter readings, and digital Handover Protocols.",
+        "scheduleBtn": "Schedule Handover",
+        "appointmentDate": "Appointment Date",
+        "status": "Appointment Status",
+        "notes": "Notes",
+        "actions": "Actions",
+        "empty": "No handover appointments scheduled yet.",
+        "checklist": "Handover Checklist",
+        "meterReadings": "Initial Meter Readings",
+        "water": "Water Meter",
+        "electricity": "Electricity Meter",
+        "gas": "Gas Meter",
+        "keys": "Unit Keys Handed Over",
+        "manuals": "Instruction Manuals & Warranties Provided",
+        "documents": "Utilities & Connection Documents Provided",
+        "protocolBtn": "Handover Protocol (PDF)",
+        "completeBtn": "Complete Handover",
+        "statuses": {
+            "Scheduled": "Scheduled",
+            "Completed": "Handed Over",
+            "Cancelled": "Cancelled",
+            "No Show": "No Show"
+        },
+        "successSchedule": "Handover appointment scheduled.",
+        "successComplete": "Handover completed successfully."
     }
 }

@@ -431,9 +431,20 @@ export function NovoxSidebar({
             )}
 
             {isCollapsed ? (
-                <NavItem href="/customer-support" icon={ClipboardList} onClick={onElementClick} isCollapsed={isCollapsed}>
-                    {labels.serviceRequests || 'Service Requests'}
-                </NavItem>
+                <>
+                    <NavItem href="/customer-support" icon={MessageSquare} onClick={onElementClick} isCollapsed={isCollapsed} isSubItem>
+                        {labels.serviceRequests || 'Service Requests'}
+                    </NavItem>
+                    <NavItem href="/customer-support/snag-list" icon={AlertTriangle} onClick={onElementClick} isCollapsed={isCollapsed} isSubItem>
+                        {labels.snagList || 'Snag List'}
+                    </NavItem>
+                    <NavItem href="/customer-support/deliveries" icon={ClipboardList} onClick={onElementClick} isCollapsed={isCollapsed} isSubItem>
+                        {labels.deliveries || 'Deliveries'}
+                    </NavItem>
+                    <NavItem href="/customer-support/subcontractors" icon={Users} onClick={onElementClick} isCollapsed={isCollapsed} isSubItem>
+                        {labels.subcontractors || 'Subcontractors'}
+                    </NavItem>
+                </>
             ) : (
                 <Accordion type="multiple" className="w-full border-none">
                     <AccordionItem value="after_sales" className="border-none">
@@ -444,6 +455,15 @@ export function NovoxSidebar({
                         <AccordionContent className="pt-1 pb-2 pl-4 grid gap-0.5">
                             <NavItem href="/customer-support" icon={MessageSquare} onClick={onElementClick} isSubItem>
                                 {labels.serviceRequests || 'Service Requests'}
+                            </NavItem>
+                            <NavItem href="/customer-support/snag-list" icon={AlertTriangle} onClick={onElementClick} isSubItem>
+                                {labels.snagList || 'Eksik & Kusurlar'}
+                            </NavItem>
+                            <NavItem href="/customer-support/deliveries" icon={ClipboardList} onClick={onElementClick} isSubItem>
+                                {labels.deliveries || 'Teslimat & Kabul'}
+                            </NavItem>
+                            <NavItem href="/customer-support/subcontractors" icon={Users} onClick={onElementClick} isSubItem>
+                                {labels.subcontractors || 'Taşeron Yönetimi'}
                             </NavItem>
                         </AccordionContent>
                     </AccordionItem>
