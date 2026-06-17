@@ -26,7 +26,7 @@ export async function updateTenantProfile(formData: FormData) {
         name: formData.get('name') as string,
         logo_url: formData.get('logo_url') as string,
         country: formData.get('country') as string,
-        auto_approve_web_leads: formData.get('auto_approve_web_leads') === 'on',
+        auto_approve_web_leads: formData.get('auto_approve_web_leads') === 'on'
     }
     if (leadOwnershipDays !== null && leadOwnershipDays !== '') {
         updates.lead_ownership_days = Number(leadOwnershipDays)

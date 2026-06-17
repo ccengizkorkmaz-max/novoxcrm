@@ -192,10 +192,15 @@ export async function POST(req: Request) {
         // Filter form senders again after fallback
         if (email && FORM_SENDER_EMAILS.includes(email.toLowerCase())) email = null
 
-        // Tenant Protection: Ensure we have a tenant_id
-        if (!tenant_id) {
-            const { data: firstTenant } = await supabase.from('tenants').select('id').limit(1).maybeSingle();
+        // Tenant Protection: Ensure we have a tenant_id and load its auto-approval preference
+        let autoApproveWebLeads = true;
+        if (tenant_id) {
+            const { data: tenantData } = await supabase.from('tenants').select('auto_approve_web_leads').eq('id', tenant_id).maybeSingle();
+            autoApproveWebLeads = tenantData?.auto_approve_web_leads !== false;
+        } else {
+            const { data: firstTenant } = await supabase.from('tenants').select('id, auto_approve_web_leads').limit(1).maybeSingle();
             tenant_id = firstTenant?.id;
+            autoApproveWebLeads = firstTenant?.auto_approve_web_leads !== false;
         }
 
         if (!tenant_id) {
@@ -502,19 +507,10 @@ ${knowledgeBase || 'Proje detayları için satış danışmanına yönlendir.'}
         }
 
         // --- Default Flow: Auto-CRM + Archive in Inbox ---
-        // Fetch Tenant Settings
-        const { data: tenantConfig } = await supabase
-            .from('tenants')
-            .select('auto_approve_web_leads')
-            .eq('id', tenant_id)
-            .maybeSingle()
-
-        const shouldAutoApprove = tenantConfig?.auto_approve_web_leads !== false // Default to true if column is missing or true
-
-        if (!shouldAutoApprove) {
-            console.log('Auto-approve is disabled. Inserting web form lead as pending in inbox...')
+        if (!autoApproveWebLeads) {
+            console.log('Auto-approval is disabled for web form leads. Saving to inbox as pending...')
             
-            const { data: newInboxItem, error: inboxErr } = await supabase
+            const { error: inboxErr } = await supabase
                 .from('inbox_items')
                 .insert({
                     tenant_id: tenant_id,
@@ -524,38 +520,22 @@ ${knowledgeBase || 'Proje detayları için satış danışmanına yönlendir.'}
                     message: finalMessage.trim() || 'No message provided',
                     source: source,
                     status: 'pending',
-                    project_id: projectId
+                    project_id: projectId,
+                    sale_id: null,
+                    approved_at: null
                 })
-                .select('id')
-                .single()
 
             if (inboxErr) {
-                console.error('Error inserting pending inbox item:', inboxErr)
-                return NextResponse.json({ error: 'Failed to save to inbox' }, { status: 500 })
-            }
-
-            // Create notification for new web form lead
-            try {
-                const { createNotification } = await import('@/lib/notifications/create')
-                await createNotification({
-                    tenant_id: tenant_id,
-                    type: 'Info',
-                    category: 'CRM',
-                    title: '📧 Yeni Web Form Talebi',
-                    message: `${name || 'Müşteri'} isimli kişiden gelen kutusuna yeni bir web form düştü.`,
-                    link: '/inbox'
-                })
-            } catch (notifErr) {
-                console.warn('Error creating notification for web form:', notifErr)
+                console.error('Error saving pending lead to inbox:', inboxErr)
+                return NextResponse.json({ error: 'Failed to queue lead in inbox' }, { status: 500 })
             }
 
             revalidatePath('/[locale]/(dashboard)/inbox')
 
             return NextResponse.json({
                 success: true,
-                message: 'Lead saved as pending in inbox (manual approval required).',
-                inbox_item_id: newInboxItem.id,
-                auto_approved: false
+                message: 'Web form lead received and queued in inbox for approval.',
+                queued: true
             })
         }
 
