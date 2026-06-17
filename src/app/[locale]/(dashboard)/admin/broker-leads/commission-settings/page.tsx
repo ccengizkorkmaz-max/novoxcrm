@@ -1,6 +1,4 @@
-
-
-import { getCommissionModels } from '@/app/broker/actions'
+import { getCommissionModels, getBrokerCommissionSettings } from '@/app/broker/actions'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -18,12 +16,14 @@ import Link from 'next/link'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { getTranslations } from 'next-intl/server'
+import { CommissionSettingsToggles } from './components/CommissionSettingsToggles'
 
 export default async function CommissionSettingsPage(props: {
     params: Promise<{ locale: string }>
 }) {
     const { locale } = await props.params
     const models = await getCommissionModels()
+    const settings = await getBrokerCommissionSettings()
     const t = await getTranslations('CommissionSettings')
 
     const today = new Date()
@@ -126,9 +126,10 @@ export default async function CommissionSettingsPage(props: {
             </div>
 
             <Tabs defaultValue="active" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 max-w-[400px] mb-4">
+                <TabsList className="grid w-full grid-cols-3 max-w-[500px] mb-4">
                     <TabsTrigger value="active">{t('tabs.active')}</TabsTrigger>
                     <TabsTrigger value="archived">{t('tabs.archived')}</TabsTrigger>
+                    <TabsTrigger value="general-settings">Genel Ayarlar</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="active">
@@ -159,6 +160,10 @@ export default async function CommissionSettingsPage(props: {
                             <ModelsTable data={archivedModels} readonly={true} />
                         </CardContent>
                     </Card>
+                </TabsContent>
+
+                <TabsContent value="general-settings">
+                    <CommissionSettingsToggles initialSettings={settings} />
                 </TabsContent>
             </Tabs>
 

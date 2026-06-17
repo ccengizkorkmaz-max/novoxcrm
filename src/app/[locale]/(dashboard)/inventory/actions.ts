@@ -175,12 +175,12 @@ export async function updateReservation(formData: FormData) {
     const unitId = formData.get('unit_id') as string
     const expiryDate = formData.get('expiry_date') as string
 
-    // 1. Update reservation_expiry in sales table
+    // 1. Update reservation_expiry in sales table for any active reservation status
     const { error: saleError } = await supabase
         .from('sales')
         .update({ reservation_expiry: expiryDate })
         .eq('unit_id', unitId)
-        .eq('status', 'Reservation')
+        .in('status', ['Reservation', 'Lead', 'Opsiyon - Kapora Bekleniyor'])
 
     if (saleError) {
         console.error('Update reservation error:', saleError)

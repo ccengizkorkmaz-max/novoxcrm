@@ -16,6 +16,7 @@ import { Pencil } from 'lucide-react'
 import { updateReservation } from '../../inventory/actions'
 import { toast } from 'sonner'
 import { useTranslations } from 'next-intl'
+import { useRouter } from 'next/navigation'
 
 interface EditOptionDialogProps {
     unitId: string
@@ -26,6 +27,7 @@ interface EditOptionDialogProps {
 
 export function EditOptionDialog({ unitId, unitNumber, projectName, currentExpiry }: EditOptionDialogProps) {
     const t = useTranslations('Options')
+    const router = useRouter()
     const [isOpen, setIsOpen] = useState(false)
     const [expiryDate, setExpiryDate] = useState(currentExpiry ? currentExpiry.split('T')[0] : "")
 
@@ -34,6 +36,7 @@ export function EditOptionDialog({ unitId, unitNumber, projectName, currentExpir
         if (result.success) {
             setIsOpen(false)
             toast.success(t('messages.optionUpdated'))
+            router.refresh()
         } else {
             toast.error(result.error || t('messages.updateError'))
         }

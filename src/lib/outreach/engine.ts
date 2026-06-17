@@ -1,7 +1,7 @@
 'use server'
 
 import { createAdminClient } from '@/lib/supabase/admin'
-import { makeOutboundCall, getTurkishNameTitle } from '@/lib/vapi'
+import { makeOutboundCall, getTurkishNameTitle, normalizeToE164 } from '@/lib/vapi'
 import { sendWhatsAppTemplate, sendWhatsAppMessage } from '@/lib/whatsapp'
 import { sendPoliSms, normalizePhone } from '@/lib/sms'
 
@@ -819,11 +819,9 @@ async function executeAiCall(execution: any, step: any, config: StepConfig, phon
     }
 
     // Normalize & validate phone
-    let cleanPhone = phone.replace(/[^0-9+]/g, '') // Remove non-numeric except +
-    if (cleanPhone.startsWith('0')) cleanPhone = '+90' + cleanPhone.substring(1)
-    if (!cleanPhone.startsWith('+')) cleanPhone = '+90' + cleanPhone
+    let cleanPhone = normalizeToE164(phone)
     // E.164: max 15 digits including country code
-    if (cleanPhone.length < 10 || cleanPhone.length > 16 || cleanPhone.includes('ifempty')) {
+    if (!cleanPhone || cleanPhone.length < 10 || cleanPhone.length > 16 || cleanPhone.includes('ifempty')) {
         await logAndAdvance(execution, step, 'skipped', 'ai_call', `Geçersiz telefon: ${phone}`)
         return
     }

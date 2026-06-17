@@ -1998,7 +1998,9 @@
             "minSalesVolumeOnly": "Min. Satış Hacmi",
             "levelName": "Seviye Adı (Ünvan)",
             "color": "Renk",
-            "icon": "İkon"
+            "icon": "İkon",
+            "commissionBonusRate": "Komisyon Bonusu (%)",
+            "ownershipDays": "Rezerve Süresi (Gün)"
         },
         "form": {
             "editTitle": "Seviyeyi Düzenle",

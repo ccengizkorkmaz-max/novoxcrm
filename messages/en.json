@@ -1961,7 +1961,9 @@
             "minSalesVolumeOnly": "Min. Sales Volume",
             "levelName": "Level Name (Title)",
             "color": "Color",
-            "icon": "Icon"
+            "icon": "Icon",
+            "commissionBonusRate": "Commission Bonus (%)",
+            "ownershipDays": "Lead Lock Duration (Days)"
         },
         "form": {
             "editTitle": "Edit Level",

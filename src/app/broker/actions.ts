@@ -92,6 +92,43 @@ export async function submitBrokerLead(formData: FormData) {
         return { error: 'Bu müşteri halihazırda sistemde kayıtlıdır.' }
     }
 
+    // Fetch broker settings and tenant default for ownership days
+    const { data: commSettings } = await supabase
+        .from('broker_commission_settings')
+        .select('level_lead_lock_duration_enabled')
+        .eq('tenant_id', profile.tenant_id)
+        .maybeSingle()
+
+    const { data: tenantData } = await supabase
+        .from('tenants')
+        .select('lead_ownership_days')
+        .eq('id', profile.tenant_id)
+        .maybeSingle()
+
+    let ownershipDays = tenantData?.lead_ownership_days ?? 90
+
+    if (commSettings?.level_lead_lock_duration_enabled) {
+        const { data: brProfile } = await supabase
+            .from('profiles')
+            .select('broker_level_id')
+            .eq('id', user.id)
+            .maybeSingle()
+
+        if (brProfile?.broker_level_id) {
+            const { data: level } = await supabase
+                .from('broker_levels')
+                .select('ownership_days')
+                .eq('id', brProfile.broker_level_id)
+                .maybeSingle()
+            if (level && typeof level.ownership_days === 'number') {
+                ownershipDays = level.ownership_days
+            }
+        }
+    }
+
+    const ownershipExpiresAt = new Date()
+    ownershipExpiresAt.setDate(ownershipExpiresAt.getDate() + ownershipDays)
+
     // --- Create Lead ---
     const { data: lead, error: leadError } = await supabase
         .from('broker_leads')
@@ -111,7 +148,8 @@ export async function submitBrokerLead(formData: FormData) {
             preferred_visit_date: preferred_visit_date || null,
             credit_interest,
             notes: unitInfoText ? `${notes || ''}${unitInfoText}`.trim() : notes,
-            status: 'Submitted'
+            status: 'Submitted',
+            ownership_expires_at: ownershipExpiresAt.toISOString()
         })
         .select()
         .single()
@@ -720,48 +758,81 @@ export async function updateBrokerLeadStatus(leadId: string, status: string, not
             .eq('id', leadId)
             .single()
 
-        if (lead && lead.project_id) {
-            // Find applicable commission model
-            const { data: model } = await supabase
-                .from('commission_models')
-                .select('*')
-                .eq('project_id', lead.project_id)
-                .eq('payable_stage', 'Contract Signed')
-                .maybeSingle()
+        if (lead) {
+            // Option C: Auto-Promotion logic checking is built into checkAndUpgradeBroker
+            await checkAndUpgradeBroker(lead.broker_id)
 
-            if (model) {
-                let commissionAmount = model.value
+            if (lead.project_id) {
+                // Find applicable commission model
+                const { data: model } = await supabase
+                    .from('commission_models')
+                    .select('*')
+                    .eq('project_id', lead.project_id)
+                    .eq('payable_stage', 'Contract Signed')
+                    .maybeSingle()
 
-                if (model.type === 'Tiered') {
-                    // Count how many successful leads this broker has in this project/tenant
-                    const { count: successCount } = await supabase
-                        .from('broker_leads')
-                        .select('id', { count: 'exact', head: true })
-                        .eq('broker_id', lead.broker_id)
-                        .eq('status', 'Contract Signed')
+                if (model) {
+                    let commissionAmount = model.value
 
-                    // Find matching tier
-                    const { data: tier } = await supabase
-                        .from('commission_tiers')
-                        .select('commission_value')
-                        .eq('model_id', model.id)
-                        .lte('min_units', successCount || 0)
-                        .or(`max_units.is.null,max_units.gte.${successCount || 0}`)
-                        .order('min_units', { ascending: false })
-                        .limit(1)
+                    if (model.type === 'Tiered') {
+                        // Count how many successful leads this broker has in this project/tenant
+                        const { count: successCount } = await supabase
+                            .from('broker_leads')
+                            .select('id', { count: 'exact', head: true })
+                            .eq('broker_id', lead.broker_id)
+                            .eq('status', 'Contract Signed')
+
+                        // Find matching tier
+                        const { data: tier } = await supabase
+                            .from('commission_tiers')
+                            .select('commission_value')
+                            .eq('model_id', model.id)
+                            .lte('min_units', successCount || 0)
+                            .or(`max_units.is.null,max_units.gte.${successCount || 0}`)
+                            .order('min_units', { ascending: false })
+                            .limit(1)
+                            .maybeSingle()
+
+                        if (tier) {
+                            commissionAmount = tier.commission_value
+                        }
+                    }
+
+                    // Option A: Apply Level Commission Multiplier if enabled
+                    const { data: commSettings } = await supabase
+                        .from('broker_commission_settings')
+                        .select('level_commission_multiplier_enabled')
+                        .eq('tenant_id', lead.tenant_id)
                         .maybeSingle()
 
-                    if (tier) {
-                        commissionAmount = tier.commission_value
-                    }
-                }
+                    if (commSettings?.level_commission_multiplier_enabled) {
+                        const { data: brokerProfile } = await supabase
+                            .from('profiles')
+                            .select('broker_level_id')
+                            .eq('id', lead.broker_id)
+                            .maybeSingle()
 
-                await supabase.from('commissions').insert({
-                    lead_id: leadId,
-                    amount: commissionAmount,
-                    currency: model.currency,
-                    status: 'Eligible'
-                })
+                        if (brokerProfile?.broker_level_id) {
+                            const { data: level } = await supabase
+                                .from('broker_levels')
+                                .select('commission_bonus_rate')
+                                .eq('id', brokerProfile.broker_level_id)
+                                .maybeSingle()
+
+                            if (level && level.commission_bonus_rate) {
+                                const bonusRate = Number(level.commission_bonus_rate) || 0
+                                commissionAmount = commissionAmount * (1 + bonusRate)
+                            }
+                        }
+                    }
+
+                    await supabase.from('commissions').insert({
+                        lead_id: leadId,
+                        amount: commissionAmount,
+                        currency: model.currency,
+                        status: 'Eligible'
+                    })
+                }
             }
         }
     }
@@ -1456,10 +1527,10 @@ export async function getBrokerLevels() {
     // 2. If no levels exist, seed defaults
     if (!levels || levels.length === 0) {
         const defaults = [
-            { name: 'Junior Broker', min_sales_count: 0, min_sales_volume: 0, color: '#94a3b8', icon: 'User' },
-            { name: 'Silver Broker', min_sales_count: 5, min_sales_volume: 500000, color: '#e2e8f0', icon: 'Award' },
-            { name: 'Gold Broker', min_sales_count: 15, min_sales_volume: 2000000, color: '#fbbf24', icon: 'Star' },
-            { name: 'Platinum Partner', min_sales_count: 50, min_sales_volume: 10000000, color: '#8b5cf6', icon: 'Crown' },
+            { name: 'Junior Broker', min_sales_count: 0, min_sales_volume: 0, color: '#94a3b8', icon: 'User', commission_bonus_rate: 0.00, ownership_days: 60 },
+            { name: 'Silver Broker', min_sales_count: 5, min_sales_volume: 500000, color: '#e2e8f0', icon: 'Award', commission_bonus_rate: 0.05, ownership_days: 90 },
+            { name: 'Gold Broker', min_sales_count: 15, min_sales_volume: 2000000, color: '#fbbf24', icon: 'Star', commission_bonus_rate: 0.10, ownership_days: 120 },
+            { name: 'Platinum Partner', min_sales_count: 50, min_sales_volume: 10000000, color: '#8b5cf6', icon: 'Crown', commission_bonus_rate: 0.15, ownership_days: 180 },
         ]
 
         // Using admin client or standard client? Standard client usually can't select from profiles outside own tenant but can insert into RLS enabled table if policy allows.
@@ -1485,7 +1556,6 @@ export async function getBrokerLevels() {
 
     return levels
 }
-
 export async function createBrokerLevel(formData: FormData) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -1499,7 +1569,9 @@ export async function createBrokerLevel(formData: FormData) {
         min_sales_count: Number(formData.get('min_sales_count')) || 0,
         min_sales_volume: Number(formData.get('min_sales_volume')) || 0,
         color: formData.get('color') as string,
-        icon: formData.get('icon') as string || 'Star'
+        icon: formData.get('icon') as string || 'Star',
+        commission_bonus_rate: formData.get('commission_bonus_rate') ? Number(formData.get('commission_bonus_rate')) / 100 : 0.00,
+        ownership_days: formData.get('ownership_days') ? Number(formData.get('ownership_days')) : 90
     }
 
     const { error } = await supabase.from('broker_levels').insert(data)
@@ -1518,7 +1590,9 @@ export async function updateBrokerLevel(formData: FormData) {
         min_sales_count: Number(formData.get('min_sales_count')) || 0,
         min_sales_volume: Number(formData.get('min_sales_volume')) || 0,
         color: formData.get('color') as string,
-        icon: formData.get('icon') as string
+        icon: formData.get('icon') as string,
+        commission_bonus_rate: formData.get('commission_bonus_rate') ? Number(formData.get('commission_bonus_rate')) / 100 : 0.00,
+        ownership_days: formData.get('ownership_days') ? Number(formData.get('ownership_days')) : 90
     }
 
     const { error } = await supabase.from('broker_levels').update(data).eq('id', id)
@@ -1527,7 +1601,6 @@ export async function updateBrokerLevel(formData: FormData) {
     revalidatePath('/admin/broker-leads/levels')
     return { success: true }
 }
-
 export async function deleteBrokerLevel(id: string) {
     const supabase = await createClient()
     const { error } = await supabase.from('broker_levels').delete().eq('id', id)
@@ -1540,6 +1613,22 @@ export async function deleteBrokerLevel(id: string) {
 // Logic to check and upgrade broker level
 export async function checkAndUpgradeBroker(brokerId: string) {
     const supabase = await createClient()
+
+    // Get broker tenant
+    const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', brokerId).single()
+    if (!profile) return
+
+    // Check if auto promotion is enabled
+    const { data: commSettings } = await supabase
+        .from('broker_commission_settings')
+        .select('level_auto_promotion_enabled')
+        .eq('tenant_id', profile.tenant_id)
+        .maybeSingle()
+
+    if (!commSettings?.level_auto_promotion_enabled) {
+        console.log('Auto promotion is disabled for this tenant.')
+        return
+    }
 
     // 1. Calculate Performance (Won Leads Count)
     // We treat 'Contract Signed' as the success status usually, but let's check both just in case 'Won' is used elsewhere.
@@ -1579,9 +1668,6 @@ export async function checkAndUpgradeBroker(brokerId: string) {
     }
 
     // 3. Get Levels
-    const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', brokerId).single()
-    if (!profile) return
-
     const { data: levels } = await supabase
         .from('broker_levels')
         .select('*')
@@ -1739,4 +1825,87 @@ export async function sendBrokerReminderEmail(applicationId: string) {
         console.error('Reminder Email Error:', e)
         return { error: `E-posta gönderilemedi: ${e.message}` }
     }
+}
+
+export async function getBrokerCommissionSettings() {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return null
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', user.id)
+        .single()
+
+    if (!profile) return null
+
+    const { data, error } = await supabase
+        .from('broker_commission_settings')
+        .select('*')
+        .eq('tenant_id', profile.tenant_id)
+        .maybeSingle()
+
+    if (error) {
+        console.error('Error fetching broker commission settings:', error)
+        return null
+    }
+
+    return data
+}
+
+export async function updateBrokerCommissionSettings(data: {
+    level_commission_multiplier_enabled: boolean
+    level_lead_lock_duration_enabled: boolean
+    level_auto_promotion_enabled: boolean
+}) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id, role')
+        .eq('id', user.id)
+        .single()
+
+    if (!profile || !['admin', 'owner', 'management'].includes(profile.role)) {
+        return { error: 'Bu işlem için yetkiniz yok.' }
+    }
+
+    const { data: existing } = await supabase
+        .from('broker_commission_settings')
+        .select('id')
+        .eq('tenant_id', profile.tenant_id)
+        .maybeSingle()
+
+    const updates = {
+        tenant_id: profile.tenant_id,
+        level_commission_multiplier_enabled: data.level_commission_multiplier_enabled,
+        level_lead_lock_duration_enabled: data.level_lead_lock_duration_enabled,
+        level_auto_promotion_enabled: data.level_auto_promotion_enabled,
+        updated_at: new Date().toISOString()
+    }
+
+    let error
+    if (existing) {
+        const { error: uError } = await supabase
+            .from('broker_commission_settings')
+            .update(updates)
+            .eq('id', existing.id)
+        error = uError
+    } else {
+        const { error: iError } = await supabase
+            .from('broker_commission_settings')
+            .insert(updates)
+        error = iError
+    }
+
+    if (error) {
+        console.error('Error updating broker commission settings:', error)
+        return { error: error.message }
+    }
+
+    revalidatePath('/admin/broker-leads/commission-settings')
+    return { success: true }
 }

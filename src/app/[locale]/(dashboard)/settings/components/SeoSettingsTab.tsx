@@ -6,7 +6,12 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Globe, Send, CheckCircle2, AlertTriangle, Loader2, ExternalLink, FileText, RefreshCw } from 'lucide-react'
 
-export default function SeoSettingsTab() {
+interface SeoSettingsTabProps {
+    tenantDomain?: string | null
+}
+
+export default function SeoSettingsTab({ tenantDomain }: SeoSettingsTabProps) {
+    const domain = tenantDomain || 'novoxcrm.com'
     const [indexNowLoading, setIndexNowLoading] = useState(false)
     const [sitemapLoading, setSitemapLoading] = useState(false)
     const [indexNowResult, setIndexNowResult] = useState<any>(null)
@@ -59,9 +64,9 @@ export default function SeoSettingsTab() {
                             <CheckCircle2 className="h-5 w-5 text-emerald-600 flex-shrink-0" />
                             <div>
                                 <p className="text-sm font-semibold text-emerald-900">Sitemap</p>
-                                <a href="https://novoxcrm.com/sitemap.xml" target="_blank" rel="noopener noreferrer"
+                                <a href={`https://${domain}/sitemap.xml`} target="_blank" rel="noopener noreferrer"
                                     className="text-[11px] text-emerald-600 hover:underline flex items-center gap-1">
-                                    novoxcrm.com/sitemap.xml <ExternalLink className="h-2.5 w-2.5" />
+                                    {domain}/sitemap.xml <ExternalLink className="h-2.5 w-2.5" />
                                 </a>
                             </div>
                         </div>
@@ -69,9 +74,9 @@ export default function SeoSettingsTab() {
                             <CheckCircle2 className="h-5 w-5 text-emerald-600 flex-shrink-0" />
                             <div>
                                 <p className="text-sm font-semibold text-emerald-900">Robots.txt</p>
-                                <a href="https://novoxcrm.com/robots.txt" target="_blank" rel="noopener noreferrer"
+                                <a href={`https://${domain}/robots.txt`} target="_blank" rel="noopener noreferrer"
                                     className="text-[11px] text-emerald-600 hover:underline flex items-center gap-1">
-                                    novoxcrm.com/robots.txt <ExternalLink className="h-2.5 w-2.5" />
+                                    {domain}/robots.txt <ExternalLink className="h-2.5 w-2.5" />
                                 </a>
                             </div>
                         </div>
@@ -79,7 +84,7 @@ export default function SeoSettingsTab() {
                             <Globe className="h-5 w-5 text-blue-600 flex-shrink-0" />
                             <div>
                                 <p className="text-sm font-semibold text-blue-900">Search Console</p>
-                                <a href="https://search.google.com/search-console?resource_id=https://novoxcrm.com" target="_blank" rel="noopener noreferrer"
+                                <a href={`https://search.google.com/search-console?resource_id=https://${domain}`} target="_blank" rel="noopener noreferrer"
                                     className="text-[11px] text-blue-600 hover:underline flex items-center gap-1">
                                     Console'u Aç <ExternalLink className="h-2.5 w-2.5" />
                                 </a>
@@ -240,7 +245,7 @@ export default function SeoSettingsTab() {
                         </div>
                         <div className="p-3 rounded-lg border bg-amber-50 border-amber-200">
                             <p className="text-xs text-amber-800">
-                                <strong>Not:</strong> Bu servis hesabının Google Search Console'da <strong>novoxcrm.com</strong> property'sine
+                                <strong>Not:</strong> Bu servis hesabının Google Search Console'da <strong>{domain}</strong> property'sine
                                 Owner olarak eklenmiş olması gerekmektedir. Ayrıca Google Cloud projesinde
                                 <a href="https://console.developers.google.com/apis/api/searchconsole.googleapis.com/overview?project=16158435903"
                                     target="_blank" rel="noopener noreferrer"

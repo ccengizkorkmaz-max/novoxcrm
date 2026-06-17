@@ -174,6 +174,28 @@ export default function LevelManager({ levels }: { levels: any[] }) {
                                     <Award className="w-4 h-4 text-slate-300" />
                                 </div>
                             </div>
+                            <div className="bg-slate-50 border border-slate-100 rounded-2xl p-3 flex items-center justify-between">
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] text-slate-400 uppercase font-black tracking-widest leading-none mb-1">{t('labels.commissionBonusRate').toUpperCase()}</span>
+                                    <span className="text-xl font-black text-slate-900 leading-none">
+                                        %{((level.commission_bonus_rate || 0) * 100).toFixed(1)}
+                                    </span>
+                                </div>
+                                <div className="h-8 w-8 rounded-lg bg-white flex items-center justify-center shadow-sm">
+                                    <Trophy className="w-4 h-4 text-slate-300" />
+                                </div>
+                            </div>
+                            <div className="bg-slate-50 border border-slate-100 rounded-2xl p-3 flex items-center justify-between">
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] text-slate-400 uppercase font-black tracking-widest leading-none mb-1">{t('labels.ownershipDays').toUpperCase()}</span>
+                                    <span className="text-xl font-black text-slate-900 leading-none">
+                                        {level.ownership_days || 90} {locale === 'tr' ? 'Gün' : 'Days'}
+                                    </span>
+                                </div>
+                                <div className="h-8 w-8 rounded-lg bg-white flex items-center justify-center shadow-sm">
+                                    <User className="w-4 h-4 text-slate-300" />
+                                </div>
+                            </div>
                         </CardContent>
                     </Card>
                 ))}
@@ -199,6 +221,16 @@ export default function LevelManager({ levels }: { levels: any[] }) {
                             <div className="space-y-2">
                                 <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{t('labels.minSalesVolumeOnly')}</Label>
                                 <Input name="min_sales_volume" type="number" defaultValue={editingLevel?.min_sales_volume || 0} required className="h-12 bg-slate-50 border-slate-200 focus:ring-blue-500 rounded-xl transition-all" />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{t('labels.commissionBonusRate')}</Label>
+                                <Input name="commission_bonus_rate" type="number" step="0.1" defaultValue={editingLevel ? (editingLevel.commission_bonus_rate * 100) : 0} required className="h-12 bg-slate-50 border-slate-200 focus:ring-blue-500 rounded-xl transition-all" />
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{t('labels.ownershipDays')}</Label>
+                                <Input name="ownership_days" type="number" step="1" defaultValue={editingLevel?.ownership_days || 90} required className="h-12 bg-slate-50 border-slate-200 focus:ring-blue-500 rounded-xl transition-all" />
                             </div>
                         </div>
                         <div className="grid grid-cols-2 gap-4">

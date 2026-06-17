@@ -205,7 +205,7 @@ export async function makeOutboundCall(options: VapiCallOptions): Promise<VapiCa
     try {
         const phoneNumberId = options.phoneNumberId || process.env.VAPI_PHONE_NUMBER_ID
         if (!phoneNumberId) {
-            return { success: false, error: 'VAPI_PHONE_NUMBER_ID not configured' }
+            return { success: false, error: translateVapiError('VAPI_PHONE_NUMBER_ID not configured') }
         }
 
         // Normalize phone to E.164
@@ -227,7 +227,7 @@ export async function makeOutboundCall(options: VapiCallOptions): Promise<VapiCa
             // Default: Use env assistant ID
             const defaultAssistantId = process.env.VAPI_ASSISTANT_ID
             if (!defaultAssistantId) {
-                return { success: false, error: 'No assistant configured. Set VAPI_ASSISTANT_ID or pass assistantId.' }
+                return { success: false, error: translateVapiError('No assistant configured. Set VAPI_ASSISTANT_ID or pass assistantId.') }
             }
             payload.assistantId = defaultAssistantId
         }
@@ -357,7 +357,7 @@ export async function makeOutboundCall(options: VapiCallOptions): Promise<VapiCa
 
             return {
                 success: false,
-                error: errorMessage,
+                error: translateVapiError(errorMessage),
             }
         }
 
@@ -369,7 +369,7 @@ export async function makeOutboundCall(options: VapiCallOptions): Promise<VapiCa
         }
     } catch (error: any) {
         console.error('[Vapi] Network error:', error)
-        return { success: false, error: error.message || 'Network error' }
+        return { success: false, error: translateVapiError(error.message || 'Network error') }
     }
 }
 
@@ -490,20 +490,68 @@ export async function createOutreachAssistant(config: {
 // ─── Helpers ─────────────────────────────────────────────────
 
 /**
- * Normalize Turkish phone number to E.164 format
+ * Translates Vapi API error messages to Turkish for user display
+ */
+export function translateVapiError(error: string | undefined | null): string {
+    if (!error) return 'Bilinmeyen bir hata oluştu.';
+    
+    const msg = error.toLowerCase();
+    
+    if (msg.includes('insufficient_funds') || msg.includes('insufficient funds') || msg.includes('balance') || msg.includes('funds') || msg.includes('credit')) {
+        return 'Sistem bakiyesi yetersiz. Lütfen Vapi hesabının bakiyesini kontrol edin.';
+    }
+    if (msg.includes('e.164') || msg.includes('valid phone number') || msg.includes('missing the country code') || msg.includes('phone format')) {
+        return 'Müşteri numarası geçerli bir telefon numarası formatında (E.164) olmalıdır. Lütfen numaranın ülke koduyla birlikte (Örn: +905XXXXXXXXX) ve doğru yazıldığından emin olun.';
+    }
+    if (msg.includes('concurrency') || msg.includes('rate limit') || msg.includes('too many requests')) {
+        return 'Eşzamanlı arama limitine ulaşıldı. Arama kuyruğa alındı ve daha sonra tekrar denenecek.';
+    }
+    if (msg.includes('phone number is not verified') || msg.includes('unverified')) {
+        return 'Telefon numarası doğrulanmamış. Lütfen alıcı numarasını kontrol edin.';
+    }
+    if (msg.includes('unauthorized') || msg.includes('api key') || msg.includes('invalid credentials')) {
+        return 'Vapi API bağlantı yetkilendirme hatası. Lütfen API anahtarlarını kontrol edin.';
+    }
+    if (msg.includes('vapi_phone_number_id not configured') || msg.includes('phone number id')) {
+        return 'Vapi Telefon Numarası Kimliği (Phone Number ID) yapılandırılmamış.';
+    }
+    if (msg.includes('no assistant configured') || msg.includes('assistant id')) {
+        return 'Arama asistanı yapılandırılmamış veya bulunamadı.';
+    }
+    
+    return error;
+}
+
+/**
+ * Normalize Turkish and International phone numbers to E.164 format
  */
 export function normalizeToE164(phone: string): string {
-    let clean = phone.replace(/\D/g, '')
-
-    // Turkish number handling
-    if (clean.length === 10) {
-        clean = '90' + clean // 5XX → 905XX
-    } else if (clean.length === 11 && clean.startsWith('0')) {
-        clean = '90' + clean.substring(1) // 05XX → 905XX
+    if (!phone) return '';
+    
+    // Remove all non-digits
+    let clean = phone.replace(/\D/g, '');
+    
+    // Check if it starts with explicit international prefix (starts with '+' and not '+90', or starts with '00' and not '0090')
+    const isExplicitInternational = (phone.startsWith('+') && !phone.startsWith('+90')) || 
+                                    (phone.startsWith('00') && !phone.startsWith('0090'));
+    
+    if (!isExplicitInternational) {
+        // Extract the last 10 digits
+        const last10 = clean.slice(-10);
+        // Turkish mobile and landline area codes start with 2, 3, 4, 5, 8, 9
+        if (last10.length === 10 && /^[234589]/.test(last10)) {
+            return `+90${last10}`;
+        }
     }
-
-    // Ensure + prefix
-    return clean.startsWith('+') ? clean : `+${clean}`
+    
+    // For international or fallback, just format with '+'
+    if (phone.startsWith('+')) {
+        return `+${clean}`;
+    }
+    if (phone.startsWith('00')) {
+        return `+${clean.substring(2)}`;
+    }
+    return `+${clean}`;
 }
 
 /**

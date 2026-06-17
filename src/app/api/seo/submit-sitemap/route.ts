@@ -17,7 +17,7 @@ export async function POST() {
 
         const { data: profile } = await supabase
             .from('profiles')
-            .select('role')
+            .select('role, tenant_id')
             .eq('id', user.id)
             .single()
 
@@ -31,8 +31,20 @@ export async function POST() {
             return NextResponse.json({ error: 'Google Service Account key dosyası bulunamadı.' }, { status: 500 })
         }
 
-        const SITE_URL = 'https://novoxcrm.com'
-        const SITEMAP_URL = 'https://novoxcrm.com/sitemap.xml'
+        let domain = 'novoxcrm.com'
+        if (profile?.tenant_id) {
+            const { data: tenant } = await supabase
+                .from('tenants')
+                .select('custom_domain')
+                .eq('id', profile.tenant_id)
+                .single()
+            if (tenant?.custom_domain) {
+                domain = tenant.custom_domain
+            }
+        }
+
+        const SITE_URL = `https://${domain}`
+        const SITEMAP_URL = `https://${domain}/sitemap.xml`
 
         // Authenticate
         const auth = new google.auth.GoogleAuth({

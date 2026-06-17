@@ -312,7 +312,7 @@ export default async function SettingsPage() {
 
                 {/* SEO Settings Tab */}
                 <TabsContent value="seo" className="space-y-4">
-                    <SeoSettingsTab />
+                    <SeoSettingsTab tenantDomain={(tenant as any)?.custom_domain} />
                 </TabsContent>
 
                 {/* Brand Settings Tab */}
