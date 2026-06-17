@@ -1132,6 +1132,19 @@ export async function createNegotiation(data: {
                 status: 'Completed',
                 due_date: new Date().toISOString()
             })
+
+            // Log to unit_price_history
+            if (offer.unit_id) {
+                const oldPrice = offer.units?.price || 0
+                await supabase.from('unit_price_history').insert({
+                    unit_id: offer.unit_id,
+                    old_price: oldPrice,
+                    new_price: data.proposed_price,
+                    currency: data.proposed_currency,
+                    reason: `Pazarlık Teklifi (${sourceText}) - Müşteri: ${offer.customers?.full_name || ''}`,
+                    created_by: user?.id
+                })
+            }
         }
     } catch (logErr) {
         console.error('Failed to log negotiation activity:', logErr)
@@ -1235,6 +1248,19 @@ export async function approveNegotiation(negotiationId: string, depositAmount: n
                 status: 'Completed',
                 due_date: new Date().toISOString()
             })
+
+            // Log approved price to unit_price_history
+            if (offer.unit_id) {
+                const oldPrice = offer.units?.price || 0
+                await supabase.from('unit_price_history').insert({
+                    unit_id: offer.unit_id,
+                    old_price: oldPrice,
+                    new_price: neg.proposed_price,
+                    currency: neg.proposed_currency,
+                    reason: `Pazarlık Onaylandı (Müşteri: ${offer.customers?.full_name || ''})`,
+                    created_by: user?.id
+                })
+            }
         }
     } catch (logErr) {
         console.error('Failed to log negotiation approval activity:', logErr)
