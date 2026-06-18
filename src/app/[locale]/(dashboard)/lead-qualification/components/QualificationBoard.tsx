@@ -9,8 +9,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
-import { updateQualificationStatus, addCallNote, convertToSale, bulkDisqualifyColdLeads } from '../actions'
-import { Calendar, Check, Clock, FileText, Info, Phone, PhoneMissed, X, Building2, User, LayoutGrid, List, Table, Undo2, MessageSquareText, AlertTriangle, Search, Filter, RotateCcw, Trash2, FilterX } from 'lucide-react'
+import { updateQualificationStatus, addCallNote, convertToSale, bulkDisqualifyColdLeads, addQuickNote } from '../actions'
+import { Calendar, Check, Clock, FileText, Info, Phone, PhoneMissed, X, Building2, User, LayoutGrid, List, Table, Undo2, MessageSquareText, AlertTriangle, Search, Filter, RotateCcw, Trash2, FilterX, StickyNote } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { tr } from 'date-fns/locale'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
@@ -168,6 +168,7 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
     const [isDisqualifyDialogOpen, setIsDisqualifyDialogOpen] = useState(false)
     const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false)
     const [isQualifyDialogOpen, setIsQualifyDialogOpen] = useState(false)
+    const [isQuickNoteDialogOpen, setIsQuickNoteDialogOpen] = useState(false)
     
     // Form states
     const [note, setNote] = useState('')
@@ -175,6 +176,7 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
     const [disqualifyReason, setDisqualifyReason] = useState('')
     const [selectedProject, setSelectedProject] = useState('')
     const [saleDescription, setSaleDescription] = useState('')
+    const [quickNote, setQuickNote] = useState('')
 
     // Drag & Drop
     const handleDragStart = (e: React.DragEvent, qualId: string) => {
@@ -208,7 +210,7 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
         e.preventDefault()
     }
 
-    const handleAction = async (qual: any, action: 'note' | 'disqualify' | 'qualify' | 'details') => {
+    const handleAction = async (qual: any, action: 'note' | 'disqualify' | 'qualify' | 'details' | 'quicknote') => {
         setSelectedQual(qual)
         if (action === 'details') {
             setIsDetailsDialogOpen(true)
@@ -223,6 +225,9 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
             setSelectedProject(qual.project_id || '')
             setSaleDescription(getEkSoru(qual.customers?.notes) || '')
             setIsQualifyDialogOpen(true)
+        } else if (action === 'quicknote') {
+            setQuickNote('')
+            setIsQuickNoteDialogOpen(true)
         }
     }
 
@@ -248,6 +253,25 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
                 return 'Başarıyla satış hunisine aktarıldı!'
             },
             error: (err) => err.message || 'Aktarım başarısız oldu'
+        })
+    }
+
+    const submitQuickNote = async () => {
+        if (!selectedQual || !quickNote.trim()) return
+        
+        const promise = addQuickNote(selectedQual.id, selectedQual.customer_id, quickNote.trim())
+        toast.promise(promise, {
+            loading: 'Not kaydediliyor...',
+            success: (data) => {
+                if (data.error) throw new Error(data.error)
+                setQualifications(prev => prev.map(q => q.id === selectedQual.id ? { 
+                    ...q, 
+                    call_notes: data.updatedNotes || quickNote 
+                } : q))
+                setIsQuickNoteDialogOpen(false)
+                return 'Not başarıyla kaydedildi'
+            },
+            error: 'Not kaydedilemedi'
         })
     }
 
@@ -1035,6 +1059,9 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
                                                             <Button size="sm" variant="outline" className="h-7 text-xs flex-1 bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100" onClick={(e) => { e.stopPropagation(); handleAction(qual, 'note'); }}>
                                                                 <Phone className="w-3 h-3 mr-1" /> Ara/Not
                                                             </Button>
+                                                            <Button size="sm" variant="outline" className="h-7 w-7 p-0 text-amber-600 border-amber-200 hover:bg-amber-50" onClick={(e) => { e.stopPropagation(); handleAction(qual, 'quicknote'); }} title="Not Ekle">
+                                                                <StickyNote className="w-3 h-3" />
+                                                            </Button>
                                                             <Button size="sm" variant="outline" className="h-7 w-7 p-0 text-red-600 border-red-200 hover:bg-red-50" onClick={(e) => { e.stopPropagation(); handleAction(qual, 'disqualify'); }} title="Ele">
                                                                 <X className="w-3 h-3" />
                                                             </Button>
@@ -1451,6 +1478,9 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
                                                     <Button size="sm" variant="outline" className="h-6 px-1.5 text-[10px] bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100" onClick={() => handleAction(qual, 'note')} title="Ara / Not Gir">
                                                         <Phone className="w-2.5 h-2.5 mr-0.5" /> Ara/Not
                                                     </Button>
+                                                    <Button size="sm" variant="outline" className="h-6 w-6 p-0 text-amber-600 border-amber-200 hover:bg-amber-50" onClick={() => handleAction(qual, 'quicknote')} title="Not Ekle">
+                                                        <StickyNote className="w-2.5 h-2.5" />
+                                                    </Button>
                                                     <Button size="sm" variant="outline" className="h-6 px-1.5 text-[10px] text-red-600 border-red-200 hover:bg-red-50" onClick={() => handleAction(qual, 'disqualify')} title="Ele (Olumsuz)">
                                                         <X className="w-2.5 h-2.5 mr-0.5" /> Ele
                                                     </Button>
@@ -1744,6 +1774,42 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsQualifyDialogOpen(false)}>İptal</Button>
                         <Button variant="default" className="bg-green-600 hover:bg-green-700" onClick={submitQualify} disabled={!selectedProject}>Satışa Aktar</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Hızlı Not Dialog */}
+            <Dialog open={isQuickNoteDialogOpen} onOpenChange={setIsQuickNoteDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <StickyNote className="w-5 h-5 text-amber-600" />
+                            Not Ekle — {selectedQual?.customers?.full_name}
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        {selectedQual?.call_notes && (
+                            <div className="bg-slate-50 rounded-lg border p-3 max-h-[150px] overflow-y-auto">
+                                <Label className="text-xs text-slate-500 mb-1 block">Önceki Notlar</Label>
+                                <pre className="text-xs text-slate-700 whitespace-pre-wrap font-sans">{selectedQual.call_notes}</pre>
+                            </div>
+                        )}
+                        <div className="space-y-2">
+                            <Label>Yeni Not</Label>
+                            <Textarea 
+                                placeholder="Lead hakkında notunuzu yazın..." 
+                                value={quickNote} 
+                                onChange={e => setQuickNote(e.target.value)}
+                                rows={3}
+                                autoFocus
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsQuickNoteDialogOpen(false)}>İptal</Button>
+                        <Button onClick={submitQuickNote} disabled={!quickNote.trim()} className="bg-amber-600 hover:bg-amber-700">
+                            <StickyNote className="w-4 h-4 mr-1.5" /> Notu Kaydet
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

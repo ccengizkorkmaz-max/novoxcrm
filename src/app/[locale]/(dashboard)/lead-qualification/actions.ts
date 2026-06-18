@@ -413,3 +413,48 @@ export async function bulkRevertDqSalesToQualification() {
     return { error: null, count: qualifications.length }
 }
 
+export async function addQuickNote(qualificationId: string, customerId: string, noteText: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    
+    if (!user) return { error: 'Not authenticated' }
+
+    const { data: profile } = await supabase.from('profiles').select('tenant_id, full_name').eq('id', user.id).single()
+    if (!profile) return { error: 'Profile not found' }
+
+    // Get existing notes to append
+    const { data: qual } = await supabase
+        .from('lead_qualifications')
+        .select('call_notes')
+        .eq('id', qualificationId)
+        .single()
+
+    const timestamp = new Date().toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+    const author = profile.full_name || 'Kullanıcı'
+    const newEntry = `[${timestamp} - ${author}] ${noteText}`
+    
+    // Append to existing notes (newest first)
+    const existingNotes = qual?.call_notes || ''
+    const updatedNotes = existingNotes ? `${newEntry}\n---\n${existingNotes}` : newEntry
+
+    const { error: updateError } = await supabase
+        .from('lead_qualifications')
+        .update({ call_notes: updatedNotes })
+        .eq('id', qualificationId)
+
+    if (updateError) return { error: updateError.message }
+
+    // Log to activities
+    await supabase.from('activities').insert({
+        tenant_id: profile.tenant_id,
+        customer_id: customerId,
+        user_id: user.id,
+        type: 'Note',
+        summary: 'Hızlı Not Eklendi',
+        notes: noteText,
+        status: 'Completed'
+    })
+
+    revalidatePath('/[locale]/(dashboard)/lead-qualification', 'page')
+    return { error: null, updatedNotes }
+}
