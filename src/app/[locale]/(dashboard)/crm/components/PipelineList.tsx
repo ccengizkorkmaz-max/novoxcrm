@@ -16,12 +16,12 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Calculator, Sparkles, User, Info, Mail, Phone, MessageSquareText, CalendarPlus, Trash, AlertTriangle, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, Filter, X, Undo2 } from 'lucide-react'
+import { Calculator, Sparkles, User, Info, Mail, Phone, MessageSquareText, CalendarPlus, Trash, AlertTriangle, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, Filter, X, Undo2, StickyNote } from 'lucide-react'
 import { CollapsibleSection } from '@/components/ui/collapsible-section'
 import ColumnVisibilityPicker from '@/components/ui/column-visibility-picker'
 import ColumnFilterRow from '@/components/ui/column-filter-row'
 import { AiSignalBadge } from '@/components/ui/ai-signal-badge'
-import { updateSaleStatus, autoAssignLead, assignSale } from '../actions'
+import { updateSaleStatus, autoAssignLead, assignSale, addSaleQuickNote } from '../actions'
 import {
     Command,
     CommandEmpty,
@@ -149,6 +149,36 @@ export default function PipelineList({
     const [selectedCustomerForActivity, setSelectedCustomerForActivity] = useState<any | null>(null)
     const [viewingCustomerProfile, setViewingCustomerProfile] = useState<any | null>(null)
     const [isCustomerProfileOpen, setIsCustomerProfileOpen] = useState(false)
+
+    // Quick Note state
+    const [isQuickNoteOpen, setIsQuickNoteOpen] = useState(false)
+    const [quickNoteSaleId, setQuickNoteSaleId] = useState<string | null>(null)
+    const [quickNoteCustomerId, setQuickNoteCustomerId] = useState<string | null>(null)
+    const [quickNoteText, setQuickNoteText] = useState('')
+    const [quickNoteExisting, setQuickNoteExisting] = useState('')
+    const [quickNoteSaving, setQuickNoteSaving] = useState(false)
+
+    const openQuickNote = (saleId: string, customerId: string, existingDesc: string | null) => {
+        setQuickNoteSaleId(saleId)
+        setQuickNoteCustomerId(customerId)
+        setQuickNoteExisting(existingDesc || '')
+        setQuickNoteText('')
+        setIsQuickNoteOpen(true)
+    }
+
+    const handleSaveQuickNote = async () => {
+        if (!quickNoteSaleId || !quickNoteCustomerId || !quickNoteText.trim()) return
+        setQuickNoteSaving(true)
+        const res = await addSaleQuickNote(quickNoteSaleId, quickNoteCustomerId, quickNoteText.trim())
+        setQuickNoteSaving(false)
+        if (res.error) {
+            toast.error(res.error)
+        } else {
+            toast.success('Not kaydedildi')
+            setIsQuickNoteOpen(false)
+            router.refresh()
+        }
+    }
     const [currentPage, setCurrentPage] = useState(initialPage)
     const [pageInputValue, setPageInputValue] = useState(initialPage.toString())
     const itemsPerPage = 50
@@ -994,6 +1024,9 @@ export default function PipelineList({
                                                                      <Button variant="outline" size="icon" className="h-6 w-6 text-blue-600 border-blue-100 hover:bg-blue-50" onClick={() => handleCreateActivity(sale.customers)} title="Aktivite Ekle">
                                                                          <CalendarPlus className="h-3 w-3" />
                                                                      </Button>
+                                                                     <Button variant="outline" size="icon" className={`h-6 w-6 transition-all active:scale-90 ${sale.description ? 'text-amber-600 border-amber-200 bg-amber-50 hover:bg-amber-100' : 'text-slate-400 border-slate-200 hover:bg-slate-50'}`} onClick={() => openQuickNote(sale.id, sale.customers?.id, sale.description)} title="Hızlı Not">
+                                                                         <StickyNote className="h-3 w-3" />
+                                                                     </Button>
                                                                  </>
                                                              )}
                                                              {isAdmin && (
@@ -1581,6 +1614,53 @@ export default function PipelineList({
                     onClose={() => setActiveAiCallSaleId(null)}
                 />
             )}
+
+            {/* Quick Note Dialog */}
+            <Dialog open={isQuickNoteOpen} onOpenChange={setIsQuickNoteOpen}>
+                <DialogContent className="max-w-lg bg-white rounded-2xl shadow-2xl p-6">
+                    <DialogHeader>
+                        <div className="mx-auto w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mb-3">
+                            <StickyNote className="h-6 w-6 text-amber-600" />
+                        </div>
+                        <DialogTitle className="text-center text-xl font-bold">Hızlı Not</DialogTitle>
+                    </DialogHeader>
+                    
+                    <div className="space-y-4 py-4">
+                        {quickNoteExisting && (
+                            <div className="space-y-2">
+                                <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Mevcut Notlar</Label>
+                                <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 max-h-40 overflow-y-auto">
+                                    <pre className="text-xs text-slate-600 whitespace-pre-wrap font-sans">{quickNoteExisting}</pre>
+                                </div>
+                            </div>
+                        )}
+                        
+                        <div className="space-y-2">
+                            <Label className="text-sm font-bold text-slate-700">Yeni Not Ekle</Label>
+                            <Textarea 
+                                placeholder="Notunuzu yazın..." 
+                                value={quickNoteText}
+                                onChange={e => setQuickNoteText(e.target.value)}
+                                className="resize-none min-h-[100px] border-slate-200 focus:border-amber-300 focus:ring-amber-200"
+                                autoFocus
+                            />
+                        </div>
+                    </div>
+                    
+                    <div className="flex gap-3 w-full">
+                        <Button variant="outline" onClick={() => setIsQuickNoteOpen(false)} className="flex-1 h-11 border-slate-200 hover:bg-slate-50">
+                            İptal
+                        </Button>
+                        <Button 
+                            onClick={handleSaveQuickNote} 
+                            disabled={!quickNoteText.trim() || quickNoteSaving}
+                            className="flex-1 h-11 bg-amber-600 hover:bg-amber-700 text-white font-medium shadow-md shadow-amber-200"
+                        >
+                            {quickNoteSaving ? 'Kaydediliyor...' : 'Kaydet'}
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div >
     )
 }

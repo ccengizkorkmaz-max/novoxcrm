@@ -2999,3 +2999,46 @@ export async function getCustomerSurveyHistory(customerId: string) {
         template_title: sr.survey_templates?.title || 'Anket'
     }))
 }
+
+export async function addSaleQuickNote(saleId: string, customerId: string, noteText: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    
+    if (!user) return { error: 'Not authenticated' }
+
+    const { data: profile } = await supabase.from('profiles').select('tenant_id, full_name').eq('id', user.id).single()
+    if (!profile) return { error: 'Profile not found' }
+
+    const timestamp = new Date().toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+    const author = profile.full_name || 'Kullanıcı'
+
+    // Insert as activity note
+    const { error: actError } = await supabase.from('activities').insert({
+        tenant_id: profile.tenant_id,
+        customer_id: customerId,
+        user_id: user.id,
+        owner_id: user.id,
+        type: 'Note',
+        topic: 'Other',
+        summary: `Hızlı Not — ${author}`,
+        description: noteText,
+        notes: `[${timestamp}] ${noteText}`,
+        due_date: new Date().toISOString(),
+        status: 'Completed',
+        priority: 'Medium'
+    })
+
+    if (actError) return { error: actError.message }
+
+    // Also append to sale description for visibility in pipeline
+    const { data: sale } = await supabase.from('sales').select('description').eq('id', saleId).single()
+    const existingDesc = sale?.description || ''
+    const newDesc = existingDesc 
+        ? `${existingDesc}\n[${timestamp} - ${author}] ${noteText}` 
+        : `[${timestamp} - ${author}] ${noteText}`
+    
+    await supabase.from('sales').update({ description: newDesc }).eq('id', saleId)
+
+    revalidatePath('/[locale]/(dashboard)/crm', 'page')
+    return { error: null }
+}
