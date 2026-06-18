@@ -254,7 +254,7 @@ export async function createCustomer(formData: FormData) {
                 user_id: user.id,
                 owner_id: user.id,
                 type: 'Note',
-                topic: 'Other',
+                topic: 'General',
                 summary: 'Müşteri Kaydı',
                 description: `${full_name} sisteme eklendi.`,
                 due_date: new Date().toISOString(),
@@ -3019,7 +3019,7 @@ export async function addSaleQuickNote(saleId: string, customerId: string, noteT
         user_id: user.id,
         owner_id: user.id,
         type: 'Note',
-        topic: 'Other',
+        topic: 'General',
         summary: `Hızlı Not — ${author}`,
         description: noteText,
         notes: `[${timestamp}] ${noteText}`,
@@ -3041,4 +3041,41 @@ export async function addSaleQuickNote(saleId: string, customerId: string, noteT
 
     revalidatePath('/[locale]/(dashboard)/crm', 'page')
     return { error: null }
+}
+
+export async function toggleCommunication(customerId: string, enabled: boolean) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Not authenticated' }
+
+    const { data: profile } = await supabase.from('profiles').select('tenant_id, full_name').eq('id', user.id).single()
+    if (!profile) return { error: 'Profile not found' }
+
+    const { error } = await supabase
+        .from('customers')
+        .update({ communication_enabled: enabled })
+        .eq('id', customerId)
+
+    if (error) return { error: error.message }
+
+    // Log as activity
+    const { createAdminClient } = await import('@/lib/supabase/admin')
+    const adminSupabase = createAdminClient()
+    
+    await adminSupabase.from('activities').insert({
+        tenant_id: profile.tenant_id,
+        customer_id: customerId,
+        user_id: user.id,
+        owner_id: user.id,
+        type: 'Note',
+        topic: 'General',
+        summary: enabled ? '🔔 İletişim Açıldı' : '🔇 İletişim Kapatıldı',
+        description: `${profile.full_name} tarafından müşteri iletişim durumu ${enabled ? 'AÇIK' : 'KAPALI'} olarak güncellendi.`,
+        due_date: new Date().toISOString(),
+        status: 'Completed',
+        priority: 'Medium'
+    })
+
+    revalidatePath('/[locale]/(dashboard)/crm', 'page')
+    return { error: null, enabled }
 }
