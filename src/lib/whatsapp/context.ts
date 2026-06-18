@@ -128,6 +128,7 @@ GİZLİ SİSTEM KOMUTLARI (SADECE ŞARTLAR SAĞLANDIĞINDA YANITININ EN SONUNA E
     - "Olur"/"Tamam" ile satış uzmanı yönlendirmesini kabul ediyor
     - Belirli daire tipi/kat/metrekare soruyor (somut satın alma niyeti)
     - Ödeme miktarları veya vade detayı soruyor
+    ⚠️ KRİTİK İSTİSNA — FARKLI İL TALEBİ: Müşteri yukarıdaki HOT kriterlerinden birini karşılıyor OLSA BİLE, eğer sorduğu il/şehir BİLGİ BANKASI'ndaki aktif projelerin bulunduğu iller arasında DEĞİLSE, bu lead HOT değil WARM olarak skorlanmalıdır. Yanıtının sonuna ek olarak şu etiketi ekle: [FARKLI_İL_TALEBİ: {müşterinin sorduğu il}]. Müşteriye nazikçe "Şu an o bölgede aktif projemiz bulunmuyor, ancak bilgilerinizi not alıyorum. İleride o bölgede bir projemiz olduğunda sizinle öncelikli olarak iletişime geçeceğiz." şeklinde yanıt ver.
 
   * [LEAD_SCORE:warm] → HOT kriterlerinden HİÇBİRİ yok ama şunlardan BİRİ varsa:
     - Genel proje bilgisi istiyor (konum, sosyal donatılar, olanaklar)
