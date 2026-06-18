@@ -22,6 +22,7 @@ import { TriggerManager } from './TriggerManager'
 import { WorkflowMonitor } from './WorkflowMonitor'
 import { SystemHealthPanel } from './SystemHealthPanel'
 import { WorkflowLogDialog } from './WorkflowLogDialog'
+import { CommunicationManager } from './CommunicationManager'
 
 interface OutreachDashboardProps {
     workflows: any[]
@@ -317,6 +318,10 @@ export function OutreachDashboard({
                         <Zap className="h-3.5 w-3.5" />
                         Tetikleyiciler
                     </TabsTrigger>
+                    <TabsTrigger value="communication" className="data-[state=active]:bg-red-600 data-[state=active]:text-white gap-2 flex-1 md:flex-initial py-1.5 text-xs">
+                        <PhoneOff className="h-3.5 w-3.5" />
+                        İletişim
+                    </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="workflows" className="space-y-3">
@@ -369,6 +374,10 @@ export function OutreachDashboard({
                         tenantId={tenantId} 
                         onClose={() => {}} // No back button needed in tab
                     />
+                </TabsContent>
+
+                <TabsContent value="communication" className="space-y-3">
+                    <CommunicationManager tenantId={tenantId} />
                 </TabsContent>
             </Tabs>
 
