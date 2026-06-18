@@ -16,7 +16,7 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Calculator, Sparkles, User, Info, Mail, Phone, MessageSquareText, CalendarPlus, Trash, AlertTriangle, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, Filter, X, Undo2, StickyNote } from 'lucide-react'
+import { Calculator, Sparkles, User, Info, Mail, Phone, MessageSquareText, CalendarPlus, Trash, AlertTriangle, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, Filter, X, Undo2, StickyNote, PhoneOff } from 'lucide-react'
 import { CollapsibleSection } from '@/components/ui/collapsible-section'
 import ColumnVisibilityPicker from '@/components/ui/column-visibility-picker'
 import ColumnFilterRow from '@/components/ui/column-filter-row'
@@ -751,6 +751,11 @@ export default function PipelineList({
                                                                     <Button variant="ghost" size="icon" className="h-5 w-5 text-muted-foreground hover:text-blue-600" onClick={() => setViewingLead(sale)} title="Lead Bilgileri">
                                                                         <Info className="h-3 w-3" />
                                                                     </Button>
+                                                                )}
+                                                                {sale.customers?.communication_enabled === false && (
+                                                                    <span title="İletişim kapalı — bu müşteriye arama/mesaj gönderilmez" className="inline-flex items-center justify-center h-4 w-4 rounded-full bg-red-100 text-red-600 flex-shrink-0">
+                                                                        <PhoneOff className="h-2.5 w-2.5" />
+                                                                    </span>
                                                                 )}
                                                             </div>
                                                             <div className="flex items-center gap-1.5 flex-wrap">

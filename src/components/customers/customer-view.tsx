@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Phone, Mail, Filter, MapPin, Clock } from 'lucide-react'
+import { Phone, Mail, Filter, MapPin, Clock, PhoneOff } from 'lucide-react'
 import { ActivityTimeline } from '@/components/activities/activity-timeline'
 import { AiMatchWidget } from './AiMatchWidget'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -15,6 +15,8 @@ import { Link } from '@/i18n/routing'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
 import { BackButton } from '@/components/back-button'
+import { Switch } from '@/components/ui/switch'
+import { toggleCommunication } from '@/app/[locale]/(dashboard)/crm/actions'
 
 interface CustomerViewProps {
     customer: any
@@ -59,6 +61,23 @@ export function CustomerView({ customer, activities, contracts = [], profiles = 
         setSelectedTopics(prev =>
             prev.includes(topic) ? prev.filter(t => t !== topic) : [...prev, topic]
         )
+    }
+
+    // Communication toggle
+    const [commEnabled, setCommEnabled] = useState<boolean>(customer.communication_enabled !== false)
+    const [commLoading, setCommLoading] = useState(false)
+
+    const handleCommToggle = async (checked: boolean) => {
+        setCommLoading(true)
+        setCommEnabled(checked)
+        const res = await toggleCommunication(customer.id, checked)
+        setCommLoading(false)
+        if (res.error) {
+            toast.error(res.error)
+            setCommEnabled(!checked) // revert
+        } else {
+            toast.success(checked ? 'İletişim açıldı' : 'İletişim kapatıldı')
+        }
     }
 
     // Filter Logic
@@ -138,6 +157,32 @@ export function CustomerView({ customer, activities, contracts = [], profiles = 
                                 <Clock className="h-3 w-3 shrink-0" />
                                 <span>Kayıt Tarihi: <span className="font-medium text-slate-700">{new Date(customer.created_at).toLocaleDateString('tr-TR')}</span></span>
                             </div>
+                            
+                            {/* Communication Toggle */}
+                            <div className={`flex items-center justify-between pt-3 mt-1 border-t ${commEnabled ? 'border-slate-100' : 'border-red-200'}`}>
+                                <div className="flex items-center gap-2">
+                                    {commEnabled ? (
+                                        <Phone className="h-4 w-4 text-green-600" />
+                                    ) : (
+                                        <PhoneOff className="h-4 w-4 text-red-500" />
+                                    )}
+                                    <span className={`text-sm font-medium ${commEnabled ? 'text-slate-700' : 'text-red-600'}`}>
+                                        İletişim {commEnabled ? 'Açık' : 'Kapalı'}
+                                    </span>
+                                </div>
+                                <Switch
+                                    checked={commEnabled}
+                                    onCheckedChange={handleCommToggle}
+                                    disabled={commLoading}
+                                    className="data-[state=checked]:bg-green-600 data-[state=unchecked]:bg-red-400"
+                                />
+                            </div>
+                            {!commEnabled && (
+                                <div className="bg-red-50 border border-red-200 rounded-lg p-2 text-xs text-red-600 flex items-start gap-1.5">
+                                    <PhoneOff className="h-3 w-3 mt-0.5 shrink-0" />
+                                    <span>Bu müşteriye tüm kanallardan iletişim kapatılmıştır. Arama, WhatsApp, SMS gönderilmeyecektir.</span>
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
 

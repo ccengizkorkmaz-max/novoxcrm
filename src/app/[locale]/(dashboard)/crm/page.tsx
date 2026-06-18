@@ -70,7 +70,7 @@ export default async function CRMPage(props: {
     // Build sales list query (THE CRITICAL 50 RECORDS)
     let baseQuery = supabase
         .from('sales')
-        .select('*, customers!inner(id, full_name, email, phone, customer_number, lead_qualifications(last_call_at, interest_level, call_notes)), units(unit_number, price, currency, projects(id, name)), projects(id, name), profiles(full_name, is_external)', { count: 'exact' })
+        .select('*, customers!inner(id, full_name, email, phone, customer_number, communication_enabled, lead_qualifications(last_call_at, interest_level, call_notes)), units(unit_number, price, currency, projects(id, name)), projects(id, name), profiles(full_name, is_external)', { count: 'exact' })
         .neq('status', 'Inbox')
 
     if (!isManager && user) {

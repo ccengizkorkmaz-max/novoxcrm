@@ -245,7 +245,7 @@ export async function processOutreachQueue() {
             outreach_workflows!inner(
                 id, working_hours_start, working_hours_end, working_days, timezone, is_active, conversion_goal_status, batch_size, batch_interval_seconds, computed_params
             ),
-            customers(id, full_name, phone, email),
+            customers(id, full_name, phone, email, communication_enabled),
             sales(id, status, project_id, unit_id)
         `)
         .in('status', ['active', 'waiting'])
@@ -425,6 +425,15 @@ export async function processOutreachQueue() {
                     .eq('id', execution.id)
                 continue
             }
+        }
+
+        // Check customer communication toggle
+        if (execution.customers?.communication_enabled === false) {
+            console.log(`[Outreach] ⛔ Customer ${customerId} communication disabled. Skipping execution ${execution.id}`)
+            await supabase.from('outreach_executions')
+                .update({ status: 'opted_out', completed_at: now, metadata: { ...execution.metadata, reason: 'communication_disabled' } })
+                .eq('id', execution.id)
+            continue
         }
 
         // Get current step
@@ -683,7 +692,7 @@ export async function processOutreachQueue() {
                 outreach_workflows!inner(
                     id, working_hours_start, working_hours_end, working_days, timezone, is_active, conversion_goal_status, batch_size, batch_interval_seconds, computed_params
                 ),
-                customers(id, full_name, phone, email),
+                customers(id, full_name, phone, email, communication_enabled),
                 sales(id, status, project_id, unit_id)
             `)
             .in('status', ['active', 'waiting'])
