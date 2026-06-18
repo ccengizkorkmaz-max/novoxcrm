@@ -1038,9 +1038,8 @@ export async function handleManualVapiCallResult(callData: {
             
             // Opt-out kaydı da ekle
             if (callerPhone) {
-                const { normalizePhone } = await import('@/lib/outreach/engine')
                 await supabase.from('outreach_optouts').upsert({
-                    phone: normalizePhone(callerPhone),
+                    phone: normalizeToE164(callerPhone),
                     channel: 'all',
                     reason: doNotContact ? 'Müşteri aranmak istemediğini belirtti (AI tespit)' : 'AI arama — disqualified',
                 }, { onConflict: 'phone,channel' }).select()
