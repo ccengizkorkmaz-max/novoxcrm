@@ -155,6 +155,13 @@ export async function handleCampaignReply(
                     channel: 'ai_call',
                     reason: 'WhatsApp kampanyasından red',
                 }, { onConflict: 'phone,channel' }).select();
+
+                // İletişim toggle'ı kapat
+                await supabase
+                    .from('customers')
+                    .update({ communication_enabled: false })
+                    .eq('id', customer.id);
+                console.log(`🔇 Communication disabled for customer ${customer.id} — WhatsApp kampanya redi`);
                 console.log(`🚫 Kampanya yanıtı: ${normalizedPhone} → opted_out`);
             }
         }

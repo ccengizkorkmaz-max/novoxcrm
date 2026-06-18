@@ -288,7 +288,7 @@ Gelen aramaları karşıla, bilgi bankasındaki proje bilgilerini paylaş, rande
                             ]
                         },
                         analysisPlan: {
-                            structuredDataPrompt: 'Görüşme transkriptini analiz et ve aşağıdaki JSON yapısını doldur. Eğer müşteri ilgili ama şu an müsait değilse veya daha sonra aranmak istiyorsa lead_score "follow_up" olmalıdır. callback_datetime alanına müşterinin belirttiği zaman bilgisini aynen yaz (örn: "yarın saat 5", "akşam 6 buçuk").',
+                            structuredDataPrompt: 'Görüşme transkriptini analiz et ve aşağıdaki JSON yapısını doldur. Eğer müşteri ilgili ama şu an müsait değilse veya daha sonra aranmak istiyorsa lead_score \"follow_up\" olmalıdır. callback_datetime alanına müşterinin belirttiği zaman bilgisini aynen yaz (örn: \"yarın saat 5\", \"akşam 6 buçuk\"). Müşteri \"aramayın\", \"bir daha arasanız şikayet ederim\", \"numaramı silin\", \"beni rahatsız etmeyin\", \"istemiyorum\" gibi kesin ret ve iletişim kesme ifadeleri kullanıyorsa do_not_contact alanını true yap.',
                             structuredDataSchema: {
                                 type: 'object',
                                 properties: {
@@ -300,7 +300,8 @@ Gelen aramaları karşıla, bilgi bankasındaki proje bilgilerini paylaş, rande
                                     wants_catalog: { type: 'boolean', description: 'Müşteri katalog, broşür, fiyat listesi veya doküman istedi mi?' },
                                     project_interested: { type: 'string', description: 'Müşterinin ilgilendiği proje adı (Novapark Vista, NovoCity İzmir, Novapark Viva Körfez, Novapark Montenegro vb.)' },
                                     notes: { type: 'string', description: 'Görüşme hakkında kısa not (Türkçe)' },
-                                    customer_name: { type: 'string', description: 'Konuşma sırasında müşterinin belirttiği ad soyad (eğer ilk başta bilinmiyorsa)' }
+                                    customer_name: { type: 'string', description: 'Konuşma sırasında müşterinin belirttiği ad soyad (eğer ilk başta bilinmiyorsa)' },
+                                    do_not_contact: { type: 'boolean', description: 'Müşteri kesinlikle aranmak veya mesaj almak istemediğini belirtti mi? "aramayın", "numaramı silin", "rahatsız etmeyin", "şikayet ederim" gibi ifadeler kullandıysa true.' }
                                 },
                                 required: ['lead_score', 'interested', 'available', 'notes'],
                             },

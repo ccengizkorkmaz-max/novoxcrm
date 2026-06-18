@@ -299,7 +299,7 @@ export async function makeOutboundCall(options: VapiCallOptions): Promise<VapiCa
                 },
                 silenceTimeoutSeconds: 45,
                 analysisPlan: {
-                    structuredDataPrompt: 'Görüşme transkriptini analiz et ve aşağıdaki JSON yapısını doldur. Eğer müşteri ilgili ama şu an müsait değilse veya daha sonra aranmak istiyorsa lead_score "follow_up" olmalıdır. callback_datetime alanına müşterinin belirttiği zaman bilgisini aynen yaz.',
+                    structuredDataPrompt: 'Görüşme transkriptini analiz et ve aşağıdaki JSON yapısını doldur. Eğer müşteri ilgili ama şu an müsait değilse veya daha sonra aranmak istiyorsa lead_score "follow_up" olmalıdır. callback_datetime alanına müşterinin belirttiği zaman bilgisini aynen yaz. Müşteri "aramayın", "bir daha arasanız şikayet ederim", "numaramı silin", "beni rahatsız etmeyin", "istemiyorum" gibi kesin ret ve iletişim kesme ifadeleri kullanıyorsa do_not_contact alanını true yap.',
                     structuredDataSchema: {
                         type: 'object',
                         properties: {
@@ -311,6 +311,7 @@ export async function makeOutboundCall(options: VapiCallOptions): Promise<VapiCa
                             wants_catalog: { type: 'boolean', description: 'Müşteri katalog, broşür, fiyat listesi veya doküman istedi mi?' },
                             project_interested: { type: 'string', description: 'Müşterinin ilgilendiği proje adı (Novapark Vista, NovoCity İzmir, Novapark Viva Körfez, Novapark Montenegro vb.)' },
                             notes: { type: 'string', description: 'Görüşme hakkında kısa not (Türkçe)' },
+                            do_not_contact: { type: 'boolean', description: 'Müşteri kesinlikle aranmak veya mesaj almak istemediğini belirtti mi? "aramayın", "numaramı silin", "rahatsız etmeyin", "şikayet ederim" gibi ifadeler kullandıysa true.' }
                         },
                         required: ['lead_score', 'interested', 'available', 'notes'],
                     },
@@ -1025,6 +1026,26 @@ export async function handleManualVapiCallResult(callData: {
                 })
         }
         console.log(`[Vapi Webhook] 📊 Manual lead scored: ${customerId} → ${leadScore} (${newLqStatus})`)
+
+        // ─── AUTO COMMUNICATION OFF: do_not_contact veya disqualified → iletişim kapat ───
+        const doNotContact = structuredData?.do_not_contact === true
+        if (doNotContact || leadScore === 'disqualified') {
+            await supabase
+                .from('customers')
+                .update({ communication_enabled: false })
+                .eq('id', customerId)
+            console.log(`[Vapi Webhook] 🔇 Communication disabled for customer ${customerId} — reason: ${doNotContact ? 'do_not_contact' : 'disqualified'}`)
+            
+            // Opt-out kaydı da ekle
+            if (callerPhone) {
+                const { normalizePhone } = await import('@/lib/outreach/engine')
+                await supabase.from('outreach_optouts').upsert({
+                    phone: normalizePhone(callerPhone),
+                    channel: 'all',
+                    reason: doNotContact ? 'Müşteri aranmak istemediğini belirtti (AI tespit)' : 'AI arama — disqualified',
+                }, { onConflict: 'phone,channel' }).select()
+            }
+        }
 
         // Check if there is an assigned rep on customer/sale
         const { data: customer } = await supabase

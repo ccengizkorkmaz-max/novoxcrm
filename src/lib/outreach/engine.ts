@@ -1856,6 +1856,26 @@ export async function handleVapiCallResult(callData: {
 
         console.log(`[Outreach] 📊 Lead scored: ${execution.customer_id} → ${structuredData.lead_score} (${newStatus})`)
 
+        // ─── AUTO COMMUNICATION OFF: do_not_contact veya disqualified → iletişim kapat ───
+        const doNotContact = structuredData?.do_not_contact === true
+        if (doNotContact || structuredData.lead_score === 'disqualified') {
+            await supabase
+                .from('customers')
+                .update({ communication_enabled: false })
+                .eq('id', execution.customer_id)
+            console.log(`[Outreach] 🔇 Communication disabled for customer ${execution.customer_id} — reason: ${doNotContact ? 'do_not_contact' : 'disqualified'}`)
+            
+            // Opt-out kaydı
+            const custPhone = execution.customers?.phone
+            if (custPhone) {
+                await supabase.from('outreach_optouts').upsert({
+                    phone: normalizePhone(custPhone),
+                    channel: 'all',
+                    reason: doNotContact ? 'Müşteri aranmak istemediğini belirtti (AI tespit)' : 'AI outreach — disqualified',
+                }, { onConflict: 'phone,channel' }).select()
+            }
+        }
+
         // Activity log for scoring
         await supabase.from('activities').insert({
             tenant_id: execution.tenant_id,
