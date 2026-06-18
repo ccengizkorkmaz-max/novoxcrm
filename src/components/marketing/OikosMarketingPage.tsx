@@ -483,12 +483,13 @@ export function OikosMarketingPage() {
             {/* PRICING */}
             <section className="pricing py-16 md:py-24 px-4 md:px-10" id="fiyatlar">
                 <div className="max-w-5xl mx-auto">
-                    <div className="text-xs font-bold text-[#085041] tracking-[0.2em] mb-4">FİYATLANDIRMA</div>
-                    <h2 className="text-2xl md:text-4xl font-medium text-[#1A1A1A] mb-8">Ekibinize göre plan seçin</h2>
+                    <div className="text-xs font-bold text-[#085041] tracking-[0.2em] mb-4">PAKETLER</div>
+                    <h2 className="text-2xl md:text-4xl font-medium text-[#1A1A1A] mb-4">Ekibinize göre plan seçin</h2>
+                    <p className="text-sm md:text-base text-gray-500 max-w-xl mb-10">İhtiyaçlarınıza en uygun paketi belirlemek için bizimle iletişime geçin. Size özel teklif hazırlayalım.</p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-10">
                         <div className="bg-white border-2 border-[#D8F0E8] rounded-2xl p-8 relative shadow-sm">
                             <h3 className="text-lg font-semibold text-gray-800">Oikos</h3>
-                            <div className="text-3xl md:text-4xl font-bold text-[#085041] my-4">₺2.900 <span className="text-sm font-normal text-gray-400">/ ay</span></div>
+                            <div className="text-xl md:text-2xl font-bold text-[#085041] my-4">Bilgi İsteyiniz</div>
                             <p className="text-sm text-gray-500 mb-6">Bireysel danışmanlar ve küçük ofisler için</p>
                             <div className="space-y-3">
                                 <div className="flex items-center gap-2 text-sm text-gray-700">✓ 5 kullanıcıya kadar</div>
@@ -500,13 +501,13 @@ export function OikosMarketingPage() {
                                 className="w-full mt-8 py-3 rounded-lg text-sm font-semibold transition-colors bg-transparent border border-[#D8F0E8] hover:border-[#085041] text-[#1A1A1A] cursor-pointer"
                                 onClick={() => setIsModalOpen(true)}
                             >
-                                Bilgi al
+                                Bilgi isteyiniz
                             </button>
                         </div>
                         <div className="bg-white border-2 border-[#085041] rounded-2xl p-8 relative shadow-md">
                             <div className="absolute top-4 right-4 bg-[#E1F5EE] text-[#085041] text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">En popüler</div>
                             <h3 className="text-lg font-semibold text-gray-800">OikosPro</h3>
-                            <div className="text-3xl md:text-4xl font-bold text-[#085041] my-4">₺3.900 <span className="text-sm font-normal text-gray-400">/ ay</span></div>
+                            <div className="text-xl md:text-2xl font-bold text-[#085041] my-4">Teklif İsteyiniz</div>
                             <p className="text-sm text-gray-500 mb-6">Büyüyen ofisler ve ekipler için tam AI gücü</p>
                             <div className="space-y-3">
                                 <div className="flex items-center gap-2 text-sm text-gray-700">✓ Sınırsız kullanıcı</div>
@@ -519,7 +520,7 @@ export function OikosMarketingPage() {
                                 className="w-full mt-8 py-3 rounded-lg text-sm font-semibold transition-colors bg-[#085041] hover:bg-[#0F6E56] text-white cursor-pointer"
                                 onClick={() => setIsModalOpen(true)}
                             >
-                                İletişime geçin
+                                Teklif isteyiniz
                             </button>
                         </div>
                     </div>

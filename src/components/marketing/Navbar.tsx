@@ -53,7 +53,7 @@ export function Navbar() {
             { name: 'Özellikler', href: '/#ozellikler' },
             { name: 'Müşteri Journey', href: '/#journey' },
             { name: 'Neden Oikos', href: '/#neden-oikos' },
-            { name: 'Fiyatlar', href: '/#fiyatlar' },
+            { name: 'Paketler', href: '/#fiyatlar' },
             { name: 'Detaylı Tanıtım', href: '/detayli-tanitim' },
         ]
         : [
