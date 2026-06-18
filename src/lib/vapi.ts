@@ -1027,9 +1027,9 @@ export async function handleManualVapiCallResult(callData: {
         }
         console.log(`[Vapi Webhook] 📊 Manual lead scored: ${customerId} → ${leadScore} (${newLqStatus})`)
 
-        // ─── AUTO COMMUNICATION OFF: do_not_contact veya disqualified → iletişim kapat ───
+        // ─── AUTO COMMUNICATION OFF: do_not_contact → iletişim kapat ───
         const doNotContact = structuredData?.do_not_contact === true
-        if (doNotContact || leadScore === 'disqualified') {
+        if (doNotContact) {
             await supabase
                 .from('customers')
                 .update({ communication_enabled: false })

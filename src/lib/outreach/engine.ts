@@ -1856,9 +1856,9 @@ export async function handleVapiCallResult(callData: {
 
         console.log(`[Outreach] 📊 Lead scored: ${execution.customer_id} → ${structuredData.lead_score} (${newStatus})`)
 
-        // ─── AUTO COMMUNICATION OFF: do_not_contact veya disqualified → iletişim kapat ───
+        // ─── AUTO COMMUNICATION OFF: do_not_contact → iletişim kapat ───
         const doNotContact = structuredData?.do_not_contact === true
-        if (doNotContact || structuredData.lead_score === 'disqualified') {
+        if (doNotContact) {
             await supabase
                 .from('customers')
                 .update({ communication_enabled: false })
