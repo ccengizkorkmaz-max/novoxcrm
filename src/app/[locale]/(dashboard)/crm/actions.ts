@@ -8,6 +8,8 @@ import { logUnitPriceHistory } from '../inventory/actions'
 import { ensureFinancialAccount, createTransaction, createValuablePaper } from '../finance/actions'
 import { createNotification } from '@/lib/notifications/create'
 import { logSystemAction } from '@/lib/actions/system-logs'
+import { sendWhatsAppInteractiveButtons } from '@/lib/whatsapp'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 export async function getCustomerFullProfile(customerId: string) {
     const supabase = await createClient()
@@ -1040,8 +1042,10 @@ export async function assignSale(saleId: string, userId: string | null) {
 
     // Notification: lead assigned
     if (userId && profile?.tenant_id) {
-        const { data: sale } = await supabase.from('sales').select('customers(full_name)').eq('id', saleId).single()
+        const { data: sale } = await supabase.from('sales').select('customers(full_name, phone, lead_qualifications(interest_level))').eq('id', saleId).single()
         const customerName = (sale as any)?.customers?.full_name || 'Müşteri'
+        const customerPhone = (sale as any)?.customers?.phone || ''
+        const interestLevel = (sale as any)?.customers?.lead_qualifications?.[0]?.interest_level || ''
 
         createNotification({
             tenant_id: profile.tenant_id,
@@ -1052,6 +1056,40 @@ export async function assignSale(saleId: string, userId: string | null) {
             message: `${customerName} isimli lead takibinize atandı.`,
             link: '/crm'
         }).catch(console.error)
+
+        // WhatsApp ile temsilciye bildirim gönder (arka planda)
+        ;(async () => {
+            try {
+                const adminSupabase = createAdminClient()
+                const { data: repProfile } = await adminSupabase.from('profiles').select('phone, full_name').eq('id', userId).single()
+                if (!repProfile?.phone) return
+
+                const { data: tenantSettings } = await adminSupabase.from('tenants').select('wa_phone_number_id, wa_access_token').eq('id', profile.tenant_id).single()
+                if (!tenantSettings?.wa_phone_number_id || !tenantSettings?.wa_access_token) return
+
+                const scoreLabel: Record<string, string> = {
+                    hot: '🔥 HOT', warm: '🌡️ WARM', cold: '❄️ COLD',
+                    call_requested: '📞 ARAMA', disqualified: '⛔ DQ'
+                }
+                const scoreText = scoreLabel[interestLevel] || '—'
+
+                await sendWhatsAppInteractiveButtons(
+                    repProfile.phone,
+                    '🎯 Sana Atanan HOT Lead — Hemen Ara!',
+                    `👤 *Müşteri:* ${customerName}\n📱 *Telefon:* ${customerPhone}\n📊 *Lead Skor:* ${scoreText}`,
+                    [
+                        { id: `lead_ok_${saleId}`, title: '✅ Aradım Olumlu' },
+                        { id: `lead_fail_${saleId}`, title: '❌ Aradım Olumsuz' },
+                    ],
+                    'NovoCRM Lead Takip',
+                    tenantSettings.wa_phone_number_id,
+                    tenantSettings.wa_access_token
+                )
+                console.log(`✅ Lead atama WA bildirimi gönderildi: ${repProfile.full_name}`)
+            } catch (err) {
+                console.error('Lead atama WA bildirimi hatası:', err)
+            }
+        })()
     }
 
     revalidatePath('/crm')

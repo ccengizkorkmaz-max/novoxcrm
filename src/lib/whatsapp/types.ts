@@ -11,6 +11,7 @@ export interface IncomingPayload {
     timestamp: string;
     message_id: string;
     phoneNumberId: string;
+    button_reply_id?: string;
 }
 
 export interface ResolvedAiProvider {

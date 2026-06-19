@@ -254,3 +254,70 @@ export const OutreachTemplates = {
         `Onay için *EVET*, değişiklik için *DEĞİŞTİR* yazınız.`,
 }
 
+/**
+ * Sends a WhatsApp Interactive Button Message via Meta Cloud API.
+ * Maximum 3 reply buttons allowed.
+ */
+export async function sendWhatsAppInteractiveButtons(
+    to: string,
+    headerText: string,
+    bodyText: string,
+    buttons: { id: string; title: string }[],
+    footerText?: string,
+    phoneId?: string,
+    accessToken?: string
+) {
+    const PHONE_ID = phoneId || process.env.WHATSAPP_PHONE_NUMBER_ID;
+    let ACCESS_TOKEN = accessToken || process.env.WHATSAPP_ACCESS_TOKEN;
+
+    if (!PHONE_ID || !ACCESS_TOKEN) {
+        return { success: false, error: 'WhatsApp API credentials missing' };
+    }
+
+    const cleanPhone = normalizePhone(to);
+    ACCESS_TOKEN = ACCESS_TOKEN.replace(/[\r\n"\s]+/g, '');
+
+    const interactive: any = {
+        type: 'button',
+        header: { type: 'text', text: headerText },
+        body: { text: bodyText },
+        action: {
+            buttons: buttons.slice(0, 3).map(b => ({
+                type: 'reply',
+                reply: { id: b.id, title: b.title.substring(0, 20) }
+            }))
+        }
+    };
+
+    if (footerText) {
+        interactive.footer = { text: footerText };
+    }
+
+    try {
+        const response = await fetch(`https://graph.facebook.com/v21.0/${PHONE_ID}/messages`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${ACCESS_TOKEN}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                messaging_product: 'whatsapp',
+                recipient_type: 'individual',
+                to: cleanPhone,
+                type: 'interactive',
+                interactive,
+            }),
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+            console.error('WhatsApp Interactive Send Error:', data);
+            return { success: false, error: data.error?.message || 'API Error' };
+        }
+        return { success: true, data };
+    } catch (error) {
+        console.error('WhatsApp Interactive Fetch Error:', error);
+        return { success: false, error: 'Network or Fetch Error' };
+    }
+}
+

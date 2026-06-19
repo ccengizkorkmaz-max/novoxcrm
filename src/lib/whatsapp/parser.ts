@@ -39,9 +39,11 @@ export function parseIncomingPayload(body: any): IncomingPayload | null {
             const meta = body.entry[0].changes[0].value.metadata;
             
             let messageText = msg.text?.body || '';
+            let buttonReplyId: string | undefined;
             if (msg.type === 'interactive') {
                 if (msg.interactive?.type === 'button_reply') {
                     messageText = msg.interactive.button_reply.title || '';
+                    buttonReplyId = msg.interactive.button_reply.id;
                 } else if (msg.interactive?.type === 'list_reply') {
                     messageText = msg.interactive.list_reply.title || '';
                 }
@@ -58,6 +60,7 @@ export function parseIncomingPayload(body: any): IncomingPayload | null {
                 timestamp: msg.timestamp,
                 message_id: msg.id,
                 phoneNumberId: meta?.phone_number_id || '',
+                button_reply_id: buttonReplyId,
             };
         }
     }

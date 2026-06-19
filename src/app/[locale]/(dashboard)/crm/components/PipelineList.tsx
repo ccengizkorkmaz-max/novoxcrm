@@ -859,6 +859,7 @@ export default function PipelineList({
                                                 )
                                                 if (colId === 'lead_score') {
                                                     const interestLevel = sale.customers?.lead_qualifications?.[0]?.interest_level
+                                                    const lqStatus = sale.customers?.lead_qualifications?.[0]?.status
                                                     const getScoreBadge = (score: string | null | undefined) => {
                                                         switch (score) {
                                                             case 'hot': return { label: '🔥 Hot', cls: 'bg-red-100 text-red-700 border-red-200' }
@@ -870,11 +871,12 @@ export default function PipelineList({
                                                         }
                                                     }
                                                     const badge = getScoreBadge(interestLevel)
+                                                    const showStar = lqStatus === 'contacted'
                                                     return (
                                                         <TableCell key="lead_score" className={cellCls}>
                                                             {badge ? (
-                                                                <span className={`inline-flex items-center rounded-md border px-1.5 py-0.5 text-[10px] font-bold ${badge.cls}`}>
-                                                                    {badge.label}
+                                                                <span className={`inline-flex items-center gap-0.5 rounded-md border px-1.5 py-0.5 text-[10px] font-bold ${badge.cls}`}>
+                                                                    {badge.label}{showStar && ' ⭐'}
                                                                 </span>
                                                             ) : (
                                                                 <span className="text-muted-foreground text-[10px]">—</span>

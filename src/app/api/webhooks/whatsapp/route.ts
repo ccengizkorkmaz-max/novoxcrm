@@ -111,6 +111,103 @@ export async function POST(req: NextRequest) {
             }
         }
 
+        // ── 4.6. Lead Atama Buton Yanıtları (lead_ok_ / lead_fail_) ─────
+        if (payload.button_reply_id) {
+            const btnId = payload.button_reply_id;
+            const isLeadOk = btnId.startsWith('lead_ok_');
+            const isLeadFail = btnId.startsWith('lead_fail_');
+
+            if (isLeadOk || isLeadFail) {
+                const saleId = btnId.replace('lead_ok_', '').replace('lead_fail_', '');
+                console.log(`🎯 Lead buton yanıtı: ${isLeadOk ? 'OLUMLU' : 'OLUMSUZ'} — saleId: ${saleId}`);
+
+                try {
+                    // Sale'den customer bilgisini al
+                    const { data: saleData } = await supabase
+                        .from('sales')
+                        .select('id, customer_id, status, customers(full_name)')
+                        .eq('id', saleId)
+                        .single();
+
+                    if (saleData) {
+                        if (isLeadOk) {
+                            // ✅ OLUMLU: Status → Prospect, Lead Skor yanına yıldız
+                            await supabase.from('sales')
+                                .update({ status: 'Prospect', updated_at: new Date().toISOString() })
+                                .eq('id', saleId);
+
+                            await supabase.from('lead_qualifications')
+                                .update({
+                                    interest_level: 'hot',
+                                    status: 'contacted',
+                                    call_notes: (new Date().toLocaleString('tr-TR')) + ' — ⭐ Temsilci aradı, olumlu sonuç.',
+                                    updated_at: new Date().toISOString()
+                                })
+                                .eq('customer_id', saleData.customer_id);
+
+                            // Aktivite logu
+                            await supabase.from('activities').insert({
+                                customer_id: saleData.customer_id,
+                                type: 'Phone',
+                                topic: 'Sales',
+                                summary: '✅ Lead Arandı — Olumlu',
+                                description: `Temsilci lead'i aradı ve olumlu sonuç aldı. Status → Prospect.`,
+                                due_date: new Date().toISOString(),
+                                status: 'Completed',
+                                priority: 'High',
+                            });
+
+                            console.log(`✅ Lead ${saleId} → Prospect (olumlu)`);
+
+                            // Temsilciye onay mesajı gönder
+                            await sendWhatsAppMessage(
+                                normalizedPhone,
+                                `✅ *${(saleData as any).customers?.full_name || 'Müşteri'}* → *Fırsat (Prospect)* olarak güncellendi.\n\n⭐ Lead skoru olumlu olarak işaretlendi.`,
+                                tenantData.wa_phone_number_id,
+                                tenantData.wa_access_token
+                            );
+                        } else {
+                            // ❌ OLUMSUZ: Lead Skor → Disqualified
+                            await supabase.from('lead_qualifications')
+                                .update({
+                                    interest_level: 'disqualified',
+                                    status: 'disqualified',
+                                    call_notes: (new Date().toLocaleString('tr-TR')) + ' — Temsilci aradı, olumsuz sonuç.',
+                                    updated_at: new Date().toISOString()
+                                })
+                                .eq('customer_id', saleData.customer_id);
+
+                            // Aktivite logu
+                            await supabase.from('activities').insert({
+                                customer_id: saleData.customer_id,
+                                type: 'Phone',
+                                topic: 'Sales',
+                                summary: '❌ Lead Arandı — Olumsuz',
+                                description: `Temsilci lead'i aradı ve olumsuz sonuç aldı. Lead Skor → Disqualified.`,
+                                due_date: new Date().toISOString(),
+                                status: 'Completed',
+                                priority: 'Medium',
+                            });
+
+                            console.log(`❌ Lead ${saleId} → Disqualified (olumsuz)`);
+
+                            // Temsilciye onay mesajı gönder
+                            await sendWhatsAppMessage(
+                                normalizedPhone,
+                                `❌ *${(saleData as any).customers?.full_name || 'Müşteri'}* → Lead skoru *Disqualified* olarak işaretlendi.`,
+                                tenantData.wa_phone_number_id,
+                                tenantData.wa_access_token
+                            );
+                        }
+                    }
+                } catch (err) {
+                    console.error('Lead buton yanıtı işlenirken hata:', err);
+                }
+
+                return NextResponse.json({ status: 'lead_button_processed' }, { status: 200 });
+            }
+        }
+
         // ── 5. AI Chatbot Motoru ───────────────────────────────────────
         // Dinamik AI provider ve key çözümleme
         const resolvedAi = resolveAiProvider(tenantData);
