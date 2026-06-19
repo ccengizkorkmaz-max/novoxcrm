@@ -11,7 +11,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { getCampaigns, getTemplates, deleteCampaign, deleteTemplate } from '../actions'
-import { useRouter } from 'next/navigation'
+import { useRouter } from '@/i18n/routing'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 
 export function EmailDashboard({ tenantId }: { tenantId: string }) {

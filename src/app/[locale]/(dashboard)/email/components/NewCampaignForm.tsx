@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ArrowLeft, Send, FileText, Users, Loader2, CheckCircle2, ArrowRight } from 'lucide-react'
 import { toast } from 'sonner'
 import { getTemplates, getSegmentsForEmail, createCampaign, getSegmentRecipientCount, launchCampaign } from '../actions'
-import { useRouter } from 'next/navigation'
+import { useRouter } from '@/i18n/routing'
 
 export function NewCampaignForm() {
     const [step, setStep] = useState(1) // 1: Bilgiler, 2: Şablon, 3: Segment, 4: Onay

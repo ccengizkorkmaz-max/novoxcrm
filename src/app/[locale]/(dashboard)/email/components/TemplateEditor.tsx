@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Save, ArrowLeft, Eye, Send, FileText, Loader2, Check } from 'lucide-react'
 import { toast } from 'sonner'
 import { updateTemplate, sendTest } from '../actions'
-import { useRouter } from 'next/navigation'
+import { useRouter } from '@/i18n/routing'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 
 // Unlayer editörü client-side only olarak yükle

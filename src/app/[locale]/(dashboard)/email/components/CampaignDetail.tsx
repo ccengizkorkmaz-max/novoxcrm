@@ -8,7 +8,7 @@ import {
     ArrowLeft, Send, Eye, MousePointerClick, AlertTriangle, RefreshCw,
     CheckCircle2, XCircle, Clock, Mail, Users, BarChart3, Loader2
 } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import { useRouter } from '@/i18n/routing'
 import { getCampaignSends, launchCampaign } from '../actions'
 import { toast } from 'sonner'
 
