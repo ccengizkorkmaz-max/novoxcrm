@@ -137,6 +137,9 @@ export async function POST(req: NextRequest) {
             } catch (err) {
                 console.error('Lead buton yanıtı işlenirken hata:', err);
             }
+            // Lead buton yanıtı tespit edildi → her durumda erken dön, AI devreye girmesin
+            console.log(`🎯 Lead buton yanıtı işlendi (veya eşleşme bulunamadı), AI atlanıyor. Mesaj: ${payload.message}`);
+            return NextResponse.json({ status: 'lead_button_processed' }, { status: 200 });
         }
 
         // ── 3. Sohbeti Bul veya Oluştur ────────────────────────────────
