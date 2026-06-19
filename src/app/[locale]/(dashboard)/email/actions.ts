@@ -41,10 +41,12 @@ export async function createTemplate(payload: { name: string; subject?: string }
         tenant_id: tenantId,
         name: payload.name,
         subject: payload.subject || '',
+        body: '',
+        html: '',
+        design_json: {},
         created_by: user.id,
     }).select().single()
     if (error) return { error: error.message }
-    revalidatePath('/email')
     return { data }
 }
 
