@@ -26,6 +26,10 @@ interface BlockedCustomer {
     full_name: string
     phone: string | null
     communication_enabled: boolean
+    close_reason: string | null
+    closed_by: string | null
+    close_channel: string | null
+    closed_at: string | null
 }
 
 export function CommunicationManager({ tenantId }: { tenantId: string }) {
@@ -187,18 +191,43 @@ export function CommunicationManager({ tenantId }: { tenantId: string }) {
                     </h3>
                     <div className="space-y-1.5">
                         {filteredCustomers.map(c => (
-                            <Card key={c.id} className="p-2.5 flex items-center gap-3 bg-red-500/5 border-red-500/10">
-                                <PhoneOff className="h-4 w-4 text-red-500 shrink-0" />
-                                <div className="flex-1 min-w-0">
-                                    <span className="text-xs font-semibold block truncate">{c.full_name}</span>
-                                    <span className="text-[10px] text-muted-foreground">{c.phone || '—'}</span>
+                            <Card key={c.id} className="p-3 bg-red-500/5 border-red-500/10">
+                                <div className="flex items-start gap-3">
+                                    <PhoneOff className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
+                                    <div className="flex-1 min-w-0 text-left space-y-1">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xs font-semibold truncate">{c.full_name}</span>
+                                            <span className="text-[10px] text-muted-foreground font-mono">{c.phone || '—'}</span>
+                                        </div>
+                                        {c.close_reason && (
+                                            <p className="text-[11px] text-red-700/80 leading-tight">
+                                                <span className="font-medium">Gerekçe:</span> {c.close_reason}
+                                            </p>
+                                        )}
+                                        <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+                                            {c.closed_by && (
+                                                <span className="flex items-center gap-1">
+                                                    <Users className="h-2.5 w-2.5" />
+                                                    {c.closed_by}
+                                                </span>
+                                            )}
+                                            {c.close_channel && (
+                                                <Badge variant="outline" className="text-[9px] px-1.5 py-0">
+                                                    {sourceLabel[c.close_channel] || channelLabel[c.close_channel] || c.close_channel}
+                                                </Badge>
+                                            )}
+                                            {c.closed_at && (
+                                                <span>{new Date(c.closed_at).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <Switch
+                                        checked={false}
+                                        disabled={togglingId === c.id}
+                                        onCheckedChange={() => handleToggleComm(c.id, true)}
+                                        className="data-[state=unchecked]:bg-red-400 shrink-0"
+                                    />
                                 </div>
-                                <Switch
-                                    checked={false}
-                                    disabled={togglingId === c.id}
-                                    onCheckedChange={() => handleToggleComm(c.id, true)}
-                                    className="data-[state=unchecked]:bg-red-400"
-                                />
                             </Card>
                         ))}
                     </div>
@@ -221,27 +250,29 @@ export function CommunicationManager({ tenantId }: { tenantId: string }) {
                 ) : (
                     <div className="space-y-1.5">
                         {filteredOptouts.map(o => (
-                            <Card key={o.id} className="p-2.5 flex items-center gap-3 bg-muted/30">
-                                <ShieldOff className="h-4 w-4 text-amber-500 shrink-0" />
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-xs font-mono font-semibold">{o.phone}</span>
-                                        <Badge variant="outline" className="text-[9px] px-1.5 py-0">
-                                            {channelLabel[o.channel] || o.channel}
-                                        </Badge>
+                            <Card key={o.id} className="p-2.5 bg-muted/30">
+                                <div className="flex items-start gap-3">
+                                    <ShieldOff className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                                    <div className="flex-1 min-w-0 text-left space-y-0.5">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xs font-mono font-semibold">{o.phone}</span>
+                                            <Badge variant="outline" className="text-[9px] px-1.5 py-0">
+                                                {channelLabel[o.channel] || o.channel}
+                                            </Badge>
+                                        </div>
+                                        <span className="text-[10px] text-muted-foreground block truncate">
+                                            {o.reason || '—'} • {new Date(o.created_at).toLocaleDateString('tr-TR')}
+                                        </span>
                                     </div>
-                                    <span className="text-[10px] text-muted-foreground block truncate">
-                                        {o.reason || '—'} • {new Date(o.created_at).toLocaleDateString('tr-TR')}
-                                    </span>
+                                    <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        className="h-6 w-6 text-red-400 hover:text-red-600 hover:bg-red-500/10 shrink-0"
+                                        onClick={() => handleRemoveOptout(o.id)}
+                                    >
+                                        <Trash2 className="h-3 w-3" />
+                                    </Button>
                                 </div>
-                                <Button 
-                                    variant="ghost" 
-                                    size="icon" 
-                                    className="h-6 w-6 text-red-400 hover:text-red-600 hover:bg-red-500/10"
-                                    onClick={() => handleRemoveOptout(o.id)}
-                                >
-                                    <Trash2 className="h-3 w-3" />
-                                </Button>
                             </Card>
                         ))}
                     </div>
@@ -261,30 +292,35 @@ export function CommunicationManager({ tenantId }: { tenantId: string }) {
                 ) : (
                     <div className="space-y-1 max-h-[400px] overflow-y-auto">
                         {logs.map((l: any) => (
-                            <Card key={l.id} className="p-2 flex items-center gap-2 bg-muted/20 text-xs">
-                                <Badge variant="outline" className={`text-[9px] px-1.5 py-0 shrink-0 ${
-                                    l.action === 'opted_out' 
-                                        ? 'border-red-500/30 text-red-500 bg-red-500/10' 
-                                        : 'border-emerald-500/30 text-emerald-500 bg-emerald-500/10'
-                                }`}>
-                                    {l.action === 'opted_out' ? '🔇 Kapatıldı' : '🔔 Açıldı'}
-                                </Badge>
-                                <div className="flex-1 min-w-0">
-                                    <span className="font-mono text-[10px]">{l.phone || '—'}</span>
-                                    <span className="text-muted-foreground"> • </span>
-                                    <span className="text-muted-foreground">{channelLabel[l.channel] || l.channel}</span>
-                                    {l.reason && (
-                                        <span className="text-muted-foreground block truncate text-[10px]">{l.reason}</span>
-                                    )}
-                                </div>
-                                <div className="text-right shrink-0">
-                                    <span className="block text-[10px] font-medium">{l.performed_by_name || 'Sistem'}</span>
-                                    <Badge variant="outline" className="text-[8px] px-1 py-0">
-                                        {sourceLabel[l.source] || l.source}
+                            <Card key={l.id} className="p-2.5 bg-muted/20 text-xs">
+                                <div className="flex items-start gap-2">
+                                    <Badge variant="outline" className={`text-[9px] px-1.5 py-0 shrink-0 mt-0.5 ${
+                                        l.action === 'opted_out' 
+                                            ? 'border-red-500/30 text-red-500 bg-red-500/10' 
+                                            : 'border-emerald-500/30 text-emerald-500 bg-emerald-500/10'
+                                    }`}>
+                                        {l.action === 'opted_out' ? '🔇 Kapatıldı' : '🔔 Açıldı'}
                                     </Badge>
-                                    <span className="block text-[9px] text-muted-foreground">
-                                        {new Date(l.created_at).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                                    </span>
+                                    <div className="flex-1 min-w-0 text-left space-y-0.5">
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-mono text-[10px]">{l.phone || '—'}</span>
+                                            <Badge variant="outline" className="text-[9px] px-1.5 py-0">
+                                                {channelLabel[l.channel] || l.channel}
+                                            </Badge>
+                                        </div>
+                                        {l.reason && (
+                                            <p className="text-[10px] text-muted-foreground truncate">{l.reason}</p>
+                                        )}
+                                        <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                                            <span className="font-medium text-foreground">{l.performed_by_name || 'Sistem'}</span>
+                                            <Badge variant="outline" className="text-[8px] px-1 py-0">
+                                                {sourceLabel[l.source] || l.source}
+                                            </Badge>
+                                            <span>
+                                                {new Date(l.created_at).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                                            </span>
+                                        </div>
+                                    </div>
                                 </div>
                             </Card>
                         ))}
