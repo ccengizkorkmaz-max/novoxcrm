@@ -755,6 +755,15 @@ export async function updateAiSettings(formData: FormData) {
     if (waAutoTemplateName !== null) updates.wa_auto_template_name = waAutoTemplateName || 'novo_talep_alindi'
     if (waAutoTemplateRule !== null) updates.wa_auto_template_rule = waAutoTemplateRule || 'new_lead'
     
+    // Figensoft (Posta Güvercini) credentials
+    const figensoftUsername = formData.get('figensoft_username') as string
+    const figensoftPassword = formData.get('figensoft_password') as string
+    const figensoftSenderId = formData.get('figensoft_sender_id') as string
+
+    if (figensoftUsername !== null) updates.figensoft_username = figensoftUsername || null
+    if (figensoftPassword !== null) updates.figensoft_password = figensoftPassword || null
+    if (figensoftSenderId !== null) updates.figensoft_sender_id = figensoftSenderId || 'NOVO INSAAT'
+
     // New: auto_action_on_new_lead controls the behavior
     if (autoActionOnNewLead) {
         updates.auto_action_on_new_lead = autoActionOnNewLead
