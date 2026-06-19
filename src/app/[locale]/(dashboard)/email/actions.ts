@@ -10,17 +10,18 @@ async function getAuthContext() {
     const authClient = await createClient()
     const { data: { user } } = await authClient.auth.getUser()
     if (!user) redirect('/login')
-    const { data: profile } = await authClient.from('profiles').select('tenant_id, role, full_name').eq('id', user.id).single()
     const supabase = createAdminClient()
+    const { data: profile } = await supabase.from('profiles').select('tenant_id, role, full_name').eq('id', user.id).single()
     return { supabase, user, profile, tenantId: profile?.tenant_id }
 }
 
 // ─── Templates ───────────────────────────────────────────────
 
 export async function getTemplates() {
-    const { supabase } = await getAuthContext()
+    const { supabase, tenantId } = await getAuthContext()
     const { data } = await supabase.from('email_templates')
         .select('*')
+        .eq('tenant_id', tenantId)
         .order('updated_at', { ascending: false })
     return data || []
 }
@@ -68,9 +69,10 @@ export async function deleteTemplate(id: string) {
 // ─── Campaigns ───────────────────────────────────────────────
 
 export async function getCampaigns() {
-    const { supabase } = await getAuthContext()
+    const { supabase, tenantId } = await getAuthContext()
     const { data } = await supabase.from('email_campaigns')
         .select('*, email_templates(name)')
+        .eq('tenant_id', tenantId)
         .order('created_at', { ascending: false })
     return data || []
 }
