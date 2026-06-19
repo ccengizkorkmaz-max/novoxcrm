@@ -36,7 +36,8 @@ import {
     Brain,
     AlertTriangle,
     ClipboardList,
-    Video
+    Video,
+    PhoneOff
 } from 'lucide-react'
 import {
     Accordion,
@@ -376,6 +377,9 @@ export function NovoxSidebar({
                                 <NavItem href="/outreach/reports" icon={BarChart3} onClick={onElementClick} isCollapsed={isCollapsed} isSubItem>
                                     Outreach Raporu
                                 </NavItem>
+                                <NavItem href="/outreach/communication" icon={PhoneOff} onClick={onElementClick} isCollapsed={isCollapsed} isSubItem>
+                                    İletişim Yönetimi
+                                </NavItem>
                             </>
                         ) : (
                             <Accordion type="multiple" className="w-full border-none">
@@ -396,6 +400,9 @@ export function NovoxSidebar({
                                         </NavItem>
                                         <NavItem href="/outreach/reports" icon={BarChart3} onClick={onElementClick} isSubItem>
                                             Outreach Raporu
+                                        </NavItem>
+                                        <NavItem href="/outreach/communication" icon={PhoneOff} onClick={onElementClick} isSubItem>
+                                            İletişim Yönetimi
                                         </NavItem>
                                     </AccordionContent>
                                 </AccordionItem>
