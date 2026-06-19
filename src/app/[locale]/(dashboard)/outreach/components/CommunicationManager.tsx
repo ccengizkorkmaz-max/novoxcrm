@@ -7,9 +7,9 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import { PhoneOff, Phone, Search, Trash2, Plus, RefreshCw, Shield, ShieldOff, Users } from 'lucide-react'
+import { PhoneOff, Phone, Search, Trash2, Plus, RefreshCw, Shield, ShieldOff, Users, History } from 'lucide-react'
 import { toast } from 'sonner'
-import { getOptouts, removeOptout, addOptout } from '../actions'
+import { getOptouts, removeOptout, addOptout, getOptoutLogs } from '../actions'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 
 interface OptoutRecord {
@@ -31,6 +31,7 @@ interface BlockedCustomer {
 export function CommunicationManager({ tenantId }: { tenantId: string }) {
     const [optouts, setOptouts] = useState<OptoutRecord[]>([])
     const [blockedCustomers, setBlockedCustomers] = useState<BlockedCustomer[]>([])
+    const [logs, setLogs] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [search, setSearch] = useState('')
     const [addOpen, setAddOpen] = useState(false)
@@ -43,9 +44,10 @@ export function CommunicationManager({ tenantId }: { tenantId: string }) {
     const loadData = useCallback(async () => {
         setLoading(true)
         try {
-            const res = await getOptouts()
+            const [res, logsRes] = await Promise.all([getOptouts(), getOptoutLogs()])
             setOptouts(res || [])
-            // Blocked customers will be fetched via a separate action
+            setLogs(logsRes || [])
+            // Blocked customers
             const blockedRes = await fetch('/api/admin/blocked-customers')
             if (blockedRes.ok) {
                 const data = await blockedRes.json()
@@ -104,6 +106,15 @@ export function CommunicationManager({ tenantId }: { tenantId: string }) {
         ai_call: 'AI Arama',
         whatsapp: 'WhatsApp',
         sms: 'SMS',
+        email: 'E-posta',
+    }
+
+    const sourceLabel: Record<string, string> = {
+        manual: 'Manuel',
+        ai_call: 'Maya AI',
+        whatsapp_campaign: 'WA Kampanya',
+        system: 'Sistem',
+        crm_toggle: 'CRM Kartı',
     }
 
     const filteredOptouts = optouts.filter(o => 
@@ -231,6 +242,50 @@ export function CommunicationManager({ tenantId }: { tenantId: string }) {
                                 >
                                     <Trash2 className="h-3 w-3" />
                                 </Button>
+                            </Card>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            {/* Audit Logs */}
+            <div>
+                <h3 className="text-xs font-bold text-blue-600 mb-2 flex items-center gap-1.5">
+                    <History className="h-3.5 w-3.5" />
+                    İşlem Geçmişi (Son 50)
+                </h3>
+                {logs.length === 0 ? (
+                    <Card className="p-4 text-center border-dashed">
+                        <p className="text-xs text-muted-foreground">Henüz log kaydı yok</p>
+                    </Card>
+                ) : (
+                    <div className="space-y-1 max-h-[400px] overflow-y-auto">
+                        {logs.map((l: any) => (
+                            <Card key={l.id} className="p-2 flex items-center gap-2 bg-muted/20 text-xs">
+                                <Badge variant="outline" className={`text-[9px] px-1.5 py-0 shrink-0 ${
+                                    l.action === 'opted_out' 
+                                        ? 'border-red-500/30 text-red-500 bg-red-500/10' 
+                                        : 'border-emerald-500/30 text-emerald-500 bg-emerald-500/10'
+                                }`}>
+                                    {l.action === 'opted_out' ? '🔇 Kapatıldı' : '🔔 Açıldı'}
+                                </Badge>
+                                <div className="flex-1 min-w-0">
+                                    <span className="font-mono text-[10px]">{l.phone || '—'}</span>
+                                    <span className="text-muted-foreground"> • </span>
+                                    <span className="text-muted-foreground">{channelLabel[l.channel] || l.channel}</span>
+                                    {l.reason && (
+                                        <span className="text-muted-foreground block truncate text-[10px]">{l.reason}</span>
+                                    )}
+                                </div>
+                                <div className="text-right shrink-0">
+                                    <span className="block text-[10px] font-medium">{l.performed_by_name || 'Sistem'}</span>
+                                    <Badge variant="outline" className="text-[8px] px-1 py-0">
+                                        {sourceLabel[l.source] || l.source}
+                                    </Badge>
+                                    <span className="block text-[9px] text-muted-foreground">
+                                        {new Date(l.created_at).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                                    </span>
+                                </div>
                             </Card>
                         ))}
                     </div>
