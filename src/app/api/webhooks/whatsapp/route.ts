@@ -80,18 +80,23 @@ export async function POST(req: NextRequest) {
         const isLeadUlasamadim = leadBtnNorm === 'ulasamadim';
 
         if (isLeadOlumlu || isLeadEle || isLeadUlasamadim) {
+            console.log(`🎯 Lead buton tespit edildi: "${payload.message}" → norm: "${leadBtnNorm}" | phone: ${normalizedPhone}`);
             try {
                 const phone10 = normalizedPhone.slice(-10);
-                const { data: repProfile } = await supabase
+                console.log(`🔍 Rep aranıyor: phone10=${phone10}, tenantId=${tenantId}`);
+                
+                const { data: repProfile, error: repError } = await supabase
                     .from('profiles')
-                    .select('id, full_name')
+                    .select('id, full_name, phone')
                     .or(`phone.ilike.%${phone10}%`)
                     .eq('tenant_id', tenantId)
                     .limit(1)
                     .single();
 
+                console.log(`🔍 Rep sonuç: ${repProfile ? `${repProfile.full_name} (${repProfile.id}) phone=${repProfile.phone}` : `BULUNAMADI - ${repError?.message}`}`);
+
                 if (repProfile) {
-                    const { data: recentSale } = await supabase
+                    const { data: recentSale, error: saleError } = await supabase
                         .from('sales')
                         .select('id, customer_id, status, customers(full_name)')
                         .eq('assigned_to', repProfile.id)
@@ -99,6 +104,8 @@ export async function POST(req: NextRequest) {
                         .order('updated_at', { ascending: false })
                         .limit(1)
                         .single();
+
+                    console.log(`🔍 Sale sonuç: ${recentSale ? `${recentSale.id} status=${recentSale.status} customer=${(recentSale as any).customers?.full_name}` : `BULUNAMADI - ${saleError?.message}`}`);
 
                     if (recentSale) {
                         const custName = (recentSale as any).customers?.full_name || 'Müşteri';
