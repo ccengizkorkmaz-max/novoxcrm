@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { normalizeTurkish } from '@/lib/whatsapp/parser';
 
+export const dynamic = 'force-dynamic';
 /**
  * Test endpoint - Lead buton mantığını doğrudan test eder.
  * GET /api/test-lead-button?phone=905335914389&button=aradim+olumlu
