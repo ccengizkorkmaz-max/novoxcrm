@@ -54,14 +54,30 @@ export function EmailDashboard({ tenantId }: { tenantId: string }) {
     const handleCreateTemplate = async () => {
         if (!newTplName.trim()) return toast.error('Şablon adı gerekli')
         setCreating(true)
-        const { createTemplate } = await import('../actions')
-        const res = await createTemplate({ name: newTplName.trim() })
-        setCreating(false)
-        if (res.error) return toast.error(res.error)
-        setNewTplOpen(false)
-        setNewTplName('')
-        toast.success('Şablon oluşturuldu')
-        router.push(`/email/templates/${res.data?.id}`)
+        try {
+            const { createTemplate } = await import('../actions')
+            const res = await createTemplate({ name: newTplName.trim() })
+            if (res.error) {
+                setCreating(false)
+                toast.error(res.error)
+                return
+            }
+            const templateId = res.data?.id
+            if (!templateId) {
+                setCreating(false)
+                toast.error('Şablon ID alınamadı')
+                return
+            }
+            setNewTplOpen(false)
+            setNewTplName('')
+            toast.success('Şablon oluşturuldu, editöre yönlendiriliyorsunuz...')
+            // revalidatePath navigasyonu ezmesin diye window.location kullan
+            const locale = window.location.pathname.split('/')[1] || 'tr'
+            window.location.href = `/${locale}/email/templates/${templateId}`
+        } catch (err: any) {
+            setCreating(false)
+            toast.error(err.message || 'Bir hata oluştu')
+        }
     }
 
     const statusBadge = (status: string) => {
