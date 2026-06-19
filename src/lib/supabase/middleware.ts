@@ -1,6 +1,39 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+// Public routes that don't need auth check at all
+function isPublicPath(pathWithoutLocale: string): boolean {
+    return (
+        pathWithoutLocale === '/' ||
+        pathWithoutLocale === '/detayli-tanitim' ||
+        pathWithoutLocale === '/sitemap.xml' ||
+        pathWithoutLocale === '/robots.txt' ||
+        pathWithoutLocale.startsWith('/api') ||
+        pathWithoutLocale.startsWith('/payment-plan-calculator') ||
+        pathWithoutLocale.startsWith('/solutions') ||
+        pathWithoutLocale.startsWith('/cozum') ||
+        pathWithoutLocale.startsWith('/system-details') ||
+        pathWithoutLocale.startsWith('/wiki') ||
+        pathWithoutLocale.startsWith('/ebooks') ||
+        pathWithoutLocale.startsWith('/login') ||
+        pathWithoutLocale.startsWith('/customerservices/login') ||
+        pathWithoutLocale.startsWith('/auth') ||
+        pathWithoutLocale.startsWith('/p/') ||
+        pathWithoutLocale.startsWith('/ai') ||
+        pathWithoutLocale.startsWith('/broker/apply') ||
+        pathWithoutLocale.startsWith('/broker/login') ||
+        pathWithoutLocale.startsWith('/tools') ||
+        pathWithoutLocale.startsWith('/sehir') ||
+        pathWithoutLocale.startsWith('/sektor') ||
+        pathWithoutLocale.startsWith('/karsilastirma') ||
+        pathWithoutLocale.startsWith('/gizlilik-sozlesmesi') ||
+        pathWithoutLocale.startsWith('/mesafeli-satis-sozlesmesi') ||
+        pathWithoutLocale.startsWith('/teslimat-ve-iade-sartlari') ||
+        pathWithoutLocale.startsWith('/hakkimizda') ||
+        pathWithoutLocale.startsWith('/industry-reports')
+    )
+}
+
 export async function updateSession(request: NextRequest, response?: NextResponse) {
     // If a response is passed (from next-intl), use it. Otherwise create a new one.
     // Crucially, we must preserve the headers/status from the next-intl response if it exists.
@@ -14,6 +47,16 @@ export async function updateSession(request: NextRequest, response?: NextRespons
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
     if (!supabaseUrl || !supabaseAnonKey) {
+        return internalResponse
+    }
+
+    // Helper to strip locale from pathname for checks
+    const pathname = request.nextUrl.pathname
+    const pathWithoutLocale = pathname.replace(/^\/(tr|en)(\/|$)/, '/')
+
+    // FAST PATH: For public/marketing routes without auth cookies, skip Supabase entirely
+    const hasAuthCookie = request.cookies.getAll().some(c => c.name.startsWith('sb-'))
+    if (!hasAuthCookie && isPublicPath(pathWithoutLocale)) {
         return internalResponse
     }
 
@@ -50,39 +93,8 @@ export async function updateSession(request: NextRequest, response?: NextRespons
         data: { user },
     } = await supabase.auth.getUser()
 
-    // Helper to strip locale from pathname for checks
-    const pathname = request.nextUrl.pathname
-    const pathWithoutLocale = pathname.replace(/^\/(tr|en)(\/|$)/, '/')
-
     // 1. Handle Public Routes first
-    const isPublicRoute =
-        pathWithoutLocale === '/' ||
-        pathWithoutLocale === '/detayli-tanitim' ||
-        pathWithoutLocale === '/sitemap.xml' ||
-        pathWithoutLocale === '/robots.txt' ||
-        pathWithoutLocale.startsWith('/api') ||
-        pathWithoutLocale.startsWith('/payment-plan-calculator') ||
-        pathWithoutLocale.startsWith('/solutions') ||
-        pathWithoutLocale.startsWith('/system-details') ||
-        pathWithoutLocale.startsWith('/wiki') ||
-        pathWithoutLocale.startsWith('/ebooks') ||
-        pathWithoutLocale.startsWith('/login') ||
-        pathWithoutLocale.startsWith('/customerservices/login') ||
-        pathWithoutLocale.startsWith('/auth') ||
-        pathWithoutLocale.startsWith('/p/') ||
-        pathWithoutLocale.startsWith('/ai') ||
-        pathWithoutLocale.startsWith('/broker/apply') ||
-        pathWithoutLocale.startsWith('/broker/login') ||
-        pathWithoutLocale.startsWith('/tools') ||
-        pathWithoutLocale.startsWith('/sehir') ||
-        pathWithoutLocale.startsWith('/karsilastirma') ||
-        pathWithoutLocale.startsWith('/gizlilik-sozlesmesi') ||
-        pathWithoutLocale.startsWith('/mesafeli-satis-sozlesmesi') ||
-        pathWithoutLocale.startsWith('/teslimat-ve-iade-sartlari') ||
-        pathWithoutLocale.startsWith('/hakkimizda') ||
-        pathWithoutLocale.startsWith('/industry-reports')
-
-    if (!user && !isPublicRoute) {
+    if (!user && !isPublicPath(pathWithoutLocale)) {
         const isPortalRoute = pathWithoutLocale.startsWith('/customerservices')
         const isBrokerRoute = pathWithoutLocale.startsWith('/broker')
         const url = request.nextUrl.clone()
@@ -117,7 +129,7 @@ export async function updateSession(request: NextRequest, response?: NextRespons
 
         const isPortalPath = pathWithoutLocale.startsWith('/customerservices')
         const isBrokerPath = pathWithoutLocale.startsWith('/broker')
-        const isPublicPath = pathWithoutLocale.startsWith('/p/')
+        const isPublicPathCheck = pathWithoutLocale.startsWith('/p/')
         const isMarketingPath =
             pathWithoutLocale === '/' ||
             pathWithoutLocale === '/detayli-tanitim' ||
@@ -136,7 +148,7 @@ export async function updateSession(request: NextRequest, response?: NextRespons
             pathWithoutLocale.startsWith('/industry-reports')
 
         // If customer tries to access dashboard or broker portal, redirect to portal
-        if (profile?.role === 'customer' && !isPortalPath && !isPublicPath && !isBrokerPath && !pathWithoutLocale.startsWith('/auth') && !isMarketingPath) {
+        if (profile?.role === 'customer' && !isPortalPath && !isPublicPathCheck && !isBrokerPath && !pathWithoutLocale.startsWith('/auth') && !isMarketingPath) {
             const url = request.nextUrl.clone()
             const targetPath = '/customerservices'
             const localeMatch = pathname.match(/^\/(tr|en)(\/|$)/)
