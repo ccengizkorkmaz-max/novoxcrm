@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
         .select('id, customer_id, status, customers(full_name)')
         .eq('assigned_to', repProfile.id)
         .in('status', ['Lead', 'Prospect'])
-        .order('updated_at', { ascending: false })
+        .order('created_at', { ascending: false })
         .limit(1)
         .single();
 

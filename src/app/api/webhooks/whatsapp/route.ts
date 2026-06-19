@@ -105,7 +105,7 @@ export async function POST(req: NextRequest) {
                         .select('id, customer_id, status, customers(full_name)')
                         .eq('assigned_to', repProfile.id)
                         .in('status', ['Lead', 'Prospect'])
-                        .order('updated_at', { ascending: false })
+                        .order('created_at', { ascending: false })
                         .limit(1)
                         .single();
 
@@ -116,7 +116,7 @@ export async function POST(req: NextRequest) {
 
                         if (isLeadOlumlu) {
                             const { error: e1 } = await supabase.from('sales')
-                                .update({ status: 'Prospect', updated_at: new Date().toISOString() })
+                                .update({ status: 'Prospect' })
                                 .eq('id', recentSale.id);
                             console.log('📝 Sales update:', e1 ? e1.message : 'OK');
 
