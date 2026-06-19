@@ -178,12 +178,12 @@ export async function POST(req: NextRequest) {
                             );
 
                         } else if (isLeadEle) {
-                            // 🔄 ELE: Status kalır, Lead Skor → warm, takip gerekiyor
+                            // ⛔ ELE: Lead Skor → Disqualified
                             await supabase.from('lead_qualifications')
                                 .update({
-                                    interest_level: 'warm',
-                                    status: 'contacted',
-                                    call_notes: (new Date().toLocaleString('tr-TR')) + ' — Temsilci aradı, ele alınıyor.',
+                                    interest_level: 'disqualified',
+                                    status: 'disqualified',
+                                    call_notes: (new Date().toLocaleString('tr-TR')) + ' — Temsilci aradı, olumsuz sonuç. Elendi.',
                                     updated_at: new Date().toISOString()
                                 })
                                 .eq('customer_id', recentSale.customer_id);
@@ -191,27 +191,28 @@ export async function POST(req: NextRequest) {
                             await supabase.from('activities').insert({
                                 customer_id: recentSale.customer_id,
                                 type: 'Phone', topic: 'Sales',
-                                summary: '🔄 Lead Arandı — Ele Alınıyor',
-                                description: `Temsilci ${repProfile.full_name} lead'i aradı, takip devam ediyor.`,
+                                summary: '⛔ Lead Arandı — Elendi',
+                                description: `Temsilci ${repProfile.full_name} lead'i aradı, olumsuz sonuç. Lead disqualified.`,
                                 due_date: new Date().toISOString(),
-                                status: 'In Progress', priority: 'Medium',
+                                status: 'Completed', priority: 'Medium',
                             });
 
-                            console.log(`🔄 Lead ${recentSale.id} → Ele alınıyor by ${repProfile.full_name}`);
+                            console.log(`⛔ Lead ${recentSale.id} → Disqualified by ${repProfile.full_name}`);
 
                             await sendWhatsAppMessage(
                                 normalizedPhone,
-                                `🔄 *${custName}* → Lead skoru *Warm* olarak güncellendi. Takip devam ediyor.`,
+                                `⛔ *${custName}* → Lead skoru *Disqualified* olarak işaretlendi.`,
                                 tenantData.wa_phone_number_id,
                                 tenantData.wa_access_token
                             );
 
                         } else if (isLeadUlasamadim) {
-                            // ❌ ULAŞAMADIM: Lead Skor → cold, tekrar arama planla
+                            // 🌡️ ULAŞAMADIM: Lead Skor → Warm, takip devam
                             await supabase.from('lead_qualifications')
                                 .update({
-                                    interest_level: 'cold',
-                                    call_notes: (new Date().toLocaleString('tr-TR')) + ' — Temsilci aradı, ulaşamadı.',
+                                    interest_level: 'warm',
+                                    status: 'contacted',
+                                    call_notes: (new Date().toLocaleString('tr-TR')) + ' — Temsilci aradı, ulaşamadı. Tekrar aranacak.',
                                     updated_at: new Date().toISOString()
                                 })
                                 .eq('customer_id', recentSale.customer_id);
@@ -220,16 +221,16 @@ export async function POST(req: NextRequest) {
                                 customer_id: recentSale.customer_id,
                                 type: 'Phone', topic: 'Sales',
                                 summary: '📵 Lead Arandı — Ulaşılamadı',
-                                description: `Temsilci ${repProfile.full_name} lead'i aradı ama ulaşamadı.`,
+                                description: `Temsilci ${repProfile.full_name} lead'i aradı ama ulaşamadı. Tekrar aranacak.`,
                                 due_date: new Date().toISOString(),
-                                status: 'Completed', priority: 'Medium',
+                                status: 'In Progress', priority: 'Medium',
                             });
 
-                            console.log(`📵 Lead ${recentSale.id} → Ulaşılamadı by ${repProfile.full_name}`);
+                            console.log(`📵 Lead ${recentSale.id} → Warm (ulaşılamadı) by ${repProfile.full_name}`);
 
                             await sendWhatsAppMessage(
                                 normalizedPhone,
-                                `📵 *${custName}* → Ulaşılamadı olarak kaydedildi. Lead skoru *Cold* olarak güncellendi.`,
+                                `📵 *${custName}* → Ulaşılamadı. Lead skoru *Warm* olarak güncellendi, tekrar aranacak.`,
                                 tenantData.wa_phone_number_id,
                                 tenantData.wa_access_token
                             );
