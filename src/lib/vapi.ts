@@ -528,9 +528,10 @@ export function translateVapiError(error: string | undefined | null): string {
  */
 export function normalizeToE164(phone: string): string {
     if (!phone) return '';
+    phone = String(phone);
     
     // Remove all non-digits
-    let clean = phone.replace(/\D/g, '');
+    let clean = String(phone).replace(/\D/g, '');
     
     // Check if it starts with explicit international prefix (starts with '+' and not '+90', or starts with '00' and not '0090')
     const isExplicitInternational = (phone.startsWith('+') && !phone.startsWith('+90')) || 
