@@ -421,7 +421,7 @@ export default function PipelineList({
     const [showFilters, setShowFilters] = useState(() => {
         if (typeof window !== 'undefined') {
             const params = new URLSearchParams(window.location.search)
-            return params.has('q') || params.has('p') || params.has('s') || params.has('r') || params.has('df') || params.has('dt')
+            return params.has('q') || params.has('p') || params.has('s') || params.has('r') || params.has('df') || params.has('dt') || params.has('ls')
         }
         return false
     })
@@ -434,10 +434,12 @@ export default function PipelineList({
         const s = searchParams.get('s')
         const r = searchParams.get('r')
         const df = searchParams.get('df')
+        const ls = searchParams.get('ls')
         
         if (q) filters['customer'] = q
         if (s) filters['status'] = s
         if (df) filters['date'] = df
+        if (ls) filters['lead_score'] = ls
         
         if (p) {
             const proj = projects.find(proj => proj.id === p)
@@ -493,6 +495,9 @@ export default function PipelineList({
                 params.delete('df')
                 params.delete('dt')
             }
+        } else if (colId === 'lead_score') {
+            if (value) params.set('ls', value)
+            else params.delete('ls')
         }
 
         router.push(`?${params.toString()}`)
@@ -507,6 +512,7 @@ export default function PipelineList({
         params.delete('r')
         params.delete('df')
         params.delete('dt')
+        params.delete('ls')
         params.set('page', '1')
         router.push(`?${params.toString()}`)
     }
