@@ -13,8 +13,16 @@ export async function GET(req: NextRequest) {
     const supabase = createAdminClient();
     const results: any = { phone, button, steps: [] };
 
-    // Step 1: Tenant bul
-    const { data: tenantData } = await supabase.from('tenants').select('id, wa_phone_number_id, wa_access_token').limit(1).single();
+    // Step 1: Tenant bul (query param veya ilk tenant)
+    const tenantParam = req.nextUrl.searchParams.get('tenant');
+    let tenantData: any = null;
+    if (tenantParam) {
+        const { data } = await supabase.from('tenants').select('id, wa_phone_number_id, wa_access_token').eq('id', tenantParam).single();
+        tenantData = data;
+    } else {
+        const { data } = await supabase.from('tenants').select('id, wa_phone_number_id, wa_access_token').limit(1).single();
+        tenantData = data;
+    }
     if (!tenantData) {
         results.steps.push({ step: 'tenant', error: 'Tenant bulunamadı' });
         return NextResponse.json(results);
