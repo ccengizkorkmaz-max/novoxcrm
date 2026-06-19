@@ -85,15 +85,20 @@ export async function POST(req: NextRequest) {
                 const phone10 = normalizedPhone.slice(-10);
                 console.log(`🔍 Rep aranıyor: phone10=${phone10}, tenantId=${tenantId}`);
                 
-                const { data: repProfile, error: repError } = await supabase
+                // Profillerdeki telefon boşluklu olabilir (ör: "533 591 4389")
+                // Bu yüzden tüm tenant profillerini çekip JS'de normalize ederek eşleştiriyoruz
+                const { data: allProfiles } = await supabase
                     .from('profiles')
                     .select('id, full_name, phone')
-                    .or(`phone.ilike.%${phone10}%`)
-                    .eq('tenant_id', tenantId)
-                    .limit(1)
-                    .single();
+                    .eq('tenant_id', tenantId);
 
-                console.log(`🔍 Rep sonuç: ${repProfile ? `${repProfile.full_name} (${repProfile.id}) phone=${repProfile.phone}` : `BULUNAMADI - ${repError?.message}`}`);
+                const repProfile = allProfiles?.find(p => {
+                    if (!p.phone) return false;
+                    const cleanPhone = p.phone.replace(/\D/g, ''); // boşluk, tire vs. temizle
+                    return cleanPhone.endsWith(phone10) || cleanPhone.includes(phone10);
+                }) || null;
+
+                console.log(`🔍 Rep sonuç: ${repProfile ? `${repProfile.full_name} (${repProfile.id}) phone=${repProfile.phone}` : `BULUNAMADI - toplam ${allProfiles?.length || 0} profil kontrol edildi`}`);
 
                 if (repProfile) {
                     const { data: recentSale, error: saleError } = await supabase
