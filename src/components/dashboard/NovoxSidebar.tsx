@@ -377,6 +377,9 @@ export function NovoxSidebar({
                                 <NavItem href="/outreach/communication" icon={PhoneOff} onClick={onElementClick} isCollapsed={isCollapsed} isSubItem>
                                     İletişim Yönetimi
                                 </NavItem>
+                                <NavItem href="/email" icon={Mail} onClick={onElementClick} isCollapsed={isCollapsed} isSubItem>
+                                    Email Kampanya
+                                </NavItem>
                             </>
                         ) : (
                             <Accordion type="multiple" className="w-full border-none">
@@ -397,6 +400,9 @@ export function NovoxSidebar({
                                         </NavItem>
                                         <NavItem href="/outreach/communication" icon={PhoneOff} onClick={onElementClick} isSubItem>
                                             İletişim Yönetimi
+                                        </NavItem>
+                                        <NavItem href="/email" icon={Mail} onClick={onElementClick} isSubItem>
+                                            Email Kampanya
                                         </NavItem>
                                     </AccordionContent>
                                 </AccordionItem>
