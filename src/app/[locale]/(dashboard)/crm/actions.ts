@@ -3076,6 +3076,20 @@ export async function toggleCommunication(customerId: string, enabled: boolean) 
         priority: 'Medium'
     })
 
+    // Opt-out audit log
+    const { data: custData } = await adminSupabase.from('customers').select('phone').eq('id', customerId).single()
+    await adminSupabase.from('outreach_optout_logs').insert({
+        tenant_id: profile.tenant_id,
+        customer_id: customerId,
+        phone: custData?.phone || null,
+        channel: 'all',
+        action: enabled ? 'opted_in' : 'opted_out',
+        reason: `CRM müşteri kartından ${enabled ? 'iletişim açıldı' : 'iletişim kapatıldı'}`,
+        performed_by: user.id,
+        performed_by_name: profile.full_name,
+        source: 'crm_toggle',
+    })
+
     revalidatePath('/[locale]/(dashboard)/crm', 'page')
     return { error: null, enabled }
 }

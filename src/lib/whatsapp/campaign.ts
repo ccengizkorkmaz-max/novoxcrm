@@ -149,12 +149,23 @@ export async function handleCampaignReply(
                     .update({ lead_score: 'disqualified', updated_at: new Date().toISOString() })
                     .eq('id', conversationId);
 
-                // Opt-out kaydı
+                // Opt-out kaydı + audit log
                 await supabase.from('outreach_optouts').upsert({
                     phone: normalizedPhone,
                     channel: 'ai_call',
                     reason: 'WhatsApp kampanyasından red',
                 }, { onConflict: 'phone,channel' }).select();
+
+                await supabase.from('outreach_optout_logs').insert({
+                    tenant_id: tenantId,
+                    customer_id: customer.id,
+                    phone: normalizedPhone,
+                    channel: 'whatsapp',
+                    action: 'opted_out',
+                    reason: 'WhatsApp kampanya şablonuna "Hayır teşekkürler" yanıtı',
+                    performed_by_name: customer.full_name || payloadName || 'Müşteri',
+                    source: 'whatsapp_campaign',
+                });
 
                 console.log(`🚫 Kampanya yanıtı: ${normalizedPhone} → opted_out`);
             }

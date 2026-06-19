@@ -1034,16 +1034,27 @@ export async function handleManualVapiCallResult(callData: {
                 .from('customers')
                 .update({ communication_enabled: false })
                 .eq('id', customerId)
-            console.log(`[Vapi Webhook] 🔇 Communication disabled for customer ${customerId} — reason: ${doNotContact ? 'do_not_contact' : 'disqualified'}`)
+            console.log(`[Vapi Webhook] 🔇 Communication disabled for customer ${customerId} — do_not_contact`)
             
-            // Opt-out kaydı da ekle
-            if (callerPhone) {
+            // Opt-out kaydı + audit log
+            const normalizedPhone = callerPhone ? normalizeToE164(callerPhone) : null
+            if (normalizedPhone) {
                 await supabase.from('outreach_optouts').upsert({
-                    phone: normalizeToE164(callerPhone),
+                    phone: normalizedPhone,
                     channel: 'all',
-                    reason: doNotContact ? 'Müşteri aranmak istemediğini belirtti (AI tespit)' : 'AI arama — disqualified',
+                    reason: 'Müşteri aranmak istemediğini belirtti (AI tespit)',
                 }, { onConflict: 'phone,channel' }).select()
             }
+            await supabase.from('outreach_optout_logs').insert({
+                tenant_id: tenantId,
+                customer_id: customerId,
+                phone: normalizedPhone,
+                channel: 'all',
+                action: 'opted_out',
+                reason: 'Müşteri aranmak istemediğini belirtti (AI tespit)',
+                performed_by_name: 'Maya AI',
+                source: 'ai_call',
+            })
         }
 
         // Check if there is an assigned rep on customer/sale

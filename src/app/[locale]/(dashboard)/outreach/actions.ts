@@ -836,21 +836,64 @@ export async function getOptouts() {
 }
 
 export async function addOptout(customerId: string, phone: string, channel: string = 'all', reason?: string) {
-    const { supabase, tenantId } = await getAuthContext()
+    const { supabase, user, profile, tenantId } = await getAuthContext()
     const { error } = await supabase.from('outreach_optouts').insert({
-        tenant_id: tenantId, customer_id: customerId, phone, channel, reason,
+        tenant_id: tenantId, customer_id: customerId || null, phone, channel, reason,
     })
     if (error) return { error: error.message }
+
+    // Audit log
+    await supabase.from('outreach_optout_logs').insert({
+        tenant_id: tenantId,
+        customer_id: customerId || null,
+        phone,
+        channel,
+        action: 'opted_out',
+        reason: reason || 'Manuel eklendi',
+        performed_by: user.id,
+        performed_by_name: profile?.full_name || user.email,
+        source: 'manual',
+    })
+
     revalidatePath('/outreach')
     return { success: true }
 }
 
 export async function removeOptout(id: string) {
-    const { supabase } = await getAuthContext()
+    const { supabase, user, profile, tenantId } = await getAuthContext()
+    
+    // Silmeden önce kaydı al (log için)
+    const { data: existing } = await supabase.from('outreach_optouts').select('*').eq('id', id).single()
+    
     const { error } = await supabase.from('outreach_optouts').delete().eq('id', id)
     if (error) return { error: error.message }
+
+    // Audit log
+    if (existing) {
+        await supabase.from('outreach_optout_logs').insert({
+            tenant_id: tenantId,
+            customer_id: existing.customer_id || null,
+            phone: existing.phone,
+            channel: existing.channel,
+            action: 'opted_in',
+            reason: `Opt-out kaldırıldı (önceki sebep: ${existing.reason || '-'})`,
+            performed_by: user.id,
+            performed_by_name: profile?.full_name || user.email,
+            source: 'manual',
+        })
+    }
+
     revalidatePath('/outreach')
     return { success: true }
+}
+
+export async function getOptoutLogs(limit: number = 50) {
+    const { supabase } = await getAuthContext()
+    const { data } = await supabase.from('outreach_optout_logs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(limit)
+    return data || []
 }
 
 // ─── Workflow Monitor ────────────────────────────────────────

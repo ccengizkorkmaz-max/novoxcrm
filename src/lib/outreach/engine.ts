@@ -1863,17 +1863,28 @@ export async function handleVapiCallResult(callData: {
                 .from('customers')
                 .update({ communication_enabled: false })
                 .eq('id', execution.customer_id)
-            console.log(`[Outreach] 🔇 Communication disabled for customer ${execution.customer_id} — reason: ${doNotContact ? 'do_not_contact' : 'disqualified'}`)
+            console.log(`[Outreach] 🔇 Communication disabled for customer ${execution.customer_id} — do_not_contact`)
             
-            // Opt-out kaydı
+            // Opt-out kaydı + audit log
             const custPhone = execution.customers?.phone
-            if (custPhone) {
+            const normalizedCustPhone = custPhone ? normalizePhone(custPhone) : null
+            if (normalizedCustPhone) {
                 await supabase.from('outreach_optouts').upsert({
-                    phone: normalizePhone(custPhone),
+                    phone: normalizedCustPhone,
                     channel: 'all',
-                    reason: doNotContact ? 'Müşteri aranmak istemediğini belirtti (AI tespit)' : 'AI outreach — disqualified',
+                    reason: 'Müşteri aranmak istemediğini belirtti (AI tespit)',
                 }, { onConflict: 'phone,channel' }).select()
             }
+            await supabase.from('outreach_optout_logs').insert({
+                tenant_id: execution.tenant_id,
+                customer_id: execution.customer_id,
+                phone: normalizedCustPhone,
+                channel: 'all',
+                action: 'opted_out',
+                reason: 'Müşteri aranmak istemediğini belirtti (AI outreach tespit)',
+                performed_by_name: 'Maya AI',
+                source: 'ai_call',
+            })
         }
 
         // Activity log for scoring
