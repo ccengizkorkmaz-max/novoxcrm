@@ -374,9 +374,6 @@ export function NovoxSidebar({
                                 <NavItem href="/outreach/segments" icon={Target} onClick={onElementClick} isCollapsed={isCollapsed} isSubItem>
                                     Segmentler
                                 </NavItem>
-                                <NavItem href="/outreach/reports" icon={BarChart3} onClick={onElementClick} isCollapsed={isCollapsed} isSubItem>
-                                    Outreach Raporu
-                                </NavItem>
                                 <NavItem href="/outreach/communication" icon={PhoneOff} onClick={onElementClick} isCollapsed={isCollapsed} isSubItem>
                                     İletişim Yönetimi
                                 </NavItem>
@@ -397,9 +394,6 @@ export function NovoxSidebar({
                                         </NavItem>
                                         <NavItem href="/outreach/segments" icon={Target} onClick={onElementClick} isSubItem>
                                             Segmentler
-                                        </NavItem>
-                                        <NavItem href="/outreach/reports" icon={BarChart3} onClick={onElementClick} isSubItem>
-                                            Outreach Raporu
                                         </NavItem>
                                         <NavItem href="/outreach/communication" icon={PhoneOff} onClick={onElementClick} isSubItem>
                                             İletişim Yönetimi
