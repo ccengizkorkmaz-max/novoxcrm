@@ -1,4 +1,4 @@
-const CACHE_NAME = 'novo-cache-v3';
+const CACHE_NAME = 'novo-cache-v4';
 const STATIC_ASSETS = [
     '/manifest.json',
     '/icon-512.png',
@@ -37,9 +37,20 @@ self.addEventListener('fetch', (event) => {
     // Never cache navigation requests (HTML pages) — always go to network
     if (event.request.mode === 'navigate') {
         event.respondWith(
-            fetch(event.request).catch(() => {
-                // Offline fallback: could return a cached offline page
-                return new Response('Çevrimdışısınız. Lütfen internet bağlantınızı kontrol edin.', {
+            fetch(event.request).then((response) => {
+                // If server returns an error (502/503/504), don't serve it from SW
+                // Let the browser handle the error natively
+                if (response.status >= 500) {
+                    return response;
+                }
+                return response;
+            }).catch(() => {
+                // Offline fallback: simple offline message
+                return new Response(
+                    '<html><body style="font-family:sans-serif;text-align:center;padding:60px 20px;">' +
+                    '<h2>Çevrimdışısınız</h2>' +
+                    '<p>Lütfen internet bağlantınızı kontrol edip sayfayı yenileyin.</p>' +
+                    '</body></html>', {
                     status: 503,
                     headers: { 'Content-Type': 'text/html; charset=utf-8' }
                 });
@@ -48,9 +59,8 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // For API calls, always use network
+    // For API calls, always use network — never cache
     if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/_next/data/')) {
-        event.respondWith(fetch(event.request));
         return;
     }
 
@@ -58,7 +68,7 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
         fetch(event.request)
             .then((response) => {
-                // Cache successful responses for static assets only
+                // Only cache successful (2xx) responses for truly static assets
                 if (response.ok && (
                     url.pathname.startsWith('/_next/static/') ||
                     url.pathname.endsWith('.png') ||
