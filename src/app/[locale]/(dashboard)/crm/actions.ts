@@ -8,7 +8,7 @@ import { logUnitPriceHistory } from '../inventory/actions'
 import { ensureFinancialAccount, createTransaction, createValuablePaper } from '../finance/actions'
 import { createNotification } from '@/lib/notifications/create'
 import { logSystemAction } from '@/lib/actions/system-logs'
-import { sendWhatsAppInteractiveButtons } from '@/lib/whatsapp'
+import { sendWhatsAppTemplate } from '@/lib/whatsapp'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 export async function getCustomerFullProfile(customerId: string) {
@@ -1068,24 +1068,21 @@ export async function assignSale(saleId: string, userId: string | null) {
                 if (!tenantSettings?.wa_phone_number_id || !tenantSettings?.wa_access_token) return
 
                 const scoreLabel: Record<string, string> = {
-                    hot: '🔥 HOT', warm: '🌡️ WARM', cold: '❄️ COLD',
-                    call_requested: '📞 ARAMA', disqualified: '⛔ DQ'
+                    hot: 'HOT', warm: 'WARM', cold: 'COLD',
+                    call_requested: 'ARAMA', disqualified: 'DQ'
                 }
                 const scoreText = scoreLabel[interestLevel] || '—'
 
-                await sendWhatsAppInteractiveButtons(
+                // Meta onaylı template ile gönder (24h pencere gerekmez)
+                await sendWhatsAppTemplate(
                     repProfile.phone,
-                    '🎯 Sana Atanan HOT Lead — Hemen Ara!',
-                    `👤 *Müşteri:* ${customerName}\n📱 *Telefon:* ${customerPhone}\n📊 *Lead Skor:* ${scoreText}`,
-                    [
-                        { id: `lead_ok_${saleId}`, title: '✅ Aradım Olumlu' },
-                        { id: `lead_fail_${saleId}`, title: '❌ Aradım Olumsuz' },
-                    ],
-                    'NovoCRM Lead Takip',
+                    'lead_assignment_alert',
+                    [customerName, customerPhone, scoreText],
+                    'tr',
                     tenantSettings.wa_phone_number_id,
                     tenantSettings.wa_access_token
                 )
-                console.log(`✅ Lead atama WA bildirimi gönderildi: ${repProfile.full_name}`)
+                console.log(`✅ Lead atama WA template gönderildi: ${repProfile.full_name}`)
             } catch (err) {
                 console.error('Lead atama WA bildirimi hatası:', err)
             }
