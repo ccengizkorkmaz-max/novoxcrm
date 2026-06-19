@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge'
 import { updateTenantProfile } from './actions'
 import { FormImageUpload } from '@/components/ui/form-image-upload'
-import { Building2, Users, FileText, Database, Banknote, Bell, Brain, Mail, MessageSquare, Globe, Phone } from 'lucide-react'
+import { Building2, Users, FileText, Database, Banknote, Bell, Brain, Mail, MessageSquare, Globe, Phone, Send } from 'lucide-react'
 import UserManagementHeader from './components/UserManagementHeader'
 import UserTableActions from './components/UserTableActions'
 import TenantProfileForm from './components/TenantProfileForm'
@@ -24,6 +24,7 @@ import NotificationSettingsTab from './components/NotificationSettingsTab'
 import AiSettingsTab from './components/AiSettingsTab'
 import EmailAccountsTab from './components/EmailAccountsTab'
 import SmsSettingsTab from './components/SmsSettingsTab'
+import FigensoftSettingsTab from './components/FigensoftSettingsTab'
 import SipSettingsTab from './components/SipSettingsTab'
 import { FinancialSettingsTab } from './components/FinancialSettingsTab'
 import { SystemLogsTab } from './components/SystemLogsTab'
@@ -196,6 +197,10 @@ export default async function SettingsPage() {
                         <Phone className="w-4 h-4 mr-2 shrink-0" />
                         <span className="hidden md:inline truncate">SIP / Telefon</span>
                     </TabsTrigger>
+                    <TabsTrigger value="figensoft" className="justify-start w-full py-2 px-3 rounded-lg text-sm data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-sm transition-all">
+                        <Send className="w-4 h-4 mr-2 shrink-0" />
+                        <span className="hidden md:inline truncate">Figensoft</span>
+                    </TabsTrigger>
                     <TabsTrigger value="seo" className="justify-start w-full py-2 px-3 rounded-lg text-sm data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-sm transition-all">
                         <Globe className="w-4 h-4 mr-2 shrink-0" />
                         <span className="hidden md:inline truncate">SEO</span>
@@ -308,6 +313,11 @@ export default async function SettingsPage() {
                 {/* SIP / Telefon Settings Tab */}
                 <TabsContent value="sip" className="space-y-4">
                     <SipSettingsTab tenant={tenant as any} />
+                </TabsContent>
+
+                {/* Figensoft Settings Tab */}
+                <TabsContent value="figensoft" className="space-y-4">
+                    <FigensoftSettingsTab tenant={tenant as any} />
                 </TabsContent>
 
                 {/* SEO Settings Tab */}

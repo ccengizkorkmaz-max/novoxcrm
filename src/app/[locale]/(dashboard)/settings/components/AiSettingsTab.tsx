@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
-import { Brain, Sparkles, AlertCircle, Info, ToggleLeft, ToggleRight, Phone, Facebook, Zap, Send, Mail } from 'lucide-react'
+import { Brain, Sparkles, AlertCircle, Info, ToggleLeft, ToggleRight, Phone, Facebook, Zap, Send } from 'lucide-react'
 import { toast } from 'sonner'
 import { updateAiSettings, updateAiAssistantCharacter } from '../actions'
 import { useTranslations } from 'next-intl'
@@ -42,10 +42,6 @@ interface AiSettingsTabProps {
         ai_outreach_settings?: { max_concurrent_calls?: number } | null
         // Yeni Lead Aksiyonu
         auto_action_on_new_lead?: string | null
-        // Figensoft (Posta Güvercini) SMS/E-Posta
-        figensoft_username?: string | null
-        figensoft_password?: string | null
-        figensoft_sender_id?: string | null
     }
 }
 
@@ -272,59 +268,6 @@ export default function AiSettingsTab({ tenant }: AiSettingsTabProps) {
                                     autoComplete="off"
                                 />
                                 <p className="text-[10px] text-muted-foreground">Meta Developer → App Dashboard → Permanent Page Access Token</p>
-                            </div>
-
-                            {/* Figensoft (Posta Güvercini) Section */}
-                            <div className="mt-6 pt-4 border-t border-slate-200">
-                                <div className="flex items-center gap-2 mb-3">
-                                    <Mail className="h-4 w-4 text-cyan-600" />
-                                    <Label className="text-base font-semibold">Figensoft — Posta Güvercini (SMS & E-Posta)</Label>
-                                </div>
-                                <p className="text-xs text-muted-foreground mb-3">Toplu SMS, OTP SMS ve toplu e-posta gönderimleri için Figensoft/Posta Güvercini API bilgilerinizi girin.</p>
-
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="figensoft_username" className="text-xs text-slate-500">API Kullanıcı Adı</Label>
-                                        <Input
-                                            id="figensoft_username"
-                                            name="figensoft_username"
-                                            defaultValue={tenant.figensoft_username || ''}
-                                            placeholder="Kullanıcı adınız"
-                                            className="bg-white font-mono text-sm"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <div className="flex items-center justify-between">
-                                            <Label htmlFor="figensoft_password" className="text-xs text-slate-500">API Şifresi</Label>
-                                            {tenant.figensoft_password && (
-                                                <span className="text-[10px] font-mono bg-white border px-2 py-0.5 rounded text-slate-500">
-                                                    {maskKey(tenant.figensoft_password)}
-                                                </span>
-                                            )}
-                                        </div>
-                                        <Input
-                                            id="figensoft_password"
-                                            name="figensoft_password"
-                                            type="password"
-                                            defaultValue={tenant.figensoft_password || ''}
-                                            placeholder="••••••••"
-                                            className="bg-white"
-                                            autoComplete="off"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="figensoft_sender_id" className="text-xs text-slate-500">SMS Başlığı (Originator)</Label>
-                                        <Input
-                                            id="figensoft_sender_id"
-                                            name="figensoft_sender_id"
-                                            defaultValue={tenant.figensoft_sender_id || 'NOVO INSAAT'}
-                                            placeholder="Örn: NOVO INSAAT"
-                                            className="bg-white font-mono text-sm"
-                                        />
-                                        <p className="text-[10px] text-muted-foreground">BTK onaylı alfanümerik SMS başlığınız (max 11 karakter)</p>
-                                    </div>
-                                </div>
-                                <p className="text-[10px] text-muted-foreground mt-2 italic">Bilgilerinizi Figensoft panelinden (postaguvercini.com) veya Figensoft destek ekibinden edinebilirsiniz.</p>
                             </div>
                         </div>
 

@@ -755,15 +755,6 @@ export async function updateAiSettings(formData: FormData) {
     if (waAutoTemplateName !== null) updates.wa_auto_template_name = waAutoTemplateName || 'novo_talep_alindi'
     if (waAutoTemplateRule !== null) updates.wa_auto_template_rule = waAutoTemplateRule || 'new_lead'
     
-    // Figensoft (Posta Güvercini) credentials
-    const figensoftUsername = formData.get('figensoft_username') as string
-    const figensoftPassword = formData.get('figensoft_password') as string
-    const figensoftSenderId = formData.get('figensoft_sender_id') as string
-
-    if (figensoftUsername !== null) updates.figensoft_username = figensoftUsername || null
-    if (figensoftPassword !== null) updates.figensoft_password = figensoftPassword || null
-    if (figensoftSenderId !== null) updates.figensoft_sender_id = figensoftSenderId || 'NOVO INSAAT'
-
     // New: auto_action_on_new_lead controls the behavior
     if (autoActionOnNewLead) {
         updates.auto_action_on_new_lead = autoActionOnNewLead
@@ -779,6 +770,47 @@ export async function updateAiSettings(formData: FormData) {
     if (error) {
         console.error('Update AI Settings Error:', error)
         return { error: 'Ayarlar güncellenirken bir hata oluştu.' }
+    }
+
+    revalidatePath('/settings')
+    return { success: true }
+}
+
+export async function updateFigensoftSettings(formData: FormData) {
+    const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id, role')
+        .eq('id', user.id)
+        .single()
+
+    if (!profile?.tenant_id) return { error: 'No tenant found' }
+    if (profile.role !== 'owner' && profile.role !== 'admin' && profile.role !== 'crm_manager') {
+        return { error: 'Yalnızca yönetici yetkisi olanlar bu ayarları değiştirebilir.' }
+    }
+
+    const updates: Record<string, any> = {}
+
+    const figensoftUsername = formData.get('figensoft_username') as string
+    const figensoftPassword = formData.get('figensoft_password') as string
+    const figensoftSenderId = formData.get('figensoft_sender_id') as string
+
+    if (figensoftUsername !== null) updates.figensoft_username = figensoftUsername || null
+    if (figensoftPassword !== null) updates.figensoft_password = figensoftPassword || null
+    if (figensoftSenderId !== null) updates.figensoft_sender_id = figensoftSenderId || 'NOVO INSAAT'
+
+    const { error } = await supabase
+        .from('tenants')
+        .update(updates)
+        .eq('id', profile.tenant_id)
+
+    if (error) {
+        console.error('Update Figensoft Settings Error:', error)
+        return { error: 'Figensoft ayarları güncellenirken bir hata oluştu.' }
     }
 
     revalidatePath('/settings')
