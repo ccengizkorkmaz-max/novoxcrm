@@ -17,9 +17,9 @@ export interface StepConfig {
     script_prompt?: string
     first_message?: string
     max_duration_seconds?: number
-    retry?: { 
-        enabled: boolean; 
-        interval_minutes: number; 
+    retry?: {
+        enabled: boolean;
+        interval_minutes: number;
         max_attempts: number;
         criteria?: {
             busy?: boolean;
@@ -197,7 +197,7 @@ export async function processOutreachQueue() {
     // Tenants tablosunda ilk tenant'ın ai_outreach_settings alanında lock tutuyoruz
     const LOCK_TIMEOUT_MS = 6 * 60 * 1000 // 6 dakika (cron 5dk'da bir, lock bundan uzun olmalı)
     const { data: lockTenant } = await supabase.from('tenants').select('id, ai_outreach_settings').limit(1).single()
-    
+
     if (lockTenant) {
         const settings = lockTenant.ai_outreach_settings || {}
         const lockTime = settings.queue_lock_at ? new Date(settings.queue_lock_at).getTime() : 0
@@ -237,10 +237,10 @@ export async function processOutreachQueue() {
 
     try {
 
-    // Find executions that are due, sorted by next_action_at ascending to prevent starvation
-    const { data: dueExecutions, error } = await supabase
-        .from('outreach_executions')
-        .select(`
+        // Find executions that are due, sorted by next_action_at ascending to prevent starvation
+        const { data: dueExecutions, error } = await supabase
+            .from('outreach_executions')
+            .select(`
             *,
             outreach_workflows!inner(
                 id, working_hours_start, working_hours_end, working_days, timezone, is_active, conversion_goal_status, batch_size, batch_interval_seconds, computed_params
@@ -248,445 +248,445 @@ export async function processOutreachQueue() {
             customers(id, full_name, phone, email, communication_enabled),
             sales(id, status, project_id, unit_id)
         `)
-        .in('status', ['active', 'waiting'])
-        .lte('next_action_at', now)
-        .order('next_action_at', { ascending: true })
-        .limit(500)
+            .in('status', ['active', 'waiting'])
+            .lte('next_action_at', now)
+            .order('next_action_at', { ascending: true })
+            .limit(500)
 
-    if (error || !dueExecutions?.length) {
-        console.log(`[Outreach] No due executions. Error: ${error?.message || 'none'}`)
-        return { processed: 0 }
-    }
-
-    // ─── İki Aşamalı İşleme: Aramalar her zaman WA'dan ÖNCE ───
-    // Adım 1 execution'ları (genelde ai_call) en önce, sonra diğerleri
-    dueExecutions.sort((a: any, b: any) => {
-        return (a.current_step_order || 0) - (b.current_step_order || 0)
-    })
-
-
-
-    // ─── Pessimistic Locking (Moved inside loop) ─────────
-    // Batch locking here was removed to avoid locking records that are skipped or causing
-    // concurrent runs to step on each other. We lock records atomically inside the loop instead.
-
-    const tenantId = dueExecutions[0]?.tenant_id
-
-    // ─── System Health Check (ElevenLabs vb.) ────────────
-    if (tenantId) {
-        const health = await checkSystemHealth(tenantId);
-        if (!health.isHealthy) {
-            await handleCriticalSystemFailure(tenantId, health.reason || 'Bilinmeyen sistem hatası');
-            return { processed: 0, reason: 'system_health_failure' };
+        if (error || !dueExecutions?.length) {
+            console.log(`[Outreach] No due executions. Error: ${error?.message || 'none'}`)
+            return { processed: 0 }
         }
-    }
 
-    // ─── Eşzamanlı arama limiti kontrolü ─────────────────
-    // Get tenant-specific limit from first execution's tenant
-    let maxConcurrent = MAX_CONCURRENT_CALLS
-    if (tenantId) {
-        const { data: tenantSettings } = await supabase
-            .from('tenants')
-            .select('ai_outreach_settings')
-            .eq('id', tenantId)
-            .single()
-        maxConcurrent = tenantSettings?.ai_outreach_settings?.max_concurrent_calls || MAX_CONCURRENT_CALLS
-    }
+        // ─── İki Aşamalı İşleme: Aramalar her zaman WA'dan ÖNCE ───
+        // Adım 1 execution'ları (genelde ai_call) en önce, sonra diğerleri
+        dueExecutions.sort((a: any, b: any) => {
+            return (a.current_step_order || 0) - (b.current_step_order || 0)
+        })
 
-    // Check Vapi's REAL remaining concurrent call slots via API
-    // This is the source of truth — DB records can become stale if webhooks fail
-    let availableSlots = maxConcurrent
-    let vapiApiSucceeded = false
-    try {
-        const vapiApiKey = process.env.VAPI_API_KEY
-        if (vapiApiKey) {
-            const vapiRes = await fetch('https://api.vapi.ai/call', {
-                method: 'GET',
-                headers: { 'Authorization': `Bearer ${vapiApiKey}` },
-            })
-            if (vapiRes.ok) {
-                const vapiCalls = await vapiRes.json()
-                // Count calls that are still active on Vapi's side
-                const vapiActiveCalls = Array.isArray(vapiCalls)
-                    ? vapiCalls.filter((c: any) => ['queued', 'ringing', 'in-progress'].includes(c.status)).length
-                    : 0
-                const vapiSlots = maxConcurrent - vapiActiveCalls
-                console.log(`[Outreach] Vapi API: ${vapiActiveCalls} aktif arama, ${vapiSlots}/${maxConcurrent} slot müsait`)
-                availableSlots = Math.max(0, vapiSlots)
-                vapiApiSucceeded = true
-            } else {
-                console.warn(`[Outreach] Vapi API check failed (${vapiRes.status}), falling back to DB check`)
+
+
+        // ─── Pessimistic Locking (Moved inside loop) ─────────
+        // Batch locking here was removed to avoid locking records that are skipped or causing
+        // concurrent runs to step on each other. We lock records atomically inside the loop instead.
+
+        const tenantId = dueExecutions[0]?.tenant_id
+
+        // ─── System Health Check (ElevenLabs vb.) ────────────
+        if (tenantId) {
+            const health = await checkSystemHealth(tenantId);
+            if (!health.isHealthy) {
+                await handleCriticalSystemFailure(tenantId, health.reason || 'Bilinmeyen sistem hatası');
+                return { processed: 0, reason: 'system_health_failure' };
             }
         }
-    } catch (vapiErr: any) {
-        console.warn(`[Outreach] Vapi API check error: ${vapiErr.message}, falling back to DB check`)
-    }
 
-    // Fallback: check DB for active calls ONLY if Vapi API check failed
-    if (!vapiApiSucceeded) {
+        // ─── Eşzamanlı arama limiti kontrolü ─────────────────
+        // Get tenant-specific limit from first execution's tenant
+        let maxConcurrent = MAX_CONCURRENT_CALLS
+        if (tenantId) {
+            const { data: tenantSettings } = await supabase
+                .from('tenants')
+                .select('ai_outreach_settings')
+                .eq('id', tenantId)
+                .single()
+            maxConcurrent = tenantSettings?.ai_outreach_settings?.max_concurrent_calls || MAX_CONCURRENT_CALLS
+        }
+
+        // Check Vapi's REAL remaining concurrent call slots via API
+        // This is the source of truth — DB records can become stale if webhooks fail
+        let availableSlots = maxConcurrent
+        let vapiApiSucceeded = false
+        try {
+            const vapiApiKey = process.env.VAPI_API_KEY
+            if (vapiApiKey) {
+                const vapiRes = await fetch('https://api.vapi.ai/call', {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${vapiApiKey}` },
+                })
+                if (vapiRes.ok) {
+                    const vapiCalls = await vapiRes.json()
+                    // Count calls that are still active on Vapi's side
+                    const vapiActiveCalls = Array.isArray(vapiCalls)
+                        ? vapiCalls.filter((c: any) => ['queued', 'ringing', 'in-progress'].includes(c.status)).length
+                        : 0
+                    const vapiSlots = maxConcurrent - vapiActiveCalls
+                    console.log(`[Outreach] Vapi API: ${vapiActiveCalls} aktif arama, ${vapiSlots}/${maxConcurrent} slot müsait`)
+                    availableSlots = Math.max(0, vapiSlots)
+                    vapiApiSucceeded = true
+                } else {
+                    console.warn(`[Outreach] Vapi API check failed (${vapiRes.status}), falling back to DB check`)
+                }
+            }
+        } catch (vapiErr: any) {
+            console.warn(`[Outreach] Vapi API check error: ${vapiErr.message}, falling back to DB check`)
+        }
+
+        // Fallback: check DB for active calls ONLY if Vapi API check failed
+        if (!vapiApiSucceeded) {
+            const activeThreshold = new Date(Date.now() - 15 * 60 * 1000).toISOString()
+            const { count: activeCalls } = await supabase
+                .from('outreach_step_logs')
+                .select('id', { count: 'exact', head: true })
+                .eq('status', 'sent')
+                .is('completed_at', null)
+                .eq('channel', 'ai_call')
+                .gte('executed_at', activeThreshold)
+            availableSlots = maxConcurrent - (activeCalls || 0)
+        }
+
+        // Also keep activeThreshold for per-iteration DB check inside the loop
         const activeThreshold = new Date(Date.now() - 15 * 60 * 1000).toISOString()
-        const { count: activeCalls } = await supabase
-            .from('outreach_step_logs')
-            .select('id', { count: 'exact', head: true })
-            .eq('status', 'sent')
-            .is('completed_at', null)
-            .eq('channel', 'ai_call')
-            .gte('executed_at', activeThreshold)
-        availableSlots = maxConcurrent - (activeCalls || 0)
-    }
 
-    // Also keep activeThreshold for per-iteration DB check inside the loop
-    const activeThreshold = new Date(Date.now() - 15 * 60 * 1000).toISOString()
-
-    if (availableSlots <= 0) {
-        console.log(`[Outreach] Eşzamanlı arama limiti doldu (${maxConcurrent}). Aramalar ertelenecek, WA/SMS adımları devam edecek.`)
-        // Return yapmıyoruz — WA/SMS adımları yine de işlenebilir.
-        // Loop içindeki per-step slot kontrolü (L498-502) ai_call'ları zaten skip edecek.
-    }
-
-    console.log(`[Outreach] ${dueExecutions.length} bekleyen, ${availableSlots}/${maxConcurrent} slot müsait`)
-
-    let processed = 0
-    let initiatedCallsCount = 0
-    let waProcessedCount = 0
-    const MAX_WA_PER_BATCH = 20 // WA batch limiti — aramaları engellemesini önler
-
-    // Track batch counts per workflow
-    const workflowBatchCounts = new Map<string, number>()
-    // Track customers already processed in this batch to prevent parallel calls
-    const processedCustomerIds = new Set<string>()
-
-    for (const execution of dueExecutions) {
-        // Enforce per-workflow batch_size limit
-        const wfId = execution.workflow_id
-        const batchSize = execution.outreach_workflows?.computed_params?.optimal_batch_size
-            || execution.outreach_workflows?.batch_size || 100
-        const currentCount = workflowBatchCounts.get(wfId) || 0
-        if (currentCount >= batchSize) continue
-
-        // ─── Same-customer dedup guard ─────────────────────
-        // Prevent processing multiple executions for the same customer in this batch
-        // (this happens when restart creates duplicate executions)
-        const customerId = execution.customer_id
-        if (customerId && processedCustomerIds.has(customerId)) {
-            console.log(`[Outreach] Customer ${customerId} already processed in this batch. Skipping execution ${execution.id}`)
-            continue
+        if (availableSlots <= 0) {
+            console.log(`[Outreach] Eşzamanlı arama limiti doldu (${maxConcurrent}). Aramalar ertelenecek, WA/SMS adımları devam edecek.`)
+            // Return yapmıyoruz — WA/SMS adımları yine de işlenebilir.
+            // Loop içindeki per-step slot kontrolü (L498-502) ai_call'ları zaten skip edecek.
         }
 
-        // ─── Individual Pessimistic Locking ───────────────────
-        // Lock this specific execution by updating its next_action_at.
-        // It must still have next_action_at <= now, ensuring no concurrent worker has processed it.
-        const lockTime = new Date(Date.now() + 2 * 60 * 1000).toISOString()
-        const { data: lockedExec, error: lockErr } = await supabase
-            .from('outreach_executions')
-            .update({ next_action_at: lockTime })
-            .eq('id', execution.id)
-            .lte('next_action_at', now)
-            .select('id')
-            .maybeSingle()
+        console.log(`[Outreach] ${dueExecutions.length} bekleyen, ${availableSlots}/${maxConcurrent} slot müsait`)
 
-        if (lockErr || !lockedExec) {
-            console.log(`[Outreach] Execution ${execution.id} already locked by another runner. Skipping.`)
-            continue
-        }
+        let processed = 0
+        let initiatedCallsCount = 0
+        let waProcessedCount = 0
+        const MAX_WA_PER_BATCH = 20 // WA batch limiti — aramaları engellemesini önler
 
+        // Track batch counts per workflow
+        const workflowBatchCounts = new Map<string, number>()
+        // Track customers already processed in this batch to prevent parallel calls
+        const processedCustomerIds = new Set<string>()
 
-        // Check workflow still active
-        if (!execution.outreach_workflows?.is_active) {
-            await supabase.from('outreach_executions')
-                .update({ status: 'paused', paused_at: now })
+        for (const execution of dueExecutions) {
+            // Enforce per-workflow batch_size limit
+            const wfId = execution.workflow_id
+            const batchSize = execution.outreach_workflows?.computed_params?.optimal_batch_size
+                || execution.outreach_workflows?.batch_size || 100
+            const currentCount = workflowBatchCounts.get(wfId) || 0
+            if (currentCount >= batchSize) continue
+
+            // ─── Same-customer dedup guard ─────────────────────
+            // Prevent processing multiple executions for the same customer in this batch
+            // (this happens when restart creates duplicate executions)
+            const customerId = execution.customer_id
+            if (customerId && processedCustomerIds.has(customerId)) {
+                console.log(`[Outreach] Customer ${customerId} already processed in this batch. Skipping execution ${execution.id}`)
+                continue
+            }
+
+            // ─── Individual Pessimistic Locking ───────────────────
+            // Lock this specific execution by updating its next_action_at.
+            // It must still have next_action_at <= now, ensuring no concurrent worker has processed it.
+            const lockTime = new Date(Date.now() + 2 * 60 * 1000).toISOString()
+            const { data: lockedExec, error: lockErr } = await supabase
+                .from('outreach_executions')
+                .update({ next_action_at: lockTime })
                 .eq('id', execution.id)
-            continue
-        }
-
-        // Check working hours
-        if (!isWithinWorkingHours(execution.outreach_workflows)) {
-            // Reschedule to next working hour
-            const nextWindow = getNextWorkingTime(execution.outreach_workflows)
-            await supabase.from('outreach_executions')
-                .update({ next_action_at: nextWindow })
-                .eq('id', execution.id)
-            continue
-        }
-
-        // Check opt-out
-        const phone = execution.customers?.phone
-        if (phone) {
-            const { data: optout } = await supabase
-                .from('outreach_optouts')
+                .lte('next_action_at', now)
                 .select('id')
-                .eq('phone', normalizePhone(phone))
-                .in('channel', ['all'])
-                .limit(1)
+                .maybeSingle()
 
-            if (optout?.length) {
+            if (lockErr || !lockedExec) {
+                console.log(`[Outreach] Execution ${execution.id} already locked by another runner. Skipping.`)
+                continue
+            }
+
+
+            // Check workflow still active
+            if (!execution.outreach_workflows?.is_active) {
                 await supabase.from('outreach_executions')
-                    .update({ status: 'opted_out', completed_at: now })
+                    .update({ status: 'paused', paused_at: now })
                     .eq('id', execution.id)
                 continue
             }
-        }
 
-        // Check customer communication toggle
-        if (execution.customers?.communication_enabled === false) {
-            console.log(`[Outreach] ⛔ Customer ${customerId} communication disabled. Skipping execution ${execution.id}`)
-            await supabase.from('outreach_executions')
-                .update({ status: 'opted_out', completed_at: now, metadata: { ...execution.metadata, reason: 'communication_disabled' } })
-                .eq('id', execution.id)
-            continue
-        }
+            // Check working hours
+            if (!isWithinWorkingHours(execution.outreach_workflows)) {
+                // Reschedule to next working hour
+                const nextWindow = getNextWorkingTime(execution.outreach_workflows)
+                await supabase.from('outreach_executions')
+                    .update({ next_action_at: nextWindow })
+                    .eq('id', execution.id)
+                continue
+            }
 
-        // Get current step
-        const { data: step } = await supabase
-            .from('outreach_steps')
-            .select('*')
-            .eq('workflow_id', execution.workflow_id)
-            .eq('step_order', execution.current_step_order)
-            .single()
+            // Check opt-out
+            const phone = execution.customers?.phone
+            if (phone) {
+                const { data: optout } = await supabase
+                    .from('outreach_optouts')
+                    .select('id')
+                    .eq('phone', normalizePhone(phone))
+                    .in('channel', ['all'])
+                    .limit(1)
 
-        if (!step) {
-            // No more steps → mark completed
-            await supabase.from('outreach_executions')
-                .update({ status: 'completed', completed_at: now })
-                .eq('id', execution.id)
-            continue
-        }
-
-        // ─── WA Batch Limiti ─────────────────────────────
-        // Her cron çalışmasında max 20 WA. Aramalar sınırsız.
-        if ((step.action_type === 'whatsapp' || step.action_type === 'sms') && waProcessedCount >= MAX_WA_PER_BATCH) {
-            // WA limiti doldu — execution'ı unlock et, sonraki cron'a bırak
-            await supabase.from('outreach_executions')
-                .update({ next_action_at: new Date(Date.now() + 60 * 1000).toISOString() })
-                .eq('id', execution.id)
-            continue
-        }
-
-        // Handle webhook timeout for executions stuck in 'waiting' status
-        if (execution.status === 'waiting') {
-            console.log(`[Outreach] Execution ${execution.id} timed out waiting for webhook. Handling timeout...`)
-            const pendingCallId = execution.metadata?.pending_call_id
-            if (pendingCallId) {
-                const { data: logEntry } = await supabase
-                    .from('outreach_step_logs')
-                    .select('*')
-                    .eq('execution_id', execution.id)
-                    .eq('external_id', pendingCallId)
-                    .maybeSingle()
-
-                if (logEntry && !logEntry.completed_at) {
-                    await supabase.from('outreach_step_logs')
-                        .update({
-                            status: 'failed',
-                            completed_at: now,
-                            error_message: 'Webhook timeout (10 minutes passed)',
-                            call_outcome: 'no_answer'
-                        })
-                        .eq('id', logEntry.id)
+                if (optout?.length) {
+                    await supabase.from('outreach_executions')
+                        .update({ status: 'opted_out', completed_at: now })
+                        .eq('id', execution.id)
+                    continue
                 }
             }
-            await handleRetryOrAdvance(execution, step, step.config || {}, 'no_answer')
-            continue
-        }
 
-        // Check conversion goal
-        if (execution.outreach_workflows?.conversion_goal_status === execution.sales?.status) {
-            await supabase.from('outreach_executions')
-                .update({ status: 'completed', completed_at: now, metadata: { ...execution.metadata, goal_reached: true } })
-                .eq('id', execution.id)
-            continue
-        }
+            // Check customer communication toggle
+            if (execution.customers?.communication_enabled === false) {
+                console.log(`[Outreach] ⛔ Customer ${customerId} communication disabled. Skipping execution ${execution.id}`)
+                await supabase.from('outreach_executions')
+                    .update({ status: 'opted_out', completed_at: now, metadata: { ...execution.metadata, reason: 'communication_disabled' } })
+                    .eq('id', execution.id)
+                continue
+            }
 
-        // Prevent timeout by limiting max processed items per cron run
-        if (processed >= 100) {
-            console.log('[Outreach] Maksimum işlem limitine ulaşıldı (100), kalanlar sonraki dakikada işlenecek.')
-            break
-        }
+            // Get current step
+            const { data: step } = await supabase
+                .from('outreach_steps')
+                .select('*')
+                .eq('workflow_id', execution.workflow_id)
+                .eq('step_order', execution.current_step_order)
+                .single()
 
-        // Execute the step
-        try {
-            // Eşzamanlı limit kontrolü — her arama öncesi tekrar kontrol et
-            if (step.action_type === 'ai_call') {
-                if (initiatedCallsCount >= availableSlots) {
-                    console.log(`[Outreach] Bu tetiklemede başlatılabilecek maksimum arama limitine ulaşıldı (${availableSlots}), yeni aramalar erteleniyor.`)
-                    continue
+            if (!step) {
+                // No more steps → mark completed
+                await supabase.from('outreach_executions')
+                    .update({ status: 'completed', completed_at: now })
+                    .eq('id', execution.id)
+                continue
+            }
+
+            // ─── WA Batch Limiti ─────────────────────────────
+            // Her cron çalışmasında max 20 WA. Aramalar sınırsız.
+            if ((step.action_type === 'whatsapp' || step.action_type === 'sms') && waProcessedCount >= MAX_WA_PER_BATCH) {
+                // WA limiti doldu — execution'ı unlock et, sonraki cron'a bırak
+                await supabase.from('outreach_executions')
+                    .update({ next_action_at: new Date(Date.now() + 60 * 1000).toISOString() })
+                    .eq('id', execution.id)
+                continue
+            }
+
+            // Handle webhook timeout for executions stuck in 'waiting' status
+            if (execution.status === 'waiting') {
+                console.log(`[Outreach] Execution ${execution.id} timed out waiting for webhook. Handling timeout...`)
+                const pendingCallId = execution.metadata?.pending_call_id
+                if (pendingCallId) {
+                    const { data: logEntry } = await supabase
+                        .from('outreach_step_logs')
+                        .select('*')
+                        .eq('execution_id', execution.id)
+                        .eq('external_id', pendingCallId)
+                        .maybeSingle()
+
+                    if (logEntry && !logEntry.completed_at) {
+                        await supabase.from('outreach_step_logs')
+                            .update({
+                                status: 'failed',
+                                completed_at: now,
+                                error_message: 'Webhook timeout (10 minutes passed)',
+                                call_outcome: 'no_answer'
+                            })
+                            .eq('id', logEntry.id)
+                    }
                 }
-                const { count: currentCalls } = await supabase
-                    .from('outreach_step_logs')
-                    .select('id', { count: 'exact', head: true })
-                    .eq('status', 'sent')
-                    .is('completed_at', null)
-                    .eq('channel', 'ai_call')
-                    .gte('executed_at', activeThreshold)
-                if ((currentCalls || 0) >= maxConcurrent) {
-                    console.log(`[Outreach] Slot dolu, ${execution.id} erteleniyor`)
-                    continue
-                }
+                await handleRetryOrAdvance(execution, step, step.config || {}, 'no_answer')
+                continue
+            }
 
-                // ─── Same-phone active call guard ─────────────────
-                // Check if there's already an active call to this phone number
-                const customerPhone = execution.customers?.phone
-                if (customerPhone) {
-                    const { count: activeCallsToPhone } = await supabase
+            // Check conversion goal
+            if (execution.outreach_workflows?.conversion_goal_status === execution.sales?.status) {
+                await supabase.from('outreach_executions')
+                    .update({ status: 'completed', completed_at: now, metadata: { ...execution.metadata, goal_reached: true } })
+                    .eq('id', execution.id)
+                continue
+            }
+
+            // Prevent timeout by limiting max processed items per cron run
+            if (processed >= 100) {
+                console.log('[Outreach] Maksimum işlem limitine ulaşıldı (100), kalanlar sonraki dakikada işlenecek.')
+                break
+            }
+
+            // Execute the step
+            try {
+                // Eşzamanlı limit kontrolü — her arama öncesi tekrar kontrol et
+                if (step.action_type === 'ai_call') {
+                    if (initiatedCallsCount >= availableSlots) {
+                        console.log(`[Outreach] Bu tetiklemede başlatılabilecek maksimum arama limitine ulaşıldı (${availableSlots}), yeni aramalar erteleniyor.`)
+                        continue
+                    }
+                    const { count: currentCalls } = await supabase
                         .from('outreach_step_logs')
                         .select('id', { count: 'exact', head: true })
                         .eq('status', 'sent')
                         .is('completed_at', null)
                         .eq('channel', 'ai_call')
-                        .eq('execution_id', execution.id)
-                    // More broadly, check via customer_id across all executions
-                    if (customerId) {
-                        const { data: activeExecsForCustomer } = await supabase
+                        .gte('executed_at', activeThreshold)
+                    if ((currentCalls || 0) >= maxConcurrent) {
+                        console.log(`[Outreach] Slot dolu, ${execution.id} erteleniyor`)
+                        continue
+                    }
+
+                    // ─── Same-phone active call guard ─────────────────
+                    // Check if there's already an active call to this phone number
+                    const customerPhone = execution.customers?.phone
+                    if (customerPhone) {
+                        const { count: activeCallsToPhone } = await supabase
                             .from('outreach_step_logs')
-                            .select('id, outreach_executions!inner(customer_id)')
-                            .eq('outreach_executions.customer_id', customerId)
+                            .select('id', { count: 'exact', head: true })
                             .eq('status', 'sent')
                             .is('completed_at', null)
                             .eq('channel', 'ai_call')
-                            .limit(1)
-                        if (activeExecsForCustomer && activeExecsForCustomer.length > 0) {
-                            console.log(`[Outreach] Customer ${customerId} already has an active call. Skipping.`)
-                            // Unlock: reset next_action_at to 2 minutes from now
-                            await supabase.from('outreach_executions')
-                                .update({ next_action_at: new Date(Date.now() + 2 * 60 * 1000).toISOString() })
-                                .eq('id', execution.id)
-                            continue
+                            .eq('execution_id', execution.id)
+                        // More broadly, check via customer_id across all executions
+                        if (customerId) {
+                            const { data: activeExecsForCustomer } = await supabase
+                                .from('outreach_step_logs')
+                                .select('id, outreach_executions!inner(customer_id)')
+                                .eq('outreach_executions.customer_id', customerId)
+                                .eq('status', 'sent')
+                                .is('completed_at', null)
+                                .eq('channel', 'ai_call')
+                                .limit(1)
+                            if (activeExecsForCustomer && activeExecsForCustomer.length > 0) {
+                                console.log(`[Outreach] Customer ${customerId} already has an active call. Skipping.`)
+                                // Unlock: reset next_action_at to 2 minutes from now
+                                await supabase.from('outreach_executions')
+                                    .update({ next_action_at: new Date(Date.now() + 2 * 60 * 1000).toISOString() })
+                                    .eq('id', execution.id)
+                                continue
+                            }
                         }
                     }
+
+                    // Aramalar arası gecikme — Vapi rate limit'i aşmamak için
+                    if (processed > 0) await new Promise(r => setTimeout(r, 3000))
                 }
+                await executeStep(execution, step)
+                processed++
+                if (step.action_type === 'ai_call') {
+                    initiatedCallsCount++
+                }
+                if (step.action_type === 'whatsapp' || step.action_type === 'sms') {
+                    waProcessedCount++
+                }
+                if (customerId) processedCustomerIds.add(customerId)
+                workflowBatchCounts.set(wfId, (workflowBatchCounts.get(wfId) || 0) + 1)
+            } catch (err: any) {
+                console.error(`[Outreach] Step execution error for ${execution.id}:`, err.message)
+                // Log the error
+                await supabase.from('outreach_step_logs').insert({
+                    execution_id: execution.id,
+                    step_id: step.id,
+                    channel: step.action_type,
+                    status: 'failed',
+                    error_message: err.message,
+                })
 
-                // Aramalar arası gecikme — Vapi rate limit'i aşmamak için
-                if (processed > 0) await new Promise(r => setTimeout(r, 3000))
-            }
-            await executeStep(execution, step)
-            processed++
-            if (step.action_type === 'ai_call') {
-                initiatedCallsCount++
-            }
-            if (step.action_type === 'whatsapp' || step.action_type === 'sms') {
-                waProcessedCount++
-            }
-            if (customerId) processedCustomerIds.add(customerId)
-            workflowBatchCounts.set(wfId, (workflowBatchCounts.get(wfId) || 0) + 1)
-        } catch (err: any) {
-            console.error(`[Outreach] Step execution error for ${execution.id}:`, err.message)
-            // Log the error
-            await supabase.from('outreach_step_logs').insert({
-                execution_id: execution.id,
-                step_id: step.id,
-                channel: step.action_type,
-                status: 'failed',
-                error_message: err.message,
-            })
-
-            // Critical failure check
-            if (err.message.includes('INSUFFICIENT_FUNDS')) {
-                await handleCriticalSystemFailure(execution.tenant_id, err.message, execution.workflow_id);
-                return { processed, reason: 'critical_system_failure' };
+                // Critical failure check
+                if (err.message.includes('INSUFFICIENT_FUNDS')) {
+                    await handleCriticalSystemFailure(execution.tenant_id, err.message, execution.workflow_id);
+                    return { processed, reason: 'critical_system_failure' };
+                }
             }
         }
-    }
 
-    // ─── Post-batch polling: DEVRE DIŞI ─────────────────────────────
-    // Webhooklar + cron başı reconciliation yeterli. Polling kaldırıldı.
-    // 40sn gereksiz bekleme vardı, bu süre kurtarıldı.
-    const MAX_POLL_ROUNDS = 0 // Devre dışı — webhook-first yaklaşım
-    const POLL_WAIT_MS = 20_000 // Kullanılmıyor ama referans için
-    const vapiKeyForPoll = process.env.VAPI_API_KEY
+        // ─── Post-batch polling: DEVRE DIŞI ─────────────────────────────
+        // Webhooklar + cron başı reconciliation yeterli. Polling kaldırıldı.
+        // 40sn gereksiz bekleme vardı, bu süre kurtarıldı.
+        const MAX_POLL_ROUNDS = 0 // Devre dışı — webhook-first yaklaşım
+        const POLL_WAIT_MS = 20_000 // Kullanılmıyor ama referans için
+        const vapiKeyForPoll = process.env.VAPI_API_KEY
 
-    for (let round = 1; round <= MAX_POLL_ROUNDS && initiatedCallsCount > 0; round++) {
-        console.log(`[Outreach] Polling round ${round}/${MAX_POLL_ROUNDS}: ${POLL_WAIT_MS / 1000}s bekleniyor...`)
-        await new Promise(r => setTimeout(r, POLL_WAIT_MS))
+        for (let round = 1; round <= MAX_POLL_ROUNDS && initiatedCallsCount > 0; round++) {
+            console.log(`[Outreach] Polling round ${round}/${MAX_POLL_ROUNDS}: ${POLL_WAIT_MS / 1000}s bekleniyor...`)
+            await new Promise(r => setTimeout(r, POLL_WAIT_MS))
 
-        // Extend lock so other cron instances don't interfere
-        if (tenantId) {
-            const extendedLock = new Date(Date.now() + LOCK_TIMEOUT_MS).toISOString()
-            const { data: currentTenant } = await supabase.from('tenants')
-                .select('ai_outreach_settings')
-                .eq('id', tenantId)
-                .single()
-            await supabase.from('tenants')
-                .update({ ai_outreach_settings: { ...currentTenant?.ai_outreach_settings, queue_lock_at: extendedLock } })
-                .eq('id', tenantId)
-        }
+            // Extend lock so other cron instances don't interfere
+            if (tenantId) {
+                const extendedLock = new Date(Date.now() + LOCK_TIMEOUT_MS).toISOString()
+                const { data: currentTenant } = await supabase.from('tenants')
+                    .select('ai_outreach_settings')
+                    .eq('id', tenantId)
+                    .single()
+                await supabase.from('tenants')
+                    .update({ ai_outreach_settings: { ...currentTenant?.ai_outreach_settings, queue_lock_at: extendedLock } })
+                    .eq('id', tenantId)
+            }
 
-        // Reconcile: check Vapi for ended calls
-        let reconciledCount = 0
-        if (vapiKeyForPoll) {
-            const { data: pendingLogs } = await supabase
-                .from('outreach_step_logs')
-                .select('id, external_id, execution_id')
-                .eq('status', 'sent')
-                .is('completed_at', null)
-                .eq('channel', 'ai_call')
-                .limit(50)
+            // Reconcile: check Vapi for ended calls
+            let reconciledCount = 0
+            if (vapiKeyForPoll) {
+                const { data: pendingLogs } = await supabase
+                    .from('outreach_step_logs')
+                    .select('id, external_id, execution_id')
+                    .eq('status', 'sent')
+                    .is('completed_at', null)
+                    .eq('channel', 'ai_call')
+                    .limit(50)
 
-            if (pendingLogs?.length) {
-                for (const log of pendingLogs) {
-                    if (!log.external_id) continue
-                    try {
-                        const res = await fetch(`https://api.vapi.ai/call/${log.external_id}`, {
-                            headers: { 'Authorization': `Bearer ${vapiKeyForPoll}` },
-                        })
-                        if (!res.ok) continue
-                        const vapiCall = await res.json()
-                        if (vapiCall.status === 'ended') {
-                            const { data: exec } = await supabase
-                                .from('outreach_executions')
-                                .select('metadata')
-                                .eq('id', log.execution_id)
-                                .single()
-
-                            await handleVapiCallResult({
-                                callId: log.external_id,
-                                status: 'ended',
-                                endedReason: vapiCall.endedReason,
-                                transcript: vapiCall.transcript || vapiCall.artifact?.transcript,
-                                summary: vapiCall.summary || vapiCall.analysis?.summary || vapiCall.artifact?.summary,
-                                recordingUrl: vapiCall.recordingUrl || vapiCall.artifact?.recordingUrl,
-                                duration: vapiCall.duration,
-                                cost: vapiCall.cost || vapiCall.costBreakdown?.total,
-                                analysis: vapiCall.analysis,
-                                metadata: { ...(exec?.metadata || {}), execution_id: log.execution_id },
+                if (pendingLogs?.length) {
+                    for (const log of pendingLogs) {
+                        if (!log.external_id) continue
+                        try {
+                            const res = await fetch(`https://api.vapi.ai/call/${log.external_id}`, {
+                                headers: { 'Authorization': `Bearer ${vapiKeyForPoll}` },
                             })
-                            reconciledCount++
+                            if (!res.ok) continue
+                            const vapiCall = await res.json()
+                            if (vapiCall.status === 'ended') {
+                                const { data: exec } = await supabase
+                                    .from('outreach_executions')
+                                    .select('metadata')
+                                    .eq('id', log.execution_id)
+                                    .single()
+
+                                await handleVapiCallResult({
+                                    callId: log.external_id,
+                                    status: 'ended',
+                                    endedReason: vapiCall.endedReason,
+                                    transcript: vapiCall.transcript || vapiCall.artifact?.transcript,
+                                    summary: vapiCall.summary || vapiCall.analysis?.summary || vapiCall.artifact?.summary,
+                                    recordingUrl: vapiCall.recordingUrl || vapiCall.artifact?.recordingUrl,
+                                    duration: vapiCall.duration,
+                                    cost: vapiCall.cost || vapiCall.costBreakdown?.total,
+                                    analysis: vapiCall.analysis,
+                                    metadata: { ...(exec?.metadata || {}), execution_id: log.execution_id },
+                                })
+                                reconciledCount++
+                            }
+                        } catch (e: any) {
+                            console.warn(`[Outreach] Poll reconcile error: ${e.message}`)
                         }
-                    } catch (e: any) {
-                        console.warn(`[Outreach] Poll reconcile error: ${e.message}`)
                     }
                 }
             }
-        }
 
-        if (reconciledCount === 0) {
-            console.log(`[Outreach] Polling round ${round}: hiçbir arama bitmemiş, döngü sonlandırılıyor`)
-            break
-        }
-
-        console.log(`[Outreach] Polling round ${round}: ${reconciledCount} arama senkronize edildi, yeni batch başlatılıyor...`)
-
-        // Re-query available slots from Vapi
-        let newSlots = maxConcurrent
-        try {
-            const vapiRes = await fetch('https://api.vapi.ai/call', {
-                headers: { 'Authorization': `Bearer ${vapiKeyForPoll}` },
-            })
-            if (vapiRes.ok) {
-                const vapiCalls = await vapiRes.json()
-                const active = Array.isArray(vapiCalls)
-                    ? vapiCalls.filter((c: any) => ['queued', 'ringing', 'in-progress'].includes(c.status)).length
-                    : 0
-                newSlots = Math.max(0, maxConcurrent - active)
+            if (reconciledCount === 0) {
+                console.log(`[Outreach] Polling round ${round}: hiçbir arama bitmemiş, döngü sonlandırılıyor`)
+                break
             }
-        } catch {}
 
-        if (newSlots <= 0) continue
+            console.log(`[Outreach] Polling round ${round}: ${reconciledCount} arama senkronize edildi, yeni batch başlatılıyor...`)
 
-        // Fetch next batch of due executions
-        const newNow = new Date().toISOString()
-        const { data: nextBatch } = await supabase
-            .from('outreach_executions')
-            .select(`
+            // Re-query available slots from Vapi
+            let newSlots = maxConcurrent
+            try {
+                const vapiRes = await fetch('https://api.vapi.ai/call', {
+                    headers: { 'Authorization': `Bearer ${vapiKeyForPoll}` },
+                })
+                if (vapiRes.ok) {
+                    const vapiCalls = await vapiRes.json()
+                    const active = Array.isArray(vapiCalls)
+                        ? vapiCalls.filter((c: any) => ['queued', 'ringing', 'in-progress'].includes(c.status)).length
+                        : 0
+                    newSlots = Math.max(0, maxConcurrent - active)
+                }
+            } catch { }
+
+            if (newSlots <= 0) continue
+
+            // Fetch next batch of due executions
+            const newNow = new Date().toISOString()
+            const { data: nextBatch } = await supabase
+                .from('outreach_executions')
+                .select(`
                 id, workflow_id, customer_id, sale_id, current_step_order, current_retry_count,
                 status, metadata, tenant_id, next_action_at,
                 outreach_workflows!inner(
@@ -695,48 +695,48 @@ export async function processOutreachQueue() {
                 customers(id, full_name, phone, email, communication_enabled),
                 sales(id, status, project_id, unit_id)
             `)
-            .in('status', ['active', 'waiting'])
-            .lte('next_action_at', newNow)
-            .order('next_action_at', { ascending: true })
-            .limit(newSlots)
+                .in('status', ['active', 'waiting'])
+                .lte('next_action_at', newNow)
+                .order('next_action_at', { ascending: true })
+                .limit(newSlots)
 
-        if (!nextBatch?.length) {
-            console.log(`[Outreach] Polling round ${round}: yeni bekleyen execution yok`)
-            break
-        }
-
-        let batchProcessed = 0
-        for (const execution of nextBatch) {
-            if (batchProcessed >= newSlots) break
-            if (!(execution.outreach_workflows as any)?.is_active) continue
-
-            const phone = (execution.customers as any)?.phone
-            if (!phone) continue
-
-            const { data: step } = await supabase
-                .from('outreach_steps')
-                .select('*')
-                .eq('workflow_id', execution.workflow_id)
-                .eq('step_order', execution.current_step_order)
-                .single()
-
-            if (!step) continue
-            if (step.action_type !== 'ai_call') continue
-
-            try {
-                if (batchProcessed > 0) await new Promise(r => setTimeout(r, 3000))
-                await executeStep(execution, step)
-                batchProcessed++
-                processed++
-                initiatedCallsCount++
-            } catch (err: any) {
-                console.error(`[Outreach] Poll batch error for ${execution.id}: ${err.message}`)
+            if (!nextBatch?.length) {
+                console.log(`[Outreach] Polling round ${round}: yeni bekleyen execution yok`)
+                break
             }
-        }
-        console.log(`[Outreach] Polling round ${round}: ${batchProcessed} yeni arama başlatıldı (toplam: ${processed})`)
-    }
 
-    return { processed }
+            let batchProcessed = 0
+            for (const execution of nextBatch) {
+                if (batchProcessed >= newSlots) break
+                if (!(execution.outreach_workflows as any)?.is_active) continue
+
+                const phone = (execution.customers as any)?.phone
+                if (!phone) continue
+
+                const { data: step } = await supabase
+                    .from('outreach_steps')
+                    .select('*')
+                    .eq('workflow_id', execution.workflow_id)
+                    .eq('step_order', execution.current_step_order)
+                    .single()
+
+                if (!step) continue
+                if (step.action_type !== 'ai_call') continue
+
+                try {
+                    if (batchProcessed > 0) await new Promise(r => setTimeout(r, 3000))
+                    await executeStep(execution, step)
+                    batchProcessed++
+                    processed++
+                    initiatedCallsCount++
+                } catch (err: any) {
+                    console.error(`[Outreach] Poll batch error for ${execution.id}: ${err.message}`)
+                }
+            }
+            console.log(`[Outreach] Polling round ${round}: ${batchProcessed} yeni arama başlatıldı (toplam: ${processed})`)
+        }
+
+        return { processed }
 
     } catch (outerError: any) {
         console.error('[Outreach] processOutreachQueue beklenmeyen hata:', outerError.message)
@@ -866,8 +866,8 @@ async function executeAiCall(execution: any, step: any, config: StepConfig, phon
 
     const nameWithTitle = getTurkishNameTitle(customer?.full_name);
     const isOikosTenant = execution.tenant_id === '3de3c038-8ce7-44b1-b5ba-8b99d63301f4'
-    const brandName = isOikosTenant ? 'Oikos' : 'Novo'
-    
+    const brandName = isOikosTenant ? 'Oikos' : 'Novo İnşaat'
+
     // Resolve Oikos-specific default prompt if no script prompt is fetched
     if (isOikosTenant && !scriptPrompt) {
         scriptPrompt = `Sen Oikos Green Valley projesinin yapay zeka satış asistanı Maya'sın.
@@ -882,9 +882,9 @@ Konuşurken kibar ve profesyonel ol. Kısa cümleler kur. Müşteri onay verirse
             .replace(/\{project_name\}/g, execution.sales?.projects?.name || (isOikosTenant ? 'Oikos Green Valley' : 'projemiz'))
     }
 
-    const resolvedFirstMessage = execution.metadata?.personalized_message || 
-        (nameWithTitle 
-            ? `Merhaba ${nameWithTitle}, ben Maya, ${brandName} AI satış asistanıyım. Nasılsınız?` 
+    const resolvedFirstMessage = execution.metadata?.personalized_message ||
+        (nameWithTitle
+            ? `Merhaba ${nameWithTitle}, ben Maya, ${brandName} AI satış asistanıyım. Nasılsınız?`
             : `Merhaba, ben Maya, ${brandName} AI satış asistanıyım. Nasılsınız?`);
 
     let result
@@ -897,7 +897,7 @@ Konuşurken kibar ve profesyonel ol. Kısa cümleler kur. Müşteri onay verirse
             success: true,
             callId: 'mock_call_' + Math.random().toString(36).substring(2, 11)
         }
-        
+
         // Schedule simulated webhook response after 6 seconds
         const mockCallId = result.callId
         setTimeout(async () => {
@@ -912,7 +912,7 @@ Assistant: Elbette! Bu telefon numaranıza WhatsApp üzerinden projenin fiyat li
 User: Tamamdır, bekliyorum. Teşekkürler, iyi günler.
 Assistant: Görüşmek üzere, iyi günler dilerim.
                 `.trim()
-                
+
                 await handleVapiCallResult({
                     callId: mockCallId,
                     status: 'ended',
@@ -936,12 +936,12 @@ Assistant: Görüşmek üzere, iyi günler dilerim.
                         tenant_id: execution.tenant_id
                     }
                 })
-                
+
                 console.log(`[Outreach Demo] Simulated Vapi Call Completed for execution ${execution.id}`)
-                
+
                 // Immediately trigger queue process to run the next step (WhatsApp sending)
                 processOutreachQueue().catch(err => console.error('[Outreach Demo] Failed to auto-trigger next step:', err.message))
-                
+
             } catch (e: any) {
                 console.error('[Outreach Demo] Failed to simulate Vapi callback:', e.message)
             }
@@ -1064,7 +1064,7 @@ async function executeWhatsApp(execution: any, step: any, config: StepConfig, ph
         .eq('status', 'failed')
         .gte('executed_at', thirtyMinsAgo)
         .ilike('error_message', '%132015%')
-    
+
     if (recentFails && recentFails >= 3) {
         console.warn(`[Outreach] 🚫 WA Circuit Breaker AÇIK: Son 30dk'da ${recentFails} template hatası. Şablon dondurulmuş olabilir. Gönderim atlanıyor.`)
         await logAndAdvance(execution, step, 'skipped', 'whatsapp', `Circuit breaker: WA template dondurulmuş (${recentFails} hata/30dk)`)
@@ -1597,7 +1597,7 @@ export async function handleVapiCallResult(callData: {
 
     // Check if the customer actually spoke (presence of User: or Customer:)
     const customerSpoke = hasTranscript && (
-        transcriptText.toLowerCase().includes('user:') || 
+        transcriptText.toLowerCase().includes('user:') ||
         transcriptText.toLowerCase().includes('customer:') ||
         transcriptText.toLowerCase().includes('user (customer):')
     )
@@ -1612,7 +1612,7 @@ export async function handleVapiCallResult(callData: {
         'telesekreter',
         'mesaj bırakın'
     ]
-    const isVoicemail = customerSpoke && voicemailKeywords.some(keyword => 
+    const isVoicemail = customerSpoke && voicemailKeywords.some(keyword =>
         transcriptText.toLowerCase().includes(keyword)
     )
 
@@ -1641,7 +1641,7 @@ export async function handleVapiCallResult(callData: {
 
     // Transkript bazlı "müsait değil" kontrolü (fallback when AI fields missing)
     const notAvailableKeywords = ['müsait değil', 'meşgulüm', 'uygun değil', 'daha sonra', 'sonra ara', 'şu an olmaz', 'devlet dairesi', 'toplantıda']
-    const isNotAvailable = available === false || 
+    const isNotAvailable = available === false ||
         callbackRequested === true ||
         notAvailableKeywords.some(kw => transcriptText.toLowerCase().includes(kw))
 
@@ -1864,7 +1864,7 @@ export async function handleVapiCallResult(callData: {
                 .update({ communication_enabled: false })
                 .eq('id', execution.customer_id)
             console.log(`[Outreach] 🔇 Communication disabled for customer ${execution.customer_id} — do_not_contact`)
-            
+
             // Opt-out kaydı + audit log
             const custPhone = execution.customers?.phone
             const normalizedCustPhone = custPhone ? normalizePhone(custPhone) : null
@@ -2118,7 +2118,7 @@ export async function handleVapiCallResult(callData: {
                         `${projectName ? `*${projectName}* projemize` : 'Projelerimize'} gösterdiğiniz ilgi için teşekkür ederiz.\n\n` +
                         `📋 Detaylı bilgi ve katalog için: ${projectUrl}\n\n` +
                         `Sorularınız için bize ulaşabilirsiniz.`
-                    
+
                     await sendWhatsAppMessage(
                         customerPhone,
                         message,
