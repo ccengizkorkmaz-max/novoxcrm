@@ -557,6 +557,46 @@ export function normalizeToE164(phone: string): string {
 }
 
 /**
+ * Detect if a transcript string contains system prompt content rather than
+ * actual conversation. This happens in edge cases when Vapi returns the
+ * system prompt as the transcript (short/failed calls, API format changes).
+ * 
+ * Uses marker detection: system prompts contain distinctive section headers
+ * and instruction markers that would never appear in natural conversation.
+ */
+function isSystemPromptContent(text: string): boolean {
+    if (!text || text.length < 100) return false
+
+    const promptMarkers = [
+        '=== DİL VE TELAFFUZ KURALLARI',
+        '=== DİL KURALLARI SONU ===',
+        '=== RET YÖNETİMİ',
+        '=== YAPAY ZEKA KİMLİĞİ İTİRAZ YÖNETİMİ',
+        '=== DİYALOG VE KISA CEVAP KURALLARI',
+        'PROJE BİLGİ BANKASI',
+        '--- ŞİRKET BİLGİ BANKASI',
+        'BİLGİ BANKASI VE AKTİF PROJELER',
+        'MONOLOG KESİNLİKLE YASAKTIR',
+        'KESİNLİKLE UYULMALIDIR',
+        'endCall" fonksiyonunu',
+        '"endCall" aracı',
+        'lead_score:',
+        'callback_requested:',
+    ]
+
+    // If 2 or more prompt markers are found, this is almost certainly a system prompt
+    let matchCount = 0
+    for (const marker of promptMarkers) {
+        if (text.includes(marker)) {
+            matchCount++
+            if (matchCount >= 2) return true
+        }
+    }
+
+    return false
+}
+
+/**
  * Parse Vapi webhook payload for call status updates
  */
 export function parseVapiWebhook(body: any): {
@@ -588,10 +628,20 @@ export function parseVapiWebhook(body: any): {
     // Build transcript from artifact.messages[] if plain transcript is missing
     let transcript = body.message?.transcript || body.transcript || artifact.transcript || body.message?.call?.transcript || body.call?.transcript
     if (!transcript && artifact.messages && Array.isArray(artifact.messages)) {
+        // IMPORTANT: Exclude 'system' role messages — they contain the system prompt,
+        // not actual conversation. Only keep 'assistant' and 'user' messages.
         transcript = artifact.messages
-            .filter((m: any) => m.role && m.message)
+            .filter((m: any) => m.role && m.message && m.role !== 'system')
             .map((m: any) => `${m.role === 'assistant' ? 'AI' : m.role === 'user' ? 'User' : m.role}: ${m.message}`)
             .join('\n')
+    }
+
+    // Sanitize: detect if transcript accidentally contains system prompt content
+    // This can happen when Vapi returns the system prompt as transcript in edge cases
+    // (e.g. very short calls, calls that never connected, or API format changes)
+    if (transcript && isSystemPromptContent(transcript)) {
+        console.warn(`[Vapi] ⚠️ Transcript for call ${body.message?.call?.id || body.call?.id || '?'} contains system prompt content — discarding polluted transcript`)
+        transcript = undefined
     }
 
     return {
