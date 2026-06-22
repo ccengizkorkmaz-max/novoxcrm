@@ -253,29 +253,32 @@ export function WorkflowMonitor({ workflowId, workflowName, onClose }: WorkflowM
             {/* Simulation Info Bar */}
             {workflow?.computed_params && (
                 <Card className="p-3 bg-gradient-to-r from-blue-500/5 to-cyan-500/5 border-blue-500/15">
-                    <div className="flex items-center gap-6 text-xs flex-wrap">
-                        <div className="flex items-center gap-1.5">
-                            <span className="text-[10px] font-semibold text-blue-400 uppercase tracking-wide">📊 Simülasyon</span>
-                        </div>
+                    <div className="flex items-center gap-5 text-xs flex-wrap">
+                        <span className="text-[10px] font-semibold text-blue-400 uppercase tracking-wide">📊 Tahmin</span>
                         <div className="flex items-center gap-1 text-muted-foreground">
                             <Clock className="h-3 w-3" />
-                            <span>Tahmini: <strong className="text-foreground">~{workflow.computed_params.estimated_completion_minutes}dk</strong></span>
+                            <span>Süre: <strong className="text-foreground">
+                                {(workflow.computed_params.estimated_completion_days || 1) > 1
+                                    ? `~${workflow.computed_params.estimated_completion_days} iş günü`
+                                    : `~${workflow.computed_params.estimated_completion_minutes}dk`
+                                }
+                            </strong></span>
                         </div>
                         <div className="flex items-center gap-1 text-muted-foreground">
                             <Phone className="h-3 w-3" />
-                            <span>Aramalar: <strong className="text-foreground">{workflow.computed_params.estimated_total_calls}</strong></span>
+                            <span>Toplam Arama: <strong className="text-foreground">{workflow.computed_params.estimated_total_calls?.toLocaleString('tr-TR')}</strong></span>
                         </div>
-                        {workflow.computed_params.estimated_wa_messages > 0 && (
+                        {(workflow.computed_params.estimated_wa_messages || 0) > 0 && (
                             <div className="flex items-center gap-1 text-muted-foreground">
                                 <MessageSquare className="h-3 w-3" />
-                                <span>WA: <strong className="text-foreground">{workflow.computed_params.estimated_wa_messages}</strong></span>
+                                <span>WA: <strong className="text-foreground">{workflow.computed_params.estimated_wa_messages?.toLocaleString('tr-TR')}</strong></span>
                             </div>
                         )}
                         <div className="text-muted-foreground">
-                            Maliyet: <strong className="text-foreground">${workflow.computed_params.estimated_cost_usd}</strong>
+                            Tahmini Maliyet: <strong className="text-foreground">${workflow.computed_params.estimated_cost_usd}</strong>
                         </div>
                         <div className="text-muted-foreground">
-                            Batch: <strong className="text-foreground">{workflow.computed_params.optimal_batch_size}</strong>
+                            Kişi: <strong className="text-foreground">{workflow.computed_params.segment_size?.toLocaleString('tr-TR')}</strong>
                         </div>
                         {workflow.computed_params.warnings?.map((w: string, i: number) => (
                             <span key={i} className="text-amber-400 text-[10px]">⚠️ {w}</span>

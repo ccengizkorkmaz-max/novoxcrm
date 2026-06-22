@@ -704,10 +704,12 @@ export async function launchWorkflow(workflowId: string) {
                 type: s.action_type,
                 retry: s.config?.retry,
                 wait_minutes: s.config?.wait_minutes,
+                config: s.config,
             })),
             workingHoursStart: parseInt(workflow.working_hours_start || '9'),
             workingHoursEnd: parseInt(workflow.working_hours_end || '18'),
             cronIntervalMinutes: 1,
+            maxLeadsPerDay: workflow.max_leads_per_day || 100,
         })
 
         // computed_params'ı workflow'a kaydet
@@ -745,7 +747,7 @@ export async function simulateWorkflowAction(workflowId: string): Promise<{ data
     const adminDb = createAdminClient()
 
     const { data: workflow } = await adminDb.from('outreach_workflows')
-        .select('segment_id, working_hours_start, working_hours_end, outreach_steps(*)')
+        .select('segment_id, working_hours_start, working_hours_end, max_leads_per_day, outreach_steps(*)')
         .eq('id', workflowId)
         .single()
 
@@ -770,10 +772,12 @@ export async function simulateWorkflowAction(workflowId: string): Promise<{ data
             type: s.action_type,
             retry: s.config?.retry,
             wait_minutes: s.config?.wait_minutes,
+            config: s.config,
         })),
         workingHoursStart: parseInt(workflow.working_hours_start || '9'),
         workingHoursEnd: parseInt(workflow.working_hours_end || '18'),
         cronIntervalMinutes: 1,
+        maxLeadsPerDay: workflow.max_leads_per_day || 100,
     })
 
     // computed_params'ı workflow'a kaydet
