@@ -62,6 +62,34 @@ export async function deleteSegment(id: string) {
 export async function previewSegment(filters: any) {
     const { supabase, tenantId } = await getAuthContext()
 
+    // Leads source (Advance CRM mode)
+    if (filters.source === 'leads') {
+        let query = supabase.from('leads')
+            .select('id, status, full_name, phone', { count: 'exact', head: false })
+            .eq('tenant_id', tenantId)
+        if (filters.statuses?.length) query = query.in('status', filters.statuses)
+        if (filters.exclude_statuses?.length) {
+            for (const es of filters.exclude_statuses) {
+                query = query.neq('status', es)
+            }
+        }
+        if (filters.assigned_to) query = query.eq('assigned_to', filters.assigned_to)
+        if (filters.unassigned) query = query.is('assigned_to', null)
+        if (filters.date_from) query = query.gte('created_at', filters.date_from)
+        if (filters.date_to) query = query.lte('created_at', filters.date_to + 'T23:59:59')
+
+        const { data, count } = await query.limit(200)
+        const preview = data?.map(d => ({
+            id: d.id,
+            status: d.status,
+            customers: {
+                full_name: d.full_name,
+                phone: d.phone
+            }
+        })) || []
+        return { count: count || 0, preview: preview.slice(0, 10) }
+    }
+
     // Lead Qualifications source
     if (filters.source === 'lead_qualifications') {
         let query = supabase.from('lead_qualifications')
@@ -214,7 +242,7 @@ export async function getWorkflows() {
         let hasMore = true
         while (hasMore && execStats.length < 50000) {
             const { data: chunk, error } = await adminDb.from('outreach_executions')
-                .select('workflow_id, status, started_at')
+                .select('workflow_id, status, started_at, current_step_order, current_retry_count')
                 .in('workflow_id', wfIds)
                 .range(from, from + 999)
             if (error) {
@@ -237,14 +265,15 @@ export async function getWorkflows() {
             if (w.outreach_steps) {
                 w.outreach_steps.sort((a: any, b: any) => (a.step_order || 0) - (b.step_order || 0))
             }
-            // Attach execution stats
             const wfExecs = execStats.filter((e: any) => e.workflow_id === w.id)
+            const called = wfExecs.filter((e: any) => (e.current_step_order || 1) > 1 || (e.current_retry_count || 0) > 0).length
             w._exec_stats = {
                 total: wfExecs.length,
                 active: wfExecs.filter((e: any) => e.status === 'active' || e.status === 'waiting').length,
                 completed: wfExecs.filter((e: any) => e.status === 'completed' || e.status === 'stopped').length,
                 converted: wfExecs.filter((e: any) => e.status === 'converted').length,
                 failed: wfExecs.filter((e: any) => e.status === 'failed').length,
+                called,
                 last_run: wfExecs.length > 0
                     ? wfExecs.reduce((max: string, e: any) => e.started_at > max ? e.started_at : max, '')
                     : null
@@ -461,7 +490,7 @@ export async function toggleTrigger(id: string, isActive: boolean) {
 export async function getExecutions(workflowId?: string, status?: string) {
     const { supabase } = await getAuthContext()
     let query = supabase.from('outreach_executions')
-        .select('*, customers(full_name, phone), sales(status, projects(name)), outreach_workflows(name)')
+        .select('*, customers(full_name, phone), leads(full_name, phone), sales(status, projects(name)), outreach_workflows(name)')
         .order('started_at', { ascending: false })
         .limit(100)
     if (workflowId) query = query.eq('workflow_id', workflowId)
@@ -488,6 +517,7 @@ export async function getDetailedCallLogs(limit: number = 200) {
             outreach_executions!inner(
                 id, status, current_step_order, tenant_id,
                 customers(id, full_name, phone, email),
+                leads(id, full_name, phone, email),
                 sales(id, status, projects(name)),
                 outreach_workflows(name)
             )
@@ -610,8 +640,11 @@ export async function launchWorkflow(workflowId: string) {
 
     // Zaten işlenmiş olanları çıkar (completed, converted, active, waiting, stopped)
     const isLqSource = allLeadIds.length > 0 && allLeadIds[0].startsWith('lq:')
+    const isLeadsSource = allLeadIds.length > 0 && allLeadIds[0].startsWith('lead:')
     const matchIds = isLqSource 
         ? allLeadIds.map(id => id.replace('lq:', ''))
+        : isLeadsSource
+        ? allLeadIds.map(id => id.replace('lead:', ''))
         : allLeadIds
 
     const chunkArray2 = <T>(arr: T[], size: number): T[][] => {
@@ -623,23 +656,24 @@ export async function launchWorkflow(workflowId: string) {
     };
 
     const chunks = chunkArray2(matchIds, 150);
+    const targetField = isLqSource ? 'customer_id' : isLeadsSource ? 'lead_id' : 'sale_id'
     const existingPromises = chunks.map(chunk => 
         adminDb
             .from('outreach_executions')
-            .select('customer_id, sale_id')
+            .select('customer_id, sale_id, lead_id')
             .eq('workflow_id', workflowId)
             .in('status', ['active', 'waiting', 'completed', 'converted', 'stopped'])
-            .in(isLqSource ? 'customer_id' : 'sale_id', chunk)
+            .in(targetField, chunk)
     );
     const results = await Promise.all(existingPromises);
     const existing = results.flatMap(r => r.data || []);
 
     const processedIds = new Set(
-        existing.map(e => isLqSource ? e.customer_id : e.sale_id).filter(Boolean)
+        existing.map(e => isLqSource ? e.customer_id : isLeadsSource ? e.lead_id : e.sale_id).filter(Boolean)
     )
 
     const remainingIds = allLeadIds.filter(id => {
-        const matchId = isLqSource ? id.replace('lq:', '') : id
+        const matchId = isLqSource ? id.replace('lq:', '') : isLeadsSource ? id.replace('lead:', '') : id
         return !processedIds.has(matchId)
     })
 
@@ -975,7 +1009,7 @@ export async function getWorkflowMonitor(workflowId: string, page: number = 1) {
     let hasMoreExecs = true
     while (hasMoreExecs && allExecs.length < 50000) {
         const { data: chunk, error } = await adminDb.from('outreach_executions')
-            .select('status, customer_id, started_at, current_step_order, current_retry_count')
+            .select('status, customer_id, lead_id, started_at, current_step_order, current_retry_count')
             .eq('workflow_id', workflowId)
             .range(fromExec, fromExec + 999)
         if (error) {
@@ -994,13 +1028,14 @@ export async function getWorkflowMonitor(workflowId: string, page: number = 1) {
         }
     }
 
-    // De-duplicate: for each customer, keep only the LATEST execution
+    // De-duplicate: for each customer/lead, keep only the LATEST execution
     const customerLatest = new Map<string, any>()
     allExecs.forEach((e: any) => {
-        if (!e.customer_id) return
-        const existing = customerLatest.get(e.customer_id)
+        const targetId = e.customer_id || e.lead_id
+        if (!targetId) return
+        const existing = customerLatest.get(targetId)
         if (!existing || (e.started_at && e.started_at > (existing.started_at || ''))) {
-            customerLatest.set(e.customer_id, e)
+            customerLatest.set(targetId, e)
         }
     })
 
@@ -1036,9 +1071,12 @@ export async function getWorkflowMonitor(workflowId: string, page: number = 1) {
         .select(`
             id, status, current_step_order, next_action_at, started_at, completed_at, current_retry_count,
             customers(id, full_name, phone),
+            leads(id, full_name, phone),
             outreach_workflows(name)
         `)
         .eq('workflow_id', workflowId)
+        .order('current_step_order', { ascending: false })
+        .order('current_retry_count', { ascending: false })
         .order('started_at', { ascending: false })
         .range(from, to)
 
@@ -1067,7 +1105,7 @@ export async function getWorkflowMonitor(workflowId: string, page: number = 1) {
     let clPage = 0
     while (true) {
         const { data: clData, error: clErr } = await adminDb.from('outreach_step_logs')
-            .select('execution_id, channel, status, external_id, call_summary, call_recording_url, call_outcome, outreach_executions!inner(workflow_id, customer_id)')
+            .select('execution_id, channel, status, external_id, call_summary, call_recording_url, call_outcome, outreach_executions!inner(workflow_id, customer_id, lead_id)')
             .eq('outreach_executions.workflow_id', workflowId)
             .in('channel', ['ai_call', 'whatsapp', 'sms'])
             .range(clPage * 1000, (clPage + 1) * 1000 - 1)
@@ -1083,7 +1121,7 @@ export async function getWorkflowMonitor(workflowId: string, page: number = 1) {
     const spokeCustomerIds = new Set<string>()
     const pickedUpCustomerIds = new Set<string>()
     allCallLogs.forEach((l: any) => {
-        const custId = (l.outreach_executions as any)?.customer_id
+        const custId = (l.outreach_executions as any)?.customer_id || (l.outreach_executions as any)?.lead_id
         if (!custId) return
         calledCustomerIds.add(custId)
         if (l.call_summary) spokeCustomerIds.add(custId)
@@ -1102,7 +1140,7 @@ export async function getWorkflowMonitor(workflowId: string, page: number = 1) {
     const waSentCustomers = new Set<string>()
     const waFailedCount = waLogs.filter(l => l.status === 'failed').length
     waLogs.filter(l => l.status === 'sent').forEach((l: any) => {
-        const custId = (l.outreach_executions as any)?.customer_id
+        const custId = (l.outreach_executions as any)?.customer_id || (l.outreach_executions as any)?.lead_id
         if (custId) waSentCustomers.add(custId)
     })
     const waStats = {
@@ -1115,7 +1153,7 @@ export async function getWorkflowMonitor(workflowId: string, page: number = 1) {
     const smsLogs = allChannelLogs.filter(l => l.channel === 'sms')
     const smsSentCustomers = new Set<string>()
     smsLogs.filter(l => l.status === 'sent').forEach((l: any) => {
-        const custId = (l.outreach_executions as any)?.customer_id
+        const custId = (l.outreach_executions as any)?.customer_id || (l.outreach_executions as any)?.lead_id
         if (custId) smsSentCustomers.add(custId)
     })
     const smsStats = {
@@ -1136,7 +1174,7 @@ export async function getWorkflowMonitor(workflowId: string, page: number = 1) {
 
     let completedCalled = 0
     customerLatest.forEach((e: any) => {
-        const cId = e.customer_id
+        const cId = e.customer_id || e.lead_id
         const wasCalled = cId && calledCustomerIds.has(cId)
         const currentStepType = stepTypeMap.get(e.current_step_order)
 
@@ -1655,5 +1693,94 @@ export async function getWorkflowLog(workflowId: string) {
     runs.reverse() // En yeniden eskiye
 
     return { runs }
+}
+
+export async function getLeadSourceAnalytics() {
+    const { supabase, tenantId } = await getAuthContext()
+    
+    // 1. Fetch all leads for this tenant
+    const { data: leads, error: leadsErr } = await supabase
+        .from('leads')
+        .select('id, status, source')
+        .eq('tenant_id', tenantId)
+
+    if (leadsErr) {
+        console.error('Error fetching leads for analytics:', leadsErr)
+        return []
+    }
+
+    // 2. Fetch all opportunities for this tenant
+    const { data: opportunities, error: oppsErr } = await supabase
+        .from('opportunities')
+        .select('lead_id, value_try')
+        .eq('tenant_id', tenantId)
+        .not('lead_id', 'is', null)
+
+    if (oppsErr) {
+        console.error('Error fetching opportunities for analytics:', oppsErr)
+    }
+
+    // Map opportunity values by lead_id
+    const oppValueMap: Record<string, number> = {}
+    if (opportunities) {
+        for (const opp of opportunities) {
+            if (opp.lead_id) {
+                oppValueMap[opp.lead_id] = (oppValueMap[opp.lead_id] || 0) + Number(opp.value_try || 0)
+            }
+        }
+    }
+
+    // Aggregate by source
+    const sourceStats: Record<string, {
+        source: string
+        totalLeads: number
+        convertedLeads: number
+        lostLeads: number
+        activeLeads: number
+        revenue: number
+    }> = {}
+
+    for (const lead of leads || []) {
+        const src = lead.source || 'Bilinmeyen'
+        if (!sourceStats[src]) {
+            sourceStats[src] = {
+                source: src,
+                totalLeads: 0,
+                convertedLeads: 0,
+                lostLeads: 0,
+                activeLeads: 0,
+                revenue: 0
+            }
+        }
+
+        const stats = sourceStats[src]
+        stats.totalLeads++
+        
+        if (lead.status === 'converted') {
+            stats.convertedLeads++
+        } else if (lead.status === 'lost') {
+            stats.lostLeads++
+        } else {
+            stats.activeLeads++
+        }
+
+        // Add revenue from linked opportunity
+        const oppVal = oppValueMap[lead.id] || 0
+        stats.revenue += oppVal
+    }
+
+    // Convert to array and calculate rates
+    const result = Object.values(sourceStats).map(s => {
+        const conversionRate = s.totalLeads > 0 
+            ? Math.round((s.convertedLeads / s.totalLeads) * 100) 
+            : 0
+        return {
+            ...s,
+            conversionRate
+        }
+    })
+
+    // Sort by totalLeads descending
+    return result.sort((a, b) => b.totalLeads - a.totalLeads)
 }
 

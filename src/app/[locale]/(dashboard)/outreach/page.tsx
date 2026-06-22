@@ -11,7 +11,7 @@ async function getAllTenantExecutions(supabaseAdmin: any, tenantId: string) {
     while (hasMore && allExecs.length < 50000) {
         const { data, error } = await supabaseAdmin
             .from('outreach_executions')
-            .select('workflow_id, status, started_at')
+            .select('workflow_id, status, started_at, current_step_order, current_retry_count')
             .eq('tenant_id', tenantId)
             .range(from, from + 999)
 
@@ -64,6 +64,7 @@ export default async function OutreachPage() {
         detailedLogsRes,
         triggersRes,
         executionsRes,
+        tenantRes,
     ] = await Promise.all([
         supabaseAdmin.from('outreach_workflows')
             .select('*, outreach_segments(name), outreach_steps(*)')
@@ -82,7 +83,7 @@ export default async function OutreachPage() {
             .eq('tenant_id', tenantId)
             .in('status', ['active', 'waiting']),
         supabaseAdmin.from('outreach_step_logs')
-            .select('*, outreach_executions!inner(tenant_id, customers(full_name)), outreach_steps(name, action_type)')
+            .select('*, outreach_executions!inner(tenant_id, customers(full_name), leads(full_name)), outreach_steps(name, action_type)')
             .eq('outreach_executions.tenant_id', tenantId)
             .order('executed_at', { ascending: false })
             .limit(20),
@@ -107,6 +108,7 @@ export default async function OutreachPage() {
                 outreach_executions!inner(
                     id, status, current_step_order, tenant_id,
                     customers(id, full_name, phone, email),
+                    leads(id, full_name, phone, email),
                     sales(id, status, projects(name)),
                     outreach_workflows(name)
                 )
@@ -121,6 +123,8 @@ export default async function OutreachPage() {
             .eq('tenant_id', tenantId),
         // Executions for stats
         getAllTenantExecutions(supabaseAdmin, tenantId),
+        // CRM mode check
+        supabase.from('tenants').select('crm_mode').eq('id', tenantId).single(),
     ])
 
     const workflows = workflowsRes.data || []
@@ -131,12 +135,14 @@ export default async function OutreachPage() {
             w.outreach_steps.sort((a: any, b: any) => (a.step_order || 0) - (b.step_order || 0))
         }
         const wfExecs = executions.filter((e: any) => e.workflow_id === w.id)
+        const called = wfExecs.filter((e: any) => (e.current_step_order || 1) > 1 || (e.current_retry_count || 0) > 0).length
         w._exec_stats = {
             total: wfExecs.length,
             active: wfExecs.filter((e: any) => e.status === 'active' || e.status === 'waiting').length,
             completed: wfExecs.filter((e: any) => e.status === 'completed' || e.status === 'stopped').length,
             converted: wfExecs.filter((e: any) => e.status === 'converted').length,
             failed: wfExecs.filter((e: any) => e.status === 'failed').length,
+            called,
             last_run: wfExecs.length > 0
                 ? wfExecs.reduce((max: string, e: any) => e.started_at > max ? e.started_at : max, '')
                 : null
@@ -158,6 +164,7 @@ export default async function OutreachPage() {
                     tenantId={tenantId || ''}
                     detailedLogs={detailedLogsRes.data || []}
                     triggers={triggersRes.data || []}
+                    crmMode={tenantRes.data?.crm_mode || 'basic'}
                 />
             </Suspense>
         </div>

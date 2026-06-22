@@ -22,6 +22,7 @@ import { TriggerManager } from './TriggerManager'
 import { WorkflowMonitor } from './WorkflowMonitor'
 import { SystemHealthPanel } from './SystemHealthPanel'
 import { WorkflowLogDialog } from './WorkflowLogDialog'
+import { LeadAnalyticsPanel } from './LeadAnalyticsPanel'
 
 interface OutreachDashboardProps {
     workflows: any[]
@@ -35,6 +36,7 @@ interface OutreachDashboardProps {
     tenantId: string
     detailedLogs: any[]
     triggers: any[]
+    crmMode?: 'basic' | 'advance'
 }
 
 const channelIcons: Record<string, any> = {
@@ -69,7 +71,8 @@ const statusColors: Record<string, string> = {
 
 export function OutreachDashboard({
     workflows, segments, scripts, activeCount, recentLogs,
-    projects, profiles, userId, tenantId, detailedLogs, triggers
+    projects, profiles, userId, tenantId, detailedLogs, triggers,
+    crmMode = 'basic'
 }: OutreachDashboardProps) {
     const [showBuilder, setShowBuilder] = useState(false)
     const [editingWorkflow, setEditingWorkflow] = useState<any>(null)
@@ -214,6 +217,7 @@ export function OutreachDashboard({
                 projects={projects}
                 profiles={profiles}
                 tenantId={tenantId}
+                crmMode={crmMode}
                 onClose={() => setShowSegments(false)}
                 onSegmentsChange={setLocalSegments}
             />
@@ -317,6 +321,12 @@ export function OutreachDashboard({
                         <Zap className="h-3.5 w-3.5" />
                         Tetikleyiciler
                     </TabsTrigger>
+                    {crmMode === 'advance' && (
+                        <TabsTrigger value="analytics" className="data-[state=active]:bg-violet-600 data-[state=active]:text-white gap-2 flex-1 md:flex-initial py-1.5 text-xs">
+                            <BarChart3 className="h-3.5 w-3.5" />
+                            Aday Analitiği
+                        </TabsTrigger>
+                    )}
                 </TabsList>
 
                 <TabsContent value="workflows" className="space-y-3">
@@ -370,6 +380,12 @@ export function OutreachDashboard({
                         onClose={() => {}} // No back button needed in tab
                     />
                 </TabsContent>
+
+                {crmMode === 'advance' && (
+                    <TabsContent value="analytics" className="space-y-4">
+                        <LeadAnalyticsPanel />
+                    </TabsContent>
+                )}
             </Tabs>
 
             {/* Workflow Log Dialog */}
@@ -446,6 +462,9 @@ function WorkflowCard({ workflow, hasTrigger, onToggle, onEdit, onDelete, onLaun
                                         ) : (
                                             <span className="text-muted-foreground">⏸ Beklemede</span>
                                         )}
+                                        {(workflow._exec_stats.called || 0) > 0 && (
+                                            <span className="text-blue-400">📞 {workflow._exec_stats.called} arandı</span>
+                                        )}
                                         {(workflow._exec_stats.converted || 0) > 0 && (
                                             <span className="text-green-400">✅ {workflow._exec_stats.converted} dönüşüm</span>
                                         )}
@@ -462,10 +481,18 @@ function WorkflowCard({ workflow, hasTrigger, onToggle, onEdit, onDelete, onLaun
                                     </div>
                                     {workflow._exec_stats.total > 0 && (
                                         <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
-                                            <div
-                                                className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-500"
-                                                style={{ width: `${Math.round(((workflow._exec_stats.completed + (workflow._exec_stats.converted || 0)) / workflow._exec_stats.total) * 100)}%` }}
-                                            />
+                                            <div className="h-full rounded-full flex">
+                                                <div
+                                                    className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-500"
+                                                    style={{ width: `${Math.round(((workflow._exec_stats.completed + (workflow._exec_stats.converted || 0)) / workflow._exec_stats.total) * 100)}%` }}
+                                                />
+                                                {(workflow._exec_stats.called || 0) > 0 && (
+                                                    <div
+                                                        className="h-full bg-gradient-to-r from-blue-500 to-blue-400 transition-all duration-500"
+                                                        style={{ width: `${Math.round((workflow._exec_stats.called / workflow._exec_stats.total) * 100)}%` }}
+                                                    />
+                                                )}
+                                            </div>
                                         </div>
                                     )}
                                 </div>
@@ -529,7 +556,7 @@ function ActivityLogRow({ log }: { log: any }) {
     const Icon = channelIcons[log.channel] || Zap
     const colorClass = channelColors[log.channel] || channelColors.notify
     const statusClass = statusColors[log.status] || statusColors.pending
-    const customerName = log.outreach_executions?.customers?.full_name || 'Bilinmiyor'
+    const customerName = log.outreach_executions?.customers?.full_name || log.outreach_executions?.leads?.full_name || 'Bilinmiyor'
     const stepName = log.outreach_steps?.name || log.channel
 
     const timeAgo = getTimeAgo(log.executed_at)

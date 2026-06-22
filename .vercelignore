@@ -1,0 +1,14 @@
+.next
+node_modules
+.git
+backups
+reports
+*.xlsx
+*.csv
+*.sql
+*.log
+*.png
+.env*
+scratch
+tmp
+*.tsbuildinfo
