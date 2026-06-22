@@ -13,7 +13,7 @@ import {
     Phone, MessageSquare, Mail, Clock, Settings2, Zap, Plus,
     ArrowLeft, ArrowDown, Trash2, GripVertical, Save, Target, Bot, Bell, Sparkles, Split
 } from 'lucide-react'
-import { createWorkflow, updateWorkflow, addStep as addStepAction, updateStep, deleteStep } from '../actions'
+import { createWorkflow, updateWorkflow, addStep as addStepAction, updateStep, deleteStep, previewSegment } from '../actions'
 import { getWhatsAppTemplates } from '../actions'
 import { toast } from 'sonner'
 
@@ -68,6 +68,16 @@ export function WorkflowBuilder({ segments, scripts, projects, profiles, tenantI
     const [steps, setSteps] = useState<Step[]>((editingWorkflow?.outreach_steps || []).sort((a: any, b: any) => a.step_order - b.step_order))
     const [saving, setSaving] = useState(false)
     const [deletedStepIds, setDeletedStepIds] = useState<string[]>([])
+    const [segmentCount, setSegmentCount] = useState<number | null>(null)
+
+    // Segment seçildiğinde eleman sayısını çek
+    useEffect(() => {
+        if (!segmentId) { setSegmentCount(null); return }
+        const seg = segments.find(s => s.id === segmentId)
+        if (!seg?.filters) { setSegmentCount(null); return }
+        setSegmentCount(null) // loading
+        previewSegment(seg.filters).then(r => setSegmentCount(r.count)).catch(() => setSegmentCount(null))
+    }, [segmentId, segments])
 
     const addStep = (actionType: string) => {
         const id = `temp-${Date.now()}`
@@ -268,7 +278,14 @@ export function WorkflowBuilder({ segments, scripts, projects, profiles, tenantI
                                     const f = seg?.filters || {}
                                     return seg ? (
                                         <div className="p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/20 space-y-2">
-                                            <p className="text-xs font-medium text-emerald-400">{seg.name}</p>
+                                            <div className="flex items-center gap-2">
+                                                <p className="text-xs font-medium text-emerald-400">{seg.name}</p>
+                                                {segmentCount !== null && (
+                                                    <Badge variant="outline" className="text-[10px] border-emerald-500/30 text-emerald-300 bg-emerald-500/10">
+                                                        {segmentCount} kişi
+                                                    </Badge>
+                                                )}
+                                            </div>
                                             <div className="flex flex-wrap gap-1">
                                                 {f.statuses?.map((s: string) => (
                                                     <Badge key={s} variant="outline" className="text-[10px] border-violet-500/30 text-violet-400 bg-violet-500/10">{s}</Badge>
