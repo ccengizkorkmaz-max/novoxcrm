@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createAdminClient } from '@/lib/supabase/admin';
 import { revalidatePath } from 'next/cache';
+import { getCrmMode } from '@/lib/crm-mode';
 
 export async function POST(req: NextRequest) {
     try {
@@ -237,35 +238,96 @@ Daima:
                 const leadData = JSON.parse(jsonText);
 
                 if (leadData.full_name && leadData.phone) {
-                    // Create customer
-                    const { data: customerData, error: customerErr } = await adminSupabase.from('customers').insert({
-                        tenant_id: tenantId,
-                        full_name: leadData.full_name,
-                        phone: leadData.phone,
-                        source: channel, /* e.g. facebook_messenger */
-                        notes: `Otomatik olarak AI Asistanı (${channel}) tarafından oluşturuldu. PSID: ${external_user_id}`
-                    }).select('id').single();
+                    // CRM mod kontrolü
+                    const crmMode = await getCrmMode(tenantId)
 
-                    if (!customerErr && customerData) {
-                        const customerId = customerData.id;
+                    if (crmMode === 'advance') {
+                        // ADVANCE MOD: leads tablosuna kaydet
+                        const { assignLeadRoundRobin, sendLeadAssignmentNotifications } = await import('@/lib/crm-mode')
+                        const assignedTo = await assignLeadRoundRobin(tenantId)
 
-                        // Create lead_qualifications logic
-                        let qualParams: any = {
+                        const { data: newLead } = await adminSupabase.from('leads').insert({
                             tenant_id: tenantId,
-                            customer_id: customerId,
-                            status: 'new',
+                            full_name: leadData.full_name,
+                            phone: leadData.phone,
+                            status: 'qualified',
                             source: channel,
-                            campaign_name: `AI Bot Conversation`,
-                            call_notes: `AI Asistanı (${channel}) ile görüşüldü.`
-                        };
+                            notes: `AI Asistanı (${channel}) ile görüşüldü. PSID: ${external_user_id}`,
+                            assigned_to: assignedTo
+                        }).select('id').single()
 
-                        const { data: qualData } = await adminSupabase.from('lead_qualifications').insert(qualParams).select('id').single();
+                        if (newLead) {
+                            await adminSupabase.from('messaging_sessions').update({
+                                customer_id: null
+                            }).eq('id', session.id)
 
-                        // Update session to link
-                        await adminSupabase.from('messaging_sessions').update({
-                            customer_id: customerId,
-                            sale_id: null // Removed sale_id mapping since we use qual
-                        }).eq('id', session.id);
+                            if (assignedTo) {
+                                await sendLeadAssignmentNotifications(
+                                    tenantId,
+                                    newLead.id,
+                                    leadData.full_name,
+                                    leadData.phone || null,
+                                    assignedTo
+                                )
+                            }
+
+                            // Lead bildirim modu: immediate ise hemen WhatsApp gönder
+                            const { data: tenantNotif } = await adminSupabase
+                                .from('tenants')
+                                .select('lead_notification_mode')
+                                .eq('id', tenantId)
+                                .single()
+
+                            if (tenantNotif?.lead_notification_mode === 'immediate') {
+                                // Geçici müşteri kaydı oluştur ve outreach tetikle
+                                const { data: tempCustomer } = await adminSupabase.from('customers').insert({
+                                    tenant_id: tenantId,
+                                    full_name: leadData.full_name,
+                                    phone: leadData.phone,
+                                    source: channel,
+                                    notes: `[Auto] Lead #${newLead.id} için otomatik bildirim kaydı`
+                                }).select('id').single()
+
+                                if (tempCustomer) {
+                                    const { fireLeadCreatedTrigger } = await import('@/lib/outreach/triggers')
+                                    await fireLeadCreatedTrigger(tenantId, tempCustomer.id)
+
+                                    // Lead'e customer referansı ekle
+                                    await adminSupabase.from('leads')
+                                        .update({ converted_customer_id: tempCustomer.id })
+                                        .eq('id', newLead.id)
+                                }
+                            }
+                        }
+                    } else {
+                        // BASIC MOD: Mevcut akış
+                        const { data: customerData, error: customerErr } = await adminSupabase.from('customers').insert({
+                            tenant_id: tenantId,
+                            full_name: leadData.full_name,
+                            phone: leadData.phone,
+                            source: channel,
+                            notes: `Otomatik olarak AI Asistanı (${channel}) tarafından oluşturuldu. PSID: ${external_user_id}`
+                        }).select('id').single();
+
+                        if (!customerErr && customerData) {
+                            const customerId = customerData.id;
+
+                            let qualParams: any = {
+                                tenant_id: tenantId,
+                                customer_id: customerId,
+                                status: 'new',
+                                source: channel,
+                                campaign_name: `AI Bot Conversation`,
+                                call_notes: `AI Asistanı (${channel}) ile görüşüldü.`
+                            };
+
+                            const { data: qualData } = await adminSupabase.from('lead_qualifications').insert(qualParams).select('id').single();
+
+                            await adminSupabase.from('messaging_sessions').update({
+                                customer_id: customerId,
+                                sale_id: null
+                            }).eq('id', session.id);
+                        }
                     }
                 }
             } catch (e) {

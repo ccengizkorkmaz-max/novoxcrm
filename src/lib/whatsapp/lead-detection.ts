@@ -80,7 +80,7 @@ export async function extractAndUpdateLeadScore(
         // Mevcut skoru kontrol et
         const { data: convData } = await supabase
             .from('whatsapp_conversations')
-            .select('lead_score, customer_id')
+            .select('lead_score, customer_id, lead_id')
             .eq('id', conversationId)
             .single();
 
@@ -107,6 +107,36 @@ export async function extractAndUpdateLeadScore(
                 .eq('customer_id', convData.customer_id)
                 .eq('tenant_id', tenantId);
             console.log(`📊 Lead qualification interest_level güncellendi: ${finalScore} (customer: ${convData.customer_id})`);
+        }
+
+        // Müşteri Adayı (Lead) ise durumunu ve skorunu güncelle
+        if (convData?.lead_id) {
+            const leadUpdate: any = {
+                lead_score: finalScore,
+                updated_at: new Date().toISOString()
+            };
+            if (finalScore === 'hot' || finalScore === 'warm' || finalScore === 'call_requested') {
+                leadUpdate.status = 'qualified';
+            } else if (finalScore === 'disqualified') {
+                leadUpdate.status = 'lost';
+            }
+
+            // Adayın notlarına skorlama detaylarını ekle
+            const { data: leadRecord } = await supabase
+                .from('leads')
+                .select('notes')
+                .eq('id', convData.lead_id)
+                .single();
+
+            const timestamp = new Date().toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' });
+            const scoreLabel = finalScore === 'hot' ? 'Sıcak (Hot)' : finalScore === 'warm' ? 'Ilık (Warm)' : finalScore === 'disqualified' ? 'Elendi (Disqualified)' : finalScore;
+            const scoreNote = `[${timestamp} - AI WhatsApp Skorlama] Durum: ${scoreLabel}`;
+            leadUpdate.notes = leadRecord?.notes ? `${leadRecord.notes}\n${scoreNote}` : scoreNote;
+
+            await supabase.from('leads')
+                .update(leadUpdate)
+                .eq('id', convData.lead_id);
+            console.log(`📊 Lead status & score updated (lead_id: ${convData.lead_id}): status=${leadUpdate.status || 'unchanged'}, score=${finalScore}`);
         }
 
         leadScore = finalScore;

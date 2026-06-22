@@ -33,7 +33,9 @@ import BrandSettingsTab from './components/BrandSettingsTab'
 import DomainSettingsTab from './components/DomainSettingsTab'
 import UnitFieldOptionsTab from './components/UnitFieldOptionsTab'
 import NotificationCatalogTab from './components/NotificationCatalogTab'
-import { FileWarning, Palette, Link2, ListChecks } from 'lucide-react'
+import CrmModeTab from './components/CrmModeTab'
+import PipelineEditor from './components/PipelineEditor'
+import { FileWarning, Palette, Link2, ListChecks, Rocket } from 'lucide-react'
 
 export default async function SettingsPage() {
     const supabase = await createClient()
@@ -153,6 +155,10 @@ export default async function SettingsPage() {
                         <Building2 className="w-4 h-4 mr-2 shrink-0" />
                         <span className="hidden md:inline truncate">{t('tabs.profile')}</span>
                     </TabsTrigger>
+                    <TabsTrigger value="crm-mode" className="justify-start w-full py-2 px-3 rounded-lg text-sm data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-sm transition-all">
+                        <Rocket className="w-4 h-4 mr-2 shrink-0" />
+                        <span className="hidden md:inline truncate">CRM Modu</span>
+                    </TabsTrigger>
                     <TabsTrigger value="notifications" className="justify-start w-full py-2 px-3 rounded-lg text-sm data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-sm transition-all">
                         <Bell className="w-4 h-4 mr-2 shrink-0" />
                         <span className="hidden md:inline truncate">Bildirimler</span>
@@ -251,6 +257,30 @@ export default async function SettingsPage() {
                             )}
                         </CardContent>
                     </Card>
+                </TabsContent>
+
+                {/* CRM Mode Tab */}
+                <TabsContent value="crm-mode" className="space-y-4">
+                    <CrmModeTab 
+                        currentMode={((tenant as any)?.crm_mode || 'basic') as 'basic' | 'advance'} 
+                        userRole={profile.role || 'user'} 
+                        leadNotificationMode={((tenant as any)?.lead_notification_mode || 'immediate') as 'immediate' | 'on_conversion'}
+                        waLeadAssignmentNotificationEnabled={((tenant as any)?.wa_lead_assignment_notification_enabled || false)}
+                        leadAssignmentMode={((tenant as any)?.lead_assignment_mode || 'manual') as 'manual' | 'round_robin'}
+                    />
+                    {(tenant as any)?.crm_mode === 'advance' && (
+                        <PipelineEditor 
+                            stages={(tenant as any)?.pipeline_stages || [
+                                { key: 'prospect', label: 'Aday', color: '#6366f1', order: 1 },
+                                { key: 'qualified', label: 'Nitelikli', color: '#8b5cf6', order: 2 },
+                                { key: 'reservation', label: 'Opsiyon', color: '#06b6d4', order: 3 },
+                                { key: 'proposal', label: 'Teklif', color: '#f59e0b', order: 4 },
+                                { key: 'negotiation', label: 'Müzakere', color: '#f97316', order: 5 },
+                                { key: 'won', label: 'Kazanıldı', color: '#22c55e', order: 6 },
+                                { key: 'lost', label: 'Kaybedildi', color: '#ef4444', order: 7 },
+                            ]}
+                        />
+                    )}
                 </TabsContent>
 
                 {/* Notification Settings Tab */}

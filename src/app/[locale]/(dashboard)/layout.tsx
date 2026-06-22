@@ -46,7 +46,7 @@ export default async function DashboardLayout(props: {
         // Try with brand_config first, fallback without it if column doesn't exist yet
         const result = await supabase
             .from('tenants')
-            .select('name, tenant_type, has_broker_module, has_outreach_module, brand_config')
+            .select('name, tenant_type, has_broker_module, has_outreach_module, brand_config, crm_mode')
             .eq('id', profile.tenant_id)
             .single()
         
@@ -54,7 +54,7 @@ export default async function DashboardLayout(props: {
             // Column doesn't exist yet, query without it
             const fallback = await supabase
                 .from('tenants')
-                .select('name, tenant_type, has_broker_module, has_outreach_module')
+                .select('name, tenant_type, has_broker_module, has_outreach_module, crm_mode')
                 .eq('id', profile.tenant_id)
                 .single()
             tenant = fallback.data
@@ -66,6 +66,7 @@ export default async function DashboardLayout(props: {
     const tenantType = tenant?.tenant_type || 'developer'
     const hasBrokerModule = tenant?.has_broker_module || false
     const hasOutreachModule = tenant?.has_outreach_module || false
+    const crmMode = (tenant?.crm_mode as 'basic' | 'advance') || 'basic'
 
     // Resolve white-label branding
     const brand = resolveBrand(tenant?.brand_config)
@@ -149,6 +150,7 @@ export default async function DashboardLayout(props: {
                 hasOutreachModule={hasOutreachModule}
                 isAuthorizedForSettings={isAuthorizedForSettings}
                 logoutForm={logoutForm}
+                crmMode={crmMode}
             >
                 {children}
             </DashboardLayoutWrapper>

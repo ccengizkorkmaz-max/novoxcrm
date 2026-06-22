@@ -195,7 +195,7 @@ function CallLogCard({ log, isExpanded, onToggle }: { log: any; isExpanded: bool
     const sentiment = log.channel === 'ai_call' ? analyzeSentiment(log) : null
     const SentimentIcon = sentiment?.icon || Minus
 
-    const customer = log.outreach_executions?.customers
+    const customer = log.outreach_executions?.customers || log.outreach_executions?.leads
     const project = log.outreach_executions?.sales?.projects?.name
     const workflow = log.outreach_executions?.outreach_workflows?.name
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { fireLeadCreatedTrigger } from '@/lib/outreach/triggers'
+import { getCrmMode } from '@/lib/crm-mode'
 
 /**
  * FACEBOOK LEAD ADS WEBHOOK
@@ -172,7 +173,74 @@ async function saveLeadToCRM(
         }
     }
 
-    // Yeni müşteri oluştur
+    // Yeni müşteri oluştur — CRM moduna göre farklı akış
+    const crmMode = await getCrmMode(NOVO_TENANT_ID)
+
+    if (crmMode === 'advance') {
+        const { assignLeadRoundRobin, sendLeadAssignmentNotifications } = await import('@/lib/crm-mode')
+        const assignedTo = await assignLeadRoundRobin(NOVO_TENANT_ID)
+
+        // ── ADVANCE MOD: leads tablosuna kaydet ──
+        const { data: newLead, error: leadError } = await supabase.from('leads').insert({
+            tenant_id: NOVO_TENANT_ID,
+            full_name: leadData.full_name,
+            phone: phone,
+            email: leadData.email || null,
+            status: 'new',
+            source: 'Facebook Ads',
+            form_name: formId || null,
+            ad_id: adId || null,
+            notes: `🎯 [NOVO API DİREKT] Facebook Lead Ads | Form: ${formId || '-'} | Ad: ${adId || '-'}`,
+            assigned_to: assignedTo
+        }).select('id').single()
+
+        if (leadError) {
+            console.error(`[FB Leads] Lead kayıt hatası:`, leadError.message)
+            return false
+        }
+
+        if (assignedTo && newLead) {
+            await sendLeadAssignmentNotifications(
+                NOVO_TENANT_ID,
+                newLead.id,
+                leadData.full_name,
+                phone || null,
+                assignedTo
+            )
+        }
+
+        // Lead bildirim modu: immediate ise hemen WhatsApp gönder
+        if (newLead) {
+            const { data: tenantNotif } = await supabase
+                .from('tenants')
+                .select('lead_notification_mode')
+                .eq('id', NOVO_TENANT_ID)
+                .single()
+
+            if (tenantNotif?.lead_notification_mode === 'immediate') {
+                const { data: tempCustomer } = await supabase.from('customers').insert({
+                    tenant_id: NOVO_TENANT_ID,
+                    full_name: leadData.full_name,
+                    phone: phone,
+                    email: leadData.email || null,
+                    source: 'Facebook Ads',
+                    notes: `[Auto] Lead #${newLead.id} için otomatik bildirim kaydı`
+                }).select('id').single()
+
+                if (tempCustomer) {
+                    await fireLeadCreatedTrigger(NOVO_TENANT_ID, tempCustomer.id)
+                    await supabase.from('leads')
+                        .update({ converted_customer_id: tempCustomer.id })
+                        .eq('id', newLead.id)
+                }
+            }
+        }
+
+        console.log(`[FB Leads] ✅ Yeni lead (Advance mod) kaydedildi: ${leadData.full_name} (${phone})`)
+        return true
+    }
+
+    // ── BASIC MOD: Mevcut akış (customers + sales) ──
     const { error } = await supabase.from('customers').insert({
         tenant_id: NOVO_TENANT_ID,
         full_name: leadData.full_name,
@@ -191,9 +259,7 @@ async function saveLeadToCRM(
 
     console.log(`[FB Leads] ✅ Yeni lead kaydedildi: ${leadData.full_name} (${phone})`)
 
-    // Outreach tetikleyicisini çalıştır (Otomatik WhatsApp vb. için)
-    // Not: customer id'sini almak için insert sonrası veriyi dönmek gerekebilir veya telefonla bulabiliriz.
-    // Ancak insert başarılıysa ve bizde veri varsa direkt customer_id'ye ihtiyacımız var.
+    // Outreach tetikleyicisini çalıştır
     const { data: newCustomer } = await supabase
         .from('customers')
         .select('id')
@@ -204,7 +270,6 @@ async function saveLeadToCRM(
         .single()
 
     if (newCustomer) {
-        // Doğrudan satış yönetimine (CRM pipeline) lead olarak aktar
         await supabase.from('sales').insert({
             tenant_id: NOVO_TENANT_ID,
             customer_id: newCustomer.id,

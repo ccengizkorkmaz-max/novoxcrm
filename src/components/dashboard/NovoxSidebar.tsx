@@ -108,7 +108,8 @@ export function NovoxSidebar({
     tenantType = 'developer',
     hasBrokerModule = false,
     hasOutreachModule = false,
-    isCollapsed = false
+    isCollapsed = false,
+    crmMode = 'basic'
 }: {
     role?: string | null,
     onElementClick?: () => void,
@@ -116,7 +117,8 @@ export function NovoxSidebar({
     tenantType?: string,
     hasBrokerModule?: boolean,
     hasOutreachModule?: boolean,
-    isCollapsed?: boolean
+    isCollapsed?: boolean,
+    crmMode?: 'basic' | 'advance'
 }) {
     const currentRole = role || 'sales'
 
@@ -126,6 +128,7 @@ export function NovoxSidebar({
 
     const isDeveloper = tenantType === 'developer'
     const isBroker = tenantType === 'broker'
+    const isAdvanceMode = crmMode === 'advance'
 
     // Safety check for labels
     if (!labels) return null;
@@ -150,7 +153,7 @@ export function NovoxSidebar({
                     Gelen Aramalar
                 </NavItem>
             )}
-            {!isBroker && (
+            {!isBroker && !isAdvanceMode && (
                 <NavItem href="/lead-qualification" icon={Target} onClick={onElementClick} isCollapsed={isCollapsed}>
                     Ön Değerlendirme
                 </NavItem>
@@ -259,10 +262,27 @@ export function NovoxSidebar({
 
                     {isSales && !isBroker && (
                         <>
+                            {/* Advance CRM Menüleri — huni sırasına göre */}
+                            {isAdvanceMode && (
+                                <>
+                                    <NavItem href="/leads" icon={Target} onClick={onElementClick} isCollapsed={isCollapsed} isSubItem>
+                                        Müşteri Adayları
+                                    </NavItem>
+                                    <NavItem href="/companies" icon={Building2} onClick={onElementClick} isCollapsed={isCollapsed} isSubItem>
+                                        Firmalar
+                                    </NavItem>
+                                </>
+                            )}
+
                             <NavItem href="/crm" icon={Activity} onClick={onElementClick} isCollapsed={isCollapsed} isSubItem>
                                 {labels.salesManagement || 'Sales Management'}
                             </NavItem>
 
+                            {isAdvanceMode && (
+                                <NavItem href="/opportunities" icon={Trophy} onClick={onElementClick} isCollapsed={isCollapsed} isSubItem>
+                                    Fırsatlar
+                                </NavItem>
+                            )}
 
                             {isDeveloper && (
                                 <>
@@ -301,39 +321,57 @@ export function NovoxSidebar({
                                     </NavItem>
                                 </>
                             ) : (
-                                <NavItem href="/customers" icon={Users} onClick={onElementClick} isSubItem>
-                                    {labels.customers || 'Customers'}
-                                </NavItem>
-                            )}
-
-                            {isManager && (
-                                <NavItem href="/teams" icon={Users} onClick={onElementClick} isSubItem>
-                                    {isBroker ? 'Danışmanlar' : (labels.salesTeams || 'Sales Teams')}
-                                </NavItem>
-                            )}
-
-                            {isSales && !isBroker && (
                                 <>
-                                    <NavItem href="/crm" icon={Activity} onClick={onElementClick} isSubItem>
-                                        {labels.salesManagement || 'Sales Management'}
+                                    {/* Advance CRM — huni sırasına göre */}
+                                    {isAdvanceMode && isSales && (
+                                        <>
+                                            <NavItem href="/leads" icon={Target} onClick={onElementClick} isSubItem>
+                                                Müşteri Adayları
+                                            </NavItem>
+                                            <NavItem href="/companies" icon={Building2} onClick={onElementClick} isSubItem>
+                                                Firmalar
+                                            </NavItem>
+                                        </>
+                                    )}
+
+                                    <NavItem href="/customers" icon={Users} onClick={onElementClick} isSubItem>
+                                        {labels.customers || 'Customers'}
                                     </NavItem>
 
+                                    {isManager && (
+                                        <NavItem href="/teams" icon={Users} onClick={onElementClick} isSubItem>
+                                            {labels.salesTeams || 'Sales Teams'}
+                                        </NavItem>
+                                    )}
 
-                                    {/* Developer'a özel satış adımları */}
-                                    {isDeveloper && (
+                                    {isSales && (
                                         <>
-                                            <NavItem href="/options" icon={Package} onClick={onElementClick} isSubItem>
-                                                {labels.options || 'Options'}
+                                            <NavItem href="/crm" icon={Activity} onClick={onElementClick} isSubItem>
+                                                {labels.salesManagement || 'Sales Management'}
                                             </NavItem>
-                                            <NavItem href="/offers" icon={FileText} onClick={onElementClick} isSubItem>
-                                                {labels.offers || 'Offers'}
-                                            </NavItem>
-                                            <NavItem href="/contracts" icon={FileText} onClick={onElementClick} isSubItem>
-                                                {labels.contracts || 'Contracts'}
-                                            </NavItem>
-                                            <NavItem href="/finance/deposits" icon={Banknote} onClick={onElementClick} isSubItem>
-                                                {labels.deposits || 'Deposits'}
-                                            </NavItem>
+
+                                            {isAdvanceMode && (
+                                                <NavItem href="/opportunities" icon={Trophy} onClick={onElementClick} isSubItem>
+                                                    Fırsatlar
+                                                </NavItem>
+                                            )}
+
+                                            {isDeveloper && (
+                                                <>
+                                                    <NavItem href="/options" icon={Package} onClick={onElementClick} isSubItem>
+                                                        {labels.options || 'Options'}
+                                                    </NavItem>
+                                                    <NavItem href="/offers" icon={FileText} onClick={onElementClick} isSubItem>
+                                                        {labels.offers || 'Offers'}
+                                                    </NavItem>
+                                                    <NavItem href="/contracts" icon={FileText} onClick={onElementClick} isSubItem>
+                                                        {labels.contracts || 'Contracts'}
+                                                    </NavItem>
+                                                    <NavItem href="/finance/deposits" icon={Banknote} onClick={onElementClick} isSubItem>
+                                                        {labels.deposits || 'Deposits'}
+                                                    </NavItem>
+                                                </>
+                                            )}
                                         </>
                                     )}
                                 </>

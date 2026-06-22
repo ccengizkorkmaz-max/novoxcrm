@@ -1642,7 +1642,7 @@ export async function updateSaleToReservation(saleId: string, unitId: string, ex
     }
 
     // 2.1 Get unit details for currency/price info
-    const { data: unit } = await supabase.from('units').select('price, currency').eq('id', unitId).single()
+    const { data: unit } = await supabase.from('units').select('price, currency, project_id').eq('id', unitId).single()
 
     // 3. Update Sale record
     const initialStatus = depositAmount > 0 ? 'Opsiyon - Kapora Bekleniyor' : 'Reservation'
@@ -1651,7 +1651,8 @@ export async function updateSaleToReservation(saleId: string, unitId: string, ex
         .update({
             unit_id: unitId,
             status: initialStatus,
-            reservation_expiry: expiryDate
+            reservation_expiry: expiryDate,
+            project_id: unit?.project_id || null
         })
         .eq('id', saleId)
         .select()
@@ -1677,6 +1678,33 @@ export async function updateSaleToReservation(saleId: string, unitId: string, ex
 
     // 4. Update Unit status
     await supabase.from('units').update({ status: 'Reserved' }).eq('id', unitId)
+
+    // 5. Sync Opportunity stage (Advance CRM)
+    const { data: saleData } = await supabase
+        .from('sales')
+        .select('customer_id, project_id')
+        .eq('id', saleId)
+        .single()
+
+    if (saleData) {
+        let oppQuery = supabase
+            .from('opportunities')
+            .update({
+                stage: 'reservation',
+                project_id: saleData.project_id || null,
+                updated_at: new Date().toISOString()
+            })
+            .eq('tenant_id', profile.tenant_id)
+            .eq('customer_id', saleData.customer_id)
+
+        if (saleData.project_id) {
+            oppQuery = oppQuery.eq('project_id', saleData.project_id)
+        }
+
+        await oppQuery
+        revalidatePath('/opportunities')
+        revalidatePath('/[locale]/(dashboard)/opportunities', 'page')
+    }
 
     // 6. Create Offer record for document tracking
     const { error: offerError } = await supabase.from('offers').insert({
@@ -1767,6 +1795,43 @@ export async function cancelReservation(saleId: string) {
     if (saleError) {
         console.error('Cancel Reservation Error:', saleError)
         return { error: 'Failed to cancel reservation' }
+    }
+
+    // Sync Opportunity stage (Advance CRM)
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Oturum bulunamadı' }
+
+    const { data: profileForCancel } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', user.id)
+        .single()
+
+    if (profileForCancel?.tenant_id) {
+        const { data: saleData } = await supabase
+            .from('sales')
+            .select('customer_id, project_id')
+            .eq('id', saleId)
+            .single()
+
+        if (saleData) {
+            let oppQuery = supabase
+                .from('opportunities')
+                .update({
+                    stage: 'prospect',
+                    updated_at: new Date().toISOString()
+                })
+                .eq('tenant_id', profileForCancel.tenant_id)
+                .eq('customer_id', saleData.customer_id)
+
+            if (saleData.project_id) {
+                oppQuery = oppQuery.eq('project_id', saleData.project_id)
+            }
+
+            await oppQuery
+            revalidatePath('/opportunities')
+            revalidatePath('/[locale]/(dashboard)/opportunities', 'page')
+        }
     }
 
     // 4. Update Unit status back to For Sale
@@ -2387,45 +2452,79 @@ export async function mergeDuplicateGroup(masterId: string, duplicateIds: string
 // ----------------------------------------------------
 // AI VOICE CALL ACTIONS
 // ----------------------------------------------------
-export async function getAiCallModalData(saleId: string) {
+export async function getAiCallModalData(id: string) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: 'Unauthorized' }
 
-    const { data: sale, error: saleErr } = await supabase
+    // 1. Try to find in sales
+    const { data: sale } = await supabase
         .from('sales')
         .select('*, customers(*), projects(*)')
-        .eq('id', saleId)
-        .single()
-
-    if (saleErr || !sale) {
-        return { error: 'Sale record not found' }
-    }
-
-    const { data: lastCall } = await supabase
-        .from('activities')
-        .select('*')
-        .eq('customer_id', sale.customer_id)
-        .eq('type', 'Call')
-        .order('created_at', { ascending: false })
-        .limit(1)
+        .eq('id', id)
         .maybeSingle()
 
-    return {
-        success: true,
-        customerName: sale.customers?.full_name,
-        customerPhone: sale.customers?.phone,
-        projectName: sale.projects?.name,
-        lastCall: lastCall ? {
-            created_at: lastCall.created_at,
-            summary: lastCall.summary,
-            description: lastCall.description,
-            outcome: lastCall.outcome
-        } : null
+    if (sale) {
+        const { data: lastCall } = await supabase
+            .from('activities')
+            .select('*')
+            .eq('customer_id', sale.customer_id)
+            .eq('type', 'Call')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+
+        return {
+            success: true,
+            customerName: sale.customers?.full_name,
+            customerPhone: sale.customers?.phone,
+            projectName: sale.projects?.name,
+            lastCall: lastCall ? {
+                created_at: lastCall.created_at,
+                summary: lastCall.summary,
+                description: lastCall.description,
+                outcome: lastCall.outcome
+            } : null,
+            isLead: false
+        }
     }
+
+    // 2. Try to find in leads
+    const { data: lead } = await supabase
+        .from('leads')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle()
+
+    if (lead) {
+        const { data: lastCall } = await supabase
+            .from('activities')
+            .select('*')
+            .eq('lead_id', lead.id)
+            .eq('type', 'Call')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+
+        return {
+            success: true,
+            customerName: lead.full_name,
+            customerPhone: lead.phone,
+            projectName: 'Novo Projeleri',
+            lastCall: lastCall ? {
+                created_at: lastCall.created_at,
+                summary: lastCall.summary,
+                description: lastCall.description,
+                outcome: lastCall.outcome
+            } : null,
+            isLead: true
+        }
+    }
+
+    return { error: 'Kayıt bulunamadı' }
 }
 
-export async function initiateAiCall(saleId: string) {
+export async function initiateAiCall(id: string) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: 'Unauthorized' }
@@ -2437,14 +2536,47 @@ export async function initiateAiCall(saleId: string) {
         .single()
     if (!profile) return { error: 'Profile not found' }
 
+    // 1. Try to find in sales
     const { data: sale } = await supabase
         .from('sales')
         .select('*, customers(*), projects(*)')
-        .eq('id', saleId)
-        .single()
+        .eq('id', id)
+        .maybeSingle()
 
-    if (!sale || !sale.customers) return { error: 'Customer or sale not found' }
-    if (!sale.customers.phone) return { error: 'Customer phone number is missing' }
+    let phone = ''
+    let rawName = ''
+    let projectName = 'Novo Projeleri'
+    let isLead = false
+    let leadId = null
+    let customerId = null
+    let projectId = null
+
+    if (sale) {
+        if (!sale.customers) return { error: 'Müşteri kaydı bulunamadı' }
+        phone = sale.customers.phone || ''
+        rawName = sale.customers.full_name || ''
+        projectName = sale.projects?.name || 'Novo Projeleri'
+        customerId = sale.customer_id
+        projectId = sale.project_id
+    } else {
+        // 2. Try to find in leads
+        const { data: lead } = await supabase
+            .from('leads')
+            .select('*')
+            .eq('id', id)
+            .maybeSingle()
+
+        if (lead) {
+            phone = lead.phone || ''
+            rawName = lead.full_name || ''
+            isLead = true
+            leadId = lead.id
+        } else {
+            return { error: 'Kayıt bulunamadı' }
+        }
+    }
+
+    if (!phone) return { error: 'Telefon numarası eksik' }
 
     const { data: tenant } = await supabase
         .from('tenants')
@@ -2453,10 +2585,8 @@ export async function initiateAiCall(saleId: string) {
         .single()
 
     const { makeOutboundCall, getTurkishNameTitle } = await import('@/lib/vapi')
-    const rawName = sale.customers.full_name || ''
     const nameWithTitle = getTurkishNameTitle(rawName) || 'Değerli Müşterimiz'
     const customerName = nameWithTitle
-    const projectName = sale.projects?.name || 'Novo Projeleri'
     const projectDetails = tenant?.ai_knowledge_base || ''
 
     const systemPrompt = `
@@ -2490,16 +2620,22 @@ Müşterinin adı: ${customerName}. Ona ismiyle hitap et (Örn: "${customerName}
 
     const firstMessage = `Merhaba ${customerName}, ben Maya, Novo İnşaat AI satış asistanıyım. Daha önce ilgilenmiş olduğunuz ${projectName} projesi hakkında görüşmek için aramıştım, müsaitseniz kısaca bilgi aktarabilir miyim?`
 
+    const callMetadata: Record<string, any> = {
+        tenant_id: profile.tenant_id,
+        type: 'manual_call'
+    }
+    if (isLead) {
+        callMetadata.lead_id = leadId
+    } else {
+        callMetadata.sale_id = id
+        callMetadata.customer_id = customerId
+    }
+
     const result = await makeOutboundCall({
-        phoneNumber: sale.customers.phone,
+        phoneNumber: phone,
         systemPrompt,
         firstMessage,
-        metadata: {
-            sale_id: saleId,
-            customer_id: sale.customer_id,
-            tenant_id: profile.tenant_id,
-            type: 'manual_call'
-        }
+        metadata: callMetadata
     })
 
     if (!result.success) {
@@ -2510,7 +2646,8 @@ Müşterinin adı: ${customerName}. Ona ismiyle hitap et (Örn: "${customerName}
     try {
         await supabase.from('activities').insert({
             tenant_id: profile.tenant_id,
-            customer_id: sale.customer_id,
+            customer_id: customerId,
+            lead_id: leadId,
             user_id: user.id,
             type: 'Call',
             topic: 'Sales',
@@ -2587,8 +2724,8 @@ export async function syncCallResult(callId: string) {
 
         // 4. Metadata kontrol (manual_call olmalı)
         const metadata = callData.metadata
-        if (!metadata?.customer_id || !metadata?.tenant_id) {
-            return { error: 'Arama metadata bilgisi eksik (customer_id veya tenant_id)' }
+        if ((!metadata?.customer_id && !metadata?.lead_id) || !metadata?.tenant_id) {
+            return { error: 'Arama metadata bilgisi eksik (customer_id/lead_id veya tenant_id)' }
         }
 
         // 5. handleManualVapiCallResult ile timeline'ı güncelle

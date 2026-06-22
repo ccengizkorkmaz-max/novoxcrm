@@ -24,6 +24,7 @@ interface DashboardLayoutWrapperProps {
     hasOutreachModule: boolean
     isAuthorizedForSettings: boolean
     logoutForm: React.ReactNode
+    crmMode?: 'basic' | 'advance'
 }
 
 export function DashboardLayoutWrapper({
@@ -38,7 +39,8 @@ export function DashboardLayoutWrapper({
     hasBrokerModule,
     hasOutreachModule,
     isAuthorizedForSettings,
-    logoutForm
+    logoutForm,
+    crmMode = 'basic'
 }: DashboardLayoutWrapperProps) {
     const [isCollapsed, setIsCollapsed] = useState(false)
     const [mounted, setMounted] = useState(false)
@@ -127,6 +129,7 @@ export function DashboardLayoutWrapper({
                             hasBrokerModule={hasBrokerModule} 
                             hasOutreachModule={hasOutreachModule} 
                             isCollapsed={isCollapsed}
+                            crmMode={crmMode}
                         />
                     </div>
                     <div className="p-4 flex items-center justify-between gap-2" style={{ borderTopWidth: '1px', borderColor: brand.sidebarBorder }}>
@@ -177,7 +180,7 @@ export function DashboardLayoutWrapper({
                                     </div>
                                 </div>
                                 <div className="flex-1 overflow-auto py-2 scrollbar-premium">
-                                    <NovoxSidebar role={profile?.role || 'sales'} labels={sidebarLabels} tenantType={tenantType} hasBrokerModule={hasBrokerModule} hasOutreachModule={hasOutreachModule} isCollapsed={false} />
+                                    <NovoxSidebar role={profile?.role || 'sales'} labels={sidebarLabels} tenantType={tenantType} hasBrokerModule={hasBrokerModule} hasOutreachModule={hasOutreachModule} isCollapsed={false} crmMode={crmMode} />
                                 </div>
                                 <div className="px-4 py-2">
                                     <LanguageSwitcher variant="light" />

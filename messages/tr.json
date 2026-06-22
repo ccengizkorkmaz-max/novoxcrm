@@ -2360,12 +2360,14 @@
         "status": {
             "Lead": "Lead",
             "Prospect": "Fırsat",
+            "Potential": "Potansiyel",
             "Reservation": "Opsiyonlu",
             "OptionPending": "Opsiyon - Kapora Bekleniyor",
             "Proposal": "Teklif Verildi",
             "ProposalPending": "Teklif - Kapora Bekleniyor",
             "Negotiation": "Pazarlık",
             "Sold": "Teklif Onaylandı",
+            "Completed": "Kazanıldı",
             "Contract": "Sözleşme",
             "Lost": "Kaybedildi"
         },
@@ -2728,6 +2730,7 @@
             "aiVoice": "Türkçe AI sesli asistan",
             "schedule": "Çalışma saati kontrolü",
             "retry": "Akıllı yeniden deneme",
+            "branch": "Koşullu dallanma mantığı",
             "realtime": "Anlık sonuç takibi"
         }
     },

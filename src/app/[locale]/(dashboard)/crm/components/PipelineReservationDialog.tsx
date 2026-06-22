@@ -17,6 +17,7 @@ import { updateSaleToReservation, cancelReservation } from '../actions'
 import { toast } from 'sonner'
 import { Combobox } from '@/components/ui/combobox'
 import { useTranslations, useLocale } from 'next-intl'
+import { useRouter } from 'next/navigation'
 
 interface PipelineReservationDialogProps {
     saleId: string
@@ -26,12 +27,31 @@ interface PipelineReservationDialogProps {
     status?: string
     expiryDate?: string
     triggerSize?: 'default' | 'sm' | 'xs'
+    isOpen?: boolean
+    onOpenChange?: (open: boolean) => void
+    showTriggerButton?: boolean
+    onSuccess?: () => void
 }
 
-export default function PipelineReservationDialog({ saleId, currentUnitId, customerName, projects: projectsProp = [], status, expiryDate: initialExpiryDate, triggerSize }: PipelineReservationDialogProps) {
+export default function PipelineReservationDialog({ 
+    saleId, 
+    currentUnitId, 
+    customerName, 
+    projects: projectsProp = [], 
+    status, 
+    expiryDate: initialExpiryDate, 
+    triggerSize,
+    isOpen: controlledOpen,
+    onOpenChange: controlledOnOpenChange,
+    showTriggerButton = true,
+    onSuccess
+}: PipelineReservationDialogProps) {
+    const router = useRouter()
     const t = useTranslations('CRM.reservation')
     const locale = useLocale()
-    const [isOpen, setIsOpen] = useState(false)
+    const [localOpen, setLocalOpen] = useState(false)
+    const isOpen = controlledOpen !== undefined ? controlledOpen : localOpen
+    const setIsOpen = controlledOnOpenChange !== undefined ? controlledOnOpenChange : setLocalOpen
     const [selectedProjectId, setSelectedProjectId] = useState("")
     const [selectedUnitId, setSelectedUnitId] = useState(currentUnitId || "")
     const [units, setUnits] = useState<any[]>([])
@@ -126,6 +146,8 @@ export default function PipelineReservationDialog({ saleId, currentUnitId, custo
         if (res.success) {
             setIsOpen(false)
             toast.success(t('successReserve'))
+            router.refresh()
+            if (onSuccess) onSuccess()
         } else {
             toast.error(res.error || t('errorReserve'))
         }
@@ -136,6 +158,8 @@ export default function PipelineReservationDialog({ saleId, currentUnitId, custo
         if (res.success) {
             setIsOpen(false)
             toast.success(t('successCancel'))
+            router.refresh()
+            if (onSuccess) onSuccess()
         } else {
             toast.error(res.error || t('errorCancel'))
         }
@@ -143,23 +167,25 @@ export default function PipelineReservationDialog({ saleId, currentUnitId, custo
 
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
-            <DialogTrigger asChild>
-                {isReserved ? (
-                    <Button variant="outline" size={triggerSize === 'xs' ? "sm" : "sm"} className={triggerSize === 'xs' ? "gap-1 border-emerald-500 text-emerald-600 hover:bg-emerald-50 h-6 text-[10px] px-1.5" : "gap-2 border-emerald-500 text-emerald-600 hover:bg-emerald-50"}>
-                        <CalendarClock className={triggerSize === 'xs' ? "h-3.5 w-3.5" : "h-4 w-4"} />
-                        {t('buttonReserved')} {initialExpiryDate && `(${new Date(initialExpiryDate).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US')})`}
-                    </Button>
-                ) : status === (locale === 'tr' ? 'Opsiyon - Kapora Bekleniyor' : 'Option - Deposit Pending') ? (
-                    <Button variant="outline" size={triggerSize === 'xs' ? "sm" : "sm"} className={triggerSize === 'xs' ? "gap-1 border-orange-400 text-orange-600 hover:bg-orange-50 h-6 text-[10px] px-1.5" : "gap-2 border-orange-400 text-orange-600 hover:bg-orange-50"}>
-                        <CalendarClock className={triggerSize === 'xs' ? "h-3.5 w-3.5" : "h-4 w-4"} />
-                        {t('statusPending')} {initialExpiryDate && `(${new Date(initialExpiryDate).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US')})`}
-                    </Button>
-                ) : (
-                    <Button variant="outline" size={triggerSize === 'xs' ? "sm" : "sm"} className={triggerSize === 'xs' ? "gap-1 h-6 text-[10px] px-1.5" : "gap-2"}>
-                        <CalendarClock className={triggerSize === 'xs' ? "h-3.5 w-3.5" : "h-4 w-4"} /> {t('buttonReserve')}
-                    </Button>
-                )}
-            </DialogTrigger>
+            {showTriggerButton && (
+                <DialogTrigger asChild>
+                    {isReserved ? (
+                        <Button variant="outline" size={triggerSize === 'xs' ? "sm" : "sm"} className={triggerSize === 'xs' ? "gap-1 border-emerald-500 text-emerald-600 hover:bg-emerald-50 h-6 text-[10px] px-1.5" : "gap-2 border-emerald-500 text-emerald-600 hover:bg-emerald-50"}>
+                            <CalendarClock className={triggerSize === 'xs' ? "h-3.5 w-3.5" : "h-4 w-4"} />
+                            {t('buttonReserved')} {initialExpiryDate && `(${new Date(initialExpiryDate).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US')})`}
+                        </Button>
+                    ) : status === (locale === 'tr' ? 'Opsiyon - Kapora Bekleniyor' : 'Option - Deposit Pending') ? (
+                        <Button variant="outline" size={triggerSize === 'xs' ? "sm" : "sm"} className={triggerSize === 'xs' ? "gap-1 border-orange-400 text-orange-600 hover:bg-orange-50 h-6 text-[10px] px-1.5" : "gap-2 border-orange-400 text-orange-600 hover:bg-orange-50"}>
+                            <CalendarClock className={triggerSize === 'xs' ? "h-3.5 w-3.5" : "h-4 w-4"} />
+                            {t('statusPending')} {initialExpiryDate && `(${new Date(initialExpiryDate).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US')})`}
+                        </Button>
+                    ) : (
+                        <Button variant="outline" size={triggerSize === 'xs' ? "sm" : "sm"} className={triggerSize === 'xs' ? "gap-1 h-6 text-[10px] px-1.5" : "gap-2"}>
+                            <CalendarClock className={triggerSize === 'xs' ? "h-3.5 w-3.5" : "h-4 w-4"} /> {t('buttonReserve')}
+                        </Button>
+                    )}
+                </DialogTrigger>
+            )}
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>{t('title', { customerName, type: isReserved ? t('typeEdit') : t('typeNew') })}</DialogTitle>

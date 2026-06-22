@@ -139,6 +139,174 @@ export async function approveInboxItem(
         // Extract phone from message if not available in DB or overrides
         const finalPhone = overrides?.phone || inboxItem.phone || extractPhoneFromMessage(inboxItem.message)
 
+        // --- PROJECT MATCHING ---
+        // Try to match project from message if no projectId provided
+        let resolvedProjectId = inboxItem.project_id || projectId || null
+
+        if (!resolvedProjectId) {
+            const projectName = extractProjectFromMessage(inboxItem.message)
+            if (projectName) {
+                resolvedProjectId = await findProjectByName(supabase, inboxItem.tenant_id, projectName)
+                console.log(`Project match: "${projectName}" → ${resolvedProjectId || 'NOT FOUND'}`)
+            }
+        }
+
+        // Get tenant mode
+        const { data: tenant } = await supabase
+            .from('tenants')
+            .select('crm_mode, lead_assignment_mode, is_sms_notifications_enabled, sms_api_user, sms_api_password, sms_sender_id, name')
+            .eq('id', inboxItem.tenant_id)
+            .single()
+
+        const isAdvance = tenant?.crm_mode === 'advance'
+
+        if (isAdvance) {
+            // --- ADVANCED CRM MODE: CREATE/UPDATE LEAD ---
+            let leadId: string | null = null
+            let existingLeadId: string | null = null
+
+            if (finalPhone) {
+                const normalizedPhone = finalPhone.replace(/[\s\-\(\)\.]/g, '')
+                const { data: byPhone } = await supabase
+                    .from('leads')
+                    .select('id, phone')
+                    .eq('tenant_id', inboxItem.tenant_id)
+                    .not('phone', 'is', null)
+
+                if (byPhone) {
+                    const match = byPhone.find((l: any) => 
+                        l.phone && l.phone.replace(/[\s\-\(\)\.]/g, '') === normalizedPhone
+                    )
+                    if (match) {
+                        leadId = match.id
+                        existingLeadId = match.id
+                    }
+                }
+            }
+
+            if (!leadId && finalEmail) {
+                const { data: byEmail } = await supabase
+                    .from('leads')
+                    .select('id')
+                    .eq('tenant_id', inboxItem.tenant_id)
+                    .eq('email', finalEmail)
+                    .maybeSingle()
+                if (byEmail) {
+                    leadId = byEmail.id
+                    existingLeadId = byEmail.id
+                }
+            }
+
+            if (!leadId) {
+                // Determine assignment using round-robin or manual
+                let assignedTo: string | null = null
+                if (tenant?.lead_assignment_mode === 'round_robin') {
+                    const { assignLeadRoundRobin } = await import('@/lib/crm-mode')
+                    assignedTo = await assignLeadRoundRobin(inboxItem.tenant_id)
+                }
+
+                const { data: newLead, error: leadError } = await supabase
+                    .from('leads')
+                    .insert({
+                        tenant_id: inboxItem.tenant_id,
+                        full_name: finalName,
+                        phone: finalPhone || null,
+                        email: finalEmail || null,
+                        status: 'new',
+                        source: inboxItem.source || 'Gelen Kutusu',
+                        project_id: resolvedProjectId,
+                        notes: inboxItem.message,
+                        assigned_to: assignedTo
+                    })
+                    .select('id')
+                    .single()
+
+                if (leadError || !newLead) {
+                    console.error('Error creating lead from inbox:', leadError)
+                    return { success: false, error: 'Failed to create lead' }
+                }
+                leadId = newLead.id
+
+                // Trigger notification for assignment
+                if (assignedTo) {
+                    const { createNotification } = await import('@/lib/notifications/create')
+                    createNotification({
+                        tenant_id: inboxItem.tenant_id,
+                        type: 'Info',
+                        category: 'CRM',
+                        title: '🎯 Yeni Aday Atandı',
+                        message: `Gelen kutusundan yeni bir müşteri adayı (${finalName}) size atandı.`,
+                        link: '/leads',
+                        user_id: assignedTo
+                    }).catch(console.error)
+                }
+            } else {
+                // Update existing lead with project and append message to notes
+                await supabase
+                    .from('leads')
+                    .update({
+                        project_id: resolvedProjectId || undefined,
+                        notes: `${inboxItem.message}\n\n--- Ek form gönderimi ---`
+                    })
+                    .eq('id', leadId)
+            }
+
+            // Create automatic activity for lead
+            await supabase.from('activities').insert({
+                tenant_id: inboxItem.tenant_id,
+                lead_id: leadId,
+                user_id: user.id,
+                owner_id: user.id,
+                type: 'Call',
+                topic: 'Sales',
+                summary: `Web Form Takibi: ${finalName}`,
+                description: `İnbox üzerinden onaylanan yeni aday talebi: ${inboxItem.message || '-'}`,
+                due_date: new Date(Date.now() + 1 * 60 * 60 * 1000).toISOString(),
+                status: 'Planned',
+                priority: 'High'
+            })
+
+            // Update inbox item status
+            const { error: updateError } = await supabase
+                .from('inbox_items')
+                .update({
+                    status: 'approved',
+                    approved_at: new Date().toISOString(),
+                    approved_by: user.id,
+                    lead_id: leadId
+                })
+                .eq('id', inboxItemId)
+
+            if (updateError) {
+                console.error('Error updating inbox item status:', updateError)
+            }
+
+            // Send SMS Notification (Optional)
+            if (tenant?.is_sms_notifications_enabled && finalPhone && tenant.sms_api_user && tenant.sms_api_password) {
+                try {
+                    await sendPoliSms({
+                        user: tenant.sms_api_user,
+                        pass: tenant.sms_api_password,
+                        header: tenant.sms_sender_id || 'NOVOEMLAK',
+                        contacts: [finalPhone],
+                        message: `Sayın ${finalName}, talebiniz başarıyla alınmıştır. En kısa sürede sizinle iletişime geçilecektir. Teşekkürler. ${tenant.name || ''}`
+                    })
+                } catch (smsError) {
+                    console.error('Automatic SMS Error:', smsError)
+                }
+            }
+
+            revalidatePath('/[locale]/(dashboard)/inbox')
+            revalidatePath('/[locale]/(dashboard)/leads')
+
+            return {
+                success: true,
+                lead_id: leadId,
+                was_duplicate: !!existingLeadId
+            }
+        }
+
+        // --- BASIC CRM MODE: CREATE/UPDATE CUSTOMER & SALE ---
         // --- DUPLICATE DETECTION ---
         // Check by email first, then by phone
         let customerId: string | null = null
@@ -203,18 +371,6 @@ export async function approveInboxItem(
             }
             if (Object.keys(updates).length > 0) {
                 await supabase.from('customers').update(updates).eq('id', customerId)
-            }
-        }
-
-        // --- PROJECT MATCHING ---
-        // Try to match project from message if no projectId provided
-        let resolvedProjectId = inboxItem.project_id || projectId || null
-
-        if (!resolvedProjectId) {
-            const projectName = extractProjectFromMessage(inboxItem.message)
-            if (projectName) {
-                resolvedProjectId = await findProjectByName(supabase, inboxItem.tenant_id, projectName)
-                console.log(`Project match: "${projectName}" → ${resolvedProjectId || 'NOT FOUND'}`)
             }
         }
 
@@ -292,11 +448,6 @@ export async function approveInboxItem(
         }
 
         // Send SMS Notification (Optional)
-        const { data: tenant } = await supabase
-            .from('tenants')
-            .select('*')
-            .eq('id', inboxItem.tenant_id)
-            .single()
 
         if (tenant?.is_sms_notifications_enabled && finalPhone && tenant.sms_api_user && tenant.sms_api_password) {
             try {

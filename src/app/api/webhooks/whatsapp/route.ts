@@ -75,9 +75,10 @@ export async function POST(req: NextRequest) {
         // ── 2.5. Lead Atama Buton Yanıtları (Template Quick Reply) ────
         // Bu kontrol konuşma oluşturulmadan ÖNCE yapılır → AI devreye girmez
         const leadBtnNorm = normalizeTurkish(payload.message);
-        const isLeadOlumlu = leadBtnNorm === 'aradim olumlu';
-        const isLeadEle = leadBtnNorm === 'aradim ele';
-        const isLeadUlasamadim = leadBtnNorm === 'ulasamadim';
+        // Genişletilmiş buton yanıt kontrolü (Görüştüm Olumlu / Aradım Olumsuz / Aradım Ulaşamadım vb.)
+        const isLeadOlumlu = leadBtnNorm === 'aradim olumlu' || leadBtnNorm === 'gorustum olumlu' || leadBtnNorm === 'olumlu';
+        const isLeadEle = leadBtnNorm === 'aradim ele' || leadBtnNorm === 'aradim olumsuz' || leadBtnNorm === 'olumsuz' || leadBtnNorm === 'elendi' || leadBtnNorm === 'aradim, olumsuz';
+        const isLeadUlasamadim = leadBtnNorm === 'ulasamadim' || leadBtnNorm === 'aradim ulasamadim' || leadBtnNorm === 'ulasilamadi';
 
         if (isLeadOlumlu || isLeadEle || isLeadUlasamadim) {
             console.log(`🎯 Lead buton tespit edildi: "${payload.message}" → norm: "${leadBtnNorm}" | phone: ${normalizedPhone}`);
@@ -92,6 +93,153 @@ export async function POST(req: NextRequest) {
                 console.log('🔍 Rep:', repProfile ? repProfile.full_name : 'BULUNAMADI');
 
                 if (repProfile) {
+                    const isAdvance = tenantData.crm_mode === 'advance';
+
+                    if (isAdvance) {
+                        // ── ADVANCE CRM MODE: leads tablosundan son aktif lead'i çek ──
+                        const { data: recentLead } = await supabase
+                            .from('leads')
+                            .select('id, full_name, phone, email, status, source, project_id, notes')
+                            .eq('assigned_to', repProfile.id)
+                            .neq('status', 'converted')
+                            .order('created_at', { ascending: false })
+                            .limit(1)
+                            .single();
+                        console.log('🔍 Lead (Advance Mode):', recentLead ? recentLead.id : 'BULUNAMADI');
+
+                        if (recentLead) {
+                            const leadName = recentLead.full_name || 'Aday Müşteri';
+
+                            if (isLeadOlumlu) {
+                                // 1. Müşteri (customer) oluştur
+                                const { data: newCustomer, error: custErr } = await supabase
+                                    .from('customers')
+                                    .insert({
+                                        tenant_id: tenantId,
+                                        full_name: recentLead.full_name,
+                                        phone: recentLead.phone,
+                                        email: recentLead.email,
+                                        source: recentLead.source || 'WhatsApp Button',
+                                        contact_type: 'buyer',
+                                        notes: `Lead'den dönüştürüldü (WhatsApp Buton). Orijinal lead: ${recentLead.id}${recentLead.notes ? '\n' + recentLead.notes : ''}`
+                                    })
+                                    .select('id')
+                                    .single();
+
+                                if (custErr || !newCustomer) {
+                                    console.error('Customer creation error:', custErr);
+                                    await sendWhatsAppMessage(normalizedPhone, `❌ Müşteri kaydı oluşturulamadı: ${custErr?.message || 'Bilinmeyen hata'}`, tenantData.wa_phone_number_id, tenantData.wa_access_token);
+                                } else {
+                                    // 2. Lead durumunu converted yap
+                                    await supabase
+                                        .from('leads')
+                                        .update({
+                                            status: 'converted',
+                                            converted_customer_id: newCustomer.id,
+                                            converted_at: new Date().toISOString(),
+                                            updated_at: new Date().toISOString(),
+                                            sub_status: 'nitelikli'
+                                        })
+                                        .eq('id', recentLead.id);
+
+                                    // 3. Fırsat (opportunity) oluştur
+                                    await supabase
+                                        .from('opportunities')
+                                        .insert({
+                                            tenant_id: tenantId,
+                                            customer_id: newCustomer.id,
+                                            title: `${recentLead.full_name} - Fırsat`,
+                                            stage: 'prospect',
+                                            value: null,
+                                            currency: 'TRY',
+                                            assigned_to: repProfile.id,
+                                            project_id: recentLead.project_id || null,
+                                            notes: `Lead #${recentLead.id} dönüşümünden oluşturuldu (WhatsApp Buton).`,
+                                            lead_id: recentLead.id
+                                        });
+
+                                    // 4. Satış kaydı (sales) oluştur
+                                    await supabase.from('sales').insert({
+                                        tenant_id: tenantId,
+                                        customer_id: newCustomer.id,
+                                        status: 'Prospect',
+                                        project_id: recentLead.project_id || null,
+                                        description: `Lead dönüşümü (WhatsApp Buton): ${recentLead.source || 'Bilinmeyen kaynak'}`,
+                                        assigned_to: repProfile.id
+                                    });
+
+                                    // 5. Aktivite kaydet
+                                    await supabase.from('activities').insert({
+                                        customer_id: newCustomer.id,
+                                        lead_id: recentLead.id,
+                                        type: 'Whatsapp',
+                                        topic: 'Sales',
+                                        summary: 'Görüştüm Olumlu - Fırsata Dönüştürüldü',
+                                        description: 'Temsilci WhatsApp butonuna tıkladı: Görüştüm Olumlu. Aday Fırsat olarak satış yönetimine aktarıldı.',
+                                        due_date: new Date().toISOString(),
+                                        status: 'Completed',
+                                        priority: 'High'
+                                    });
+
+                                    // Temsilciye onay mesajı
+                                    await sendWhatsAppMessage(normalizedPhone, `✅ *${leadName}* → Nitelikli olarak tanımlandı ve Fırsat (Prospect) olarak Satış Yönetimine aktarıldı.`, tenantData.wa_phone_number_id, tenantData.wa_access_token);
+                                }
+                            } else if (isLeadEle) {
+                                // 1. Lead durumunu lost (elendi) yap
+                                await supabase
+                                    .from('leads')
+                                    .update({
+                                        status: 'lost',
+                                        sub_status: 'elendi',
+                                        updated_at: new Date().toISOString()
+                                    })
+                                    .eq('id', recentLead.id);
+
+                                // 2. Aktivite kaydet
+                                await supabase.from('activities').insert({
+                                    lead_id: recentLead.id,
+                                    type: 'Whatsapp',
+                                    topic: 'Sales',
+                                    summary: 'Lead Elendi',
+                                    description: 'Temsilci WhatsApp butonuna tıkladı: Aradım Olumsuz. Aday elendi olarak işaretlendi.',
+                                    due_date: new Date().toISOString(),
+                                    status: 'Completed',
+                                    priority: 'Medium'
+                                });
+
+                                // Temsilciye onay mesajı
+                                await sendWhatsAppMessage(normalizedPhone, `⛔ *${leadName}* → Aday elendi olarak işaretlendi.`, tenantData.wa_phone_number_id, tenantData.wa_access_token);
+                            } else if (isLeadUlasamadim) {
+                                // 1. Lead durumunu contacted (Arandı, İletişim kurulamadı) yap
+                                await supabase
+                                    .from('leads')
+                                    .update({
+                                        status: 'contacted',
+                                        sub_status: 'Arandı, İletişim kurulamadı',
+                                        updated_at: new Date().toISOString()
+                                    })
+                                    .eq('id', recentLead.id);
+
+                                // 2. Aktivite kaydet
+                                await supabase.from('activities').insert({
+                                    lead_id: recentLead.id,
+                                    type: 'Whatsapp',
+                                    topic: 'Sales',
+                                    summary: 'Arandı Ulaşılamadı',
+                                    description: 'Temsilci WhatsApp butonuna tıkladı: Aradım Ulaşamadım. Durum Arandı, İletişim kurulamadı olarak güncellendi.',
+                                    due_date: new Date().toISOString(),
+                                    status: 'Completed',
+                                    priority: 'Medium'
+                                });
+
+                                // Temsilciye onay mesajı
+                                await sendWhatsAppMessage(normalizedPhone, `📵 *${leadName}* → Durum 'Arandı, İletişim kurulamadı' olarak güncellendi.`, tenantData.wa_phone_number_id, tenantData.wa_access_token);
+                            }
+                            return NextResponse.json({ status: 'lead_button_processed' }, { status: 200 });
+                        }
+                    }
+
+                    // ── BASIC CRM MODE (Veya Advance Modda lead bulunamadıysa Fallback) ──
                     const { data: recentSale } = await supabase
                         .from('sales')
                         .select('id, customer_id, status, customers(full_name)')
@@ -280,13 +428,15 @@ export async function POST(req: NextRequest) {
         try {
             const { data: activeExecs } = await supabase
                 .from('outreach_executions')
-                .select('id, customer_id, customers!inner(phone)')
+                .select('id, customer_id, lead_id, customers(phone), leads(phone)')
                 .in('status', ['active', 'waiting'])
                 .limit(10);
 
             const matchingExecs = (activeExecs || []).filter((exec: any) => {
                 const custPhone = (exec.customers?.phone || '').replace(/\D/g, '');
-                return custPhone && (normalizedPhone.endsWith(custPhone) || custPhone.endsWith(normalizedPhone));
+                const leadPhone = (exec.leads?.phone || '').replace(/\D/g, '');
+                return (custPhone && (normalizedPhone.endsWith(custPhone) || custPhone.endsWith(normalizedPhone))) ||
+                       (leadPhone && (normalizedPhone.endsWith(leadPhone) || leadPhone.endsWith(normalizedPhone)));
             });
 
             for (const exec of matchingExecs) {
@@ -295,7 +445,8 @@ export async function POST(req: NextRequest) {
                     .eq('id', exec.id);
 
                 await supabase.from('activities').insert({
-                    customer_id: exec.customer_id,
+                    customer_id: exec.customer_id || null,
+                    lead_id: exec.lead_id || null,
                     type: 'Whatsapp',
                     topic: 'Sales',
                     summary: 'Outreach Yanıtı',

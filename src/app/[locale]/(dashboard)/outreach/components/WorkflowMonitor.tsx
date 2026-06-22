@@ -396,6 +396,7 @@ export function WorkflowMonitor({ workflowId, workflowName, onClose }: WorkflowM
                                         outcomeConf = { label: 'Tamamlandı', emoji: '✅' }
                                     }
                                     const StatusIcon = statusConf.icon
+                                    const contact = exec.customers || exec.leads
 
                                     return (
                                         <tr 
@@ -413,11 +414,11 @@ export function WorkflowMonitor({ workflowId, workflowName, onClose }: WorkflowM
                                                         <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                                                     </span>
                                                 )}
-                                                {exec.customers?.full_name || 'İsimsiz'}
+                                                {contact?.full_name || 'İsimsiz'}
                                             </td>
                                             <td className="p-2.5 text-muted-foreground font-mono">
-                                                {exec.customers?.phone
-                                                    ? exec.customers.phone.replace(/(\+90)(\d{3})(\d{3})(\d{2})(\d{2})/, '$1 $2 *** $5')
+                                                {contact?.phone
+                                                    ? contact.phone.replace(/(\+90)(\d{3})(\d{3})(\d{2})(\d{2})/, '$1 $2 *** $5')
                                                     : '—'}
                                             </td>
                                             <td className="p-2.5 text-center">

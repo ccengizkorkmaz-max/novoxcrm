@@ -22,6 +22,7 @@ import { Info, Plus, User, MapPin, Megaphone, UserCheck, Shield, Tag, Building2,
 import CustomerDemands from './CustomerDemands'
 import CustomerProfileTab from './CustomerProfileTab'
 import InlineProfileFields from './InlineProfileFields'
+import AddressManager from '@/components/shared/AddressManager'
 import { cn } from '@/lib/utils'
 
 export interface Customer {
@@ -54,6 +55,7 @@ export interface Customer {
     company_phone?: string
     company_website?: string
     company_email?: string
+    addresses?: any[]
 }
 
 interface CustomerEditDialogProps {
@@ -242,8 +244,8 @@ export function CustomerEditDialog({ customer, isOpen, onOpenChange }: CustomerE
                 <Tabs defaultValue="details" className="w-full flex-1 flex flex-col min-h-0">
                     <div className="px-7 py-2.5 shrink-0 border-b bg-white">
                         <TabsList className={cn(
-                            "grid max-w-lg bg-slate-100/80 p-1 rounded-xl",
-                            isCreateMode ? 'grid-cols-2' : 'grid-cols-3'
+                            "grid max-w-xl bg-slate-100/80 p-1 rounded-xl",
+                            isCreateMode ? 'grid-cols-2' : 'grid-cols-4'
                         )}>
                             <TabsTrigger value="details" className="rounded-lg font-bold text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm">
                                 Genel Bilgiler
@@ -256,6 +258,11 @@ export function CustomerEditDialog({ customer, isOpen, onOpenChange }: CustomerE
                             <TabsTrigger value="profile" className="rounded-lg font-bold text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm">
                                 Profil
                             </TabsTrigger>
+                            {!isCreateMode && (
+                                <TabsTrigger value="addresses" className="rounded-lg font-bold text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                                    Adresler
+                                </TabsTrigger>
+                            )}
                         </TabsList>
                     </div>
 
@@ -660,6 +667,11 @@ export function CustomerEditDialog({ customer, isOpen, onOpenChange }: CustomerE
                                 initialProfileData={customer.profile_data || {}}
                                 onClose={() => onOpenChange(false)}
                             />
+                        </TabsContent>
+                    )}
+                    {!isCreateMode && customer && (
+                        <TabsContent value="addresses" className="flex-1 min-h-0 data-[state=inactive]:hidden flex flex-col overflow-y-auto px-7 py-6">
+                            <AddressManager addresses={customer.addresses || []} ownerId={customer.id} ownerType="customer" />
                         </TabsContent>
                     )}
                     {isCreateMode && (

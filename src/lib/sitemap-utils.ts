@@ -72,8 +72,7 @@ function getBaseUrls(host: string): string[] {
     // Strip www if present to get the bare domain
     const bareDomain = cleanHost.replace(/^www\./, '')
     return [
-        `https://${bareDomain}`,
-        `https://www.${bareDomain}`,
+        `https://${bareDomain}`
     ]
 }
 
@@ -104,23 +103,23 @@ export async function getSitemapUrls(): Promise<MetadataRoute.Sitemap> {
         priority: number
     ) {
         return baseUrls.flatMap((base) => {
-            // Root URL (no locale prefix)
-            const rootEntry = {
+            // Turkish URL (no prefix because localePrefix is 'as-needed' and defaultLocale is tr)
+            const trEntry = {
                 url: `${base}${path || '/'}`,
                 lastModified: date,
                 changeFrequency: changeFreq,
                 priority,
                 _path: path,
             }
-            // Locale-prefixed URLs
-            const localeEntries = LOCALES.map((locale) => ({
-                url: `${base}/${locale}${path}`,
+            // English URL (with /en prefix)
+            const enEntry = {
+                url: `${base}/en${path}`,
                 lastModified: date,
                 changeFrequency: changeFreq,
                 priority,
                 _path: path,
-            }))
-            return [rootEntry, ...localeEntries]
+            }
+            return [trEntry, enEntry]
         })
     }
 
@@ -242,7 +241,7 @@ export async function getSitemapUrls(): Promise<MetadataRoute.Sitemap> {
             ...rest,
             alternates: {
                 languages: {
-                    tr: `${canonicalBaseUrl}/tr${_path}`,
+                    tr: `${canonicalBaseUrl}${_path || '/'}`,
                     en: `${canonicalBaseUrl}/en${_path}`,
                 },
             },

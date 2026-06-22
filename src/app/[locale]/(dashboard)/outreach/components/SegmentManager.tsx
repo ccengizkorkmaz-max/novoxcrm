@@ -18,22 +18,21 @@ import { aiParseSegmentFilters, type ParsedSegmentFilters } from '@/lib/ai/segme
 const SALES_STATUS_OPTIONS = ['Lead', 'Prospect', 'Potential', 'Lost', 'Customer', 'Contacted']
 const LQ_STATUS_OPTIONS = ['new', 'follow_up', 'unreachable', 'qualified', 'disqualified']
 const LQ_STATUS_LABELS: Record<string, string> = { new: 'Yeni', follow_up: 'Takipte', unreachable: 'Ulaşılamadı', qualified: 'Uygun', disqualified: 'Elendi' }
-const SOURCE_OPTIONS = [
-    { value: 'sales', label: 'Satış Pipeline' },
-    { value: 'lead_qualifications', label: 'Ön Değerlendirme' },
-]
+const LEADS_STATUS_OPTIONS = ['new', 'contacted', 'qualified', 'converted', 'lost']
+const LEADS_STATUS_LABELS: Record<string, string> = { new: 'Yeni', contacted: 'İletişime Geçildi', qualified: 'Nitelikli', converted: 'Dönüştürüldü', lost: 'Kaybedildi' }
 
 interface SegmentManagerProps {
     segments: any[]
     projects: any[]
     profiles: any[]
     tenantId: string
+    crmMode?: 'basic' | 'advance'
     onClose: () => void
     onSegmentsChange?: (segments: any[]) => void
     isStandalone?: boolean
 }
 
-export function SegmentManager({ segments: initialSegments, projects, profiles, tenantId, onClose, onSegmentsChange, isStandalone }: SegmentManagerProps) {
+export function SegmentManager({ segments: initialSegments, projects, profiles, tenantId, crmMode = 'basic', onClose, onSegmentsChange, isStandalone }: SegmentManagerProps) {
     const [segments, setSegments] = useState(initialSegments)
     const [view, setView] = useState<'list' | 'create' | 'edit'>('list')
     const [editingSegment, setEditingSegment] = useState<any>(null)
@@ -61,6 +60,14 @@ export function SegmentManager({ segments: initialSegments, projects, profiles, 
     const [aiParsing, setAiParsing] = useState(false)
     const [aiFilters, setAiFilters] = useState<ParsedSegmentFilters | null>(null)
     const [aiError, setAiError] = useState('')
+
+    const sourceOptions = [
+        { value: 'sales', label: 'Satış Pipeline' },
+        ...(crmMode === 'advance'
+            ? [{ value: 'leads', label: 'Müşteri Adayları (Leads)' }]
+            : [{ value: 'lead_qualifications', label: 'Ön Değerlendirme' }]
+        )
+    ]
 
     const resetForm = () => {
         setName('')
@@ -90,7 +97,7 @@ export function SegmentManager({ segments: initialSegments, projects, profiles, 
         setName(segment.name || '')
         setDescription(segment.description || '')
         setSource(f.source || 'sales')
-        setStatuses(f.statuses || (f.source === 'lead_qualifications' ? ['new', 'follow_up'] : ['Lead', 'Prospect']))
+        setStatuses(f.statuses || (f.source === 'lead_qualifications' ? ['new', 'follow_up'] : (f.source === 'leads' ? ['new', 'contacted'] : ['Lead', 'Prospect'])))
         setProjectId(f.project_id || '')
         setAssignedTo(f.unassigned ? 'unassigned' : f.assigned_to || 'any')
         setDateFrom(f.date_from || '')
@@ -123,12 +130,16 @@ export function SegmentManager({ segments: initialSegments, projects, profiles, 
         // Reset statuses to appropriate defaults for the new source
         if (newSource === 'lead_qualifications') {
             setStatuses(['new', 'follow_up', 'unreachable', 'qualified'])
+        } else if (newSource === 'leads') {
+            setStatuses(['new', 'contacted', 'qualified'])
         } else {
             setStatuses(['Lead', 'Prospect'])
         }
     }
 
-    const currentStatusOptions = source === 'lead_qualifications' ? LQ_STATUS_OPTIONS : SALES_STATUS_OPTIONS
+    const currentStatusOptions = source === 'lead_qualifications'
+        ? LQ_STATUS_OPTIONS
+        : (source === 'leads' ? LEADS_STATUS_OPTIONS : SALES_STATUS_OPTIONS)
 
     const handlePreview = useCallback(async () => {
         setPreviewing(true)
@@ -555,7 +566,7 @@ export function SegmentManager({ segments: initialSegments, projects, profiles, 
                         <div className="space-y-2">
                             <Label className="text-xs font-medium">Kaynak</Label>
                             <div className="flex gap-2">
-                                {SOURCE_OPTIONS.map(opt => (
+                                {sourceOptions.map(opt => (
                                     <Badge key={opt.value} variant="outline"
                                         className={`cursor-pointer text-xs px-4 py-2 transition-all hover:scale-105 ${source === opt.value
                                             ? 'bg-blue-50 dark:bg-blue-500/20 border-blue-400 dark:border-blue-500/40 text-blue-700 dark:text-blue-200 shadow-sm'
@@ -570,7 +581,7 @@ export function SegmentManager({ segments: initialSegments, projects, profiles, 
 
                         {/* Status Filter */}
                         <div className="space-y-2">
-                            <Label className="text-xs font-medium">{source === 'lead_qualifications' ? 'Ön Değerlendirme Statüleri' : 'Lead Statüleri'}</Label>
+                            <Label className="text-xs font-medium">{source === 'lead_qualifications' ? 'Ön Değerlendirme Statüleri' : (source === 'leads' ? 'Lead Statüleri' : 'Fırsat Statüleri')}</Label>
                             <div className="flex flex-wrap gap-2">
                                 {currentStatusOptions.map(s => (
                                     <Badge key={s} variant="outline"
@@ -581,7 +592,7 @@ export function SegmentManager({ segments: initialSegments, projects, profiles, 
                                         onClick={() => setStatuses(prev =>
                                             prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]
                                         )}>
-                                        {statuses.includes(s) && '✓ '}{source === 'lead_qualifications' ? (LQ_STATUS_LABELS[s] || s) : s}
+                                        {statuses.includes(s) && '✓ '}{source === 'lead_qualifications' ? (LQ_STATUS_LABELS[s] || s) : (source === 'leads' ? (LEADS_STATUS_LABELS[s] || s) : s)}
                                     </Badge>
                                 ))}
                             </div>

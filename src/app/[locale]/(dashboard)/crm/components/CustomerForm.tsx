@@ -14,6 +14,7 @@ import { Info, Plus, User, MapPin, Megaphone, UserCheck, Shield, Tag, Building2,
 import CustomerDemands from './CustomerDemands'
 import CustomerProfileTab from './CustomerProfileTab'
 import InlineProfileFields from './InlineProfileFields'
+import AddressManager from '@/components/shared/AddressManager'
 import { cn } from '@/lib/utils'
 
 export interface Customer {
@@ -46,6 +47,7 @@ export interface Customer {
     company_phone?: string
     company_website?: string
     company_email?: string
+    addresses?: any[]
 }
 
 interface CustomerFormProps {
@@ -402,38 +404,44 @@ export default function CustomerForm({ customer }: CustomerFormProps) {
 
                     {/* ── Adres Bilgileri ── */}
                     <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm hover:shadow-md transition-shadow">
-                        <div className="flex items-center gap-2.5 mb-5">
-                            <div className="h-8 w-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center">
-                                <MapPin className="h-4 w-4" />
-                            </div>
-                            <h2 className="text-sm font-black text-slate-700 uppercase tracking-wider">Adres Bilgileri</h2>
-                        </div>
-                        <div className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-1.5">
-                                    <Label className={labelClass}>İl</Label>
-                                    <Input name="city" defaultValue={customer?.city || ''} className={inputClass} placeholder="İstanbul" />
+                        {!isCreateMode && customer ? (
+                            <AddressManager addresses={customer.addresses || []} ownerId={customer.id} ownerType="customer" />
+                        ) : (
+                            <>
+                                <div className="flex items-center gap-2.5 mb-5">
+                                    <div className="h-8 w-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                                        <MapPin className="h-4 w-4" />
+                                    </div>
+                                    <h2 className="text-sm font-black text-slate-700 uppercase tracking-wider">Adres Bilgileri</h2>
                                 </div>
-                                <div className="space-y-1.5">
-                                    <Label className={labelClass}>İlçe</Label>
-                                    <Input name="district" defaultValue={customer?.district || ''} className={inputClass} placeholder="Beşiktaş" />
+                                <div className="space-y-4">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-1.5">
+                                            <Label className={labelClass}>İl</Label>
+                                            <Input name="city" defaultValue="" className={inputClass} placeholder="İstanbul" />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <Label className={labelClass}>İlçe</Label>
+                                            <Input name="district" defaultValue="" className={inputClass} placeholder="Beşiktaş" />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label className={labelClass}>Adres</Label>
+                                        <Textarea name="address" defaultValue="" className="bg-white border-slate-200 rounded-xl resize-none min-h-[80px] text-sm placeholder:text-slate-300" placeholder="Açık adres..." />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-1.5">
+                                            <Label className={labelClass}>Posta Kodu</Label>
+                                            <Input name="postal_code" defaultValue="" className={inputClass} placeholder="34000" />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <Label className={labelClass}>Ülke</Label>
+                                            <Input name="country" defaultValue="Türkiye" className={inputClass} />
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="space-y-1.5">
-                                <Label className={labelClass}>Adres</Label>
-                                <Textarea name="address" defaultValue={customer?.address || ''} className="bg-white border-slate-200 rounded-xl resize-none min-h-[80px] text-sm placeholder:text-slate-300" placeholder="Açık adres..." />
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-1.5">
-                                    <Label className={labelClass}>Posta Kodu</Label>
-                                    <Input name="postal_code" defaultValue={customer?.postal_code || ''} className={inputClass} placeholder="34000" />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <Label className={labelClass}>Ülke</Label>
-                                    <Input name="country" defaultValue={customer?.country || 'Türkiye'} className={inputClass} />
-                                </div>
-                            </div>
-                        </div>
+                            </>
+                        )}
                     </div>
 
                     {/* ── Firma Bilgileri (Kurumsal) ── */}

@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
 import { sendWhatsAppTemplate } from '@/lib/whatsapp'
 import { makeOutboundCall, normalizeToE164 } from '@/lib/vapi'
+import { getCrmMode } from '@/lib/crm-mode'
 
 export async function GET() {
     return NextResponse.json({
@@ -276,6 +277,50 @@ export async function POST(req: Request) {
         if (isFacebookAds) {
             console.log('Automating Facebook Ads lead processing...')
 
+            // ── ADVANCE MOD: leads tablosuna yönlendir ─────────────────
+            const crmMode = await getCrmMode(tenant_id)
+            if (crmMode === 'advance') {
+                const { assignLeadRoundRobin, sendLeadAssignmentNotifications } = await import('@/lib/crm-mode')
+                const assignedTo = await assignLeadRoundRobin(tenant_id)
+
+                const { data: newLead, error: leadErr } = await supabase.from('leads').insert({
+                    tenant_id,
+                    full_name: name,
+                    phone: phone || null,
+                    email: email || null,
+                    status: 'new',
+                    source: 'Facebook Ads',
+                    form_name: form_name || null,
+                    campaign_id: campaign || null,
+                    notes: finalMessage.trim() || 'Facebook Ads Lead',
+                    assigned_to: assignedTo
+                }).select('id').single()
+
+                if (leadErr) {
+                    console.error('Error creating lead (advance):', leadErr)
+                    return NextResponse.json({ error: 'Failed to create lead' }, { status: 500 })
+                }
+
+                if (assignedTo && newLead) {
+                    await sendLeadAssignmentNotifications(
+                        tenant_id,
+                        newLead.id,
+                        name,
+                        phone || null,
+                        assignedTo
+                    )
+                }
+
+                console.log('✅ Facebook Ads lead created (Advance mode):', newLead?.id)
+                revalidatePath('/[locale]/(dashboard)/leads')
+                return NextResponse.json({
+                    success: true,
+                    message: 'Lead created in advance CRM mode.',
+                    lead_id: newLead?.id,
+                    recorded_date: recordDate
+                })
+            }
+
             // ── 1. Create customer (NO DEDUPLICATION) ─────────────────
             // User request (25 Mar 2026): We completely bypassed duplicate checking. Every incoming lead creates a brand new customer.
 
@@ -534,7 +579,7 @@ ${knowledgeBase || 'Proje detayları için satış danışmanına yönlendir.'}
 
             return NextResponse.json({
                 success: true,
-                message: 'Web form lead received and queued in inbox for approval.',
+                    message: 'Web form lead received and queued in inbox for approval.',
                 queued: true
             })
         }
@@ -542,6 +587,57 @@ ${knowledgeBase || 'Proje detayları için satış danışmanına yönlendir.'}
         // Web form leads are now auto-processed (like Facebook Ads) instead of waiting for manual approval.
         // A copy is saved in inbox as 'approved' for archive/audit purposes.
         console.log('Auto-processing web form lead to CRM...')
+
+        // ── ADVANCE MOD: Web form lead'leri de leads tablosuna yönlendir ──
+        const webCrmMode = await getCrmMode(tenant_id)
+        if (webCrmMode === 'advance') {
+            const { assignLeadRoundRobin, sendLeadAssignmentNotifications } = await import('@/lib/crm-mode')
+            const assignedTo = await assignLeadRoundRobin(tenant_id)
+
+            const { data: newLead, error: leadErr } = await supabase.from('leads').insert({
+                tenant_id,
+                full_name: name,
+                phone: phone || null,
+                email: email || null,
+                status: 'new',
+                source: source || 'WEB Form',
+                form_name: form_name || null,
+                notes: finalMessage.trim() || 'Web Form Lead',
+                assigned_to: assignedTo
+            }).select('id').single()
+
+            if (leadErr) {
+                console.error('Error creating lead (advance, web form):', leadErr)
+                return NextResponse.json({ error: 'Failed to create lead' }, { status: 500 })
+            }
+
+            if (assignedTo && newLead) {
+                await sendLeadAssignmentNotifications(
+                    tenant_id,
+                    newLead.id,
+                    name,
+                    phone || null,
+                    assignedTo
+                )
+            }
+
+            // Inbox'a da arşiv kopyası kaydet
+            await supabase.from('inbox_items').insert({
+                tenant_id, name, email: email || null, phone: phone || null,
+                message: finalMessage.trim() || 'No message provided',
+                source, status: 'approved', project_id: projectId,
+                approved_at: new Date().toISOString()
+            })
+
+            console.log('✅ Web form lead created (Advance mode):', newLead?.id)
+            revalidatePath('/[locale]/(dashboard)/leads')
+            revalidatePath('/[locale]/(dashboard)/inbox')
+            return NextResponse.json({
+                success: true,
+                message: 'Web form lead created in advance CRM mode.',
+                lead_id: newLead?.id
+            })
+        }
 
         // ── 1. Customer deduplication ─────────────────
         let customerId: string | null = null

@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 
 export async function getQualifications(tenantId: string) {
@@ -167,10 +168,140 @@ export async function convertToSale(qualificationId: string, projectId: string, 
 
 export async function revertSaleToQualification(saleId: string, targetStatus: string = 'follow_up', note: string = '') {
     const supabase = await createClient()
+    const adminSupabase = createAdminClient()
     const { data: { user } } = await supabase.auth.getUser()
     
     if (!user) return { error: 'Not authenticated' }
+    
+    // Get sale data first (Respects RLS so it only returns if the user is allowed to view it)
+    const { data: saleData } = await supabase
+        .from('sales')
+        .select('*, customers(*)')
+        .eq('id', saleId)
+        .maybeSingle()
 
+    if (!saleData) return { error: 'Satış kaydı bulunamadı veya yetkiniz yok' }
+
+    // Check user role: if sales rep, must be assigned to this sale
+    const { data: userProfile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+
+    const isSales = userProfile?.role === 'sales'
+    if (isSales && saleData.assigned_to !== user.id) {
+        return { error: 'Bu kaydı geri göndermek için yetkiniz bulunmamaktadır.' }
+    }
+
+    const { data: tenant } = await supabase
+        .from('tenants')
+        .select('crm_mode')
+        .eq('id', saleData.tenant_id)
+        .single()
+
+    const isAdvance = tenant?.crm_mode === 'advance'
+
+    if (isAdvance) {
+        // Map targetStatus to lead status / sub_status
+        let leadStatus = 'new'
+        let leadSubStatus: string | null = null
+
+        if (targetStatus === 'new') {
+            leadStatus = 'new'
+        } else if (targetStatus === 'contacted') {
+            leadStatus = 'contacted'
+            leadSubStatus = 'answered'
+        } else if (targetStatus === 'follow_up') {
+            leadStatus = 'contacted'
+            leadSubStatus = 'answered'
+        } else if (targetStatus === 'unreachable') {
+            leadStatus = 'contacted'
+            leadSubStatus = 'unreachable'
+        } else if (targetStatus === 'disqualified') {
+            leadStatus = 'lost'
+        }
+
+        // 1. Check for existing lead linked to this customer
+        const { data: existingLead } = await supabase
+            .from('leads')
+            .select('id')
+            .eq('converted_customer_id', saleData.customer_id)
+            .maybeSingle()
+
+        if (existingLead) {
+            // Restore lead status and disconnect customer link
+            const { error: updateError } = await adminSupabase
+                .from('leads')
+                .update({
+                    status: leadStatus,
+                    sub_status: leadSubStatus,
+                    converted_customer_id: null,
+                    converted_at: null,
+                    notes: note ? `Ön değerlendirmeye geri gönderildi: ${note}` : 'Ön değerlendirmeye geri gönderildi.'
+                })
+                .eq('id', existingLead.id)
+            
+            if (updateError) {
+                console.error("Failed to restore existing lead:", updateError);
+                return { error: `Müşteri adayı güncellenemedi: ${updateError.message}` };
+            }
+        } else {
+            // Create a new lead from customer details
+            const { error: insertError } = await adminSupabase
+                .from('leads')
+                .insert({
+                    tenant_id: saleData.tenant_id,
+                    full_name: saleData.customers?.full_name || 'Bilinmeyen Müşteri',
+                    phone: saleData.customers?.phone || null,
+                    email: saleData.customers?.email || null,
+                    status: leadStatus,
+                    sub_status: leadSubStatus,
+                    notes: note ? `CRM'den geri gönderildi: ${note}` : 'CRM\'den geri gönderildi.',
+                    source: saleData.customers?.source || 'CRM',
+                    project_id: saleData.project_id
+                })
+            
+            if (insertError) {
+                console.error("Failed to insert new lead:", insertError);
+                return { error: `Müşteri adayı oluşturulamadı: ${insertError.message}` };
+            }
+        }
+
+        // 2. Delete the sales record (using adminSupabase to bypass deletion block for sales rep)
+        const { error: deleteError } = await adminSupabase
+            .from('sales')
+            .delete()
+            .eq('id', saleId)
+
+        if (deleteError) return { error: deleteError.message }
+
+        // 3. Delete any active opportunities for this customer
+        await adminSupabase
+            .from('opportunities')
+            .delete()
+            .eq('customer_id', saleData.customer_id)
+
+        // 4. Log the note to activities if provided
+        if (note) {
+            await adminSupabase.from('activities').insert({
+                tenant_id: saleData.tenant_id,
+                customer_id: saleData.customer_id,
+                user_id: user.id,
+                type: 'Note',
+                summary: 'Ön Değerlendirmeye İade',
+                notes: note,
+                status: 'Completed'
+            })
+        }
+
+        revalidatePath('/[locale]/(dashboard)/leads', 'page')
+        revalidatePath('/[locale]/(dashboard)/crm', 'page')
+
+        return { error: null }
+    }
+
+    // --- Basic Mode Logic ---
     // 1. Get the qualification record by sale_id
     const { data: qual, error: qualError } = await supabase
         .from('lead_qualifications')
@@ -182,8 +313,8 @@ export async function revertSaleToQualification(saleId: string, targetStatus: st
         return { error: 'Bu satış kaydı için bir ön değerlendirme geçmişi bulunamadı.' }
     }
     
-    // 2. Delete the sale record
-    const { error: deleteError } = await supabase
+    // 2. Delete the sale record (using adminSupabase to bypass deletion block)
+    const { error: deleteError } = await adminSupabase
         .from('sales')
         .delete()
         .eq('id', saleId)
@@ -191,7 +322,7 @@ export async function revertSaleToQualification(saleId: string, targetStatus: st
     if (deleteError) return { error: deleteError.message }
 
     // 3. Update the qualification record back to the targetStatus
-    const { error: updateError } = await supabase
+    const { error: updateError } = await adminSupabase
         .from('lead_qualifications')
         .update({
             status: targetStatus,
@@ -205,7 +336,7 @@ export async function revertSaleToQualification(saleId: string, targetStatus: st
     
     // 4. Log the note to activities if provided
     if (note) {
-        await supabase.from('activities').insert({
+        await adminSupabase.from('activities').insert({
             tenant_id: qual.tenant_id,
             customer_id: qual.customer_id,
             user_id: user.id,

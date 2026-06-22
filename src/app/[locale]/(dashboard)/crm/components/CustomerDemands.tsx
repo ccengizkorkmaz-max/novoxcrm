@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -18,14 +18,29 @@ interface CustomerDemandsProps {
 
 export default function CustomerDemands({ customerId, demand, onClose }: CustomerDemandsProps) {
     const t = useTranslations('Customers')
+    const containerRef = useRef<HTMLDivElement>(null)
+
+    const handleSave = async () => {
+        if (!containerRef.current) return
+        const formData = new FormData()
+        formData.set('customer_id', customerId)
+
+        // Collect all inputs/textareas from the container
+        const inputs = containerRef.current.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('input, textarea')
+        inputs.forEach(el => {
+            if (el instanceof HTMLInputElement && el.type === 'checkbox') {
+                if (el.checked) formData.append(el.name, el.value)
+            } else if (el.name) {
+                formData.set(el.name, el.value)
+            }
+        })
+
+        await saveCustomerDemand(formData)
+        if (onClose) onClose()
+    }
 
     return (
-        <form action={async (formData) => {
-            await saveCustomerDemand(formData)
-            if (onClose) onClose()
-        }} className="flex flex-col flex-1 min-h-0 h-full">
-            <input type="hidden" name="customer_id" value={customerId} />
-
+        <div ref={containerRef} className="flex flex-col flex-1 min-h-0 h-full">
             <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
@@ -98,7 +113,6 @@ export default function CustomerDemands({ customerId, demand, onClose }: Custome
                     <Textarea name="notes" placeholder={t('form.notesPlaceholder')} defaultValue={demand?.notes} />
                 </div>
             </div>
-
-        </form>
+        </div>
     )
 }

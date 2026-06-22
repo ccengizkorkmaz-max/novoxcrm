@@ -2720,6 +2720,7 @@
             "aiVoice": "Turkish AI voice assistant",
             "schedule": "Working hours control",
             "retry": "Smart retry logic",
+            "branch": "Conditional branching logic",
             "realtime": "Real-time tracking"
         }
     },

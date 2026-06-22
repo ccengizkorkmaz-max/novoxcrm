@@ -237,24 +237,54 @@ export async function processOutreachQueue() {
 
     try {
 
-        // Find executions that are due, sorted by next_action_at ascending to prevent starvation
-        const { data: dueExecutions, error } = await supabase
-            .from('outreach_executions')
-            .select(`
-            *,
-            outreach_workflows!inner(
-                id, working_hours_start, working_hours_end, working_days, timezone, is_active, conversion_goal_status, batch_size, batch_interval_seconds, computed_params
-            ),
-            customers(id, full_name, phone, email, communication_enabled),
-            sales(id, status, project_id, unit_id)
-        `)
-            .in('status', ['active', 'waiting'])
-            .lte('next_action_at', now)
-            .order('next_action_at', { ascending: true })
-            .limit(500)
+        // 1. Get all active workflows
+        const { data: activeWorkflows, error: wfErr } = await supabase
+            .from('outreach_workflows')
+            .select('id')
+            .eq('is_active', true)
 
-        if (error || !dueExecutions?.length) {
-            console.log(`[Outreach] No due executions. Error: ${error?.message || 'none'}`)
+        if (wfErr) {
+            console.error('[Outreach] Error fetching active workflows:', wfErr.message)
+            return { processed: 0, reason: 'active_workflows_fetch_error' }
+        }
+
+        if (!activeWorkflows || activeWorkflows.length === 0) {
+            console.log('[Outreach] No active workflows.')
+            return { processed: 0 }
+        }
+
+        // 2. Fetch due executions per workflow
+        let dueExecutions: any[] = []
+        for (const wf of activeWorkflows) {
+            const { data: wfExecs, error: execErr } = await supabase
+                .from('outreach_executions')
+                .select(`
+                    *,
+                    outreach_workflows!inner(
+                        id, working_hours_start, working_hours_end, working_days, timezone, is_active, conversion_goal_status, batch_size, batch_interval_seconds, computed_params
+                    ),
+                    customers(id, full_name, phone, email, communication_enabled),
+                    leads(id, full_name, phone, email, status, notes, assigned_to),
+                    sales(id, status, project_id, unit_id)
+                `)
+                .eq('workflow_id', wf.id)
+                .in('status', ['active', 'waiting'])
+                .lte('next_action_at', now)
+                .order('next_action_at', { ascending: true })
+                .limit(100)
+
+            if (execErr) {
+                console.error(`[Outreach] Error fetching executions for workflow ${wf.id}:`, execErr.message)
+                continue
+            }
+
+            if (wfExecs && wfExecs.length > 0) {
+                dueExecutions = dueExecutions.concat(wfExecs)
+            }
+        }
+
+        if (!dueExecutions.length) {
+            console.log('[Outreach] No due executions across all active workflows.')
             return { processed: 0 }
         }
 
@@ -365,11 +395,11 @@ export async function processOutreachQueue() {
             if (currentCount >= batchSize) continue
 
             // ─── Same-customer dedup guard ─────────────────────
-            // Prevent processing multiple executions for the same customer in this batch
+            // Prevent processing multiple executions for the same customer/lead in this batch
             // (this happens when restart creates duplicate executions)
-            const customerId = execution.customer_id
-            if (customerId && processedCustomerIds.has(customerId)) {
-                console.log(`[Outreach] Customer ${customerId} already processed in this batch. Skipping execution ${execution.id}`)
+            const targetId = execution.customer_id || execution.lead_id
+            if (targetId && processedCustomerIds.has(targetId)) {
+                console.log(`[Outreach] Target ${targetId} already processed in this batch. Skipping execution ${execution.id}`)
                 continue
             }
 
@@ -410,7 +440,7 @@ export async function processOutreachQueue() {
             }
 
             // Check opt-out
-            const phone = execution.customers?.phone
+            const phone = execution.customers?.phone || execution.leads?.phone
             if (phone) {
                 const { data: optout } = await supabase
                     .from('outreach_optouts')
@@ -428,8 +458,8 @@ export async function processOutreachQueue() {
             }
 
             // Check customer communication toggle
-            if (execution.customers?.communication_enabled === false) {
-                console.log(`[Outreach] ⛔ Customer ${customerId} communication disabled. Skipping execution ${execution.id}`)
+            if (execution.customers && execution.customers.communication_enabled === false) {
+                console.log(`[Outreach] ⛔ Customer ${execution.customer_id} communication disabled. Skipping execution ${execution.id}`)
                 await supabase.from('outreach_executions')
                     .update({ status: 'opted_out', completed_at: now, metadata: { ...execution.metadata, reason: 'communication_disabled' } })
                     .eq('id', execution.id)
@@ -525,7 +555,7 @@ export async function processOutreachQueue() {
 
                     // ─── Same-phone active call guard ─────────────────
                     // Check if there's already an active call to this phone number
-                    const customerPhone = execution.customers?.phone
+                    const customerPhone = execution.customers?.phone || execution.leads?.phone
                     if (customerPhone) {
                         const { count: activeCallsToPhone } = await supabase
                             .from('outreach_step_logs')
@@ -534,18 +564,21 @@ export async function processOutreachQueue() {
                             .is('completed_at', null)
                             .eq('channel', 'ai_call')
                             .eq('execution_id', execution.id)
-                        // More broadly, check via customer_id across all executions
-                        if (customerId) {
+                        
+                        // Check via customer_id or lead_id across all executions
+                        const targetId = execution.customer_id || execution.lead_id
+                        if (targetId) {
+                            const targetKey = execution.customer_id ? 'customer_id' : 'lead_id'
                             const { data: activeExecsForCustomer } = await supabase
                                 .from('outreach_step_logs')
-                                .select('id, outreach_executions!inner(customer_id)')
-                                .eq('outreach_executions.customer_id', customerId)
+                                .select(`id, outreach_executions!inner(${targetKey})`)
+                                .eq(`outreach_executions.${targetKey}`, targetId)
                                 .eq('status', 'sent')
                                 .is('completed_at', null)
                                 .eq('channel', 'ai_call')
                                 .limit(1)
                             if (activeExecsForCustomer && activeExecsForCustomer.length > 0) {
-                                console.log(`[Outreach] Customer ${customerId} already has an active call. Skipping.`)
+                                console.log(`[Outreach] Target ${targetId} already has an active call. Skipping.`)
                                 // Unlock: reset next_action_at to 2 minutes from now
                                 await supabase.from('outreach_executions')
                                     .update({ next_action_at: new Date(Date.now() + 2 * 60 * 1000).toISOString() })
@@ -566,7 +599,8 @@ export async function processOutreachQueue() {
                 if (step.action_type === 'whatsapp' || step.action_type === 'sms') {
                     waProcessedCount++
                 }
-                if (customerId) processedCustomerIds.add(customerId)
+                const targetId = execution.customer_id || execution.lead_id
+                if (targetId) processedCustomerIds.add(targetId)
                 workflowBatchCounts.set(wfId, (workflowBatchCounts.get(wfId) || 0) + 1)
             } catch (err: any) {
                 console.error(`[Outreach] Step execution error for ${execution.id}:`, err.message)
@@ -687,12 +721,13 @@ export async function processOutreachQueue() {
             const { data: nextBatch } = await supabase
                 .from('outreach_executions')
                 .select(`
-                id, workflow_id, customer_id, sale_id, current_step_order, current_retry_count,
+                id, workflow_id, customer_id, sale_id, lead_id, current_step_order, current_retry_count,
                 status, metadata, tenant_id, next_action_at,
                 outreach_workflows!inner(
                     id, working_hours_start, working_hours_end, working_days, timezone, is_active, conversion_goal_status, batch_size, batch_interval_seconds, computed_params
                 ),
                 customers(id, full_name, phone, email, communication_enabled),
+                leads(id, full_name, phone, email, status, notes, assigned_to),
                 sales(id, status, project_id, unit_id)
             `)
                 .in('status', ['active', 'waiting'])
@@ -710,7 +745,7 @@ export async function processOutreachQueue() {
                 if (batchProcessed >= newSlots) break
                 if (!(execution.outreach_workflows as any)?.is_active) continue
 
-                const phone = (execution.customers as any)?.phone
+                const phone = (execution.customers as any)?.phone || (execution.leads as any)?.phone
                 if (!phone) continue
 
                 const { data: step } = await supabase
@@ -752,7 +787,7 @@ export async function processOutreachQueue() {
 async function executeStep(execution: any, step: any) {
     const supabase = createAdminClient()
     const config: StepConfig = step.config || {}
-    const customer = execution.customers
+    const customer = execution.customers || execution.leads
     const phone = customer?.phone
 
     switch (step.action_type) {
@@ -932,6 +967,7 @@ Assistant: Görüşmek üzere, iyi günler dilerim.
                         execution_id: execution.id,
                         sale_id: execution.sale_id,
                         customer_id: execution.customer_id,
+                        lead_id: execution.lead_id,
                         customer_name: customer?.full_name,
                         tenant_id: execution.tenant_id
                     }
@@ -956,6 +992,7 @@ Assistant: Görüşmek üzere, iyi günler dilerim.
                 execution_id: execution.id,
                 sale_id: execution.sale_id,
                 customer_id: execution.customer_id,
+                lead_id: execution.lead_id,
                 customer_name: customer?.full_name,
                 tenant_id: execution.tenant_id,
             },
@@ -1034,20 +1071,25 @@ async function executeWhatsApp(execution: any, step: any, config: StepConfig, ph
     }
 
     // ─── Mükerrer WA Koruması (24 saat) ─────────────────────
-    // Aynı müşteriye aynı şablonla son 24 saatte mesaj gitmişse ATLA
+    // Aynı müşteriye/adaye aynı şablonla son 24 saatte mesaj gitmişse ATLA
     // Activities tablosundan kontrol — execution sayısından bağımsız, slice(0,200) boşluğu yok
     const templateName24h = config.template_name || ''
-    if (templateName24h && execution.customer_id) {
+    if (templateName24h && (execution.customer_id || execution.lead_id)) {
         const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-        const { count: recentWA } = await supabase
+        let query = supabase
             .from('activities')
             .select('id', { count: 'exact', head: true })
-            .eq('customer_id', execution.customer_id)
             .eq('type', 'Whatsapp')
             .ilike('description', `%${templateName24h}%`)
             .gte('created_at', twentyFourHoursAgo)
+        if (execution.customer_id) {
+            query = query.eq('customer_id', execution.customer_id)
+        } else {
+            query = query.eq('lead_id', execution.lead_id)
+        }
+        const { count: recentWA } = await query
         if (recentWA && recentWA > 0) {
-            console.log(`[Outreach] ⛔ WA mükerrer koruma (24 saat): ${execution.customer_id} müşterisine ${templateName24h} şablonu son 24 saatte zaten gönderilmiş. Atlanıyor.`)
+            console.log(`[Outreach] ⛔ WA mükerrer koruma (24 saat): ${execution.customer_id || execution.lead_id} son 24 saatte zaten gönderilmiş. Atlanıyor.`)
             await advanceToNextStep(execution, step, 'success')
             return
         }
@@ -1081,15 +1123,18 @@ async function executeWhatsApp(execution: any, step: any, config: StepConfig, ph
         // Resolve template name — either static or project-based mapping
         let templateName = config.template_name || ''
         if (config.template_map) {
-            // Fetch lead's project from lead_qualifications
-            const { data: lq } = await supabase
-                .from('lead_qualifications')
-                .select('projects(name)')
-                .eq('customer_id', execution.customer_id)
-                .order('id', { ascending: false })
-                .limit(1)
-                .single()
-            const projectName = (lq as any)?.projects?.name || ''
+            let projectName = ''
+            if (execution.customer_id) {
+                // Fetch lead's project from lead_qualifications
+                const { data: lq } = await supabase
+                    .from('lead_qualifications')
+                    .select('projects(name)')
+                    .eq('customer_id', execution.customer_id)
+                    .order('id', { ascending: false })
+                    .limit(1)
+                    .single()
+                projectName = (lq as any)?.projects?.name || ''
+            }
             templateName = config.template_map[projectName] || config.template_map['_default'] || config.template_name || ''
             console.log(`[Outreach] Template map: project="${projectName}" → template="${templateName}"`)
         }
@@ -1146,11 +1191,16 @@ async function executeWhatsApp(execution: any, step: any, config: StepConfig, ph
     })
 
     if (result.success) {
-        await touchSaleTimestamp(execution.sale_id)
+        if (execution.customer_id) {
+            await touchSaleTimestamp(execution.sale_id)
+        } else {
+            await touchLeadTimestamp(execution.lead_id)
+        }
 
         await supabase.from('activities').insert({
             tenant_id: execution.tenant_id,
             customer_id: execution.customer_id,
+            lead_id: execution.lead_id,
             type: 'Whatsapp',
             topic: 'Sales',
             summary: `💬 WhatsApp Mesajı Gönderildi (${config.template_name || 'Serbest Metin'})`,
@@ -1260,7 +1310,13 @@ async function executeSms(execution: any, step: any, config: StepConfig, phone: 
         external_id: result.messageId,
     })
 
-    if (result.success) await touchSaleTimestamp(execution.sale_id)
+    if (result.success) {
+        if (execution.customer_id) {
+            await touchSaleTimestamp(execution.sale_id)
+        } else {
+            await touchLeadTimestamp(execution.lead_id)
+        }
+    }
     await advanceToNextStep(execution, step, result.success ? 'success' : 'failure')
 }
 
@@ -1313,16 +1369,28 @@ async function executeWait(execution: any, step: any, config: StepConfig) {
 async function executeStatusUpdate(execution: any, step: any, config: StepConfig) {
     const supabase = createAdminClient()
 
-    if (config.new_status && execution.sale_id) {
-        await supabase.from('sales')
-            .update({ status: config.new_status })
-            .eq('id', execution.sale_id)
+    if (config.new_status) {
+        if (execution.sale_id) {
+            await supabase.from('sales')
+                .update({ status: config.new_status })
+                .eq('id', execution.sale_id)
+        } else if (execution.lead_id) {
+            const validStatuses = ['new', 'contacted', 'qualified', 'converted', 'lost']
+            let statusToUpdate = config.new_status.toLowerCase()
+            if (statusToUpdate === 'prospect') statusToUpdate = 'qualified'
+            if (validStatuses.includes(statusToUpdate)) {
+                await supabase.from('leads')
+                    .update({ status: statusToUpdate })
+                    .eq('id', execution.lead_id)
+            }
+        }
     }
 
-    if (config.add_note && execution.customer_id) {
+    if (config.add_note && (execution.customer_id || execution.lead_id)) {
         await supabase.from('activities').insert({
             tenant_id: execution.tenant_id,
             customer_id: execution.customer_id,
+            lead_id: execution.lead_id,
             user_id: execution.metadata?.created_by || null,
             owner_id: execution.metadata?.created_by || null,
             type: 'Note',
@@ -1341,6 +1409,7 @@ async function executeStatusUpdate(execution: any, step: any, config: StepConfig
 async function executeNotify(execution: any, step: any, config: StepConfig) {
     const supabase = createAdminClient()
     const { createNotification } = await import('@/lib/notifications/create')
+    const customer = execution.customers || execution.leads
 
     await createNotification({
         tenant_id: execution.tenant_id,
@@ -1349,8 +1418,8 @@ async function executeNotify(execution: any, step: any, config: StepConfig) {
         category: 'CRM',
         title: '📢 Outreach Bildirim',
         message: (config.notify_message || 'Outreach workflow adımı tamamlandı.')
-            .replace('{customer_name}', execution.customers?.full_name || ''),
-        link: '/crm',
+            .replace('{customer_name}', customer?.full_name || ''),
+        link: execution.customer_id ? '/crm' : '/leads',
     })
 
     await logAndAdvance(execution, step, 'sent', 'notify')
@@ -1360,9 +1429,10 @@ async function executeCondition(execution: any, step: any, config: StepConfig) {
     const supabase = createAdminClient()
     const { field, operator, value } = config as any
     const sale = execution.sales
+    const lead = execution.leads
 
     let isTrue = false
-    const actualValue = sale?.[field]
+    const actualValue = sale?.[field] || lead?.[field]
 
     if (operator === 'eq') isTrue = String(actualValue) === String(value)
     else if (operator === 'neq') isTrue = String(actualValue) !== String(value)
@@ -1382,16 +1452,23 @@ async function executeCondition(execution: any, step: any, config: StepConfig) {
 async function executeAiPersonalize(execution: any, step: any, config: StepConfig) {
     const supabase = createAdminClient()
     const { instruction } = config as any
-    const customer = execution.customers
+    const customer = execution.customers || execution.leads
     const sale = execution.sales
 
     // Fetch recent context for personalization
-    const { data: activities } = await supabase
+    let query = supabase
         .from('activities')
         .select('summary, description')
-        .eq('customer_id', customer.id)
         .order('created_at', { ascending: false })
         .limit(3)
+
+    if (execution.customer_id) {
+        query = query.eq('customer_id', execution.customer_id)
+    } else {
+        query = query.eq('lead_id', execution.lead_id)
+    }
+
+    const { data: activities } = await query
 
     const context = activities?.map(a => `${a.summary}: ${a.description}`).join('\n') || 'Geçmiş görüşme kaydı yok.'
 
@@ -1479,16 +1556,20 @@ async function handleRetryOrAdvance(execution: any, step: any, config: StepConfi
     }
 }
 
-/**
- * Update sales.updated_at so the lead exits "inactive" segments
- * after being contacted via any channel.
- */
 async function touchSaleTimestamp(saleId: string | undefined) {
     if (!saleId) return
     const supabase = createAdminClient()
     await supabase.from('sales')
         .update({ updated_at: new Date().toISOString() })
         .eq('id', saleId)
+}
+
+async function touchLeadTimestamp(leadId: string | undefined) {
+    if (!leadId) return
+    const supabase = createAdminClient()
+    await supabase.from('leads')
+        .update({ updated_at: new Date().toISOString() })
+        .eq('id', leadId)
 }
 
 async function advanceToNextStep(execution: any, step: any, outcome: string) {
@@ -1676,14 +1757,15 @@ export async function handleVapiCallResult(callData: {
 
     const logEntry = updatedLogs?.[0]
 
-    // Get execution, step and workflow with customers and sales loaded
+    // Get execution, step and workflow with customers/leads and sales loaded
     const { data: execution } = await supabase
         .from('outreach_executions')
-        .select('*, outreach_steps(*), outreach_workflows(*), customers(*), sales(*)')
+        .select('*, outreach_steps(*), outreach_workflows(*), customers(*), leads(*), sales(*)')
         .eq('id', executionId)
         .single()
 
     if (!execution) return
+    const customer = execution.customers || execution.leads
 
     // Safety checks:
     // 1. If this is an old webhook from a call that isn't the active pending call anymore
@@ -1718,17 +1800,22 @@ export async function handleVapiCallResult(callData: {
             .update({ status: 'converted', completed_at: new Date().toISOString() })
             .eq('id', executionId)
 
-        // Update lead status to Prospect (Fırsat)
+        // Update lead status
         if (execution.sale_id) {
             await supabase.from('sales')
                 .update({ status: 'Prospect' })
                 .eq('id', execution.sale_id)
+        } else if (execution.lead_id) {
+            await supabase.from('leads')
+                .update({ status: 'converted', converted_at: new Date().toISOString() })
+                .eq('id', execution.lead_id)
         }
 
         // Create activity — converted
         await supabase.from('activities').insert({
             tenant_id: execution.tenant_id,
             customer_id: execution.customer_id,
+            lead_id: execution.lead_id,
             type: 'Call',
             topic: 'Sales',
             summary: `🤖 AI Arama — Müşteri İlgilendi ✅ (${durationText})`,
@@ -1772,6 +1859,7 @@ export async function handleVapiCallResult(callData: {
         await supabase.from('activities').insert({
             tenant_id: execution.tenant_id,
             customer_id: execution.customer_id,
+            lead_id: execution.lead_id,
             type: 'Call',
             topic: 'Sales',
             summary: summary,
@@ -1781,8 +1869,12 @@ export async function handleVapiCallResult(callData: {
             priority: outcome === 'callback_requested' ? 'Medium' : (priorityMap[logStatus] || 'Low'),
         })
 
-        // Update sales.updated_at so lead exits "inactive" segments
-        await touchSaleTimestamp(execution.sale_id)
+        // Update sales/leads updated_at timestamp
+        if (execution.customer_id) {
+            await touchSaleTimestamp(execution.sale_id)
+        } else {
+            await touchLeadTimestamp(execution.lead_id)
+        }
 
         // If the customer answered and we had a successful conversation, stop the execution if workflow is configured to do so
         const stopOnResponse = execution?.outreach_workflows?.stop_on_customer_response !== false
@@ -1796,7 +1888,7 @@ export async function handleVapiCallResult(callData: {
         }
     }
 
-    // ─── AI Lead Scoring → lead_qualifications güncelleme ─────
+    // ─── AI Lead Scoring → lead_qualifications/leads güncelleme ─────
     const structuredData = callData.analysis?.structuredData
     if (structuredData?.lead_score) {
         const scoreMap: Record<string, string> = {
@@ -1807,14 +1899,6 @@ export async function handleVapiCallResult(callData: {
         }
         const newStatus = scoreMap[structuredData.lead_score] || 'follow_up'
 
-        // Check if lead_qualifications record exists
-        const { data: lqRecord } = await supabase
-            .from('lead_qualifications')
-            .select('id, assigned_to')
-            .eq('customer_id', execution.customer_id)
-            .limit(1)
-            .single()
-
         const callNotes = `🤖 AI Skor: ${structuredData.lead_score.toUpperCase()}` +
             (structuredData.notes ? ` — ${structuredData.notes}` : '') +
             (structuredData.purpose ? ` | Amaç: ${structuredData.purpose}` : '') +
@@ -1823,50 +1907,84 @@ export async function handleVapiCallResult(callData: {
 
         let assignedTo = null
 
-        if (lqRecord) {
-            assignedTo = lqRecord.assigned_to
-            await supabase
+        if (execution.customer_id) {
+            // Check if lead_qualifications record exists
+            const { data: lqRecord } = await supabase
                 .from('lead_qualifications')
+                .select('id, assigned_to')
+                .eq('customer_id', execution.customer_id)
+                .limit(1)
+                .single()
+
+            if (lqRecord) {
+                assignedTo = lqRecord.assigned_to
+                await supabase
+                    .from('lead_qualifications')
+                    .update({
+                        status: newStatus,
+                        call_notes: callNotes,
+                        updated_at: new Date().toISOString(),
+                    })
+                    .eq('id', lqRecord.id)
+            } else {
+                // Check if there is an assigned rep on sales or customer
+                const saleAssignedTo = execution.sales?.assigned_to || execution.customers?.assigned_to || null
+                assignedTo = saleAssignedTo
+
+                // Create new lead qualification record
+                await supabase
+                    .from('lead_qualifications')
+                    .insert({
+                        tenant_id: execution.tenant_id,
+                        customer_id: execution.customer_id,
+                        status: newStatus,
+                        source: 'ai_call',
+                        project_id: execution.sales?.project_id || null,
+                        interest_level: structuredData.lead_score,
+                        call_notes: callNotes,
+                        assigned_to: assignedTo,
+                        sale_id: execution.sale_id || null,
+                    })
+            }
+            console.log(`[Outreach] 📊 Lead scored: ${execution.customer_id} → ${structuredData.lead_score} (${newStatus})`)
+        } else if (execution.lead_id) {
+            const leadStatusMap: Record<string, string> = {
+                hot: 'qualified',
+                warm: 'contacted',
+                follow_up: 'contacted',
+                disqualified: 'lost'
+            }
+            const leadNewStatus = leadStatusMap[structuredData.lead_score] || 'contacted'
+            assignedTo = execution.leads?.assigned_to || null
+            
+            const oldNotes = execution.leads?.notes ? execution.leads.notes + '\n\n' : ''
+            const newNotes = oldNotes + `[Outreach AI Arama Skorlama: ${structuredData.lead_score.toUpperCase()}]\n${callNotes}`
+            
+            await supabase
+                .from('leads')
                 .update({
-                    status: newStatus,
-                    call_notes: callNotes,
-                    updated_at: new Date().toISOString(),
+                    status: leadNewStatus,
+                    notes: newNotes,
+                    updated_at: new Date().toISOString()
                 })
-                .eq('id', lqRecord.id)
-        } else {
-            // Check if there is an assigned rep on sales or customer
-            const saleAssignedTo = execution.sales?.assigned_to || execution.customers?.assigned_to || null
-            assignedTo = saleAssignedTo
-
-            // Create new lead qualification record
-            await supabase
-                .from('lead_qualifications')
-                .insert({
-                    tenant_id: execution.tenant_id,
-                    customer_id: execution.customer_id,
-                    status: newStatus,
-                    source: 'ai_call',
-                    project_id: execution.sales?.project_id || null,
-                    interest_level: structuredData.lead_score,
-                    call_notes: callNotes,
-                    assigned_to: assignedTo,
-                    sale_id: execution.sale_id || null,
-                })
+                .eq('id', execution.lead_id)
+                
+            console.log(`[Outreach] 📊 Lead scored: ${execution.lead_id} → ${structuredData.lead_score} (${leadNewStatus})`)
         }
-
-        console.log(`[Outreach] 📊 Lead scored: ${execution.customer_id} → ${structuredData.lead_score} (${newStatus})`)
 
         // ─── AUTO COMMUNICATION OFF: do_not_contact → iletişim kapat ───
         const doNotContact = structuredData?.do_not_contact === true
         if (doNotContact) {
-            await supabase
-                .from('customers')
-                .update({ communication_enabled: false })
-                .eq('id', execution.customer_id)
-            console.log(`[Outreach] 🔇 Communication disabled for customer ${execution.customer_id} — do_not_contact`)
+            if (execution.customer_id) {
+                await supabase
+                    .from('customers')
+                    .update({ communication_enabled: false })
+                    .eq('id', execution.customer_id)
+                console.log(`[Outreach] 🔇 Communication disabled for customer ${execution.customer_id} — do_not_contact`)
+            }
 
             // Opt-out kaydı + audit log
-            const custPhone = execution.customers?.phone
+            const custPhone = customer?.phone
             const normalizedCustPhone = custPhone ? normalizePhone(custPhone) : null
             if (normalizedCustPhone) {
                 await supabase.from('outreach_optouts').upsert({
@@ -1878,6 +1996,7 @@ export async function handleVapiCallResult(callData: {
             await supabase.from('outreach_optout_logs').insert({
                 tenant_id: execution.tenant_id,
                 customer_id: execution.customer_id,
+                lead_id: execution.lead_id,
                 phone: normalizedCustPhone,
                 channel: 'all',
                 action: 'opted_out',
@@ -1891,6 +2010,7 @@ export async function handleVapiCallResult(callData: {
         await supabase.from('activities').insert({
             tenant_id: execution.tenant_id,
             customer_id: execution.customer_id,
+            lead_id: execution.lead_id,
             type: 'Note',
             topic: 'Sales',
             summary: `📊 AI Lead Skor: ${structuredData.lead_score.toUpperCase()}`,
@@ -1913,12 +2033,6 @@ export async function handleVapiCallResult(callData: {
         // HOT/WARM Lead → WhatsApp notification to assigned rep + hot lead managers
         if (structuredData.lead_score === 'hot' || structuredData.lead_score === 'warm') {
             try {
-                const { data: customer } = await supabase
-                    .from('customers')
-                    .select('full_name, phone')
-                    .eq('id', execution.customer_id)
-                    .single()
-
                 const { data: tenant } = await supabase
                     .from('tenants')
                     .select('wa_phone_number_id, wa_access_token')
@@ -2007,6 +2121,7 @@ export async function handleVapiCallResult(callData: {
                 await supabase.from('activities').insert({
                     tenant_id: execution.tenant_id,
                     customer_id: execution.customer_id,
+                    lead_id: execution.lead_id,
                     owner_id: adminId,
                     type: 'Call',
                     topic: 'Sales',
@@ -2025,11 +2140,11 @@ export async function handleVapiCallResult(callData: {
                     type: 'Alert',
                     category: 'CRM',
                     title: `🔥 Atanmamış Sıcak Fırsat (AI Arama)`,
-                    message: `${execution.customers?.full_name || 'Müşteri'} yapay zeka aramasında sıcak ilgi gösterdi ancak ataması yok.`,
-                    link: `/crm?customerId=${execution.customer_id}`,
+                    message: `${customer?.full_name || 'Müşteri'} yapay zeka aramasında sıcak ilgi gösterdi ancak ataması yok.`,
+                    link: execution.customer_id ? `/crm?customerId=${execution.customer_id}` : `/leads?leadId=${execution.lead_id}`,
                 })
 
-                console.log(`[Outreach] 🔔 Unassigned lead action created for ${execution.customer_id}`)
+                console.log(`[Outreach] 🔔 Unassigned lead action created for ${execution.customer_id || execution.lead_id}`)
             } catch (err: any) {
                 console.error('[Outreach] Error creating unassigned lead action:', err.message)
             }
@@ -2042,11 +2157,12 @@ export async function handleVapiCallResult(callData: {
                 const { parseCallbackDate } = await import('@/lib/utils/parse-callback-date')
                 const callbackDueDate = parseCallbackDate(structuredData.callback_datetime)
 
-                const customerName = execution.customers?.full_name || 'Müşteri'
+                const customerName = customer?.full_name || 'Müşteri'
 
                 await supabase.from('activities').insert({
                     tenant_id: execution.tenant_id,
                     customer_id: execution.customer_id,
+                    lead_id: execution.lead_id,
                     owner_id: MAYA_USER_ID,
                     type: 'Call',
                     topic: 'Sales',
@@ -2062,7 +2178,7 @@ export async function handleVapiCallResult(callData: {
                     priority: 'High',
                 })
 
-                console.log(`[Outreach] 📞 MAYA follow-up task created for ${customerName} (${execution.customer_id}) → due: ${callbackDueDate}`)
+                console.log(`[Outreach] 📞 MAYA follow-up task created for ${customerName} (${execution.customer_id || execution.lead_id}) → due: ${callbackDueDate}`)
             } catch (followUpErr: any) {
                 console.error('[Outreach] Error creating MAYA follow-up task:', followUpErr.message)
             }
@@ -2072,17 +2188,9 @@ export async function handleVapiCallResult(callData: {
         if (structuredData.wants_catalog === true) {
             try {
                 const AYBIKE_USER_ID = '2ab043ff-da77-46d0-9977-8d6fdf1973fc'
-                const customerName = execution.customers?.full_name || 'Müşteri'
+                const customerName = customer?.full_name || 'Müşteri'
                 const projectName = structuredData.project_interested || ''
-
-                // Get customer phone
-                const { data: custData } = await supabase
-                    .from('customers')
-                    .select('phone')
-                    .eq('id', execution.customer_id)
-                    .single()
-
-                const customerPhone = custData?.phone
+                const customerPhone = customer?.phone
 
                 // Try to find project website_url from DB
                 let projectUrl: string | null = null
@@ -2131,6 +2239,7 @@ export async function handleVapiCallResult(callData: {
                     await supabase.from('activities').insert({
                         tenant_id: execution.tenant_id,
                         customer_id: execution.customer_id,
+                        lead_id: execution.lead_id,
                         owner_id: AYBIKE_USER_ID,
                         type: 'Call',
                         topic: 'Sales',
@@ -2191,8 +2300,58 @@ export async function resolveSegment(segmentId: string): Promise<string[]> {
         .single()
 
     if (!segment) return []
-
     const filters = segment.filters as any
+
+    // Leads source (Advance CRM mode) → returns lead_id list prefixed with lead:
+    if (filters.source === 'leads') {
+        const allIds: string[] = []
+        let from = 0
+        let hasMore = true
+        while (hasMore && allIds.length < 50000) {
+            let query = supabase
+                .from('leads')
+                .select('id, phone')
+                .eq('tenant_id', segment.tenant_id)
+                .range(from, from + 999)
+            if (filters.statuses?.length) query = query.in('status', filters.statuses)
+            if (filters.exclude_statuses?.length) {
+                for (const es of filters.exclude_statuses) {
+                    query = query.neq('status', es)
+                }
+            }
+            if (filters.assigned_to) {
+                if (Array.isArray(filters.assigned_to)) {
+                    query = query.in('assigned_to', filters.assigned_to)
+                } else {
+                    query = query.eq('assigned_to', filters.assigned_to)
+                }
+            }
+            if (filters.unassigned) query = query.is('assigned_to', null)
+            if (filters.date_from) query = query.gte('created_at', filters.date_from)
+            if (filters.date_to) query = query.lte('created_at', filters.date_to + 'T23:59:59')
+
+            const { data: dbLeads, error } = await query
+            if (error) {
+                console.error('[resolveSegment] error fetching leads:', error)
+                break
+            }
+            if (!dbLeads || dbLeads.length === 0) {
+                hasMore = false
+            } else {
+                for (const l of dbLeads) {
+                    if (l.phone) {
+                        allIds.push(`lead:${l.id}`)
+                    }
+                }
+                if (dbLeads.length < 1000) {
+                    hasMore = false
+                } else {
+                    from += 1000
+                }
+            }
+        }
+        return allIds
+    }
 
     // Lead Qualifications source → returns customer_id list
     if (filters.source === 'lead_qualifications' || filters.source === 'lead_qualification') {
@@ -2203,6 +2362,7 @@ export async function resolveSegment(segmentId: string): Promise<string[]> {
             let query = supabase
                 .from('lead_qualifications')
                 .select('id, customer_id, customers!inner(phone)')
+                .eq('tenant_id', segment.tenant_id)
                 .range(from, from + 999)
             if (filters.statuses?.length) query = query.in('status', filters.statuses)
             if (filters.exclude_statuses?.length) {
@@ -2251,6 +2411,7 @@ export async function resolveSegment(segmentId: string): Promise<string[]> {
         let query = supabase
             .from('sales')
             .select('id, customer_id, customers!inner(phone)')
+            .eq('tenant_id', segment.tenant_id)
             .neq('status', 'Inbox')
             .range(from, from + 999)
 
@@ -2289,7 +2450,7 @@ export async function resolveSegment(segmentId: string): Promise<string[]> {
 }
 
 /**
- * Start a workflow for a list of sale IDs
+ * Start a workflow for a list of sale/lead IDs
  */
 export async function startWorkflowForLeads(workflowId: string, leadIds: string[], tenantId: string) {
     const supabase = createAdminClient()
@@ -2313,12 +2474,27 @@ export async function startWorkflowForLeads(workflowId: string, leadIds: string[
         return chunks;
     };
 
-    // Determine source: lead_qualifications (prefixed with 'lq:') vs sales
+    // Determine source
     const isLqSource = leadIds.length > 0 && leadIds[0].startsWith('lq:')
+    const isLeadsSource = leadIds.length > 0 && leadIds[0].startsWith('lead:')
 
-    let leads: { id: string; customer_id: string }[] = []
+    let leads: { id: string; customer_id: string | null; lead_id: string | null }[] = []
 
-    if (isLqSource) {
+    if (isLeadsSource) {
+        // Leads source — IDs are leads(id) prefixed with 'lead:'
+        const rawLeadIds = leadIds.map(id => id.replace('lead:', ''))
+        const chunks = chunkArray(rawLeadIds, 150)
+        const promises = chunks.map(chunk =>
+            supabase
+                .from('leads')
+                .select('id, phone')
+                .in('id', chunk)
+                .not('phone', 'is', null)
+        )
+        const results = await Promise.all(promises)
+        const dbLeads = results.flatMap(r => r.data || [])
+        leads = dbLeads.map(l => ({ id: l.id, customer_id: null, lead_id: l.id }))
+    } else if (isLqSource) {
         // Lead qualifications source — IDs are customer_ids
         const customerIds = leadIds.map(id => id.replace('lq:', ''))
         const chunks = chunkArray(customerIds, 150)
@@ -2331,7 +2507,7 @@ export async function startWorkflowForLeads(workflowId: string, leadIds: string[
         )
         const results = await Promise.all(promises)
         const customers = results.flatMap(r => r.data || [])
-        leads = customers.map(c => ({ id: c.id, customer_id: c.id }))
+        leads = customers.map(c => ({ id: c.id, customer_id: c.id, lead_id: null }))
     } else {
         // Sales source — IDs are sale_ids
         const chunks = chunkArray(leadIds, 150)
@@ -2343,30 +2519,29 @@ export async function startWorkflowForLeads(workflowId: string, leadIds: string[
         )
         const results = await Promise.all(promises)
         const sales = results.flatMap(r => r.data || [])
-        leads = sales || []
+        leads = sales.map(s => ({ id: s.id, customer_id: s.customer_id, lead_id: null }))
     }
 
     if (!leads.length) return { started: 0 }
 
     // Check for existing active executions
-    const leadIdList = leads.map(l => l.customer_id)
+    const targetKey = isLeadsSource ? 'lead_id' : 'customer_id'
+    const leadIdList = leads.map(l => isLeadsSource ? l.lead_id : l.customer_id).filter(Boolean) as string[]
     const leadIdChunks = chunkArray(leadIdList, 150)
-    // Sadece aktif/bekleyen execution'ları engelle — tamamlanan/başarısız/durdurulan müşteriler
-    // yeni kampanyalar için tekrar workflow'a girebilir. Mükerrer mesaj koruması
-    // step-level idempotency guard'ları tarafından sağlanır (executeWhatsApp/SMS/AiCall).
+
     const existingPromises = leadIdChunks.map(chunk =>
         supabase
             .from('outreach_executions')
-            .select('customer_id')
+            .select(targetKey)
             .eq('workflow_id', workflowId)
             .in('status', ['active', 'waiting'])
-            .in('customer_id', chunk)
+            .in(targetKey, chunk)
     )
     const existingResults = await Promise.all(existingPromises)
     const existing = existingResults.flatMap(r => r.data || [])
 
-    const existingIds = new Set(existing?.map(e => e.customer_id) || [])
-    const newLeads = leads.filter(l => !existingIds.has(l.customer_id))
+    const existingIds = new Set(existing?.map((e: any) => isLeadsSource ? e.lead_id : e.customer_id) || [])
+    const newLeads = leads.filter(l => !existingIds.has(isLeadsSource ? l.lead_id : l.customer_id))
 
     if (!newLeads.length) return { started: 0, skipped: existingIds.size }
 
@@ -2374,8 +2549,9 @@ export async function startWorkflowForLeads(workflowId: string, leadIds: string[
     const executions = newLeads.map(lead => ({
         tenant_id: tenantId,
         workflow_id: workflowId,
-        sale_id: isLqSource ? null : lead.id,
+        sale_id: (isLqSource || isLeadsSource) ? null : lead.id,
         customer_id: lead.customer_id,
+        lead_id: lead.lead_id,
         current_step_id: firstStep.id,
         current_step_order: 1,
         status: 'active',

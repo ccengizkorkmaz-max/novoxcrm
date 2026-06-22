@@ -31,11 +31,12 @@ import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 
 interface AiCallDialogProps {
-    saleId: string | null
+    saleId?: string | null
+    leadId?: string | null
     onClose: () => void
 }
 
-export default function AiCallDialog({ saleId, onClose }: AiCallDialogProps) {
+export default function AiCallDialog({ saleId = null, leadId = null, onClose }: AiCallDialogProps) {
     const [isOpen, setIsOpen] = useState(false)
     const [loadingData, setLoadingData] = useState(true)
     const [modalData, setModalData] = useState<any>(null)
@@ -56,16 +57,17 @@ export default function AiCallDialog({ saleId, onClose }: AiCallDialogProps) {
 
     const transcriptEndRef = useRef<HTMLDivElement>(null)
 
-    // Open dialog when saleId is set
+    // Open dialog when saleId or leadId is set
     useEffect(() => {
-        if (saleId) {
+        const targetId = saleId || leadId
+        if (targetId) {
             setIsOpen(true)
-            loadModalData(saleId)
+            loadModalData(targetId)
         } else {
             setIsOpen(false)
             resetStates()
         }
-    }, [saleId])
+    }, [saleId, leadId])
 
     // Scroll transcript panel to bottom on update
     useEffect(() => {
@@ -177,12 +179,13 @@ export default function AiCallDialog({ saleId, onClose }: AiCallDialogProps) {
     }
 
     const executeStartCall = async () => {
+        const targetId = saleId || leadId
         console.log("[AiCallDialog] executeStartCall starting...");
         setInitiating(true)
         setCallStatus('ringing')
         try {
-            console.log("[AiCallDialog] calling initiateAiCall with saleId:", saleId);
-            const res = await initiateAiCall(saleId!)
+            console.log("[AiCallDialog] calling initiateAiCall with targetId:", targetId);
+            const res = await initiateAiCall(targetId!)
             console.log("[AiCallDialog] initiateAiCall result:", res);
             if (res.error) {
                 toast.error(res.error)

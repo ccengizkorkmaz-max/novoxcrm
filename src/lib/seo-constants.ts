@@ -31,6 +31,7 @@ export function getCanonicalBaseUrl(host: string): string {
     if (cleanHost === 'localhost' || cleanHost === '127.0.0.1') {
         return `http://${host}`
     }
-    // Each domain is its own canonical
-    return `https://${cleanHost}`
+    // Strip www. so that the bare domain is always the canonical URL
+    const bareDomain = cleanHost.replace(/^www\./, '')
+    return `https://${bareDomain}`
 }

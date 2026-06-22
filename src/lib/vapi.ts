@@ -397,8 +397,8 @@ export async function getCallStatus(callId: string): Promise<VapiCallStatus | nu
  */
 export async function stopCall(callId: string): Promise<boolean> {
     try {
-        const response = await fetch(`${VAPI_BASE_URL}/call/${callId}/stop`, {
-            method: 'POST',
+        const response = await fetch(`${VAPI_BASE_URL}/call/${callId}`, {
+            method: 'DELETE',
             headers: getVapiHeaders(),
         })
         return response.ok
@@ -770,6 +770,7 @@ export async function handleManualVapiCallResult(callData: {
     const supabase = createAdminClient()
     let customerId = callData.metadata?.customer_id
     const saleId = callData.metadata?.sale_id
+    let leadId = callData.metadata?.lead_id
     let tenantId = callData.metadata?.tenant_id
     const callerPhone = callData.metadata?.caller_phone
     let isInbound = callData.metadata?.call_direction === 'inbound'
@@ -791,7 +792,7 @@ export async function handleManualVapiCallResult(callData: {
     }
 
     // ─── Fallback 2: customerId yoksa veritabanından telefon numarasına göre eşleştir ───
-    if (!customerId) {
+    if (!customerId && !leadId) {
         let searchPhone = callerPhone
         if (!searchPhone && callData.callId) {
             const { data: inboundRecord } = await supabase
@@ -819,6 +820,19 @@ export async function handleManualVapiCallResult(callData: {
                 customerId = matchedCust.id
                 if (!tenantId) tenantId = matchedCust.tenant_id
                 console.log(`[Vapi Webhook] 📞 Customer matched via end-of-call phone fallback: ${customerId} under tenant ${tenantId}`)
+            } else {
+                const { data: matchedLead } = await supabase
+                    .from('leads')
+                    .select('id, tenant_id')
+                    .ilike('phone', `%${cleanPhone}%`)
+                    .limit(1)
+                    .maybeSingle()
+
+                if (matchedLead) {
+                    leadId = matchedLead.id
+                    if (!tenantId) tenantId = matchedLead.tenant_id
+                    console.log(`[Vapi Webhook] 📞 Lead matched via end-of-call phone fallback: ${leadId} under tenant ${tenantId}`)
+                }
             }
         }
     }
@@ -936,9 +950,9 @@ export async function handleManualVapiCallResult(callData: {
         }
     }
 
-    // ─── 1. Log to Customer Timeline (Activities) — only if customer exists ─────────
-    if (!customerId) {
-        console.log(`[Vapi Webhook] No customer_id — skipping activity/lead updates for unknown caller ${callerPhone}`)
+    // ─── 1. Log to Customer/Lead Timeline (Activities) ─────────
+    if (!customerId && !leadId) {
+        console.log(`[Vapi Webhook] No customer_id or lead_id — skipping activity/lead updates for unknown caller ${callerPhone}`)
         return // Unknown caller — inbound_calls already updated above
     }
 
@@ -970,7 +984,7 @@ export async function handleManualVapiCallResult(callData: {
         const { data: existingAct } = await supabase
             .from('activities')
             .select('id')
-            .eq('customer_id', customerId)
+            .eq(leadId ? 'lead_id' : 'customer_id', leadId || customerId)
             .ilike('description', `%[Call ID: ${callData.callId}]%`)
             .limit(1)
             .single()
@@ -986,7 +1000,8 @@ export async function handleManualVapiCallResult(callData: {
             // No existing placeholder found → insert new
             const { error } = await supabase.from('activities').insert({
                 tenant_id: tenantId,
-                customer_id: customerId,
+                customer_id: customerId || null,
+                lead_id: leadId || null,
                 type: 'Transcript',
                 topic: activityTopic,
                 due_date: new Date().toISOString(),
@@ -998,7 +1013,8 @@ export async function handleManualVapiCallResult(callData: {
         // No callId → insert new
         const { error } = await supabase.from('activities').insert({
             tenant_id: tenantId,
-            customer_id: customerId,
+            customer_id: customerId || null,
+            lead_id: leadId || null,
             type: 'Transcript',
             topic: activityTopic,
             due_date: new Date().toISOString(),
@@ -1022,6 +1038,51 @@ export async function handleManualVapiCallResult(callData: {
 
         if (Object.keys(updates).length > 0) {
             await supabase.from('sales').update(updates).eq('id', saleId)
+        }
+    }
+
+    // ─── 2.5 Update Lead (Leads Table) Status if leadId is present ─────────
+    if (leadId) {
+        const updates: any = {
+            last_call_at: new Date().toISOString(),
+            lead_score: leadScore || null,
+            updated_at: new Date().toISOString()
+        }
+
+        if (leadScore === 'hot' || leadScore === 'warm') {
+            updates.status = 'qualified'
+        } else if (leadScore === 'disqualified') {
+            updates.status = 'lost'
+        } else {
+            updates.status = 'contacted'
+            updates.sub_status = logStatus === 'answered' ? 'answered' : 'unreachable'
+        }
+
+        const { data: currentLead } = await supabase
+            .from('leads')
+            .select('notes, call_count')
+            .eq('id', leadId)
+            .single()
+
+        const currentCount = currentLead?.call_count || 0
+        updates.call_count = currentCount + 1
+
+        const timestamp = new Date().toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' });
+        const callResultLabel = logStatus === 'answered' ? 'Başarılı' : 'Ulaşılamadı';
+        const scoreLabel = leadScore ? `Skor: ${leadScore.toUpperCase()}` : 'Skorlanmadı';
+        const callNotes = `[${timestamp} - AI Arama] Sonuç: ${callResultLabel} (${scoreLabel})` + (notes ? ` - Not: ${notes}` : '');
+        
+        updates.notes = currentLead?.notes ? `${currentLead.notes}\n${callNotes}` : callNotes
+
+        const { error: leadUpdErr } = await supabase
+            .from('leads')
+            .update(updates)
+            .eq('id', leadId)
+
+        if (leadUpdErr) {
+            console.error('[Vapi Webhook] Error updating lead fields:', leadUpdErr.message)
+        } else {
+            console.log(`[Vapi Webhook] 🎯 Lead ${leadId} status updated to ${updates.status} (sub_status: ${updates.sub_status || 'none'}, score: ${leadScore})`)
         }
     }
 

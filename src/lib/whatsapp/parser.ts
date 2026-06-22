@@ -97,7 +97,7 @@ export function parseIncomingPayload(body: any): IncomingPayload | null {
  * WhatsApp → wa_phone_number_id, Messenger → fb_page_id
  */
 export async function findTenant(supabase: any, phoneNumberId: string, channel?: string) {
-    const selectFields = 'id, ai_provider, ai_api_key, ai_system_prompt, ai_assistant_instructions, ai_knowledge_base, wa_phone_number_id, wa_access_token, fb_page_id, gemini_api_key, openai_api_key, is_gemini_enabled, is_openai_enabled, gemini_model, openai_model, name';
+    const selectFields = 'id, crm_mode, ai_provider, ai_api_key, ai_system_prompt, ai_assistant_instructions, ai_knowledge_base, wa_phone_number_id, wa_access_token, fb_page_id, gemini_api_key, openai_api_key, is_gemini_enabled, is_openai_enabled, gemini_model, openai_model, name';
 
     // Messenger ise önce fb_page_id ile dene
     if (channel === 'messenger') {
@@ -147,6 +147,7 @@ export async function findOrCreateConversation(
         phoneVariants.push('0' + phone);               // 05335914389
     }
 
+    let leadId: string | null = null;
     for (const variant of phoneVariants) {
         const { data: customer } = await supabase
             .from('customers')
@@ -162,9 +163,26 @@ export async function findOrCreateConversation(
         }
     }
 
+    if (!customerId) {
+        for (const variant of phoneVariants) {
+            const { data: lead } = await supabase
+                .from('leads')
+                .select('id')
+                .eq('tenant_id', tenantId)
+                .eq('phone', variant)
+                .limit(1)
+                .single();
+            if (lead) {
+                leadId = lead.id;
+                console.log(`✅ Lead eşleşti: ${leadId} (phone: ${variant})`);
+                break;
+            }
+        }
+    }
+
     const { data: existing } = await supabase
         .from('whatsapp_conversations')
-        .select('id, ai_enabled, customer_id')
+        .select('id, ai_enabled, customer_id, lead_id')
         .eq('tenant_id', tenantId)
         .eq('phone_number', phone)
         .single();
@@ -181,6 +199,9 @@ export async function findOrCreateConversation(
         if (!existing.customer_id && customerId) {
             updateData.customer_id = customerId;
         }
+        if (!existing.lead_id && leadId) {
+            updateData.lead_id = leadId;
+        }
         
         await supabase.from('whatsapp_conversations').update(updateData).eq('id', existing.id);
 
@@ -192,6 +213,7 @@ export async function findOrCreateConversation(
         tenant_id: tenantId,
         phone_number: phone,
         customer_id: customerId, // Eşleşen müşteriyi otomatik bağla
+        lead_id: leadId,         // Eşleşen lead'i otomatik bağla
         last_message_preview: messagePreview.substring(0, 50),
         unread_count: 1,
         ai_enabled: true,

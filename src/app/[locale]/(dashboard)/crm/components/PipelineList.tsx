@@ -80,7 +80,8 @@ export default function PipelineList({
     profiles = [],
     projects = [],
     tenantType = 'developer',
-    leadOwnershipDays = 90
+    leadOwnershipDays = 90,
+    isAdvanceMode = false
 }: {
     sales: any[],
     customers: any[],
@@ -91,7 +92,8 @@ export default function PipelineList({
     profiles?: any[],
     projects?: any[],
     tenantType?: string,
-    leadOwnershipDays?: number
+    leadOwnershipDays?: number,
+    isAdvanceMode?: boolean
 }) {
     const t = useTranslations('CRM')
     const locale = useLocale()
@@ -837,7 +839,7 @@ export default function PipelineList({
                                                                 <SelectContent>
                                                                     {isBroker ? (
                                                                         <>
-                                                                            <SelectItem value="Lead"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-slate-400" />Yeni Talep</div></SelectItem>
+                                                                            {!isAdvanceMode && <SelectItem value="Lead"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-slate-400" />Yeni Talep</div></SelectItem>}
                                                                             <SelectItem value="Prospect"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-blue-500" />İletişim</div></SelectItem>
                                                                             <SelectItem value="Reservation"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-purple-500" />Gösterim</div></SelectItem>
                                                                             <SelectItem value="Proposal"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-cyan-500" />Teklif</div></SelectItem>
@@ -847,7 +849,7 @@ export default function PipelineList({
                                                                         </>
                                                                     ) : (
                                                                         <>
-                                                                            <SelectItem value="Lead"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-slate-400" />{t('status.Lead')}</div></SelectItem>
+                                                                            {!isAdvanceMode && <SelectItem value="Lead"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-slate-400" />{t('status.Lead')}</div></SelectItem>}
                                                                             <SelectItem value="Prospect"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-blue-500" />{t('status.Prospect')}</div></SelectItem>
                                                                             <SelectItem value="Reservation"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-purple-500" />{t('status.Reservation')}</div></SelectItem>
                                                                             <SelectItem value="Opsiyon - Kapora Bekleniyor"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-amber-500" />{t('status.OptionPending')}</div></SelectItem>
@@ -1154,7 +1156,7 @@ export default function PipelineList({
                                                 'Teklif - Kapora Bekleniyor': 'ProposalPending',
                                             }
                                             const key = statusKeyMap[sale.status] || sale.status
-                                            return t(`status.${key}`) || sale.status
+                                            return t.has(`status.${key}`) ? t(`status.${key}`) : sale.status
                                         })())}
                                     </div>
                                 </div>
