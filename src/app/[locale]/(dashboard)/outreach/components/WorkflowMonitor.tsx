@@ -281,7 +281,7 @@ export function WorkflowMonitor({ workflowId, workflowName, onClose }: WorkflowM
                             Kişi: <strong className="text-foreground">{workflow.computed_params.segment_size?.toLocaleString('tr-TR')}</strong>
                         </div>
                         {workflow.computed_params.warnings?.map((w: string, i: number) => (
-                            <span key={i} className="text-amber-400 text-[10px]">⚠️ {w}</span>
+                            <span key={i} className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200 font-medium">⚠️ {w}</span>
                         ))}
                     </div>
                 </Card>
