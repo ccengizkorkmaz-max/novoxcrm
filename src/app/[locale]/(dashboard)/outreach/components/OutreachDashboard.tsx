@@ -451,15 +451,20 @@ function WorkflowCard({ workflow, hasTrigger, onToggle, onEdit, onDelete, onLaun
                             {workflow._exec_stats?.total > 0 && (
                                 <div className="mt-2 space-y-1.5">
                                     <div className="flex items-center gap-3 text-xs flex-wrap">
-                                        {workflow._exec_stats.active > 0 ? (
-                                            <span className="flex items-center gap-1.5 text-amber-400">
-                                                <span className="relative flex h-2 w-2">
-                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
-                                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-400" />
+                                        {workflow._exec_stats.active > 0 ? (() => {
+                                            const pending = workflow._exec_stats.active - (workflow._exec_stats.called || 0)
+                                            return pending > 0 ? (
+                                                <span className="flex items-center gap-1.5 text-amber-400">
+                                                    <span className="relative flex h-2 w-2">
+                                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-400" />
+                                                    </span>
+                                                    {pending} bekliyor
                                                 </span>
-                                                {workflow._exec_stats.active} devam ediyor
-                                            </span>
-                                        ) : (
+                                            ) : (
+                                                <span className="text-emerald-400">✓ Tümü işlendi</span>
+                                            )
+                                        })() : (
                                             <span className="text-muted-foreground">⏸ Beklemede</span>
                                         )}
                                         {(workflow._exec_stats.called || 0) > 0 && (
