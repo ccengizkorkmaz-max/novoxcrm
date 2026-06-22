@@ -277,11 +277,11 @@ export function WorkflowBuilder({ segments, scripts, projects, profiles, tenantI
                                     const seg = segments.find(s => s.id === segmentId)
                                     const f = seg?.filters || {}
                                     return seg ? (
-                                        <div className="p-3 rounded-lg bg-emerald-500/5 border border-emerald-500/20 space-y-2">
+                                        <div className="p-3 rounded-lg bg-muted/50 border border-border space-y-2">
                                             <div className="flex items-center gap-2">
-                                                <p className="text-xs font-medium text-emerald-400">{seg.name}</p>
+                                                <p className="text-xs font-medium text-foreground">{seg.name}</p>
                                                 {segmentCount !== null && (
-                                                    <Badge variant="outline" className="text-[10px] border-emerald-500/30 text-emerald-300 bg-emerald-500/10">
+                                                    <Badge className="text-[10px] bg-emerald-600 text-white hover:bg-emerald-600">
                                                         {segmentCount} kişi
                                                     </Badge>
                                                 )}
