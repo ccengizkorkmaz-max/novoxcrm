@@ -195,7 +195,7 @@ export async function processOutreachQueue() {
 
     // ─── Global Lock: Eşzamanlı cron çalışmalarını engelle ─────
     // Tenants tablosunda ilk tenant'ın ai_outreach_settings alanında lock tutuyoruz
-    const LOCK_TIMEOUT_MS = 6 * 60 * 1000 // 6 dakika (cron 5dk'da bir, lock bundan uzun olmalı)
+    const LOCK_TIMEOUT_MS = 2 * 60 * 1000 // 2 dakika (cron 1dk'da bir, lock bundan uzun olmalı)
     const { data: lockTenant } = await supabase.from('tenants').select('id, ai_outreach_settings').limit(1).single()
 
     if (lockTenant) {
