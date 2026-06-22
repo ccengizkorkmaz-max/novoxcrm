@@ -1426,7 +1426,20 @@ export function getTurkishNameTitle(fullName: string | undefined | null): string
         'eylul', 'eylül', 'filiz', 'gonca', 'gul', 'gül', 'guzin', 'güzin', 'handan', 'hilal', 'hulya', 'hülya',
         'ipek', 'i̇pek', 'ilknur', 'leyla', 'mine', 'mualla', 'naciye', 'nermin', 'nesrin', 'nilgun', 'nilgün',
         'nur', 'nuran', 'sabiha', 'sanem', 'secil', 'seçil', 'selin', 'sevgi', 'sevim', 'seval', 'sezen', 'simge',
-        'songul', 'songül', 'sukran', 'şükran', 'tulin', 'tülin', 'umran', 'ümran', 'vildan', 'yonca', 'zuhal'
+        'songul', 'songül', 'sukran', 'şükran', 'tulin', 'tülin', 'umran', 'ümran', 'vildan', 'yonca', 'zuhal',
+        // Ek yaygın kadın isimleri
+        'sumeyye', 'sümeyye', 'rumeysa', 'rümeysa', 'ravza', 'rabia', 'sedanur', 'semanur', 'seyma', 'şeyma',
+        'aleyna', 'azra', 'defne', 'ecrin', 'esila', 'irmak', 'miray', 'nehir', 'nisa', 'zumra', 'zümra',
+        'buse', 'tugce', 'tuğçe', 'yagmur', 'yağmur', 'gulsah', 'gülşah', 'gulsen', 'gülşen', 'gulnur', 'gülnur',
+        'sevda', 'sevil', 'sevinc', 'sevinç', 'aylin', 'idil', 'inci', 'i̇nci', 'nalan', 'nazan', 'neslihan',
+        'perihan', 'reyhan', 'saadet', 'safiye', 'sakine', 'saniye', 'seher', 'serpil', 'sevtap', 'suzan',
+        'tuba', 'ulku', 'ülkü', 'yildiz', 'yıldız', 'zeliha', 'zeynab', 'zubeyde', 'zübeyde',
+        'ayca', 'ayça', 'basak', 'başak', 'belgin', 'birsen', 'ceylan', 'cigdem', 'çiğdem', 'dilan',
+        'efsun', 'fulya', 'gulseren', 'gülseren', 'hazal', 'iklim', 'ilayda', 'iclal', 'melisa',
+        'narin', 'ozden', 'özden', 'pervin', 'ruhsar', 'songul', 'songül', 'sumru', 'tanyeli',
+        'umay', 'yaren', 'zulal', 'ada', 'ayla', 'bahar', 'beril', 'derin', 'ela', 'esen',
+        'feray', 'gulbahar', 'gülbahar', 'iklim', 'kumsal', 'lara', 'meltem', 'neva', 'oya',
+        'roya', 'sude', 'tuana', 'zeynab'
     ]);
 
     const maleNames = new Set([
