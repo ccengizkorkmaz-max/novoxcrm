@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
     // Get all active workflows with segments
     const { data: workflows } = await supabase
         .from('outreach_workflows')
-        .select('id, name, segment_id, max_leads_per_day, working_hours_start, working_hours_end, working_days, tenant_id')
+        .select('id, name, segment_id, max_leads_per_day, working_hours_start, working_hours_end, working_days, tenant_id, timezone')
         .eq('is_active', true)
         .not('segment_id', 'is', null)
 
@@ -43,24 +43,68 @@ export async function GET(req: NextRequest) {
 
     for (const wf of workflows) {
         try {
+            const timezone = wf.timezone || 'Europe/Istanbul'
+            
+            // Format now in workflow's timezone to get correct day of week and date
+            const formatter = new Intl.DateTimeFormat('en-US', {
+                timeZone: timezone,
+                year: 'numeric',
+                month: 'numeric',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: 'numeric',
+                hour12: false
+            })
+
+            const parts = formatter.formatToParts(now)
+            const partMap: Record<string, string> = {}
+            parts.forEach(p => {
+                partMap[p.type] = p.value
+            })
+
+            const y = Number(partMap.year)
+            const m = Number(partMap.month)
+            const d = Number(partMap.day)
+
+            const localDateInTz = new Date(y, m - 1, d)
+            const wfCurrentDay = localDateInTz.getDay() || 7 // 1=Mon...7=Sun
+
             // Check working day
             const workingDays = wf.working_days || [1, 2, 3, 4, 5]
-            if (!workingDays.includes(currentDay)) {
+            if (!workingDays.includes(wfCurrentDay)) {
                 results.push({ workflow: wf.name, status: 'skipped', reason: 'Çalışma günü değil' })
                 continue
             }
 
-            // Check working hours
-            const startTime = (wf.working_hours_start || '09:00').substring(0, 5)
-            const endTime = (wf.working_hours_end || '19:00').substring(0, 5)
-            if (currentTime < startTime || currentTime > endTime) {
-                results.push({ workflow: wf.name, status: 'skipped', reason: `Çalışma saati dışı (${startTime}-${endTime})` })
-                continue
+            // NOTE: We do not check working hours when initializing executions.
+            // Queue engine handles working hours when executing. This allows queueing at 00:01.
+
+            // Get midnight (00:00:00) in workflow's timezone to calculate today's start
+            const getUtcTimeForTz = (year: number, month: number, day: number, hour: number, minute: number) => {
+                const guess = new Date(Date.UTC(year, month - 1, day, hour, minute))
+                const checkParts = new Intl.DateTimeFormat('en-US', {
+                    timeZone: timezone,
+                    year: 'numeric', month: 'numeric', day: 'numeric',
+                    hour: 'numeric', minute: 'numeric', second: 'numeric',
+                    hour12: false
+                }).formatToParts(guess)
+
+                const checkMap: Record<string, string> = {}
+                checkParts.forEach(p => checkMap[p.type] = p.value)
+
+                const checkDate = new Date(Date.UTC(
+                    Number(checkMap.year),
+                    Number(checkMap.month) - 1,
+                    Number(checkMap.day),
+                    Number(checkMap.hour),
+                    Number(checkMap.minute)
+                ))
+
+                const diff = guess.getTime() - checkDate.getTime()
+                return new Date(guess.getTime() + diff)
             }
 
-            // Check how many already processed today
-            const todayStart = new Date()
-            todayStart.setHours(0, 0, 0, 0)
+            const todayStart = getUtcTimeForTz(y, m, d, 0, 0)
             
             const { count: todayCount } = await supabase
                 .from('outreach_executions')
