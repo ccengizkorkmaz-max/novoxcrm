@@ -540,7 +540,7 @@
             "hotLeads": "Sıcak Lead Analizi",
             "outreachCeo": "Outreach CEO Raporu",
             "outreachCost": "Outreach Maliyet Analizi",
-            "metaAutomation": "Meta Ads & Otomasyon Sağlığı"
+            "metaAutomation": "Reklam Analitiği"
         },
         "Inbox": {
             "title": "Gelen Kutusu",
@@ -985,7 +985,7 @@
                 "description": "AI Arama ve WhatsApp kanalları bazında kampanya harcamaları, erişim başına maliyet ve yatırım getirisi raporu."
             },
             "meta-automation": {
-                "title": "Meta Ads & Otomasyon Sağlığı",
+                "title": "Reklam Analitiği",
                 "description": "Meta Reklam Formları entegrasyon durumu, Make.com senaryoları anlık durumu ve kredi/maliyet tasarruf raporu."
             },
             "ai-call-performance": {

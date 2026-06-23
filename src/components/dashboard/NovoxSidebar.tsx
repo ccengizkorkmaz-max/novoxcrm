@@ -577,7 +577,7 @@ export function NovoxSidebar({
                             {labels.reports?.outreachCost || 'Outreach Maliyet Analizi'}
                         </NavItem>
                         <NavItem href="/reports/meta-automation" icon={Zap} onClick={onElementClick} isCollapsed={isCollapsed} isSubItem>
-                            {labels.reports?.metaAutomation || 'Meta Ads & Otomasyon Sağlığı'}
+                            {labels.reports?.metaAutomation || 'Reklam Analitiği'}
                         </NavItem>
                         <NavItem href="/reports/ai-feedback" icon={Brain} onClick={onElementClick} isCollapsed={isCollapsed} isSubItem>
                             {'AI Geri Bildirim'}
@@ -662,7 +662,7 @@ export function NovoxSidebar({
                                     {labels.reports?.outreachCost || 'Outreach Maliyet Analizi'}
                                 </NavItem>
                                 <NavItem href="/reports/meta-automation" icon={Zap} onClick={onElementClick} isSubItem>
-                                    {labels.reports?.metaAutomation || 'Meta Ads & Otomasyon Sağlığı'}
+                                    {labels.reports?.metaAutomation || 'Reklam Analitiği'}
                                 </NavItem>
                                 <NavItem href="/reports/ai-feedback" icon={Brain} onClick={onElementClick} isSubItem>
                                     {'AI Geri Bildirim'}
