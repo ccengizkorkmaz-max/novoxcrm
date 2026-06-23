@@ -830,6 +830,7 @@
             "received": "Offer Received",
             "sent": "Offer Sent",
             "accepted": "Offer Accepted",
+            "contract": "Contract",
             "draft": "Draft",
             "depositPending": "Deposit Pending",
             "rejected": "Rejected",

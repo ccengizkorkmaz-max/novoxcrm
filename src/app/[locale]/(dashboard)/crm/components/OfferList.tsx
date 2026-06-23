@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { FileText, Printer, FileSignature, ReceiptText, Calculator, Trash2 } from 'lucide-react'
+import { FileText, Printer, FileSignature, ReceiptText, Calculator, Trash2, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import { formatCurrency } from '@/lib/utils'
 import {
@@ -13,8 +13,8 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog"
-
-
+import { useRouter } from 'next/navigation'
+import { updateOfferStatus } from '@/app/[locale]/(dashboard)/offers/actions'
 
 import NegotiationDialog from './NegotiationDialog'
 import ApproveOfferButton from './ApproveOfferButton'
@@ -42,8 +42,28 @@ import { useTranslations } from 'next-intl'
 
 export default function OfferList({ offers, userRole }: { offers: Offer[], userRole?: string }) {
     const t = useTranslations('Offers')
+    const router = useRouter()
     const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null)
     const [isPlanOpen, setIsPlanOpen] = useState(false)
+    const [startingContractId, setStartingContractId] = useState<string | null>(null)
+
+    const handleStartContract = async (offer: Offer) => {
+        setStartingContractId(offer.id)
+        try {
+            const res = await updateOfferStatus(offer.id, 'Contract')
+            if (res?.error) {
+                toast.error(res.error)
+                return
+            }
+            toast.success("Sözleşme süreci başlatıldı.")
+            router.push(`/contracts/new?offerId=${offer.id}&unitId=${offer.unit_id}&customerId=${offer.customer_id}`)
+        } catch (error) {
+            console.error(error)
+            toast.error("İşlem başlatılırken bir hata oluştu.")
+        } finally {
+            setStartingContractId(null)
+        }
+    }
 
     // Helper to get latest negotiation
     const getLatestNegotiation = (offer: Offer) => {
@@ -161,9 +181,6 @@ export default function OfferList({ offers, userRole }: { offers: Offer[], userR
                                                 <Button variant="ghost" size="icon" onClick={() => openPlan(offer)} title={t('actions.viewPlan')}>
                                                     <ReceiptText className="h-4 w-4 text-blue-600" />
                                                 </Button>
-                                                <Link href={`/offers/${offer.id}`} className="hidden inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 w-9">
-                                                    <FileText className="h-4 w-4" />
-                                                </Link>
                                                 <NegotiationDialog
                                                     offerId={offer.id}
                                                     currentPrice={offer.price}
@@ -171,19 +188,23 @@ export default function OfferList({ offers, userRole }: { offers: Offer[], userR
                                                     customerName={offer.customers?.full_name || ''}
                                                     unitInfo={`${offer.units?.projects?.name || ''} - ${offer.units?.unit_number || ''}`}
                                                     initialPaymentPlan={offer.payment_plan}
+                                                    offerStatus={offer.status}
                                                 />
-                                                {/* <ApproveOfferButton
-                                                    offerId={offer.id}
-                                                    customerName={offer.customers?.full_name || ''}
-                                                    unitInfo={`${offer.units?.projects?.name || ''} - ${offer.units?.unit_number || ''}`}
-                                                /> */}
                                                 {offer.status === 'Accepted' && (
-                                                    <Link href={`/contracts/new?offerId=${offer.id}&unitId=${offer.unit_id}&customerId=${offer.customer_id}`}>
-                                                        <Button variant="default" size="sm" className="bg-green-600 hover:bg-green-700 text-white">
+                                                    <Button
+                                                        variant="default"
+                                                        size="sm"
+                                                        className="bg-green-600 hover:bg-green-700 text-white"
+                                                        onClick={() => handleStartContract(offer)}
+                                                        disabled={startingContractId === offer.id}
+                                                    >
+                                                        {startingContractId === offer.id ? (
+                                                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                        ) : (
                                                             <FileSignature className="h-4 w-4 mr-2" />
-                                                            {t('actions.startContract')}
-                                                        </Button>
-                                                    </Link>
+                                                        )}
+                                                        {t('actions.startContract')}
+                                                    </Button>
                                                 )}
                                                 {(userRole === 'admin' || userRole === 'owner') && (
                                                     <Button variant="ghost" size="icon" onClick={() => handleDelete(offer.id)} title="Sil" className="hover:bg-red-50">

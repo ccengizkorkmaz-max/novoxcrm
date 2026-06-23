@@ -82,7 +82,7 @@ export default async function NewContractPage(props: {
     }
 
     // Fetch updates dependencies
-    const [projects, units, customers, activeReservations, activeOffers] = await Promise.all([
+    const [projects, units, customers, activeReservations, activeOffers, activeContracts, lockedOffers] = await Promise.all([
         supabase.from('projects').select('id, name'),
         supabase.from('units')
             .select('id, unit_number, block, project_id, price, currency')
@@ -94,25 +94,54 @@ export default async function NewContractPage(props: {
         supabase.from('offers')
             .select('unit_id, customer:customers(full_name), valid_until, total_amount, status')
             .in('status', ['Sent', 'Accepted'])
-            .order('created_at', { ascending: false })
+            .order('created_at', { ascending: false }),
+        supabase.from('contracts')
+            .select('unit_id')
+            .neq('status', 'Cancelled'),
+        supabase.from('offers')
+            .select('unit_id')
+            .in('status', ['Accepted', 'Contract'])
     ])
 
+    // Determine locked unit IDs (where contracts are active or offers are in contract/accepted status)
+    const lockedUnitIds = new Set<string>()
+    if (activeContracts.data) {
+        activeContracts.data.forEach((c: any) => {
+            if (c.unit_id) lockedUnitIds.add(c.unit_id)
+        })
+    }
+    if (lockedOffers.data) {
+        lockedOffers.data.forEach((o: any) => {
+            if (o.unit_id) {
+                // If it belongs to the current offerData we are processing, do not lock it!
+                const isCurrentOffer = offerData && (offerData.id === o.id || offerData.unit_id === o.unit_id)
+                if (!isCurrentOffer) {
+                    lockedUnitIds.add(o.unit_id)
+                }
+            }
+        })
+    }
+
+    // Filter units (exclude locked ones)
+    let finalUnits = (units.data || []).filter((u: any) => !lockedUnitIds.has(u.id))
+
     // Ensure the unit from the offer is included in the units list
-    // (It might be filtered out if status is not 'For Sale', but for a contract on an accepted offer, it should be available)
-    let finalUnits = units.data || []
     if (offerData && offerData.units) {
         const isUnitInList = finalUnits.find((u: any) => u.id === offerData.units.id)
         if (!isUnitInList) {
-            // Add the unit from the offer to the list
             finalUnits = [...finalUnits, offerData.units]
         }
     }
+
+    // Filter projects to only those that have at least one available unit
+    const availableProjectIds = new Set(finalUnits.map((u: any) => u.project_id))
+    const finalProjects = (projects.data || []).filter((p: any) => availableProjectIds.has(p.id))
 
     return (
         <div className="p-8">
             <h1 className="text-3xl font-bold tracking-tight mb-8">Yeni Sözleşme Oluştur</h1>
             <ContractForm
-                projects={projects.data || []}
+                projects={finalProjects}
                 units={finalUnits}
                 customers={customers.data || []}
                 reservations={activeReservations.data || []}

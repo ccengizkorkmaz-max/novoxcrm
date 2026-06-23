@@ -380,7 +380,7 @@ export async function cancelContract(id: string, reason?: string) {
 
         if (contractError) throw contractError
 
-        // 3. Release unit and related sales
+        // 3. Release unit, related sales, and related offer
         if (contract.unit_id) {
             // Restore unit to 'For Sale'
             const { error: unitError } = await supabase
@@ -389,6 +389,14 @@ export async function cancelContract(id: string, reason?: string) {
                 .eq('id', contract.unit_id)
 
             if (unitError) console.error('Failed to release unit during cancellation', unitError)
+
+            // Release related offer status (update from 'Contract' to 'Cancelled')
+            const { error: offerError } = await supabase
+                .from('offers')
+                .update({ status: 'Cancelled' })
+                .eq('unit_id', contract.unit_id)
+                .eq('status', 'Contract')
+            if (offerError) console.error('Failed to update offer status during contract cancellation:', offerError)
 
             // Log unit activity
             try {
@@ -505,9 +513,17 @@ export async function deleteContract(id: string) {
 
         if (!contract) throw new Error('Sözleşme bulunamadı')
 
-        // 2. Release unit
+        // 2. Release unit and related offer
         if (contract.unit_id) {
             await supabase.from('units').update({ status: 'For Sale' }).eq('id', contract.unit_id)
+
+            // Release related offer status (update from 'Contract' to 'Cancelled')
+            const { error: offerError } = await supabase
+                .from('offers')
+                .update({ status: 'Cancelled' })
+                .eq('unit_id', contract.unit_id)
+                .eq('status', 'Contract')
+            if (offerError) console.error('Failed to update offer status during contract deletion:', offerError)
 
             // Log unit activity
             try {

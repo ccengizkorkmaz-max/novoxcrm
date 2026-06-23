@@ -856,6 +856,7 @@
             "received": "Teklif Geldi",
             "sent": "Teklif Verildi",
             "accepted": "Teklif Onaylandı",
+            "contract": "Sözleşme",
             "draft": "Taslak",
             "depositPending": "Kapora Bekleniyor",
             "rejected": "Reddedildi",

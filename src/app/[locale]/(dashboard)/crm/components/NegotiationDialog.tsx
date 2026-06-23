@@ -41,9 +41,10 @@ interface NegotiationDialogProps {
     customerName: string
     unitInfo: string
     initialPaymentPlan?: any
+    offerStatus?: string
 }
 
-export default function NegotiationDialog({ offerId, currentPrice, currentCurrency, customerName, unitInfo, initialPaymentPlan }: NegotiationDialogProps) {
+export default function NegotiationDialog({ offerId, currentPrice, currentCurrency, customerName, unitInfo, initialPaymentPlan, offerStatus }: NegotiationDialogProps) {
     const t = useTranslations('Offers.dialog')
     const tMsg = useTranslations('Offers.messages')
     const tActions = useTranslations('Offers.actions')
@@ -185,7 +186,7 @@ export default function NegotiationDialog({ offerId, currentPrice, currentCurren
                     <div className="p-4 sm:p-8 space-y-6 sm:space-y-8 overflow-y-auto flex-1">
                         {/* New Proposal Form */}
                         {(() => {
-                            const isApproved = history.some(neg => neg.status === 'Approved')
+                            const isApproved = history.some(neg => neg.status === 'Approved') || offerStatus === 'Contract' || offerStatus === 'Closed'
                             return (
                                 <div className="space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                                     <div className="flex items-center justify-between mb-2">
@@ -195,16 +196,28 @@ export default function NegotiationDialog({ offerId, currentPrice, currentCurren
                                             </div>
                                             <h4 className="text-sm font-black text-slate-800 uppercase tracking-tight">{t('enterProposal')}</h4>
                                         </div>
-                                        {isApproved && (
+                                        {(offerStatus === 'Contract' || offerStatus === 'Closed' || history.some(neg => neg.status === 'Approved')) && (
                                             <Badge className="bg-emerald-500 text-white font-bold text-[10px] tracking-wide uppercase px-2.5 py-1 rounded-lg border-none shadow-sm flex items-center gap-1 select-none">
                                                 <CheckCircle2 className="w-3.5 h-3.5" /> Onaylandı
                                             </Badge>
                                         )}
                                     </div>
 
-                                    {isApproved && (
-                                        <div className="p-4 bg-amber-55/10 border border-amber-200/50 text-amber-800 text-xs font-bold rounded-2xl flex items-center gap-3 bg-amber-50">
-                                            <AlertTriangle className="h-5 w-5 text-amber-550 shrink-0 text-amber-500" />
+                                    {offerStatus === 'Contract' && (
+                                        <div className="p-4 bg-amber-50 border border-amber-200 text-amber-800 text-xs font-bold rounded-2xl flex items-center gap-3">
+                                            <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0" />
+                                            <span>Bu teklif sözleşme sürecindedir (kilitlenmiştir) ve üzerinde değişiklik yapılamaz.</span>
+                                        </div>
+                                    )}
+                                    {offerStatus === 'Closed' && (
+                                        <div className="p-4 bg-amber-50 border border-amber-200 text-amber-800 text-xs font-bold rounded-2xl flex items-center gap-3">
+                                            <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0" />
+                                            <span>Bu teklif kapatılmıştır ve üzerinde değişiklik yapılamaz.</span>
+                                        </div>
+                                    )}
+                                    {history.some(neg => neg.status === 'Approved') && offerStatus !== 'Contract' && offerStatus !== 'Closed' && (
+                                        <div className="p-4 bg-amber-50 border border-amber-200/50 text-amber-800 text-xs font-bold rounded-2xl flex items-center gap-3">
+                                            <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0" />
                                             <span>Bu teklif/pazarlık onaylanmıştır ve üzerinde değişiklik yapılamaz. Yeni planlar ancak sözleşme aşamasında oluşturulabilir.</span>
                                         </div>
                                     )}
