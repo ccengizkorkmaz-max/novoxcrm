@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Phone, Mail, Filter, MapPin, Clock, PhoneOff, Building2 } from 'lucide-react'
+import { Phone, Mail, Filter, MapPin, Clock, PhoneOff, Building2, Trash2, Loader2 } from 'lucide-react'
 import { ActivityTimeline } from '@/components/activities/activity-timeline'
 import { AiMatchWidget } from './AiMatchWidget'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -11,12 +11,13 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { ShieldCheck, Pencil, ChevronDown, ChevronUp } from 'lucide-react'
-import { Link } from '@/i18n/routing'
+import { Link, useRouter } from '@/i18n/routing'
 import { useTranslations } from 'next-intl'
 import { toast } from 'sonner'
 import { BackButton } from '@/components/back-button'
 import { Switch } from '@/components/ui/switch'
 import { toggleCommunication } from '@/app/[locale]/(dashboard)/crm/actions'
+import { Combobox } from '@/components/ui/combobox'
 
 interface CustomerViewProps {
     customer: any
@@ -46,10 +47,63 @@ const ACTIVITY_TOPICS = [
 
 export function CustomerView({ customer, activities, contracts = [], profiles = [], sales = [] }: CustomerViewProps) {
     const t = useTranslations('Customers')
+    const router = useRouter()
 
     const [isFiltersOpen, setIsFiltersOpen] = useState(false)
     const [selectedTypes, setSelectedTypes] = useState<string[]>([])
     const [selectedTopics, setSelectedTopics] = useState<string[]>([])
+
+    const [companiesList, setCompaniesList] = useState<{ id: string; name: string }[]>([])
+    const [selectedCompanyId, setSelectedCompanyId] = useState('')
+    const [loadingCompany, setLoadingCompany] = useState(false)
+
+    useEffect(() => {
+        if (!customer.company) {
+            import('@/app/[locale]/(dashboard)/companies/company-actions').then(m => {
+                m.getActiveCompanies().then(list => {
+                    setCompaniesList(list)
+                })
+            })
+        }
+    }, [customer.company])
+
+    const handleAddCompany = async () => {
+        if (!selectedCompanyId) return
+        setLoadingCompany(true)
+        try {
+            const { addContactToCompany } = await import('@/app/[locale]/(dashboard)/companies/company-actions')
+            const res = await addContactToCompany(selectedCompanyId, customer.id)
+            if (res.success) {
+                toast.success('Firma başarıyla eklendi.')
+                setSelectedCompanyId('')
+                router.refresh()
+            } else {
+                toast.error('Hata: ' + res.error)
+            }
+        } catch (err: any) {
+            toast.error(err.message || 'Firma eklenirken bir hata oluştu')
+        } finally {
+            setLoadingCompany(false)
+        }
+    }
+
+    const handleRemoveCompany = async () => {
+        setLoadingCompany(true)
+        try {
+            const { removeContactFromCompany } = await import('@/app/[locale]/(dashboard)/companies/company-actions')
+            const res = await removeContactFromCompany(customer.id)
+            if (res.success) {
+                toast.success('Firma bağlantısı kaldırıldı.')
+                router.refresh()
+            } else {
+                toast.error('Hata: ' + res.error)
+            }
+        } catch (err: any) {
+            toast.error(err.message || 'Firma kaldırılırken bir hata oluştu')
+        } finally {
+            setLoadingCompany(false)
+        }
+    }
 
     const toggleType = (type: string) => {
         setSelectedTypes(prev =>
@@ -133,20 +187,58 @@ export function CustomerView({ customer, activities, contracts = [], profiles = 
                                 <Mail className="h-4 w-4 text-muted-foreground" />
                                 <span>{customer.email || '-'}</span>
                             </div>
-                            {customer.company && (
-                                <div className="flex items-center gap-2 text-sm">
-                                    <Building2 className="h-4 w-4 text-muted-foreground animate-pulse" />
-                                    <span className="text-slate-600">
-                                        Firma:{" "}
-                                        <Link
-                                            href={`/companies/${customer.company.id}`}
-                                            className="font-semibold text-blue-600 hover:text-blue-800 hover:underline"
+                            {/* Firma İlişkisi */}
+                            <div className="pt-3 border-t border-slate-100 space-y-2">
+                                <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                                    İlişkili Firma
+                                </Label>
+                                {customer.company ? (
+                                    <div className="flex items-center justify-between bg-slate-50/60 hover:bg-slate-50 border border-slate-100 p-2.5 rounded-xl transition-all">
+                                        <div className="flex items-center gap-2 text-sm min-w-0">
+                                            <Building2 className="h-4 w-4 text-slate-500 shrink-0" />
+                                            <Link
+                                                href={`/companies/${customer.company.id}`}
+                                                className="font-semibold text-blue-600 hover:text-blue-800 hover:underline truncate"
+                                            >
+                                                {customer.company.name}
+                                            </Link>
+                                        </div>
+                                        <Button
+                                            size="icon"
+                                            variant="ghost"
+                                            className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg shrink-0"
+                                            onClick={handleRemoveCompany}
+                                            disabled={loadingCompany}
+                                            title="Firmadan Ayrıl"
                                         >
-                                            {customer.company.name}
-                                        </Link>
-                                    </span>
-                                </div>
-                            )}
+                                            {loadingCompany ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                                        </Button>
+                                    </div>
+                                ) : (
+                                    <div className="flex gap-2">
+                                        <div className="flex-1 min-w-0">
+                                            <Combobox
+                                                items={companiesList.map(c => ({
+                                                    value: c.id,
+                                                    label: c.name
+                                                }))}
+                                                value={selectedCompanyId}
+                                                onChange={setSelectedCompanyId}
+                                                placeholder="Firma seçin..."
+                                                searchPlaceholder="Firma adı ara..."
+                                            />
+                                        </div>
+                                        <Button
+                                            type="button"
+                                            onClick={handleAddCompany}
+                                            disabled={!selectedCompanyId || loadingCompany}
+                                            className="h-10 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shrink-0"
+                                        >
+                                            {loadingCompany ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Ekle'}
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
                             <div className="flex items-start gap-2 text-sm">
                                 <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
                                 <div className="space-y-0.5">
