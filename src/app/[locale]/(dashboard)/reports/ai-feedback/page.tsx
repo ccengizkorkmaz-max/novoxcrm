@@ -6,7 +6,7 @@ import { getCurrentUserRole } from '@/lib/auth'
 export const revalidate = 0
 
 interface PageProps {
-    params: Promise<{ locale: string }> | { locale: string }
+    params: Promise<{ locale: string }>
 }
 
 export default async function AIFeedbackPage({ params }: PageProps) {

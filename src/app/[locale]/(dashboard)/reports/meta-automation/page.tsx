@@ -4,8 +4,8 @@ import MetaAutomationDashboard from './MetaAutomationDashboard'
 export const revalidate = 0 // always fetch fresh analytics
 
 interface PageProps {
-    params: Promise<{ locale: string }> | { locale: string }
-    searchParams?: Promise<{ startDate?: string; endDate?: string; datePreset?: string }> | { startDate?: string; endDate?: string; datePreset?: string }
+    params: Promise<{ locale: string }>
+    searchParams?: Promise<{ startDate?: string; endDate?: string; datePreset?: string }>
 }
 
 const FALLBACK_DATA = {
