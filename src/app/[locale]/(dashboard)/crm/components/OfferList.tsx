@@ -239,13 +239,13 @@ export default function OfferList({ offers, userRole }: { offers: Offer[], userR
                                                 )}
                                                 {!['Rejected', 'Closed', 'Contract', 'Expired'].includes(offer.status) && (
                                                     <Button 
-                                                        variant="ghost" 
-                                                        size="icon" 
+                                                        variant="outline" 
+                                                        size="sm" 
                                                         onClick={() => openLostDialog(offer.id)} 
-                                                        title="Kaybedildi" 
-                                                        className="hover:bg-red-50 text-red-600 hover:text-red-700"
+                                                        className="gap-2 h-9 px-4 rounded-xl border-red-100 text-red-600 font-bold hover:bg-red-50 transition-all select-none"
                                                     >
                                                         <XCircle className="h-4 w-4" />
+                                                        <span>Kaybedildi</span>
                                                     </Button>
                                                 )}
                                                 {(userRole === 'admin' || userRole === 'owner') && (
