@@ -17,7 +17,7 @@ export default async function CustomerPage({ params }: CustomerPageProps) {
 
     const { data: customer } = await supabase
         .from('customers')
-        .select('*, customer_demands(*)')
+        .select('*, customer_demands(*), company:companies(id, name)')
         .eq('id', id)
         .single()
 

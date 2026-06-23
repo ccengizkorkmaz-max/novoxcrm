@@ -14,6 +14,8 @@ export async function updateLead(leadId: string, data: {
     assigned_to?: string | null
     notes?: string | null
     project_id?: string | null
+    company_name?: string | null
+    company_phone?: string | null
 }) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -268,6 +270,7 @@ export async function deleteLead(leadId: string) {
  */
 export async function convertLeadToCompany(leadId: string, companyData: {
     companyName: string
+    companyPhone?: string
     taxNumber?: string
     taxOffice?: string
     sector?: string
@@ -308,7 +311,7 @@ export async function convertLeadToCompany(leadId: string, companyData: {
             tax_number: companyData.taxNumber || null,
             tax_office: companyData.taxOffice || null,
             sector: companyData.sector || null,
-            phone: lead.phone,
+            phone: companyData.companyPhone || lead.phone || null,
             email: lead.email,
             notes: `Lead'den dönüştürüldü. Orijinal lead: ${lead.id}`,
             created_by: user.id,
@@ -407,6 +410,8 @@ export async function createLead(data: {
     project_id?: string | null
     assigned_to?: string | null
     notes?: string | null
+    company_name?: string | null
+    company_phone?: string | null
 }) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -432,6 +437,8 @@ export async function createLead(data: {
             project_id: data.project_id || null,
             assigned_to: data.assigned_to || null,
             notes: data.notes || null,
+            company_name: data.company_name || null,
+            company_phone: data.company_phone || null,
         })
         .select('id')
         .single()

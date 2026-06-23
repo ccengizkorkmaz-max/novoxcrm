@@ -98,6 +98,7 @@ export async function createCustomer(formData: FormData) {
     const portal_username = (formData.get('portal_username') as string)?.trim() || null
     const portal_password = (formData.get('portal_password') as string)?.trim() || null
     const customer_type = (formData.get('customer_type') as string) || 'individual'
+    const company_id = (formData.get('company_id') as string)?.trim() || null
     const company_name = (formData.get('company_name') as string)?.trim() || null
     const tax_office = (formData.get('tax_office') as string)?.trim() || null
     const tax_number = (formData.get('tax_number') as string)?.trim() || null
@@ -126,6 +127,7 @@ export async function createCustomer(formData: FormData) {
             portal_password,
             created_by: user.id,
             customer_type,
+            company_id,
             company_name,
             tax_office,
             tax_number,
@@ -442,6 +444,7 @@ export async function updateCustomer(formData: FormData) {
     const gender = (formData.get('gender') as string)?.trim() || null
     const heard_from = (formData.get('heard_from') as string)?.trim() || null
     const referral_name = (formData.get('referral_name') as string)?.trim() || null
+    const company_id = (formData.get('company_id') as string)?.trim() || null
 
     let validCreatedAt = null;
     if (created_at_input) {
@@ -470,6 +473,7 @@ export async function updateCustomer(formData: FormData) {
             gender,
             heard_from,
             referral_name,
+            company_id,
             updated_by: user.id,
             ...(validCreatedAt ? { created_at: validCreatedAt } : {})
         })
@@ -661,6 +665,51 @@ export async function createSale(formData: FormData) {
 
     if (newSaleData) {
         await syncBrokerLeadFromSale(newSaleData.id, unit_id ? 'Prospect' : 'Lead')
+
+        // Sync with Opportunities in Advance CRM Mode
+        const { data: tenant } = await supabase
+            .from('tenants')
+            .select('crm_mode')
+            .eq('id', profile?.tenant_id)
+            .single()
+
+        if (tenant?.crm_mode === 'advance') {
+            let projectName = ''
+            if (project_id) {
+                const { data: proj } = await supabase.from('projects').select('name').eq('id', project_id).single()
+                projectName = proj?.name || ''
+            }
+            const customerName = customer?.full_name || 'Fırsat'
+            const opportunityTitle = projectName ? `${customerName} - ${projectName}` : `${customerName} - Fırsat`
+
+            const statusToStageMap: Record<string, string> = {
+                'Lead': 'prospect',
+                'Prospect': 'prospect',
+                'Proposal': 'proposal',
+                'Teklif - Kapora Bekleniyor': 'proposal',
+                'Negotiation': 'negotiation',
+                'Sold': 'won',
+                'Completed': 'won',
+                'Lost': 'lost',
+                'Contract': 'negotiation',
+                'Reservation': 'reservation',
+                'Opsiyon - Kapora Bekleniyor': 'reservation'
+            }
+            const stage = statusToStageMap[newSaleData.status] || 'prospect'
+
+            await supabase.from('opportunities').insert({
+                tenant_id: profile?.tenant_id,
+                customer_id,
+                title: opportunityTitle,
+                stage,
+                project_id: project_id || null,
+                assigned_to: newSaleData.assigned_to || null,
+                value: budget || null,
+                notes: description || null
+            })
+            revalidatePath('/opportunities')
+            revalidatePath('/[locale]/(dashboard)/opportunities', 'page')
+        }
         
         // WhatsApp bilgilendirme mesajı gönder (kullanıcı isterse)
         if (sendWaMessage && customer?.phone && profile?.tenant_id) {
@@ -802,10 +851,10 @@ export async function deleteSale(saleId: string) {
         return { error: 'Bu işlem için yetkiniz yok (Sadece Admin/Owner).' }
     }
 
-    // 2. Get Sale Info (for unit_id)
+    // 2. Get Sale Info (for unit_id, customer_id, project_id)
     const { data: sale } = await supabase
         .from('sales')
-        .select('unit_id')
+        .select('unit_id, customer_id, project_id')
         .eq('id', saleId)
         .single()
 
@@ -838,22 +887,49 @@ export async function deleteSale(saleId: string) {
         await supabase.from('units').update({ status: 'For Sale' }).eq('id', sale.unit_id)
     }
 
+    // Sync: Delete opportunity if crm_mode is advance
+    if (sale.customer_id) {
+        const { data: userProfile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single()
+        if (userProfile?.tenant_id) {
+            let oppDelQuery = supabase
+                .from('opportunities')
+                .delete()
+                .eq('tenant_id', userProfile.tenant_id)
+                .eq('customer_id', sale.customer_id)
+            if (sale.project_id) {
+                oppDelQuery = oppDelQuery.eq('project_id', sale.project_id)
+            } else {
+                oppDelQuery = oppDelQuery.is('project_id', null)
+            }
+            await oppDelQuery
+            revalidatePath('/opportunities')
+            revalidatePath('/[locale]/(dashboard)/opportunities', 'page')
+        }
+    }
+
     revalidatePath('/crm')
     revalidatePath('/inventory')
 
     return { success: true }
 }
 
-export async function updateSaleStatus(id: string, status: string) {
+export async function updateSaleStatus(id: string, status: string, lostReason?: string) {
     const supabase = await createClient()
 
     // Get current user tenant
     const { data: { user } } = await supabase.auth.getUser()
     const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user?.id).single()
 
+    const updateFields: any = { status }
+    if (status === 'Lost') {
+        updateFields.lost_reason = lostReason || null
+    } else {
+        updateFields.lost_reason = null
+    }
+
     const { data: sale, error } = await supabase
         .from('sales')
-        .update({ status })
+        .update(updateFields)
         .eq('id', id)
         .select('*, customers(*), units(*)')
         .single()
@@ -899,6 +975,25 @@ export async function updateSaleStatus(id: string, status: string) {
     // If status is Lost, free up the unit
     if (status === 'Lost' && sale?.unit_id) {
         await supabase.from('units').update({ status: 'For Sale' }).eq('id', sale.unit_id)
+        
+        // Log to activity log
+        try {
+            await supabase.from('activities').insert({
+                tenant_id: profile?.tenant_id,
+                customer_id: sale.customer_id,
+                owner_id: user?.id,
+                user_id: user?.id,
+                project_id: sale.units?.project_id || null,
+                type: 'System',
+                topic: 'Satış Kapandı',
+                summary: `Satış Kaybedildi olarak işaretlendi`,
+                description: `Müşteri: ${sale.customers?.full_name || 'Bilinmiyor'}, Ünite: ${sale.units?.unit_number || ''}. Gerekçe: ${lostReason || 'Belirtilmedi'}`,
+                status: 'Completed',
+                due_date: new Date().toISOString()
+            })
+        } catch (logErr) {
+            console.error('Failed to log lost sale activity:', logErr)
+        }
     }
 
     // Sync unit status with sale pipeline stages
@@ -1002,6 +1097,81 @@ export async function updateSaleStatus(id: string, status: string) {
             })
         } catch (err) {
             console.error('System log activity error:', err)
+        }
+    }
+
+    // Sync with Opportunities in Advance CRM Mode
+    if (sale && profile?.tenant_id) {
+        const { data: tenant } = await supabase
+            .from('tenants')
+            .select('crm_mode')
+            .eq('id', profile.tenant_id)
+            .single()
+
+        if (tenant?.crm_mode === 'advance') {
+            const statusToStageMap: Record<string, string> = {
+                'Lead': 'prospect',
+                'Prospect': 'prospect',
+                'Proposal': 'proposal',
+                'Teklif - Kapora Bekleniyor': 'proposal',
+                'Negotiation': 'negotiation',
+                'Sold': 'won',
+                'Completed': 'won',
+                'Lost': 'lost',
+                'Contract': 'negotiation',
+                'Reservation': 'reservation',
+                'Opsiyon - Kapora Bekleniyor': 'reservation'
+            }
+            const newStage = statusToStageMap[status] || 'prospect'
+
+            // Try to find an existing opportunity
+            let oppFetchQuery = supabase
+                .from('opportunities')
+                .select('id')
+                .eq('tenant_id', profile.tenant_id)
+                .eq('customer_id', sale.customer_id)
+
+            if (sale.project_id) {
+                oppFetchQuery = oppFetchQuery.eq('project_id', sale.project_id)
+            } else {
+                oppFetchQuery = oppFetchQuery.is('project_id', null)
+            }
+
+            const { data: existingOpp } = await oppFetchQuery.maybeSingle()
+
+            if (existingOpp) {
+                // Update
+                await supabase
+                    .from('opportunities')
+                    .update({
+                        stage: newStage,
+                        assigned_to: sale.assigned_to || null,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', existingOpp.id)
+            } else {
+                // Create
+                let projectName = ''
+                if (sale.project_id) {
+                    const { data: proj } = await supabase.from('projects').select('name').eq('id', sale.project_id).single()
+                    projectName = proj?.name || ''
+                }
+                const customerName = sale.customers?.full_name || 'Fırsat'
+                const opportunityTitle = projectName ? `${customerName} - ${projectName}` : `${customerName} - Fırsat`
+
+                await supabase.from('opportunities').insert({
+                    tenant_id: profile.tenant_id,
+                    customer_id: sale.customer_id,
+                    title: opportunityTitle,
+                    stage: newStage,
+                    project_id: sale.project_id || null,
+                    assigned_to: sale.assigned_to || null,
+                    notes: sale.description || null
+                })
+            }
+
+            revalidatePath('/opportunities')
+            revalidatePath('/[locale]/(dashboard)/opportunities', 'page')
         }
     }
 
@@ -2036,12 +2206,22 @@ export async function createPaymentPlan(sale_id: string, items: any[], total_pri
     console.log('--- createPaymentPlan Debug ---')
     console.log('Sale ID:', sale_id)
 
+    // Query if a contract already exists for this sale
+    const { data: existingContract } = await supabase
+        .from('contracts')
+        .select('id')
+        .eq('sale_id', sale_id)
+        .limit(1)
+        .maybeSingle()
+
+    const contractId = existingContract?.id || null
+
     const { data: plan, error: planError } = await supabase
         .from('payment_plans')
         .insert({
             tenant_id: profile?.tenant_id,
             name: `Plan for Sale #${sale_id.slice(0, 4)}`,
-            contract_id: null,
+            contract_id: contractId,
             sale_id: sale_id
         })
         .select()

@@ -48,6 +48,7 @@ export async function updateOpportunityStage(opportunityId: string, newStage: st
     const stageToSalesStatusMap: Record<string, string> = {
         'prospect': 'Prospect',
         'qualified': 'Prospect',
+        'reservation': 'Reservation',
         'proposal': 'Proposal',
         'negotiation': 'Negotiation',
         'won': 'Completed',

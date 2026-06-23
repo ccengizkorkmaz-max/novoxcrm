@@ -184,145 +184,170 @@ export default function NegotiationDialog({ offerId, currentPrice, currentCurren
 
                     <div className="p-4 sm:p-8 space-y-6 sm:space-y-8 overflow-y-auto flex-1">
                         {/* New Proposal Form */}
-                        <div className="space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                            <div className="flex items-center gap-2 mb-2">
-                                <div className="h-8 w-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
-                                    <CheckCircle2 className="w-4 h-4" />
-                                </div>
-                                <h4 className="text-sm font-black text-slate-800 uppercase tracking-tight">{t('enterProposal')}</h4>
-                            </div>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                <div className="space-y-2">
-                                    <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{t('proposedPrice')} ({currentCurrency})</Label>
-                                    <div className="relative">
-                                        <Input
-                                            type="number"
-                                            value={newPrice}
-                                            onChange={(e) => setNewPrice(Number(e.target.value))}
-                                            className="h-12 bg-slate-50 border-slate-200 focus:ring-blue-500 rounded-xl font-black text-lg px-4"
-                                        />
-                                    </div>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{t('validUntil')}</Label>
-                                    <Input
-                                        type="date"
-                                        value={validityDate}
-                                        min={new Date().toISOString().split('T')[0]}
-                                        onChange={(e) => setValidityDate(e.target.value)}
-                                        className="h-12 bg-slate-50 border-slate-200 focus:ring-blue-500 rounded-xl font-bold"
-                                    />
-                                </div>
-                                <div className="space-y-2 sm:col-span-2">
-                                    <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{t('source')}</Label>
-                                    <div className="flex gap-2">
-                                        {['Sales', 'Customer'].map((s) => (
-                                            <Button
-                                                key={s}
-                                                type="button"
-                                                variant={source === s ? 'default' : 'outline'}
-                                                className={`flex-1 h-11 rounded-xl font-bold uppercase text-[11px] tracking-widest ${source === s ? 'bg-blue-600 shadow-lg shadow-blue-100' : 'border-slate-200 text-slate-500'}`}
-                                                onClick={() => setSource(s as any)}
-                                            >
-                                                {s === 'Sales' ? t('salesTeam') : t('customer')}
-                                            </Button>
-                                        ))}
-                                    </div>
-                                </div>
-                                <div className="space-y-4 sm:col-span-2 p-4 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2 text-blue-600">
-                                            <ReceiptText className="w-5 h-5" />
-                                            <span className="text-sm font-black uppercase tracking-tight">Ödeme Planı Önerisi</span>
+                        {(() => {
+                            const isApproved = history.some(neg => neg.status === 'Approved')
+                            return (
+                                <div className="space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <div className="flex items-center gap-2">
+                                            <div className="h-8 w-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
+                                                <CheckCircle2 className="w-4 h-4" />
+                                            </div>
+                                            <h4 className="text-sm font-black text-slate-800 uppercase tracking-tight">{t('enterProposal')}</h4>
                                         </div>
-                                        <Dialog open={showPlanInputs} onOpenChange={setShowPlanInputs}>
-                                            <DialogTrigger asChild>
-                                                <Button
-                                                    type="button"
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className={`text-[10px] font-black uppercase tracking-widest h-7 px-3 rounded-lg border-blue-200 border ${proposedPlan ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}
-                                                >
-                                                    {proposedPlan ? 'GÜNCELLE' : 'OLUŞTUR'}
-                                                </Button>
-                                            </DialogTrigger>
-                                            <DialogContent className="max-w-xl w-full sm:w-[95vw] h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[90dvh] rounded-none sm:rounded-2xl flex flex-col p-0 overflow-hidden bg-white">
-                                                <DialogHeader className="p-4 sm:p-6 pb-2 shrink-0 border-b">
-                                                    <DialogTitle>Müşteriye Ödeme Planı Öner</DialogTitle>
-                                                </DialogHeader>
-                                                <PaymentPlanCalculator
-                                                    saleId={`negotiation-${offerId}`}
-                                                    totalAmount={newPrice}
-                                                    initialCurrency={currentCurrency}
-                                                    templates={templates}
-                                                    onClose={() => setShowPlanInputs(false)}
-                                                    confirmButtonText="Planı Onayla"
-                                                    onConfirm={(plan, totals, curr) => {
-                                                        setProposedPlan({
-                                                            payment_items: plan,
-                                                            total_amount: totals.grandTotal,
-                                                            interest_amount: totals.interest,
-                                                            installment_count: plan.filter(i => i.payment_type === 'Installment').length
-                                                        })
-                                                        setShowPlanInputs(false)
-                                                    }}
-                                                />
-                                            </DialogContent>
-                                        </Dialog>
+                                        {isApproved && (
+                                            <Badge className="bg-emerald-500 text-white font-bold text-[10px] tracking-wide uppercase px-2.5 py-1 rounded-lg border-none shadow-sm flex items-center gap-1 select-none">
+                                                <CheckCircle2 className="w-3.5 h-3.5" /> Onaylandı
+                                            </Badge>
+                                        )}
                                     </div>
 
-                                    {proposedPlan && (
-                                        <div className="mt-3 p-3 bg-white rounded-xl border border-emerald-100 animate-in fade-in slide-in-from-top-1">
-                                            <div className="flex justify-between items-center text-[10px] font-bold">
-                                                <span className="text-slate-400 uppercase">Özet:</span>
-                                                <span className="text-emerald-600 uppercase bg-emerald-50 px-2 py-0.5 rounded-full">PLAN HAZIR ✅</span>
-                                            </div>
-                                            <div className="mt-2 grid grid-cols-2 gap-2 text-xs font-black text-slate-800">
-                                                <div className="flex flex-col">
-                                                    <span className="text-[8px] text-slate-400 uppercase tracking-tighter">İşlem Tutarı</span>
-                                                    <span>{formatCurrency(proposedPlan.total_amount, currentCurrency)}</span>
-                                                </div>
-                                                <div className="flex flex-col text-right">
-                                                    <span className="text-[8px] text-slate-400 uppercase tracking-tighter">Vade</span>
-                                                    <span>{proposedPlan.installment_count} Taksit</span>
-                                                </div>
-                                            </div>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => setProposedPlan(null)}
-                                                className="w-full mt-3 h-7 text-[9px] font-bold uppercase text-red-500 hover:bg-red-50 hover:text-red-600"
-                                            >
-                                                Planı Kaldır
-                                            </Button>
+                                    {isApproved && (
+                                        <div className="p-4 bg-amber-55/10 border border-amber-200/50 text-amber-800 text-xs font-bold rounded-2xl flex items-center gap-3 bg-amber-50">
+                                            <AlertTriangle className="h-5 w-5 text-amber-550 shrink-0 text-amber-500" />
+                                            <span>Bu teklif/pazarlık onaylanmıştır ve üzerinde değişiklik yapılamaz. Yeni planlar ancak sözleşme aşamasında oluşturulabilir.</span>
                                         </div>
                                     )}
-                                </div>
-                                <div className="space-y-2 sm:col-span-2">
-                                    <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{t('notes')}</Label>
-                                    <Textarea
-                                        placeholder={t('notesPlaceholder')}
-                                        value={notes}
-                                        onChange={(e) => setNotes(e.target.value)}
-                                        className="bg-slate-50 border-slate-200 focus:ring-blue-500 rounded-xl resize-none min-h-[100px] font-medium"
-                                    />
-                                </div>
-                            </div>
 
-                            <Button
-                                className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-black uppercase tracking-widest rounded-xl shadow-lg shadow-blue-100 transition-all select-none mt-2"
-                                onClick={handleSubmitProposal}
-                                disabled={loading}
-                            >
-                                {loading ? (
-                                    <div className="flex items-center gap-2">
-                                        <span className="animate-spin h-4 w-4 border-2 border-white/20 border-t-white rounded-full" />
-                                        <span>{t.has('savingProposal') ? t('savingProposal') : 'Kaydediliyor...'}</span>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                        <div className="space-y-2">
+                                            <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{t('proposedPrice')} ({currentCurrency})</Label>
+                                            <div className="relative">
+                                                <Input
+                                                    type="number"
+                                                    value={newPrice}
+                                                    onChange={(e) => setNewPrice(Number(e.target.value))}
+                                                    disabled={isApproved || loading}
+                                                    className="h-12 bg-slate-50 border-slate-200 focus:ring-blue-500 rounded-xl font-black text-lg px-4"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{t('validUntil')}</Label>
+                                            <Input
+                                                type="date"
+                                                value={validityDate}
+                                                min={new Date().toISOString().split('T')[0]}
+                                                onChange={(e) => setValidityDate(e.target.value)}
+                                                disabled={isApproved || loading}
+                                                className="h-12 bg-slate-50 border-slate-200 focus:ring-blue-500 rounded-xl font-bold"
+                                            />
+                                        </div>
+                                        <div className="space-y-2 sm:col-span-2">
+                                            <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{t('source')}</Label>
+                                            <div className="flex gap-2">
+                                                {['Sales', 'Customer'].map((s) => (
+                                                    <Button
+                                                        key={s}
+                                                        type="button"
+                                                        variant={source === s ? 'default' : 'outline'}
+                                                        disabled={isApproved || loading}
+                                                        className={`flex-1 h-11 rounded-xl font-bold uppercase text-[11px] tracking-widest ${source === s ? 'bg-blue-600 shadow-lg shadow-blue-100' : 'border-slate-200 text-slate-500'}`}
+                                                        onClick={() => setSource(s as any)}
+                                                    >
+                                                        {s === 'Sales' ? t('salesTeam') : t('customer')}
+                                                    </Button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <div className="space-y-4 sm:col-span-2 p-4 bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2 text-blue-600">
+                                                    <ReceiptText className="w-5 h-5" />
+                                                    <span className="text-sm font-black uppercase tracking-tight">Ödeme Planı Önerisi</span>
+                                                </div>
+                                                <Dialog open={showPlanInputs} onOpenChange={setShowPlanInputs}>
+                                                    <DialogTrigger asChild>
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            disabled={isApproved}
+                                                            className={`text-[10px] font-black uppercase tracking-widest h-7 px-3 rounded-lg border-blue-200 border ${proposedPlan ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}
+                                                        >
+                                                            {proposedPlan ? 'GÜNCELLE' : 'OLUŞTUR'}
+                                                        </Button>
+                                                    </DialogTrigger>
+                                                    <DialogContent className="max-w-xl w-full sm:w-[95vw] h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[90dvh] rounded-none sm:rounded-2xl flex flex-col p-0 overflow-hidden bg-white">
+                                                        <DialogHeader className="p-4 sm:p-6 pb-2 shrink-0 border-b">
+                                                            <DialogTitle>Müşteriye Ödeme Planı Öner</DialogTitle>
+                                                        </DialogHeader>
+                                                        <PaymentPlanCalculator
+                                                            saleId={`negotiation-${offerId}`}
+                                                            totalAmount={newPrice}
+                                                            initialCurrency={currentCurrency}
+                                                            templates={templates}
+                                                            onClose={() => setShowPlanInputs(false)}
+                                                            confirmButtonText="Planı Onayla"
+                                                            onConfirm={(plan, totals, curr) => {
+                                                                setProposedPlan({
+                                                                    payment_items: plan,
+                                                                    total_amount: totals.grandTotal,
+                                                                    interest_amount: totals.interest,
+                                                                    installment_count: plan.filter(i => i.payment_type === 'Installment').length
+                                                                })
+                                                                setShowPlanInputs(false)
+                                                            }}
+                                                        />
+                                                    </DialogContent>
+                                                </Dialog>
+                                            </div>
+
+                                            {proposedPlan && (
+                                                <div className="mt-3 p-3 bg-white rounded-xl border border-emerald-100 animate-in fade-in slide-in-from-top-1">
+                                                    <div className="flex justify-between items-center text-[10px] font-bold">
+                                                        <span className="text-slate-400 uppercase">Özet:</span>
+                                                        <span className="text-emerald-600 uppercase bg-emerald-50 px-2 py-0.5 rounded-full">PLAN HAZIR ✅</span>
+                                                    </div>
+                                                    <div className="mt-2 grid grid-cols-2 gap-2 text-xs font-black text-slate-800">
+                                                        <div className="flex flex-col">
+                                                            <span className="text-[8px] text-slate-400 uppercase tracking-tighter">İşlem Tutarı</span>
+                                                            <span>{formatCurrency(proposedPlan.total_amount, currentCurrency)}</span>
+                                                        </div>
+                                                        <div className="flex flex-col text-right">
+                                                            <span className="text-[8px] text-slate-400 uppercase tracking-tighter">Vade</span>
+                                                            <span>{proposedPlan.installment_count} Taksit</span>
+                                                        </div>
+                                                    </div>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        disabled={isApproved}
+                                                        onClick={() => setProposedPlan(null)}
+                                                        className="w-full mt-3 h-7 text-[9px] font-bold uppercase text-red-500 hover:bg-red-50 hover:text-red-600"
+                                                    >
+                                                        Planı Kaldır
+                                                    </Button>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="space-y-2 sm:col-span-2">
+                                            <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{t('notes')}</Label>
+                                            <Textarea
+                                                placeholder={t('notesPlaceholder')}
+                                                value={notes}
+                                                onChange={(e) => setNotes(e.target.value)}
+                                                disabled={isApproved || loading}
+                                                className="bg-slate-50 border-slate-200 focus:ring-blue-500 rounded-xl resize-none min-h-[100px] font-medium"
+                                            />
+                                        </div>
                                     </div>
-                                ) : (t.has('saveProposal') ? t('saveProposal') : 'Kaydet')}
-                            </Button>
-                        </div>
+
+                                    <Button
+                                        className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-black uppercase tracking-widest rounded-xl shadow-lg shadow-blue-100 transition-all select-none mt-2"
+                                        onClick={handleSubmitProposal}
+                                        disabled={isApproved || loading}
+                                    >
+                                        {loading ? (
+                                            <div className="flex items-center gap-2">
+                                                <span className="animate-spin h-4 w-4 border-2 border-white/20 border-t-white rounded-full" />
+                                                <span>{t.has('savingProposal') ? t('savingProposal') : 'Kaydediliyor...'}</span>
+                                            </div>
+                                        ) : (t.has('saveProposal') ? t('saveProposal') : 'Kaydet')}
+                                    </Button>
+                                </div>
+                            )
+                        })()}
 
                         {/* History */}
                         <div className="space-y-4 pt-2">

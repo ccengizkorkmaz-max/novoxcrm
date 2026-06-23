@@ -1,20 +1,15 @@
 'use client'
 
 import { useState, useMemo, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { Label } from '@/components/ui/label'
 import {
-    Building2, Search, Plus, Pencil, Trash2, Phone, Mail, Globe,
-    Loader2, FileText
+    Building2, Search, Plus, Pencil, Trash2, Phone, Mail, FileText
 } from 'lucide-react'
-import { createCompany, updateCompany, deleteCompany } from './company-actions'
-import AddressManager from '@/components/shared/AddressManager'
+import { deleteCompany } from './company-actions'
 
 interface Company {
     id: string
@@ -37,16 +32,9 @@ interface CompaniesPageClientProps {
     userRole: string
 }
 
-const emptyForm = {
-    name: '', tax_number: '', tax_office: '', trade_registry_no: '',
-    sector: '', website: '', phone: '', email: '', notes: ''
-}
-
 export default function CompaniesPageClient({ companies, userRole }: CompaniesPageClientProps) {
+    const router = useRouter()
     const [search, setSearch] = useState('')
-    const [dialogOpen, setDialogOpen] = useState(false)
-    const [editCompany, setEditCompany] = useState<Company | null>(null)
-    const [form, setForm] = useState(emptyForm)
     const [isPending, startTransition] = useTransition()
 
     const filtered = useMemo(() => {
@@ -65,69 +53,17 @@ export default function CompaniesPageClient({ companies, userRole }: CompaniesPa
     }), [companies])
 
     const openNew = () => {
-        setForm(emptyForm)
-        setEditCompany(null)
-        setDialogOpen(true)
+        router.push('/companies/new')
     }
 
     const openEdit = (company: Company) => {
-        setForm({
-            name: company.name,
-            tax_number: company.tax_number || '',
-            tax_office: company.tax_office || '',
-            trade_registry_no: company.trade_registry_no || '',
-            sector: company.sector || '',
-            website: company.website || '',
-            phone: company.phone || '',
-            email: company.email || '',
-            notes: company.notes || ''
-        })
-        setEditCompany(company)
-        setDialogOpen(true)
-    }
-
-    const handleSave = () => {
-        if (!form.name.trim()) return
-        startTransition(async () => {
-            if (editCompany) {
-                await updateCompany(editCompany.id, {
-                    name: form.name,
-                    tax_number: form.tax_number || null,
-                    tax_office: form.tax_office || null,
-                    trade_registry_no: form.trade_registry_no || null,
-                    sector: form.sector || null,
-                    website: form.website || null,
-                    phone: form.phone || null,
-                    email: form.email || null,
-                    notes: form.notes || null,
-                })
-            } else {
-                await createCompany({
-                    name: form.name,
-                    tax_number: form.tax_number || undefined,
-                    tax_office: form.tax_office || undefined,
-                    trade_registry_no: form.trade_registry_no || undefined,
-                    sector: form.sector || undefined,
-                    website: form.website || undefined,
-                    phone: form.phone || undefined,
-                    email: form.email || undefined,
-                    notes: form.notes || undefined,
-                })
-            }
-            setDialogOpen(false)
-        })
+        router.push(`/companies/${company.id}`)
     }
 
     const handleDelete = (company: Company) => {
         if (!confirm(`"${company.name}" firmasını silmek istediğinize emin misiniz?`)) return
         startTransition(async () => { await deleteCompany(company.id) })
     }
-
-    const f = (key: keyof typeof form) => ({
-        value: form[key],
-        onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-            setForm(prev => ({ ...prev, [key]: e.target.value }))
-    })
 
     return (
         <div className="flex flex-col gap-4">
@@ -243,72 +179,6 @@ export default function CompaniesPageClient({ companies, userRole }: CompaniesPa
                 </CardContent>
             </Card>
 
-            {/* Create/Edit Dialog */}
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <DialogContent className="max-w-lg">
-                    <DialogHeader>
-                        <DialogTitle>{editCompany ? 'Firma Düzenle' : 'Yeni Firma'}</DialogTitle>
-                        <DialogDescription>Kurumsal müşteri bilgilerini girin.</DialogDescription>
-                    </DialogHeader>
-
-                    <div className="space-y-4 py-2 max-h-[60vh] overflow-y-auto">
-                        <div className="space-y-2">
-                            <Label>Firma Adı *</Label>
-                            <Input placeholder="ABC Holding A.Ş." {...f('name')} />
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                            <div className="space-y-2">
-                                <Label>Vergi No</Label>
-                                <Input placeholder="1234567890" {...f('tax_number')} />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Vergi Dairesi</Label>
-                                <Input placeholder="Beyoğlu VD" {...f('tax_office')} />
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                            <div className="space-y-2">
-                                <Label>Ticaret Sicil No</Label>
-                                <Input {...f('trade_registry_no')} />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Sektör</Label>
-                                <Input placeholder="İnşaat, Gayrimenkul..." {...f('sector')} />
-                            </div>
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Website</Label>
-                            <Input placeholder="https://..." {...f('website')} />
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                            <div className="space-y-2">
-                                <Label>Telefon</Label>
-                                <Input {...f('phone')} />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>E-posta</Label>
-                                <Input type="email" {...f('email')} />
-                            </div>
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Notlar</Label>
-                            <Textarea rows={2} {...f('notes')} />
-                        </div>
-                        {editCompany && (
-                            <div className="pt-4 border-t mt-4">
-                                <AddressManager addresses={[]} ownerId={editCompany.id} ownerType="company" />
-                            </div>
-                        )}
-                    </div>
-
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setDialogOpen(false)}>Vazgeç</Button>
-                        <Button onClick={handleSave} disabled={isPending || !form.name.trim()}>
-                            {isPending ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Kaydediliyor...</> : 'Kaydet'}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
         </div>
     )
 }

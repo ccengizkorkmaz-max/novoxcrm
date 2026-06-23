@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { OctagonX, Phone, MessageSquare, Mail, Zap, Plus, Play, Pause, Trash2,
     BarChart3, Clock, Users, XCircle, PhoneOff,
-    ArrowRight, Settings2, Eye, Bot, FileText, Target
+    ArrowRight, Settings2, Eye, Bot, FileText, Target, Info
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { toggleWorkflow, deleteWorkflow, launchWorkflow, stopWorkflow, deleteTrigger } from '../actions'
@@ -23,6 +23,7 @@ import { WorkflowMonitor } from './WorkflowMonitor'
 import { SystemHealthPanel } from './SystemHealthPanel'
 import { WorkflowLogDialog } from './WorkflowLogDialog'
 import { LeadAnalyticsPanel } from './LeadAnalyticsPanel'
+import { WorkflowDiagnosticDialog } from './WorkflowDiagnosticDialog'
 
 interface OutreachDashboardProps {
     workflows: any[]
@@ -84,6 +85,7 @@ export function OutreachDashboard({
     const [localSegments, setLocalSegments] = useState(segments)
     const [monitoringWorkflow, setMonitoringWorkflow] = useState<{ id: string; name: string } | null>(null)
     const [logWorkflow, setLogWorkflow] = useState<{ id: string; name: string } | null>(null)
+    const [diagnosticWorkflow, setDiagnosticWorkflow] = useState<{ id: string; name: string } | null>(null)
 
     // Prop değiştiğinde local state'i güncelle (router.refresh sonrası)
     useEffect(() => { setLocalWorkflows(workflows) }, [workflows])
@@ -362,6 +364,7 @@ export function OutreachDashboard({
                                 onStop={() => handleStop(w.id, w.name)}
                                 onMonitor={() => setMonitoringWorkflow({ id: w.id, name: w.name })}
                                 onLog={() => setLogWorkflow({ id: w.id, name: w.name })}
+                                onDiagnostic={() => setDiagnosticWorkflow({ id: w.id, name: w.name })}
                                 isLaunching={launching === w.id}
                                 isStopping={stopping === w.id}
                             />
@@ -395,6 +398,14 @@ export function OutreachDashboard({
                 workflowId={logWorkflow?.id || ''}
                 workflowName={logWorkflow?.name || ''}
             />
+
+            {/* Workflow Diagnostic Dialog */}
+            <WorkflowDiagnosticDialog
+                open={!!diagnosticWorkflow}
+                onOpenChange={(v) => { if (!v) setDiagnosticWorkflow(null) }}
+                workflowId={diagnosticWorkflow?.id || ''}
+                workflowName={diagnosticWorkflow?.name || ''}
+            />
         </div>
     )
 }
@@ -403,8 +414,8 @@ export function OutreachDashboard({
 
 
 
-function WorkflowCard({ workflow, hasTrigger, onToggle, onEdit, onDelete, onLaunch, onStop, onMonitor, onLog, isLaunching, isStopping }: {
-    workflow: any; hasTrigger: boolean; onToggle: () => void; onEdit: () => void; onDelete: () => void; onLaunch: () => void; onStop: () => void; onMonitor: () => void; onLog: () => void; isLaunching: boolean; isStopping: boolean
+function WorkflowCard({ workflow, hasTrigger, onToggle, onEdit, onDelete, onLaunch, onStop, onMonitor, onLog, onDiagnostic, isLaunching, isStopping }: {
+    workflow: any; hasTrigger: boolean; onToggle: () => void; onEdit: () => void; onDelete: () => void; onLaunch: () => void; onStop: () => void; onMonitor: () => void; onLog: () => void; onDiagnostic: () => void; isLaunching: boolean; isStopping: boolean
 }) {
     return (
         <Card className="hover:bg-muted/50 transition-colors">
@@ -417,6 +428,9 @@ function WorkflowCard({ workflow, hasTrigger, onToggle, onEdit, onDelete, onLaun
                         <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
                                 <h3 className="font-semibold truncate">{workflow.name}</h3>
+                                <Button variant="ghost" size="sm" onClick={onDiagnostic} className="h-5 w-5 p-0 text-muted-foreground hover:text-blue-400" title="Tanı & Analiz">
+                                    <Info className="h-3.5 w-3.5" />
+                                </Button>
                                 <Badge variant="outline" className={`text-[10px] ${workflow.is_active ? 'border-emerald-500/30 text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'}`}>
                                     {workflow.is_active ? 'Aktif' : 'Pasif'}
                                 </Badge>
@@ -541,6 +555,11 @@ function WorkflowCard({ workflow, hasTrigger, onToggle, onEdit, onDelete, onLaun
                         className="gap-1.5 text-xs border-blue-500/30 text-blue-400 hover:bg-blue-500/10">
                         <BarChart3 className="h-3 w-3" />
                         Canlı Takip
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={onDiagnostic}
+                        className="gap-1.5 text-xs border-slate-500/30 text-slate-400 hover:bg-slate-500/10">
+                        <Info className="h-3.5 w-3.5" />
+                        Tanı & Analiz
                     </Button>
                     <Button variant="ghost" size="sm" onClick={onLog}
                         className="gap-1.5 text-xs text-muted-foreground hover:text-foreground" title="Günlük">

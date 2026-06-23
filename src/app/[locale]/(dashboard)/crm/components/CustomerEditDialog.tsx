@@ -24,6 +24,7 @@ import CustomerProfileTab from './CustomerProfileTab'
 import InlineProfileFields from './InlineProfileFields'
 import AddressManager from '@/components/shared/AddressManager'
 import { cn } from '@/lib/utils'
+import { Combobox } from '@/components/ui/combobox'
 
 export interface Customer {
     id: string
@@ -56,6 +57,7 @@ export interface Customer {
     company_website?: string
     company_email?: string
     addresses?: any[]
+    company_id?: string | null
 }
 
 interface CustomerEditDialogProps {
@@ -77,9 +79,11 @@ export function CustomerEditDialog({ customer, isOpen, onOpenChange }: CustomerE
     const [isPending, setIsPending] = useState(false)
 
     // Customer type
-    const [customerType, setCustomerType] = useState<'individual' | 'corporate'>(
-        (customer?.customer_type as any) || 'individual'
-    )
+    const customerType = 'individual'
+
+    // Companies list and selection
+    const [companiesList, setCompaniesList] = useState<{ id: string; name: string }[]>([])
+    const [selectedCompanyId, setSelectedCompanyId] = useState(customer?.company_id || '')
 
     // Source options (dynamic)
     const [sourceOptions, setSourceOptions] = useState<{ id: string; label: string }[]>([])
@@ -105,7 +109,7 @@ export function CustomerEditDialog({ customer, isOpen, onOpenChange }: CustomerE
             setSelectedSource(customer?.source || '')
             setGender(customer?.gender || '')
             setHeardFrom(customer?.heard_from || '')
-            setCustomerType((customer?.customer_type as any) || 'individual')
+            setSelectedCompanyId(customer?.company_id || '')
             setShowNewSource(false)
             setNewSourceLabel('')
             setMeta(null)
@@ -115,6 +119,11 @@ export function CustomerEditDialog({ customer, isOpen, onOpenChange }: CustomerE
             })
             getSalesReps().then(res => {
                 if (res.reps) setSalesReps(res.reps)
+            })
+            import('@/app/[locale]/(dashboard)/companies/company-actions').then(m => {
+                m.getActiveCompanies().then(list => {
+                    setCompaniesList(list)
+                })
             })
             if (customer?.id) {
                 getCustomerMeta(customer.id).then(data => {
@@ -143,6 +152,7 @@ export function CustomerEditDialog({ customer, isOpen, onOpenChange }: CustomerE
         formData.set('gender', gender)
         formData.set('heard_from', heardFrom)
         formData.set('source', selectedSource)
+        formData.set('company_id', selectedCompanyId)
         setIsPending(true)
         try {
             if (isCreateMode) {
@@ -192,21 +202,7 @@ export function CustomerEditDialog({ customer, isOpen, onOpenChange }: CustomerE
                             </span>
                         </div>
 
-                        {/* Customer Type Toggle */}
-                        <div className="flex gap-1 bg-slate-100 rounded-xl p-1 shrink-0">
-                            <button type="button" onClick={() => setCustomerType('individual')}
-                                className={cn("px-5 py-2 rounded-lg text-xs font-bold transition-all",
-                                    customerType === 'individual' ? "bg-white text-blue-700 shadow-sm" : "text-slate-500 hover:text-slate-700")}>
-                                Bireysel
-                            </button>
-                            <button type="button" onClick={() => setCustomerType('corporate')}
-                                className={cn("px-5 py-2 rounded-lg text-xs font-bold transition-all",
-                                    customerType === 'corporate' ? "bg-white text-blue-700 shadow-sm" : "text-slate-500 hover:text-slate-700")}>
-                                Kurumsal
-                            </button>
-                        </div>
-
-                        {/* Meta info */}
+                         {/* Meta info */}
                         {!isCreateMode && meta && (
                             <div className="relative shrink-0">
                                 <button
@@ -321,6 +317,18 @@ export function CustomerEditDialog({ customer, isOpen, onOpenChange }: CustomerE
                                                             </button>
                                                         ))}
                                                     </div>
+                                                </div>
+                                                <div className="space-y-1.5">
+                                                    <Label className={labelClass}>Firma / Şirket</Label>
+                                                    <Combobox
+                                                        items={companiesList.map(c => ({ value: c.id, label: c.name }))}
+                                                        value={selectedCompanyId}
+                                                        onChange={setSelectedCompanyId}
+                                                        placeholder="Firma arayın veya seçin..."
+                                                        searchPlaceholder="Firma ara..."
+                                                        emptyText="Kayıtlı firma bulunamadı."
+                                                    />
+                                                    <input type="hidden" name="company_id" value={selectedCompanyId || ''} />
                                                 </div>
                                             </div>
                                         </div>
@@ -492,51 +500,6 @@ export function CustomerEditDialog({ customer, isOpen, onOpenChange }: CustomerE
 
                                     {/* ══ COLUMN 3: Firma (Kurumsal) / Talep (Bireysel) / Profil ══ */}
                                     <div className="space-y-5">
-                                        {/* Firma Bilgileri — kurumsal */}
-                                        {customerType === 'corporate' && (
-                                            <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm hover:shadow-md transition-shadow">
-                                                <div className="flex items-center gap-2.5 mb-4">
-                                                    <div className="h-7 w-7 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center">
-                                                        <Building2 className="h-4 w-4" />
-                                                    </div>
-                                                    <p className="text-xs font-black text-slate-600 uppercase tracking-widest">Firma Bilgileri</p>
-                                                </div>
-                                                <div className="space-y-4">
-                                                    <div className="space-y-1.5">
-                                                        <Label className={labelClass}>Firma Adı <span className="text-red-500">*</span></Label>
-                                                        <Input name="company_name" defaultValue={customer?.company_name || ''} required={customerType === 'corporate'} className={inputClass} />
-                                                    </div>
-                                                    <div className="grid grid-cols-2 gap-3">
-                                                        <div className="space-y-1.5">
-                                                            <Label className={labelClass}>Vergi Dairesi <span className="text-red-500">*</span></Label>
-                                                            <Input name="tax_office" defaultValue={customer?.tax_office || ''} required={customerType === 'corporate'} className={inputClass} />
-                                                        </div>
-                                                        <div className="space-y-1.5">
-                                                            <Label className={labelClass}>Vergi No <span className="text-red-500">*</span></Label>
-                                                            <Input name="tax_number" defaultValue={customer?.tax_number || ''} required={customerType === 'corporate'} className={inputClass} />
-                                                        </div>
-                                                    </div>
-                                                    <div className="space-y-1.5">
-                                                        <Label className={labelClass}>Firma Telefonu</Label>
-                                                        <Input name="company_phone" defaultValue={customer?.company_phone || ''} className={inputClass} />
-                                                    </div>
-                                                    <div className="grid grid-cols-2 gap-3">
-                                                        <div className="space-y-1.5">
-                                                            <Label className={labelClass}>Firma E-posta</Label>
-                                                            <Input name="company_email" type="email" defaultValue={customer?.company_email || ''} className={inputClass} />
-                                                        </div>
-                                                        <div className="space-y-1.5">
-                                                            <Label className={labelClass}>Web Sitesi</Label>
-                                                            <Input name="company_website" defaultValue={customer?.company_website || ''} className={inputClass} placeholder="https://" />
-                                                        </div>
-                                                    </div>
-                                                    <div className="space-y-1.5">
-                                                        <Label className={labelClass}>Firma Adresi</Label>
-                                                        <Textarea name="company_address" defaultValue={customer?.company_address || ''} className="bg-slate-50/70 border-slate-200 rounded-xl resize-none min-h-[70px] text-sm" />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        )}
 
                                         {/* Talep & Tercihler — create mode */}
                                         {isCreateMode && (

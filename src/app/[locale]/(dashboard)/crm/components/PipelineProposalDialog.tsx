@@ -11,10 +11,11 @@ import { toast } from 'sonner'
 import PaymentPlanCalculator from './PaymentPlanCalculator'
 import { getPaymentTemplates } from '../actions'
 import { updateOpportunityStage } from '../../opportunities/opportunity-actions'
+import { updateSaleStatus } from '../actions'
 
 interface PipelineProposalDialogProps {
     saleId: string
-    opportunityId: string
+    opportunityId?: string
     customerName: string
     totalAmount?: number
     initialCurrency?: string
@@ -57,16 +58,27 @@ export default function PipelineProposalDialog({
 
     const handleSaveSuccess = async () => {
         try {
-            const res = await updateOpportunityStage(opportunityId, 'proposal')
-            if (res.success) {
-                toast.success('Ödeme planı kaydedildi ve fırsat teklif aşamasına taşındı.')
-                onOpenChange(false)
-                if (onSuccess) onSuccess()
+            if (opportunityId) {
+                const res = await updateOpportunityStage(opportunityId, 'proposal')
+                if (res.success) {
+                    toast.success('Ödeme planı kaydedildi ve fırsat teklif aşamasına taşındı.')
+                    onOpenChange(false)
+                    if (onSuccess) onSuccess()
+                } else {
+                    toast.error(res.error || 'Fırsat aşaması güncellenirken bir hata oluştu.')
+                }
             } else {
-                toast.error(res.error || 'Fırsat aşaması güncellenirken bir hata oluştu.')
+                const res = await updateSaleStatus(saleId, 'Proposal')
+                if (!res.error) {
+                    toast.success('Ödeme planı kaydedildi ve satış teklif aşamasına alındı.')
+                    onOpenChange(false)
+                    if (onSuccess) onSuccess()
+                } else {
+                    toast.error(res.error || 'Satış durumu güncellenirken bir hata oluştu.')
+                }
             }
         } catch (err: any) {
-            toast.error('Fırsat güncellenirken beklenmedik hata: ' + err.message)
+            toast.error('Beklenmedik hata: ' + err.message)
         }
     }
 

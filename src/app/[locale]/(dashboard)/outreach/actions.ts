@@ -1788,3 +1788,188 @@ export async function getLeadSourceAnalytics() {
     return result.sort((a, b) => b.totalLeads - a.totalLeads)
 }
 
+export async function getWorkflowDiagnosticInfo(workflowId: string) {
+    const { supabase, tenantId } = await getAuthContext()
+    const adminDb = createAdminClient()
+
+    // 1. Fetch workflow & segment & steps
+    const { data: workflow, error: wfError } = await adminDb.from('outreach_workflows')
+        .select('*, outreach_segments(*), outreach_steps(*)')
+        .eq('id', workflowId)
+        .eq('tenant_id', tenantId)
+        .single()
+
+    if (wfError || !workflow) {
+        return { error: wfError?.message || 'Workflow bulunamadı' }
+    }
+
+    // 2. Resolve Segment
+    let totalSegmentCount = 0
+    let unexecutedCount = 0
+    let executedCount = 0
+    let resolvedLeadIds: string[] = []
+
+    if (workflow.segment_id) {
+        try {
+            resolvedLeadIds = await resolveSegment(workflow.segment_id)
+            totalSegmentCount = resolvedLeadIds.length
+        } catch (err: any) {
+            console.error('[Diagnostic] Segment resolve error:', err.message)
+        }
+    }
+
+    // 3. Fetch Executions count and status
+    const { data: execs, error: execsErr } = await adminDb.from('outreach_executions')
+        .select('customer_id, sale_id, lead_id, status, started_at')
+        .eq('workflow_id', workflowId)
+
+    if (execsErr) {
+        console.error('[Diagnostic] Fetch executions error:', execsErr.message)
+    }
+
+    const execList = execs || []
+    executedCount = execList.length
+
+    const isLqSource = resolvedLeadIds.length > 0 && resolvedLeadIds[0].startsWith('lq:')
+    const isLeadsSource = resolvedLeadIds.length > 0 && resolvedLeadIds[0].startsWith('lead:')
+
+    // Set of executed IDs
+    const executedIds = new Set(
+        execList.map(e => isLqSource ? e.customer_id : isLeadsSource ? e.lead_id : e.sale_id).filter(Boolean)
+    )
+
+    const remainingIds = resolvedLeadIds.filter(id => {
+        const matchId = isLqSource ? id.replace('lq:', '') : isLeadsSource ? id.replace('lead:', '') : id
+        return !executedIds.has(matchId)
+    })
+
+    unexecutedCount = remainingIds.length
+
+    const statusCounts: Record<string, number> = {
+        active: 0, waiting: 0, paused: 0, completed: 0, stopped: 0, converted: 0, opted_out: 0
+    }
+    execList.forEach(e => {
+        if (e.status && statusCounts[e.status] !== undefined) {
+            statusCounts[e.status]++
+        }
+    })
+
+    // 4. Calculate Quota and Next Run Time
+    const timezone = workflow.timezone || 'Europe/Istanbul'
+    const now = new Date()
+
+    // Get now in target timezone
+    const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: timezone,
+        year: 'numeric', month: 'numeric', day: 'numeric',
+        hour: 'numeric', minute: 'numeric', hour12: false
+    })
+    
+    let partMap: Record<string, string> = {}
+    try {
+        const parts = formatter.formatToParts(now)
+        parts.forEach(p => partMap[p.type] = p.value)
+    } catch (e: any) {
+        console.error('[Diagnostic] Date format error:', e.message)
+        // Fallback to UTC
+        partMap = {
+            year: String(now.getUTCFullYear()),
+            month: String(now.getUTCMonth() + 1),
+            day: String(now.getUTCDate()),
+            hour: String(now.getUTCHours()),
+            minute: String(now.getUTCMinutes())
+        }
+    }
+
+    const y = Number(partMap.year)
+    const m = Number(partMap.month)
+    const d = Number(partMap.day)
+
+    // Get local midnight in target timezone translated to UTC
+    const getUtcTimeForTz = (year: number, month: number, day: number, hour: number, minute: number) => {
+        try {
+            const guess = new Date(Date.UTC(year, month - 1, day, hour, minute))
+            const checkParts = new Intl.DateTimeFormat('en-US', {
+                timeZone: timezone,
+                year: 'numeric', month: 'numeric', day: 'numeric',
+                hour: 'numeric', minute: 'numeric', second: 'numeric',
+                hour12: false
+            }).formatToParts(guess)
+
+            const checkMap: Record<string, string> = {}
+            checkParts.forEach(p => checkMap[p.type] = p.value)
+
+            const checkDate = new Date(Date.UTC(
+                Number(checkMap.year),
+                Number(checkMap.month) - 1,
+                Number(checkMap.day),
+                Number(checkMap.hour),
+                Number(checkMap.minute)
+            ))
+
+            const diff = guess.getTime() - checkDate.getTime()
+            return new Date(guess.getTime() + diff)
+        } catch (e) {
+            // Fallback: today UTC midnight
+            const fallback = new Date()
+            fallback.setUTCHours(0, 0, 0, 0)
+            return fallback
+        }
+    }
+
+    const todayStart = getUtcTimeForTz(y, m, d, 0, 0)
+
+    const todayStartedCount = execList.filter(e => new Date(e.started_at) >= todayStart).length
+    const maxPerDay = workflow.max_leads_per_day || 50
+    const quotaLeftToday = Math.max(0, maxPerDay - todayStartedCount)
+
+    // Determine tomorrow/next run
+    const tomorrowLocal = new Date(y, m - 1, d + 1)
+    const tomorrowDayOfWeek = tomorrowLocal.getDay() || 7
+    const workingDays = workflow.working_days || [1, 2, 3, 4, 5]
+    const isTomorrowWorkingDay = workingDays.includes(tomorrowDayOfWeek)
+
+    // Steps sorted
+    const sortedSteps = (workflow.outreach_steps || []).sort((a: any, b: any) => (a.step_order || 0) - (b.step_order || 0))
+
+    return {
+        success: true,
+        workflow: {
+            id: workflow.id,
+            name: workflow.name,
+            is_active: workflow.is_active,
+            max_leads_per_day: workflow.max_leads_per_day,
+            working_hours_start: workflow.working_hours_start,
+            working_hours_end: workflow.working_hours_end,
+            working_days: workflow.working_days,
+            timezone: workflow.timezone
+        },
+        segment: {
+            name: workflow.outreach_segments?.name || 'Segment Tanımlı Değil',
+            filters: workflow.outreach_segments?.filters || {}
+        },
+        stats: {
+            totalSegmentCount,
+            executedCount,
+            unexecutedCount,
+            statusCounts,
+            todayStartedCount,
+            quotaLeftToday
+        },
+        schedule: {
+            isTomorrowWorkingDay,
+            timezone,
+            currentTimeLocal: `${String(partMap.hour).padStart(2, '0')}:${String(partMap.minute).padStart(2, '0')}`,
+            currentDateLocal: `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+        },
+        steps: sortedSteps.map((s: any) => ({
+            id: s.id,
+            step_order: s.step_order,
+            name: s.name,
+            action_type: s.action_type,
+            config: s.config
+        }))
+    }
+}
+
+

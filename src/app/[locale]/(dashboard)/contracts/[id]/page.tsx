@@ -21,7 +21,7 @@ import {
 import Link from 'next/link'
 import { BackButton } from '@/components/back-button'
 
-import { ContractStatusActions, IndividualPaymentAction, ContractLegalActions } from '@/components/contracts/contract-detail-actions'
+import { ContractStatusActions, IndividualPaymentAction, ContractLegalActions, UpdateContractPaymentPlanButton } from '@/components/contracts/contract-detail-actions'
 import { formatCurrency } from '@/lib/utils'
 import { ContractDeliveryManagement } from '@/components/contracts/contract-delivery-management'
 import { ContractDocumentUpload } from '@/components/contracts/contract-document-upload'
@@ -216,8 +216,14 @@ export default async function ContractDetailPage(props: {
 
                         <TabsContent value="payments">
                             <Card>
-                                <CardHeader>
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
                                     <CardTitle className="text-lg">Ödeme Takvimi</CardTitle>
+                                    <UpdateContractPaymentPlanButton
+                                        contractId={contract.id}
+                                        saleId={contract.sale_id}
+                                        initialAmount={contract.amount}
+                                        currency={contract.currency}
+                                    />
                                 </CardHeader>
                                 <CardContent>
                                     <div className="rounded-md border overflow-hidden">

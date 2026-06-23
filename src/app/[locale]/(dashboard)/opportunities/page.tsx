@@ -42,8 +42,8 @@ export default async function OpportunitiesPage() {
         .order('created_at', { ascending: false })
         .limit(200)
 
-    // Pipeline aşamaları
-    const pipelineStages = tenant?.pipeline_stages || [
+    // Pipeline aşamaları (Aday, Nitelikli ve Müzakere kolonları kaldırıldı)
+    const pipelineStages = (tenant?.pipeline_stages || [
         { key: 'prospect', label: 'Aday', color: '#6366f1', order: 1 },
         { key: 'qualified', label: 'Nitelikli', color: '#8b5cf6', order: 2 },
         { key: 'reservation', label: 'Opsiyon', color: '#06b6d4', order: 3 },
@@ -51,7 +51,7 @@ export default async function OpportunitiesPage() {
         { key: 'negotiation', label: 'Müzakere', color: '#f97316', order: 5 },
         { key: 'won', label: 'Kazanıldı', color: '#22c55e', order: 6 },
         { key: 'lost', label: 'Kaybedildi', color: '#ef4444', order: 7 },
-    ]
+    ]).filter((stage: any) => !['prospect', 'qualified', 'negotiation'].includes(stage.key))
 
     return (
         <OpportunitiesPageClient

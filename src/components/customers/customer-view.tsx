@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Phone, Mail, Filter, MapPin, Clock, PhoneOff } from 'lucide-react'
+import { Phone, Mail, Filter, MapPin, Clock, PhoneOff, Building2 } from 'lucide-react'
 import { ActivityTimeline } from '@/components/activities/activity-timeline'
 import { AiMatchWidget } from './AiMatchWidget'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -133,6 +133,20 @@ export function CustomerView({ customer, activities, contracts = [], profiles = 
                                 <Mail className="h-4 w-4 text-muted-foreground" />
                                 <span>{customer.email || '-'}</span>
                             </div>
+                            {customer.company && (
+                                <div className="flex items-center gap-2 text-sm">
+                                    <Building2 className="h-4 w-4 text-muted-foreground animate-pulse" />
+                                    <span className="text-slate-600">
+                                        Firma:{" "}
+                                        <Link
+                                            href={`/companies/${customer.company.id}`}
+                                            className="font-semibold text-blue-600 hover:text-blue-800 hover:underline"
+                                        >
+                                            {customer.company.name}
+                                        </Link>
+                                    </span>
+                                </div>
+                            )}
                             <div className="flex items-start gap-2 text-sm">
                                 <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
                                 <div className="space-y-0.5">

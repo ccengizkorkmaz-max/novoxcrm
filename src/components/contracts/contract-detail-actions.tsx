@@ -1,11 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { useRouter } from '@/i18n/routing'
-import { signContract, payInstallment, cancelContract, transferContract, deleteContract } from '@/app/[locale]/(dashboard)/contracts/actions'
+import { signContract, payInstallment, cancelContract, transferContract, deleteContract, updateContractPaymentPlan } from '@/app/[locale]/(dashboard)/contracts/actions'
 import { toast } from 'sonner'
-import { FileCheck, Loader2, XCircle, ArrowRightLeft, Trash2 } from 'lucide-react'
+import { FileCheck, Loader2, XCircle, ArrowRightLeft, Trash2, Calculator } from 'lucide-react'
 import {
     AlertDialog,
     AlertDialogAction,
@@ -17,6 +17,15 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog"
+import PaymentPlanCalculator from '@/app/[locale]/(dashboard)/crm/components/PaymentPlanCalculator'
+import { getPaymentTemplates } from '@/app/[locale]/(dashboard)/crm/actions'
 
 export function ContractStatusActions({ contractId, status }: { contractId: string, status: string }) {
     const [loading, setLoading] = useState(false)
@@ -290,3 +299,71 @@ export function ContractLegalActions({ contractId, status }: { contractId: strin
         </div>
     )
 }
+
+export function UpdateContractPaymentPlanButton({ 
+    contractId, 
+    saleId,
+    initialAmount, 
+    currency 
+}: { 
+    contractId: string
+    saleId: string
+    initialAmount: number
+    currency: string 
+}) {
+    const [isOpen, setIsOpen] = useState(false)
+    const [templates, setTemplates] = useState<any[]>([])
+    const [loading, setLoading] = useState(false)
+    const router = useRouter()
+
+    useEffect(() => {
+        if (isOpen) {
+            getPaymentTemplates().then(data => {
+                if (data) setTemplates(data)
+            })
+        }
+    }, [isOpen])
+
+    const handleConfirm = async (plan: any[], totals: any) => {
+        setLoading(true)
+        try {
+            const res = await updateContractPaymentPlan(contractId, plan, totals.grandTotal)
+            if (res?.error) {
+                toast.error(res.error)
+            } else {
+                toast.success('Ödeme takvimi başarıyla güncellendi')
+                setIsOpen(false)
+                router.refresh()
+            }
+        } catch (err: any) {
+            toast.error(err.message || 'Ödeme takvimi güncellenirken hata oluştu')
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    return (
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2 text-blue-600 border-blue-200 hover:bg-blue-50 font-bold select-none h-9 px-4 rounded-xl">
+                    <Calculator className="h-4 w-4" /> Ödeme Takvimini Yenile
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-xl w-full sm:w-[95vw] h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[90dvh] rounded-none sm:rounded-2xl flex flex-col p-0 overflow-hidden bg-white border-none shadow-2xl">
+                <DialogHeader className="p-4 sm:p-6 pb-2 shrink-0 border-b">
+                    <DialogTitle className="text-lg font-black text-slate-900">Ödeme Planını Güncelle</DialogTitle>
+                </DialogHeader>
+                <PaymentPlanCalculator
+                    saleId={saleId}
+                    totalAmount={initialAmount}
+                    initialCurrency={currency}
+                    templates={templates}
+                    onClose={() => setIsOpen(false)}
+                    confirmButtonText="Takvimi Güncelle"
+                    onConfirm={handleConfirm}
+                />
+            </DialogContent>
+        </Dialog>
+    )
+}
+

@@ -50,6 +50,8 @@ interface Lead {
     profiles?: { full_name: string } | null
     project_id?: string | null
     projects?: { name: string } | null
+    company_name?: string | null
+    company_phone?: string | null
 }
 
 interface LeadsPageClientProps {
@@ -106,7 +108,9 @@ export default function LeadsPageClient({ leads, teamMembers, projects, userRole
         status: '', 
         assigned_to: '', 
         notes: '',
-        project_id: ''
+        project_id: '',
+        company_name: '',
+        company_phone: ''
     })
 
     // Drawer states for Lead details and timeline
@@ -124,7 +128,9 @@ export default function LeadsPageClient({ leads, teamMembers, projects, userRole
         project_id: '',
         source: 'manual',
         assigned_to: '',
-        notes: ''
+        notes: '',
+        company_name: '',
+        company_phone: ''
     })
 
     // Excel Import Wizard States
@@ -151,7 +157,7 @@ export default function LeadsPageClient({ leads, teamMembers, projects, userRole
         opportunityCurrency: 'TRY'
     })
     const [companyForm, setCompanyForm] = useState({
-        companyName: '', taxNumber: '', taxOffice: '', sector: ''
+        companyName: '', companyPhone: '', taxNumber: '', taxOffice: '', sector: ''
     })
     const [convertResult, setConvertResult] = useState<{ success: boolean; message?: string } | null>(null)
 
@@ -282,7 +288,9 @@ export default function LeadsPageClient({ leads, teamMembers, projects, userRole
             status: lead.status,
             assigned_to: lead.assigned_to || '',
             notes: lead.notes || '',
-            project_id: lead.project_id || ''
+            project_id: lead.project_id || '',
+            company_name: lead.company_name || '',
+            company_phone: lead.company_phone || ''
         })
         setEditLead(lead)
     }
@@ -298,6 +306,8 @@ export default function LeadsPageClient({ leads, teamMembers, projects, userRole
                 assigned_to: editForm.assigned_to || null,
                 notes: editForm.notes || null,
                 project_id: editForm.project_id || null,
+                company_name: editForm.company_name || null,
+                company_phone: editForm.company_phone || null
             })
             if (res.success) {
                 toast.success('Müşteri adayı başarıyla güncellendi.')
@@ -339,7 +349,13 @@ export default function LeadsPageClient({ leads, teamMembers, projects, userRole
             opportunityValue: '',
             opportunityCurrency: 'TRY'
         })
-        setCompanyForm({ companyName: '', taxNumber: '', taxOffice: '', sector: '' })
+        setCompanyForm({ 
+            companyName: lead.company_name || '', 
+            companyPhone: lead.company_phone || lead.phone || '', 
+            taxNumber: '', 
+            taxOffice: '', 
+            sector: '' 
+        })
         setConvertResult(null)
         setConvertLead(lead)
     }
@@ -355,6 +371,7 @@ export default function LeadsPageClient({ leads, teamMembers, projects, userRole
                 }
                 res = await convertLeadToCompany(convertLead.id, {
                     companyName: companyForm.companyName,
+                    companyPhone: companyForm.companyPhone || undefined,
                     taxNumber: companyForm.taxNumber || undefined,
                     taxOffice: companyForm.taxOffice || undefined,
                     sector: companyForm.sector || undefined,
@@ -408,12 +425,24 @@ export default function LeadsPageClient({ leads, teamMembers, projects, userRole
                 source: addForm.source || 'manual',
                 project_id: addForm.project_id || null,
                 assigned_to: addForm.assigned_to || null,
-                notes: addForm.notes || null
+                notes: addForm.notes || null,
+                company_name: addForm.company_name || null,
+                company_phone: addForm.company_phone || null
             })
             if (res.success) {
                 toast.success('Müşteri adayı başarıyla eklendi.')
                 setAddOpen(false)
-                setAddForm({ full_name: '', phone: '', email: '', project_id: '', source: 'manual', assigned_to: '', notes: '' })
+                setAddForm({ 
+                    full_name: '', 
+                    phone: '', 
+                    email: '', 
+                    project_id: '', 
+                    source: 'manual', 
+                    assigned_to: '', 
+                    notes: '',
+                    company_name: '',
+                    company_phone: ''
+                })
             } else {
                 toast.error(res.error || 'Aday eklenemedi.')
             }
@@ -993,7 +1022,17 @@ export default function LeadsPageClient({ leads, teamMembers, projects, userRole
             <Dialog open={addOpen} onOpenChange={(open) => {
                 if (!open) {
                     setAddOpen(false);
-                    setAddForm({ full_name: '', phone: '', email: '', project_id: '', source: 'manual', assigned_to: '', notes: '' });
+                    setAddForm({ 
+                        full_name: '', 
+                        phone: '', 
+                        email: '', 
+                        project_id: '', 
+                        source: 'manual', 
+                        assigned_to: '', 
+                        notes: '',
+                        company_name: '',
+                        company_phone: ''
+                    });
                 }
             }}>
                 <DialogContent className="max-w-lg">
@@ -1033,6 +1072,26 @@ export default function LeadsPageClient({ leads, teamMembers, projects, userRole
                                     placeholder="ahmet@example.com"
                                     value={addForm.email}
                                     onChange={e => setAddForm(f => ({ ...f, email: e.target.value }))}
+                                />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-2">
+                                <Label htmlFor="add-company-name">Firma Adı</Label>
+                                <Input
+                                    id="add-company-name"
+                                    placeholder="Örn. ABC Holding A.Ş."
+                                    value={addForm.company_name}
+                                    onChange={e => setAddForm(f => ({ ...f, company_name: e.target.value }))}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="add-company-phone">Firma Telefonu</Label>
+                                <Input
+                                    id="add-company-phone"
+                                    placeholder="Örn. 02123334455"
+                                    value={addForm.company_phone}
+                                    onChange={e => setAddForm(f => ({ ...f, company_phone: e.target.value }))}
                                 />
                             </div>
                         </div>
@@ -1085,7 +1144,17 @@ export default function LeadsPageClient({ leads, teamMembers, projects, userRole
                     <DialogFooter>
                         <Button variant="outline" onClick={() => {
                             setAddOpen(false);
-                            setAddForm({ full_name: '', phone: '', email: '', project_id: '', source: 'manual', assigned_to: '', notes: '' });
+                            setAddForm({ 
+                                full_name: '', 
+                                phone: '', 
+                                email: '', 
+                                project_id: '', 
+                                source: 'manual', 
+                                assigned_to: '', 
+                                notes: '',
+                                company_name: '',
+                                company_phone: ''
+                            });
                         }}>
                             Vazgeç
                         </Button>
@@ -1300,6 +1369,16 @@ export default function LeadsPageClient({ leads, teamMembers, projects, userRole
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-2">
+                                <Label>Firma Adı</Label>
+                                <Input value={editForm.company_name} onChange={e => setEditForm(f => ({ ...f, company_name: e.target.value }))} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Firma Telefonu</Label>
+                                <Input value={editForm.company_phone} onChange={e => setEditForm(f => ({ ...f, company_phone: e.target.value }))} />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-2">
                                 <Label>Durum</Label>
                                 <Select value={editForm.status} onValueChange={v => setEditForm(f => ({ ...f, status: v }))}>
                                     <SelectTrigger><SelectValue /></SelectTrigger>
@@ -1429,9 +1508,19 @@ export default function LeadsPageClient({ leads, teamMembers, projects, userRole
                                                 <Input value={companyForm.taxOffice} onChange={e => setCompanyForm(f => ({ ...f, taxOffice: e.target.value }))} />
                                             </div>
                                         </div>
-                                        <div className="space-y-2">
-                                            <Label>Sektör</Label>
-                                            <Input placeholder="İnşaat, Gayrimenkul..." value={companyForm.sector} onChange={e => setCompanyForm(f => ({ ...f, sector: e.target.value }))} />
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="space-y-2">
+                                                <Label>Firma Telefonu</Label>
+                                                <Input 
+                                                    placeholder="Örn. 02123334455" 
+                                                    value={companyForm.companyPhone} 
+                                                    onChange={e => setCompanyForm(f => ({ ...f, companyPhone: e.target.value }))} 
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label>Sektör</Label>
+                                                <Input placeholder="İnşaat, Gayrimenkul..." value={companyForm.sector} onChange={e => setCompanyForm(f => ({ ...f, sector: e.target.value }))} />
+                                            </div>
                                         </div>
                                     </div>
                                 )}
@@ -1585,6 +1674,23 @@ export default function LeadsPageClient({ leads, teamMembers, projects, userRole
                                             <User className="h-3.5 w-3.5 text-slate-400" />
                                             {selectedDetailLead.profiles?.full_name || 'Atanmamış'}
                                         </span>
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Firma Adı</label>
+                                        <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                                            {selectedDetailLead.company_name || '-'}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Firma Telefonu</label>
+                                        {selectedDetailLead.company_phone ? (
+                                            <a href={`tel:${selectedDetailLead.company_phone}`} className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1.5">
+                                                <Phone className="h-3.5 w-3.5" />
+                                                {selectedDetailLead.company_phone}
+                                            </a>
+                                        ) : (
+                                            <span className="text-sm text-slate-400 dark:text-slate-600 font-medium">-</span>
+                                        )}
                                     </div>
                                 </div>
                                 {selectedDetailLead.notes && (

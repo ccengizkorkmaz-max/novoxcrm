@@ -16,7 +16,7 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Calculator, Sparkles, User, Info, Mail, Phone, MessageSquareText, CalendarPlus, Trash, AlertTriangle, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, Filter, X, Undo2, StickyNote, PhoneOff } from 'lucide-react'
+import { Calculator, Sparkles, User, Info, Mail, Phone, MessageSquareText, CalendarPlus, Trash, AlertTriangle, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, Filter, X, Undo2, StickyNote, PhoneOff, Send, XCircle } from 'lucide-react'
 import { CollapsibleSection } from '@/components/ui/collapsible-section'
 import ColumnVisibilityPicker from '@/components/ui/column-visibility-picker'
 import ColumnFilterRow from '@/components/ui/column-filter-row'
@@ -45,6 +45,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 const PaymentPlanCalculator = dynamic(() => import('./PaymentPlanCalculator'), { ssr: false })
 const MatchUnitDialog = dynamic(() => import('./MatchUnitDialog'), { ssr: false })
 const PipelineReservationDialog = dynamic(() => import('./PipelineReservationDialog'), { ssr: false })
+const PipelineProposalDialog = dynamic(() => import('./PipelineProposalDialog'), { ssr: false })
 
 const AiMatchDialog = dynamic(() => import('@/components/customers/AiMatchDialog').then(m => m.AiMatchDialog), { ssr: false })
 const ActivityForm = dynamic(() => import('@/components/activities/activity-form').then(m => m.ActivityForm), { ssr: false })
@@ -355,6 +356,47 @@ export default function PipelineList({
     const [revertSaleId, setRevertSaleId] = useState<string | null>(null)
     const [revertNote, setRevertNote] = useState('')
     const [revertStatus, setRevertStatus] = useState('follow_up')
+
+    // Proposal Dialog State
+    const [proposalSale, setProposalSale] = useState<{
+        saleId: string
+        customerName: string
+        totalAmount: number
+        initialCurrency: string
+        projectId?: string | null
+    } | null>(null)
+    const [proposalOpen, setProposalOpen] = useState(false)
+
+    // Lost Dialog State
+    const [lostDialogOpen, setLostDialogOpen] = useState(false)
+    const [lostSaleId, setLostSaleId] = useState<string | null>(null)
+    const [lostReasonText, setLostReasonText] = useState('')
+    const [lostSaving, setLostSaving] = useState(false)
+
+    const openLostDialog = (saleId: string) => {
+        setLostSaleId(saleId)
+        setLostReasonText('')
+        setLostDialogOpen(true)
+    }
+
+    const submitLostSale = async () => {
+        if (!lostSaleId) return
+        setLostSaving(true)
+        try {
+            const res = await updateSaleStatus(lostSaleId, 'Lost', lostReasonText)
+            if (res.error) {
+                toast.error(res.error)
+            } else {
+                toast.success('Satış kaybedildi olarak işaretlendi ve ünite satışa çıkarıldı.')
+                setLostDialogOpen(false)
+                router.refresh()
+            }
+        } catch (err: any) {
+            toast.error(err.message || 'Bir hata oluştu')
+        } finally {
+            setLostSaving(false)
+        }
+    }
 
     const openRevertDialog = (saleId: string) => {
         setRevertSaleId(saleId)
@@ -1021,6 +1063,37 @@ export default function PipelineList({
                                                                      {!isBroker && ['Lead', 'Prospect'].includes(sale.status) && (
                                                                          <MatchUnitDialog saleId={sale.id} currentUnitId={sale.unit_id} projects={projects} customerName={sale.customers?.full_name} triggerSize="xs" />
                                                                      )}
+                                                                     {isAdvanceMode && !isBroker && ['Lead', 'Prospect', 'Reservation', 'Opsiyon - Kapora Bekleniyor'].includes(sale.status) && (
+                                                                         <Button
+                                                                             variant="outline"
+                                                                             size="sm"
+                                                                             className="h-6 text-[10px] border-cyan-200 bg-cyan-50/50 hover:bg-cyan-100 hover:text-cyan-700 text-cyan-600 font-semibold px-2 flex items-center gap-1 shadow-sm transition-all"
+                                                                             onClick={() => {
+                                                                                 setProposalSale({
+                                                                                     saleId: sale.id,
+                                                                                     customerName: sale.customers?.full_name || '',
+                                                                                     totalAmount: sale.final_price || sale.units?.price || 0,
+                                                                                     initialCurrency: sale.currency || sale.units?.currency || 'TRY',
+                                                                                     projectId: sale.units?.project_id || sale.project_id
+                                                                                 })
+                                                                                 setProposalOpen(true)
+                                                                             }}
+                                                                             title="Teklif Ver"
+                                                                         >
+                                                                             <Send className="w-2.5 h-2.5" /> Teklif
+                                                                         </Button>
+                                                                     )}
+                                                                     {isAdvanceMode && !isBroker && ['Proposal', 'Teklif - Kapora Bekleniyor', 'Negotiation'].includes(sale.status) && (
+                                                                         <Button
+                                                                             variant="outline"
+                                                                             size="sm"
+                                                                             className="h-6 text-[10px] border-red-200 bg-red-50/50 hover:bg-red-100 hover:text-red-700 text-red-600 font-semibold px-2 flex items-center gap-1 shadow-sm transition-all animate-in fade-in zoom-in-95 duration-200"
+                                                                             onClick={() => openLostDialog(sale.id)}
+                                                                             title="Kaybedildi"
+                                                                         >
+                                                                             <XCircle className="w-2.5 h-2.5" /> Kaybedildi
+                                                                         </Button>
+                                                                     )}
                                                                      {sale.status === 'Lost' && !sale.restarted_at && <RestartSaleButton saleId={sale.id} triggerSize="xs" />}
                                                                      {['Lead', 'Prospect'].includes(sale.status) && (
                                                                          <Button variant="outline" size="icon" className="h-6 w-6 text-orange-600 border-orange-100 hover:bg-orange-50" onClick={() => openRevertDialog(sale.id)} title="Ön Değerlendirmeye Geri Gönder">
@@ -1146,10 +1219,10 @@ export default function PipelineList({
                                             </div>
                                         )}
                                     </div>
-                                    <div className={cn(
-                                        "px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider",
-                                        getStatusColor(sale.status)
-                                    )}>
+                                    <div 
+                                        title={sale.status === 'Lost' && sale.lost_reason ? `Kayıp Gerekçesi: ${sale.lost_reason}` : undefined}
+                                        className={cn("inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-semibold shadow-sm w-full justify-center cursor-help", getStatusColor(sale.status))}
+                                    >
                                         {isCompleted ? t('actions.won') : (isBroker ? brokerStatusLabel(sale.status) : (() => {
                                             const statusKeyMap: Record<string, string> = {
                                                 'Opsiyon - Kapora Bekleniyor': 'OptionPending',
@@ -1677,6 +1750,62 @@ export default function PipelineList({
                             className="flex-1 h-11 bg-amber-600 hover:bg-amber-700 text-white font-medium shadow-md shadow-amber-200"
                         >
                             {quickNoteSaving ? 'Kaydediliyor...' : 'Kaydet'}
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {proposalSale && (
+                <PipelineProposalDialog
+                    saleId={proposalSale.saleId}
+                    customerName={proposalSale.customerName}
+                    totalAmount={proposalSale.totalAmount}
+                    initialCurrency={proposalSale.initialCurrency}
+                    projectId={proposalSale.projectId}
+                    isOpen={proposalOpen}
+                    onOpenChange={(open) => {
+                        setProposalOpen(open)
+                        if (!open) setProposalSale(null)
+                    }}
+                    onSuccess={() => {
+                        router.refresh()
+                    }}
+                />
+            )}
+
+            {/* Lost Reason Dialog */}
+            <Dialog open={lostDialogOpen} onOpenChange={setLostDialogOpen}>
+                <DialogContent className="max-w-md w-full rounded-2xl p-6 bg-white border-none shadow-2xl">
+                    <DialogHeader>
+                        <DialogTitle className="text-lg font-black text-slate-900 flex items-center gap-2">
+                            <XCircle className="h-5 w-5 text-red-500" />
+                            Satışı Kaybedildi Olarak İşaretle
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 my-4">
+                        <p className="text-sm text-slate-500 font-medium leading-relaxed">
+                            Bu satış kaydını kayıp olarak işaretlemek istediğinize emin misiniz? İlgili ünite tekrar satışa açılacaktır. Lütfen bir kaybetme gerekçesi belirtin:
+                        </p>
+                        <div className="space-y-2">
+                            <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Kaybetme Gerekçesi</Label>
+                            <Textarea
+                                placeholder="Örn: Müşteri bütçeyi aştı, başka projeden satın aldı vb."
+                                value={lostReasonText}
+                                onChange={(e) => setLostReasonText(e.target.value)}
+                                className="bg-slate-50 border-slate-200 focus:ring-red-500 rounded-xl resize-none min-h-[100px] font-medium text-sm p-3"
+                            />
+                        </div>
+                    </div>
+                    <div className="flex gap-3 w-full">
+                        <Button variant="outline" onClick={() => setLostDialogOpen(false)} className="flex-1 h-11 border-slate-200 hover:bg-slate-50 font-bold rounded-xl">
+                            İptal
+                        </Button>
+                        <Button 
+                            onClick={submitLostSale} 
+                            disabled={!lostReasonText.trim() || lostSaving}
+                            className="flex-1 h-11 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-lg shadow-red-200"
+                        >
+                            {lostSaving ? 'Kaydediliyor...' : 'Kaydet'}
                         </Button>
                     </div>
                 </DialogContent>

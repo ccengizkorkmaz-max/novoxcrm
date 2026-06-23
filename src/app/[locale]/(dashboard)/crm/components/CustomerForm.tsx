@@ -16,6 +16,7 @@ import CustomerProfileTab from './CustomerProfileTab'
 import InlineProfileFields from './InlineProfileFields'
 import AddressManager from '@/components/shared/AddressManager'
 import { cn } from '@/lib/utils'
+import { Combobox } from '@/components/ui/combobox'
 
 export interface Customer {
     id: string
@@ -48,6 +49,7 @@ export interface Customer {
     company_website?: string
     company_email?: string
     addresses?: any[]
+    company_id?: string | null
 }
 
 interface CustomerFormProps {
@@ -67,9 +69,11 @@ export default function CustomerForm({ customer }: CustomerFormProps) {
     const [isPending, setIsPending] = useState(false)
 
     // Customer type
-    const [customerType, setCustomerType] = useState<'individual' | 'corporate'>(
-        (customer?.customer_type as any) || 'individual'
-    )
+    const customerType = 'individual'
+
+    // Companies list and selection
+    const [companiesList, setCompaniesList] = useState<{ id: string; name: string }[]>([])
+    const [selectedCompanyId, setSelectedCompanyId] = useState(customer?.company_id || '')
 
     // Source options (dynamic)
     const [sourceOptions, setSourceOptions] = useState<{ id: string; label: string }[]>([])
@@ -95,6 +99,11 @@ export default function CustomerForm({ customer }: CustomerFormProps) {
         })
         getSalesReps().then(res => {
             if (res.reps) setSalesReps(res.reps)
+        })
+        import('@/app/[locale]/(dashboard)/companies/company-actions').then(m => {
+            m.getActiveCompanies().then(list => {
+                setCompaniesList(list)
+            })
         })
         if (customer?.id) {
             getCustomerMeta(customer.id).then(data => {
@@ -180,20 +189,6 @@ export default function CustomerForm({ customer }: CustomerFormProps) {
                     </div>
 
                     <div className="flex items-center gap-3">
-                        {/* Customer Type Toggle */}
-                        <div className="flex gap-1 bg-slate-100 rounded-xl p-1">
-                            <button type="button" onClick={() => setCustomerType('individual')}
-                                className={cn("px-5 py-2 rounded-lg text-xs font-bold transition-all",
-                                    customerType === 'individual' ? "bg-white text-blue-700 shadow-sm" : "text-slate-500 hover:text-slate-700")}>
-                                Bireysel
-                            </button>
-                            <button type="button" onClick={() => setCustomerType('corporate')}
-                                className={cn("px-5 py-2 rounded-lg text-xs font-bold transition-all",
-                                    customerType === 'corporate' ? "bg-white text-blue-700 shadow-sm" : "text-slate-500 hover:text-slate-700")}>
-                                Kurumsal
-                            </button>
-                        </div>
-
                         {/* Meta info */}
                         {!isCreateMode && meta && (
                             <div className="hidden sm:flex gap-4 text-[10px] text-slate-400 bg-slate-50 rounded-xl px-4 py-2">
@@ -270,6 +265,18 @@ export default function CustomerForm({ customer }: CustomerFormProps) {
                                         </button>
                                     ))}
                                 </div>
+                            </div>
+                            <div className="col-span-2 space-y-1.5">
+                                <Label className={labelClass}>Firma / Şirket</Label>
+                                <Combobox
+                                    items={companiesList.map(c => ({ value: c.id, label: c.name }))}
+                                    value={selectedCompanyId}
+                                    onChange={setSelectedCompanyId}
+                                    placeholder="Firma arayın veya seçin..."
+                                    searchPlaceholder="Firma ara..."
+                                    emptyText="Kayıtlı firma bulunamadı."
+                                />
+                                <input type="hidden" name="company_id" value={selectedCompanyId || ''} />
                             </div>
                         </div>
                     </div>
@@ -444,120 +451,76 @@ export default function CustomerForm({ customer }: CustomerFormProps) {
                         )}
                     </div>
 
-                    {/* ── Firma Bilgileri (Kurumsal) ── */}
-                    {customerType === 'corporate' && (
-                        <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-100 p-6 shadow-sm hover:shadow-md transition-shadow">
-                            <div className="flex items-center gap-2.5 mb-5">
-                                <div className="h-8 w-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center">
-                                    <Building2 className="h-4 w-4" />
-                                </div>
-                                <h2 className="text-sm font-black text-slate-700 uppercase tracking-wider">Firma Bilgileri</h2>
-                            </div>
-                            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-                                <div className="space-y-1.5">
-                                    <Label className={labelClass}>Firma Adı <span className="text-red-500">*</span></Label>
-                                    <Input name="company_name" defaultValue={customer?.company_name || ''} required={customerType === 'corporate'} className={inputClass} />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <Label className={labelClass}>Vergi Dairesi <span className="text-red-500">*</span></Label>
-                                    <Input name="tax_office" defaultValue={customer?.tax_office || ''} required={customerType === 'corporate'} className={inputClass} />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <Label className={labelClass}>Vergi No <span className="text-red-500">*</span></Label>
-                                    <Input name="tax_number" defaultValue={customer?.tax_number || ''} required={customerType === 'corporate'} className={inputClass} />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <Label className={labelClass}>Firma Telefonu</Label>
-                                    <Input name="company_phone" defaultValue={customer?.company_phone || ''} className={inputClass} />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <Label className={labelClass}>Firma E-posta</Label>
-                                    <Input name="company_email" type="email" defaultValue={customer?.company_email || ''} className={inputClass} />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <Label className={labelClass}>Web Sitesi</Label>
-                                    <Input name="company_website" defaultValue={customer?.company_website || ''} className={inputClass} placeholder="https://" />
-                                </div>
-                                <div className="col-span-2 lg:col-span-3 space-y-1.5">
-                                    <Label className={labelClass}>Firma Adresi</Label>
-                                    <Textarea name="company_address" defaultValue={customer?.company_address || ''} className="bg-white border-slate-200 rounded-xl resize-none min-h-[70px] text-sm" />
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
                     {/* ── Talep & Tercihler (Bireysel / Yeni Kayıt) ── */}
-                    {customerType === 'individual' && (
-                        <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-100 p-6 shadow-sm hover:shadow-md transition-shadow">
-                            <div className="flex items-center gap-2.5 mb-5">
-                                <div className="h-8 w-8 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center">
-                                    <Search className="h-4 w-4" />
-                                </div>
-                                <h2 className="text-sm font-black text-slate-700 uppercase tracking-wider">Talep & Tercihler</h2>
+                    <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-100 p-6 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="flex items-center gap-2.5 mb-5">
+                            <div className="h-8 w-8 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center">
+                                <Search className="h-4 w-4" />
                             </div>
-                            {isCreateMode ? (
-                                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                                    <div className="space-y-1.5">
-                                        <Label className={labelClass}>Min Bütçe</Label>
-                                        <Input name="min_price" type="number" placeholder="0" className={inputClass} />
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <Label className={labelClass}>Max Bütçe</Label>
-                                        <Input name="max_price" type="number" placeholder="0" className={inputClass} />
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <Label className={labelClass}>Mülk Tipi</Label>
-                                        <Select name="property_type">
-                                            <SelectTrigger className={inputClass}><SelectValue placeholder="Seçin..." /></SelectTrigger>
-                                            <SelectContent className="rounded-xl">
-                                                <SelectItem value="Apartment">Daire</SelectItem>
-                                                <SelectItem value="Villa">Villa</SelectItem>
-                                                <SelectItem value="Office">Ofis</SelectItem>
-                                                <SelectItem value="Shop">Dükkan</SelectItem>
-                                                <SelectItem value="Land">Arsa</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <Label className={labelClass}>Yatırım Amacı</Label>
-                                        <Select name="investment_purpose">
-                                            <SelectTrigger className={inputClass}><SelectValue placeholder="Seçin..." /></SelectTrigger>
-                                            <SelectContent className="rounded-xl">
-                                                <SelectItem value="Living">Yaşam</SelectItem>
-                                                <SelectItem value="Investment">Yatırım</SelectItem>
-                                                <SelectItem value="Holiday">Tatil</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div className="col-span-2 space-y-1.5">
-                                        <Label className={labelClass}>Oda Sayısı</Label>
-                                        <div className="flex gap-2 flex-wrap">
-                                            {['1+1', '2+1', '3+1', '4+1', 'Villa'].map(type => (
-                                                <label key={type} className="flex items-center gap-1.5 border border-slate-200 bg-white p-2.5 px-3.5 rounded-xl cursor-pointer hover:bg-blue-50 hover:border-blue-200 transition-all">
-                                                    <input type="checkbox" name="room_count" value={type} className="h-4 w-4 rounded border-slate-300 text-blue-600" />
-                                                    <span className="text-sm font-bold text-slate-700">{type}</span>
-                                                </label>
-                                            ))}
-                                        </div>
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <Label className={labelClass}>Konum Tercihi</Label>
-                                        <Input name="location_preference" className={inputClass} placeholder="Bölge veya konum..." />
-                                    </div>
-                                    <div className="col-span-2 lg:col-span-4 space-y-1.5">
-                                        <Label className={labelClass}>Notlar</Label>
-                                        <Textarea name="notes" className="bg-white border-slate-200 rounded-xl resize-none min-h-[70px] text-sm" placeholder="Ek notlar..." />
+                            <h2 className="text-sm font-black text-slate-700 uppercase tracking-wider">Talep & Tercihler</h2>
+                        </div>
+                        {isCreateMode ? (
+                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                                <div className="space-y-1.5">
+                                    <Label className={labelClass}>Min Bütçe</Label>
+                                    <Input name="min_price" type="number" placeholder="0" className={inputClass} />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label className={labelClass}>Max Bütçe</Label>
+                                    <Input name="max_price" type="number" placeholder="0" className={inputClass} />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label className={labelClass}>Mülk Tipi</Label>
+                                    <Select name="property_type">
+                                        <SelectTrigger className={inputClass}><SelectValue placeholder="Seçin..." /></SelectTrigger>
+                                        <SelectContent className="rounded-xl">
+                                            <SelectItem value="Apartment">Daire</SelectItem>
+                                            <SelectItem value="Villa">Villa</SelectItem>
+                                            <SelectItem value="Office">Ofis</SelectItem>
+                                            <SelectItem value="Shop">Dükkan</SelectItem>
+                                            <SelectItem value="Land">Arsa</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label className={labelClass}>Yatırım Amacı</Label>
+                                    <Select name="investment_purpose">
+                                        <SelectTrigger className={inputClass}><SelectValue placeholder="Seçin..." /></SelectTrigger>
+                                        <SelectContent className="rounded-xl">
+                                            <SelectItem value="Living">Yaşam</SelectItem>
+                                            <SelectItem value="Investment">Yatırım</SelectItem>
+                                            <SelectItem value="Holiday">Tatil</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="col-span-2 space-y-1.5">
+                                    <Label className={labelClass}>Oda Sayısı</Label>
+                                    <div className="flex gap-2 flex-wrap">
+                                        {['1+1', '2+1', '3+1', '4+1', 'Villa'].map(type => (
+                                            <label key={type} className="flex items-center gap-1.5 border border-slate-200 bg-white p-2.5 px-3.5 rounded-xl cursor-pointer hover:bg-blue-50 hover:border-blue-200 transition-all">
+                                                <input type="checkbox" name="room_count" value={type} className="h-4 w-4 rounded border-slate-300 text-blue-600" />
+                                                <span className="text-sm font-bold text-slate-700">{type}</span>
+                                            </label>
+                                        ))}
                                     </div>
                                 </div>
-                            ) : (
-                                <CustomerDemands
-                                    customerId={customer!.id}
-                                    demand={Array.isArray(customer!.customer_demands) ? customer!.customer_demands[0] : customer!.customer_demands}
-                                    onClose={() => {}}
-                                />
-                            )}
-                        </div>
-                    )}
+                                <div className="space-y-1.5">
+                                    <Label className={labelClass}>Konum Tercihi</Label>
+                                    <Input name="location_preference" className={inputClass} placeholder="Bölge veya konum..." />
+                                </div>
+                                <div className="col-span-2 lg:col-span-4 space-y-1.5">
+                                    <Label className={labelClass}>Notlar</Label>
+                                    <Textarea name="notes" className="bg-white border-slate-200 rounded-xl resize-none min-h-[70px] text-sm" placeholder="Ek notlar..." />
+                                </div>
+                            </div>
+                        ) : (
+                            <CustomerDemands
+                                customerId={customer!.id}
+                                demand={Array.isArray(customer!.customer_demands) ? customer!.customer_demands[0] : customer!.customer_demands}
+                                onClose={() => {}}
+                            />
+                        )}
+                    </div>
                 </div>
 
                 {/* ═══════ ROW 3: Profil Etiketleri ═══════ */}
