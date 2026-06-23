@@ -145,3 +145,84 @@ export async function checkOfferExpirations(shouldRevalidate: boolean = true) {
         }
     }
 }
+
+export async function markOfferAsLost(offerId: string, lostReason: string) {
+    const supabase = await createClient()
+    
+    // Get current user tenant
+    const { data: { user } } = await supabase.auth.getUser()
+    const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user?.id).single()
+
+    try {
+        // 1. Get offer details (to get sale_id and unit_id)
+        const { data: offer } = await supabase
+            .from('offers')
+            .select('sale_id, unit_id, customer_id')
+            .eq('id', offerId)
+            .single()
+
+        if (!offer) throw new Error('Teklif bulunamadı')
+
+        // 2. Update offer status to 'Rejected'
+        const { error: offerError } = await supabase
+            .from('offers')
+            .update({ status: 'Rejected' })
+            .eq('id', offerId)
+
+        if (offerError) throw offerError
+
+        // 3. Update the related sale to 'Lost' if sale_id exists
+        if (offer.sale_id) {
+            const { error: saleError } = await supabase
+                .from('sales')
+                .update({ 
+                    status: 'Lost', 
+                    lost_reason: lostReason || null 
+                })
+                .eq('id', offer.sale_id)
+
+            if (saleError) throw saleError
+        }
+
+        // 4. Update the unit status to 'For Sale' if unit_id exists
+        if (offer.unit_id) {
+            const { error: unitError } = await supabase
+                .from('units')
+                .update({ status: 'For Sale' })
+                .eq('id', offer.unit_id)
+
+            if (unitError) console.error('Failed to release unit during offer rejection:', unitError)
+
+            // Log activity
+            try {
+                const { data: customer } = await supabase.from('customers').select('full_name').eq('id', offer.customer_id).single()
+                const { data: unit } = await supabase.from('units').select('unit_number, project_id').eq('id', offer.unit_id).single()
+
+                await supabase.from('activities').insert({
+                    tenant_id: profile?.tenant_id,
+                    customer_id: offer.customer_id,
+                    owner_id: user?.id,
+                    user_id: user?.id,
+                    project_id: unit?.project_id || null,
+                    type: 'System',
+                    topic: 'Satış Kapandı',
+                    summary: `Teklif Reddedildi / Kaybedildi olarak işaretlendi`,
+                    description: `Müşteri: ${customer?.full_name || 'Bilinmiyor'}, Ünite: ${unit?.unit_number || ''}. Gerekçe: ${lostReason || 'Belirtilmedi'}`,
+                    status: 'Completed',
+                    due_date: new Date().toISOString()
+                })
+            } catch (logErr) {
+                console.error('Failed to log lost offer activity:', logErr)
+            }
+        }
+
+        revalidatePath('/offers')
+        revalidatePath('/crm')
+        revalidatePath('/inventory')
+
+        return { success: true }
+    } catch (error: any) {
+        console.error('Mark Offer As Lost Error:', error)
+        return { error: error.message }
+    }
+}

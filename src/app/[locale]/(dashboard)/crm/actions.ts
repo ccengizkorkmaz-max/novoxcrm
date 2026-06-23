@@ -963,12 +963,20 @@ export async function updateSaleStatus(id: string, status: string, lostReason?: 
             console.error('Auto-create Offer Error:', offerError)
         }
     } else {
-        // If status changed FROM Proposal (or just IS NOT Proposal), remove existing offers for this sale
+        // If status changed FROM Proposal (or just IS NOT Proposal), update existing offers to 'Rejected' if Lost, or delete otherwise
         if (sale?.id) {
-            await supabase
-                .from('offers')
-                .delete()
-                .eq('sale_id', sale.id)
+            if (status === 'Lost') {
+                await supabase
+                    .from('offers')
+                    .update({ status: 'Rejected' })
+                    .eq('sale_id', sale.id)
+                    .neq('status', 'Closed')
+            } else {
+                await supabase
+                    .from('offers')
+                    .delete()
+                    .eq('sale_id', sale.id)
+            }
         }
     }
 

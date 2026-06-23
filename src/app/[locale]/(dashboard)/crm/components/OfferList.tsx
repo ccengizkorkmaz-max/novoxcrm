@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { FileText, Printer, FileSignature, ReceiptText, Calculator, Trash2, Loader2 } from 'lucide-react'
+import { FileText, Printer, FileSignature, ReceiptText, Calculator, Trash2, Loader2, XCircle } from 'lucide-react'
 import Link from 'next/link'
 import { formatCurrency } from '@/lib/utils'
 import {
@@ -46,6 +46,37 @@ export default function OfferList({ offers, userRole }: { offers: Offer[], userR
     const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null)
     const [isPlanOpen, setIsPlanOpen] = useState(false)
     const [startingContractId, setStartingContractId] = useState<string | null>(null)
+
+    const [lostDialogOpen, setLostDialogOpen] = useState(false)
+    const [lostOfferId, setLostOfferId] = useState<string | null>(null)
+    const [lostReasonText, setLostReasonText] = useState('')
+    const [lostSaving, setLostSaving] = useState(false)
+
+    const openLostDialog = (offerId: string) => {
+        setLostOfferId(offerId)
+        setLostReasonText('')
+        setLostDialogOpen(true)
+    }
+
+    const submitLostOffer = async () => {
+        if (!lostOfferId) return
+        setLostSaving(true)
+        try {
+            const { markOfferAsLost } = await import('@/app/[locale]/(dashboard)/offers/actions')
+            const res = await markOfferAsLost(lostOfferId, lostReasonText)
+            if (res.error) {
+                toast.error(res.error)
+            } else {
+                toast.success('Teklif kaybedildi olarak işaretlendi.')
+                setLostDialogOpen(false)
+                router.refresh()
+            }
+        } catch (error: any) {
+            toast.error(error.message || 'Hata oluştu')
+        } finally {
+            setLostSaving(false)
+        }
+    }
 
     const handleStartContract = async (offer: Offer) => {
         setStartingContractId(offer.id)
@@ -206,6 +237,17 @@ export default function OfferList({ offers, userRole }: { offers: Offer[], userR
                                                         {t('actions.startContract')}
                                                     </Button>
                                                 )}
+                                                {!['Rejected', 'Closed', 'Contract', 'Expired'].includes(offer.status) && (
+                                                    <Button 
+                                                        variant="ghost" 
+                                                        size="icon" 
+                                                        onClick={() => openLostDialog(offer.id)} 
+                                                        title="Kaybedildi" 
+                                                        className="hover:bg-red-50 text-red-600 hover:text-red-700"
+                                                    >
+                                                        <XCircle className="h-4 w-4" />
+                                                    </Button>
+                                                )}
                                                 {(userRole === 'admin' || userRole === 'owner') && (
                                                     <Button variant="ghost" size="icon" onClick={() => handleDelete(offer.id)} title="Sil" className="hover:bg-red-50">
                                                         <Trash2 className="h-4 w-4 text-red-600" />
@@ -301,6 +343,39 @@ export default function OfferList({ offers, userRole }: { offers: Offer[], userR
                                 </div>
                             )
                         })()}
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Lost Reason Dialog */}
+            <Dialog open={lostDialogOpen} onOpenChange={setLostDialogOpen}>
+                <DialogContent className="max-w-md p-0 overflow-hidden border-none shadow-2xl rounded-3xl bg-white">
+                    <DialogHeader className="p-6 bg-slate-50 border-b border-slate-100">
+                        <DialogTitle className="text-lg font-black text-slate-800 uppercase tracking-tight">Teklifi Kaybetme Gerekçesi</DialogTitle>
+                    </DialogHeader>
+                    <div className="p-6 space-y-4">
+                        <p className="text-xs text-slate-500 font-medium">
+                            Teklifi kaybetme/reddetme nedeninizi açıklayınız. Bu gerekçe aktivite günlüğüne kaydedilecek ve ilişkili satış kaydına yansıtılacaktır.
+                        </p>
+                        <textarea
+                            className="w-full min-h-[120px] rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all outline-none resize-none placeholder:text-slate-300"
+                            placeholder="Müşteri bütçeyi aştı, başka projeden ev aldı vb..."
+                            value={lostReasonText}
+                            onChange={(e) => setLostReasonText(e.target.value)}
+                        />
+                    </div>
+                    <div className="flex gap-3 p-6 bg-slate-50 border-t border-slate-100">
+                        <Button variant="outline" onClick={() => setLostDialogOpen(false)} className="flex-1 h-11 border-slate-200 hover:bg-slate-50 font-bold rounded-xl">
+                            Vazgeç
+                        </Button>
+                        <Button 
+                            onClick={submitLostOffer} 
+                            disabled={!lostReasonText.trim() || lostSaving} 
+                            className="flex-1 h-11 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-lg shadow-red-200"
+                        >
+                            {lostSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                            {lostSaving ? 'Kaydediliyor...' : 'Kaydet'}
+                        </Button>
                     </div>
                 </DialogContent>
             </Dialog>

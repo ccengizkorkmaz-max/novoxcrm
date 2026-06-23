@@ -401,23 +401,6 @@ export function CustomerView({ customer, activities, contracts = [], profiles = 
                         </CardContent>
                     </Card>
 
-                    {/* Demands */}
-                    {customer.customer_demands && customer.customer_demands.length > 0 && (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="text-base">Talep Özeti</CardTitle>
-                            </CardHeader>
-                            <CardContent className="text-sm space-y-2">
-                                {customer.customer_demands.map((d: any) => (
-                                    <div key={d.id} className="grid gap-1 border-b pb-2 last:border-0 last:pb-0">
-                                        <div>Bütçe: {d.min_price} - {d.max_price}</div>
-                                        <div>Oda: {d.room_count}</div>
-                                        <div>Konum: {d.location_preference}</div>
-                                    </div>
-                                ))}
-                            </CardContent>
-                        </Card>
-                    )}
                 </div>
 
                 {/* Right Content */}

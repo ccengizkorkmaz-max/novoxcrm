@@ -1,19 +1,35 @@
 import { createClient } from '@/lib/supabase/server'
 import { notFound, redirect } from 'next/navigation'
 import { CustomerView } from '@/components/customers/customer-view'
+import CustomerForm from '@/app/[locale]/(dashboard)/crm/components/CustomerForm'
 
 interface CustomerPageProps {
     params: Promise<{
+        locale: string
         id: string
     }>
 }
 
 export default async function CustomerPage({ params }: CustomerPageProps) {
-    const { id } = await params
+    const { locale, id } = await params
     const supabase = await createClient()
 
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) redirect('/login')
+    if (!user) redirect(`/${locale}/login`)
+
+    const { data: userProfile } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', user.id)
+        .single()
+
+    const tenantId = userProfile?.tenant_id
+
+    const { data: tenant } = tenantId
+        ? await supabase.from('tenants').select('crm_mode').eq('id', tenantId).single()
+        : { data: null }
+
+    const isAdvanceMode = tenant?.crm_mode === 'advance'
 
     const { data: customer } = await supabase
         .from('customers')
@@ -123,6 +139,20 @@ export default async function CustomerPage({ params }: CustomerPageProps) {
         ...p,
         full_name: p.full_name || 'İsimsiz Kullanıcı'
     }))
+
+    if (isAdvanceMode) {
+        return (
+            <div className="p-4 sm:p-6">
+                <CustomerForm
+                    customer={customer}
+                    activities={activities || []}
+                    contracts={contracts || []}
+                    sales={sales || []}
+                    profiles={profiles}
+                />
+            </div>
+        )
+    }
 
     return <CustomerView
         customer={customer}
