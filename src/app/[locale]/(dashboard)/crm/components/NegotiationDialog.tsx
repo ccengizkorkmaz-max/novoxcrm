@@ -292,6 +292,7 @@ export default function NegotiationDialog({ offerId, currentPrice, currentCurren
                                                             templates={templates}
                                                             onClose={() => setShowPlanInputs(false)}
                                                             confirmButtonText="Planı Onayla"
+                                                            disablePriceEdit={true}
                                                             onConfirm={(plan, totals, curr) => {
                                                                 setProposedPlan({
                                                                     payment_items: plan,
