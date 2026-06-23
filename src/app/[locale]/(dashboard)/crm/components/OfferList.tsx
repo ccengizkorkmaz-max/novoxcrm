@@ -316,9 +316,9 @@ export default function OfferList({ offers, userRole }: { offers: Offer[], userR
                                                     {planToShow.payment_items.map((item: any, idx: number) => (
                                                         <TableRow key={idx} className="border-slate-50 group hover:bg-slate-50/50 transition-colors">
                                                             <TableCell className="font-bold text-slate-600 py-3">
-                                                                {item.payment_type === 'Down Payment' ? t('dialog.downPayment') :
+                                                                {item.payment_type === 'Down Payment' || item.payment_type === 'DownPayment' ? t('dialog.downPayment') :
                                                                     item.payment_type === 'Installment' ? t('dialog.installment') :
-                                                                        item.payment_type === 'Interim Payment' ? t('dialog.interim') : t('dialog.final')}
+                                                                        item.payment_type === 'Interim Payment' || item.payment_type === 'InterimPayment' || item.payment_type === 'Balloon' ? t('dialog.interim') : t('dialog.final')}
                                                             </TableCell>
                                                             <TableCell className="text-center font-bold text-slate-400 text-xs">
                                                                 {new Date(item.due_date).toLocaleDateString('tr-TR')}
