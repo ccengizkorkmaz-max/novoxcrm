@@ -1,676 +1,1092 @@
 'use client'
 
-import { useState } from 'react'
-import { 
-    Zap, 
-    ArrowLeft, 
-    ShieldCheck, 
-    Building2, 
-    ExternalLink, 
-    Activity, 
-    CheckCircle2, 
-    AlertCircle, 
-    HelpCircle, 
-    Calculator,
-    Lock,
-    Settings,
-    FileCode,
-    RefreshCw,
-    TrendingUp,
-    TrendingDown,
-    PiggyBank,
-    Eye,
-    EyeOff
+import { useState, useMemo } from 'react'
+import { useRouter, usePathname, useSearchParams } from 'next/navigation'
+import {
+    Zap, ArrowLeft, TrendingUp, TrendingDown, Eye, EyeOff,
+    DollarSign, Users, MousePointerClick, Target, Activity,
+    Megaphone, Image, ExternalLink, ChevronDown, Building2,
+    Layers, ArrowDownRight, ShieldCheck, RefreshCw, BarChart3,
+    CheckCircle2, AlertCircle, Clock, Filter
 } from 'lucide-react'
 import { Link } from '@/i18n/routing'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
+import {
+    AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
+    ResponsiveContainer, BarChart, Bar, Cell, ComposedChart, Line,
+    PieChart, Pie, Legend
+} from 'recharts'
+import ShareReportButton from './ShareReportButton'
 
-interface Scenario {
+// ────── Types ──────────────────────────────────────────────────────
+
+interface AccountSummary {
+    spend: number
+    impressions: number
+    reach: number
+    clicks: number
+    leads: number
+    cpl: number
+    cpm: number
+    ctr: number
+    cpc: number
+    frequency: number
+}
+
+interface CampaignInsight {
+    campaign_id: string
+    campaign_name: string
+    status: string
+    objective: string
+    spend: number
+    impressions: number
+    reach: number
+    clicks: number
+    leads: number
+    cpl: number
+    cpm: number
+    ctr: number
+    cpc: number
+    frequency: number
+    daily_budget: number | null
+}
+
+interface AdInsight {
+    ad_id: string
+    ad_name: string
+    adset_name: string
+    campaign_name: string
+    status: string
+    spend: number
+    impressions: number
+    clicks: number
+    leads: number
+    cpl: number
+    ctr: number
+    thumbnail_url: string | null
+    preview_url: string | null
+}
+
+interface DailyBreakdown {
+    date: string
+    spend: number
+    impressions: number
+    clicks: number
+    reach: number
+    leads: number
+    cpl: number
+    cpm: number
+    ctr: number
+}
+
+interface LeadForm {
+    form_id: string
+    form_name: string
+    page_id: string
+    page_name: string
+    status: string
+    leads_count: number
+}
+
+interface FunnelData {
+    impressions: number
+    clicks: number
+    leads: number
+    crmConversions: number
+    sales: number
+}
+
+interface MakeScenario {
     id: number
     name: string
     active: boolean
     scheduling: string
 }
 
-interface IntegrationItem {
-    formName: string
-    metaFormName?: string | null
-    campaign: string
-    channel: string
-    totalLeads: number
-    todayLeads: number
-    thisWeekLeads: number
-    thisMonthLeads: number
-    scenario: Scenario
-    metaLive?: {
-        campaignId: string
-        spend: number
-        impressions: number
-        clicks: number
-        reach: number
-        leads: number
-        cpl: number
-    } | null
-    technical: {
-        pageId: string
-        pageName?: string
-        formId: string
-        metaLeadsCount?: number
-        connectionId: string
-        mappedFields: Record<string, string>
-    }
-}
-
-interface AnalyticsData {
+interface MetaAdsData {
+    connected: boolean
     makeConnected: boolean
-    metaConnected?: boolean
-    mappedIntegrations: IntegrationItem[]
-    totalLeadsCount: number
-    todayLeadsCount: number
-    monthLeadsCount: number
-    totalMetaSpend?: number
-    totalScenariosCount: number
-    activeScenariosCount: number
-    savedCreditsCount: number
-    leadResponseTime: string
+    accountSummary: AccountSummary
+    accountSummaryPrev: AccountSummary | null
+    campaigns: CampaignInsight[]
+    topAds: AdInsight[]
+    dailyBreakdown: DailyBreakdown[]
+    leadForms: LeadForm[]
+    funnel: FunnelData
+    webStats: {
+        leads: number
+        leadsToday: number
+        leadsPrev: number
+        crmConversions: number
+        sales: number
+    }
+    makeScenarios: MakeScenario[]
+    datePreset: string
+    formQualityBreakdowns?: Array<{
+        name: string
+        source: string
+        isMeta: boolean
+        total: number
+        potansiyel: number
+        olumlu: number
+        cop: number
+    }>
+    overallQuality?: {
+        potansiyel: number
+        olumlu: number
+        cop: number
+        total: number
+    }
 }
 
 interface Props {
-    initialData: AnalyticsData
+    initialData: MetaAdsData
     locale: string
+    onFilterChange?: (start: string, end: string, preset: string) => void
+    isSharedView?: boolean
 }
 
-export default function MetaAutomationDashboard({ initialData: rawData, locale }: Props) {
+// ────── Helper Components ──────────────────────────────────────────
+
+function KPICard({
+    title, value, subtitle, icon: Icon, trend, trendValue, className, iconColor
+}: {
+    title: string
+    value: string
+    subtitle?: string
+    icon: any
+    trend?: 'up' | 'down' | 'neutral'
+    trendValue?: string
+    className?: string
+    iconColor?: string
+}) {
+    return (
+        <Card className={cn(
+            "rounded-2xl border-0 shadow-lg overflow-hidden relative group hover:shadow-xl transition-all duration-300",
+            className
+        )}>
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 opacity-80" />
+            <CardContent className="p-5">
+                <div className="flex items-start justify-between">
+                    <div className="space-y-2">
+                        <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.15em]">
+                            {title}
+                        </p>
+                        <p className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">
+                            {value}
+                        </p>
+                        {trendValue && (
+                            <div className={cn(
+                                "flex items-center gap-1 text-[11px] font-bold",
+                                trend === 'up' ? 'text-emerald-600' : trend === 'down' ? 'text-rose-500' : 'text-slate-400'
+                            )}>
+                                {trend === 'up' ? <TrendingUp className="h-3.5 w-3.5" /> : trend === 'down' ? <TrendingDown className="h-3.5 w-3.5" /> : null}
+                                {trendValue}
+                            </div>
+                        )}
+                        {subtitle && !trendValue && (
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">{subtitle}</p>
+                        )}
+                    </div>
+                    <div className={cn(
+                        "h-11 w-11 rounded-xl flex items-center justify-center shrink-0",
+                        iconColor || "bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400"
+                    )}>
+                        <Icon className="h-5 w-5" />
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+    )
+}
+
+function StatusBadge({ status }: { status: string }) {
+    const statusMap: Record<string, { label: string; color: string }> = {
+        'ACTIVE': { label: 'Aktif', color: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/20 dark:text-emerald-400' },
+        'PAUSED': { label: 'Duraklatıldı', color: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/20 dark:text-amber-400' },
+        'DELETED': { label: 'Silindi', color: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-950/20 dark:text-red-400' },
+        'ARCHIVED': { label: 'Arşivlendi', color: 'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400' },
+    }
+    const s = statusMap[status] || { label: status, color: 'bg-slate-50 text-slate-600 border-slate-200' }
+    return <Badge variant="outline" className={cn("text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border", s.color)}>{s.label}</Badge>
+}
+
+// ────── Custom Tooltip ─────────────────────────────────────────────
+
+function ChartTooltip({ active, payload, label }: any) {
+    if (!active || !payload?.length) return null
+    return (
+        <div className="bg-slate-900/95 backdrop-blur-sm text-white rounded-xl px-4 py-3 shadow-2xl border border-slate-700/50 text-xs">
+            <p className="font-bold text-slate-300 mb-1.5">{label}</p>
+            {payload.map((entry: any, i: number) => (
+                <div key={i} className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full" style={{ backgroundColor: entry.color }} />
+                    <span className="text-slate-400">{entry.name}:</span>
+                    <span className="font-black">{typeof entry.value === 'number' ? entry.value.toLocaleString('tr-TR') : entry.value}</span>
+                </div>
+            ))}
+        </div>
+    )
+}
+
+// ────── Main Dashboard ─────────────────────────────────────────────
+
+export default function MetaAdsDashboard({ initialData, locale, onFilterChange, isSharedView = false }: Props) {
     const isTr = locale === 'tr'
-    const [shareMode, setShareMode] = useState(false)
+    const [agencyMode, setAgencyMode] = useState(false)
+    const [expandedCampaign, setExpandedCampaign] = useState<string | null>(null)
 
-    // Defensive: ensure initialData has all required fields with safe defaults
-    const initialData: AnalyticsData = {
-        makeConnected: rawData?.makeConnected ?? false,
-        metaConnected: rawData?.metaConnected ?? false,
-        mappedIntegrations: Array.isArray(rawData?.mappedIntegrations) ? rawData.mappedIntegrations : [],
-        totalLeadsCount: rawData?.totalLeadsCount ?? 0,
-        todayLeadsCount: rawData?.todayLeadsCount ?? 0,
-        monthLeadsCount: rawData?.monthLeadsCount ?? 0,
-        totalMetaSpend: rawData?.totalMetaSpend ?? 0,
-        totalScenariosCount: rawData?.totalScenariosCount ?? 0,
-        activeScenariosCount: rawData?.activeScenariosCount ?? 0,
-        savedCreditsCount: rawData?.savedCreditsCount ?? 0,
-        leadResponseTime: rawData?.leadResponseTime ?? '-',
-    }
-    
-    // Client-side cost manual inputs state (pre-populated with live Meta spend if available)
-    const [costs, setCosts] = useState<Record<string, string>>(() => {
-        const initialCosts: Record<string, string> = {}
-        initialData.mappedIntegrations.forEach(item => {
-            if (item?.metaLive && typeof item.metaLive.spend === 'number') {
-                initialCosts[item.formName] = item.metaLive.spend.toFixed(2)
-            }
-        })
-        return initialCosts
-    })
-    const [salesCounts, setSalesCounts] = useState<Record<string, string>>({})
+    const router = useRouter()
+    const pathname = usePathname()
+    const searchParams = useSearchParams()
 
-    const t = (key: string): string => {
-        const translations: Record<string, Record<string, string>> = {
-            tr: {
-                title: "Meta Ads & Otomasyon Sağlığı Raporu",
-                subtitle: "Meta reklam formlarının entegrasyon sağlığı, Make.com anlık senaryolarının durumu ve sunucu/kredi verimlilik paneli.",
-                goBack: "Raporlar Listesine Dön",
-                shareModeTitle: "Dijital Ajans Paylaşım Modu",
-                shareModeDesc: "Hassas CRM müşteri ve temsilci detaylarını gizler, teknik entegrasyon parametrelerini ve form eşleştirmelerini öne çıkarır.",
-                masked: "[GİZLENDİ - Ajans Modu]",
-                connectionStatus: "Entegrasyon Durumu",
-                activeWebhooks: "Aktif Instant Webhook",
-                leadDelay: "Lead Yanıt Hızı",
-                delayComparison: "Eski 15dk Polling yerine anında (~0.8sn)",
-                operationsSaved: "Kredi & Maliyet Tasarrufu",
-                operationsSavedDesc: "Gereksiz isteklerin önlenmesiyle aylık kazanılan Make kredisi.",
-                creditsSavedLabel: "Aylık Tasarruf",
-                wasteVisualizerTitle: "Kredi Tüketim & Verimlilik Karşılaştırması",
-                wasteVisualizerDesc: "15 Dakikalık Rutin Sorgulama (Polling) ve Anlık Tetikleme (Instant Webhook) arasındaki operasyonel yük farkı.",
-                oldPolling: "Eski Polling Metodu (21 Senaryo)",
-                newWebhook: "Yeni Webhook Metodu (Sıfır İsraf)",
-                leadsTableTitle: "Entegre Formlar & Otomasyon Eşleşmeleri",
-                formName: "Meta Reklam Formu",
-                campaignName: "Kampanya",
-                leadsToday: "Bugün",
-                leadsMonth: "Bu Ay",
-                leadsTotal: "Toplam Lead",
-                scenarioName: "Make.com Senaryosu",
-                scenarioStatus: "Senaryo Durumu",
-                scenarioScheduling: "Tetiklenme",
-                technicalPayload: "Teknik Mappings & IDs",
-                instructionsTitle: "Dijital Ajans İçin Teknik Entegrasyon Rehberi",
-                instructionsStep1: "Facebook Lead Ads formu oluştururken form alanlarındaki anahtarların (developer key) yukarıdaki eşleşme şemasıyla birebir örtüştüğünden emin olun.",
-                instructionsStep2: "Özellikle 'hangi_amaçla_almayı_düşünüyorsunuz?' sorusu CRM içerisinde mesaj alanına otomatik eşlenir. Değiştirmeyiniz.",
-                instructionsStep3: "Form ID veya Page ID güncellendiğinde Make.com senaryosu içindeki webhook modülünü tekrar yetkilendirip formu seçin.",
-                calcTitle: "Ajans Kampanya ROI & Maliyet Hesaplayıcı",
-                calcDesc: "Her form için harcanan bütçeyi girerek, Lead Başına Maliyeti (CPL) ve Satış Dönüşüm Oranlarını anlık analiz edin.",
-                spendInput: "Harcama Girişi (₺)",
-                salesInput: "Satış Adedi",
-                cplLabel: "CPL (Lead Başı)",
-                roiLabel: "Dönüşüm Oranı",
-                notEntered: "Girilmedi",
-                active: "Aktif",
-                inactive: "Pasif",
-                instant: "Anlık (Instant)",
-                polling: "Aralıklı (Polling)",
-                makeStatusConnected: "Make.com API Bağlantısı Başarılı",
-                makeStatusFallback: "Make.com Çevrimdışı (Simüle Edilmiş Veri)"
-            },
-            en: {
-                title: "Meta Ads & Automation Health Report",
-                subtitle: "Integration health of Meta ad forms, status of Make.com instant scenarios, and server/credit efficiency console.",
-                goBack: "Back to Reports List",
-                shareModeTitle: "Digital Agency Share Mode",
-                shareModeDesc: "Hides sensitive CRM client details, highlights technical integration parameters and form mapping payloads.",
-                masked: "[MASKED - Agency Mode]",
-                connectionStatus: "Integration Status",
-                activeWebhooks: "Active Instant Webhooks",
-                leadDelay: "Lead Latency Time",
-                delayComparison: "Instant (~0.8s) instead of old 15m polling",
-                operationsSaved: "Credit & Cost Savings",
-                operationsSavedDesc: "Make operations saved monthly by avoiding idle endpoint polling.",
-                creditsSavedLabel: "Monthly Savings",
-                wasteVisualizerTitle: "Credit Consumption & Efficiency Comparison",
-                wasteVisualizerDesc: "Operational difference between 15-Minute routine polling and Instant Webhook triggers.",
-                oldPolling: "Old Polling Method (21 Scenarios)",
-                newWebhook: "New Webhook Method (Zero Waste)",
-                leadsTableTitle: "Integrated Forms & Automation Mappings",
-                formName: "Meta Lead Form",
-                campaignName: "Campaign",
-                leadsToday: "Today",
-                leadsMonth: "This Month",
-                leadsTotal: "Total Leads",
-                scenarioName: "Make.com Scenario",
-                scenarioStatus: "Scenario Status",
-                scenarioScheduling: "Trigger Type",
-                technicalPayload: "Technical Mappings & IDs",
-                instructionsTitle: "Technical Integration Guide for Digital Agency",
-                instructionsStep1: "When creating Meta Lead Ads forms, ensure the developer keys match the mapping scheme above exactly.",
-                instructionsStep2: "Specifically, the question 'hangi_amaçla_almayı_düşünüyorsunuz?' automatically maps to CRM message field. Do not rename.",
-                instructionsStep3: "If Form ID or Page ID is updated, re-authorize the webhook module inside the Make.com scenario and pick the new form.",
-                calcTitle: "Agency Campaign ROI & Cost Calculator",
-                calcDesc: "Enter campaign spend for each form to dynamically calculate Cost per Lead (CPL) and Sales Conversion Rates.",
-                spendInput: "Enter Spend ($/₺)",
-                salesInput: "Sales Count",
-                cplLabel: "CPL (Cost Per Lead)",
-                roiLabel: "Conversion Rate",
-                notEntered: "Not entered",
-                active: "Active",
-                inactive: "Inactive",
-                instant: "Instant Webhook",
-                polling: "Interval Polling",
-                makeStatusConnected: "Make.com API Connected successfully",
-                makeStatusFallback: "Make.com Offline (Using Local Fallback)"
-            }
+    // Get current query params or defaults
+    const [startDate, setStartDate] = useState(isSharedView ? '' : (searchParams.get('startDate') || ''))
+    const [endDate, setEndDate] = useState(isSharedView ? '' : (searchParams.get('endDate') || ''))
+    const [datePreset, setDatePreset] = useState(isSharedView ? 'last_30d' : (searchParams.get('datePreset') || 'last_30d'))
+
+    const handleApplyFilters = (start: string, end: string, preset: string) => {
+        if (isSharedView && onFilterChange) {
+            setStartDate(start)
+            setEndDate(end)
+            setDatePreset(preset)
+            onFilterChange(start, end, preset)
+            return
         }
-        return translations[locale === 'en' ? 'en' : 'tr'][key] || key
+        const params = new URLSearchParams(searchParams.toString())
+        if (preset === 'custom') {
+            if (start) params.set('startDate', start)
+            else params.delete('startDate')
+            if (end) params.set('endDate', end)
+            else params.delete('endDate')
+            params.set('datePreset', 'custom')
+        } else {
+            params.delete('startDate')
+            params.delete('endDate')
+            params.set('datePreset', preset)
+        }
+        router.push(`${pathname}?${params.toString()}`)
     }
 
-    const formatNumber = (value: number) => {
+    const data = initialData
+    const summary = data.accountSummary
+
+    const fmt = (val: number, decimals = 0) => {
         try {
-            return new Intl.NumberFormat(locale === 'tr' ? 'tr-TR' : 'en-US').format(value)
-        } catch {
-            return String(value)
-        }
+            return new Intl.NumberFormat(isTr ? 'tr-TR' : 'en-US', {
+                minimumFractionDigits: decimals,
+                maximumFractionDigits: decimals,
+            }).format(val)
+        } catch { return String(val) }
     }
+
+    const fmtCurrency = (val: number) => `₺${fmt(val, 2)}`
+    const fmtPercent = (val: number) => `%${fmt(val, 2)}`
+
+    // Prepare chart data with shortened dates
+    const chartData = useMemo(() =>
+        data.dailyBreakdown.map(d => ({
+            ...d,
+            dateShort: d.date ? d.date.substring(5).replace('-', '/') : '',
+        })),
+        [data.dailyBreakdown]
+    )
+
+    // Funnel steps
+    const funnelSteps = useMemo(() => {
+        const f = data.funnel
+        return [
+            { label: 'Gösterim', value: f.impressions, color: '#6366f1', rate: null },
+            { label: 'Tıklama', value: f.clicks, color: '#3b82f6', rate: f.impressions > 0 ? (f.clicks / f.impressions * 100) : 0 },
+            { label: 'Lead', value: f.leads, color: '#10b981', rate: f.clicks > 0 ? (f.leads / f.clicks * 100) : 0 },
+            { label: 'CRM Dönüşüm', value: f.crmConversions, color: '#f59e0b', rate: f.leads > 0 ? (f.crmConversions / f.leads * 100) : 0 },
+            { label: 'Satış', value: f.sales, color: '#ef4444', rate: f.crmConversions > 0 ? (f.sales / f.crmConversions * 100) : 0 },
+        ]
+    }, [data.funnel])
+
+    const maxFunnel = Math.max(...funnelSteps.map(s => s.value), 1)
 
     return (
-        <div className="space-y-8 p-1 sm:p-2">
-            {/* Header section with back navigation */}
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="space-y-6 p-1 sm:p-2">
+            {/* ─── HEADER ─── */}
+            <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
                 <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                        <Link href="/reports" className="group flex items-center text-xs font-bold text-slate-400 hover:text-slate-100 transition-colors gap-1.5 uppercase tracking-widest">
-                            <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
-                            {t('goBack')}
+                    {!isSharedView && (
+                        <Link href="/reports" className="group flex items-center text-[10px] font-black text-slate-400 hover:text-blue-500 transition-colors gap-1.5 uppercase tracking-[0.2em]">
+                            <ArrowLeft className="h-3.5 w-3.5 group-hover:-translate-x-1 transition-transform" />
+                            {isTr ? 'Raporlar' : 'Reports'}
                         </Link>
-                    </div>
-                    <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-slate-50 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                        {t('title')}
+                    )}
+                    <h1 className="text-3xl font-black tracking-tight">
+                        <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                            Ads Analytics
+                        </span>
                     </h1>
-                    <p className="text-slate-500 dark:text-slate-400 text-sm max-w-3xl leading-relaxed">
-                        {t('subtitle')}
+                    <p className="text-slate-500 dark:text-slate-400 text-sm max-w-2xl">
+                        {isTr
+                            ? 'Facebook & Instagram reklam kampanyalarınız ile Web Formlarınızın gerçek zamanlı performans analizi, kreatif sıralaması ve dönüşüm hunisi.'
+                            : 'Real-time performance analytics, web forms, creative leaderboard and conversion funnel for your Facebook & Instagram campaigns.'
+                        }
                     </p>
                 </div>
 
-                {/* Connection Status indicator badges */}
                 <div className="flex flex-wrap items-center gap-2">
-                    <Badge className={cn(
-                        "py-1.5 px-3 rounded-xl border font-bold text-xs shadow-sm flex items-center gap-2",
-                        initialData.makeConnected 
-                            ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/20 dark:text-emerald-300 dark:border-emerald-900/50" 
-                            : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/20 dark:text-amber-300 dark:border-amber-900/50"
-                    )}>
-                        <div className={cn("h-2 w-2 rounded-full animate-pulse", initialData.makeConnected ? "bg-emerald-500" : "bg-amber-500")} />
-                        {initialData.makeConnected ? t('makeStatusConnected') : t('makeStatusFallback')}
-                    </Badge>
-
-                    <Badge className={cn(
-                        "py-1.5 px-3 rounded-xl border font-bold text-xs shadow-sm flex items-center gap-2",
-                        initialData.metaConnected 
-                            ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/20 dark:text-emerald-300 dark:border-emerald-900/50" 
-                            : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/20 dark:text-amber-300 dark:border-amber-900/50"
-                    )}>
-                        <div className={cn("h-2 w-2 rounded-full animate-pulse", initialData.metaConnected ? "bg-emerald-500" : "bg-amber-500")} />
-                        {initialData.metaConnected ? (isTr ? "Meta Marketing API: Canlı Bağlantı" : "Meta Marketing API: Connected") : (isTr ? "Meta API: Çevrimdışı / Pasif" : "Meta API: Offline / Inactive")}
-                    </Badge>
-                </div>
-            </div>
-
-            {/* Toggle bar for Agency Share Mode with luxurious glassmorphism feel */}
-            <Card className="border-none shadow-xl bg-gradient-to-br from-slate-900 to-indigo-950 text-white rounded-2xl overflow-hidden relative">
-                <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
-                    <ShieldCheck className="h-48 w-48 text-white" />
-                </div>
-                <CardContent className="p-6 sm:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
-                    <div className="space-y-2 max-w-2xl">
-                        <div className="flex items-center gap-2">
-                            <Badge className="bg-blue-500 hover:bg-blue-600 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 border-none">
-                                Premium Feature
-                            </Badge>
+                    {/* Date Picker Filters */}
+                    <div className="flex flex-wrap items-center gap-2 bg-slate-50 dark:bg-slate-900/50 p-1.5 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm mr-2">
+                        <div className="flex items-center gap-1 px-1">
+                            <Filter className="h-3.5 w-3.5 text-slate-400" />
+                            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Filtre:</span>
                         </div>
-                        <h3 className="text-xl font-black tracking-tight flex items-center gap-2 text-white">
-                            {shareMode ? <EyeOff className="h-5 w-5 text-blue-400" /> : <Eye className="h-5 w-5 text-blue-400" />}
-                            {t('shareModeTitle')}
-                        </h3>
-                        <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
-                            {t('shareModeDesc')}
-                        </p>
+                        <select
+                            value={datePreset}
+                            onChange={(e) => {
+                                const val = e.target.value
+                                setDatePreset(val)
+                                if (val !== 'custom') {
+                                    handleApplyFilters('', '', val)
+                                } else {
+                                    const todayStr = new Date().toISOString().substring(0, 10)
+                                    const prevStr = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().substring(0, 10)
+                                    setStartDate(prevStr)
+                                    setEndDate(todayStr)
+                                    handleApplyFilters(prevStr, todayStr, 'custom')
+                                }
+                            }}
+                            className="bg-white dark:bg-slate-800 text-[11px] font-bold px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 focus:outline-none text-slate-700 dark:text-slate-200"
+                        >
+                            <option value="last_7d">Son 7 Gün</option>
+                            <option value="last_30d">Son 30 Gün</option>
+                            <option value="this_month">Bu Ay</option>
+                            <option value="custom">Özel Tarih</option>
+                        </select>
+
+                        {datePreset === 'custom' && (
+                            <div className="flex items-center gap-1.5 pl-1.5 border-l border-slate-200 dark:border-slate-700">
+                                <input
+                                    type="date"
+                                    value={startDate}
+                                    onChange={(e) => setStartDate(e.target.value)}
+                                    className="bg-white dark:bg-slate-800 text-[11px] font-bold px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 focus:outline-none text-slate-700 dark:text-slate-200"
+                                />
+                                <span className="text-slate-400 text-[10px] font-bold">-</span>
+                                <input
+                                    type="date"
+                                    value={endDate}
+                                    onChange={(e) => setEndDate(e.target.value)}
+                                    className="bg-white dark:bg-slate-800 text-[11px] font-bold px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 focus:outline-none text-slate-700 dark:text-slate-200"
+                                />
+                                <Button
+                                    size="sm"
+                                    onClick={() => handleApplyFilters(startDate, endDate, 'custom')}
+                                    className="h-6 px-2 bg-blue-600 hover:bg-blue-700 text-[9px] font-black uppercase tracking-wider rounded text-white"
+                                >
+                                    Uygula
+                                </Button>
+                            </div>
+                        )}
                     </div>
-                    <Button 
-                        onClick={() => setShareMode(!shareMode)}
-                        variant={shareMode ? 'default' : 'outline'}
+
+                    {/* Connection badges */}
+                    <Badge className={cn(
+                        "py-1.5 px-3 rounded-xl border font-bold text-[10px] shadow-sm flex items-center gap-2",
+                        data.connected
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/20 dark:text-emerald-300 dark:border-emerald-900/50"
+                            : "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/20 dark:text-red-300 dark:border-red-900/50"
+                    )}>
+                        <div className={cn("h-2 w-2 rounded-full animate-pulse", data.connected ? "bg-emerald-500" : "bg-red-500")} />
+                        {data.connected ? 'Meta API: Canlı' : 'Meta API: Çevrimdışı'}
+                    </Badge>
+
+                    {data.makeConnected && (
+                        <Badge className="py-1.5 px-3 rounded-xl border font-bold text-[10px] shadow-sm flex items-center gap-2 bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/20 dark:text-emerald-300 dark:border-emerald-900/50">
+                            <div className="h-2 w-2 rounded-full animate-pulse bg-emerald-500" />
+                            Make.com: Bağlı
+                        </Badge>
+                    )}
+
+                    {/* Agency mode toggle */}
+                    <Button
+                        size="sm"
+                        variant={agencyMode ? 'default' : 'outline'}
+                        onClick={() => setAgencyMode(!agencyMode)}
                         className={cn(
-                            "h-12 px-6 rounded-xl font-bold transition-all text-xs active:scale-95 whitespace-nowrap shadow-md",
-                            shareMode 
-                                ? "bg-blue-600 hover:bg-blue-700 text-white border-none" 
-                                : "bg-white text-slate-900 hover:bg-slate-100 hover:text-slate-900 border-none"
+                            "h-8 text-[10px] font-black uppercase tracking-wider rounded-lg gap-1.5",
+                            agencyMode && "bg-indigo-600 hover:bg-indigo-700"
                         )}
                     >
-                        {shareMode ? (isTr ? "Normal Moda Geç" : "Switch to Normal Mode") : (isTr ? "Ajans Modunu Aktif Et" : "Enable Agency Mode")}
+                        {agencyMode ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                        {isTr ? 'Ajans Modu' : 'Agency Mode'}
                     </Button>
-                </CardContent>
-            </Card>
 
-            {/* Top Cards Grid */}
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <Card className="rounded-2xl border-slate-200/50 dark:border-slate-800/50 bg-white/70 dark:bg-slate-900/70 backdrop-blur-md shadow-sm">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-[11px] font-black text-slate-400 uppercase tracking-widest">
-                            {t('connectionStatus')}
-                        </CardTitle>
-                        <CheckCircle2 className="h-4.5 w-4.5 text-emerald-500" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-black text-slate-900 dark:text-slate-50 tracking-tight">
-                            🟢 100% OK
-                        </div>
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider mt-1.5">
-                            Meta Ads & Make Webhooks
-                        </p>
-                    </CardContent>
-                </Card>
-
-                <Card className="rounded-2xl border-slate-200/50 dark:border-slate-800/50 bg-white/70 dark:bg-slate-900/70 backdrop-blur-md shadow-sm">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-[11px] font-black text-slate-400 uppercase tracking-widest">
-                            {t('activeWebhooks')}
-                        </CardTitle>
-                        <Zap className="h-4.5 w-4.5 text-amber-500" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-black text-slate-900 dark:text-slate-50 tracking-tight">
-                            {initialData.activeScenariosCount} / {initialData.totalScenariosCount}
-                        </div>
-                        <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-black uppercase tracking-wider mt-1.5 flex items-center gap-1">
-                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                            100% Optimized
-                        </p>
-                    </CardContent>
-                </Card>
-
-                <Card className="rounded-2xl border-slate-200/50 dark:border-slate-800/50 bg-white/70 dark:bg-slate-900/70 backdrop-blur-md shadow-sm">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-[11px] font-black text-slate-400 uppercase tracking-widest">
-                            {t('leadDelay')}
-                        </CardTitle>
-                        <Activity className="h-4.5 w-4.5 text-blue-500" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-black text-slate-900 dark:text-slate-50 tracking-tight">
-                            ~0.8s ({isTr ? 'Anlık' : 'Instant'})
-                        </div>
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider mt-1.5">
-                            {t('delayComparison')}
-                        </p>
-                    </CardContent>
-                </Card>
-
-                <Card className="rounded-2xl border-slate-200/50 dark:border-slate-800/50 bg-white/70 dark:bg-slate-900/70 backdrop-blur-md shadow-sm">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-[11px] font-black text-slate-400 uppercase tracking-widest">
-                            {t('operationsSaved')}
-                        </CardTitle>
-                        <PiggyBank className="h-4.5 w-4.5 text-indigo-500" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-black text-indigo-600 dark:text-indigo-400 tracking-tight">
-                            72,000 / mo
-                        </div>
-                        <p className="text-[11px] text-indigo-500 dark:text-indigo-300 font-black uppercase tracking-wider mt-1.5">
-                            {isTr ? '98.5% Kredi Tasarrufu' : '98.5% Credit Efficiency'}
-                        </p>
-                    </CardContent>
-                </Card>
+                    {/* Share button */}
+                    {!isSharedView && <ShareReportButton />}
+                </div>
             </div>
 
-            {/* Savings visualizer progress bars */}
-            <Card className="rounded-2xl border-slate-200/50 dark:border-slate-800/50 bg-white/70 dark:bg-slate-900/70 backdrop-blur-md shadow-sm overflow-hidden">
-                <CardHeader>
-                    <CardTitle className="text-base font-black text-slate-800 dark:text-slate-100 uppercase tracking-wider">
-                        ⚡ {t('wasteVisualizerTitle')}
-                    </CardTitle>
-                    <CardDescription className="text-slate-500 dark:text-slate-400 text-xs">
-                        {t('wasteVisualizerDesc')}
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    {/* Polling bar (old model) */}
-                    <div className="space-y-2">
-                        <div className="flex justify-between items-center text-xs font-bold text-slate-500 uppercase tracking-widest">
-                            <span>{t('oldPolling')}</span>
-                            <span className="text-red-500 font-black">72,576 operations / month</span>
-                        </div>
-                        <div className="h-3 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                            <div className="h-full bg-gradient-to-r from-red-500 to-amber-500 rounded-full" style={{ width: '100%' }} />
-                        </div>
-                        <p className="text-[10px] text-slate-400 italic">
-                            * {isTr ? 'Her senaryo günde 96 kez sorgulama yapıyordu (lead gelmese dahi krediyi tüketiyordu).' : 'Each scenario checked the server 96 times a day, wasting operations even when no leads arrived.'}
-                        </p>
-                    </div>
+            {/* ─── KPI CARDS ─── */}
+            <div className="grid gap-3 grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+                <KPICard
+                    title={isTr ? "Toplam Harcama" : "Total Spend"}
+                    value={fmtCurrency(summary.spend)}
+                    icon={DollarSign}
+                    iconColor="bg-indigo-50 text-indigo-600 dark:bg-indigo-950/30 dark:text-indigo-400"
+                    subtitle={isTr ? "Son 30 Gün" : "Last 30 Days"}
+                />
+                <KPICard
+                    title={isTr ? "Toplam Lead" : "Total Leads"}
+                    value={fmt(summary.leads)}
+                    icon={Users}
+                    iconColor="bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400"
+                    subtitle={summary.leads > 0 ? `CPL: ${fmtCurrency(summary.cpl)}` : '—'}
+                />
+                <KPICard
+                    title="CPL"
+                    value={summary.cpl > 0 ? fmtCurrency(summary.cpl) : '—'}
+                    icon={Target}
+                    iconColor="bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400"
+                    subtitle={isTr ? "Lead Başına Maliyet" : "Cost Per Lead"}
+                />
+                <KPICard
+                    title="CTR"
+                    value={fmtPercent(summary.ctr)}
+                    icon={MousePointerClick}
+                    iconColor="bg-purple-50 text-purple-600 dark:bg-purple-950/30 dark:text-purple-400"
+                    subtitle={isTr ? "Tıklama Oranı" : "Click-Through Rate"}
+                />
+                <KPICard
+                    title="CPM"
+                    value={fmtCurrency(summary.cpm)}
+                    icon={Megaphone}
+                    iconColor="bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400"
+                    subtitle={isTr ? "1000 Gösterim Maliyeti" : "Cost per 1K Imp"}
+                />
+                <KPICard
+                    title={isTr ? "Erişim" : "Reach"}
+                    value={fmt(summary.reach)}
+                    icon={Activity}
+                    iconColor="bg-rose-50 text-rose-600 dark:bg-rose-950/30 dark:text-rose-400"
+                    subtitle={`Frekans: ${fmt(summary.frequency, 1)}`}
+                />
+            </div>
 
-                    {/* Webhook bar (optimized model) */}
-                    <div className="space-y-2">
-                        <div className="flex justify-between items-center text-xs font-bold text-slate-500 uppercase tracking-widest">
-                            <span>{t('newWebhook')}</span>
-                            <span className="text-emerald-500 font-black">~576 operations / month</span>
+            {/* ─── SPEND & LEAD TREND CHART ─── */}
+            {chartData.length > 0 && (
+                <Card className="rounded-2xl border-0 shadow-lg overflow-hidden">
+                    <CardHeader className="pb-2">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <CardTitle className="text-base font-black text-slate-800 dark:text-white flex items-center gap-2">
+                                    <BarChart3 className="h-5 w-5 text-blue-500" />
+                                    {isTr ? 'Günlük Harcama & Lead Trendi' : 'Daily Spend & Lead Trend'}
+                                </CardTitle>
+                                <CardDescription className="text-xs mt-1">
+                                    {isTr ? 'Son 30 gün boyunca günlük reklam harcaması ve kazanılan lead sayısı' : 'Daily ad spend and leads acquired over the last 30 days'}
+                                </CardDescription>
+                            </div>
                         </div>
-                        <div className="h-3 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                            <div className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full" style={{ width: '2%' }} />
+                    </CardHeader>
+                    <CardContent className="p-4 pt-2">
+                        <div className="h-[320px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                                    <defs>
+                                        <linearGradient id="spendGradient" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0%" stopColor="#6366f1" stopOpacity={0.3} />
+                                            <stop offset="100%" stopColor="#6366f1" stopOpacity={0.02} />
+                                        </linearGradient>
+                                        <linearGradient id="leadGradient" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0%" stopColor="#10b981" stopOpacity={0.3} />
+                                            <stop offset="100%" stopColor="#10b981" stopOpacity={0.02} />
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" strokeOpacity={0.5} />
+                                    <XAxis dataKey="dateShort" tick={{ fontSize: 10, fill: '#94a3b8' }} tickLine={false} axisLine={false} />
+                                    <YAxis yAxisId="spend" tick={{ fontSize: 10, fill: '#94a3b8' }} tickLine={false} axisLine={false} tickFormatter={(v) => `₺${v}`} />
+                                    <YAxis yAxisId="leads" orientation="right" tick={{ fontSize: 10, fill: '#94a3b8' }} tickLine={false} axisLine={false} />
+                                    <Tooltip content={<ChartTooltip />} />
+                                    <Area yAxisId="spend" type="monotone" dataKey="spend" name={isTr ? "Harcama (₺)" : "Spend (₺)"} stroke="#6366f1" fill="url(#spendGradient)" strokeWidth={2.5} dot={false} />
+                                    <Line yAxisId="leads" type="monotone" dataKey="leads" name="Leads" stroke="#10b981" strokeWidth={2.5} dot={{ r: 3, fill: '#10b981' }} activeDot={{ r: 5 }} />
+                                </ComposedChart>
+                            </ResponsiveContainer>
                         </div>
-                        <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-black">
-                            ✓ {isTr ? 'Sadece lead düştüğünde tetiklenir, idling işlem yapılmaz. 72,000 kredi doğrudan cebinizde kalır!' : 'Triggered only when a lead arrives, zero idling. 72,000 operations remain in your subscription!'}
-                        </p>
-                    </div>
-                </CardContent>
-            </Card>
+                    </CardContent>
+                </Card>
+            )}
 
-            {/* Campaign ROI & Spend Calculator (Highly Requested) */}
-            <Card className="rounded-2xl border-slate-200/50 dark:border-slate-800/50 bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-950 shadow-md">
-                <CardHeader>
-                    <div className="flex items-center gap-2">
-                        <div className="p-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg">
-                            <Calculator className="h-5 w-5" />
-                        </div>
-                        <div>
-                            <CardTitle className="text-base font-black uppercase tracking-wider text-slate-800 dark:text-slate-100">
-                                {t('calcTitle')}
-                            </CardTitle>
-                            <CardDescription className="text-xs">
-                                {t('calcDesc')}
-                            </CardDescription>
-                        </div>
-                    </div>
-                </CardHeader>
-                <CardContent className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse text-xs">
-                        <thead>
-                            <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-400 font-black uppercase tracking-widest">
-                                <th className="pb-3 pr-4">{t('formName')}</th>
-                                <th className="pb-3 pr-4">{t('leadsTotal')}</th>
-                                <th className="pb-3 pr-4 w-[160px]">{t('spendInput')}</th>
-                                <th className="pb-3 pr-4 w-[120px]">{t('salesInput')}</th>
-                                <th className="pb-3 pr-4 text-right">{t('cplLabel')}</th>
-                                <th className="pb-3 text-right">{t('roiLabel')}</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                            {initialData.mappedIntegrations.map((item, idx) => {
-                                const spend = costs[item.formName] || ''
-                                const sales = salesCounts[item.formName] || ''
-                                
-                                const totalLeads = item.totalLeads || 1
-                                const numericSpend = parseFloat(spend) || 0
-                                const numericSales = parseInt(sales) || 0
-
-                                const cpl = numericSpend > 0 ? (numericSpend / totalLeads).toFixed(2) : null
-                                const convRate = numericSales > 0 ? ((numericSales / totalLeads) * 100).toFixed(1) : null
-
-                                return (
-                                    <tr key={idx} className="hover:bg-slate-100/30 dark:hover:bg-slate-800/10">
-                                        <td className="py-4 font-bold text-slate-900 dark:text-slate-100 pr-4">
-                                            {item.formName}
-                                        </td>
-                                        <td className="py-4 font-black text-slate-800 dark:text-slate-200 pr-4">
-                                            {item.totalLeads}
-                                        </td>
-                                        <td className="py-4 pr-4">
-                                            <Input
-                                                type="number"
-                                                placeholder="0.00"
-                                                value={spend}
-                                                onChange={(e) => setCosts(prev => ({ ...prev, [item.formName]: e.target.value }))}
-                                                className="h-8 rounded-lg bg-white dark:bg-slate-950 font-bold border-slate-200 dark:border-slate-800 text-xs w-[140px]"
-                                            />
-                                        </td>
-                                        <td className="py-4 pr-4">
-                                            <Input
-                                                type="number"
-                                                placeholder="0"
-                                                value={sales}
-                                                onChange={(e) => setSalesCounts(prev => ({ ...prev, [item.formName]: e.target.value }))}
-                                                className="h-8 rounded-lg bg-white dark:bg-slate-950 font-bold border-slate-200 dark:border-slate-800 text-xs w-[100px]"
-                                            />
-                                        </td>
-                                        <td className="py-4 text-right pr-4 font-black text-blue-600 dark:text-blue-400">
-                                            {cpl ? `${cpl} ₺` : t('notEntered')}
-                                        </td>
-                                        <td className="py-4 text-right font-black text-emerald-600 dark:text-emerald-400">
-                                            {convRate ? `% ${convRate}` : t('notEntered')}
-                                        </td>
+            {/* ─── CAMPAIGN SCORECARD ─── */}
+            {data.campaigns.length > 0 && (
+                <Card className="rounded-2xl border-0 shadow-lg overflow-hidden">
+                    <CardHeader className="pb-2 border-b border-slate-100 dark:border-slate-800">
+                        <CardTitle className="text-base font-black text-slate-800 dark:text-white flex items-center gap-2">
+                            <Layers className="h-5 w-5 text-indigo-500" />
+                            {isTr ? 'Kampanya Skor Kartları' : 'Campaign Scorecards'}
+                        </CardTitle>
+                        <CardDescription className="text-xs">
+                            {isTr ? `${data.campaigns.length} aktif kampanya · Son 30 gün performansı` : `${data.campaigns.length} campaigns · Last 30 days performance`}
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-xs">
+                                <thead>
+                                    <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/50">
+                                        <th className="text-left p-3 pl-5 font-black text-slate-400 uppercase tracking-widest text-[10px]">{isTr ? 'Kampanya' : 'Campaign'}</th>
+                                        <th className="text-left p-3 font-black text-slate-400 uppercase tracking-widest text-[10px]">{isTr ? 'Durum' : 'Status'}</th>
+                                        <th className="text-right p-3 font-black text-slate-400 uppercase tracking-widest text-[10px]">{isTr ? 'Harcama' : 'Spend'}</th>
+                                        <th className="text-right p-3 font-black text-slate-400 uppercase tracking-widest text-[10px]">{isTr ? 'Gösterim' : 'Imp.'}</th>
+                                        <th className="text-right p-3 font-black text-slate-400 uppercase tracking-widest text-[10px]">{isTr ? 'Tıklama' : 'Clicks'}</th>
+                                        <th className="text-right p-3 font-black text-slate-400 uppercase tracking-widest text-[10px]">CTR</th>
+                                        <th className="text-right p-3 font-black text-slate-400 uppercase tracking-widest text-[10px]">Leads</th>
+                                        <th className="text-right p-3 pr-5 font-black text-slate-400 uppercase tracking-widest text-[10px]">CPL</th>
                                     </tr>
-                                )
-                            })}
-                        </tbody>
-                    </table>
-                </CardContent>
-            </Card>
-
-            {/* Mappings & Live Integrations Table */}
-            <Card className="rounded-2xl border-slate-200/50 dark:border-slate-800/50 bg-white/70 dark:bg-slate-900/70 backdrop-blur-md shadow-sm">
-                <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-4">
-                    <CardTitle className="text-base font-black uppercase tracking-wider text-slate-800 dark:text-slate-100">
-                        📋 {t('leadsTableTitle')}
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="p-0 overflow-x-auto">
-                    <table className="w-full text-left border-collapse text-xs">
-                        <thead>
-                            <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-400 font-black uppercase tracking-widest bg-slate-50/60 dark:bg-slate-950/20">
-                                <th className="p-4">{t('formName')}</th>
-                                <th className="p-4">{t('campaignName')}</th>
-                                <th className="p-4 text-center">{t('leadsToday')}</th>
-                                <th className="p-4 text-center">{t('leadsMonth')}</th>
-                                <th className="p-4 text-center">{t('leadsTotal')}</th>
-                                <th className="p-4">{t('scenarioName')}</th>
-                                <th className="p-4">{t('scenarioScheduling')}</th>
-                                <th className="p-4">{t('scenarioStatus')}</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                            {initialData.mappedIntegrations.map((item, index) => (
-                                <tr key={index} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/5 transition-colors group">
-                                    <td className="p-4 font-bold text-slate-900 dark:text-slate-100">
-                                        <div className="flex flex-col gap-1">
-                                            <span className="text-xs uppercase tracking-tight text-slate-900 dark:text-slate-100">{item.formName}</span>
-                                            {item.metaFormName && item.metaFormName.toUpperCase() !== item.formName.toUpperCase() && (
-                                                <span className="text-[10px] text-blue-500 dark:text-blue-400 font-semibold">
-                                                    Meta: {item.metaFormName}
-                                                </span>
-                                            )}
-                                            {item.technical?.formId && item.technical.formId !== '-' && (
-                                                <span className="text-[9px] text-slate-400 font-mono tracking-tight">
-                                                    ID: {item.technical.formId}
-                                                </span>
-                                            )}
-                                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-1">
-                                                <Building2 className="h-3 w-3" />
-                                                {item.channel}
-                                            </span>
-                                        </div>
-                                    </td>
-                                    <td className="p-4 text-slate-600 dark:text-slate-400 font-medium">
-                                        <div className="flex flex-col gap-1">
-                                            <span>{shareMode ? t('masked') : item.campaign}</span>
-                                            {item.metaLive && !shareMode && (
-                                                <div className="flex flex-wrap gap-1 mt-1">
-                                                    <Badge className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950/20 dark:text-indigo-300 text-[9px] font-bold px-1.5 py-0.5 border-none">
-                                                        👁️ {formatNumber(item.metaLive.impressions)} Imp
-                                                    </Badge>
-                                                    <Badge className="bg-blue-50 hover:bg-blue-100 text-blue-700 dark:bg-blue-950/20 dark:text-blue-300 text-[9px] font-bold px-1.5 py-0.5 border-none">
-                                                        🖱️ {formatNumber(item.metaLive.clicks)} Click
-                                                    </Badge>
-                                                    <Badge className="bg-purple-50 hover:bg-purple-100 text-purple-700 dark:bg-purple-950/20 dark:text-purple-300 text-[9px] font-bold px-1.5 py-0.5 border-none">
-                                                        🎯 {formatNumber(item.metaLive.reach)} Reach
-                                                    </Badge>
-                                                    <Badge className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-300 text-[9px] font-bold px-1.5 py-0.5 border-none animate-pulse">
-                                                        💰 {formatNumber(item.metaLive.spend)} ₺
-                                                    </Badge>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </td>
-                                    <td className="p-4 text-center font-black text-slate-800 dark:text-slate-200">
-                                        {item.todayLeads > 0 ? (
-                                            <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-100 text-[10px] font-black px-1.5 py-0.5 rounded-md dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900">
-                                                +{item.todayLeads}
-                                            </Badge>
-                                        ) : '0'}
-                                    </td>
-                                    <td className="p-4 text-center font-black text-slate-700 dark:text-slate-300">
-                                        {item.thisMonthLeads}
-                                    </td>
-                                    <td className="p-4 text-center font-black text-slate-900 dark:text-slate-50 bg-blue-50/20 dark:bg-blue-950/5">
-                                        {item.totalLeads}
-                                    </td>
-                                    <td className="p-4">
-                                        <a 
-                                            href={`https://eu1.make.com/scenario/${item.scenario.id}/edit`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-blue-600 dark:text-blue-400 font-bold hover:underline inline-flex items-center gap-1 group-hover:scale-102 transition-transform"
+                                </thead>
+                                <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
+                                    {data.campaigns.map((campaign) => (
+                                        <tr
+                                            key={campaign.campaign_id}
+                                            className="hover:bg-blue-50/30 dark:hover:bg-blue-950/10 transition-colors group cursor-pointer"
+                                            onClick={() => setExpandedCampaign(expandedCampaign === campaign.campaign_id ? null : campaign.campaign_id)}
                                         >
-                                            {item.scenario.name}
-                                            <ExternalLink className="h-3 w-3" />
-                                        </a>
-                                    </td>
-                                    <td className="p-4 font-bold">
-                                        <Badge variant="outline" className={cn(
-                                            "text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-lg",
-                                            item.scenario.scheduling === 'instant'
-                                                ? "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/20 dark:text-purple-300 dark:border-purple-900/50"
-                                                : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/20 dark:text-amber-300 dark:border-amber-900/50"
-                                        )}>
-                                            {t(typeof item.scenario.scheduling === 'string' ? item.scenario.scheduling : 'polling')}
-                                        </Badge>
-                                    </td>
-                                    <td className="p-4 font-bold">
-                                        <span className={cn(
-                                            "inline-flex items-center gap-1 text-[11px] font-black uppercase tracking-wider",
-                                            item.scenario.active ? "text-emerald-600" : "text-red-500"
-                                        )}>
-                                            <span className={cn("h-1.5 w-1.5 rounded-full", item.scenario.active ? "bg-emerald-500 animate-pulse" : "bg-red-500")} />
-                                            {item.scenario.active ? t('active') : t('inactive')}
-                                        </span>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </CardContent>
-            </Card>
+                                            <td className="p-3 pl-5">
+                                                <div className="flex flex-col gap-0.5">
+                                                    <span className="font-bold text-slate-900 dark:text-white text-xs group-hover:text-blue-600 transition-colors">
+                                                        {agencyMode ? `Kampanya #${campaign.campaign_id.slice(-4)}` : campaign.campaign_name}
+                                                    </span>
+                                                    {campaign.objective && (
+                                                        <span className="text-[9px] text-slate-400 font-medium uppercase tracking-wider">
+                                                            {campaign.objective.replace(/_/g, ' ')}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </td>
+                                            <td className="p-3">
+                                                <StatusBadge status={campaign.status} />
+                                            </td>
+                                            <td className="p-3 text-right font-black text-slate-900 dark:text-white">
+                                                {fmtCurrency(campaign.spend)}
+                                            </td>
+                                            <td className="p-3 text-right font-bold text-slate-600 dark:text-slate-300">
+                                                {fmt(campaign.impressions)}
+                                            </td>
+                                            <td className="p-3 text-right font-bold text-slate-600 dark:text-slate-300">
+                                                {fmt(campaign.clicks)}
+                                            </td>
+                                            <td className="p-3 text-right">
+                                                <span className={cn(
+                                                    "font-black",
+                                                    campaign.ctr >= 1.5 ? 'text-emerald-600' : campaign.ctr >= 0.8 ? 'text-amber-600' : 'text-rose-500'
+                                                )}>
+                                                    {fmtPercent(campaign.ctr)}
+                                                </span>
+                                            </td>
+                                            <td className="p-3 text-right">
+                                                <span className="font-black text-blue-600 dark:text-blue-400">
+                                                    {fmt(campaign.leads)}
+                                                </span>
+                                            </td>
+                                            <td className="p-3 pr-5 text-right">
+                                                <span className={cn(
+                                                    "font-black",
+                                                    campaign.cpl > 0 && campaign.cpl <= 50 ? 'text-emerald-600' :
+                                                    campaign.cpl > 0 && campaign.cpl <= 150 ? 'text-amber-600' :
+                                                    campaign.cpl > 0 ? 'text-rose-500' : 'text-slate-400'
+                                                )}>
+                                                    {campaign.cpl > 0 ? fmtCurrency(campaign.cpl) : '—'}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                                {/* Total row */}
+                                <tfoot>
+                                    <tr className="bg-slate-900 dark:bg-slate-950 text-white border-t-2 border-slate-200 dark:border-slate-700">
+                                        <td className="p-3 pl-5 font-black text-xs uppercase tracking-wider" colSpan={2}>
+                                            {isTr ? 'TOPLAM' : 'TOTAL'}
+                                        </td>
+                                        <td className="p-3 text-right font-black text-sm">{fmtCurrency(summary.spend)}</td>
+                                        <td className="p-3 text-right font-black">{fmt(summary.impressions)}</td>
+                                        <td className="p-3 text-right font-black">{fmt(summary.clicks)}</td>
+                                        <td className="p-3 text-right font-black">{fmtPercent(summary.ctr)}</td>
+                                        <td className="p-3 text-right font-black text-emerald-400">{fmt(summary.leads)}</td>
+                                        <td className="p-3 pr-5 text-right font-black text-amber-400">{summary.cpl > 0 ? fmtCurrency(summary.cpl) : '—'}</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
 
-            {/* Technical Payload Info & Guide (displayed in Agency Share Mode) */}
-            {shareMode && (
-                <div className="grid gap-6 md:grid-cols-2 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                    {/* Checklist & Schema mappings */}
-                    <Card className="rounded-2xl border-slate-200/50 dark:border-slate-800/50 bg-white/70 dark:bg-slate-900/70 backdrop-blur-md shadow-sm">
-                        <CardHeader>
-                            <CardTitle className="text-base font-black uppercase tracking-wider text-slate-800 dark:text-slate-100 flex items-center gap-2">
-                                <FileCode className="h-5 w-5 text-indigo-500" />
-                                Form Schema Fields Eşleştirmesi
+            {/* ─── CREATIVE LEADERBOARD + FUNNEL ─── */}
+            <div className="grid gap-4 lg:grid-cols-5">
+                {/* Creative Leaderboard */}
+                {data.topAds.length > 0 && (
+                    <Card className="rounded-2xl border-0 shadow-lg overflow-hidden lg:col-span-3">
+                        <CardHeader className="pb-2 border-b border-slate-100 dark:border-slate-800">
+                            <CardTitle className="text-base font-black text-slate-800 dark:text-white flex items-center gap-2">
+                                <Image className="h-5 w-5 text-purple-500" />
+                                {isTr ? 'Kreatif Sıralaması' : 'Creative Leaderboard'}
                             </CardTitle>
                             <CardDescription className="text-xs">
-                                Meta Ads ve CRM arasından Make.com üstünde kurulan JSON parametre anahtarları.
+                                {isTr ? 'En yüksek harcamalı reklamlar ve performansları' : 'Top spending ads and their performance'}
                             </CardDescription>
                         </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="rounded-xl bg-slate-900 text-slate-100 p-4 font-mono text-[11px] leading-relaxed shadow-inner border border-slate-800">
-                                <p className="text-blue-400 font-bold">// Meta Lead Ads Payload Schema Mapping</p>
-                                <p className="text-slate-400 mt-1">{"{"}</p>
-                                <p className="pl-4 text-emerald-400">"page_id": <span className="text-amber-400">"48590123950183"</span>,</p>
-                                <p className="pl-4 text-emerald-400">"form_id": <span className="text-amber-400">"85023958102395"</span>,</p>
-                                <p className="pl-4 text-emerald-400">"connection_id": <span className="text-amber-400">"conn_meta_lead_ads_v2"</span>,</p>
-                                <p className="pl-4 text-emerald-400">"answers": {"{"}</p>
-                                <p className="pl-8 text-slate-300">"full_name" <span className="text-indigo-400">➔</span> <span className="text-emerald-400">"customer.full_name"</span>,</p>
-                                <p className="pl-8 text-slate-300">"phone_number" <span className="text-indigo-400">➔</span> <span className="text-emerald-400">"customer.phone"</span>,</p>
-                                <p className="pl-8 text-slate-300">"email" <span className="text-indigo-400">➔</span> <span className="text-emerald-400">"customer.email"</span>,</p>
-                                <p className="pl-8 text-slate-300">"hangi_amaçla_almayı_düşünüyorsunuz?" <span className="text-indigo-400">➔</span> <span className="text-emerald-400">"customer.message"</span></p>
-                                <p className="pl-4 text-emerald-400">{"}"}</p>
-                                <p className="text-slate-400">{"}"}</p>
+                        <CardContent className="p-0">
+                            <div className="divide-y divide-slate-50 dark:divide-slate-800/50">
+                                {data.topAds.slice(0, 10).map((ad, idx) => (
+                                    <div key={ad.ad_id} className="flex items-center gap-4 px-5 py-3 hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
+                                        {/* Rank */}
+                                        <div className={cn(
+                                            "h-8 w-8 rounded-lg flex items-center justify-center font-black text-xs shrink-0",
+                                            idx < 3
+                                                ? "bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-md"
+                                                : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
+                                        )}>
+                                            {idx + 1}
+                                        </div>
+
+                                        {/* Thumbnail */}
+                                        {ad.thumbnail_url ? (
+                                            <img src={ad.thumbnail_url} alt="" className="h-10 w-10 rounded-lg object-cover shadow-sm shrink-0" />
+                                        ) : (
+                                            <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-950/30 dark:to-indigo-950/30 flex items-center justify-center shrink-0">
+                                                <Image className="h-4 w-4 text-blue-400" />
+                                            </div>
+                                        )}
+
+                                        {/* Info */}
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                                                {agencyMode ? `Reklam #${ad.ad_id.slice(-4)}` : ad.ad_name}
+                                            </p>
+                                            <p className="text-[10px] text-slate-400 truncate">
+                                                {agencyMode ? '—' : ad.campaign_name}
+                                            </p>
+                                        </div>
+
+                                        {/* Status */}
+                                        <StatusBadge status={ad.status} />
+
+                                        {/* Metrics */}
+                                        <div className="flex items-center gap-4 text-right shrink-0">
+                                            <div>
+                                                <p className="text-[9px] text-slate-400 font-bold uppercase">Spend</p>
+                                                <p className="text-xs font-black text-slate-900 dark:text-white">{fmtCurrency(ad.spend)}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[9px] text-slate-400 font-bold uppercase">Leads</p>
+                                                <p className="text-xs font-black text-blue-600 dark:text-blue-400">{fmt(ad.leads)}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[9px] text-slate-400 font-bold uppercase">CPL</p>
+                                                <p className={cn("text-xs font-black",
+                                                    ad.cpl > 0 && ad.cpl <= 50 ? 'text-emerald-600' :
+                                                    ad.cpl > 0 && ad.cpl <= 150 ? 'text-amber-600' :
+                                                    ad.cpl > 0 ? 'text-rose-500' : 'text-slate-400'
+                                                )}>
+                                                    {ad.cpl > 0 ? fmtCurrency(ad.cpl) : '—'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         </CardContent>
                     </Card>
+                )}
 
-                    {/* Agency Steps Guide card */}
-                    <Card className="rounded-2xl border-slate-200/50 dark:border-slate-800/50 bg-white/70 dark:bg-slate-900/70 backdrop-blur-md shadow-sm">
-                        <CardHeader>
-                            <CardTitle className="text-base font-black uppercase tracking-wider text-slate-800 dark:text-slate-100 flex items-center gap-2">
-                                <Settings className="h-5 w-5 text-amber-500" />
-                                {t('instructionsTitle')}
+                {/* Funnel Visualization */}
+                <Card className="rounded-2xl border-0 shadow-lg overflow-hidden lg:col-span-2">
+                    <CardHeader className="pb-2 border-b border-slate-100 dark:border-slate-800">
+                        <CardTitle className="text-base font-black text-slate-800 dark:text-white flex items-center gap-2">
+                            <ArrowDownRight className="h-5 w-5 text-emerald-500" />
+                            {isTr ? 'Dönüşüm Hunisi' : 'Conversion Funnel'}
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-5 space-y-3">
+                        {funnelSteps.map((step, idx) => (
+                            <div key={step.label} className="space-y-1.5">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300">{step.label}</span>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs font-black text-slate-900 dark:text-white">{fmt(step.value)}</span>
+                                        {step.rate !== null && step.rate > 0 && (
+                                            <Badge className="bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-none text-[9px] font-bold px-1.5 py-0">
+                                                {fmtPercent(step.rate)}
+                                            </Badge>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="h-6 w-full bg-slate-100 dark:bg-slate-800 rounded-lg overflow-hidden relative">
+                                    <div
+                                        className="h-full rounded-lg transition-all duration-700 ease-out relative overflow-hidden"
+                                        style={{
+                                            width: `${Math.max((step.value / maxFunnel) * 100, 2)}%`,
+                                            backgroundColor: step.color,
+                                        }}
+                                    >
+                                        <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0" />
+                                    </div>
+                                </div>
+                                {idx < funnelSteps.length - 1 && step.rate !== null && step.rate > 0 && (
+                                    <div className="flex justify-center">
+                                        <div className="text-[9px] font-black text-slate-300 dark:text-slate-600 flex items-center gap-0.5">
+                                            ↓ {fmtPercent(step.rate)}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+
+                        {/* Overall conversion */}
+                        {data.funnel.impressions > 0 && data.funnel.leads > 0 && (
+                            <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                                        {isTr ? 'Genel Dönüşüm' : 'Overall Conv.'}
+                                    </span>
+                                    <span className="text-lg font-black text-emerald-600">
+                                        {fmtPercent(data.funnel.leads / data.funnel.impressions * 100)}
+                                    </span>
+                                </div>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* ─── LEAD QUALITY & SOURCE BREAKDOWN TABLE ─── */}
+            {data.formQualityBreakdowns && data.formQualityBreakdowns.length > 0 && (
+                <Card className="rounded-2xl border-0 shadow-lg overflow-hidden">
+                    <CardHeader className="pb-2 border-b border-slate-100 dark:border-slate-800">
+                        <CardTitle className="text-base font-black text-slate-800 dark:text-white flex items-center gap-2">
+                            <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                            {isTr ? 'Aday Kalitesi ve Kaynak Kırılımı' : 'Lead Quality & Source Breakdown'}
+                        </CardTitle>
+                        <CardDescription className="text-xs">
+                            {isTr
+                                ? 'Reklam ve web formlarından gelen adayların CRM durumlarına göre kalite dağılım oranları.'
+                                : 'CRM quality distribution ratios for leads coming from ads and web forms by status.'
+                            }
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-xs">
+                                <thead>
+                                    <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/50">
+                                        <th className="text-left p-3 pl-5 font-black text-slate-400 uppercase tracking-widest text-[10px]">{isTr ? 'Kaynak / Form Adı' : 'Source / Form Name'}</th>
+                                        <th className="text-right p-3 font-black text-slate-400 uppercase tracking-widest text-[10px]">{isTr ? 'Toplam Aday' : 'Total Leads'}</th>
+                                        <th className="text-right p-3 font-black text-slate-400 uppercase tracking-widest text-[10px]">{isTr ? 'Potansiyel' : 'Prospects'}</th>
+                                        <th className="text-right p-3 font-black text-slate-400 uppercase tracking-widest text-[10px]">{isTr ? 'Olumlu' : 'Qualified'}</th>
+                                        <th className="text-right p-3 pr-5 font-black text-slate-400 uppercase tracking-widest text-[10px]">{isTr ? 'Çöp' : 'Trash'}</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
+                                    {data.formQualityBreakdowns.map((row) => {
+                                        const pctPotansiyel = row.total > 0 ? (row.potansiyel / row.total * 100) : 0
+                                        const pctOlumlu = row.total > 0 ? (row.olumlu / row.total * 100) : 0
+                                        const pctCop = row.total > 0 ? (row.cop / row.total * 100) : 0
+
+                                        const cleanFormName = row.name
+                                            .toLowerCase()
+                                            .replace(/[^a-z0-9]/g, '')
+                                            .replace(/form/g, '')
+                                            .replace(/copy/g, '')
+                                            .replace(/guncel/g, '')
+                                            .replace(/ocak2026/g, '')
+                                            .trim()
+
+                                        const matchedScenario = data.makeScenarios.find((s) => {
+                                            const cleanScenarioName = s.name
+                                                .toLowerCase()
+                                                .replace(/[^a-z0-9]/g, '')
+                                                .replace(/form/g, '')
+                                                .replace(/copy/g, '')
+                                                .replace(/guncel/g, '')
+                                                .replace(/leadads/g, '')
+                                                .replace(/http/g, '')
+                                                .replace(/webhook/g, '')
+                                                .trim()
+                                            return cleanScenarioName.includes(cleanFormName) || cleanFormName.includes(cleanScenarioName)
+                                        })
+
+                                        return (
+                                            <tr key={row.name} className="hover:bg-blue-50/30 dark:hover:bg-blue-950/10 transition-colors">
+                                                <td className="p-3 pl-5">
+                                                    <div className="flex flex-col gap-1">
+                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                            <span className="font-bold text-slate-900 dark:text-white">
+                                                                {agencyMode ? `Kaynak #${row.name.substring(0, 4)}` : row.name}
+                                                            </span>
+                                                            <Badge className={cn(
+                                                                "text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md border",
+                                                                row.isMeta 
+                                                                    ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-900/30"
+                                                                    : "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/30 dark:text-indigo-400 dark:border-indigo-900/30"
+                                                            )}>
+                                                                {row.isMeta ? 'Meta Ads' : 'Web Form'}
+                                                            </Badge>
+
+                                                            {row.isMeta && (
+                                                                matchedScenario ? (
+                                                                    <Badge variant="outline" className={cn(
+                                                                        "text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md border",
+                                                                        matchedScenario.active
+                                                                            ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/20 dark:text-emerald-400"
+                                                                            : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/20 dark:text-amber-400"
+                                                                    )}>
+                                                                        {isTr 
+                                                                            ? `Otomasyon: ${matchedScenario.active ? 'Aktif' : 'Pasif'}`
+                                                                            : `Automation: ${matchedScenario.active ? 'Active' : 'Inactive'}`
+                                                                        }
+                                                                    </Badge>
+                                                                ) : (
+                                                                    <Badge variant="outline" className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md border bg-slate-50 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700">
+                                                                        {isTr ? 'Otomasyon: Bağlantı Yok' : 'Automation: Not Connected'}
+                                                                    </Badge>
+                                                                )
+                                                            )}
+                                                        </div>
+                                                        <span className="text-[9px] text-slate-400 font-medium">
+                                                            Kanal: {row.source}
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td className="p-3 text-right font-black text-slate-900 dark:text-white">
+                                                    {fmt(row.total)}
+                                                </td>
+                                                <td className="p-3 text-right">
+                                                    <div className="flex flex-col items-end">
+                                                        <span className="font-bold text-blue-600 dark:text-blue-400">{fmt(row.potansiyel)}</span>
+                                                        <span className="text-[9px] text-slate-400">%{pctPotansiyel.toFixed(1)}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="p-3 text-right">
+                                                    <div className="flex flex-col items-end">
+                                                        <span className="font-bold text-emerald-600 dark:text-emerald-400">{fmt(row.olumlu)}</span>
+                                                        <span className="text-[9px] text-slate-400">%{pctOlumlu.toFixed(1)}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="p-3 pr-5 text-right">
+                                                    <div className="flex flex-col items-end">
+                                                        <span className="font-bold text-rose-500 dark:text-rose-400">{fmt(row.cop)}</span>
+                                                        <span className="text-[9px] text-slate-400">%{pctCop.toFixed(1)}</span>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* Overall Quality Indicators stack */}
+                        {data.overallQuality && data.overallQuality.total > 0 && (
+                            (() => {
+                                const overall = data.overallQuality
+                                const oTotal = overall.total || 1
+                                const oPctPotansiyel = (overall.potansiyel / oTotal) * 100
+                                const oPctOlumlu = (overall.olumlu / oTotal) * 100
+                                const oPctCop = (overall.cop / oTotal) * 100
+
+                                return (
+                                    <div className="space-y-4 p-5 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-800">
+                                        <div className="flex items-center justify-between">
+                                            <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                                {isTr ? `Genel Kalite Dağılımı (${fmt(overall.total)} Aday)` : `Overall Quality Distribution (${fmt(overall.total)} Leads)`}
+                                            </h4>
+                                            <span className="text-[10px] text-slate-400 font-bold">
+                                                {isTr ? 'CRM Durum Dağılımı' : 'CRM Status Allocation'}
+                                            </span>
+                                        </div>
+                                        
+                                        <div className="h-6 w-full bg-slate-200 dark:bg-slate-800 rounded-xl overflow-hidden flex shadow-inner">
+                                            {overall.olumlu > 0 && (
+                                                <div 
+                                                    className="h-full bg-emerald-500 flex items-center justify-center text-white text-[10px] font-black transition-all duration-500 relative group"
+                                                    style={{ width: `${oPctOlumlu}%` }}
+                                                >
+                                                    <span>%{oPctOlumlu.toFixed(1)}</span>
+                                                </div>
+                                            )}
+                                            {overall.potansiyel > 0 && (
+                                                <div 
+                                                    className="h-full bg-blue-500 flex items-center justify-center text-white text-[10px] font-black transition-all duration-500 relative group"
+                                                    style={{ width: `${oPctPotansiyel}%` }}
+                                                >
+                                                    <span>%{oPctPotansiyel.toFixed(1)}</span>
+                                                </div>
+                                            )}
+                                            {overall.cop > 0 && (
+                                                <div 
+                                                    className="h-full bg-rose-500 flex items-center justify-center text-white text-[10px] font-black transition-all duration-500 relative group"
+                                                    style={{ width: `${oPctCop}%` }}
+                                                >
+                                                    <span>%{oPctCop.toFixed(1)}</span>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="flex flex-wrap gap-6 justify-center pt-2">
+                                            <div className="flex items-center gap-2">
+                                                <div className="h-3 w-3 rounded-full bg-emerald-500" />
+                                                <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                                                    {isTr ? 'Olumlu' : 'Qualified'}: <span className="font-black text-slate-900 dark:text-white">{fmt(overall.olumlu)}</span> (%{oPctOlumlu.toFixed(1)})
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <div className="h-3 w-3 rounded-full bg-blue-500" />
+                                                <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                                                    {isTr ? 'Potansiyel' : 'Prospects'}: <span className="font-black text-slate-900 dark:text-white">{fmt(overall.potansiyel)}</span> (%{oPctPotansiyel.toFixed(1)})
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <div className="h-3 w-3 rounded-full bg-rose-500" />
+                                                <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                                                    {isTr ? 'Çöp' : 'Trash'}: <span className="font-black text-slate-900 dark:text-white">{fmt(overall.cop)}</span> (%{oPctCop.toFixed(1)})
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )
+                            })()
+                        )}
+                    </CardContent>
+                </Card>
+            )}
+
+            {/* ─── WEB FORMS ANALYTICS ─── */}
+            <div className="space-y-3 mt-8">
+                <div className="flex items-center gap-2">
+                    <Building2 className="h-5 w-5 text-indigo-500" />
+                    <h2 className="text-xl font-black text-slate-800 dark:text-white">
+                        {isTr ? 'Web Form Analitiği' : 'Web Forms Analytics'}
+                    </h2>
+                </div>
+                
+                <div className="grid gap-4 lg:grid-cols-5">
+                    {/* Web Form KPI Cards */}
+                    <div className="grid gap-3 grid-cols-2 lg:col-span-3">
+                        <KPICard
+                            title={isTr ? "Toplam Web Adayı" : "Total Web Leads"}
+                            value={fmt(data.webStats.leads)}
+                            icon={Users}
+                            iconColor="bg-indigo-50 text-indigo-600 dark:bg-indigo-950/30 dark:text-indigo-400"
+                            trend={data.webStats.leadsPrev > 0 ? (data.webStats.leads >= data.webStats.leadsPrev ? 'up' : 'down') : 'neutral'}
+                            trendValue={data.webStats.leadsPrev > 0 
+                                ? `${fmtPercent(Math.abs((data.webStats.leads - data.webStats.leadsPrev) / data.webStats.leadsPrev * 100))} ${data.webStats.leads >= data.webStats.leadsPrev ? (isTr ? 'artış' : 'up') : (isTr ? 'düşüş' : 'down')}` 
+                                : undefined}
+                            subtitle={isTr ? "Son 30 Gün" : "Last 30 Days"}
+                        />
+                        <KPICard
+                            title={isTr ? "Bugün Gelen" : "Leads Today"}
+                            value={fmt(data.webStats.leadsToday)}
+                            icon={Clock}
+                            iconColor="bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400"
+                            subtitle={isTr ? "Web Formları" : "Web Forms"}
+                        />
+                        <KPICard
+                            title={isTr ? "CRM Müşterisi" : "CRM Customers"}
+                            value={fmt(data.webStats.crmConversions)}
+                            icon={ShieldCheck}
+                            iconColor="bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400"
+                            subtitle={isTr ? "Web Kaynaklı" : "From Web Forms"}
+                        />
+                        <KPICard
+                            title={isTr ? "Kazanılan Satış" : "Won Sales"}
+                            value={fmt(data.webStats.sales)}
+                            icon={CheckCircle2}
+                            iconColor="bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400"
+                            subtitle={isTr ? "Web Kaynaklı" : "From Web Forms"}
+                        />
+                    </div>
+
+                    {/* Web Conversion Funnel */}
+                    <Card className="rounded-2xl border-0 shadow-lg overflow-hidden lg:col-span-2">
+                        <CardHeader className="pb-2 border-b border-slate-100 dark:border-slate-800">
+                            <CardTitle className="text-base font-black text-slate-800 dark:text-white flex items-center gap-2">
+                                <ArrowDownRight className="h-5 w-5 text-indigo-500" />
+                                {isTr ? 'Web Dönüşüm Hunisi' : 'Web Conversion Funnel'}
                             </CardTitle>
                         </CardHeader>
-                        <CardContent className="space-y-4">
-                            <ul className="space-y-3.5 text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
-                                <li className="flex gap-2.5 items-start">
-                                    <div className="h-5 w-5 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-[10px] flex-shrink-0 dark:bg-indigo-950/30 dark:text-indigo-400 mt-0.5">
-                                        1
+                        <CardContent className="p-5 space-y-3">
+                            {[
+                                { label: isTr ? 'Web Form Başvuruları' : 'Web Form Leads', value: data.webStats.leads, color: '#6366f1' },
+                                { label: isTr ? 'Müşteri Dönüşümü' : 'CRM Customers', value: data.webStats.crmConversions, color: '#10b981', rate: data.webStats.leads > 0 ? (data.webStats.crmConversions / data.webStats.leads * 100) : 0 },
+                                { label: isTr ? 'Kazanılan Satış' : 'Closed Sales', value: data.webStats.sales, color: '#3b82f6', rate: data.webStats.crmConversions > 0 ? (data.webStats.sales / data.webStats.crmConversions * 100) : 0 }
+                            ].map((step, idx, arr) => {
+                                const maxWebFunnel = Math.max(...arr.map(s => s.value), 1)
+                                return (
+                                    <div key={step.label} className="space-y-1.5">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300">{step.label}</span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xs font-black text-slate-900 dark:text-white">{fmt(step.value)}</span>
+                                                {step.rate !== undefined && step.rate > 0 && (
+                                                    <Badge className="bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-none text-[9px] font-bold px-1.5 py-0">
+                                                        {fmtPercent(step.rate)}
+                                                    </Badge>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="h-6 w-full bg-slate-100 dark:bg-slate-800 rounded-lg overflow-hidden relative">
+                                            <div
+                                                className="h-full rounded-lg transition-all duration-700 ease-out relative overflow-hidden"
+                                                style={{
+                                                    width: `${Math.max((step.value / maxWebFunnel) * 100, 2)}%`,
+                                                    backgroundColor: step.color,
+                                                }}
+                                            >
+                                                <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0" />
+                                            </div>
+                                        </div>
                                     </div>
-                                    <span>{t('instructionsStep1')}</span>
-                                </li>
-                                <li className="flex gap-2.5 items-start">
-                                    <div className="h-5 w-5 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-[10px] flex-shrink-0 dark:bg-indigo-950/30 dark:text-indigo-400 mt-0.5">
-                                        2
+                                )
+                            })}
+
+                            {/* Overall web conversion */}
+                            {data.webStats.leads > 0 && data.webStats.sales > 0 && (
+                                <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                                            {isTr ? 'Form -> Satış Oranı' : 'Form -> Sale Rate'}
+                                        </span>
+                                        <span className="text-lg font-black text-indigo-600">
+                                            {fmtPercent(data.webStats.sales / data.webStats.leads * 100)}
+                                        </span>
                                     </div>
-                                    <span>{t('instructionsStep2')}</span>
-                                </li>
-                                <li className="flex gap-2.5 items-start">
-                                    <div className="h-5 w-5 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-[10px] flex-shrink-0 dark:bg-indigo-950/30 dark:text-indigo-400 mt-0.5">
-                                        3
-                                    </div>
-                                    <span>{t('instructionsStep3')}</span>
-                                </li>
-                            </ul>
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 </div>
+            </div>
+
+
+            {/* ─── NO DATA STATE ─── */}
+            {!data.connected && data.campaigns.length === 0 && (
+                <Card className="rounded-2xl border-0 shadow-lg overflow-hidden">
+                    <CardContent className="p-12 flex flex-col items-center justify-center text-center gap-4">
+                        <div className="h-16 w-16 rounded-2xl bg-amber-50 dark:bg-amber-950/20 flex items-center justify-center">
+                            <AlertCircle className="h-8 w-8 text-amber-500" />
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-black text-slate-900 dark:text-white">
+                                {isTr ? 'Meta API Bağlantısı Kurulamadı' : 'Meta API Connection Failed'}
+                            </h3>
+                            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-md">
+                                {isTr
+                                    ? 'META_ADS_ACCESS_TOKEN env değişkenini kontrol edin. Token süresi dolmuş olabilir veya gerekli izinler (ads_read, leads_retrieval) eksik olabilir.'
+                                    : 'Check your META_ADS_ACCESS_TOKEN env variable. The token may have expired or required permissions (ads_read, leads_retrieval) may be missing.'
+                                }
+                            </p>
+                        </div>
+                    </CardContent>
+                </Card>
             )}
         </div>
     )

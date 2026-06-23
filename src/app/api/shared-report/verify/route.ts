@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Bu paylaşım linkinin süresi dolmuş' }, { status: 403 })
     }
 
-    if (share.report_type !== 'marketing' && share.report_type !== 'hot-leads') {
+    if (share.report_type !== 'marketing' && share.report_type !== 'hot-leads' && share.report_type !== 'ads-analytics') {
         return NextResponse.json({ error: 'Geçersiz rapor türü' }, { status: 400 })
     }
 

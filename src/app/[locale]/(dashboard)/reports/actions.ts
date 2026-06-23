@@ -1278,282 +1278,311 @@ export async function getOutreachCostReportData(workflowIdParam?: string) {
     }
 }
 
-export async function getMetaAutomationAnalytics() {
+export async function getMetaAutomationAnalytics(startDate?: string, endDate?: string, datePresetParam: string = 'last_30d') {
     try {
         const supabase = await createClient()
 
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return { error: 'Unauthorized' }
 
-        // 1. Fetch form campaign data from Supabase view
-        const { data: campaignRows, error: dbError } = await supabase
-            .from('marketing_form_campaign_grouped')
-            .select('form_name, channel, campaign, total, today, this_week, this_month, statuses')
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('tenant_id')
+            .eq('id', user.id)
+            .single()
 
-        if (dbError) {
-            console.error('Database campaign grouped error:', dbError)
-        }
+        const tenantId = profile?.tenant_id
+        if (!tenantId) return { error: 'Tenant not found' }
 
-        // 2. Fetch scenarios from Make.com API
-        let makeScenarios: any[] = []
-        let makeConnected = false
-
-        try {
-            const response = await fetch('https://eu1.make.com/api/v2/scenarios?organizationId=6505896&pg[limit]=100', {
-                headers: {
-                    'Authorization': 'Token c208dab9-4f83-4bb6-94b7-3811c3e09628',
-                    'Content-Type': 'application/json'
-                },
-                next: { revalidate: 60 }
-            })
-
-            if (response.ok) {
-                const result = await response.json()
-                makeScenarios = result.scenarios || []
-                makeConnected = true
-            } else {
-                console.error('Make API returned error status:', response.status)
-            }
-        } catch (e) {
-            console.error('Failed to fetch Make.com scenarios:', e)
-        }
-
-        // 3. Fetch live insights from Meta Marketing API
-        let metaInsights: any[] = []
-        let metaConnected = false
-        let metaLeadForms: Map<string, any> = new Map() // keyed by uppercased form name
-        const metaToken = process.env.META_ADS_ACCESS_TOKEN
-        const adAccountId = 'act_4061690447453961' // NOVO Şirketler Grubu
-
-        if (metaToken) {
-            // 3a. Campaign-level insights with spend and lead actions
-            try {
-                const insightsRes = await fetch(`https://graph.facebook.com/v19.0/${adAccountId}/insights?fields=campaign_name,campaign_id,actions,spend,impressions,clicks,reach&level=campaign&date_preset=last_30d&access_token=${metaToken}`, {
-                    next: { revalidate: 60 }
-                })
-                if (insightsRes.ok) {
-                    const result = await insightsRes.json()
-                    metaInsights = result.data || []
-                    metaConnected = true
-                } else {
-                    console.error('Meta API returned error:', await insightsRes.text())
-                }
-            } catch (e) {
-                console.error('Failed to fetch Meta Insights:', e)
-            }
-
-            // 3b. Fetch real Lead Form names & IDs via page access tokens
-            try {
-                const pagesRes = await fetch(`https://graph.facebook.com/v19.0/me/accounts?fields=id,name,access_token&access_token=${metaToken}`, {
-                    next: { revalidate: 300 }
-                })
-                if (pagesRes.ok) {
-                    const pagesData = await pagesRes.json()
-                    for (const page of (pagesData.data || [])) {
-                        const formsRes = await fetch(`https://graph.facebook.com/v19.0/${page.id}/leadgen_forms?fields=id,name,status,leads_count&limit=50&access_token=${page.access_token}`, {
-                            next: { revalidate: 300 }
-                        })
-                        if (formsRes.ok) {
-                            const formsData = await formsRes.json()
-                            for (const form of (formsData.data || [])) {
-                                if (form.name && (form.leads_count || 0) > 0) {
-                                    metaLeadForms.set(form.name.toUpperCase().trim(), {
-                                        formId: form.id,
-                                        formName: form.name,
-                                        formStatus: form.status,
-                                        leadsCount: form.leads_count || 0,
-                                        pageId: page.id,
-                                        pageName: page.name,
-                                    })
-                                }
-                            }
-                        }
-                    }
-                }
-            } catch (e) {
-                console.error('Failed to fetch Meta Lead Forms:', e)
-            }
-        }
-
-        // 4. Process and match data
-        const metaRows = (campaignRows || []).filter((row: any) => {
-            const chan = (row.channel || '').toLowerCase()
-            return chan.includes('facebook') || chan.includes('instagram') || chan.includes('meta')
-        })
-
-        const activeForms = metaRows.length > 0 ? metaRows : (campaignRows || [])
-
-        const fallbackScenarios = [
-            { id: 485123, name: "Vista Form Connection [Instant Webhook]", active: true, scheduling: "instant" },
-            { id: 485124, name: "İzmir Form Connection [Instant Webhook]", active: true, scheduling: "instant" },
-            { id: 485125, name: "Montenegro Form Connection [Instant Webhook]", active: true, scheduling: "instant" },
-            { id: 485126, name: "Kocaeli Form Connection [Instant Webhook]", active: true, scheduling: "instant" }
-        ]
-
-        const liveScenarios = makeConnected && makeScenarios.length > 0 ? makeScenarios.map((s: any) => {
-            // Make.com API returns scheduling as an object {type, interval} — extract a safe string
-            let schedulingStr = 'polling'
-            if (s.isInstant) {
-                schedulingStr = 'instant'
-            } else if (typeof s.scheduling === 'string') {
-                schedulingStr = s.scheduling
-            } else if (s.scheduling && typeof s.scheduling === 'object') {
-                schedulingStr = s.scheduling.type === 'indefinitely' || s.scheduling.interval ? 'polling' : 'instant'
-            }
-            return {
-                id: s.id,
-                name: s.name,
-                active: s.active,
-                scheduling: schedulingStr
-            }
-        }) : fallbackScenarios
-
-        // 5. Consolidate duplicate forms — the DB view returns separate rows per campaign,
-        // and form names may differ in case ("Novo Park Vista" vs "NOVO PARK VISTA").
-        // Use case-insensitive key, keep the display name from the row with the most leads.
-        const consolidatedForms: Record<string, any> = {}
-        activeForms.forEach((row: any) => {
-            const rawName = (row.form_name || 'Bilinmeyen Form').trim()
-            const key = rawName.toUpperCase() // case-insensitive grouping
-            if (!consolidatedForms[key]) {
-                consolidatedForms[key] = {
-                    form_name: rawName,
-                    channel: row.channel || 'Facebook Ads',
-                    campaign: row.campaign || '',
-                    campaigns: [row.campaign].filter(Boolean),
-                    total: row.total || 0,
-                    today: row.today || 0,
-                    this_week: row.this_week || 0,
-                    this_month: row.this_month || 0,
-                    _bestTotal: row.total || 0, // track which name variant has most leads
-                }
-            } else {
-                const existing = consolidatedForms[key]
-                existing.total += row.total || 0
-                existing.today += row.today || 0
-                existing.this_week += row.this_week || 0
-                existing.this_month += row.this_month || 0
-                if (row.campaign && !existing.campaigns.includes(row.campaign)) {
-                    existing.campaigns.push(row.campaign)
-                }
-                // Use the display name from the row with the most leads
-                if ((row.total || 0) > existing._bestTotal) {
-                    existing.form_name = rawName
-                    existing._bestTotal = row.total || 0
-                }
-            }
-        })
-
-        // Build a combined campaign label for display
-        const consolidatedRows = Object.values(consolidatedForms).map((row: any) => ({
-            ...row,
-            campaign: row.campaigns.length > 1
-                ? `${row.campaigns[0]} (+${row.campaigns.length - 1} diğer)`
-                : row.campaigns[0] || ''
-        }))
-
-        const mappedIntegrations = consolidatedRows.map((row: any) => {
-            const formName = row.form_name || 'Bilinmeyen Form'
-            const campaign = row.campaign || ''
-            
-            // Find matching scenario by keyword
-            const matchingScenario = liveScenarios.find((s: any) => {
-                const nameLower = (s?.name || '').toLowerCase()
-                const formLower = formName.toLowerCase()
-                const campLower = campaign.toLowerCase()
-                return nameLower.includes(formLower) || 
-                       nameLower.includes(campLower) || 
-                       (campLower && formLower.includes(campLower))
-            }) || liveScenarios[Math.floor(Math.random() * liveScenarios.length)]
-
-            // Find matching Meta Campaign Insights (strict matching to avoid false positives)
-            const metaCampaign = metaInsights.find((insight: any) => {
-                const insightName = (insight?.campaign_name || '').toLowerCase()
-                const campName = (campaign || '').toLowerCase()
-                const formNameLower = formName.toLowerCase()
-                
-                // Only match if there's a meaningful overlap (at least 5 chars to avoid "novo" matching everything)
-                if (!campName && !formNameLower) return false
-                
-                // Exact campaign name match (best)
-                if (campName.length >= 5 && insightName === campName) return true
-                
-                // Campaign name contains form name or vice versa (with minimum length check)
-                if (campName.length >= 5 && (insightName.includes(campName) || campName.includes(insightName))) return true
-                if (formNameLower.length >= 8 && (insightName.includes(formNameLower) || formNameLower.includes(insightName))) return true
-                
-                return false
-            })
-
-            // Match real Meta Lead Form by form name (fuzzy uppercase key matching)
-            const formKey = formName.toUpperCase().trim()
-            const matchedForm = metaLeadForms.get(formKey) || 
-                [...metaLeadForms.entries()].find(([key]) => key.includes(formKey) || formKey.includes(key))?.[1] ||
-                null
-
-            return {
-                formName,
-                metaFormName: matchedForm?.formName || null,
-                campaign: metaCampaign?.campaign_name || campaign,
-                channel: row.channel || 'Facebook Ads',
-                totalLeads: row.total || 0,
-                todayLeads: row.today || 0,
-                thisWeekLeads: row.this_week || 0,
-                thisMonthLeads: row.this_month || 0,
-                scenario: {
-                    id: matchingScenario?.id || 102345,
-                    name: matchingScenario?.name || 'NovoCRM Form Integrator',
-                    active: matchingScenario ? matchingScenario.active : true,
-                    scheduling: matchingScenario ? matchingScenario.scheduling : 'instant'
-                },
-                metaLive: metaCampaign ? {
-                    campaignId: metaCampaign.campaign_id,
-                    spend: parseFloat(metaCampaign.spend) || 0,
-                    impressions: parseInt(metaCampaign.impressions) || 0,
-                    clicks: parseInt(metaCampaign.clicks) || 0,
-                    reach: parseInt(metaCampaign.reach) || 0,
-                    leads: parseInt(((metaCampaign.actions || []).find((a: any) => a.action_type === 'lead') || {}).value || '0'),
-                    cpl: (parseFloat(metaCampaign.spend) || 0) / (row.total || 1)
-                } : null,
-                technical: {
-                    pageId: matchedForm?.pageId || '-',
-                    pageName: matchedForm?.pageName || '-',
-                    formId: matchedForm?.formId || '-',
-                    metaLeadsCount: matchedForm?.leadsCount || 0,
-                    connectionId: 'conn_meta_lead_ads_v2',
-                    mappedFields: {
-                        "full_name": "full_name",
-                        "phone_number": "phone",
-                        "email": "email",
-                        "hangi_amaçla_almayı_düşünüyorsunuz?": "message"
-                    }
-                }
-            }
-        })
-
-        const totalLeadsCount = mappedIntegrations.reduce((sum, item) => sum + item.totalLeads, 0)
-        const todayLeadsCount = mappedIntegrations.reduce((sum, item) => sum + item.todayLeads, 0)
-        const monthLeadsCount = mappedIntegrations.reduce((sum, item) => sum + item.thisMonthLeads, 0)
-        const totalMetaSpend = mappedIntegrations.reduce((sum, item) => sum + (item.metaLive?.spend || 0), 0)
-
-        return {
-            makeConnected,
-            metaConnected,
-            mappedIntegrations,
-            totalLeadsCount,
-            todayLeadsCount,
-            monthLeadsCount,
-            totalMetaSpend,
-            totalScenariosCount: liveScenarios.length,
-            activeScenariosCount: liveScenarios.filter((s: any) => s.active).length,
-            savedCreditsCount: 72000,
-            leadResponseTime: '0.8s (Anlık)'
-        }
+        return fetchAdsAnalyticsData(supabase, tenantId, startDate, endDate, datePresetParam)
     } catch (error: any) {
         console.error("getMetaAutomationAnalytics uncaught error:", error)
         return {
             error: error?.message || String(error)
         }
+    }
+}
+
+export async function fetchAdsAnalyticsData(
+    supabase: any,
+    tenantId: string,
+    startDate?: string,
+    endDate?: string,
+    datePresetParam: string = 'last_30d'
+) {
+    // Parse dates for Supabase queries and Meta API
+    let sinceDate: Date
+    let untilDate: Date
+    let datePreset: string | { since: string; until: string } = datePresetParam
+
+    if (startDate && endDate) {
+        sinceDate = new Date(`${startDate}T00:00:00.000Z`)
+        untilDate = new Date(`${endDate}T23:59:59.999Z`)
+        datePreset = { since: startDate, until: endDate }
+    } else {
+        sinceDate = new Date()
+        if (datePresetParam === 'last_7d') {
+            sinceDate.setDate(sinceDate.getDate() - 7)
+        } else if (datePresetParam === 'this_month') {
+            sinceDate = new Date(sinceDate.getFullYear(), sinceDate.getMonth(), 1)
+        } else {
+            // last_30d is default
+            sinceDate.setDate(sinceDate.getDate() - 30)
+        }
+        sinceDate.setHours(0, 0, 0, 0)
+        untilDate = new Date()
+    }
+
+    const periodDurationMs = untilDate.getTime() - sinceDate.getTime()
+    const prevSinceDate = new Date(sinceDate.getTime() - periodDurationMs)
+    const prevUntilDate = sinceDate
+
+    const startOfToday = new Date()
+    startOfToday.setHours(0, 0, 0, 0)
+
+    // ── 1. Meta Marketing API (via meta-api.ts client) ──
+    const metaToken = process.env.META_ADS_ACCESS_TOKEN
+    const adAccountId = 'act_4061690447453961' // NOVO Şirketler Grubu
+
+    let metaConnected = false
+    let accountSummary = { spend: 0, impressions: 0, reach: 0, clicks: 0, leads: 0, cpl: 0, cpm: 0, ctr: 0, cpc: 0, frequency: 0 }
+    let campaigns: any[] = []
+    let topAds: any[] = []
+    let dailyBreakdown: any[] = []
+    let leadForms: any[] = []
+
+    if (metaToken) {
+        try {
+            // Dynamic import to keep the module tree-shakeable
+            const metaApi = await import('@/lib/meta-api')
+            const result = await metaApi.fetchMetaAdsAnalytics(adAccountId, metaToken, datePreset)
+            metaConnected = result.connected
+            accountSummary = result.accountSummary
+            campaigns = result.campaigns
+            topAds = result.topAds
+            dailyBreakdown = result.dailyBreakdown
+            leadForms = result.leadForms
+        } catch (e) {
+            console.error('Meta API analytics fetch failed:', e)
+        }
+    }
+
+    // ── 2. Make.com Scenarios ──
+    let makeScenarios: any[] = []
+    let makeConnected = false
+
+    try {
+        const response = await fetch('https://eu1.make.com/api/v2/scenarios?organizationId=6505896&pg[limit]=100', {
+            headers: {
+                'Authorization': 'Token c208dab9-4f83-4bb6-94b7-3811c3e09628',
+                'Content-Type': 'application/json'
+            },
+            next: { revalidate: 60 }
+        })
+
+        if (response.ok) {
+            const result = await response.json()
+            const rawScenarios = result.scenarios || []
+            makeConnected = true
+            makeScenarios = rawScenarios.map((s: any) => {
+                let schedulingStr = 'polling'
+                if (s.isInstant) schedulingStr = 'instant'
+                else if (typeof s.scheduling === 'string') schedulingStr = s.scheduling
+                else if (s.scheduling && typeof s.scheduling === 'object') {
+                    schedulingStr = s.scheduling.type === 'indefinitely' || s.scheduling.interval ? 'polling' : 'instant'
+                }
+                return { id: s.id, name: s.name, active: s.isActive, scheduling: schedulingStr }
+            })
+        }
+    } catch (e) {
+        console.error('Failed to fetch Make.com scenarios:', e)
+    }
+
+    // ── 3. CRM Funnel Data (from Supabase) ──
+    let crmConversions = 0
+    let salesCount = 0
+
+    let webStats = {
+        leads: 0,
+        leadsToday: 0,
+        leadsPrev: 0,
+        crmConversions: 0,
+        sales: 0
+    }
+
+    let formQualityBreakdowns: any[] = []
+    let overallQuality = {
+        potansiyel: 0,
+        olumlu: 0,
+        cop: 0,
+        total: 0
+    }
+
+    if (tenantId) {
+        // ── 3a. Meta Ads CRM Data (Filtered by source) ──
+        const { count: convCount } = await supabase
+            .from('customers')
+            .select('id', { count: 'exact', head: true })
+            .eq('tenant_id', tenantId)
+            .in('source', ['Facebook Ads', 'Instagram', 'Facebook', 'ig', 'fb'])
+            .gte('created_at', sinceDate.toISOString())
+            .lte('created_at', untilDate.toISOString())
+
+        crmConversions = convCount || 0
+
+        const { data: metaSalesData } = await supabase
+            .from('sales')
+            .select('id, customers(source)')
+            .eq('tenant_id', tenantId)
+            .in('status', ['Sold', 'Won', 'Contract', 'Contracted', 'Reserved', 'Optioned'])
+            .gte('created_at', sinceDate.toISOString())
+            .lte('created_at', untilDate.toISOString())
+
+        salesCount = metaSalesData?.filter(
+            (s: any) => s.customers && ['Facebook Ads', 'Instagram', 'Facebook', 'ig', 'fb'].includes(s.customers.source)
+        ).length || 0
+
+        // ── 3b. Web Form Leads & Funnel Data ──
+        const { count: webCurrent } = await supabase
+            .from('leads')
+            .select('id', { count: 'exact', head: true })
+            .eq('tenant_id', tenantId)
+            .in('source', ['Website', 'WEB Form'])
+            .gte('created_at', sinceDate.toISOString())
+            .lte('created_at', untilDate.toISOString())
+
+        const webLeadsCurrent = webCurrent || 0
+
+        const { count: webToday } = await supabase
+            .from('leads')
+            .select('id', { count: 'exact', head: true })
+            .eq('tenant_id', tenantId)
+            .in('source', ['Website', 'WEB Form'])
+            .gte('created_at', startOfToday.toISOString())
+
+        const webLeadsToday = webToday || 0
+
+        const { count: webPrev } = await supabase
+                .from('leads')
+                .select('id', { count: 'exact', head: true })
+                .eq('tenant_id', tenantId)
+                .in('source', ['Website', 'WEB Form'])
+                .gte('created_at', prevSinceDate.toISOString())
+                .lt('created_at', prevUntilDate.toISOString())
+
+        const webLeadsPrev = webPrev || 0
+
+        const { count: webConv } = await supabase
+            .from('customers')
+            .select('id', { count: 'exact', head: true })
+            .eq('tenant_id', tenantId)
+            .in('source', ['Website', 'WEB Form'])
+            .gte('created_at', sinceDate.toISOString())
+            .lte('created_at', untilDate.toISOString())
+
+        const webConvCount = webConv || 0
+
+        const { data: webSalesData } = await supabase
+            .from('sales')
+            .select('id, customers(source)')
+            .eq('tenant_id', tenantId)
+            .in('status', ['Sold', 'Won', 'Contract', 'Contracted', 'Reserved', 'Optioned'])
+            .gte('created_at', sinceDate.toISOString())
+            .lte('created_at', untilDate.toISOString())
+
+        const webSalesCount = webSalesData?.filter(
+            (s: any) => s.customers && ['Website', 'WEB Form'].includes(s.customers.source)
+        ).length || 0
+
+        webStats = {
+            leads: webLeadsCurrent,
+            leadsToday: webLeadsToday,
+            leadsPrev: webLeadsPrev,
+            crmConversions: webConvCount,
+            sales: webSalesCount
+        }
+
+        // ── 3c. Form Quality Breakdowns (from leads table) ──
+        const { data: leadsData } = await supabase
+            .from('leads')
+            .select('source, form_name, status')
+            .eq('tenant_id', tenantId)
+            .gte('created_at', sinceDate.toISOString())
+            .lte('created_at', untilDate.toISOString())
+
+        if (leadsData) {
+            const mapStatusToCategory = (status: string | null): 'potansiyel' | 'olumlu' | 'cop' => {
+                const s = (status || '').toLowerCase().trim()
+                if (['new', 'prospect', 'aday'].includes(s)) return 'potansiyel'
+                if (['contacted', 'qualified', 'won', 'sold', 'contract', 'contracted', 'reserved', 'optioned', 'gorusuldu', 'nitelikli'].includes(s)) return 'olumlu'
+                if (['lost', 'trash', 'spam', 'unqualified', 'kaybedildi', 'cop'].includes(s)) return 'cop'
+                return 'potansiyel'
+            }
+
+            const groups: Record<string, {
+                name: string
+                source: string
+                isMeta: boolean
+                total: number
+                potansiyel: number
+                olumlu: number
+                cop: number
+            }> = {}
+
+            leadsData.forEach((lead: any) => {
+                // Only include web form and Meta Ads lead sources in the breakdown
+                const isMeta = ['Facebook Ads', 'Instagram', 'Facebook', 'ig', 'fb'].includes(lead.source || '')
+                const isWeb = ['Website', 'WEB Form'].includes(lead.source || '')
+                
+                if (isMeta || isWeb) {
+                    const name = lead.form_name || lead.source || 'Belirtilmemiş'
+                    if (!groups[name]) {
+                        groups[name] = {
+                            name,
+                            source: lead.source || 'Diğer',
+                            isMeta,
+                            total: 0,
+                            potansiyel: 0,
+                            olumlu: 0,
+                            cop: 0
+                        }
+                    }
+
+                    groups[name].total++
+                    const cat = mapStatusToCategory(lead.status)
+                    groups[name][cat]++
+
+                    overallQuality.total++
+                    overallQuality[cat]++
+                }
+            })
+
+            formQualityBreakdowns = Object.values(groups).sort((a, b) => b.total - a.total)
+        }
+    }
+
+    // ── 4. Build response ──
+    return {
+        connected: metaConnected,
+        makeConnected,
+        accountSummary,
+        accountSummaryPrev: null,
+        campaigns,
+        topAds,
+        dailyBreakdown,
+        leadForms,
+        funnel: {
+            impressions: accountSummary.impressions,
+            clicks: accountSummary.clicks,
+            leads: accountSummary.leads,
+            crmConversions,
+            sales: salesCount,
+        },
+        webStats,
+        makeScenarios,
+        datePreset: typeof datePreset === 'string' ? datePreset : 'custom',
+        formQualityBreakdowns,
+        overallQuality,
     }
 }
 

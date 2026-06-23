@@ -22,7 +22,7 @@ function parseDescription(desc: string) {
 }
 
 export async function POST(req: NextRequest) {
-    const { token, password } = await req.json()
+    const { token, password, startDate, endDate, datePreset } = await req.json()
 
     if (!token || !password) {
         return NextResponse.json({ error: 'Gerekli parametreler eksik' }, { status: 400 })
@@ -48,6 +48,17 @@ export async function POST(req: NextRequest) {
     }
     if (!verifyPassword(password, share.password_hash)) {
         return NextResponse.json({ error: 'Yanlış şifre' }, { status: 401 })
+    }
+
+    if (share.report_type === 'ads-analytics') {
+        try {
+            const { fetchAdsAnalyticsData } = await import('@/app/[locale]/(dashboard)/reports/actions')
+            const result = await fetchAdsAnalyticsData(supabase, share.tenant_id, startDate, endDate, datePreset)
+            return NextResponse.json(result)
+        } catch (e) {
+            console.error('shared ads-analytics fetch error:', e)
+            return NextResponse.json({ error: 'Veriler alınamadı' }, { status: 500 })
+        }
     }
 
     if (share.report_type === 'hot-leads') {
