@@ -173,7 +173,11 @@ export async function addContactToCompany(companyId: string, customerId: string)
     if (error) return { success: false, error: error.message }
     
     revalidatePath('/(dashboard)/companies')
+    revalidatePath('/companies')
+    revalidatePath('/(dashboard)/crm')
     revalidatePath('/crm')
+    revalidatePath(`/customers/${customerId}`)
+    revalidatePath(`/(dashboard)/customers/${customerId}`)
     return { success: true }
 }
 
@@ -190,6 +194,10 @@ export async function removeContactFromCompany(customerId: string) {
     if (error) return { success: false, error: error.message }
     
     revalidatePath('/(dashboard)/companies')
+    revalidatePath('/companies')
+    revalidatePath('/(dashboard)/crm')
     revalidatePath('/crm')
+    revalidatePath(`/customers/${customerId}`)
+    revalidatePath(`/(dashboard)/customers/${customerId}`)
     return { success: true }
 }

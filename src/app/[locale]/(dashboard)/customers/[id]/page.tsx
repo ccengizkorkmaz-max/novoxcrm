@@ -84,7 +84,8 @@ export default async function CustomerPage({ params }: CustomerPageProps) {
         .select(`
             *,
             unit: units(unit_number, block),
-            project: projects(name)
+            project: projects(name),
+            profiles(full_name)
         `)
         .eq('customer_id', id)
         .order('created_at', { ascending: false })

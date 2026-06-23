@@ -782,6 +782,36 @@ export default function PipelineList({
                                         }
                                     }
 
+                                    const getStatusDotColor = (status: string) => {
+                                        switch (status) {
+                                            case 'Lead': return 'bg-slate-400'
+                                            case 'Prospect': return 'bg-blue-500'
+                                            case 'Reservation': return 'bg-purple-500'
+                                            case 'Opsiyon - Kapora Bekleniyor': return 'bg-amber-500'
+                                            case 'Proposal': return 'bg-cyan-500'
+                                            case 'Teklif - Kapora Bekleniyor': return 'bg-indigo-500'
+                                            case 'Negotiation': return 'bg-pink-500'
+                                            case 'Sold':
+                                            case 'Completed': return 'bg-emerald-500'
+                                            case 'Lost': return 'bg-red-500'
+                                            default: return 'bg-slate-400'
+                                        }
+                                    }
+
+                                    const getStatusLabel = (status: string) => {
+                                        if (isBroker) {
+                                            return status // Placeholder for broker-specific logic if needed
+                                        }
+                                        switch (status) {
+                                            case 'Opsiyon - Kapora Bekleniyor':
+                                                return t('status.OptionPending')
+                                            case 'Teklif - Kapora Bekleniyor':
+                                                return t('status.ProposalPending')
+                                            default:
+                                                return t.has(`status.${status}`) ? t(`status.${status}`) : status
+                                        }
+                                    }
+
                                     return (
                                         <TableRow
                                             key={sale.id}
@@ -793,9 +823,15 @@ export default function PipelineList({
                                                     <TableCell key="customer" className={cellCls}>
                                                         <div className="flex flex-col gap-0.5">
                                                             <div className="flex items-center gap-2">
-                                                                <button type="button" onClick={() => handleOpenCustomerProfile(sale.customers)} className="font-semibold text-foreground text-xs hover:text-blue-600 hover:underline transition-colors text-left">
-                                                                    {sale.customers?.full_name}
-                                                                </button>
+                                                                {isAdvanceMode ? (
+                                                                    <Link href={`/customers/${sale.customers?.id}`} className="font-semibold text-foreground text-xs hover:text-blue-600 hover:underline transition-colors text-left">
+                                                                        {sale.customers?.full_name}
+                                                                    </Link>
+                                                                ) : (
+                                                                    <button type="button" onClick={() => handleOpenCustomerProfile(sale.customers)} className="font-semibold text-foreground text-xs hover:text-blue-600 hover:underline transition-colors text-left">
+                                                                        {sale.customers?.full_name}
+                                                                    </button>
+                                                                )}
                                                                 {sale.wa_first_message_sent && (
                                                                     <span title={`WP gönderildi${sale.wa_first_message_at ? ' · ' + new Date(sale.wa_first_message_at).toLocaleString('tr-TR') : ''}`} className="inline-flex items-center justify-center h-4 w-4 rounded-full bg-green-100 text-green-600 flex-shrink-0">
                                                                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-2.5 w-2.5"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.955 9.955 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2z"/></svg>
@@ -869,44 +905,59 @@ export default function PipelineList({
                                                         ) : <span className="text-muted-foreground">-</span>}
                                                     </TableCell>
                                                 )}
-                                                if (colId === 'status') return (
-                                                    <TableCell key="status" className={cellCls}>
-                                                        {isCompleted ? (
-                                                            <div className="inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-semibold bg-emerald-100 text-emerald-700 border-emerald-200 gap-1">
-                                                                <Sparkles className="w-3 h-3" /> {t('actions.won')}
-                                                            </div>
-                                                        ) : (
-                                                            <Select value={sale.status} onValueChange={(val) => handleStatusChange(sale.id, val)} disabled={sale.status === 'Lost'}>
-                                                                <SelectTrigger className={`w-full h-7 border text-xs font-medium ${getStatusColor(sale.status)}`}><SelectValue /></SelectTrigger>
-                                                                <SelectContent>
-                                                                    {isBroker ? (
-                                                                        <>
-                                                                            {!isAdvanceMode && <SelectItem value="Lead"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-slate-400" />Yeni Talep</div></SelectItem>}
-                                                                            <SelectItem value="Prospect"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-blue-500" />İletişim</div></SelectItem>
-                                                                            <SelectItem value="Reservation"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-purple-500" />Gösterim</div></SelectItem>
-                                                                            <SelectItem value="Proposal"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-cyan-500" />Teklif</div></SelectItem>
-                                                                            <SelectItem value="Negotiation"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-pink-500" />Pazarlık</div></SelectItem>
-                                                                            <SelectItem value="Sold"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-emerald-500" />Sözleşme</div></SelectItem>
-                                                                            <SelectItem value="Lost"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-red-500" />Kaybedildi</div></SelectItem>
-                                                                        </>
-                                                                    ) : (
-                                                                        <>
-                                                                            {!isAdvanceMode && <SelectItem value="Lead"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-slate-400" />{t('status.Lead')}</div></SelectItem>}
-                                                                            <SelectItem value="Prospect"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-blue-500" />{t('status.Prospect')}</div></SelectItem>
-                                                                            <SelectItem value="Reservation"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-purple-500" />{t('status.Reservation')}</div></SelectItem>
-                                                                            <SelectItem value="Opsiyon - Kapora Bekleniyor"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-amber-500" />{t('status.OptionPending')}</div></SelectItem>
-                                                                            <SelectItem value="Proposal"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-cyan-500" />{t('status.Proposal')}</div></SelectItem>
-                                                                            <SelectItem value="Teklif - Kapora Bekleniyor"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-indigo-500" />{t('status.ProposalPending')}</div></SelectItem>
-                                                                            <SelectItem value="Negotiation"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-pink-500" />{t('status.Negotiation')}</div></SelectItem>
-                                                                            <SelectItem value="Sold"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-emerald-500" />{t('status.Sold')}</div></SelectItem>
-                                                                            <SelectItem value="Lost"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-red-500" />{t('status.Lost')}</div></SelectItem>
-                                                                        </>
-                                                                    )}
-                                                                </SelectContent>
-                                                            </Select>
-                                                        )}
-                                                    </TableCell>
-                                                )
+                                                if (colId === 'status') {
+                                                    const statusLabel = getStatusLabel(sale.status)
+                                                    return (
+                                                        <TableCell key="status" className={cellCls}>
+                                                            {isAdvanceMode ? (
+                                                                isCompleted ? (
+                                                                    <div className="inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-semibold bg-emerald-100 text-emerald-700 border-emerald-200 gap-1">
+                                                                        <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                                                                        <span>{statusLabel}</span>
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className={cn("inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-semibold gap-1.5 shadow-sm w-full justify-center", getStatusColor(sale.status))}>
+                                                                        <div className={cn("h-1.5 w-1.5 rounded-full shrink-0", getStatusDotColor(sale.status))} />
+                                                                        <span>{statusLabel}</span>
+                                                                    </div>
+                                                                )
+                                                            ) : isCompleted ? (
+                                                                <div className="inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-semibold bg-emerald-100 text-emerald-700 border-emerald-200 gap-1">
+                                                                    <Sparkles className="w-3 h-3" /> {t('actions.won')}
+                                                                </div>
+                                                            ) : (
+                                                                <Select value={sale.status} onValueChange={(val) => handleStatusChange(sale.id, val)} disabled={sale.status === 'Lost'}>
+                                                                    <SelectTrigger className={`w-full h-7 border text-xs font-medium ${getStatusColor(sale.status)}`}><SelectValue /></SelectTrigger>
+                                                                    <SelectContent>
+                                                                        {isBroker ? (
+                                                                            <>
+                                                                                {!isAdvanceMode && <SelectItem value="Lead"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-slate-400" />Yeni Talep</div></SelectItem>}
+                                                                                <SelectItem value="Prospect"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-blue-500" />İletişim</div></SelectItem>
+                                                                                <SelectItem value="Reservation"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-purple-500" />Gösterim</div></SelectItem>
+                                                                                <SelectItem value="Proposal"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-cyan-500" />Teklif</div></SelectItem>
+                                                                                <SelectItem value="Negotiation"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-pink-500" />Pazarlık</div></SelectItem>
+                                                                                <SelectItem value="Sold"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-emerald-500" />Sözleşme</div></SelectItem>
+                                                                                <SelectItem value="Lost"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-red-500" />Kaybedildi</div></SelectItem>
+                                                                            </>
+                                                                        ) : (
+                                                                            <>
+                                                                                {!isAdvanceMode && <SelectItem value="Lead"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-slate-400" />{t('status.Lead')}</div></SelectItem>}
+                                                                                <SelectItem value="Prospect"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-blue-500" />{t('status.Prospect')}</div></SelectItem>
+                                                                                <SelectItem value="Reservation"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-purple-500" />{t('status.Reservation')}</div></SelectItem>
+                                                                                <SelectItem value="Opsiyon - Kapora Bekleniyor"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-amber-500" />{t('status.OptionPending')}</div></SelectItem>
+                                                                                <SelectItem value="Proposal"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-cyan-500" />{t('status.Proposal')}</div></SelectItem>
+                                                                                <SelectItem value="Teklif - Kapora Bekleniyor"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-indigo-500" />{t('status.ProposalPending')}</div></SelectItem>
+                                                                                <SelectItem value="Negotiation"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-pink-500" />{t('status.Negotiation')}</div></SelectItem>
+                                                                                <SelectItem value="Sold"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-emerald-500" />{t('status.Sold')}</div></SelectItem>
+                                                                                <SelectItem value="Lost"><div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-red-500" />{t('status.Lost')}</div></SelectItem>
+                                                                            </>
+                                                                        )}
+                                                                    </SelectContent>
+                                                                </Select>
+                                                            )}
+                                                        </TableCell>
+                                                    )
+                                                }
                                                 if (colId === 'lead_score') {
                                                     const interestLevel = sale.customers?.lead_qualifications?.[0]?.interest_level
                                                     const lqStatus = sale.customers?.lead_qualifications?.[0]?.status
@@ -1179,13 +1230,22 @@ export default function PipelineList({
                                 <div className="flex justify-between items-start">
                                     <div className="flex flex-col">
                                         <div className="flex items-center gap-2">
-                                            <button
-                                                type="button"
-                                                onClick={() => handleOpenCustomerProfile(sale.customers)}
-                                                className="font-bold text-slate-900 text-left hover:text-blue-600 hover:underline transition-colors"
-                                            >
-                                                {sale.customers?.full_name}
-                                            </button>
+                                            {isAdvanceMode ? (
+                                                <Link
+                                                    href={`/customers/${sale.customers?.id}`}
+                                                    className="font-bold text-slate-900 text-left hover:text-blue-600 hover:underline transition-colors"
+                                                >
+                                                    {sale.customers?.full_name}
+                                                </Link>
+                                            ) : (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleOpenCustomerProfile(sale.customers)}
+                                                    className="font-bold text-slate-900 text-left hover:text-blue-600 hover:underline transition-colors"
+                                                >
+                                                    {sale.customers?.full_name}
+                                                </button>
+                                            )}
                                             {sale.customers?.lead_qualifications?.[0] && (
                                                 <AiSignalBadge 
                                                     lastCallAt={sale.customers.lead_qualifications[0].last_call_at} 

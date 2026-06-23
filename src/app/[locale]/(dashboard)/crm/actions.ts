@@ -18,7 +18,7 @@ export async function getCustomerFullProfile(customerId: string) {
 
     console.log('[getCustomerFullProfile] customerId:', customerId)
 
-    const { data: customer, error: customerError } = await supabase.from('customers').select('*, customer_demands(*)').eq('id', customerId).single()
+    const { data: customer, error: customerError } = await supabase.from('customers').select('*, customer_demands(*), company:companies(id, name)').eq('id', customerId).single()
     if (customerError) console.error('[getCustomerFullProfile] customer error:', customerError.message)
 
     const { data: activities, error: activitiesError } = await supabase.from('activities').select('*').eq('customer_id', customerId).order('created_at', { ascending: false })

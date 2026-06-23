@@ -21,7 +21,7 @@ import {
 import { formatDistanceToNow } from 'date-fns'
 import { tr } from 'date-fns/locale'
 import { 
-    updateLead, convertLeadToCustomer, convertLeadToCompany, deleteLead,
+    updateLead, convertLeadToCustomer, deleteLead,
     createLead, bulkCreateLeads, getLeadActivities, addLeadActivityNote 
 } from './lead-actions'
 import { AiSignalBadge } from "@/components/ui/ai-signal-badge"
@@ -148,7 +148,6 @@ export default function LeadsPageClient({ leads, teamMembers, projects, userRole
 
     // Convert dialog
     const [convertLead, setConvertLead] = useState<Lead | null>(null)
-    const [convertType, setConvertType] = useState<'person' | 'company'>('person')
     const [convertForm, setConvertForm] = useState({
         createOpportunity: true,
         opportunityTitle: '',
@@ -341,7 +340,6 @@ export default function LeadsPageClient({ leads, teamMembers, projects, userRole
     }
 
     const openConvert = (lead: Lead) => {
-        setConvertType('person')
         setConvertForm({
             createOpportunity: true,
             opportunityTitle: `${lead.full_name} - Fırsat`,
@@ -363,32 +361,21 @@ export default function LeadsPageClient({ leads, teamMembers, projects, userRole
     const handleConvert = () => {
         if (!convertLead) return
         startTransition(async () => {
-            let res: { success: boolean; message?: string }
-            if (convertType === 'company') {
-                if (!companyForm.companyName.trim()) {
-                    setConvertResult({ success: false, message: 'Firma adı gereklidir' })
-                    return
-                }
-                res = await convertLeadToCompany(convertLead.id, {
-                    companyName: companyForm.companyName,
+            const hasCompany = !!companyForm.companyName.trim()
+            const res = await convertLeadToCustomer(convertLead.id, {
+                createOpportunity: convertForm.createOpportunity,
+                opportunityTitle: convertForm.opportunityTitle || undefined,
+                opportunityStage: convertForm.opportunityStage,
+                opportunityValue: convertForm.opportunityValue ? Number(convertForm.opportunityValue) : undefined,
+                opportunityCurrency: convertForm.opportunityCurrency,
+                companyData: hasCompany ? {
+                    companyName: companyForm.companyName.trim(),
                     companyPhone: companyForm.companyPhone || undefined,
                     taxNumber: companyForm.taxNumber || undefined,
                     taxOffice: companyForm.taxOffice || undefined,
                     sector: companyForm.sector || undefined,
-                    createOpportunity: convertForm.createOpportunity,
-                    opportunityTitle: convertForm.opportunityTitle || undefined,
-                    opportunityValue: convertForm.opportunityValue ? Number(convertForm.opportunityValue) : undefined,
-                    opportunityCurrency: convertForm.opportunityCurrency
-                })
-            } else {
-                res = await convertLeadToCustomer(convertLead.id, {
-                    createOpportunity: convertForm.createOpportunity,
-                    opportunityTitle: convertForm.opportunityTitle || undefined,
-                    opportunityStage: convertForm.opportunityStage,
-                    opportunityValue: convertForm.opportunityValue ? Number(convertForm.opportunityValue) : undefined,
-                    opportunityCurrency: convertForm.opportunityCurrency
-                })
-            }
+                } : undefined
+            })
             setConvertResult(res)
             if (res.success) {
                 toast.success('Müşteri adayı başarıyla dönüştürüldü.')
@@ -1436,10 +1423,10 @@ export default function LeadsPageClient({ leads, teamMembers, projects, userRole
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <ArrowUpRight className="h-5 w-5 text-emerald-500" />
-                            Lead&apos;i Dönüştür
+                            Müşteri Adayını Dönüştür
                         </DialogTitle>
                         <DialogDescription>
-                            <strong>{convertLead?.full_name}</strong> — Kişi veya Firma olarak dönüştürün.
+                            <strong>{convertLead?.full_name}</strong> isimli müşteri adayı için yeni bir müşteri kaydı oluşturulur. Firma bilgileri girilirse firma kaydı da oluşturulup ilişkilendirilecektir.
                         </DialogDescription>
                     </DialogHeader>
 
@@ -1450,90 +1437,67 @@ export default function LeadsPageClient({ leads, teamMembers, projects, userRole
                         </div>
                     ) : (
                         <>
-                            <div className="space-y-4 py-2 max-h-[60vh] overflow-y-auto">
+                            <div className="space-y-4 py-2 max-h-[60vh] overflow-y-auto pr-1">
                                 {/* Lead bilgileri */}
-                                <div className="p-3 bg-slate-50 rounded-lg text-sm space-y-1">
-                                    <p><strong>Ad:</strong> {convertLead?.full_name}</p>
+                                <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-lg text-sm space-y-1 border border-slate-100 dark:border-slate-800">
+                                    <p><strong>Ad Soyad:</strong> {convertLead?.full_name}</p>
                                     <p><strong>Telefon:</strong> {convertLead?.phone || '-'}</p>
                                     <p><strong>E-posta:</strong> {convertLead?.email || '-'}</p>
                                     <p><strong>Kaynak:</strong> {convertLead?.source || '-'}</p>
                                 </div>
 
-                                {/* Kişi / Firma seçimi */}
-                                <div className="grid grid-cols-2 gap-2">
-                                    <button
-                                        type="button"
-                                        onClick={() => setConvertType('person')}
-                                        className={`flex items-center gap-2 p-3 rounded-lg border-2 transition-all text-sm font-medium ${
-                                            convertType === 'person'
-                                                ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
-                                                : 'border-slate-200 hover:border-slate-300'
-                                        }`}
-                                    >
-                                        <User className="h-4 w-4" />
-                                        Kişi (Bireysel)
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setConvertType('company')}
-                                        className={`flex items-center gap-2 p-3 rounded-lg border-2 transition-all text-sm font-medium ${
-                                            convertType === 'company'
-                                                ? 'border-blue-500 bg-blue-50 text-blue-700'
-                                                : 'border-slate-200 hover:border-slate-300'
-                                        }`}
-                                    >
-                                        <Building2 className="h-4 w-4" />
-                                        Firma (Kurumsal)
-                                    </button>
-                                </div>
-
-                                {/* Firma bilgileri (SCRUM-11) */}
-                                {convertType === 'company' && (
-                                    <div className="space-y-3 p-3 border rounded-lg bg-blue-50/30">
+                                {/* Firma bilgileri (Opsiyonel) */}
+                                <div className="space-y-3 p-4 border rounded-xl bg-slate-50/50 dark:bg-slate-900/30 border-slate-200/60 dark:border-slate-800">
+                                    <div className="flex items-center gap-2 font-semibold text-slate-800 dark:text-slate-200 text-sm">
+                                        <Building2 className="h-4 w-4 text-indigo-500" />
+                                        Firma Bilgileri (Opsiyonel)
+                                    </div>
+                                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                                        Firma adı girilirse, firma da otomatik oluşturularak müşteriyle ilişkilendirilir.
+                                    </p>
+                                    <div className="space-y-2">
+                                        <Label>Firma Adı</Label>
+                                        <Input
+                                            placeholder="Örn. ABC Holding A.Ş."
+                                            value={companyForm.companyName}
+                                            onChange={e => setCompanyForm(f => ({ ...f, companyName: e.target.value }))}
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3">
                                         <div className="space-y-2">
-                                            <Label>Firma Adı *</Label>
-                                            <Input
-                                                placeholder="ABC Holding A.Ş."
-                                                value={companyForm.companyName}
-                                                onChange={e => setCompanyForm(f => ({ ...f, companyName: e.target.value }))}
-                                            />
+                                            <Label>Vergi No</Label>
+                                            <Input value={companyForm.taxNumber} onChange={e => setCompanyForm(f => ({ ...f, taxNumber: e.target.value }))} />
                                         </div>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <div className="space-y-2">
-                                                <Label>Vergi No</Label>
-                                                <Input value={companyForm.taxNumber} onChange={e => setCompanyForm(f => ({ ...f, taxNumber: e.target.value }))} />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Label>Vergi Dairesi</Label>
-                                                <Input value={companyForm.taxOffice} onChange={e => setCompanyForm(f => ({ ...f, taxOffice: e.target.value }))} />
-                                            </div>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <div className="space-y-2">
-                                                <Label>Firma Telefonu</Label>
-                                                <Input 
-                                                    placeholder="Örn. 02123334455" 
-                                                    value={companyForm.companyPhone} 
-                                                    onChange={e => setCompanyForm(f => ({ ...f, companyPhone: e.target.value }))} 
-                                                />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Label>Sektör</Label>
-                                                <Input placeholder="İnşaat, Gayrimenkul..." value={companyForm.sector} onChange={e => setCompanyForm(f => ({ ...f, sector: e.target.value }))} />
-                                            </div>
+                                        <div className="space-y-2">
+                                            <Label>Vergi Dairesi</Label>
+                                            <Input value={companyForm.taxOffice} onChange={e => setCompanyForm(f => ({ ...f, taxOffice: e.target.value }))} />
                                         </div>
                                     </div>
-                                )}
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="space-y-2">
+                                            <Label>Firma Telefonu</Label>
+                                            <Input 
+                                                placeholder="Örn. 02123334455" 
+                                                value={companyForm.companyPhone} 
+                                                onChange={e => setCompanyForm(f => ({ ...f, companyPhone: e.target.value }))} 
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>Sektör</Label>
+                                            <Input placeholder="Örn. İnşaat, Gayrimenkul" value={companyForm.sector} onChange={e => setCompanyForm(f => ({ ...f, sector: e.target.value }))} />
+                                        </div>
+                                    </div>
+                                </div>
 
                                 {/* Fırsat oluşturma */}
-                                <div className="flex items-start gap-3 p-3 border rounded-lg">
+                                <div className="flex items-start gap-3 p-3 border rounded-lg dark:border-slate-800">
                                     <Checkbox
                                         id="createOpp"
                                         checked={convertForm.createOpportunity}
                                         onCheckedChange={(v) => setConvertForm(f => ({ ...f, createOpportunity: !!v }))}
                                     />
                                     <div>
-                                        <Label htmlFor="createOpp" className="flex items-center gap-1.5 cursor-pointer">
+                                        <Label htmlFor="createOpp" className="flex items-center gap-1.5 cursor-pointer text-slate-800 dark:text-slate-200 font-semibold">
                                             <Trophy className="h-4 w-4 text-amber-500" />
                                             Satış fırsatı da oluştur
                                         </Label>
@@ -1544,7 +1508,7 @@ export default function LeadsPageClient({ leads, teamMembers, projects, userRole
                                 </div>
 
                                 {convertForm.createOpportunity && (
-                                    <div className="space-y-3 pl-6 border-l-2 border-amber-200">
+                                    <div className="space-y-3 pl-6 border-l-2 border-amber-200 dark:border-amber-900">
                                         <div className="space-y-2">
                                             <Label>Fırsat Başlığı</Label>
                                             <Input
@@ -1587,15 +1551,13 @@ export default function LeadsPageClient({ leads, teamMembers, projects, userRole
                                 <Button variant="outline" onClick={() => setConvertLead(null)}>Vazgeç</Button>
                                 <Button
                                     onClick={handleConvert}
-                                    disabled={isPending || (convertType === 'company' && !companyForm.companyName.trim())}
-                                    className={convertType === 'company' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-emerald-600 hover:bg-emerald-700'}
+                                    disabled={isPending}
+                                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold gap-1.5"
                                 >
                                     {isPending ? (
                                         <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Dönüştürülüyor...</>
-                                    ) : convertType === 'company' ? (
-                                        <><Building2 className="h-4 w-4 mr-2" />Firmaya Dönüştür</>
                                     ) : (
-                                        <><ArrowUpRight className="h-4 w-4 mr-2" />Müşteriye Dönüştür</>
+                                        <><ArrowUpRight className="h-4 w-4" />Dönüştür</>
                                     )}
                                 </Button>
                             </DialogFooter>

@@ -112,7 +112,7 @@ export async function updateLead(leadId: string, data: {
  * Lead → Müşteri dönüştürme (SCRUM-10 + SCRUM-14)
  * 1. customers tablosuna yeni kayıt oluşturur
  * 2. Opsiyonel: opportunities tablosuna fırsat oluşturur
- * 3. Lead'i 'converted' olarak işaretler
+ * 3. Lead'i 'converted' olarak işaretler ve firma bilgisi varsa firmayı da oluşturup ilişkilendirir.
  */
 export async function convertLeadToCustomer(leadId: string, options?: {
     createOpportunity?: boolean
@@ -120,6 +120,13 @@ export async function convertLeadToCustomer(leadId: string, options?: {
     opportunityStage?: string
     opportunityValue?: number
     opportunityCurrency?: string
+    companyData?: {
+        companyName: string
+        companyPhone?: string
+        taxNumber?: string
+        taxOffice?: string
+        sector?: string
+    }
 }) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -144,7 +151,33 @@ export async function convertLeadToCustomer(leadId: string, options?: {
     if (leadErr || !lead) return { success: false, error: 'Lead bulunamadı' }
     if (lead.status === 'converted') return { success: false, error: 'Bu lead zaten dönüştürülmüş' }
 
-    // 2. Müşteri oluştur
+    // 2. Opsiyonel: Firma oluştur
+    let newCompanyId: string | null = null
+    const companyName = options?.companyData?.companyName?.trim()
+    if (companyName && options?.companyData) {
+        const { data: newCompany, error: compErr } = await supabase
+            .from('companies')
+            .insert({
+                tenant_id: profile.tenant_id,
+                name: companyName,
+                tax_number: options.companyData.taxNumber || null,
+                tax_office: options.companyData.taxOffice || null,
+                sector: options.companyData.sector || null,
+                phone: options.companyData.companyPhone || lead.phone || null,
+                email: lead.email,
+                notes: `Lead'den dönüştürüldü. Orijinal lead: ${lead.id}`,
+                created_by: user.id,
+            })
+            .select('id')
+            .single()
+
+        if (compErr || !newCompany) {
+            return { success: false, error: `Firma oluşturma hatası: ${compErr?.message}` }
+        }
+        newCompanyId = newCompany.id
+    }
+
+    // 3. Müşteri oluştur
     const { data: newCustomer, error: custErr } = await supabase
         .from('customers')
         .insert({
@@ -152,9 +185,12 @@ export async function convertLeadToCustomer(leadId: string, options?: {
             full_name: lead.full_name,
             phone: lead.phone,
             email: lead.email,
-            source: lead.source || 'Lead Conversion',
+            company_id: newCompanyId,
+            source: lead.source || (newCompanyId ? 'Lead Conversion (Company)' : 'Lead Conversion'),
             contact_type: 'buyer',
-            notes: `Lead'den dönüştürüldü. Orijinal lead: ${lead.id}${lead.notes ? '\n' + lead.notes : ''}`
+            notes: newCompanyId 
+                ? `Lead'den dönüştürüldü (Firma: ${companyName}). Orijinal lead: ${lead.id}${lead.notes ? '\n' + lead.notes : ''}`
+                : `Lead'den dönüştürüldü. Orijinal lead: ${lead.id}${lead.notes ? '\n' + lead.notes : ''}`
         })
         .select('id')
         .single()
@@ -163,18 +199,19 @@ export async function convertLeadToCustomer(leadId: string, options?: {
         return { success: false, error: `Müşteri oluşturma hatası: ${custErr?.message}` }
     }
 
-    // 3. Lead'i converted olarak güncelle
+    // 4. Lead'i converted olarak güncelle
     await supabase
         .from('leads')
         .update({
             status: 'converted',
             converted_customer_id: newCustomer.id,
+            converted_company_id: newCompanyId,
             converted_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
         })
         .eq('id', leadId)
 
-    // 4. Opsiyonel: Fırsat oluştur (SCRUM-14)
+    // 5. Opsiyonel: Fırsat oluştur (SCRUM-14)
     let opportunityId: string | null = null
     if (options?.createOpportunity) {
         const { data: opp } = await supabase
@@ -182,7 +219,7 @@ export async function convertLeadToCustomer(leadId: string, options?: {
             .insert({
                 tenant_id: profile.tenant_id,
                 customer_id: newCustomer.id,
-                title: options.opportunityTitle || `${lead.full_name} - Fırsat`,
+                title: options.opportunityTitle || (newCompanyId ? `${companyName} - Fırsat` : `${lead.full_name} - Fırsat`),
                 stage: options.opportunityStage || 'prospect',
                 value: options.opportunityValue || null,
                 currency: options.opportunityCurrency || 'TRY',
@@ -197,17 +234,19 @@ export async function convertLeadToCustomer(leadId: string, options?: {
         opportunityId = opp?.id || null
     }
 
-    // 5. Satış kaydı da oluştur (mevcut CRM pipeline ile entegrasyon)
+    // 6. Satış kaydı da oluştur (mevcut CRM pipeline ile entegrasyon)
     // Lead zaten niteliklendirilmiş, CRM'de direkt "Prospect" olarak başlar
     await supabase.from('sales').insert({
         tenant_id: profile.tenant_id,
         customer_id: newCustomer.id,
         status: 'Prospect',
         project_id: lead.project_id || null,
-        description: `Lead dönüşümü: ${lead.source || 'Bilinmeyen kaynak'}`,
+        description: newCompanyId 
+            ? `Lead dönüşümü (Firma): ${lead.source || 'Bilinmeyen kaynak'}`
+            : `Lead dönüşümü: ${lead.source || 'Bilinmeyen kaynak'}`,
     })
 
-    // 6. Lead bildirim modu: on_conversion ise dönüştürme anında WhatsApp gönder
+    // 7. Lead bildirim modu: on_conversion ise dönüştürme anında WhatsApp gönder
     const { data: tenantNotif } = await supabase
         .from('tenants')
         .select('lead_notification_mode')
@@ -222,179 +261,18 @@ export async function convertLeadToCustomer(leadId: string, options?: {
     revalidatePath('/(dashboard)/leads')
     revalidatePath('/(dashboard)/opportunities')
     revalidatePath('/(dashboard)/crm')
+    if (newCompanyId) {
+        revalidatePath('/(dashboard)/companies')
+    }
 
     return {
         success: true,
         customerId: newCustomer.id,
+        companyId: newCompanyId || undefined,
         opportunityId,
-        message: `${lead.full_name} başarıyla müşteriye dönüştürüldü.`
-    }
-}
-
-/**
- * Lead sil
- */
-export async function deleteLead(leadId: string) {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { success: false, error: 'Oturum bulunamadı' }
-
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('tenant_id, role')
-        .eq('id', user.id)
-        .single()
-
-    if (!profile?.tenant_id) return { success: false, error: 'Tenant bulunamadı' }
-    if (profile.role !== 'owner' && profile.role !== 'admin' && profile.role !== 'manager') {
-        return { success: false, error: 'Silme yetkiniz yok' }
-    }
-
-    const { error } = await supabase
-        .from('leads')
-        .delete()
-        .eq('id', leadId)
-        .eq('tenant_id', profile.tenant_id)
-
-    if (error) return { success: false, error: error.message }
-
-    revalidatePath('/(dashboard)/leads')
-    return { success: true }
-}
-
-/**
- * Lead → Firma dönüştürme (SCRUM-11)
- * 1. companies tablosuna firma oluşturur
- * 2. customers tablosuna kişi oluşturur ve firmaya bağlar
- * 3. Lead'i 'converted' olarak işaretler
- */
-export async function convertLeadToCompany(leadId: string, companyData: {
-    companyName: string
-    companyPhone?: string
-    taxNumber?: string
-    taxOffice?: string
-    sector?: string
-    createOpportunity?: boolean
-    opportunityTitle?: string
-    opportunityValue?: number
-    opportunityCurrency?: string
-}) {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { success: false, error: 'Oturum bulunamadı' }
-
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('tenant_id')
-        .eq('id', user.id)
-        .single()
-
-    if (!profile?.tenant_id) return { success: false, error: 'Tenant bulunamadı' }
-
-    // 1. Lead verisini al
-    const { data: lead, error: leadErr } = await supabase
-        .from('leads')
-        .select('*')
-        .eq('id', leadId)
-        .eq('tenant_id', profile.tenant_id)
-        .single()
-
-    if (leadErr || !lead) return { success: false, error: 'Lead bulunamadı' }
-    if (lead.status === 'converted') return { success: false, error: 'Bu lead zaten dönüştürülmüş' }
-
-    // 2. Firma oluştur
-    const { data: newCompany, error: compErr } = await supabase
-        .from('companies')
-        .insert({
-            tenant_id: profile.tenant_id,
-            name: companyData.companyName,
-            tax_number: companyData.taxNumber || null,
-            tax_office: companyData.taxOffice || null,
-            sector: companyData.sector || null,
-            phone: companyData.companyPhone || lead.phone || null,
-            email: lead.email,
-            notes: `Lead'den dönüştürüldü. Orijinal lead: ${lead.id}`,
-            created_by: user.id,
-        })
-        .select('id')
-        .single()
-
-    if (compErr || !newCompany) {
-        return { success: false, error: `Firma oluşturma hatası: ${compErr?.message}` }
-    }
-
-    // 3. Kişi kaydı oluştur ve firmaya bağla
-    const { data: newCustomer } = await supabase
-        .from('customers')
-        .insert({
-            tenant_id: profile.tenant_id,
-            full_name: lead.full_name,
-            phone: lead.phone,
-            email: lead.email,
-            company_id: newCompany.id,
-            source: lead.source || 'Lead Conversion (Company)',
-            contact_type: 'buyer',
-            notes: `Firma dönüşümü: ${companyData.companyName}`
-        })
-        .select('id')
-        .single()
-
-    // 4. Lead'i converted olarak güncelle
-    await supabase
-        .from('leads')
-        .update({
-            status: 'converted',
-            converted_customer_id: newCustomer?.id || null,
-            converted_company_id: newCompany.id,
-            converted_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-        })
-        .eq('id', leadId)
-
-    // 5. Opsiyonel: Opportunity oluştur
-    let opportunityId: string | null = null
-    if (companyData.createOpportunity && newCustomer) {
-        const { data: opp } = await supabase
-            .from('opportunities')
-            .insert({
-                tenant_id: profile.tenant_id,
-                customer_id: newCustomer.id,
-                title: companyData.opportunityTitle || `${companyData.companyName} - Fırsat`,
-                stage: 'prospect',
-                value: companyData.opportunityValue || null,
-                currency: companyData.opportunityCurrency || 'TRY',
-                assigned_to: lead.assigned_to || user.id,
-                project_id: lead.project_id || null,
-                notes: `Lead #${lead.id} → Firma dönüşümünden oluşturuldu.`,
-                lead_id: lead.id
-            })
-            .select('id')
-            .single()
-
-        opportunityId = opp?.id || null
-    }
-
-    // Satış kaydı oluştur
-    if (newCustomer) {
-        await supabase.from('sales').insert({
-            tenant_id: profile.tenant_id,
-            customer_id: newCustomer.id,
-            status: 'Prospect',
-            project_id: lead.project_id || null,
-            description: `Lead dönüşümü (Firma): ${lead.source || 'Bilinmeyen kaynak'}`,
-        })
-    }
-
-    revalidatePath('/(dashboard)/leads')
-    revalidatePath('/(dashboard)/companies')
-    revalidatePath('/(dashboard)/opportunities')
-
-    return {
-        success: true,
-        companyId: newCompany.id,
-        customerId: newCustomer?.id,
-        opportunityId,
-        message: `${lead.full_name} → ${companyData.companyName} firması olarak dönüştürüldü.`
+        message: newCompanyId 
+            ? `${lead.full_name} ve ${companyName} firması başarıyla oluşturulup dönüştürüldü.`
+            : `${lead.full_name} başarıyla müşteriye dönüştürüldü.`
     }
 }
 
@@ -611,6 +489,34 @@ export async function addLeadActivityNote(leadId: string, noteText: string) {
         })
 
     if (insertErr) return { success: false, error: insertErr.message }
+
+    revalidatePath('/(dashboard)/leads')
+    return { success: true }
+}
+
+/**
+ * Müşteri adayını sil
+ */
+export async function deleteLead(leadId: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: 'Oturum bulunamadı' }
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', user.id)
+        .single()
+
+    if (!profile?.tenant_id) return { success: false, error: 'Tenant bulunamadı' }
+
+    const { error } = await supabase
+        .from('leads')
+        .delete()
+        .eq('id', leadId)
+        .eq('tenant_id', profile.tenant_id)
+
+    if (error) return { success: false, error: error.message }
 
     revalidatePath('/(dashboard)/leads')
     return { success: true }
