@@ -507,13 +507,23 @@ export async function deleteContract(id: string) {
         // 1. Get contract info first
         const { data: contract } = await supabase
             .from('contracts')
-            .select('unit_id, id')
+            .select('unit_id, id, tenant_id, sale_id')
             .eq('id', id)
             .single()
 
         if (!contract) throw new Error('Sözleşme bulunamadı')
 
-        // 2. Release unit and related offer
+        // Get primary customer for valuable papers cleanup
+        const { data: primaryCustomer } = await supabase
+            .from('contract_customers')
+            .select('customer_id')
+            .eq('contract_id', id)
+            .eq('role', 'Primary')
+            .single()
+
+        const customer_id = primaryCustomer?.customer_id
+
+        // 2. Release unit, related sales, and related offer
         if (contract.unit_id) {
             await supabase.from('units').update({ status: 'For Sale' }).eq('id', contract.unit_id)
 
@@ -531,16 +541,73 @@ export async function deleteContract(id: string) {
                 await logUnitActivity(
                     contract.unit_id,
                     'status_change',
-                    'Sözleşme iptal edildi/silindi, ünite tekrar satışa açıldı.',
+                    'Sözleşme silindi, ünite tekrar satışa açıldı.',
                     'Sold',
                     'For Sale'
                 )
             } catch (e) {
                 console.error('Failed to log unit activity during contract deletion:', e)
             }
+
+            // Update Sales Status
+            await supabase
+                .from('sales')
+                .update({ status: 'Cancelled' })
+                .eq('unit_id', contract.unit_id)
+                .in('status', ['Sold', 'Completed', 'Contract', 'Prospect', 'Reservation', 'Proposal'])
+        } else if (contract.sale_id) {
+            await supabase.from('sales').update({ status: 'Cancelled' }).eq('id', contract.sale_id)
         }
 
-        // 3. Delete the contract (Cascading will handle customers, payments, documents, activities if set up)
+        // 3. Get payment plan IDs for finance transaction cleanup before they are cascade deleted
+        const { data: plans } = await supabase.from('payment_plans')
+            .select('id')
+            .eq('contract_id', id)
+
+        // 4. Handle Deposits (If PAID, mark as Refund Pending)
+        if (contract.sale_id) {
+            const { data: deposits } = await supabase
+                .from('deposits')
+                .select('id, status')
+                .eq('sale_id', contract.sale_id)
+
+            if (deposits && deposits.length > 0) {
+                for (const dep of deposits) {
+                    if (dep.status === 'Paid') {
+                        await supabase.from('deposits').update({ status: 'Refund Pending' }).eq('id', dep.id)
+                    } else if (dep.status === 'Pending') {
+                        await supabase.from('deposits').update({ status: 'Cancelled' }).eq('id', dep.id)
+                    }
+                }
+            }
+        }
+
+        // 5. Handle Valuable Papers (Checks/Promissory Notes)
+        if (customer_id) {
+            const { data: papers } = await supabase
+                .from('valuable_papers')
+                .select('id')
+                .eq('tenant_id', contract.tenant_id)
+                .match({ customer_id: customer_id, unit_id: contract.unit_id })
+                .in('status', ['Portfolio', 'Portföyde'])
+
+            if (papers && papers.length > 0) {
+                const paperIds = papers.map(p => p.id)
+                await supabase.from('valuable_papers')
+                    .update({ status: 'Rejected' })
+                    .in('id', paperIds)
+            }
+        }
+
+        // 6. Cleanup Finance Transactions (DELETE)
+        await supabase.from('finance_transactions').delete().eq('contract_id', id)
+
+        if (plans && plans.length > 0) {
+            const planIds = plans.map(p => p.id)
+            await supabase.from('finance_transactions').delete().in('reference_id', planIds)
+        }
+
+        // 7. Delete the contract (Cascading will handle customers, payments, documents, activities if set up)
         const { error } = await supabase
             .from('contracts')
             .delete()
@@ -550,6 +617,9 @@ export async function deleteContract(id: string) {
 
         revalidatePath('/contracts')
         revalidatePath('/inventory')
+        revalidatePath('/dashboard')
+        revalidatePath('/crm')
+
         return { success: true }
     } catch (error: any) {
         console.error('Delete Contract Error:', error)

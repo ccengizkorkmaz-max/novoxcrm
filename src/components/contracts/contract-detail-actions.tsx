@@ -186,9 +186,14 @@ export function ContractLegalActions({ contractId, status }: { contractId: strin
                     <AlertDialogHeader>
                         <AlertDialogTitle>Sözleşmeyi iptal etmek istediğinize emin misiniz?</AlertDialogTitle>
                         <AlertDialogDescription asChild>
-                            <div>
-                                Bu işlem sonrasında sözleşme iptal edilecek ve ilgili ünite serbest bırakılacaktır.
-                                <p className="mt-2 font-semibold text-destructive">Bu işlem geri alınamaz.</p>
+                            <div className="space-y-2 text-sm text-muted-foreground">
+                                <p>Bu işlem ile birlikte:</p>
+                                <ul className="list-disc list-inside space-y-1">
+                                    <li>Sözleşme durumu <strong>"İptal Edildi" (Cancelled)</strong> olarak güncellenecektir.</li>
+                                    <li>İlgili kilitli teklifin statüsü <strong>"İptal Edildi" (Cancelled)</strong> yapılarak ünite serbest bırakılacak ve tekrar satışa açılacaktır.</li>
+                                    <li>İlgili tüm geriye dönük işlemler (ödeme planlarının iptali, kapora iadeleri, çek/senet iadeleri ve finansal hareketlerin temizlenmesi) gerçekleştirilecektir.</li>
+                                </ul>
+                                <p className="font-semibold text-destructive mt-2">Bu işlem geri alınamaz. Onaylıyor musunuz?</p>
                             </div>
                         </AlertDialogDescription>
                     </AlertDialogHeader>
@@ -274,11 +279,15 @@ export function ContractLegalActions({ contractId, status }: { contractId: strin
                     <AlertDialogHeader>
                         <AlertDialogTitle>BU İŞLEM SÖZLEŞMEYİ TAMAMEN SİLER</AlertDialogTitle>
                         <AlertDialogDescription asChild>
-                            <div>
-                                Bu sözleşme ve ona bağlı tüm bilgiler (ödemeler, dökümanlar, aktiviteler) sistemden tamamen silinecektir.
-                                Ünite tekrar satışa açılacaktır.
-                                <p className="mt-4 p-3 bg-red-50 text-red-700 rounded-lg font-bold">
-                                    DİKKAT: Bu işlemin geri dönüşü yoktur. Veriler kurtarılamaz.
+                            <div className="space-y-2 text-sm text-muted-foreground">
+                                <p>Bu işlem ile birlikte:</p>
+                                <ul className="list-disc list-inside space-y-1">
+                                    <li>Bu sözleşme ve ona bağlı tüm bilgiler (müşteriler, dökümanlar, aktiviteler) sistemden <strong>tamamen silinecektir</strong>.</li>
+                                    <li>İlgili kilitli teklifin statüsü <strong>"İptal Edildi" (Cancelled)</strong> yapılarak ünite serbest bırakılacak ve tekrar satışa açılacaktır.</li>
+                                    <li>İlgili tüm geriye dönük işlemler (ödeme planlarının silinmesi, kapora iadeleri, çek/senet iadeleri ve finansal hareketlerin temizlenmesi) gerçekleştirilecektir.</li>
+                                </ul>
+                                <p className="mt-4 p-3 bg-red-50 text-red-700 rounded-lg font-bold text-xs">
+                                    DİKKAT: Bu işlemin geri dönüşü yoktur. Veriler kurtarılamaz. Onaylıyor musunuz?
                                 </p>
                             </div>
                         </AlertDialogDescription>
