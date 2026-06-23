@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useParams } from 'next/navigation'
 import { ShieldCheck, Lock, Loader2 } from 'lucide-react'
-import MetaAdsDashboard from '@/app/[locale]/(dashboard)/reports/meta-automation/MetaAutomationDashboard'
+import MetaAdsDashboard from '@/components/reports/MetaAutomationDashboard'
 
 export default function SharedAdsAnalyticsPage() {
     const params = useParams()

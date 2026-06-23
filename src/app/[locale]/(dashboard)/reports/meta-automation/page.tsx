@@ -1,5 +1,5 @@
 import { getMetaAutomationAnalytics } from '../actions'
-import MetaAutomationDashboard from './MetaAutomationDashboard'
+import MetaAutomationDashboard from '@/components/reports/MetaAutomationDashboard'
 
 export const revalidate = 0 // always fetch fresh analytics
 
