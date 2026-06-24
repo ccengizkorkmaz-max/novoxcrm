@@ -16,7 +16,7 @@ export default async function LeadQualificationPage(props: {
         return null
     }
 
-    const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single()
+    const { data: profile } = await supabase.from('profiles').select('tenant_id, role').eq('id', user.id).single()
 
     const searchParams = await props.searchParams
     const page = typeof searchParams.page === 'string' ? parseInt(searchParams.page) : 1
@@ -257,6 +257,7 @@ export default async function LeadQualificationPage(props: {
                     availableUnits={units}
                     activeTab={activeTab}
                     profiles={tenantProfiles}
+                    userRole={profile?.role || 'sales'}
                 />
             </div>
         </div>

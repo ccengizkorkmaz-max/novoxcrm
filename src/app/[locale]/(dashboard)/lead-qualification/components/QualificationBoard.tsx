@@ -18,6 +18,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger, SheetClose } from '@/components/ui/sheet'
 import { Separator } from '@/components/ui/separator'
+import { LeadScoreBadge } from '@/components/customers/LeadScoreBadge'
 
 const getEkSoru = (notes?: string) => {
     if (!notes) return null
@@ -34,7 +35,7 @@ const STATUSES = [
     { id: 'qualified', label: 'Nitelikli', icon: Check, color: 'bg-green-100 text-green-700', border: 'border-green-200' }
 ]
 
-export default function QualificationBoard({ initialData, totalCount, currentPage = 1, pageSize = 100, statusCounts = {}, projects = [], availableUnits = [], activeTab = 'active', profiles = [] }: { initialData: any[], totalCount: number, currentPage?: number, pageSize?: number, statusCounts?: Record<string, number>, projects?: any[], availableUnits?: any[], activeTab?: string, profiles?: any[] }) {
+export default function QualificationBoard({ initialData, totalCount, currentPage = 1, pageSize = 100, statusCounts = {}, projects = [], availableUnits = [], activeTab = 'active', profiles = [], userRole = 'sales' }: { initialData: any[], totalCount: number, currentPage?: number, pageSize?: number, statusCounts?: Record<string, number>, projects?: any[], availableUnits?: any[], activeTab?: string, profiles?: any[], userRole?: string }) {
     const [qualifications, setQualifications] = useState(initialData)
     const [selectedQual, setSelectedQual] = useState<any>(null)
     const [viewMode, setViewMode] = useState<'kanban' | 'rapid' | 'table'>('table')
@@ -980,14 +981,13 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
                                                     </div>
                                                     <div className="flex gap-1">
                                                         {qual.interest_level && (
-                                                            <Badge variant="outline" className={`text-[9px] px-1 py-0 border-none font-semibold ${
-                                                                qual.interest_level === 'hot' ? 'bg-red-100 text-red-700' :
-                                                                qual.interest_level === 'warm' ? 'bg-amber-100 text-amber-700' :
-                                                                qual.interest_level === 'cold' ? 'bg-sky-100 text-sky-700' :
-                                                                qual.interest_level === 'call_requested' ? 'bg-emerald-100 text-emerald-700' : ''
-                                                            }`}>
-                                                                {qual.interest_level === 'hot' ? '🔥' : qual.interest_level === 'warm' ? '🌤️' : qual.interest_level === 'cold' ? '❄️' : qual.interest_level === 'call_requested' ? '📞' : ''}
-                                                            </Badge>
+                                                            <LeadScoreBadge
+                                                                customerId={qual.customer_id}
+                                                                score={qual.interest_level}
+                                                                source={qual.interest_level_source}
+                                                                history={qual.interest_level_history}
+                                                                userRole={userRole}
+                                                            />
                                                         )}
                                                         {qual.customers?.customer_number && (
                                                             <Badge variant="outline" className="text-[10px] px-1 py-0">{qual.customers.customer_number}</Badge>
@@ -1137,14 +1137,13 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
                                         <div className="font-bold text-sm text-slate-900 line-clamp-1">{qual.customers?.full_name}</div>
                                         <div className="flex gap-1">
                                             {qual.interest_level && (
-                                                <Badge variant="outline" className={`text-[9px] px-1 py-0 border-none font-semibold ${
-                                                    qual.interest_level === 'hot' ? 'bg-red-100 text-red-700' :
-                                                    qual.interest_level === 'warm' ? 'bg-amber-100 text-amber-700' :
-                                                    qual.interest_level === 'cold' ? 'bg-sky-100 text-sky-700' :
-                                                    qual.interest_level === 'call_requested' ? 'bg-emerald-100 text-emerald-700' : ''
-                                                }`}>
-                                                    {qual.interest_level === 'hot' ? '🔥' : qual.interest_level === 'warm' ? '🌤️' : qual.interest_level === 'cold' ? '❄️' : qual.interest_level === 'call_requested' ? '📞' : ''}
-                                                </Badge>
+                                                <LeadScoreBadge
+                                                    customerId={qual.customer_id}
+                                                    score={qual.interest_level}
+                                                    source={qual.interest_level_source}
+                                                    history={qual.interest_level_history}
+                                                    userRole={userRole}
+                                                />
                                             )}
                                             {STATUSES.find(s => s.id === qual.status) && (
                                                 <Badge variant="outline" className={`text-[10px] px-1.5 py-0 border-none ${STATUSES.find(s => s.id === qual.status)?.color}`}>
@@ -1446,17 +1445,13 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
                                         </td>
                                         <td className="px-3 py-1 text-xs">
                                             {qual.interest_level ? (
-                                                <Badge variant="outline" className={`text-[9px] px-1 py-0 border-none font-semibold ${
-                                                    qual.interest_level === 'hot' ? 'bg-red-100 text-red-700' :
-                                                    qual.interest_level === 'warm' ? 'bg-amber-100 text-amber-700' :
-                                                    qual.interest_level === 'cold' ? 'bg-sky-100 text-sky-700' :
-                                                    qual.interest_level === 'call_requested' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'
-                                                }`}>
-                                                    {qual.interest_level === 'hot' ? '🔥 Sıcak' :
-                                                     qual.interest_level === 'warm' ? '🌤️ Ilık' :
-                                                     qual.interest_level === 'cold' ? '❄️ Soğuk' :
-                                                     qual.interest_level === 'call_requested' ? '📞 Arama İstiyor' : qual.interest_level}
-                                                </Badge>
+                                                <LeadScoreBadge
+                                                    customerId={qual.customer_id}
+                                                    score={qual.interest_level}
+                                                    source={qual.interest_level_source}
+                                                    history={qual.interest_level_history}
+                                                    userRole={userRole}
+                                                />
                                             ) : <span className="text-slate-300">—</span>}
                                         </td>
                                         <td className="px-3 py-1 text-xs text-slate-600">

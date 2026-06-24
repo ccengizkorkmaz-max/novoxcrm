@@ -33,8 +33,10 @@ export async function login(formData: FormData) {
     })
 
     if (error) {
+        console.error('[LOGIN ERROR]', error.message, error.status, error.name)
         const locale = await getLocale()
-        redirect({ href: '/login?error=Could not authenticate user', locale })
+        const errorMessage = error.message || 'Could not authenticate user'
+        redirect({ href: `/login?error=${encodeURIComponent(errorMessage)}`, locale })
     }
 
     const locale = await getLocale()

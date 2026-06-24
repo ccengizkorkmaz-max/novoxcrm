@@ -15,7 +15,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog"
-import { createActivity, updateActivity, outcomeActivity } from '@/app/[locale]/(dashboard)/crm/activities/actions'
+import { createActivity, updateActivity, outcomeActivity, deleteActivity } from '@/app/[locale]/(dashboard)/crm/activities/actions'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
@@ -115,6 +115,22 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
     const [selectedCustomerId, setSelectedCustomerId] = useState(activity?.customer_id || defaultCustomerId || '')
     const [selectedProjectId, setSelectedProjectId] = useState(activity?.project_id || '')
     const [isProcessingVoice, setIsProcessingVoice] = useState(false)
+    const [isDeleting, setIsDeleting] = useState(false)
+
+    const handleDelete = async () => {
+        if (confirm('Bu aktiviteyi silmek istediğinize emin misiniz?')) {
+            setIsDeleting(true)
+            const result = await deleteActivity(activity.id)
+            setIsDeleting(false)
+            if (result?.error) {
+                toast.error(result.error)
+            } else {
+                toast.success('Aktivite silindi')
+                onOpenChange(false)
+                router.refresh()
+            }
+        }
+    }
 
     const isLeadMode = !!activity?.lead_id || !!defaultLeadId
     const leadName = activity?.lead_name || activity?.leads?.full_name || 'Müşteri Adayı'
@@ -192,8 +208,14 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
         if (mode === 'create') {
             toUTC('due_date')
             toUTC('reminder_at')
+            toUTC('next_action_date')
             result = await createActivity(formData)
-        } else if (mode === 'edit' && status !== 'Completed') {
+        } else if (mode === 'edit' && status === 'Completed') {
+            // When completing via edit mode, use outcomeActivity to ensure next action is created
+            toUTC('next_action_date')
+            formData.append('id', activity.id)
+            result = await outcomeActivity(formData)
+        } else if (mode === 'edit') {
             toUTC('due_date')
             toUTC('reminder_at')
             toUTC('next_action_date')
@@ -219,7 +241,7 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[600px] overflow-visible" key={open ? `activity-${activity?.customer_id || 'new'}` : 'closed'}>
+            <DialogContent className="sm:max-w-[600px] overflow-visible" key={open ? `activity-${activity?.id || activity?.customer_id || 'new'}` : 'closed'}>
                 <DialogHeader>
                     <div className="flex items-center justify-between pr-8">
                         <DialogTitle>
@@ -443,7 +465,12 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
 
                                 <div className="grid gap-2">
                                     <Label className="font-bold text-primary">{t('form.outcome')}</Label>
-                                    <select name="outcome" className="flex h-10 w-full rounded-md border-2 border-primary/20 bg-background px-3 py-2 text-sm focus:border-primary" required>
+                                    <select
+                                        name="outcome"
+                                        className="flex h-10 w-full rounded-md border-2 border-primary/20 bg-background px-3 py-2 text-sm focus:border-primary"
+                                        defaultValue={activity?.outcome || ''}
+                                        required
+                                    >
                                         <option value="">{t('form.select')}</option>
                                         <option value="Success">{t('form.outcomes.Success')}</option>
                                         <option value="Reached Interested">{t('form.outcomes.Reached Interested')}</option>
@@ -474,7 +501,11 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="grid gap-2">
                                             <Label>{t('form.type')}</Label>
-                                            <select name="next_action_type" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                                            <select
+                                                name="next_action_type"
+                                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                                defaultValue={activity?.next_action_type || ''}
+                                            >
                                                 <option value="">{t('form.none')}</option>
                                                 <option value="Call">{t('type.Call')}</option>
                                                 <option value="Meeting">{t('type.Meeting')}</option>
@@ -486,7 +517,14 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
                                         </div>
                                         <div className="grid gap-2">
                                             <Label>{t('form.date')}</Label>
-                                            <Input name="next_action_date" type="datetime-local" />
+                                            <Input
+                                                name="next_action_date"
+                                                type="datetime-local"
+                                                defaultValue={activity?.next_action_date
+                                                    ? new Date(new Date(activity.next_action_date).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)
+                                                    : ''
+                                                }
+                                            />
                                         </div>
                                     </div>
                                     <div className="grid gap-2 mt-3">
@@ -497,8 +535,18 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
                             </div>
                         )}
                     </div>
-                    <DialogFooter>
-                        <Button type="submit" className={cn(isCompleteMode && "bg-green-600 hover:bg-green-700 w-full")}>
+                    <DialogFooter className="flex items-center justify-between w-full sm:justify-between gap-2">
+                        {mode === 'edit' && (
+                            <Button
+                                type="button"
+                                variant="destructive"
+                                onClick={handleDelete}
+                                disabled={isDeleting}
+                            >
+                                {isDeleting ? 'Siliniyor...' : 'Sil'}
+                            </Button>
+                        )}
+                        <Button type="submit" className={cn(isCompleteMode && "bg-green-600 hover:bg-green-700 w-full", mode === 'edit' && "ml-auto")}>
                             {isCompleteMode ? t('form.completeAndSave') : t('form.save')}
                         </Button>
                     </DialogFooter>

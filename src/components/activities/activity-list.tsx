@@ -11,6 +11,9 @@ import { ActivityForm } from "./activity-form"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { useTranslations, useLocale } from "next-intl"
+import { useRouter } from 'next/navigation'
+import { cancelActivity } from "@/app/[locale]/(dashboard)/crm/activities/actions"
+import { toast } from "sonner"
 import { Link } from "@/i18n/routing"
 import { Card } from "@/components/ui/card"
 
@@ -201,7 +204,14 @@ function ActivityRow({ activity, customers, profiles, projects }: { activity: Ac
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-100/80 rounded-full transition-all"
-                        onClick={(e) => { e.stopPropagation(); setShowEdit(true); }}
+                        onClick={async (e) => {
+                            e.stopPropagation();
+                            if (confirm('Bu aktiviteyi iptal etmek istediğinize emin misiniz?')) {
+                                const result = await cancelActivity(activity.id);
+                                if (result?.error) toast.error(result.error);
+                                else { toast.success('Aktivite iptal edildi'); window.location.reload(); }
+                            }
+                        }}
                         title={t('status.Cancelled')}
                     >
                         <X className="h-5 w-5 stroke-[3px]" />

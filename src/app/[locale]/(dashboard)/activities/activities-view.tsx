@@ -164,7 +164,10 @@ export function ActivitiesView({ initialActivities, customers, profiles, project
         reminder_at: a.reminder_at,
         owner_id: a.owner_id,
         project_id: a.project_id,
-        projects: a.project_id ? { name: projectMap.get(a.project_id) || '' } : undefined
+        projects: a.project_id ? { name: projectMap.get(a.project_id) || '' } : undefined,
+        next_action_type: a.next_action_type,
+        next_action_date: a.next_action_date,
+        lead_id: a.lead_id,
     }))
 
     const toggleType = (id: string) => {

@@ -54,6 +54,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { CustomerView } from '@/components/customers/customer-view'
 import { getCustomerFullProfile } from '../actions'
 import { revertSaleToQualification } from '@/app/[locale]/(dashboard)/lead-qualification/actions'
+import { LeadScoreBadge } from '@/components/customers/LeadScoreBadge'
 
 
 import { useTranslations, useLocale } from 'next-intl'
@@ -82,7 +83,8 @@ export default function PipelineList({
     projects = [],
     tenantType = 'developer',
     leadOwnershipDays = 90,
-    isAdvanceMode = false
+    isAdvanceMode = false,
+    userRole = 'sales'
 }: {
     sales: any[],
     customers: any[],
@@ -94,7 +96,8 @@ export default function PipelineList({
     projects?: any[],
     tenantType?: string,
     leadOwnershipDays?: number,
-    isAdvanceMode?: boolean
+    isAdvanceMode?: boolean,
+    userRole?: string
 }) {
     const t = useTranslations('CRM')
     const locale = useLocale()
@@ -964,26 +967,17 @@ export default function PipelineList({
                                                     )
                                                 }
                                                 if (colId === 'lead_score') {
-                                                    const interestLevel = sale.customers?.lead_qualifications?.[0]?.interest_level
-                                                    const lqStatus = sale.customers?.lead_qualifications?.[0]?.status
-                                                    const getScoreBadge = (score: string | null | undefined) => {
-                                                        switch (score) {
-                                                            case 'hot': return { label: '🔥 Hot', cls: 'bg-red-100 text-red-700 border-red-200' }
-                                                            case 'warm': return { label: '🌡️ Warm', cls: 'bg-amber-100 text-amber-700 border-amber-200' }
-                                                            case 'cold': return { label: '❄️ Cold', cls: 'bg-blue-100 text-blue-700 border-blue-200' }
-                                                            case 'call_requested': return { label: '📞 Arama', cls: 'bg-purple-100 text-purple-700 border-purple-200' }
-                                                            case 'disqualified': return { label: '⛔ DQ', cls: 'bg-slate-100 text-slate-500 border-slate-200' }
-                                                            default: return null
-                                                        }
-                                                    }
-                                                    const badge = getScoreBadge(interestLevel)
-                                                    const showStar = lqStatus === 'contacted'
+                                                    const lq = sale.customers?.lead_qualifications?.[0]
                                                     return (
                                                         <TableCell key="lead_score" className={cellCls}>
-                                                            {badge ? (
-                                                                <span className={`inline-flex items-center gap-0.5 rounded-md border px-1.5 py-0.5 text-[10px] font-bold ${badge.cls}`}>
-                                                                    {badge.label}{showStar && ' ⭐'}
-                                                                </span>
+                                                            {lq ? (
+                                                                <LeadScoreBadge
+                                                                    customerId={sale.customers?.id}
+                                                                    score={lq.interest_level}
+                                                                    source={lq.interest_level_source}
+                                                                    history={lq.interest_level_history}
+                                                                    userRole={userRole}
+                                                                />
                                                             ) : (
                                                                 <span className="text-muted-foreground text-[10px]">—</span>
                                                             )}

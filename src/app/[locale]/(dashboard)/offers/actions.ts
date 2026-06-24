@@ -59,7 +59,6 @@ export async function createOffer(formData: FormData) {
             user_id: user.id,
             customer_id,
             unit_id,
-            sale_id: sale?.id || null,
             price: parseFloat(price),
             currency,
             status,
@@ -73,6 +72,23 @@ export async function createOffer(formData: FormData) {
     if (error) {
         console.error('Create Offer Error:', error)
         return { error: 'Failed to create offer' }
+    }
+
+    // Create initial negotiation record so the first offer appears in history
+    try {
+        await supabase.from('offer_negotiations').insert({
+            offer_id: newOffer.id,
+            proposed_price: parseFloat(price),
+            proposed_currency: currency,
+            proposed_valid_until: valid_until || null,
+            proposed_payment_plan: payment_plan,
+            proposed_by: user.id,
+            source: 'Sales',
+            status: 'Pending',
+            notes: notes || 'İlk Teklif'
+        })
+    } catch (negErr) {
+        console.error('Failed to create initial negotiation record:', negErr)
     }
 
     if (sale) {
@@ -177,14 +193,22 @@ export async function markOfferAsLost(offerId: string, lostReason: string) {
     const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user?.id).single()
 
     try {
-        // 1. Get offer details (to get sale_id and unit_id)
-        const { data: offer } = await supabase
+        // 1. Get offer details
+        const { data: offer, error: offerQueryError } = await supabase
             .from('offers')
-            .select('sale_id, unit_id, customer_id')
+            .select('unit_id, customer_id')
             .eq('id', offerId)
-            .single()
+            .maybeSingle()
 
-        if (!offer) throw new Error('Teklif bulunamadı')
+        if (offerQueryError) {
+            console.error('[markOfferAsLost] Offer query error:', offerQueryError, 'offerId:', offerId)
+            throw new Error('Teklif sorgulanırken hata oluştu: ' + offerQueryError.message)
+        }
+
+        if (!offer) {
+            console.error('[markOfferAsLost] Offer not found for id:', offerId)
+            throw new Error('Teklif bulunamadı (ID: ' + offerId + ')')
+        }
 
         // 2. Update offer status to 'Rejected'
         const { error: offerError } = await supabase
@@ -194,17 +218,33 @@ export async function markOfferAsLost(offerId: string, lostReason: string) {
 
         if (offerError) throw offerError
 
-        // 3. Update the related sale to 'Lost' if sale_id exists
-        if (offer.sale_id) {
-            const { error: saleError } = await supabase
+        // 3. Find and update the related sale to 'Lost' via customer_id + unit_id
+        if (offer.customer_id) {
+            let saleQuery = supabase
                 .from('sales')
-                .update({ 
-                    status: 'Lost', 
-                    lost_reason: lostReason || null 
-                })
-                .eq('id', offer.sale_id)
+                .select('id')
+                .eq('customer_id', offer.customer_id)
+                .not('status', 'in', '("Lost","Completed","Cancelled")')
+                .order('created_at', { ascending: false })
+                .limit(1)
 
-            if (saleError) throw saleError
+            if (offer.unit_id) {
+                saleQuery = saleQuery.eq('unit_id', offer.unit_id)
+            }
+
+            const { data: sale } = await saleQuery.maybeSingle()
+
+            if (sale) {
+                const { error: saleError } = await supabase
+                    .from('sales')
+                    .update({ 
+                        status: 'Lost', 
+                        lost_reason: lostReason || null 
+                    })
+                    .eq('id', sale.id)
+
+                if (saleError) console.error('Failed to update sale to Lost:', saleError)
+            }
         }
 
         // 4. Update the unit status to 'For Sale' if unit_id exists

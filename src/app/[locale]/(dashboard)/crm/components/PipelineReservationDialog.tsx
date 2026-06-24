@@ -60,7 +60,9 @@ export default function PipelineReservationDialog({
 
     const defaultDate = new Date()
     defaultDate.setDate(defaultDate.getDate() + 3)
-    const [expiryDate, setExpiryDate] = useState(defaultDate.toISOString().split('T')[0])
+    const [expiryDate, setExpiryDate] = useState(
+        initialExpiryDate ? initialExpiryDate.split('T')[0] : defaultDate.toISOString().split('T')[0]
+    )
     const [depositAmount, setDepositAmount] = useState(0)
 
     // Pre-fill project if unit is already matched
@@ -109,7 +111,9 @@ export default function PipelineReservationDialog({
             try {
                 const { createClient } = await import('@/lib/supabase/client')
                 const supabase = createClient()
-                const { data, error } = await supabase
+                
+                // Fetch available units for the project
+                const { data: availableUnits, error } = await supabase
                     .from('units')
                     .select('id, unit_number')
                     .eq('project_id', selectedProjectId)
@@ -117,7 +121,24 @@ export default function PipelineReservationDialog({
                     .order('unit_number')
                 
                 if (error) throw error
-                setUnits(data || [])
+                
+                let allUnits = availableUnits || []
+                
+                // If the current unit exists but isn't in the available list (e.g. it's now Reserved),
+                // fetch it separately and include it so the Combobox can display it
+                if (currentUnitId && !allUnits.find(u => u.id === currentUnitId)) {
+                    const { data: currentUnit } = await supabase
+                        .from('units')
+                        .select('id, unit_number, project_id')
+                        .eq('id', currentUnitId)
+                        .single()
+                    
+                    if (currentUnit && currentUnit.project_id === selectedProjectId) {
+                        allUnits = [currentUnit, ...allUnits]
+                    }
+                }
+                
+                setUnits(allUnits)
             } catch (err) {
                 console.error('Error fetching units for project:', err)
                 toast.error('Birimler yüklenirken bir hata oluştu.')
@@ -127,7 +148,7 @@ export default function PipelineReservationDialog({
         }
 
         loadUnits()
-    }, [selectedProjectId, isOpen])
+    }, [selectedProjectId, isOpen, currentUnitId])
 
     // Filter units based on selected project (loaded dynamically)
     const filteredUnits = useMemo(() => {
@@ -213,6 +234,7 @@ export default function PipelineReservationDialog({
                             placeholder={t('projectPlaceholder', { defaultValue: 'Proje Seçiniz...' })}
                             searchPlaceholder={t('projectSearch', { defaultValue: 'Proje Ara...' })}
                             emptyText={t('projectEmpty', { defaultValue: 'Proje bulunamadı.' })}
+                            disabled={isReserved}
                         />
                     </div>
 
@@ -231,7 +253,7 @@ export default function PipelineReservationDialog({
                             }
                             searchPlaceholder={t('unitSearch', { defaultValue: 'Ünite Ara...' })}
                             emptyText={isLoadingUnits ? "Yükleniyor..." : t('unitEmpty', { defaultValue: 'Aradığınız ünite bulunamadı.' })}
-                            disabled={!selectedProjectId || isLoadingUnits}
+                            disabled={isReserved || !selectedProjectId || isLoadingUnits}
                         />
                     </div>
 

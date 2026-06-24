@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { FileText, Printer, FileSignature, ReceiptText, Calculator, Trash2, Loader2, XCircle } from 'lucide-react'
@@ -40,12 +40,24 @@ interface Offer {
 
 import { useTranslations } from 'next-intl'
 
+const ACTIVE_STATUSES = ['Draft', 'Sent', 'Accepted', 'Pending', 'Teklif - Kapora Bekleniyor']
+const COMPLETED_STATUSES = ['Contract', 'Rejected', 'Expired', 'Closed']
+
 export default function OfferList({ offers, userRole }: { offers: Offer[], userRole?: string }) {
     const t = useTranslations('Offers')
     const router = useRouter()
     const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null)
     const [isPlanOpen, setIsPlanOpen] = useState(false)
     const [startingContractId, setStartingContractId] = useState<string | null>(null)
+    const [activeTab, setActiveTab] = useState<'active' | 'completed'>('active')
+
+    const filteredOffers = useMemo(() => {
+        const targetStatuses = activeTab === 'active' ? ACTIVE_STATUSES : COMPLETED_STATUSES
+        return offers.filter(o => targetStatuses.includes(o.status))
+    }, [offers, activeTab])
+
+    const activeCount = useMemo(() => offers.filter(o => ACTIVE_STATUSES.includes(o.status)).length, [offers])
+    const completedCount = useMemo(() => offers.filter(o => COMPLETED_STATUSES.includes(o.status)).length, [offers])
 
     const [lostDialogOpen, setLostDialogOpen] = useState(false)
     const [lostOfferId, setLostOfferId] = useState<string | null>(null)
@@ -68,11 +80,13 @@ export default function OfferList({ offers, userRole }: { offers: Offer[], userR
                 toast.error(res.error)
             } else {
                 toast.success('Teklif kaybedildi olarak işaretlendi.')
-                setLostDialogOpen(false)
-                router.refresh()
             }
+            setLostDialogOpen(false)
+            router.refresh()
         } catch (error: any) {
+            console.error('Submit lost offer error:', error)
             toast.error(error.message || 'Hata oluştu')
+            setLostDialogOpen(false)
         } finally {
             setLostSaving(false)
         }
@@ -133,6 +147,40 @@ export default function OfferList({ offers, userRole }: { offers: Offer[], userR
 
     return (
         <div className="space-y-4">
+            {/* Tab Buttons */}
+            <div className="flex gap-2">
+                <button
+                    onClick={() => setActiveTab('active')}
+                    className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+                        activeTab === 'active'
+                            ? 'bg-blue-600 text-white shadow-lg shadow-blue-200'
+                            : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                    }`}
+                >
+                    Aktif Teklifler
+                    <span className={`ml-2 px-1.5 py-0.5 rounded-full text-[10px] font-black ${
+                        activeTab === 'active' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-600'
+                    }`}>
+                        {activeCount}
+                    </span>
+                </button>
+                <button
+                    onClick={() => setActiveTab('completed')}
+                    className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+                        activeTab === 'completed'
+                            ? 'bg-slate-700 text-white shadow-lg shadow-slate-300'
+                            : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                    }`}
+                >
+                    Tamamlanan
+                    <span className={`ml-2 px-1.5 py-0.5 rounded-full text-[10px] font-black ${
+                        activeTab === 'completed' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-600'
+                    }`}>
+                        {completedCount}
+                    </span>
+                </button>
+            </div>
+
             <div className="rounded-md border bg-card">
                 <Table>
                     <TableHeader>
@@ -147,8 +195,8 @@ export default function OfferList({ offers, userRole }: { offers: Offer[], userR
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {offers && offers.length > 0 ? (
-                            offers.map((offer) => {
+                        {filteredOffers && filteredOffers.length > 0 ? (
+                            filteredOffers.map((offer) => {
                                 const latestNeg = getLatestNegotiation(offer)
                                 const displayPrice = latestNeg ? latestNeg.proposed_price : offer.price
                                 const displayDate = latestNeg ? latestNeg.proposed_valid_until : offer.valid_until
@@ -179,19 +227,23 @@ export default function OfferList({ offers, userRole }: { offers: Offer[], userR
                                             <span className={`px-2 py-1 rounded text-xs font-semibold ${offer.status === 'Sent' ? 'bg-blue-100 text-blue-800' :
                                                 offer.status === 'Accepted' ? 'bg-green-100 text-green-800' :
                                                     offer.status === 'Rejected' ? 'bg-red-100 text-red-800' :
-                                                        offer.status.includes('Kapora') ? 'bg-orange-100 text-orange-800' :
-                                                            offer.status === 'Expired' ? 'bg-slate-100 text-slate-500' :
-                                                                'bg-gray-100 text-gray-800'
+                                                        offer.status === 'Contract' ? 'bg-emerald-100 text-emerald-800' :
+                                                            offer.status === 'Closed' ? 'bg-slate-200 text-slate-700' :
+                                                                offer.status.includes('Kapora') ? 'bg-orange-100 text-orange-800' :
+                                                                    offer.status === 'Expired' ? 'bg-slate-100 text-slate-500' :
+                                                                        'bg-gray-100 text-gray-800'
                                                 }`}>
                                                 {offer.status === 'Sent' ? (
                                                     latestNeg?.source === 'Customer' ? t('status.received') : t('status.sent')
                                                 ) :
                                                     offer.status === 'Accepted' ? t('status.accepted') :
                                                         offer.status === 'Draft' ? t('status.draft') :
-                                                            offer.status === 'Teklif - Kapora Bekleniyor' ? t('status.depositPending') :
-                                                                offer.status === 'Rejected' ? t('status.rejected') :
-                                                                    offer.status === 'Expired' ? t('status.expired') :
-                                                                        offer.status === 'Pending' ? t('status.pending') : offer.status}
+                                                            offer.status === 'Contract' ? 'Sözleşmede' :
+                                                                offer.status === 'Closed' ? 'Kapandı' :
+                                                                    offer.status === 'Teklif - Kapora Bekleniyor' ? t('status.depositPending') :
+                                                                        offer.status === 'Rejected' ? t('status.rejected') :
+                                                                            offer.status === 'Expired' ? t('status.expired') :
+                                                                                offer.status === 'Pending' ? t('status.pending') : offer.status}
                                             </span>
                                         </TableCell>
                                         <TableCell>
@@ -212,50 +264,51 @@ export default function OfferList({ offers, userRole }: { offers: Offer[], userR
                                                 <Button variant="ghost" size="icon" onClick={() => openPlan(offer)} title={t('actions.viewPlan')}>
                                                     <ReceiptText className="h-4 w-4 text-blue-600" />
                                                 </Button>
-                                                <NegotiationDialog
-                                                    offerId={offer.id}
-                                                    currentPrice={offer.price}
-                                                    currentCurrency={offer.currency}
-                                                    customerName={offer.customers?.full_name || ''}
-                                                    unitInfo={`${offer.units?.projects?.name || ''} - ${offer.units?.unit_number || ''}`}
-                                                    initialPaymentPlan={offer.payment_plan}
-                                                    offerStatus={offer.status}
-                                                />
-                                                {offer.status === 'Accepted' && (
-                                                    <Button
-                                                        variant="default"
-                                                        size="sm"
-                                                        className="bg-green-600 hover:bg-green-700 text-white"
-                                                        onClick={() => handleStartContract(offer)}
-                                                        disabled={startingContractId === offer.id}
-                                                    >
-                                                        {startingContractId === offer.id ? (
-                                                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                                        ) : (
-                                                            <FileSignature className="h-4 w-4 mr-2" />
+                                                {activeTab === 'active' && (
+                                                    <>
+                                                        <NegotiationDialog
+                                                            offerId={offer.id}
+                                                            currentPrice={offer.price}
+                                                            currentCurrency={offer.currency}
+                                                            customerName={offer.customers?.full_name || ''}
+                                                            unitInfo={`${offer.units?.projects?.name || ''} - ${offer.units?.unit_number || ''}`}
+                                                            initialPaymentPlan={offer.payment_plan}
+                                                            offerStatus={offer.status}
+                                                        />
+                                                        {offer.status === 'Accepted' && (
+                                                            <Button
+                                                                variant="default"
+                                                                size="sm"
+                                                                className="bg-green-600 hover:bg-green-700 text-white"
+                                                                onClick={() => handleStartContract(offer)}
+                                                                disabled={startingContractId === offer.id}
+                                                            >
+                                                                {startingContractId === offer.id ? (
+                                                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                                ) : (
+                                                                    <FileSignature className="h-4 w-4 mr-2" />
+                                                                )}
+                                                                Sözleşme
+                                                            </Button>
                                                         )}
-                                                        {t('actions.startContract')}
-                                                    </Button>
-                                                )}
-                                                {!['Rejected', 'Closed', 'Contract', 'Expired'].includes(offer.status) && (
-                                                    <Button 
-                                                        variant="outline" 
-                                                        size="sm" 
-                                                        onClick={() => openLostDialog(offer.id)} 
-                                                        className="gap-2 h-9 px-4 rounded-xl border-red-100 text-red-600 font-bold hover:bg-red-50 transition-all select-none"
-                                                    >
-                                                        <XCircle className="h-4 w-4" />
-                                                        <span>Kaybedildi</span>
-                                                    </Button>
+                                                        {!['Rejected', 'Closed', 'Contract', 'Expired'].includes(offer.status) && (
+                                                            <Button 
+                                                                variant="outline" 
+                                                                size="sm" 
+                                                                onClick={() => openLostDialog(offer.id)} 
+                                                                className="gap-2 h-9 px-4 rounded-xl bg-red-50 border-red-200 text-red-700 font-bold hover:bg-red-100 transition-all select-none"
+                                                            >
+                                                                <XCircle className="h-4 w-4" />
+                                                                <span>Kaybedildi</span>
+                                                            </Button>
+                                                        )}
+                                                    </>
                                                 )}
                                                 {(userRole === 'admin' || userRole === 'owner') && (
                                                     <Button variant="ghost" size="icon" onClick={() => handleDelete(offer.id)} title="Sil" className="hover:bg-red-50">
                                                         <Trash2 className="h-4 w-4 text-red-600" />
                                                     </Button>
                                                 )}
-                                                <Button variant="ghost" size="icon" onClick={() => handlePrint(offer.id)} title={t('actions.print')} className="hidden">
-                                                    <Printer className="h-4 w-4" />
-                                                </Button>
                                             </div>
                                         </TableCell>
 

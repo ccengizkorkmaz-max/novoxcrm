@@ -25,6 +25,7 @@ import {
     bulkCreateLeads, getLeadActivities, addLeadActivityNote 
 } from './lead-actions'
 import { AiSignalBadge } from "@/components/ui/ai-signal-badge"
+import { LeadScoreBadge } from "@/components/customers/LeadScoreBadge"
 import ColumnVisibilityPicker from '@/components/ui/column-visibility-picker'
 import { toast } from 'sonner'
 import dynamic from 'next/dynamic'
@@ -54,6 +55,9 @@ interface Lead {
     projects?: { name: string } | null
     company_name?: string | null
     company_phone?: string | null
+    lead_score_ai?: string | null
+    lead_score_source?: string | null
+    lead_score_history?: any[] | null
 }
 
 interface LeadsPageClientProps {
@@ -1233,6 +1237,18 @@ export default function LeadsPageClient({ leads, teamMembers, projects, userRole
                             <Label>Notlar</Label>
                             <Textarea value={editForm.notes} onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))} rows={3} />
                         </div>
+                        {editLead && (
+                            <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-900/50 p-3 rounded-lg border border-slate-100 dark:border-slate-800 mt-2">
+                                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Lead Skoru</span>
+                                <LeadScoreBadge
+                                    leadId={editLead.id}
+                                    score={editLead.lead_score || undefined}
+                                    source={editLead.lead_score_source || undefined}
+                                    history={editLead.lead_score_history || undefined}
+                                    userRole={userRole}
+                                />
+                            </div>
+                        )}
                     </div>
 
                     <DialogFooter>

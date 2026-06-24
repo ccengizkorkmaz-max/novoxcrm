@@ -38,19 +38,8 @@ export function ActivityTimeline({ activities, customer, profiles = [], projects
 
     // Map to Activity type safely
     const mappedActivities: Activity[] = sortedActivities.map(a => ({
-        id: a.id,
-        type: a.type,
-        topic: a.topic,
-        summary: a.summary,
-        customer_id: a.customer_id,
+        ...a,
         customers: a.customers || { full_name: customer.full_name },
-        due_date: a.due_date,
-        status: a.status,
-        outcome: a.outcome,
-        notes: a.notes,
-        description: a.description,
-        previous_activity_id: a.previous_activity_id,
-        call_recording_url: a.call_recording_url
     }))
 
     // Slice

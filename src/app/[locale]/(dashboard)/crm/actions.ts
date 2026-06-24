@@ -1976,20 +1976,42 @@ export async function updateSaleToReservation(saleId: string, unitId: string, ex
         revalidatePath('/[locale]/(dashboard)/opportunities', 'page')
     }
 
-    // 6. Create Offer record for document tracking
-    const { error: offerError } = await supabase.from('offers').insert({
-        tenant_id: profile.tenant_id,
-        customer_id: (await supabase.from('sales').select('customer_id').eq('id', saleId).single()).data?.customer_id,
-        unit_id: unitId,
-        user_id: user.id,
-        price: unit?.price || 0,
-        currency: unit?.currency || 'TRY',
-        status: 'Sent',
-        valid_until: expiryDate,
-        created_at: new Date().toISOString()
-    })
+    // 6. Create or Update Offer record for document tracking
+    // Check if an offer already exists for this sale's customer + unit combo
+    const saleCustomerId = (await supabase.from('sales').select('customer_id').eq('id', saleId).single()).data?.customer_id
+    
+    const { data: existingOffer } = await supabase
+        .from('offers')
+        .select('id')
+        .eq('customer_id', saleCustomerId)
+        .eq('unit_id', unitId)
+        .in('status', ['Sent', 'Draft', 'Pending'])
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single()
 
-    if (offerError) console.error('Create Offer Error (Reservation):', offerError)
+    if (existingOffer) {
+        // Update existing offer's expiry date
+        const { error: offerError } = await supabase
+            .from('offers')
+            .update({ valid_until: expiryDate })
+            .eq('id', existingOffer.id)
+        if (offerError) console.error('Update Offer Error (Reservation):', offerError)
+    } else {
+        // Create new offer only if none exists
+        const { error: offerError } = await supabase.from('offers').insert({
+            tenant_id: profile.tenant_id,
+            customer_id: saleCustomerId,
+            unit_id: unitId,
+            user_id: user.id,
+            price: unit?.price || 0,
+            currency: unit?.currency || 'TRY',
+            status: 'Sent',
+            valid_until: expiryDate,
+            created_at: new Date().toISOString()
+        })
+        if (offerError) console.error('Create Offer Error (Reservation):', offerError)
+    }
 
     // Notification: Reservation created
     const { data: reservationCustomer } = await supabase

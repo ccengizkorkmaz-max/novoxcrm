@@ -52,7 +52,7 @@ export default async function ActivitiesPage(props: {
         supabase
             .from('activities')
             .select('*, customers(full_name), owner:profiles!activities_owner_id_fkey(full_name)')
-            .in('type', ['Call', 'Meeting', 'Task', 'OfficeMeeting', 'OnlineMeeting', 'Site Visit'])
+            .in('type', ['Call', 'Meeting', 'Task', 'OfficeMeeting', 'OnlineMeeting', 'Site Visit', 'Whatsapp', 'Email'])
             .order('created_at', { ascending: false })
             .limit(500)
             .then(r => {

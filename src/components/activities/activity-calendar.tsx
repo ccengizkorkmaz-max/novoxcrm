@@ -17,7 +17,7 @@ import {
     isEqual
 } from 'date-fns'
 import { tr, enUS } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight, MoreHorizontal, Pencil, CheckCircle2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, MoreHorizontal, Pencil, CheckCircle2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
     DropdownMenu,
@@ -27,7 +27,10 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { cn } from '@/lib/utils'
 import { useLocale } from 'next-intl'
+import { useRouter } from 'next/navigation'
 import { ActivityForm } from './activity-form'
+import { cancelActivity, deleteActivity } from '@/app/[locale]/(dashboard)/crm/activities/actions'
+import { toast } from 'sonner'
 
 interface ActivityCalendarProps {
     activities: any[]
@@ -38,6 +41,7 @@ interface ActivityCalendarProps {
 
 export function ActivityCalendar({ activities, customers, profiles, projects }: ActivityCalendarProps) {
     const locale = useLocale()
+    const router = useRouter()
     const dateLocale = locale === 'tr' ? tr : enUS
     const [currentMonth, setCurrentMonth] = useState(new Date())
     const [selectedActivity, setSelectedActivity] = useState<any>(null)
@@ -172,6 +176,28 @@ export function ActivityCalendar({ activities, customers, profiles, projects }: 
                                             }}>
                                                 <CheckCircle2 className="h-3 w-3 mr-2 text-green-600" />
                                                 Tamamla
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem onClick={async (e) => {
+                                                e.stopPropagation();
+                                                if (confirm('Bu aktiviteyi iptal etmek istediğinize emin misiniz?')) {
+                                                    const result = await cancelActivity(activity.id);
+                                                    if (result?.error) toast.error(result.error);
+                                                    else { toast.success('Aktivite iptal edildi'); router.refresh(); }
+                                                }
+                                            }}>
+                                                <X className="h-3 w-3 mr-2 text-red-600" />
+                                                İptal Et
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem className="text-red-600" onClick={async (e) => {
+                                                e.stopPropagation();
+                                                if (confirm('Bu aktiviteyi kalıcı olarak silmek istediğinize emin misiniz?')) {
+                                                    const result = await deleteActivity(activity.id);
+                                                    if (result?.error) toast.error(result.error);
+                                                    else { toast.success('Aktivite silindi'); router.refresh(); }
+                                                }
+                                            }}>
+                                                <X className="h-3 w-3 mr-2" />
+                                                Sil
                                             </DropdownMenuItem>
                                         </DropdownMenuContent>
                                     </DropdownMenu>

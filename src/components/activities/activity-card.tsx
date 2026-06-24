@@ -21,6 +21,9 @@ import {
 import { ActivityForm } from './activity-form'
 import { useState } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
+import { useRouter } from 'next/navigation'
+import { cancelActivity, deleteActivity } from '@/app/[locale]/(dashboard)/crm/activities/actions'
+import { toast } from 'sonner'
 import { cn } from "@/lib/utils"
 import { MiniAudioPlayer } from "@/components/ui/mini-audio-player"
 
@@ -44,6 +47,10 @@ export interface Activity {
     owner_id?: string
     previous_activity_id?: string
     call_recording_url?: string
+    next_action_type?: string
+    next_action_date?: string
+    lead_id?: string
+    leads?: { full_name: string }
 }
 
 interface ActivityCardProps {
@@ -92,6 +99,7 @@ function outcomeLabel(outcome: string): string {
 export function ActivityCard({ activity, customers, profiles, projects, onComplete }: ActivityCardProps) {
     const t = useTranslations('Activities')
     const locale = useLocale()
+    const router = useRouter()
     const [showEdit, setShowEdit] = useState(false)
     const [showComplete, setShowComplete] = useState(false)
     const [showDetail, setShowDetail] = useState(false)
@@ -177,6 +185,26 @@ export function ActivityCard({ activity, customers, profiles, projects, onComple
                                     </DropdownMenuItem>
                                     <DropdownMenuItem onSelect={(e) => { e.stopPropagation(); setShowEdit(true); }}>
                                         {t('actions.edit')}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onSelect={async (e) => {
+                                        e.stopPropagation();
+                                        if (confirm('Bu aktiviteyi iptal etmek istediğinize emin misiniz?')) {
+                                            const result = await cancelActivity(activity.id);
+                                            if (result?.error) toast.error(result.error);
+                                            else { toast.success('Aktivite iptal edildi'); router.refresh(); }
+                                        }
+                                    }}>
+                                        İptal Et
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem className="text-red-600 focus:text-red-700" onSelect={async (e) => {
+                                        e.stopPropagation();
+                                        if (confirm('Bu aktiviteyi kalıcı olarak silmek istediğinize emin misiniz?')) {
+                                            const result = await deleteActivity(activity.id);
+                                            if (result?.error) toast.error(result.error);
+                                            else { toast.success('Aktivite silindi'); router.refresh(); }
+                                        }
+                                    }}>
+                                        Sil
                                     </DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
