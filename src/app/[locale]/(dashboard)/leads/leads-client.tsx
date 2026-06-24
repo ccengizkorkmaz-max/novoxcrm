@@ -22,7 +22,7 @@ import { formatDistanceToNow } from 'date-fns'
 import { tr } from 'date-fns/locale'
 import { 
     updateLead, convertLeadToCustomer, deleteLead,
-    createLead, bulkCreateLeads, getLeadActivities, addLeadActivityNote 
+    bulkCreateLeads, getLeadActivities, addLeadActivityNote 
 } from './lead-actions'
 import { AiSignalBadge } from "@/components/ui/ai-signal-badge"
 import ColumnVisibilityPicker from '@/components/ui/column-visibility-picker'
@@ -30,6 +30,7 @@ import { toast } from 'sonner'
 import dynamic from 'next/dynamic'
 import * as XLSX from 'xlsx'
 import { ActivityForm } from '@/components/activities/activity-form'
+import { Link } from '@/i18n/routing'
 
 const AiCallDialog = dynamic(() => import('../crm/components/AiCallDialog'), { ssr: false })
 
@@ -120,19 +121,6 @@ export default function LeadsPageClient({ leads, teamMembers, projects, userRole
     const [activitiesLoading, setActivitiesLoading] = useState(false)
     const [newNoteText, setNewNoteText] = useState('')
 
-    // Add dialog
-    const [addOpen, setAddOpen] = useState(false)
-    const [addForm, setAddForm] = useState({
-        full_name: '',
-        phone: '',
-        email: '',
-        project_id: '',
-        source: 'manual',
-        assigned_to: '',
-        notes: '',
-        company_name: '',
-        company_phone: ''
-    })
 
     // Excel Import Wizard States
     const [importWizardOpen, setImportWizardOpen] = useState(false)
@@ -420,40 +408,6 @@ export default function LeadsPageClient({ leads, teamMembers, projects, userRole
         })
     }
 
-    const handleSaveAdd = () => {
-        if (!addForm.full_name.trim()) return
-        startTransition(async () => {
-            const res = await createLead({
-                full_name: addForm.full_name,
-                phone: addForm.phone || null,
-                email: addForm.email || null,
-                status: 'new',
-                source: addForm.source || 'manual',
-                project_id: addForm.project_id || null,
-                assigned_to: addForm.assigned_to || null,
-                notes: addForm.notes || null,
-                company_name: addForm.company_name || null,
-                company_phone: addForm.company_phone || null
-            })
-            if (res.success) {
-                toast.success('Müşteri adayı başarıyla eklendi.')
-                setAddOpen(false)
-                setAddForm({ 
-                    full_name: '', 
-                    phone: '', 
-                    email: '', 
-                    project_id: '', 
-                    source: 'manual', 
-                    assigned_to: '', 
-                    notes: '',
-                    company_name: '',
-                    company_phone: ''
-                })
-            } else {
-                toast.error(res.error || 'Aday eklenemedi.')
-            }
-        })
-    }
 
     const handleImportExcel = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
@@ -650,11 +604,13 @@ export default function LeadsPageClient({ leads, teamMembers, projects, userRole
 
                     <Button
                         size="sm"
-                        onClick={() => setAddOpen(true)}
                         className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm text-xs font-semibold"
+                        asChild
                     >
-                        <Plus className="w-4 h-4 mr-1.5" />
-                        Müşteri Adayı Ekle
+                        <Link href="/leads/new">
+                            <Plus className="w-4 h-4 mr-1.5" />
+                            Müşteri Adayı Ekle
+                        </Link>
                     </Button>
                 </div>
             </div>
