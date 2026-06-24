@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { NextResponse } from 'next/server'
 import { createNotification } from '@/lib/notifications/create'
 import { fetchUnreadEmails } from '@/lib/email/fetcher'
+import { sendSystemEmail } from '@/lib/email/mailer'
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
@@ -24,6 +25,7 @@ export async function GET(request: Request) {
         approachingPapers: 0,
         staleLeads: 0,
         newEmails: 0,
+        activityReminders: 0,
         errors: [] as string[]
     }
 
@@ -332,6 +334,103 @@ export async function GET(request: Request) {
                 } catch (e: any) {
                     console.error(`Email fetch error for ${acc.email_address}:`, e.message)
                     results.errors.push(`Email (${acc.email_address}): ${e.message}`)
+                }
+            }
+
+            // 7. Activity Reminders
+            const { data: dueActivities } = await supabase
+                .from('activities')
+                .select('id, topic, summary, type, reminder_at, owner_id, user_id, description, status')
+                .eq('tenant_id', tenantId)
+                .eq('status', 'Planned')
+                .eq('reminder_sent', false)
+                .lte('reminder_at', new Date().toISOString())
+
+            for (const activity of dueActivities || []) {
+                const activityTitle = activity.summary || activity.topic || 'Aktivite'
+                try {
+                    // Update reminder_sent to true first (to avoid double processing if something crashes)
+                    const { error: updateErr } = await supabase
+                        .from('activities')
+                        .update({ reminder_sent: true })
+                        .eq('id', activity.id)
+
+                    if (updateErr) {
+                        console.error('Failed to update activity reminder_sent:', updateErr)
+                        continue
+                    }
+
+                    // Get owner or creator profile details
+                    const userId = activity.owner_id || activity.user_id
+                    let ownerEmail = ''
+                    let ownerName = ''
+
+                    if (userId) {
+                        const { data: profile } = await supabase
+                            .from('profiles')
+                            .select('email, full_name')
+                            .eq('id', userId)
+                            .single()
+                        if (profile) {
+                            ownerEmail = profile.email || ''
+                            ownerName = profile.full_name || ''
+                        }
+                    }
+
+                    // 1. Create Internal Notification
+                    await createNotification({
+                        tenant_id: tenantId,
+                        user_id: userId,
+                        type: 'Warning',
+                        category: 'CRM',
+                        title: '⏰ Aktivite Hatırlatıcı',
+                        message: `Hatırlatma: "${activityTitle}" aktivitesi zamanı geldi.`,
+                        link: '/activities'
+                    })
+
+                    // 2. Send Email Notification
+                    if (ownerEmail) {
+                        await sendSystemEmail({
+                            tenantId,
+                            to: ownerEmail,
+                            subject: `⏰ Aktivite Hatırlatıcı: ${activityTitle}`,
+                            fromName: 'Novo CRM Hatırlatıcı',
+                            html: `
+                                <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px;">
+                                    <h2 style="color: #1e3a8a; margin-top: 0;">Aktivite Hatırlatıcı ⏰</h2>
+                                    <p>Merhaba ${ownerName || 'Kullanıcı'},</p>
+                                    <p>Planlanmış olan aşağıdaki aktivitenizin hatırlatma zamanı gelmiştir:</p>
+                                    <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+                                        <tr>
+                                            <td style="padding: 8px 0; font-weight: bold; width: 120px;">Aktivite:</td>
+                                            <td style="padding: 8px 0;">${activityTitle}</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding: 8px 0; font-weight: bold;">Tür:</td>
+                                            <td style="padding: 8px 0;">${activity.type || 'Belirtilmemiş'}</td>
+                                        </tr>
+                                        ${activity.description ? `
+                                        <tr>
+                                            <td style="padding: 8px 0; font-weight: bold; vertical-align: top;">Açıklama:</td>
+                                            <td style="padding: 8px 0; white-space: pre-wrap;">${activity.description}</td>
+                                        </tr>
+                                        ` : ''}
+                                    </table>
+                                    <div style="margin-top: 30px; text-align: center;">
+                                        <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5050'}/activities" 
+                                           style="background-color: #2563eb; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
+                                            Aktiviteyi Görüntüle
+                                        </a>
+                                    </div>
+                                </div>
+                            `
+                        })
+                    }
+
+                    results.activityReminders++
+                } catch (e: any) {
+                    console.error(`Error processing reminder for activity ${activity.id}:`, e.message)
+                    results.errors.push(`Activity Reminder (${activityTitle}): ${e.message}`)
                 }
             }
         }
