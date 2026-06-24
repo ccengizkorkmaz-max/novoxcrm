@@ -123,6 +123,27 @@ export default function OpportunitiesPageClient({ opportunities, pipelineStages,
         const id = e.dataTransfer.getData('text/plain')
         if (!id) return
 
+        // Find the opportunity and its current stage
+        const opp = localOpps.find(o => o.id === id)
+        if (!opp) return
+
+        // Don't allow drop to same stage
+        if (opp.stage === stageKey) return
+
+        // Block moves from terminal stages (won/lost)
+        if (opp.stage === 'won' || opp.stage === 'lost') {
+            alert('Kazanıldı veya Kaybedildi aşamasındaki fırsatlar taşınamaz.')
+            return
+        }
+
+        // Block backward movement
+        const currentStage = sortedStages.find(s => s.key === opp.stage)
+        const targetStage = sortedStages.find(s => s.key === stageKey)
+        if (currentStage && targetStage && targetStage.order < currentStage.order) {
+            alert('Fırsatlar geriye doğru taşınamaz.')
+            return
+        }
+
         if (stageKey === 'reservation') {
             const saleInfo = await getSaleForOpportunity(id)
             if (saleInfo) {

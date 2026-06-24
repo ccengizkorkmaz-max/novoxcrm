@@ -717,8 +717,8 @@ export default function PipelineList({
 
                 <div className="rounded-xl border bg-card shadow-sm relative w-full overflow-auto lg:max-h-[calc(100vh-185px)] max-w-[calc(100vw-1rem)] lg:max-w-full print:max-h-none print:overflow-visible">
                     <table className="min-w-[1000px] w-full caption-bottom text-sm border-collapse">
-                        <TableHeader className="sticky top-0 z-10 bg-slate-100/95 dark:bg-slate-800/95 backdrop-blur shadow-sm supports-[backdrop-filter]:bg-slate-100/60 font-sans">
-                            <TableRow className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
+                        <TableHeader className="sticky top-0 z-10 font-sans">
+                            <TableRow className="bg-slate-800 hover:bg-slate-800 border-none">
                                 {colOrder.filter(colId => !(isBroker && (colId === 'project' || colId === 'unit')) && !hiddenCols.includes(colId)).map(colId => {
                                     const isOver = dragOverCol === colId
                                     const w = colWidths[colId]
@@ -730,13 +730,13 @@ export default function PipelineList({
                                         onDragEnd: handleColDragEnd,
                                     }
                                     const headCls = cn(
-                                        "relative h-9 px-2 text-center align-middle font-semibold text-muted-foreground transition-all duration-75 border-r border-gray-300 dark:border-gray-700 select-none cursor-grab active:cursor-grabbing text-xs",
-                                        isOver && "border-l-2 border-l-blue-500 bg-blue-50/60"
+                                        "relative h-9 px-2 text-center align-middle font-bold text-white transition-all duration-75 border-r border-slate-700 select-none cursor-grab active:cursor-grabbing text-[11px] uppercase tracking-wider",
+                                        isOver && "border-l-2 border-l-blue-400 bg-slate-700/60"
                                     )
                                     return (
                                         <TableHead key={colId} {...dragProps} className={headCls} style={{ width: w, minWidth: w }}>
                                             <div className="flex items-center justify-center gap-1">
-                                                <span className="opacity-25">⠿</span>
+                                                <span className="opacity-40 text-slate-400">⠿</span>
                                                 {colId === 'customer' && t('table.customer')}
                                                 {colId === 'project' && t('table.project')}
                                                 {colId === 'unit' && t('table.unit')}

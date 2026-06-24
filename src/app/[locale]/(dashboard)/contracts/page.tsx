@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { ContractList } from '@/components/contracts/contract-list'
 import { Button } from '@/components/ui/button'
-import { Plus } from 'lucide-react'
+import { Plus, FileSignature } from 'lucide-react'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { ContractStats } from '@/components/contracts/contract-stats'
@@ -102,13 +102,18 @@ export default async function ContractsPage(props: {
     return (
         <div className="flex flex-col gap-6 p-4 md:p-8">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{t('title')}</h1>
-                    <p className="text-sm md:text-base text-muted-foreground">{t('description')}</p>
+                <div className="flex items-center gap-4">
+                    <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-200">
+                        <FileSignature className="h-6 w-6 text-white" />
+                    </div>
+                    <div>
+                        <h1 className="text-2xl md:text-3xl font-black tracking-tight text-slate-900">{t('title')}</h1>
+                        <p className="text-sm text-slate-400 font-medium">{t('description')}</p>
+                    </div>
                 </div>
                 <div className="flex flex-col md:flex-row items-center gap-3">
                     <GeneralSearch namespace="Contracts" placeholderKey="table.search" />
-                    <Button asChild className="w-full md:w-auto">
+                    <Button asChild className="w-full md:w-auto bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-200 font-bold">
                         <Link href="/contracts/new">
                             <Plus className="mr-2 h-4 w-4" /> {t('newContract')}
                         </Link>

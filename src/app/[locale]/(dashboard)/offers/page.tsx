@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import OfferList from '@/app/[locale]/(dashboard)/crm/components/OfferList'
 import { getTranslations } from 'next-intl/server'
 import GeneralSearch from '@/components/dashboard/GeneralSearch'
+import { ReceiptText } from 'lucide-react'
 
 import { checkOfferExpirations } from './actions'
 
@@ -44,7 +45,15 @@ export default async function OffersPage(props: {
     return (
         <div className="flex flex-col gap-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
+                <div className="flex items-center gap-4">
+                    <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-orange-400 to-amber-600 flex items-center justify-center shadow-lg shadow-orange-200">
+                        <ReceiptText className="h-6 w-6 text-white" />
+                    </div>
+                    <div>
+                        <h1 className="text-2xl font-black tracking-tight text-slate-900">{t('title')}</h1>
+                        <p className="text-sm text-slate-400 font-medium">Teklifleri takip edin ve yönetin</p>
+                    </div>
+                </div>
                 <GeneralSearch namespace="Offers" placeholderKey="table.search" />
             </div>
 

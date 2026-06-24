@@ -37,15 +37,15 @@ export function ContractList({ initialContracts: contracts }: ContractListProps)
             <div className="hidden md:block rounded-xl border bg-card shadow-sm overflow-hidden">
                 <div className="relative w-full overflow-auto max-h-[calc(100vh-350px)]">
                     <Table>
-                        <TableHeader className="bg-slate-50/50">
-                            <TableRow>
-                                <TableHead className="sticky top-0 bg-background/95 backdrop-blur z-10">{t('contractNo')}</TableHead>
-                                <TableHead className="sticky top-0 bg-background/95 backdrop-blur z-10">{t('date')}</TableHead>
-                                <TableHead className="sticky top-0 bg-background/95 backdrop-blur z-10">{t('customer')}</TableHead>
-                                <TableHead className="sticky top-0 bg-background/95 backdrop-blur z-10">{t('projectUnit')}</TableHead>
-                                <TableHead className="sticky top-0 bg-background/95 backdrop-blur z-10">{t('amount')}</TableHead>
-                                <TableHead className="sticky top-0 bg-background/95 backdrop-blur z-10">{t('status')}</TableHead>
-                                <TableHead className="sticky top-0 bg-background/95 backdrop-blur z-10 text-right">{t('actions')}</TableHead>
+                        <TableHeader>
+                            <TableRow className="bg-slate-800 hover:bg-slate-800 border-none">
+                                <TableHead className="sticky top-0 bg-slate-800 z-10 text-white font-bold text-[11px] uppercase tracking-wider"><span className="flex items-center gap-1.5"><Hash className="h-3.5 w-3.5 text-blue-300" />{t('contractNo')}</span></TableHead>
+                                <TableHead className="sticky top-0 bg-slate-800 z-10 text-white font-bold text-[11px] uppercase tracking-wider"><span className="flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5 text-purple-300" />{t('date')}</span></TableHead>
+                                <TableHead className="sticky top-0 bg-slate-800 z-10 text-white font-bold text-[11px] uppercase tracking-wider"><span className="flex items-center gap-1.5"><User className="h-3.5 w-3.5 text-cyan-300" />{t('customer')}</span></TableHead>
+                                <TableHead className="sticky top-0 bg-slate-800 z-10 text-white font-bold text-[11px] uppercase tracking-wider"><span className="flex items-center gap-1.5"><Building2 className="h-3.5 w-3.5 text-amber-300" />{t('projectUnit')}</span></TableHead>
+                                <TableHead className="sticky top-0 bg-slate-800 z-10 text-white font-bold text-[11px] uppercase tracking-wider">{t('amount')}</TableHead>
+                                <TableHead className="sticky top-0 bg-slate-800 z-10 text-slate-300 font-bold text-[11px] uppercase tracking-wider">{t('status')}</TableHead>
+                                <TableHead className="sticky top-0 bg-slate-800 z-10 text-right text-slate-300 font-bold text-[11px] uppercase tracking-wider">{t('actions')}</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>

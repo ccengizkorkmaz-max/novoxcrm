@@ -1,7 +1,7 @@
 'use client'
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { FileText, Eye, Calendar, Trash2 } from 'lucide-react'
+import { FileText, Eye, Calendar, Trash2, Building2, User, Banknote, Clock, Settings2 } from 'lucide-react'
 import Link from 'next/link'
 import { formatCurrency, cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -78,13 +78,13 @@ export default function OptionList({ options, templates = [] }: { options: Optio
             <div className="rounded-md border bg-card">
                 <Table>
                     <TableHeader>
-                        <TableRow>
-                            <TableHead>{t('table.projectUnit')}</TableHead>
-                            <TableHead>{t('table.customer')}</TableHead>
-                            <TableHead>{t('table.type')}</TableHead>
-                            <TableHead>{t('table.price')}</TableHead>
-                            <TableHead>{t('table.expiry')}</TableHead>
-                            <TableHead className="text-right">{t('table.actions')}</TableHead>
+                        <TableRow className="bg-slate-800 hover:bg-slate-800 border-none">
+                            <TableHead className="text-white font-bold text-[11px] uppercase tracking-wider"><span className="flex items-center gap-1.5"><Building2 className="h-3.5 w-3.5 text-amber-300" />{t('table.projectUnit')}</span></TableHead>
+                            <TableHead className="text-white font-bold text-[11px] uppercase tracking-wider"><span className="flex items-center gap-1.5"><User className="h-3.5 w-3.5 text-cyan-300" />{t('table.customer')}</span></TableHead>
+                            <TableHead className="text-slate-300 font-bold text-[11px] uppercase tracking-wider">{t('table.type')}</TableHead>
+                            <TableHead className="text-white font-bold text-[11px] uppercase tracking-wider"><span className="flex items-center gap-1.5"><Banknote className="h-3.5 w-3.5 text-emerald-300" />{t('table.price')}</span></TableHead>
+                            <TableHead className="text-white font-bold text-[11px] uppercase tracking-wider"><span className="flex items-center gap-1.5"><Clock className="h-3.5 w-3.5 text-purple-300" />{t('table.expiry')}</span></TableHead>
+                            <TableHead className="text-right text-slate-300 font-bold text-[11px] uppercase tracking-wider">{t('table.actions')}</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
