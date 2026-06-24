@@ -913,18 +913,99 @@ export async function deleteSale(saleId: string) {
     return { success: true }
 }
 
-export async function updateSaleStatus(id: string, status: string, lostReason?: string) {
+export async function updateSaleStatus(
+    id: string, 
+    status: string, 
+    lostReason?: string, 
+    isSystemAction: boolean = false, 
+    skipOfferCreation: boolean = false
+) {
     const supabase = await createClient()
 
     // Get current user tenant
     const { data: { user } } = await supabase.auth.getUser()
     const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user?.id).single()
 
+    // Fetch current sale status for validation
+    const { data: currentSale, error: currentSaleError } = await supabase
+        .from('sales')
+        .select('status, description')
+        .eq('id', id)
+        .single()
+
+    if (currentSaleError || !currentSale) {
+        console.error('Fetch Current Sale Error:', currentSaleError)
+        return { error: 'Satış kaydı bulunamadı' }
+    }
+
+    const currentStatus = currentSale.status
+
+    let crmMode = 'basic'
+    if (!isSystemAction && profile?.tenant_id) {
+        const { data: tenant } = await supabase
+            .from('tenants')
+            .select('crm_mode')
+            .eq('id', profile.tenant_id)
+            .single()
+        crmMode = tenant?.crm_mode || 'basic'
+    }
+
+    if (!isSystemAction && crmMode !== 'advance') {
+        const STATUS_RANK: Record<string, number> = {
+            'Lead': 0,
+            'Prospect': 1,
+            'Proposal': 2,
+            'Teklif - Kapora Bekleniyor': 2,
+            'Negotiation': 3,
+            'Reservation': 4,
+            'Opsiyon - Kapora Bekleniyor': 4,
+            'Sold': 5,
+            'Completed': 5,
+        }
+
+        // If currently Lost, it cannot be changed manually
+        if (currentStatus === 'Lost' && status !== 'Lost') {
+            return { error: 'Kaybedildi durumundaki bir satış elle başka bir duruma getirilemez.' }
+        }
+
+        // Enforce backward block unless transitioning to Lost
+        if (status !== 'Lost') {
+            const curRank = STATUS_RANK[currentStatus]
+            const newRank = STATUS_RANK[status]
+
+            if (curRank !== undefined && newRank !== undefined && newRank < curRank) {
+                return { error: 'Durumlar geriye doğru elle değiştirilemez.' }
+            }
+        }
+
+        // Rule 3: Reservation or Opsiyon - Kapora Bekleniyor -> only Lost allowed manually
+        if (currentStatus === 'Reservation' || currentStatus === 'Opsiyon - Kapora Bekleniyor') {
+            if (status !== 'Lost') {
+                return { error: 'Opsiyonlu bir kayıt manuel olarak başka bir duruma getirilemez. Opsiyonu kaldırmak için lütfen "İptal Et" butonunu kullanın.' }
+            }
+        }
+
+        // Rule 4: Proposal or Teklif - Kapora Bekleniyor -> only Lost allowed
+        if (currentStatus === 'Proposal' || currentStatus === 'Teklif - Kapora Bekleniyor') {
+            if (status !== 'Lost') {
+                return { error: 'Teklif durumundaki bir kayıt elle sadece Kaybedildi durumuna getirilebilir.' }
+            }
+        }
+    }
+
     const updateFields: any = { status }
     if (status === 'Lost') {
         updateFields.lost_reason = lostReason || null
     } else {
         updateFields.lost_reason = null
+    }
+
+    if (status === 'Reservation' || status === 'Opsiyon - Kapora Bekleniyor') {
+        if (currentStatus !== 'Reservation' && currentStatus !== 'Opsiyon - Kapora Bekleniyor') {
+            let desc = currentSale.description || ''
+            desc = desc.replace(/\[prev_status:[^\]]+\]/g, '').trim()
+            updateFields.description = (desc ? desc + ' ' : '') + `[prev_status:${currentStatus}]`
+        }
     }
 
     const { data: sale, error } = await supabase
@@ -940,7 +1021,7 @@ export async function updateSaleStatus(id: string, status: string, lostReason?: 
     }
 
     // Auto-create or Remove Offer based on Status
-    if (status === 'Proposal' && sale) {
+    if (status === 'Proposal' && sale && !skipOfferCreation) {
         // 1. Snapshot Payment Plan
         const paymentPlan = await getPaymentPlan(sale.id)
 
@@ -1812,7 +1893,7 @@ export async function updateSaleToReservation(saleId: string, unitId: string, ex
     if (!profile?.tenant_id) return { error: 'Tenant info not found' }
 
     // 1. Get current sale info to handle unit changed
-    const { data: sale } = await supabase.from('sales').select('unit_id').eq('id', saleId).single()
+    const { data: sale } = await supabase.from('sales').select('unit_id, status, description').eq('id', saleId).single()
 
     // 2. If unit changed, reset old unit status
     if (sale?.unit_id && sale.unit_id !== unitId) {
@@ -1824,13 +1905,24 @@ export async function updateSaleToReservation(saleId: string, unitId: string, ex
 
     // 3. Update Sale record
     const initialStatus = depositAmount > 0 ? 'Opsiyon - Kapora Bekleniyor' : 'Reservation'
+    
+    let newDescription = sale?.description || ''
+    if (sale) {
+        const currentStatus = sale.status
+        if (currentStatus !== 'Reservation' && currentStatus !== 'Opsiyon - Kapora Bekleniyor') {
+            newDescription = newDescription.replace(/\[prev_status:[^\]]+\]/g, '').trim()
+            newDescription = (newDescription ? newDescription + ' ' : '') + `[prev_status:${currentStatus}]`
+        }
+    }
+
     const { data: updatedSale, error: saleError } = await supabase
         .from('sales')
         .update({
             unit_id: unitId,
             status: initialStatus,
             reservation_expiry: expiryDate,
-            project_id: unit?.project_id || null
+            project_id: unit?.project_id || null,
+            description: newDescription
         })
         .eq('id', saleId)
         .select()
@@ -1938,7 +2030,7 @@ export async function cancelReservation(saleId: string) {
     const supabase = await createClient()
 
     // 1. Get current sale info
-    const { data: sale } = await supabase.from('sales').select('unit_id').eq('id', saleId).single()
+    const { data: sale } = await supabase.from('sales').select('unit_id, description').eq('id', saleId).single()
 
     // 2. Check for PAID deposits that need refunding
     const { data: paidDeposit } = await supabase
@@ -1961,12 +2053,25 @@ export async function cancelReservation(saleId: string) {
         return { success: true, message: 'Kapora ödemesi onaylı olduğu için iade süreci başlatıldı. Finans onayından sonra opsiyon kalkacaktır.' }
     }
 
-    // 3. Update Sale record to Prospect (if no paid deposit or already cancelled/pending)
+    // 3. Parse previous status
+    let targetStatus = 'Prospect'
+    let cleanDesc = sale?.description || ''
+    if (sale) {
+        const desc = sale.description || ''
+        const match = desc.match(/\[prev_status:([^\]]+)\]/)
+        if (match && match[1]) {
+            targetStatus = match[1]
+            cleanDesc = desc.replace(/\[prev_status:[^\]]+\]/g, '').trim()
+        }
+    }
+
+    // 3.1 Update Sale record
     const { error: saleError } = await supabase
         .from('sales')
         .update({
-            status: 'Prospect',
-            reservation_expiry: null
+            status: targetStatus,
+            reservation_expiry: null,
+            description: cleanDesc
         })
         .eq('id', saleId)
 
@@ -1993,10 +2098,15 @@ export async function cancelReservation(saleId: string) {
             .single()
 
         if (saleData) {
+            let oppStage = 'prospect'
+            if (targetStatus === 'Proposal' || targetStatus === 'Teklif - Kapora Bekleniyor') {
+                oppStage = 'proposal'
+            }
+
             let oppQuery = supabase
                 .from('opportunities')
                 .update({
-                    stage: 'prospect',
+                    stage: oppStage,
                     updated_at: new Date().toISOString()
                 })
                 .eq('tenant_id', profileForCancel.tenant_id)
@@ -2020,7 +2130,7 @@ export async function cancelReservation(saleId: string) {
     revalidatePath('/finance/deposits')
 
     // Broker Sync
-    await syncBrokerLeadFromSale(saleId, 'Prospect')
+    await syncBrokerLeadFromSale(saleId, targetStatus)
 
     return { success: true }
 }

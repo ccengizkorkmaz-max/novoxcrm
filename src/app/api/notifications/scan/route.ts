@@ -50,6 +50,66 @@ export async function GET(request: Request) {
         for (const tenantId of tenantIds) {
             const settings = allSettings?.find(s => s.tenant_id === tenantId)
 
+            // 0. Auto-expire expired reservations/options
+            const { data: expiredSalesList } = await supabase
+                .from('sales')
+                .select('id, unit_id, description, customers(full_name), units(unit_number, block, projects(name))')
+                .eq('tenant_id', tenantId)
+                .in('status', ['Reservation', 'Opsiyon - Kapora Bekleniyor'])
+                .not('reservation_expiry', 'is', null)
+                .lt('reservation_expiry', new Date().toISOString())
+
+            for (const sale of expiredSalesList || []) {
+                const desc = sale.description || ''
+                const match = desc.match(/\[prev_status:([^\]]+)\]/)
+                let targetStatus = 'Prospect'
+                let cleanDesc = desc
+                if (match && match[1]) {
+                    targetStatus = match[1]
+                    cleanDesc = desc.replace(/\[prev_status:[^\]]+\]/g, '').trim()
+                }
+
+                // Update sale status to targetStatus
+                await supabase
+                    .from('sales')
+                    .update({
+                        status: targetStatus,
+                        reservation_expiry: null,
+                        description: cleanDesc || 'Opsiyon süresi dolduğu için otomatik olarak önceki aşamasına geri alındı.'
+                    })
+                    .eq('id', sale.id)
+
+                // Free up unit
+                if (sale.unit_id) {
+                    await supabase
+                        .from('units')
+                        .update({ status: 'For Sale' })
+                        .eq('id', sale.unit_id)
+                }
+
+                // Sync broker
+                try {
+                    const { syncBrokerLeadFromSale } = await import('@/app/broker/actions')
+                    await syncBrokerLeadFromSale(sale.id, targetStatus)
+                } catch (brokerErr) {
+                    console.error('Failed to sync broker on option expiration:', brokerErr)
+                }
+
+                // Create notification
+                const customerName = (sale as any).customers?.full_name || 'Müşteri'
+                const unitInfo = (sale as any).units ? `${(sale as any).units.block || ''} ${(sale as any).units.unit_number}` : ''
+                const projectName = (sale as any).units?.projects?.name || ''
+                
+                await createNotification({
+                    tenant_id: tenantId,
+                    type: 'Info',
+                    category: 'CRM',
+                    title: '⏰ Opsiyon Süresi Bitti',
+                    message: `${customerName} - ${projectName} ${unitInfo} opsiyon süresi doldu. Ünite satışa çıkarıldı ve kayıt önceki aşamasına geri alındı.`,
+                    link: '/crm'
+                })
+            }
+
             // 1. Expiring Reservations
             const { data: expiringSales } = await supabase
                 .from('sales')

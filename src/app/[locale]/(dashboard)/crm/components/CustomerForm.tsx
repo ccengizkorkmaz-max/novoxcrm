@@ -68,6 +68,7 @@ interface CustomerFormProps {
     contracts?: any[]
     sales?: any[]
     profiles?: any[]
+    crmMode?: 'basic' | 'advance'
 }
 
 const HEARD_FROM_OPTIONS = [
@@ -76,7 +77,7 @@ const HEARD_FROM_OPTIONS = [
     'Arkadaş / Tanıdık', 'Diğer'
 ]
 
-export default function CustomerForm({ customer, activities, contracts = [], sales = [], profiles = [] }: CustomerFormProps) {
+export default function CustomerForm({ customer, activities, contracts = [], sales = [], profiles = [], crmMode = 'basic' }: CustomerFormProps) {
     const t = useTranslations('Customers')
     const router = useRouter()
     const isCreateMode = !customer
@@ -534,7 +535,7 @@ export default function CustomerForm({ customer, activities, contracts = [], sal
             </Card>
 
             {/* AI Smart Match Widget */}
-            {customer?.id && <AiMatchWidget customerId={customer.id} />}
+            {crmMode === 'advance' && customer?.id && <AiMatchWidget customerId={customer.id} />}
 
             {/* Aktif Satışlar / Leadler */}
             {sales && sales.length > 0 && (
@@ -599,68 +600,70 @@ export default function CustomerForm({ customer, activities, contracts = [], sal
             )}
 
             {/* Aktivite Filtreleri */}
-            <Card className="overflow-hidden bg-white border-slate-100 shadow-sm">
-                <button
-                    type="button"
-                    onClick={() => setIsFiltersOpen(!isFiltersOpen)}
-                    className="w-full flex items-center justify-between p-4 hover:bg-slate-50 transition-colors"
-                >
-                    <div className="flex items-center gap-2">
-                        <Filter className="h-4 w-4 text-muted-foreground" />
-                        <CardTitle className="text-base font-bold text-slate-800">Aktivite Filtreleri</CardTitle>
-                    </div>
-                    {isFiltersOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
-                </button>
-
-                {isFiltersOpen && (
-                    <CardContent className="space-y-4 pt-0">
-                        <div className="h-px bg-slate-100 -mx-4 mb-4" />
-
-                        {/* Types */}
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Aktivite Tipi</label>
-                            <div className="flex flex-wrap gap-x-4 gap-y-2">
-                                {ACTIVITY_TYPES.map(type => (
-                                    <div key={type.id} className="flex items-center space-x-2">
-                                        <Checkbox
-                                            id={`type-${type.id}`}
-                                            checked={selectedTypes.includes(type.id)}
-                                            onCheckedChange={() => toggleType(type.id)}
-                                        />
-                                        <Label htmlFor={`type-${type.id}`} className="text-sm font-normal cursor-pointer whitespace-nowrap">
-                                            {type.label}
-                                        </Label>
-                                    </div>
-                                ))}
-                            </div>
+            {crmMode === 'advance' && (
+                <Card className="overflow-hidden bg-white border-slate-100 shadow-sm">
+                    <button
+                        type="button"
+                        onClick={() => setIsFiltersOpen(!isFiltersOpen)}
+                        className="w-full flex items-center justify-between p-4 hover:bg-slate-50 transition-colors"
+                    >
+                        <div className="flex items-center gap-2">
+                            <Filter className="h-4 w-4 text-muted-foreground" />
+                            <CardTitle className="text-base font-bold text-slate-800">Aktivite Filtreleri</CardTitle>
                         </div>
+                        {isFiltersOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                    </button>
 
-                        <div className="h-px bg-slate-100" />
+                    {isFiltersOpen && (
+                        <CardContent className="space-y-4 pt-0">
+                            <div className="h-px bg-slate-100 -mx-4 mb-4" />
 
-                        {/* Topics */}
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Konular</label>
-                            <div className="flex flex-wrap gap-x-4 gap-y-2">
-                                {ACTIVITY_TOPICS.map(topic => (
-                                    <div key={topic.id} className="flex items-center space-x-2">
-                                        <Checkbox
-                                            id={`topic-${topic.id}`}
-                                            checked={selectedTopics.includes(topic.id)}
-                                            onCheckedChange={() => toggleTopic(topic.id)}
-                                        />
-                                        <Label htmlFor={`topic-${topic.id}`} className="text-sm font-normal cursor-pointer whitespace-nowrap">
-                                            {topic.label}
-                                        </Label>
-                                    </div>
-                                ))}
+                            {/* Types */}
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Aktivite Tipi</label>
+                                <div className="flex flex-wrap gap-x-4 gap-y-2">
+                                    {ACTIVITY_TYPES.map(type => (
+                                        <div key={type.id} className="flex items-center space-x-2">
+                                            <Checkbox
+                                                id={`type-${type.id}`}
+                                                checked={selectedTypes.includes(type.id)}
+                                                onCheckedChange={() => toggleType(type.id)}
+                                            />
+                                            <Label htmlFor={`type-${type.id}`} className="text-sm font-normal cursor-pointer whitespace-nowrap">
+                                                {type.label}
+                                            </Label>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
-                        </div>
-                    </CardContent>
-                )}
-            </Card>
+
+                            <div className="h-px bg-slate-100" />
+
+                            {/* Topics */}
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Konular</label>
+                                <div className="flex flex-wrap gap-x-4 gap-y-2">
+                                    {ACTIVITY_TOPICS.map(topic => (
+                                        <div key={topic.id} className="flex items-center space-x-2">
+                                            <Checkbox
+                                                id={`topic-${topic.id}`}
+                                                checked={selectedTopics.includes(topic.id)}
+                                                onCheckedChange={() => toggleTopic(topic.id)}
+                                            />
+                                            <Label htmlFor={`topic-${topic.id}`} className="text-sm font-normal cursor-pointer whitespace-nowrap">
+                                                {topic.label}
+                                            </Label>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </CardContent>
+                    )}
+                </Card>
+            )}
 
             {/* Zaman Tüneli */}
-            {customer && <ActivityTimeline activities={filteredActivities} customer={customer} profiles={profiles} />}
+            {crmMode === 'advance' && customer && <ActivityTimeline activities={filteredActivities} customer={customer} profiles={profiles} />}
         </div>
     )
 

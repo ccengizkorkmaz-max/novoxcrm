@@ -37,6 +37,13 @@ export async function getQualifications(tenantId: string) {
 
 export async function updateQualificationStatus(id: string, status: string, disqualifyReason?: string) {
     const supabase = await createClient()
+
+    // Fetch qualification first to check sale_id
+    const { data: qual } = await supabase
+        .from('lead_qualifications')
+        .select('sale_id')
+        .eq('id', id)
+        .single()
     
     const updateData: any = { status }
     if (disqualifyReason) {
@@ -50,6 +57,15 @@ export async function updateQualificationStatus(id: string, status: string, disq
 
     if (error) {
         return { error: error.message }
+    }
+
+    if (status === 'disqualified' && qual?.sale_id) {
+        try {
+            const { updateSaleStatus } = await import('@/app/[locale]/(dashboard)/crm/actions')
+            await updateSaleStatus(qual.sale_id, 'Lost', disqualifyReason || 'Ön değerlendirmede elendi', true)
+        } catch (syncErr) {
+            console.error('Failed to sync disqualification status to sale:', syncErr)
+        }
     }
     
     revalidatePath('/[locale]/(dashboard)/lead-qualification', 'page')

@@ -447,8 +447,13 @@ export default function PipelineList({
     }
 
     const handleStatusChange = async (id: string, newStatus: string) => {
-        await updateSaleStatus(id, newStatus)
-        router.refresh()
+        const res = await updateSaleStatus(id, newStatus)
+        if (res?.error) {
+            toast.error(res.error)
+        } else {
+            toast.success('Durum güncellendi')
+            router.refresh()
+        }
     }
 
 

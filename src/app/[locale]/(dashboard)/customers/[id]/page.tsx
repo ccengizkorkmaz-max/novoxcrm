@@ -149,6 +149,7 @@ export default async function CustomerPage({ params }: CustomerPageProps) {
                     contracts={contracts || []}
                     sales={sales || []}
                     profiles={profiles}
+                    crmMode={tenant?.crm_mode || 'advance'}
                 />
             </div>
         )

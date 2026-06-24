@@ -33,6 +33,17 @@ export async function createOffer(formData: FormData) {
     const valid_until = formData.get('valid_until') as string
     const notes = formData.get('notes') as string
 
+    // Find active sale to link
+    let saleQuery = supabase
+        .from('sales')
+        .select('id, status')
+        .eq('customer_id', customer_id)
+        .order('created_at', { ascending: false })
+    if (unit_id) {
+        saleQuery = saleQuery.eq('unit_id', unit_id)
+    }
+    const { data: sale } = await saleQuery.limit(1).maybeSingle()
+
     // Simple payment terms construction
     const advance = formData.get('advance') as string
     const installments = formData.get('installments') as string
@@ -41,13 +52,14 @@ export async function createOffer(formData: FormData) {
         installments: installments ? parseInt(installments) : 1
     }
 
-    const { error } = await supabase
+    const { error, data: newOffer } = await supabase
         .from('offers')
         .insert({
             tenant_id: profile.tenant_id,
             user_id: user.id,
             customer_id,
             unit_id,
+            sale_id: sale?.id || null,
             price: parseFloat(price),
             currency,
             status,
@@ -55,10 +67,21 @@ export async function createOffer(formData: FormData) {
             notes,
             payment_plan
         })
+        .select('id')
+        .single()
 
     if (error) {
         console.error('Create Offer Error:', error)
         return { error: 'Failed to create offer' }
+    }
+
+    if (sale) {
+        try {
+            const { updateSaleStatus } = await import('@/app/[locale]/(dashboard)/crm/actions')
+            await updateSaleStatus(sale.id, 'Proposal', undefined, true, true)
+        } catch (syncErr) {
+            console.error('Failed to sync offer creation status to sale:', syncErr)
+        }
     }
 
     revalidatePath('/offers')

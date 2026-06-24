@@ -41,7 +41,7 @@ export default async function EditCustomerPage(props: {
 
     return (
         <div className="p-4 sm:p-6">
-            <CustomerForm customer={customer} />
+            <CustomerForm customer={customer} crmMode={tenant?.crm_mode || 'basic'} />
         </div>
     )
 }

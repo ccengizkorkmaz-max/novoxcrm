@@ -234,14 +234,35 @@ export async function cancelReservation(unitId: string, saleId: string) {
         resolvedSaleId = sale?.id || ''
     }
 
-    // 3. Update Sale status to Lost (if sale exists)
+    // 3. Update Sale status to previous status (if sale exists)
     if (resolvedSaleId) {
+        const { data: saleData } = await supabase
+            .from('sales')
+            .select('status, description')
+            .eq('id', resolvedSaleId)
+            .single()
+
+        let targetStatus = 'Prospect'
+        let cleanDesc = 'Rezervasyon İptal Edildi'
+
+        if (saleData) {
+            const desc = saleData.description || ''
+            const match = desc.match(/\[prev_status:([^\]]+)\]/)
+            if (match && match[1]) {
+                targetStatus = match[1]
+                cleanDesc = desc.replace(/\[prev_status:[^\]]+\]/g, '').trim()
+                if (!cleanDesc) cleanDesc = 'Rezervasyon İptal Edildi'
+            } else {
+                cleanDesc = desc || 'Rezervasyon İptal Edildi'
+            }
+        }
+
         await supabase
             .from('sales')
             .update({ 
-                status: 'Lost', 
+                status: targetStatus, 
                 reservation_expiry: null,
-                description: 'Rezervasyon İptal Edildi'
+                description: cleanDesc
             })
             .eq('id', resolvedSaleId)
 
@@ -252,7 +273,7 @@ export async function cancelReservation(unitId: string, saleId: string) {
             .eq('status', 'Pending')
 
         // Broker Sync
-        await syncBrokerLeadFromSale(resolvedSaleId, 'Lost')
+        await syncBrokerLeadFromSale(resolvedSaleId, targetStatus)
     }
 
     // Log activity
