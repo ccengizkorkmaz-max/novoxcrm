@@ -110,6 +110,7 @@ export default function CustomerForm({ customer, activities, contracts = [], sal
 
     // Unified view states & logic
     const isUnifiedView = !!activities || !!sales || !!contracts
+    const hasSidebarContent = (crmMode === 'advance') || (sales && sales.length > 0) || (contracts && contracts.length > 0)
 
     const [isFiltersOpen, setIsFiltersOpen] = useState(false)
     const [selectedTypes, setSelectedTypes] = useState<string[]>([])
@@ -504,35 +505,7 @@ export default function CustomerForm({ customer, activities, contracts = [], sal
 
     const renderSidebar = () => (
         <div className="space-y-6">
-            {/* İletişim Açık Toggle */}
-            <Card className={cn("border transition-colors shadow-sm", commEnabled ? "border-slate-100 bg-white" : "border-red-200 bg-red-50/10")}>
-                <CardContent className="p-5 space-y-3">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            {commEnabled ? (
-                                <Phone className="h-4 w-4 text-green-600 animate-pulse shrink-0" />
-                            ) : (
-                                <PhoneOff className="h-4 w-4 text-red-500 shrink-0" />
-                            )}
-                            <span className={cn("text-xs font-bold uppercase tracking-wider", commEnabled ? "text-slate-700" : "text-red-600")}>
-                                İletişim {commEnabled ? 'Açık' : 'Kapalı'}
-                            </span>
-                        </div>
-                        <Switch
-                            checked={commEnabled}
-                            onCheckedChange={handleCommToggle}
-                            disabled={commLoading}
-                            className="data-[state=checked]:bg-green-600 data-[state=unchecked]:bg-red-400"
-                        />
-                    </div>
-                    {!commEnabled && (
-                        <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-xs text-red-600 flex items-start gap-1.5">
-                            <PhoneOff className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-                            <span>Bu müşteriye tüm kanallardan iletişim kapatılmıştır. Arama, WhatsApp, SMS gönderilmeyecektir.</span>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
+
 
             {/* AI Smart Match Widget */}
             {crmMode === 'advance' && customer?.id && <AiMatchWidget customerId={customer.id} />}
@@ -705,6 +678,31 @@ export default function CustomerForm({ customer, activities, contracts = [], sal
                                     </span>
                                 )}
                             </div>
+
+                            {/* Compact Communication Toggle next to the details */}
+                            {customer?.id && (
+                                <div className={cn(
+                                    "flex items-center gap-2 border rounded-xl px-3 py-1.5 shrink-0 ml-3 transition-colors",
+                                    commEnabled ? "bg-green-50/50 border-green-100" : "bg-red-50/50 border-red-100"
+                                )}>
+                                    <div className="flex items-center gap-1.5">
+                                        {commEnabled ? (
+                                            <Phone className="h-3.5 w-3.5 text-green-600 animate-pulse shrink-0" />
+                                        ) : (
+                                            <PhoneOff className="h-3.5 w-3.5 text-red-500 shrink-0" />
+                                        )}
+                                        <span className={cn("text-[10px] font-black uppercase tracking-wider select-none", commEnabled ? "text-green-700" : "text-red-600")}>
+                                            İletişim {commEnabled ? 'Açık' : 'Kapalı'}
+                                        </span>
+                                    </div>
+                                    <Switch
+                                        checked={commEnabled}
+                                        onCheckedChange={handleCommToggle}
+                                        disabled={commLoading}
+                                        className="scale-75 data-[state=checked]:bg-green-600 data-[state=unchecked]:bg-red-400"
+                                    />
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -738,7 +736,7 @@ export default function CustomerForm({ customer, activities, contracts = [], sal
             <form action={handleSubmit}>
                 {!isCreateMode && <input type="hidden" name="id" value={customer!.id} />}
 
-                {isUnifiedView ? (
+                {isUnifiedView && hasSidebarContent ? (
                     <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                         {/* Left column (2/3 width) - Edit Form Fields with Tabs */}
                         <div className="xl:col-span-2">
