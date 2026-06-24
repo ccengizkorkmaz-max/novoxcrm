@@ -15,7 +15,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
-import { CheckCircle2, Clock, XCircle, Search, Trash2 } from 'lucide-react'
+import { CheckCircle2, Clock, XCircle, Search, Trash2, User, Building2, Banknote, Calendar, Wallet, FileText } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { useTranslations, useLocale } from 'next-intl'
 import { createClient } from '@/lib/supabase/client'
@@ -118,9 +118,14 @@ export default function DepositsPage() {
     return (
         <div className="p-8 space-y-6">
             <div className="flex justify-between items-center">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight">{t('title')}</h1>
-                    <p className="text-muted-foreground">{t('subtitle')}</p>
+                <div className="flex items-center gap-4">
+                    <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-200">
+                        <Wallet className="h-6 w-6 text-white" />
+                    </div>
+                    <div>
+                        <h1 className="text-3xl font-black tracking-tight text-slate-900">{t('title')}</h1>
+                        <p className="text-sm text-slate-400 font-medium">{t('subtitle')}</p>
+                    </div>
                 </div>
             </div>
 
@@ -141,14 +146,14 @@ export default function DepositsPage() {
                 <CardContent>
                     <Table>
                         <TableHeader>
-                            <TableRow>
-                                <TableHead>{t('table.customer')}</TableHead>
-                                <TableHead>{t('table.source')}</TableHead>
-                                <TableHead>{t('table.unit')}</TableHead>
-                                <TableHead>{t('table.amount')}</TableHead>
-                                <TableHead>{t('table.status')}</TableHead>
-                                <TableHead>{t('table.date')}</TableHead>
-                                <TableHead className="text-right">{t('table.actions')}</TableHead>
+                            <TableRow className="bg-slate-800 hover:bg-slate-800 border-none">
+                                <TableHead className="text-white font-bold text-[11px] uppercase tracking-wider"><span className="flex items-center gap-1.5"><User className="h-3.5 w-3.5 text-cyan-300" />{t('table.customer')}</span></TableHead>
+                                <TableHead className="text-white font-bold text-[11px] uppercase tracking-wider"><span className="flex items-center gap-1.5"><FileText className="h-3.5 w-3.5 text-blue-300" />{t('table.source')}</span></TableHead>
+                                <TableHead className="text-white font-bold text-[11px] uppercase tracking-wider"><span className="flex items-center gap-1.5"><Building2 className="h-3.5 w-3.5 text-amber-300" />{t('table.unit')}</span></TableHead>
+                                <TableHead className="text-white font-bold text-[11px] uppercase tracking-wider"><span className="flex items-center gap-1.5"><Banknote className="h-3.5 w-3.5 text-emerald-300" />{t('table.amount')}</span></TableHead>
+                                <TableHead className="text-slate-300 font-bold text-[11px] uppercase tracking-wider">{t('table.status')}</TableHead>
+                                <TableHead className="text-white font-bold text-[11px] uppercase tracking-wider"><span className="flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5 text-purple-300" />{t('table.date')}</span></TableHead>
+                                <TableHead className="text-right text-slate-300 font-bold text-[11px] uppercase tracking-wider">{t('table.actions')}</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
