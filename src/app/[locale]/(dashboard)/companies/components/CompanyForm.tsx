@@ -14,9 +14,9 @@ import {
 import AddressManager from '@/components/shared/AddressManager'
 import { Combobox } from '@/components/ui/combobox'
 import {
-    createCompany, updateCompany, getCompanyContacts,
-    addContactToCompany, removeContactFromCompany, getAllCustomersForSelect
+    createCompany, updateCompany, getCompanyContacts
 } from '../company-actions'
+import { Link } from '@/i18n/routing'
 
 interface Company {
     id: string
@@ -52,8 +52,6 @@ export default function CompanyForm({ company }: CompanyFormProps) {
 
     // Contacts management states
     const [contacts, setContacts] = useState<any[]>([])
-    const [customersList, setCustomersList] = useState<any[]>([])
-    const [selectedContactId, setSelectedContactId] = useState('')
     const [loadingContacts, setLoadingContacts] = useState(false)
 
     // Load form data
@@ -71,7 +69,6 @@ export default function CompanyForm({ company }: CompanyFormProps) {
                 notes: company.notes || ''
             })
             loadContacts()
-            loadAllCustomers()
         }
     }, [company])
 
@@ -83,11 +80,6 @@ export default function CompanyForm({ company }: CompanyFormProps) {
         if (res.contacts) {
             setContacts(res.contacts)
         }
-    }
-
-    const loadAllCustomers = async () => {
-        const list = await getAllCustomersForSelect()
-        setCustomersList(list)
     }
 
     const handleSave = () => {
@@ -140,29 +132,6 @@ export default function CompanyForm({ company }: CompanyFormProps) {
                 }
             }
         })
-    }
-
-    const handleAddContact = async () => {
-        if (!selectedContactId || isCreateMode) return
-        const res = await addContactToCompany(company!.id, selectedContactId)
-        if (res.success) {
-            toast.success('Kişi başarıyla firmaya eklendi.')
-            setSelectedContactId('')
-            loadContacts()
-        } else {
-            toast.error('Hata: ' + res.error)
-        }
-    }
-
-    const handleRemoveContact = async (customerId: string) => {
-        if (isCreateMode) return
-        const res = await removeContactFromCompany(customerId)
-        if (res.success) {
-            toast.success('Kişi firmadan ayrıldı.')
-            loadContacts()
-        } else {
-            toast.error('Hata: ' + res.error)
-        }
     }
 
     const f = (key: keyof typeof form) => ({
@@ -318,51 +287,21 @@ export default function CompanyForm({ company }: CompanyFormProps) {
                                         contacts.map(contact => (
                                             <div key={contact.id} className="flex items-center justify-between bg-slate-50/60 hover:bg-slate-50 border border-slate-100 p-3 rounded-xl transition-all">
                                                 <div className="min-w-0 pr-2">
-                                                    <div className="font-semibold text-slate-700 text-xs truncate">{contact.full_name}</div>
+                                                    <Link
+                                                        href={`/customers/${contact.id}`}
+                                                        className="font-bold text-blue-600 hover:text-blue-800 hover:underline text-xs truncate block"
+                                                    >
+                                                        {contact.full_name}
+                                                    </Link>
                                                     {(contact.phone || contact.email) && (
                                                         <div className="text-[10px] text-slate-400 mt-0.5 truncate">
                                                             {[contact.phone, contact.email].filter(Boolean).join(' • ')}
                                                         </div>
                                                     )}
                                                 </div>
-                                                <Button
-                                                    size="icon"
-                                                    variant="ghost"
-                                                    className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg"
-                                                    onClick={() => handleRemoveContact(contact.id)}
-                                                    title="Bağlantıyı Kaldır"
-                                                >
-                                                    <Trash2 className="h-3.5 w-3.5" />
-                                                </Button>
                                             </div>
                                         ))
                                     )}
-                                </div>
-
-                                <div className="border-t border-slate-100 pt-4 space-y-3">
-                                    <Label className={labelClass}>Yeni Kişi Ekle</Label>
-                                    <div className="flex gap-2">
-                                        <div className="flex-1">
-                                            <Combobox
-                                                items={customersList.map(c => ({
-                                                    value: c.id,
-                                                    label: `${c.full_name}${c.phone ? ` (${c.phone})` : ''}`
-                                                }))}
-                                                value={selectedContactId}
-                                                onChange={setSelectedContactId}
-                                                placeholder="Müşteri listesinden ara..."
-                                                searchPlaceholder="Kişi adı ara..."
-                                            />
-                                        </div>
-                                        <Button
-                                            type="button"
-                                            onClick={handleAddContact}
-                                            disabled={!selectedContactId}
-                                            className="h-10 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl"
-                                        >
-                                            Ekle
-                                        </Button>
-                                    </div>
                                 </div>
                             </CardContent>
                         </Card>

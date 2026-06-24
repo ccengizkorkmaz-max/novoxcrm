@@ -138,6 +138,16 @@ export async function updateActivity(formData: FormData) {
     const supabase = await createClient()
     const id = formData.get('id') as string
 
+    const { data: existingAct } = await supabase
+        .from('activities')
+        .select('status')
+        .eq('id', id)
+        .single()
+
+    if (existingAct && (existingAct.status === 'Completed' || existingAct.status === 'Cancelled')) {
+        return { error: 'Tamamlanmış veya İptal edilmiş aktiviteler güncellenemez.' }
+    }
+
     const status = formData.get('status') as string
 
     const { error } = await supabase
@@ -203,6 +213,17 @@ export async function outcomeActivity(formData: FormData) {
     const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user?.id).single()
 
     const id = formData.get('id') as string
+
+    const { data: existingAct } = await supabase
+        .from('activities')
+        .select('status')
+        .eq('id', id)
+        .single()
+
+    if (existingAct && (existingAct.status === 'Completed' || existingAct.status === 'Cancelled')) {
+        return { error: 'Tamamlanmış veya İptal edilmiş aktiviteler güncellenemez.' }
+    }
+
     const outcome = formData.get('outcome') as string
     const notes = formData.get('notes') as string
 
@@ -294,6 +315,16 @@ export async function deleteActivity(id: string) {
 
 export async function cancelActivity(id: string) {
     const supabase = await createClient()
+    const { data: existingAct } = await supabase
+        .from('activities')
+        .select('status')
+        .eq('id', id)
+        .single()
+
+    if (existingAct && (existingAct.status === 'Completed' || existingAct.status === 'Cancelled')) {
+        return { error: 'Tamamlanmış veya İptal edilmiş aktiviteler güncellenemez.' }
+    }
+
     const { error } = await supabase
         .from('activities')
         .update({ status: 'Cancelled' })
@@ -310,6 +341,16 @@ export async function completeActivity(formData: FormData) {
     // Backward compatibility wrapper or simple completion
     const supabase = await createClient()
     const id = formData.get('id') as string
+
+    const { data: existingAct } = await supabase
+        .from('activities')
+        .select('status')
+        .eq('id', id)
+        .single()
+
+    if (existingAct && (existingAct.status === 'Completed' || existingAct.status === 'Cancelled')) {
+        return { error: 'Tamamlanmış veya İptal edilmiş aktiviteler güncellenemez.' }
+    }
 
     const { error } = await supabase
         .from('activities')

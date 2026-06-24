@@ -159,12 +159,29 @@ export async function confirmRefund(depositId: string) {
     // 3. Finalize Cancellation of the associated entity
     if (deposit.sale_id) {
         // Free the Unit and update Sale
-        const { data: sale } = await supabase.from('sales').select('unit_id').eq('id', deposit.sale_id).single()
+        const { data: sale } = await supabase.from('sales').select('unit_id, customer_id, project_id').eq('id', deposit.sale_id).single()
 
         await supabase.from('sales').update({ status: 'Lost', reservation_expiry: null }).eq('id', deposit.sale_id)
 
         if (sale?.unit_id) {
             await supabase.from('units').update({ status: 'For Sale' }).eq('id', sale.unit_id)
+        }
+
+        // Sync Opportunity stage (Advance CRM)
+        if (profile?.tenant_id && sale) {
+            let oppQuery = supabase
+                .from('opportunities')
+                .update({
+                    stage: 'lost',
+                    updated_at: new Date().toISOString()
+                })
+                .eq('tenant_id', profile.tenant_id)
+                .eq('customer_id', sale.customer_id)
+
+            if (sale.project_id) {
+                oppQuery = oppQuery.eq('project_id', sale.project_id)
+            }
+            await oppQuery
         }
 
         // Broker Sync
@@ -212,6 +229,18 @@ export async function cancelDeposit(depositId: string) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: 'Unauthorized' }
 
+    // 1. Fetch deposit details
+    const { data: deposit, error: fetchError } = await supabase
+        .from('deposits')
+        .select('*')
+        .eq('id', depositId)
+        .single()
+
+    if (fetchError || !deposit) return { error: 'Deposit not found' }
+
+    const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single()
+
+    // 2. Update deposit status to Cancelled
     const { error } = await supabase
         .from('deposits')
         .update({ status: 'Cancelled' })
@@ -219,7 +248,46 @@ export async function cancelDeposit(depositId: string) {
 
     if (error) return { error: error.message }
 
+    // 3. Finalize Cancellation of the associated entity
+    if (deposit.sale_id) {
+        // Free the Unit and update Sale
+        const { data: sale } = await supabase.from('sales').select('unit_id, customer_id, project_id').eq('id', deposit.sale_id).single()
+
+        await supabase.from('sales').update({ status: 'Lost', reservation_expiry: null }).eq('id', deposit.sale_id)
+
+        if (sale?.unit_id) {
+            await supabase.from('units').update({ status: 'For Sale' }).eq('id', sale.unit_id)
+        }
+
+        // Sync Opportunity stage (Advance CRM)
+        if (profile?.tenant_id && sale) {
+            let oppQuery = supabase
+                .from('opportunities')
+                .update({
+                    stage: 'lost',
+                    updated_at: new Date().toISOString()
+                })
+                .eq('tenant_id', profile.tenant_id)
+                .eq('customer_id', sale.customer_id)
+
+            if (sale.project_id) {
+                oppQuery = oppQuery.eq('project_id', sale.project_id)
+            }
+            await oppQuery
+        }
+
+        // Broker Sync
+        await syncBrokerLeadFromSale(deposit.sale_id, 'Lost')
+    } else if (deposit.offer_id) {
+        // Update Offer status
+        await supabase.from('offers').update({ status: 'Cancelled' }).eq('id', deposit.offer_id)
+    }
+
     revalidatePath('/finance/deposits')
+    revalidatePath('/inventory')
+    revalidatePath('/offers')
+    revalidatePath('/crm')
+
     return { success: true }
 }
 

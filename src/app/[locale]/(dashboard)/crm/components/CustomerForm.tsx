@@ -89,6 +89,8 @@ export default function CustomerForm({ customer, activities, contracts = [], sal
     // Companies list and selection
     const [companiesList, setCompaniesList] = useState<{ id: string; name: string }[]>([])
     const [selectedCompanyId, setSelectedCompanyId] = useState(customer?.company_id || '')
+    const [companyContacts, setCompanyContacts] = useState<any[]>([])
+    const [loadingRelated, setLoadingRelated] = useState(false)
 
     // Source options (dynamic)
     const [sourceOptions, setSourceOptions] = useState<{ id: string; label: string }[]>([])
@@ -199,6 +201,22 @@ export default function CustomerForm({ customer, activities, contracts = [], sal
         }
     }, [customer?.id])
 
+    useEffect(() => {
+        if (selectedCompanyId) {
+            setLoadingRelated(true)
+            import('@/app/[locale]/(dashboard)/companies/company-actions').then(m => {
+                m.getCompanyContacts(selectedCompanyId).then(res => {
+                    if (res.contacts) {
+                        setCompanyContacts(res.contacts.filter((c: any) => c.id !== customer?.id))
+                    }
+                    setLoadingRelated(false)
+                })
+            })
+        } else {
+            setCompanyContacts([])
+        }
+    }, [selectedCompanyId, customer?.id])
+
     const handleAddSource = async () => {
         if (!newSourceLabel.trim()) return
         const res = await addSourceOption(newSourceLabel.trim())
@@ -307,6 +325,37 @@ export default function CustomerForm({ customer, activities, contracts = [], sal
                             emptyText="Kayıtlı firma bulunamadı."
                         />
                         <input type="hidden" name="company_id" value={selectedCompanyId || ''} />
+
+                        {/* İlişkili Kişiler */}
+                        {selectedCompanyId && (
+                            <div className="mt-2.5 p-3 bg-slate-50 rounded-xl border border-slate-100 space-y-2">
+                                <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">
+                                    Firmadaki Diğer Kişiler
+                                </span>
+                                {loadingRelated ? (
+                                    <div className="text-[10px] text-slate-400 italic">Yükleniyor...</div>
+                                ) : companyContacts.length === 0 ? (
+                                    <div className="text-[10px] text-slate-400 italic">Bu firmaya bağlı başka bir kişi bulunmuyor.</div>
+                                ) : (
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {companyContacts.map(c => (
+                                            <Button
+                                                key={c.id}
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                className="h-8 rounded-lg bg-white border border-slate-200 px-2.5 text-xs font-semibold text-slate-600 hover:text-blue-600 hover:border-blue-200 shadow-sm"
+                                                onClick={() => {
+                                                    router.push(`/customers/${c.id}`)
+                                                }}
+                                            >
+                                                {c.full_name} {c.phone ? `(${c.phone})` : ''}
+                                            </Button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

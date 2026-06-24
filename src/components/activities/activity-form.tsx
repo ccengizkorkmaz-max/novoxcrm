@@ -160,6 +160,7 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
     }, [customers, selectedCustomerId, activity])
 
     // Derived State
+    const isReadOnly = mode === 'edit' && (activity?.status === 'Completed' || activity?.status === 'Cancelled')
     const isCompleteMode = mode === 'complete' || status === 'Completed'
 
     const handleVoiceData = (text: string, data?: any) => {
@@ -251,10 +252,12 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
                         </DialogTitle>
 
                         {/* Voice Input Button - Visible in Header */}
-                        <VoiceInput
-                            onTranscriptionComplete={handleVoiceData}
-                            isProcessing={isProcessingVoice}
-                        />
+                        {!isReadOnly && (
+                            <VoiceInput
+                                onTranscriptionComplete={handleVoiceData}
+                                isProcessing={isProcessingVoice}
+                            />
+                        )}
                     </div>
                 </DialogHeader>
                 <form action={handleSubmit}>
@@ -300,7 +303,7 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
                                                     placeholder={t('form.select')}
                                                     searchPlaceholder={t('form.search') || 'Müşteri Ara...'}
                                                     emptyText={t('form.noResults') || 'Müşteri bulunamadı.'}
-                                                    disabled={mode === 'edit' || (mode === 'create' && !!activity?.customer_id)}
+                                                    disabled={isReadOnly || mode === 'edit' || (mode === 'create' && !!activity?.customer_id)}
                                                 />
                                                 <UpcomingActivitiesInfo customerId={selectedCustomerId} />
                                             </div>
@@ -315,6 +318,7 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
                                         className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                                         value={selectedProjectId}
                                         onChange={(e) => setSelectedProjectId(e.target.value)}
+                                        disabled={isReadOnly}
                                     >
                                         <option value="">Proje Seçiniz (Opsiyonel)</option>
                                         {projects?.map((p: any) => (
@@ -330,6 +334,7 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
                                         className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                                         defaultValue={activity?.topic || 'General'}
                                         required
+                                        disabled={isReadOnly}
                                     >
                                         <option value="General">{t('topic.General')}</option>
                                         <option value="Sales">{t('topic.Sales')}</option>
@@ -348,6 +353,7 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
                                         className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-semibold"
                                         value={status}
                                         onChange={(e) => setStatus(e.target.value)}
+                                        disabled={isReadOnly}
                                     >
                                         <option value="Planned">{t('status.Planned')}</option>
                                         <option value="In Progress">{t('status.In Progress')}</option>
@@ -362,6 +368,7 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
                                         name="owner_id"
                                         className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                                         defaultValue={activity?.owner_id || ''}
+                                        disabled={isReadOnly}
                                     >
                                         <option value="">{t('form.selectOwner') || 'Ata...'}</option>
                                         {profiles?.map((p: any) => (
@@ -378,6 +385,7 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
                                             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                                             defaultValue={activity?.type || 'Call'}
                                             required
+                                            disabled={isReadOnly}
                                         >
                                             <option value="Call">{t('type.Call')}</option>
                                             <option value="Meeting">{t('type.Meeting')}</option>
@@ -398,6 +406,7 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
                                                 : new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)
                                             }
                                             required
+                                            disabled={isReadOnly}
                                         />
                                     </div>
                                 </div>
@@ -409,6 +418,7 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
                                             name="priority"
                                             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                                             defaultValue={activity?.priority || 'Medium'}
+                                            disabled={isReadOnly}
                                         >
                                             <option value="Low">{t('form.priorityLow') || 'Düşük'}</option>
                                             <option value="Medium">{t('form.priorityMedium') || 'Orta'}</option>
@@ -425,6 +435,7 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
                                                 ? new Date(new Date(activity.reminder_at).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)
                                                 : ''
                                             }
+                                            disabled={isReadOnly}
                                         />
                                     </div>
                                 </div>
@@ -437,6 +448,7 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
                                         onChange={(e) => setSummary(e.target.value)}
                                         placeholder={t('form.summaryPlaceholder')}
                                         required
+                                        disabled={isReadOnly}
                                     />
                                 </div>
                                 <div className="grid gap-2">
@@ -447,6 +459,7 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
                                         onChange={(e) => setDescription(e.target.value)}
                                         placeholder={t('form.descriptionPlaceholder')}
                                         rows={3}
+                                        disabled={isReadOnly}
                                     />
                                     {/* Additional hidden notes field just in case */}
                                     <input type="hidden" name="notes" value={notes} />
@@ -470,6 +483,7 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
                                         className="flex h-10 w-full rounded-md border-2 border-primary/20 bg-background px-3 py-2 text-sm focus:border-primary"
                                         defaultValue={activity?.outcome || ''}
                                         required
+                                        disabled={isReadOnly}
                                     >
                                         <option value="">{t('form.select')}</option>
                                         <option value="Success">{t('form.outcomes.Success')}</option>
@@ -490,6 +504,7 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
                                         required
                                         rows={3}
                                         className="border-2"
+                                        disabled={isReadOnly}
                                     />
                                 </div>
 
@@ -505,6 +520,7 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
                                                 name="next_action_type"
                                                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                                                 defaultValue={activity?.next_action_type || ''}
+                                                disabled={isReadOnly}
                                             >
                                                 <option value="">{t('form.none')}</option>
                                                 <option value="Call">{t('type.Call')}</option>
@@ -524,31 +540,52 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
                                                     ? new Date(new Date(activity.next_action_date).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)
                                                     : ''
                                                 }
+                                                disabled={isReadOnly}
                                             />
                                         </div>
                                     </div>
                                     <div className="grid gap-2 mt-3">
                                         <Label>{t('topic.General')}</Label>
-                                        <Input name="next_action_summary" placeholder={t('form.summaryPlaceholder')} />
+                                        <Input name="next_action_summary" placeholder={t('form.summaryPlaceholder')} disabled={isReadOnly} />
                                     </div>
                                 </div>
                             </div>
                         )}
                     </div>
                     <DialogFooter className="flex items-center justify-between w-full sm:justify-between gap-2">
-                        {mode === 'edit' && (
+                        {isReadOnly ? (
                             <Button
                                 type="button"
-                                variant="destructive"
-                                onClick={handleDelete}
-                                disabled={isDeleting}
+                                variant="outline"
+                                onClick={() => onOpenChange(false)}
+                                className="w-full"
                             >
-                                {isDeleting ? 'Siliniyor...' : 'Sil'}
+                                Kapat
                             </Button>
+                        ) : (
+                            <>
+                                {mode === 'edit' && (
+                                    <Button
+                                        type="button"
+                                        variant="destructive"
+                                        onClick={handleDelete}
+                                        disabled={isDeleting}
+                                    >
+                                        {isDeleting ? 'Siliniyor...' : 'Sil'}
+                                    </Button>
+                                )}
+                                <Button 
+                                    type="submit" 
+                                    className={cn(
+                                        isCompleteMode && mode !== 'edit' && "bg-green-600 hover:bg-green-700 w-full",
+                                        isCompleteMode && mode === 'edit' && "bg-green-600 hover:bg-green-700",
+                                        mode === 'edit' && "ml-auto"
+                                    )}
+                                >
+                                    {isCompleteMode ? t('form.completeAndSave') : t('form.save')}
+                                </Button>
+                            </>
                         )}
-                        <Button type="submit" className={cn(isCompleteMode && "bg-green-600 hover:bg-green-700 w-full", mode === 'edit' && "ml-auto")}>
-                            {isCompleteMode ? t('form.completeAndSave') : t('form.save')}
-                        </Button>
                     </DialogFooter>
                 </form>
             </DialogContent>

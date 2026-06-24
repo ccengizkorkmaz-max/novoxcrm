@@ -390,12 +390,19 @@ export async function cancelContract(id: string, reason?: string) {
 
             if (unitError) console.error('Failed to release unit during cancellation', unitError)
 
-            // Release related offer status (update from 'Contract' to 'Cancelled')
-            const { error: offerError } = await supabase
+            // Release related offer status (update to 'Cancelled')
+            let offerQuery = supabase
                 .from('offers')
                 .update({ status: 'Cancelled' })
-                .eq('unit_id', contract.unit_id)
-                .eq('status', 'Contract')
+                .in('status', ['Contract', 'Accepted', 'Sent', 'Pending'])
+
+            if (contract.sale_id) {
+                offerQuery = offerQuery.eq('sale_id', contract.sale_id)
+            } else {
+                offerQuery = offerQuery.eq('unit_id', contract.unit_id)
+            }
+
+            const { error: offerError } = await offerQuery
             if (offerError) console.error('Failed to update offer status during contract cancellation:', offerError)
 
             // Log unit activity
@@ -421,6 +428,14 @@ export async function cancelContract(id: string, reason?: string) {
                 .in('status', ['Sold', 'Completed', 'Contract', 'Prospect', 'Reservation', 'Proposal'])
         } else if (contract.sale_id) {
             await supabase.from('sales').update({ status: 'Cancelled' }).eq('id', contract.sale_id)
+
+            // Release related offer status (update to 'Cancelled')
+            const { error: offerError } = await supabase
+                .from('offers')
+                .update({ status: 'Cancelled' })
+                .eq('sale_id', contract.sale_id)
+                .in('status', ['Contract', 'Accepted', 'Sent', 'Pending'])
+            if (offerError) console.error('Failed to update offer status during contract cancellation (no unit_id):', offerError)
         }
 
         // 5. Cancel Payment Plans
@@ -527,12 +542,19 @@ export async function deleteContract(id: string) {
         if (contract.unit_id) {
             await supabase.from('units').update({ status: 'For Sale' }).eq('id', contract.unit_id)
 
-            // Release related offer status (update from 'Contract' to 'Cancelled')
-            const { error: offerError } = await supabase
+            // Release related offer status (update to 'Cancelled')
+            let offerQuery = supabase
                 .from('offers')
                 .update({ status: 'Cancelled' })
-                .eq('unit_id', contract.unit_id)
-                .eq('status', 'Contract')
+                .in('status', ['Contract', 'Accepted', 'Sent', 'Pending'])
+
+            if (contract.sale_id) {
+                offerQuery = offerQuery.eq('sale_id', contract.sale_id)
+            } else {
+                offerQuery = offerQuery.eq('unit_id', contract.unit_id)
+            }
+
+            const { error: offerError } = await offerQuery
             if (offerError) console.error('Failed to update offer status during contract deletion:', offerError)
 
             // Log unit activity
@@ -557,6 +579,14 @@ export async function deleteContract(id: string) {
                 .in('status', ['Sold', 'Completed', 'Contract', 'Prospect', 'Reservation', 'Proposal'])
         } else if (contract.sale_id) {
             await supabase.from('sales').update({ status: 'Cancelled' }).eq('id', contract.sale_id)
+
+            // Release related offer status (update to 'Cancelled')
+            const { error: offerError } = await supabase
+                .from('offers')
+                .update({ status: 'Cancelled' })
+                .eq('sale_id', contract.sale_id)
+                .in('status', ['Contract', 'Accepted', 'Sent', 'Pending'])
+            if (offerError) console.error('Failed to update offer status during contract deletion (no unit_id):', offerError)
         }
 
         // 3. Get payment plan IDs for finance transaction cleanup before they are cascade deleted

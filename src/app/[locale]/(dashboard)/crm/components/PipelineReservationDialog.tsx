@@ -56,7 +56,7 @@ export default function PipelineReservationDialog({
     const [selectedUnitId, setSelectedUnitId] = useState(currentUnitId || "")
     const [units, setUnits] = useState<any[]>([])
     const [isLoadingUnits, setIsLoadingUnits] = useState(false)
-    const isReserved = status === 'Reservation'
+    const isReserved = status === 'Reservation' || status === 'Opsiyon - Kapora Bekleniyor' || status === 'Option - Deposit Pending'
 
     const defaultDate = new Date()
     defaultDate.setDate(defaultDate.getDate() + 3)
@@ -64,6 +64,24 @@ export default function PipelineReservationDialog({
         initialExpiryDate ? initialExpiryDate.split('T')[0] : defaultDate.toISOString().split('T')[0]
     )
     const [depositAmount, setDepositAmount] = useState(0)
+
+    // Reset fields when the dialog is opened
+    useEffect(() => {
+        if (isOpen) {
+            const defaultDate = new Date()
+            defaultDate.setDate(defaultDate.getDate() + 3)
+            setExpiryDate(
+                initialExpiryDate ? initialExpiryDate.split('T')[0] : defaultDate.toISOString().split('T')[0]
+            )
+            setDepositAmount(0)
+            if (!currentUnitId) {
+                setSelectedProjectId("")
+                setSelectedUnitId("")
+            } else {
+                setSelectedUnitId(currentUnitId)
+            }
+        }
+    }, [isOpen, initialExpiryDate, currentUnitId])
 
     // Pre-fill project if unit is already matched
     useEffect(() => {

@@ -57,6 +57,25 @@ export function CustomerView({ customer, activities, contracts = [], profiles = 
     const [selectedCompanyId, setSelectedCompanyId] = useState('')
     const [loadingCompany, setLoadingCompany] = useState(false)
 
+    const [companyContacts, setCompanyContacts] = useState<any[]>([])
+    const [loadingRelated, setLoadingRelated] = useState(false)
+
+    useEffect(() => {
+        if (customer.company?.id) {
+            setLoadingRelated(true)
+            import('@/app/[locale]/(dashboard)/companies/company-actions').then(m => {
+                m.getCompanyContacts(customer.company.id).then(res => {
+                    if (res.contacts) {
+                        setCompanyContacts(res.contacts.filter((c: any) => c.id !== customer.id))
+                    }
+                    setLoadingRelated(false)
+                })
+            })
+        } else {
+            setCompanyContacts([])
+        }
+    }, [customer.company?.id, customer.id])
+
     useEffect(() => {
         if (!customer.company) {
             import('@/app/[locale]/(dashboard)/companies/company-actions').then(m => {
@@ -193,26 +212,52 @@ export function CustomerView({ customer, activities, contracts = [], profiles = 
                                     İlişkili Firma
                                 </Label>
                                 {customer.company ? (
-                                    <div className="flex items-center justify-between bg-slate-50/60 hover:bg-slate-50 border border-slate-100 p-2.5 rounded-xl transition-all">
-                                        <div className="flex items-center gap-2 text-sm min-w-0">
-                                            <Building2 className="h-4 w-4 text-slate-500 shrink-0" />
-                                            <Link
-                                                href={`/companies/${customer.company.id}`}
-                                                className="font-semibold text-blue-600 hover:text-blue-800 hover:underline truncate"
+                                    <div className="flex flex-col gap-2">
+                                        <div className="flex items-center justify-between bg-slate-50/60 hover:bg-slate-50 border border-slate-100 p-2.5 rounded-xl transition-all">
+                                            <div className="flex items-center gap-2 text-sm min-w-0">
+                                                <Building2 className="h-4 w-4 text-slate-500 shrink-0" />
+                                                <Link
+                                                    href={`/companies/${customer.company.id}`}
+                                                    className="font-semibold text-blue-600 hover:text-blue-800 hover:underline truncate"
+                                                >
+                                                    {customer.company.name}
+                                                </Link>
+                                            </div>
+                                            <Button
+                                                size="icon"
+                                                variant="ghost"
+                                                className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg shrink-0"
+                                                onClick={handleRemoveCompany}
+                                                disabled={loadingCompany}
+                                                title="Firmadan Ayrıl"
                                             >
-                                                {customer.company.name}
-                                            </Link>
+                                                {loadingCompany ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                                            </Button>
                                         </div>
-                                        <Button
-                                            size="icon"
-                                            variant="ghost"
-                                            className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg shrink-0"
-                                            onClick={handleRemoveCompany}
-                                            disabled={loadingCompany}
-                                            title="Firmadan Ayrıl"
-                                        >
-                                            {loadingCompany ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                                        </Button>
+
+                                        {/* İlişkili Kişiler */}
+                                        <div className="p-2.5 bg-slate-50/40 rounded-xl border border-slate-100/80 space-y-2">
+                                            <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">
+                                                Firmadaki Diğer Kişiler
+                                            </span>
+                                            {loadingRelated ? (
+                                                <div className="text-[10px] text-slate-400 italic">Yükleniyor...</div>
+                                            ) : companyContacts.length === 0 ? (
+                                                <div className="text-[10px] text-slate-400 italic">Bu firmaya bağlı başka bir kişi bulunmuyor.</div>
+                                            ) : (
+                                                <div className="flex flex-wrap gap-1.5">
+                                                    {companyContacts.map(c => (
+                                                        <Link
+                                                            key={c.id}
+                                                            href={`/customers/${c.id}`}
+                                                            className="inline-flex items-center justify-center h-8 rounded-lg bg-white border border-slate-200 px-2.5 text-xs font-semibold text-slate-600 hover:text-blue-600 hover:border-blue-200 transition-colors"
+                                                        >
+                                                            {c.full_name} {c.phone ? `(${c.phone})` : ''}
+                                                        </Link>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 ) : (
                                     <div className="flex gap-2">

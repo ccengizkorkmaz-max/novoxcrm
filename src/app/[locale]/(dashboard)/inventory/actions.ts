@@ -238,23 +238,17 @@ export async function cancelReservation(unitId: string, saleId: string) {
     if (resolvedSaleId) {
         const { data: saleData } = await supabase
             .from('sales')
-            .select('status, description')
+            .select('status, description, customer_id, project_id')
             .eq('id', resolvedSaleId)
             .single()
 
-        let targetStatus = 'Prospect'
+        const targetStatus = 'Lost'
         let cleanDesc = 'Rezervasyon İptal Edildi'
 
         if (saleData) {
             const desc = saleData.description || ''
-            const match = desc.match(/\[prev_status:([^\]]+)\]/)
-            if (match && match[1]) {
-                targetStatus = match[1]
-                cleanDesc = desc.replace(/\[prev_status:[^\]]+\]/g, '').trim()
-                if (!cleanDesc) cleanDesc = 'Rezervasyon İptal Edildi'
-            } else {
-                cleanDesc = desc || 'Rezervasyon İptal Edildi'
-            }
+            cleanDesc = desc.replace(/\[prev_status:[^\]]+\]/g, '').trim()
+            if (!cleanDesc) cleanDesc = 'Rezervasyon İptal Edildi'
         }
 
         await supabase
@@ -271,6 +265,25 @@ export async function cancelReservation(unitId: string, saleId: string) {
             .update({ status: 'Cancelled' })
             .eq('sale_id', resolvedSaleId)
             .eq('status', 'Pending')
+
+        // Sync Opportunity stage (Advance CRM)
+        const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single()
+        if (profile?.tenant_id && saleData) {
+            let oppQuery = supabase
+                .from('opportunities')
+                .update({
+                    stage: 'lost',
+                    updated_at: new Date().toISOString()
+                })
+                .eq('tenant_id', profile.tenant_id)
+                .eq('customer_id', saleData.customer_id)
+
+            if (saleData.project_id) {
+                oppQuery = oppQuery.eq('project_id', saleData.project_id)
+            }
+
+            await oppQuery
+        }
 
         // Broker Sync
         await syncBrokerLeadFromSale(resolvedSaleId, targetStatus)

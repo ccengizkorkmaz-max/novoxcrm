@@ -1464,7 +1464,18 @@ export async function getNegotiationHistory(offerId: string) {
 
     console.log(`Fetching negotiation history for offerId: ${offerId}`)
 
-    // Query negotiations directly without joining profiles, as proposed_by has no explicit foreign key relation
+    // 1. Fetch parent offer details to synthesize the initial/first offer record
+    const { data: offer, error: offerError } = await supabase
+        .from('offers')
+        .select('price, currency, payment_plan, created_at, user_id, notes, status')
+        .eq('id', offerId)
+        .single()
+
+    if (offerError) {
+        console.error('Fetch Offer Error in getNegotiationHistory:', offerError)
+    }
+
+    // 2. Fetch negotiation history
     const { data: history, error } = await supabase
         .from('offer_negotiations')
         .select('*')
@@ -1476,12 +1487,13 @@ export async function getNegotiationHistory(offerId: string) {
         return []
     }
 
-    if (!history || history.length === 0) {
-        return []
-    }
+    const allHistory = history || []
 
-    // Get unique proposed_by IDs
-    const proposedByIds = Array.from(new Set(history.map(item => item.proposed_by).filter(Boolean)))
+    // 3. Get unique proposed_by IDs, including offer.user_id
+    const proposedByIds = Array.from(new Set([
+        ...allHistory.map(item => item.proposed_by),
+        offer?.user_id
+    ].filter(Boolean)))
 
     const profilesMap: Record<string, { full_name: string }> = {}
 
@@ -1502,13 +1514,32 @@ export async function getNegotiationHistory(offerId: string) {
         }
     }
 
-    // Map profiles to negotiations
-    const historyWithProfiles = history.map(item => ({
+    // 4. Map profiles to negotiations
+    const historyWithProfiles = allHistory.map(item => ({
         ...item,
         profiles: item.proposed_by ? profilesMap[item.proposed_by] : null
     }))
 
-    console.log(`Found ${historyWithProfiles.length} negotiation records`)
+    // 5. Append initial offer to the end of the history (since it's oldest, and history is newest-first)
+    if (offer) {
+        const isApproved = offer.status === 'Approved' || offer.status === 'Contract' || offer.status === 'Closed'
+        const initialRecord = {
+            id: 'initial-' + offerId,
+            offer_id: offerId,
+            proposed_price: offer.price,
+            proposed_currency: offer.currency,
+            proposed_payment_plan: offer.payment_plan,
+            source: 'Sales',
+            status: isApproved ? 'Approved' : 'Pending',
+            proposed_by: offer.user_id,
+            notes: offer.notes || 'Sistem tarafından oluşturulan ilk teklif bedeli.',
+            created_at: offer.created_at,
+            profiles: offer.user_id ? profilesMap[offer.user_id] : null
+        }
+        historyWithProfiles.push(initialRecord)
+    }
+
+    console.log(`Found ${historyWithProfiles.length} negotiation records (including initial offer)`)
     return historyWithProfiles
 }
 
@@ -1997,20 +2028,6 @@ export async function updateSaleToReservation(saleId: string, unitId: string, ex
             .update({ valid_until: expiryDate })
             .eq('id', existingOffer.id)
         if (offerError) console.error('Update Offer Error (Reservation):', offerError)
-    } else {
-        // Create new offer only if none exists
-        const { error: offerError } = await supabase.from('offers').insert({
-            tenant_id: profile.tenant_id,
-            customer_id: saleCustomerId,
-            unit_id: unitId,
-            user_id: user.id,
-            price: unit?.price || 0,
-            currency: unit?.currency || 'TRY',
-            status: 'Sent',
-            valid_until: expiryDate,
-            created_at: new Date().toISOString()
-        })
-        if (offerError) console.error('Create Offer Error (Reservation):', offerError)
     }
 
     // Notification: Reservation created
@@ -2075,16 +2092,11 @@ export async function cancelReservation(saleId: string) {
         return { success: true, message: 'Kapora ödemesi onaylı olduğu için iade süreci başlatıldı. Finans onayından sonra opsiyon kalkacaktır.' }
     }
 
-    // 3. Parse previous status
-    let targetStatus = 'Prospect'
+    // 3. Update Sale status to Lost
+    const targetStatus = 'Lost'
     let cleanDesc = sale?.description || ''
-    if (sale) {
-        const desc = sale.description || ''
-        const match = desc.match(/\[prev_status:([^\]]+)\]/)
-        if (match && match[1]) {
-            targetStatus = match[1]
-            cleanDesc = desc.replace(/\[prev_status:[^\]]+\]/g, '').trim()
-        }
+    if (cleanDesc) {
+        cleanDesc = cleanDesc.replace(/\[prev_status:[^\]]+\]/g, '').trim()
     }
 
     // 3.1 Update Sale record
@@ -2120,15 +2132,10 @@ export async function cancelReservation(saleId: string) {
             .single()
 
         if (saleData) {
-            let oppStage = 'prospect'
-            if (targetStatus === 'Proposal' || targetStatus === 'Teklif - Kapora Bekleniyor') {
-                oppStage = 'proposal'
-            }
-
             let oppQuery = supabase
                 .from('opportunities')
                 .update({
-                    stage: oppStage,
+                    stage: 'lost',
                     updated_at: new Date().toISOString()
                 })
                 .eq('tenant_id', profileForCancel.tenant_id)
