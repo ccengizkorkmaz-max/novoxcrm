@@ -112,6 +112,17 @@ export function OikosMarketingPage() {
                     <p className="text-base md:text-lg text-[#9FE1CB] max-w-xl mx-auto mb-10 leading-relaxed">
                         Oikos CRM, gayrimenkul geliştirme şirketleri ve ulusal/uluslararası emlak ağları için tasarlandı. İlk temastan satış kapanışına kadar tüm müşteri iletişimini — neredeyse insan müdahanesine gerek kalmadan — AI ile yönetir.
                     </p>
+
+                    {/* Slogan Banner */}
+                    <div className="max-w-3xl mx-auto mb-10 animate-in fade-in slide-in-from-bottom-6 duration-1000 delay-300">
+                        <p className="inline-flex flex-wrap items-center justify-center gap-2 px-6 py-2.5 rounded-full bg-[#085041]/80 border border-[#1D9E75]/35 backdrop-blur-md text-[#9FE1CB] text-sm md:text-base font-medium shadow-[0_0_30px_rgba(4,52,44,0.5)]">
+                            <span className="text-white font-bold">Minimum</span> insan kaynağı
+                            <span className="text-[#1D9E75]/50">•</span>
+                            <span className="text-[#EF9F27] font-bold">Maksimum</span> yapay zeka otomasyonu
+                            <span className="text-[#1D9E75]/50">•</span>
+                            <span className="text-white font-bold">Yüksek</span> satış verimliliği
+                        </p>
+                    </div>
                     
                     <div className="flex flex-wrap gap-4 justify-center mb-16">
                         <button 

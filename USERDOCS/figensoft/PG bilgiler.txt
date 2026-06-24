@@ -1,0 +1,37 @@
+SMS entegrasyonu için;
+
+Bulk için;
+https://www.postaguvercini.com/api_json/swagger/ui/index
+
+OTP için;
+https://otpsms.postaguvercini.com/api_json/swagger/ui/index
+
+Web kullanıcı adı: BTProses
+Web Şifre: BtProses123@@
+
+Apı Kullanıcı Adı : BTProses
+Kullanıcı Şifresi ; BtProses123@
+
+
+İzin İzin entegrasyonu için;
+
+API dökümanımızı ekte iletiyorum.
+
+API Key: WClZ38pVlKiVpceDD8n6
+
+Web Kullanıcı Adı: BTProses
+Web Şifre: BtProses123@@
+
+
+E-posta entegrasyonu için;
+
+API dökümanımızı ekte iletiyorum.
+web.postaguvercini.com/Login  linki üzerinden giriş yaparak yetkili mail adresinizi girerek şifremi unuttum bölümünde şifrenizi belirlemenizi rica ederim.
+
+ 
+
+Bu bilgiler ile API entegrasyonunu test ortamında gerçekleştirebilirsiniz.
+
+Herhangi bir sorunuz olursa bana her zaman ulaşabilirsiniz.
+
+Teşekkürler, iyi çalışmalar dilerim.

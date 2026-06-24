@@ -11,7 +11,7 @@ const slides = [
         id: 1,
         title: "AI Akıllı Eşleşme",
         description: "Müşteri taleplerini saniyeler içinde en uygun mülkle eşleştirin, nedenini AI açıklasın.",
-        image: "/images/crm akıllı eşleşme.png",
+        image: "/images/crm-akilli-eslesme.png",
         icon: Sparkles,
         color: "indigo"
     },
@@ -19,7 +19,7 @@ const slides = [
         id: 2,
         title: "Görsel Envanter Yönetimi",
         description: "Tüm projeyi, blokları ve üniteleri canlı matris görünümüyle anlık takip edin.",
-        image: "/images/Envanter Grid.png",
+        image: "/images/envanter-grid.png",
         icon: LayoutGrid,
         color: "emerald"
     },
@@ -27,7 +27,7 @@ const slides = [
         id: 3,
         title: "Dijital Sözleşme Akışı",
         description: "Karmaşık satış süreçlerini yalın, hatasız ve hızlı bir dijital forma dönüştürün.",
-        image: "/images/otomatik sözleşme oluşturma.png",
+        image: "/images/otomatik-sozlesme-olusturma.png",
         icon: FileText,
         color: "blue"
     },

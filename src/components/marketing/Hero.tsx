@@ -40,6 +40,27 @@ export function Hero() {
                 {/* Headline */}
                 <AnimatedHeroHeadline locale={locale} />
 
+                {/* Slogan Banner */}
+                <div className="max-w-3xl mx-auto mb-8 animate-in fade-in slide-in-from-bottom-6 duration-1000 delay-300">
+                    {locale === 'en' ? (
+                        <p className="inline-flex flex-wrap items-center justify-center gap-2 px-6 py-2.5 rounded-full bg-slate-900/60 border border-slate-800 backdrop-blur-md text-slate-200 text-sm md:text-base font-medium shadow-[0_0_30px_rgba(30,41,59,0.5)]">
+                            <span className="text-blue-400 font-bold">Minimum</span> human resources
+                            <span className="text-slate-600">•</span>
+                            <span className="text-emerald-400 font-bold">Maximum</span> AI automation
+                            <span className="text-slate-600">•</span>
+                            <span className="text-indigo-400 font-bold">High</span> sales efficiency
+                        </p>
+                    ) : (
+                        <p className="inline-flex flex-wrap items-center justify-center gap-2 px-6 py-2.5 rounded-full bg-slate-900/60 border border-slate-800 backdrop-blur-md text-slate-200 text-sm md:text-base font-medium shadow-[0_0_30px_rgba(30,41,59,0.5)]">
+                            <span className="text-blue-400 font-bold">Minimum</span> insan kaynağı
+                            <span className="text-slate-600">•</span>
+                            <span className="text-emerald-400 font-bold">Maksimum</span> yapay zeka otomasyonu
+                            <span className="text-slate-600">•</span>
+                            <span className="text-indigo-400 font-bold">Yüksek</span> satış verimliliği
+                        </p>
+                    )}
+                </div>
+
                 {/* Subheadline */}
                 <p className="max-w-4xl mx-auto text-xl text-slate-400 mb-10 leading-relaxed">
                     {t('description').split('Novo CRM').map((part, i, arr) => (

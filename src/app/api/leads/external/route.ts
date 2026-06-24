@@ -435,61 +435,88 @@ export async function POST(req: Request) {
                         const templateRule = tenantSettings?.wa_auto_template_rule || 'new_lead';
 
                         if (templateRule !== 'disabled') {
-                            let wpPhone = phone.replace(/[^\d]/g, '');
-                            if (wpPhone.startsWith('0')) wpPhone = '90' + wpPhone.substring(1);
-                            if (!wpPhone.startsWith('90') && wpPhone.length === 10) wpPhone = '90' + wpPhone;
+                            // Check if a welcome WhatsApp template has already been sent to prevent duplicate messages
+                            const { data: existingWa } = await supabase
+                                .from('activities')
+                                .select('id')
+                                .eq('customer_id', customerId)
+                                .eq('type', 'Whatsapp')
+                                .ilike('summary', `%${templateName}%`)
+                                .limit(1)
+                                .maybeSingle();
 
-                            const templateResult = await sendWhatsAppTemplate(wpPhone, templateName, [customerName, projectName]);
-
-                            if (templateResult.success) {
-                                console.log(`📩 WhatsApp "${templateName}" gönderildi: ${wpPhone} (${projectName})`);
-                                await supabase.from('sales').update({
-                                    wa_first_message_sent: true,
-                                    wa_first_message_at: new Date().toISOString()
-                                }).eq('id', newSale.id);
-
-                                await supabase.from('activities').insert({
-                                    tenant_id: tenant_id, customer_id: customerId, project_id: projectId,
-                                    type: 'Whatsapp', topic: 'Sales',
-                                    summary: `💬 WhatsApp Mesajı Gönderildi (${templateName})`,
-                                    description: `Sistem tarafından otomatik şablon mesajı gönderildi.`,
-                                    status: 'Completed', due_date: new Date().toISOString(), priority: 'Medium'
-                                });
-
-                                // Conversation log
-                                try {
-                                    let { data: existingConv } = await supabase
-                                        .from('whatsapp_conversations').select('id')
-                                        .eq('tenant_id', tenant_id).eq('phone_number', wpPhone).maybeSingle();
-                                    if (!existingConv) {
-                                        const { data: newConv } = await supabase.from('whatsapp_conversations').insert({
-                                            tenant_id, phone_number: wpPhone, customer_id: customerId,
-                                            channel: 'whatsapp', ai_enabled: true,
-                                            last_message_preview: `[Şablon] ${templateName}`, unread_count: 0
-                                        }).select('id').single();
-                                        existingConv = newConv;
-                                    }
-                                    if (existingConv) {
-                                        await supabase.from('whatsapp_messages').insert({
-                                            conversation_id: existingConv.id, tenant_id, role: 'assistant',
-                                            direction: 'outbound', sender_type: 'bot',
-                                            content: `[Şablon: ${templateName}] Müşteriye ${projectName} projesi hakkında bilgi mesajı gönderildi.`,
-                                            status: 'delivered',
-                                        });
-                                    }
-                                } catch (convErr) {
-                                    console.warn('Conversation log hatası (non-blocking):', convErr);
-                                }
+                            if (existingWa) {
+                                console.log(`ℹ️ WhatsApp welcome message "${templateName}" already sent to customer ${customerId}. Skipping duplicate.`);
                             } else {
-                                console.warn('⚠️ WhatsApp şablon gönderilemedi:', templateResult.error);
+                                let wpPhone = phone.replace(/[^\d]/g, '');
+                                if (wpPhone.startsWith('0')) wpPhone = '90' + wpPhone.substring(1);
+                                if (!wpPhone.startsWith('90') && wpPhone.length === 10) wpPhone = '90' + wpPhone;
+
+                                const templateResult = await sendWhatsAppTemplate(wpPhone, templateName, [customerName, projectName]);
+
+                                if (templateResult.success) {
+                                    console.log(`📩 WhatsApp "${templateName}" gönderildi: ${wpPhone} (${projectName})`);
+                                    await supabase.from('sales').update({
+                                        wa_first_message_sent: true,
+                                        wa_first_message_at: new Date().toISOString()
+                                    }).eq('id', newSale.id);
+
+                                    await supabase.from('activities').insert({
+                                        tenant_id: tenant_id, customer_id: customerId, project_id: projectId,
+                                        type: 'Whatsapp', topic: 'Sales',
+                                        summary: `💬 WhatsApp Mesajı Gönderildi (${templateName})`,
+                                        description: `Sistem tarafından otomatik şablon mesajı gönderildi.`,
+                                        status: 'Completed', due_date: new Date().toISOString(), priority: 'Medium'
+                                    });
+
+                                    // Conversation log
+                                    try {
+                                        let { data: existingConv } = await supabase
+                                            .from('whatsapp_conversations').select('id')
+                                            .eq('tenant_id', tenant_id).eq('phone_number', wpPhone).maybeSingle();
+                                        if (!existingConv) {
+                                            const { data: newConv } = await supabase.from('whatsapp_conversations').insert({
+                                                tenant_id, phone_number: wpPhone, customer_id: customerId,
+                                                channel: 'whatsapp', ai_enabled: true,
+                                                last_message_preview: `[Şablon] ${templateName}`, unread_count: 0
+                                            }).select('id').single();
+                                            existingConv = newConv;
+                                        }
+                                        if (existingConv) {
+                                            await supabase.from('whatsapp_messages').insert({
+                                                conversation_id: existingConv.id, tenant_id, role: 'assistant',
+                                                direction: 'outbound', sender_type: 'bot',
+                                                content: `[Şablon: ${templateName}] Müşteriye ${projectName} projesi hakkında bilgi mesajı gönderildi.`,
+                                                status: 'delivered',
+                                            });
+                                        }
+                                    } catch (convErr) {
+                                        console.warn('Conversation log hatası (non-blocking):', convErr);
+                                    }
+                                } else {
+                                    console.warn('⚠️ WhatsApp şablon gönderilemedi:', templateResult.error);
+                                }
                             }
                         }
                     } else if (autoAction === 'ai_call') {
                         // ── Vapi AI Arama başlat ──
-                        console.log(`📞 AI Arama başlatılıyor: ${phone} → ${projectName}`);
+                        // Check if already called to prevent duplicate calls
+                        const { data: existingCall } = await supabase
+                            .from('activities')
+                            .select('id')
+                            .eq('customer_id', customerId)
+                            .eq('type', 'Call')
+                            .ilike('summary', '%AI Arama%')
+                            .limit(1)
+                            .maybeSingle();
 
-                        const knowledgeBase = tenantSettings?.ai_knowledge_base || '';
-                        const systemPrompt = `Sen Novo İnşaat için çalışan profesyonel sesli yapay zeka asistanısın. Adın Maya.
+                        if (existingCall) {
+                            console.log(`ℹ️ AI Call already initiated for customer ${customerId}. Skipping duplicate.`);
+                        } else {
+                            console.log(`📞 AI Arama başlatılıyor: ${phone} → ${projectName}`);
+
+                            const knowledgeBase = tenantSettings?.ai_knowledge_base || '';
+                            const systemPrompt = `Sen Novo İnşaat için çalışan profesyonel sesli yapay zeka asistanısın. Adın Maya.
 Müşteri az önce ${projectName} projesi hakkında bir form doldurarak bilgi talep etti. Şimdi onu arıyorsun.
 
 === KONUŞMA AKIŞI ===
@@ -508,28 +535,29 @@ ${knowledgeBase || 'Proje detayları için satış danışmanına yönlendir.'}
 - Müşteriye söz hakkı ver, monolog yapma. Müşteri konuşurken sözünü kesme, dinle.
 - Ret durumunda HEMEN vedalaş ve endCall çağır.`;
 
-                        const callResult = await makeOutboundCall({
-                            phoneNumber: phone,
-                            systemPrompt,
-                            firstMessage: `Merhaba ${customerName}, ben Maya, Novo AI satış asistanıyım. Nasılsınız?`,
-                            metadata: {
-                                tenant_id, customer_id: customerId, sale_id: newSale.id,
-                                project_name: projectName, source: 'auto_new_lead'
-                            }
-                        });
-
-                        if (callResult.success) {
-                            console.log(`📞 AI Arama başlatıldı: ${callResult.callId} → ${phone}`);
-                            // Aktivite kaydet
-                            await supabase.from('activities').insert({
-                                tenant_id: tenant_id, customer_id: customerId, project_id: projectId,
-                                type: 'Call', topic: 'Sales',
-                                summary: `📞 AI Arama Başlatıldı (${projectName})`,
-                                description: `Yeni lead geldiği için otomatik AI arama başlatıldı.\n\n[Call ID: ${callResult.callId}]`,
-                                status: 'In Progress', due_date: new Date().toISOString(), priority: 'High'
+                            const callResult = await makeOutboundCall({
+                                phoneNumber: phone,
+                                systemPrompt,
+                                firstMessage: `Merhaba ${customerName}, ben Maya, Novo AI satış asistanıyım. Nasılsınız?`,
+                                metadata: {
+                                    tenant_id, customer_id: customerId, sale_id: newSale.id,
+                                    project_name: projectName, source: 'auto_new_lead'
+                                }
                             });
-                        } else {
-                            console.warn('⚠️ AI Arama başlatılamadı:', callResult.error);
+
+                            if (callResult.success) {
+                                console.log(`📞 AI Arama başlatıldı: ${callResult.callId} → ${phone}`);
+                                // Aktivite kaydet
+                                await supabase.from('activities').insert({
+                                    tenant_id: tenant_id, customer_id: customerId, project_id: projectId,
+                                    type: 'Call', topic: 'Sales',
+                                    summary: `📞 AI Arama Başlatıldı (${projectName})`,
+                                    description: `Yeni lead geldiği için otomatik AI arama başlatıldı.\n\n[Call ID: ${callResult.callId}]`,
+                                    status: 'In Progress', due_date: new Date().toISOString(), priority: 'High'
+                                });
+                            } else {
+                                console.warn('⚠️ AI Arama başlatılamadı:', callResult.error);
+                            }
                         }
                     } else {
                         console.log('ℹ️ Yeni lead aksiyonu: none — otomatik işlem yapılmadı');
@@ -792,57 +820,84 @@ ${knowledgeBase || 'Proje detayları için satış danışmanına yönlendir.'}
                     const templateRule = tenantSettings?.wa_auto_template_rule || 'new_lead'
 
                     if (templateRule !== 'disabled') {
-                        let wpPhone = String(phone).replace(/[^\d]/g, '')
-                        if (wpPhone.startsWith('0')) wpPhone = '90' + wpPhone.substring(1)
-                        if (!wpPhone.startsWith('90') && wpPhone.length === 10) wpPhone = '90' + wpPhone
+                        // Check if a welcome WhatsApp template has already been sent to prevent duplicate messages
+                        const { data: existingWa } = await supabase
+                            .from('activities')
+                            .select('id')
+                            .eq('customer_id', customerId)
+                            .eq('type', 'Whatsapp')
+                            .ilike('summary', `%${templateName}%`)
+                            .limit(1)
+                            .maybeSingle()
 
-                        const templateResult = await sendWhatsAppTemplate(wpPhone, templateName, [customerName, projectName])
-
-                        if (templateResult.success) {
-                            console.log(`📩 WhatsApp "${templateName}" gönderildi (Web Form): ${wpPhone}`)
-                            await supabase.from('sales').update({
-                                wa_first_message_sent: true, wa_first_message_at: new Date().toISOString()
-                            }).eq('id', saleId)
-
-                            await supabase.from('activities').insert({
-                                tenant_id, customer_id: customerId, project_id: projectId,
-                                type: 'Whatsapp', topic: 'Sales',
-                                summary: `💬 WhatsApp Mesajı Gönderildi (${templateName})`,
-                                description: `Web form sonrası otomatik şablon mesajı gönderildi.`,
-                                status: 'Completed', due_date: new Date().toISOString(), priority: 'Medium'
-                            })
-
-                            try {
-                                let { data: existingConv } = await supabase
-                                    .from('whatsapp_conversations').select('id')
-                                    .eq('tenant_id', tenant_id).eq('phone_number', wpPhone).maybeSingle()
-                                if (!existingConv) {
-                                    const { data: newConv } = await supabase.from('whatsapp_conversations').insert({
-                                        tenant_id, phone_number: wpPhone, customer_id: customerId,
-                                        channel: 'whatsapp', ai_enabled: true,
-                                        last_message_preview: `[Şablon] ${templateName}`, unread_count: 0
-                                    }).select('id').single()
-                                    existingConv = newConv
-                                }
-                                if (existingConv) {
-                                    await supabase.from('whatsapp_messages').insert({
-                                        conversation_id: existingConv.id, tenant_id, role: 'assistant',
-                                        direction: 'outbound', sender_type: 'bot',
-                                        content: `[Şablon: ${templateName}] Müşteriye ${projectName} projesi hakkında bilgi mesajı gönderildi.`,
-                                        status: 'delivered',
-                                    })
-                                }
-                            } catch (convErr) {
-                                console.warn('Conversation log hatası (non-blocking):', convErr)
-                            }
+                        if (existingWa) {
+                            console.log(`ℹ️ WhatsApp welcome message "${templateName}" already sent (Web Form). Skipping duplicate.`);
                         } else {
-                            console.warn('⚠️ WhatsApp şablon gönderilemedi (Web Form):', templateResult.error)
+                            let wpPhone = String(phone).replace(/[^\d]/g, '')
+                            if (wpPhone.startsWith('0')) wpPhone = '90' + wpPhone.substring(1)
+                            if (!wpPhone.startsWith('90') && wpPhone.length === 10) wpPhone = '90' + wpPhone
+
+                            const templateResult = await sendWhatsAppTemplate(wpPhone, templateName, [customerName, projectName])
+
+                            if (templateResult.success) {
+                                console.log(`📩 WhatsApp "${templateName}" gönderildi (Web Form): ${wpPhone}`)
+                                await supabase.from('sales').update({
+                                    wa_first_message_sent: true, wa_first_message_at: new Date().toISOString()
+                                }).eq('id', saleId)
+
+                                await supabase.from('activities').insert({
+                                    tenant_id, customer_id: customerId, project_id: projectId,
+                                    type: 'Whatsapp', topic: 'Sales',
+                                    summary: `💬 WhatsApp Mesajı Gönderildi (${templateName})`,
+                                    description: `Web form sonrası otomatik şablon mesajı gönderildi.`,
+                                    status: 'Completed', due_date: new Date().toISOString(), priority: 'Medium'
+                                })
+
+                                try {
+                                    let { data: existingConv } = await supabase
+                                        .from('whatsapp_conversations').select('id')
+                                        .eq('tenant_id', tenant_id).eq('phone_number', wpPhone).maybeSingle()
+                                    if (!existingConv) {
+                                        const { data: newConv } = await supabase.from('whatsapp_conversations').insert({
+                                            tenant_id, phone_number: wpPhone, customer_id: customerId,
+                                            channel: 'whatsapp', ai_enabled: true,
+                                            last_message_preview: `[Şablon] ${templateName}`, unread_count: 0
+                                        }).select('id').single()
+                                        existingConv = newConv
+                                    }
+                                    if (existingConv) {
+                                        await supabase.from('whatsapp_messages').insert({
+                                            conversation_id: existingConv.id, tenant_id, role: 'assistant',
+                                            direction: 'outbound', sender_type: 'bot',
+                                            content: `[Şablon: ${templateName}] Müşteriye ${projectName} projesi hakkında bilgi mesajı gönderildi.`,
+                                            status: 'delivered',
+                                        })
+                                    }
+                                } catch (convErr) {
+                                    console.warn('Conversation log hatası (non-blocking):', convErr)
+                                }
+                            } else {
+                                console.warn('⚠️ WhatsApp şablon gönderilemedi (Web Form):', templateResult.error)
+                            }
                         }
                     }
                 } else if (autoAction === 'ai_call') {
-                    console.log(`📞 AI Arama başlatılıyor (Web Form): ${phone} → ${projectName}`)
-                    const knowledgeBase = tenantSettings?.ai_knowledge_base || ''
-                    const systemPrompt = `Sen Novo İnşaat için çalışan profesyonel sesli yapay zeka asistanısın. Adın Maya.
+                    // Check if already called to prevent duplicate calls
+                    const { data: existingCall } = await supabase
+                        .from('activities')
+                        .select('id')
+                        .eq('customer_id', customerId)
+                        .eq('type', 'Call')
+                        .ilike('summary', '%AI Arama%')
+                        .limit(1)
+                        .maybeSingle()
+
+                    if (existingCall) {
+                        console.log(`ℹ️ AI Call already initiated (Web Form). Skipping duplicate.`);
+                    } else {
+                        console.log(`📞 AI Arama başlatılıyor (Web Form): ${phone} → ${projectName}`)
+                        const knowledgeBase = tenantSettings?.ai_knowledge_base || ''
+                        const systemPrompt = `Sen Novo İnşaat için çalışan profesyonel sesli yapay zeka asistanısın. Adın Maya.
 Müşteri az önce ${projectName} projesi hakkında web sitesinden bilgi talep etti. Şimdi onu arıyorsun.
 
 === KONUŞMA AKIŞI ===
@@ -861,27 +916,28 @@ ${knowledgeBase || 'Proje detayları için satış danışmanına yönlendir.'}
 - Müşteriye söz hakkı ver, monolog yapma. Müşteri konuşurken sözünü kesme, dinle.
 - Ret durumunda HEMEN vedalaş ve endCall çağır.`
 
-                    const callResult = await makeOutboundCall({
-                        phoneNumber: phone,
-                        systemPrompt,
-                        firstMessage: `Merhaba ${customerName}, ben Maya, Novo AI satış asistanıyım. Nasılsınız?`,
-                        metadata: {
-                            tenant_id, customer_id: customerId, sale_id: saleId,
-                            project_name: projectName, source: 'auto_new_lead_webform'
-                        }
-                    })
-
-                    if (callResult.success) {
-                        console.log(`📞 AI Arama başlatıldı (Web Form): ${callResult.callId} → ${phone}`)
-                        await supabase.from('activities').insert({
-                            tenant_id, customer_id: customerId, project_id: projectId,
-                            type: 'Call', topic: 'Sales',
-                            summary: `📞 AI Arama Başlatıldı (${projectName})`,
-                            description: `Web form sonrası otomatik AI arama başlatıldı.\n\n[Call ID: ${callResult.callId}]`,
-                            status: 'In Progress', due_date: new Date().toISOString(), priority: 'High'
+                        const callResult = await makeOutboundCall({
+                            phoneNumber: phone,
+                            systemPrompt,
+                            firstMessage: `Merhaba ${customerName}, ben Maya, Novo AI satış asistanıyım. Nasılsınız?`,
+                            metadata: {
+                                tenant_id, customer_id: customerId, sale_id: saleId,
+                                project_name: projectName, source: 'auto_new_lead_webform'
+                            }
                         })
-                    } else {
-                        console.warn('⚠️ AI Arama başlatılamadı (Web Form):', callResult.error)
+
+                        if (callResult.success) {
+                            console.log(`📞 AI Arama başlatıldı (Web Form): ${callResult.callId} → ${phone}`)
+                            await supabase.from('activities').insert({
+                                tenant_id, customer_id: customerId, project_id: projectId,
+                                type: 'Call', topic: 'Sales',
+                                summary: `📞 AI Arama Başlatıldı (${projectName})`,
+                                description: `Web form sonrası otomatik AI arama başlatıldı.\n\n[Call ID: ${callResult.callId}]`,
+                                status: 'In Progress', due_date: new Date().toISOString(), priority: 'High'
+                            })
+                        } else {
+                            console.warn('⚠️ AI Arama başlatılamadı (Web Form):', callResult.error)
+                        }
                     }
                 } else {
                     console.log('ℹ️ Yeni lead aksiyonu: none — otomatik işlem yapılmadı (Web Form)')

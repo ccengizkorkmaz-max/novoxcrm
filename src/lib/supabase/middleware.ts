@@ -52,6 +52,7 @@ export async function updateSession(request: NextRequest, response?: NextRespons
 
     // Helper to strip locale from pathname for checks
     const pathname = request.nextUrl.pathname
+    const hostHeader = request.headers.get('host')
     const pathWithoutLocale = pathname.replace(/^\/(tr|en)(\/|$)/, '/')
 
     // FAST PATH: For public/marketing routes without auth cookies, skip Supabase entirely
@@ -98,6 +99,7 @@ export async function updateSession(request: NextRequest, response?: NextRespons
         const isPortalRoute = pathWithoutLocale.startsWith('/customerservices')
         const isBrokerRoute = pathWithoutLocale.startsWith('/broker')
         const url = request.nextUrl.clone()
+        if (hostHeader) url.host = hostHeader
         const targetPath = isPortalRoute ? '/customerservices/login' : isBrokerRoute ? '/broker/login' : '/login'
         // Prepend locale if present
         const localeMatch = pathname.match(/^\/(tr|en)(\/|$)/)
@@ -150,6 +152,7 @@ export async function updateSession(request: NextRequest, response?: NextRespons
         // If customer tries to access dashboard or broker portal, redirect to portal
         if (profile?.role === 'customer' && !isPortalPath && !isPublicPathCheck && !isBrokerPath && !pathWithoutLocale.startsWith('/auth') && !isMarketingPath) {
             const url = request.nextUrl.clone()
+            if (hostHeader) url.host = hostHeader
             const targetPath = '/customerservices'
             const localeMatch = pathname.match(/^\/(tr|en)(\/|$)/)
             const localePrefix = localeMatch ? `/${localeMatch[1]}` : ''
@@ -165,6 +168,7 @@ export async function updateSession(request: NextRequest, response?: NextRespons
         // If not internal staff, not broker, not customer, and on portal -> go home
         if (!isInternalStaff && !isBroker && profile?.role !== 'customer' && isPortalPath) {
             const url = request.nextUrl.clone()
+            if (hostHeader) url.host = hostHeader
             const targetPath = '/'
             const localeMatch = pathname.match(/^\/(tr|en)(\/|$)/)
             const localePrefix = localeMatch ? `/${localeMatch[1]}` : ''
@@ -194,6 +198,7 @@ export async function updateSession(request: NextRequest, response?: NextRespons
 
             if (isRestrictedForBroker) {
                 const url = request.nextUrl.clone()
+                if (hostHeader) url.host = hostHeader
                 const targetPath = '/broker'
                 const localeMatch = pathname.match(/^\/(tr|en)(\/|$)/)
                 const localePrefix = localeMatch ? `/${localeMatch[1]}` : ''
@@ -210,6 +215,7 @@ export async function updateSession(request: NextRequest, response?: NextRespons
 
         if (!isExcludedRole && pathWithoutLocale === '/') {
             const url = request.nextUrl.clone()
+            if (hostHeader) url.host = hostHeader
             const targetPath = '/dashboard'
             const localeMatch = pathname.match(/^\/(tr|en)(\/|$)/)
             const localePrefix = localeMatch ? `/${localeMatch[1]}` : ''

@@ -2524,7 +2524,7 @@ export async function startWorkflowForLeads(workflowId: string, leadIds: string[
 
     if (!leads.length) return { started: 0 }
 
-    // Check for existing active executions
+    // Check for existing executions
     const targetKey = isLeadsSource ? 'lead_id' : 'customer_id'
     const leadIdList = leads.map(l => isLeadsSource ? l.lead_id : l.customer_id).filter(Boolean) as string[]
     const leadIdChunks = chunkArray(leadIdList, 150)
@@ -2534,14 +2534,24 @@ export async function startWorkflowForLeads(workflowId: string, leadIds: string[
             .from('outreach_executions')
             .select(targetKey)
             .eq('workflow_id', workflowId)
-            .in('status', ['active', 'waiting'])
+            .in('status', ['active', 'waiting', 'completed', 'converted', 'stopped'])
             .in(targetKey, chunk)
     )
     const existingResults = await Promise.all(existingPromises)
     const existing = existingResults.flatMap(r => r.data || [])
 
     const existingIds = new Set(existing?.map((e: any) => isLeadsSource ? e.lead_id : e.customer_id) || [])
-    const newLeads = leads.filter(l => !existingIds.has(isLeadsSource ? l.lead_id : l.customer_id))
+    const newLeadsFiltered = leads.filter(l => !existingIds.has(isLeadsSource ? l.lead_id : l.customer_id))
+
+    // In-batch deduplication: Collapse duplicate customer/lead IDs within this batch
+    const seenIds = new Set<string>()
+    const newLeads = newLeadsFiltered.filter(l => {
+        const id = isLeadsSource ? l.lead_id : l.customer_id
+        if (!id) return false
+        if (seenIds.has(id)) return false
+        seenIds.add(id)
+        return true
+    })
 
     if (!newLeads.length) return { started: 0, skipped: existingIds.size }
 

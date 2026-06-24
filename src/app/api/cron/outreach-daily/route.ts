@@ -145,26 +145,59 @@ export async function GET(req: NextRequest) {
                 return chunks;
             };
 
-            const chunks = chunkArray(matchIds, 150);
-            const targetField = isLqSource ? 'customer_id' : isLeadsSource ? 'lead_id' : 'sale_id'
+            // If it's sales source, we must map sale_id to customer_id for proper customer-level deduplication
+            let salesMap: Record<string, string> = {}
+            if (!isLqSource && !isLeadsSource && matchIds.length > 0) {
+                const chunks = chunkArray(matchIds, 150)
+                const promises = chunks.map(chunk =>
+                    supabase
+                        .from('sales')
+                        .select('id, customer_id')
+                        .in('id', chunk)
+                )
+                const results = await Promise.all(promises)
+                const dbSales = results.flatMap(r => r.data || [])
+                dbSales.forEach(s => {
+                    if (s.customer_id) salesMap[s.id] = s.customer_id
+                })
+            }
+
+            const targetField = isLeadsSource ? 'lead_id' : 'customer_id'
+            const checkIds = isLeadsSource 
+                ? matchIds 
+                : isLqSource 
+                ? matchIds 
+                : matchIds.map(id => salesMap[id]).filter(Boolean)
+
+            const chunks = chunkArray(checkIds, 150);
             const existingPromises = chunks.map(chunk => 
                 supabase
                     .from('outreach_executions')
-                    .select('customer_id, sale_id, lead_id')
+                    .select('customer_id, lead_id')
                     .eq('workflow_id', wf.id)
-                    .in('status', ['active', 'waiting', 'completed', 'converted'])
+                    .in('status', ['active', 'waiting', 'completed', 'converted', 'stopped'])
                     .in(targetField, chunk)
             );
             const dbResults = await Promise.all(existingPromises);
             const existingExecs = dbResults.flatMap(r => r.data || []);
 
             const processedIds = new Set(
-                existingExecs.map(e => isLqSource ? e.customer_id : isLeadsSource ? e.lead_id : e.sale_id).filter(Boolean)
+                existingExecs.map(e => isLeadsSource ? e.lead_id : e.customer_id).filter(Boolean)
             );
 
+            // Also track seen IDs in this run to avoid duplicates within the daily cron list itself
+            const seenIds = new Set<string>()
             const newLeadIds = allLeadIds.filter(id => {
-                const matchId = isLqSource ? id.replace('lq:', '') : isLeadsSource ? id.replace('lead:', '') : id
-                return !processedIds.has(matchId)
+                const matchId = isLqSource 
+                    ? id.replace('lq:', '') 
+                    : isLeadsSource 
+                    ? id.replace('lead:', '') 
+                    : salesMap[id]
+                
+                if (!matchId || processedIds.has(matchId)) return false
+                if (seenIds.has(matchId)) return false
+                seenIds.add(matchId)
+                return true
             });
 
             if (newLeadIds.length === 0) {
