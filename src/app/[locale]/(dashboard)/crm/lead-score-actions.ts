@@ -21,7 +21,7 @@ export async function updateLeadScoreOverride(params: {
     // 2. Fetch user profile to check role
     const { data: profile } = await supabase
         .from('profiles')
-        .select('full_name, role')
+        .select('full_name, role, tenant_id')
         .eq('id', user.id)
         .single()
 
@@ -81,20 +81,16 @@ export async function updateLeadScoreOverride(params: {
 
     // 4. Update Lead Qualifications table if customerId is provided
     if (customerId) {
-        // Fetch current qualification state
-        const { data: qual, error: fetchErr } = await supabase
+        // Fetch current qualification state (using maybeSingle to handle missing records)
+        const { data: qual } = await supabase
             .from('lead_qualifications')
-            .select('interest_level, interest_level_ai, interest_level_history')
+            .select('interest_level, interest_level_ai, interest_level_history, tenant_id')
             .eq('customer_id', customerId)
-            .single()
+            .maybeSingle()
 
-        if (fetchErr || !qual) {
-            return { success: false, error: 'Ön değerlendirme kaydı bulunamadı: ' + (fetchErr?.message || '') }
-        }
-
-        const currentInterest = qual.interest_level || 'unknown'
-        const currentAiInterest = qual.interest_level_ai || (qual.interest_level && qual.interest_level !== 'unknown' ? qual.interest_level : null)
-        const currentHistory = Array.isArray(qual.interest_level_history) ? qual.interest_level_history : []
+        const currentInterest = qual?.interest_level || 'unknown'
+        const currentAiInterest = qual?.interest_level_ai || (qual?.interest_level && qual.interest_level !== 'unknown' ? qual.interest_level : null)
+        const currentHistory = Array.isArray(qual?.interest_level_history) ? qual.interest_level_history : []
 
         const newHistoryRecord = {
             date: new Date().toISOString(),
@@ -106,19 +102,50 @@ export async function updateLeadScoreOverride(params: {
 
         const updatedHistory = [...currentHistory, newHistoryRecord]
 
-        const { error: updateErr } = await supabase
-            .from('lead_qualifications')
-            .update({
-                interest_level: newScore,
-                interest_level_ai: currentAiInterest,
-                interest_level_source: 'manual',
-                interest_level_history: updatedHistory,
-                updated_at: new Date().toISOString()
-            })
-            .eq('customer_id', customerId)
+        if (!qual) {
+            // Get tenant_id from profile or fallback to customer record
+            let tenantId = profile?.tenant_id
+            if (!tenantId) {
+                const { data: cust } = await supabase
+                    .from('customers')
+                    .select('tenant_id')
+                    .eq('id', customerId)
+                    .single()
+                tenantId = cust?.tenant_id
+            }
 
-        if (updateErr) {
-            return { success: false, error: 'Güncelleme başarısız: ' + updateErr.message }
+            const { error: insertErr } = await supabase
+                .from('lead_qualifications')
+                .insert({
+                    tenant_id: tenantId || null,
+                    customer_id: customerId,
+                    status: 'new',
+                    interest_level: newScore,
+                    interest_level_ai: null,
+                    interest_level_source: 'manual',
+                    interest_level_history: updatedHistory,
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                })
+
+            if (insertErr) {
+                return { success: false, error: 'Ön değerlendirme kaydı oluşturulamadı: ' + insertErr.message }
+            }
+        } else {
+            const { error: updateErr } = await supabase
+                .from('lead_qualifications')
+                .update({
+                    interest_level: newScore,
+                    interest_level_ai: currentAiInterest,
+                    interest_level_source: 'manual',
+                    interest_level_history: updatedHistory,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('customer_id', customerId)
+
+            if (updateErr) {
+                return { success: false, error: 'Güncelleme başarısız: ' + updateErr.message }
+            }
         }
     }
 

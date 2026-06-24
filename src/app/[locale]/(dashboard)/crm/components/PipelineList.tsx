@@ -970,17 +970,13 @@ export default function PipelineList({
                                                     const lq = sale.customers?.lead_qualifications?.[0]
                                                     return (
                                                         <TableCell key="lead_score" className={cellCls}>
-                                                            {lq ? (
-                                                                <LeadScoreBadge
-                                                                    customerId={sale.customers?.id}
-                                                                    score={lq.interest_level}
-                                                                    source={lq.interest_level_source}
-                                                                    history={lq.interest_level_history}
-                                                                    userRole={userRole}
-                                                                />
-                                                            ) : (
-                                                                <span className="text-muted-foreground text-[10px]">—</span>
-                                                            )}
+                                                            <LeadScoreBadge
+                                                                customerId={sale.customers?.id}
+                                                                score={lq?.interest_level}
+                                                                source={lq?.interest_level_source || 'ai'}
+                                                                history={lq?.interest_level_history || []}
+                                                                userRole={userRole}
+                                                            />
                                                         </TableCell>
                                                     )
                                                 }

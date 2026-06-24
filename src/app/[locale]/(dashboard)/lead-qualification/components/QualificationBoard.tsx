@@ -980,15 +980,13 @@ export default function QualificationBoard({ initialData, totalCount, currentPag
                                                         {qual.customers?.full_name}
                                                     </div>
                                                     <div className="flex gap-1">
-                                                        {qual.interest_level && (
-                                                            <LeadScoreBadge
-                                                                customerId={qual.customer_id}
-                                                                score={qual.interest_level}
-                                                                source={qual.interest_level_source}
-                                                                history={qual.interest_level_history}
-                                                                userRole={userRole}
-                                                            />
-                                                        )}
+                                                        <LeadScoreBadge
+                                                            customerId={qual.customer_id}
+                                                            score={qual.interest_level}
+                                                            source={qual.interest_level_source}
+                                                            history={qual.interest_level_history}
+                                                            userRole={userRole}
+                                                        />
                                                         {qual.customers?.customer_number && (
                                                             <Badge variant="outline" className="text-[10px] px-1 py-0">{qual.customers.customer_number}</Badge>
                                                         )}
