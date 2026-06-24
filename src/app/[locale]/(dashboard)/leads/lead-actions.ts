@@ -120,6 +120,12 @@ export async function convertLeadToCustomer(leadId: string, options?: {
     opportunityStage?: string
     opportunityValue?: number
     opportunityCurrency?: string
+    customerData?: {
+        fullName: string
+        phone?: string | null
+        email?: string | null
+        source?: string | null
+    }
     companyData?: {
         companyName: string
         companyPhone?: string
@@ -178,15 +184,20 @@ export async function convertLeadToCustomer(leadId: string, options?: {
     }
 
     // 3. Müşteri oluştur
+    const fullName = options?.customerData?.fullName || lead.full_name
+    const phone = options?.customerData?.phone !== undefined ? options.customerData.phone : lead.phone
+    const email = options?.customerData?.email !== undefined ? options.customerData.email : lead.email
+    const source = options?.customerData?.source !== undefined ? options.customerData.source : lead.source
+
     const { data: newCustomer, error: custErr } = await supabase
         .from('customers')
         .insert({
             tenant_id: profile.tenant_id,
-            full_name: lead.full_name,
-            phone: lead.phone,
-            email: lead.email,
+            full_name: fullName,
+            phone: phone,
+            email: email,
             company_id: newCompanyId,
-            source: lead.source || (newCompanyId ? 'Lead Conversion (Company)' : 'Lead Conversion'),
+            source: source || (newCompanyId ? 'Lead Conversion (Company)' : 'Lead Conversion'),
             contact_type: 'buyer',
             notes: newCompanyId 
                 ? `Lead'den dönüştürüldü (Firma: ${companyName}). Orijinal lead: ${lead.id}${lead.notes ? '\n' + lead.notes : ''}`
@@ -207,9 +218,23 @@ export async function convertLeadToCustomer(leadId: string, options?: {
             converted_customer_id: newCustomer.id,
             converted_company_id: newCompanyId,
             converted_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
+            full_name: fullName,
+            phone: phone,
+            email: email,
+            source: source
         })
         .eq('id', leadId)
+
+    // 4.5 Move lead activities to the customer
+    const { error: actMoveErr } = await supabase
+        .from('activities')
+        .update({ customer_id: newCustomer.id })
+        .eq('lead_id', leadId)
+
+    if (actMoveErr) {
+        console.error('Failed to move lead activities to customer:', actMoveErr)
+    }
 
     // 5. Opsiyonel: Fırsat oluştur (SCRUM-14)
     let opportunityId: string | null = null

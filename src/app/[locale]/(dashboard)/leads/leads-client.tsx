@@ -29,6 +29,7 @@ import ColumnVisibilityPicker from '@/components/ui/column-visibility-picker'
 import { toast } from 'sonner'
 import dynamic from 'next/dynamic'
 import * as XLSX from 'xlsx'
+import { ActivityForm } from '@/components/activities/activity-form'
 
 const AiCallDialog = dynamic(() => import('../crm/components/AiCallDialog'), { ssr: false })
 
@@ -158,7 +159,13 @@ export default function LeadsPageClient({ leads, teamMembers, projects, userRole
     const [companyForm, setCompanyForm] = useState({
         companyName: '', companyPhone: '', taxNumber: '', taxOffice: '', sector: ''
     })
+    const [personForm, setPersonForm] = useState({
+        fullName: '', phone: '', email: '', source: ''
+    })
     const [convertResult, setConvertResult] = useState<{ success: boolean; message?: string } | null>(null)
+
+    // Activity form dialog state
+    const [showCreateActivityDialog, setShowCreateActivityDialog] = useState(false)
 
     const [isPending, startTransition] = useTransition()
 
@@ -354,6 +361,12 @@ export default function LeadsPageClient({ leads, teamMembers, projects, userRole
             taxOffice: '', 
             sector: '' 
         })
+        setPersonForm({
+            fullName: lead.full_name || '',
+            phone: lead.phone || '',
+            email: lead.email || '',
+            source: lead.source || ''
+        })
         setConvertResult(null)
         setConvertLead(lead)
     }
@@ -368,6 +381,12 @@ export default function LeadsPageClient({ leads, teamMembers, projects, userRole
                 opportunityStage: convertForm.opportunityStage,
                 opportunityValue: convertForm.opportunityValue ? Number(convertForm.opportunityValue) : undefined,
                 opportunityCurrency: convertForm.opportunityCurrency,
+                customerData: {
+                    fullName: personForm.fullName.trim(),
+                    phone: personForm.phone.trim() || null,
+                    email: personForm.email.trim() || null,
+                    source: personForm.source.trim() || null
+                },
                 companyData: hasCompany ? {
                     companyName: companyForm.companyName.trim(),
                     companyPhone: companyForm.companyPhone || undefined,
@@ -1006,155 +1025,7 @@ export default function LeadsPageClient({ leads, teamMembers, projects, userRole
             </Card>
 
             {/* ====== ADD DIALOG (MANUEL EKLEME) ====== */}
-            <Dialog open={addOpen} onOpenChange={(open) => {
-                if (!open) {
-                    setAddOpen(false);
-                    setAddForm({ 
-                        full_name: '', 
-                        phone: '', 
-                        email: '', 
-                        project_id: '', 
-                        source: 'manual', 
-                        assigned_to: '', 
-                        notes: '',
-                        company_name: '',
-                        company_phone: ''
-                    });
-                }
-            }}>
-                <DialogContent className="max-w-lg">
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <Plus className="h-5 w-5 text-indigo-500" />
-                            Yeni Müşteri Adayı Ekle
-                        </DialogTitle>
-                        <DialogDescription>Manuel olarak yeni bir müşteri adayı kaydı oluşturun.</DialogDescription>
-                    </DialogHeader>
 
-                    <div className="space-y-4 py-2">
-                        <div className="space-y-2">
-                            <Label htmlFor="add-name">Ad Soyad *</Label>
-                            <Input
-                                id="add-name"
-                                placeholder="Örn. Ahmet Yılmaz"
-                                value={addForm.full_name}
-                                onChange={e => setAddForm(f => ({ ...f, full_name: e.target.value }))}
-                            />
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                            <div className="space-y-2">
-                                <Label htmlFor="add-phone">Telefon</Label>
-                                <Input
-                                    id="add-phone"
-                                    placeholder="Örn. 5551234567"
-                                    value={addForm.phone}
-                                    onChange={e => setAddForm(f => ({ ...f, phone: e.target.value }))}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="add-email">E-posta</Label>
-                                <Input
-                                    id="add-email"
-                                    type="email"
-                                    placeholder="ahmet@example.com"
-                                    value={addForm.email}
-                                    onChange={e => setAddForm(f => ({ ...f, email: e.target.value }))}
-                                />
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                            <div className="space-y-2">
-                                <Label htmlFor="add-company-name">Firma Adı</Label>
-                                <Input
-                                    id="add-company-name"
-                                    placeholder="Örn. ABC Holding A.Ş."
-                                    value={addForm.company_name}
-                                    onChange={e => setAddForm(f => ({ ...f, company_name: e.target.value }))}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="add-company-phone">Firma Telefonu</Label>
-                                <Input
-                                    id="add-company-phone"
-                                    placeholder="Örn. 02123334455"
-                                    value={addForm.company_phone}
-                                    onChange={e => setAddForm(f => ({ ...f, company_phone: e.target.value }))}
-                                />
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                            <div className="space-y-2">
-                                <Label>Kaynak</Label>
-                                <Input
-                                    placeholder="manual, meta_ads, web_form vb."
-                                    value={addForm.source}
-                                    onChange={e => setAddForm(f => ({ ...f, source: e.target.value }))}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Atanan Temsilci</Label>
-                                <Select value={addForm.assigned_to || 'none'} onValueChange={v => setAddForm(f => ({ ...f, assigned_to: v === 'none' ? '' : v }))}>
-                                    <SelectTrigger><SelectValue placeholder="Temsilci Seçin" /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="none">Atanmadı</SelectItem>
-                                        {teamMembers.map(m => (
-                                            <SelectItem key={m.id} value={m.id}>{m.full_name}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
-                        <div className="space-y-2">
-                            <Label>İlişkili Proje</Label>
-                            <Select value={addForm.project_id || 'none'} onValueChange={v => setAddForm(f => ({ ...f, project_id: v === 'none' ? '' : v }))}>
-                                <SelectTrigger><SelectValue placeholder="Proje Seçin" /></SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="none">Proje Yok</SelectItem>
-                                    {projects.map(p => (
-                                        <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="add-notes">Notlar</Label>
-                            <Textarea
-                                id="add-notes"
-                                placeholder="Aday hakkında ek notlar..."
-                                value={addForm.notes}
-                                onChange={e => setAddForm(f => ({ ...f, notes: e.target.value }))}
-                                rows={3}
-                            />
-                        </div>
-                    </div>
-
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => {
-                            setAddOpen(false);
-                            setAddForm({ 
-                                full_name: '', 
-                                phone: '', 
-                                email: '', 
-                                project_id: '', 
-                                source: 'manual', 
-                                assigned_to: '', 
-                                notes: '',
-                                company_name: '',
-                                company_phone: ''
-                            });
-                        }}>
-                            Vazgeç
-                        </Button>
-                        <Button
-                            onClick={handleSaveAdd}
-                            disabled={isPending || !addForm.full_name.trim()}
-                            className="bg-indigo-600 hover:bg-indigo-700 text-white"
-                        >
-                            {isPending ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Ekleniyor...</> : 'Ekle'}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
 
             {/* ====== EXCEL IMPORT WIZARD DIALOG ====== */}
             <Dialog open={importWizardOpen} onOpenChange={(open) => {
@@ -1438,12 +1309,48 @@ export default function LeadsPageClient({ leads, teamMembers, projects, userRole
                     ) : (
                         <>
                             <div className="space-y-4 py-2 max-h-[60vh] overflow-y-auto pr-1">
-                                {/* Lead bilgileri */}
-                                <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-lg text-sm space-y-1 border border-slate-100 dark:border-slate-800">
-                                    <p><strong>Ad Soyad:</strong> {convertLead?.full_name}</p>
-                                    <p><strong>Telefon:</strong> {convertLead?.phone || '-'}</p>
-                                    <p><strong>E-posta:</strong> {convertLead?.email || '-'}</p>
-                                    <p><strong>Kaynak:</strong> {convertLead?.source || '-'}</p>
+                                {/* Kişi Bilgileri (Editable) */}
+                                <div className="space-y-3 p-4 border rounded-xl bg-slate-50/50 dark:bg-slate-900/30 border-slate-200/60 dark:border-slate-800">
+                                    <div className="flex items-center gap-2 font-semibold text-slate-800 dark:text-slate-200 text-sm">
+                                        <User className="h-4 w-4 text-indigo-500" />
+                                        Kişi Bilgileri
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Ad Soyad</Label>
+                                        <Input
+                                            value={personForm.fullName}
+                                            onChange={e => setPersonForm(p => ({ ...p, fullName: e.target.value }))}
+                                            placeholder="Ad Soyad"
+                                            required
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="space-y-2">
+                                            <Label>Telefon</Label>
+                                            <Input
+                                                value={personForm.phone}
+                                                onChange={e => setPersonForm(p => ({ ...p, phone: e.target.value }))}
+                                                placeholder="Telefon"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>E-posta</Label>
+                                            <Input
+                                                type="email"
+                                                value={personForm.email}
+                                                onChange={e => setPersonForm(p => ({ ...p, email: e.target.value }))}
+                                                placeholder="E-posta"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Kaynak</Label>
+                                        <Input
+                                            value={personForm.source}
+                                            onChange={e => setPersonForm(p => ({ ...p, source: e.target.value }))}
+                                            placeholder="Örn. Web Sitesi, Referans"
+                                        />
+                                    </div>
                                 </div>
 
                                 {/* Firma bilgileri (Opsiyonel) */}
@@ -1666,10 +1573,21 @@ export default function LeadsPageClient({ leads, teamMembers, projects, userRole
 
                         {/* Timeline Header */}
                         <div className="space-y-4">
-                            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-2">
-                                <Activity className="h-4 w-4 text-indigo-500" />
-                                İşlem Geçmişi & Zaman Tüneli
-                            </h3>
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-2">
+                                    <Activity className="h-4 w-4 text-indigo-500" />
+                                    İşlem Geçmişi & Zaman Tüneli
+                                </h3>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => setShowCreateActivityDialog(true)}
+                                    className="h-7 text-[11px] font-semibold gap-1 px-2.5 rounded-lg border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-600 dark:text-slate-300"
+                                >
+                                    <Plus className="h-3 w-3" />
+                                    Aktivite Ekle
+                                </Button>
+                            </div>
 
                             {/* Timeline Items */}
                             {activitiesLoading ? (
@@ -1777,6 +1695,16 @@ export default function LeadsPageClient({ leads, teamMembers, projects, userRole
                     </div>
                 </SheetContent>
             </Sheet>
+
+            <ActivityForm
+                open={showCreateActivityDialog}
+                onOpenChange={setShowCreateActivityDialog}
+                mode="create"
+                activity={{ lead_id: selectedDetailLead?.id, lead_name: selectedDetailLead?.full_name }}
+                defaultLeadId={selectedDetailLead?.id}
+                profiles={teamMembers}
+                projects={projects}
+            />
         </div>
     )
 }

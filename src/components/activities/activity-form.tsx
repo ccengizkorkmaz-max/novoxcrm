@@ -100,9 +100,10 @@ interface ActivityFormProps {
     profiles?: any[]
     projects?: any[]
     defaultCustomerId?: string
+    defaultLeadId?: string
 }
 
-export function ActivityForm({ open, onOpenChange, mode, activity, customers, profiles, projects, defaultCustomerId }: ActivityFormProps) {
+export function ActivityForm({ open, onOpenChange, mode, activity, customers, profiles, projects, defaultCustomerId, defaultLeadId }: ActivityFormProps) {
     const t = useTranslations('Activities')
     const router = useRouter()
 
@@ -114,6 +115,9 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
     const [selectedCustomerId, setSelectedCustomerId] = useState(activity?.customer_id || defaultCustomerId || '')
     const [selectedProjectId, setSelectedProjectId] = useState(activity?.project_id || '')
     const [isProcessingVoice, setIsProcessingVoice] = useState(false)
+
+    const isLeadMode = !!activity?.lead_id || !!defaultLeadId
+    const leadName = activity?.lead_name || activity?.leads?.full_name || 'Müşteri Adayı'
 
     useEffect(() => {
         if (open && activity) {
@@ -237,36 +241,50 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
                         {/* Basic Info - Hidden only in specialized complete mode */}
                         {mode !== 'complete' && (
                             <>
-                                <input type="hidden" name="customer_id" value={selectedCustomerId} />
-                                <div className="grid gap-2">
-                                    <div className="flex items-center justify-between">
-                                        <Label>{t('form.customer')}</Label>
-                                        {selectedCustomerId && (
-                                            <Button 
-                                                variant="link" 
-                                                size="sm"
-                                                className="h-auto p-0 text-xs text-blue-600 hover:text-blue-800"
-                                                asChild
-                                            >
-                                                <Link href={`/customers/${selectedCustomerId}`}>
-                                                    Müşteri Profiline Git
-                                                </Link>
-                                            </Button>
-                                        )}
-                                    </div>
-                                    <div className="w-full">
-                                        <Combobox
-                                            items={comboboxItems}
-                                            value={selectedCustomerId}
-                                            onChange={setSelectedCustomerId}
-                                            placeholder={t('form.select')}
-                                            searchPlaceholder={t('form.search') || 'Müşteri Ara...'}
-                                            emptyText={t('form.noResults') || 'Müşteri bulunamadı.'}
-                                            disabled={mode === 'edit' || (mode === 'create' && !!activity?.customer_id)}
+                                {isLeadMode ? (
+                                    <div className="grid gap-2">
+                                        <Label>Müşteri Adayı</Label>
+                                        <Input
+                                            value={leadName}
+                                            disabled
+                                            className="bg-slate-100 dark:bg-slate-900 text-slate-500"
                                         />
-                                        <UpcomingActivitiesInfo customerId={selectedCustomerId} />
+                                        <input type="hidden" name="lead_id" value={activity?.lead_id || defaultLeadId || ''} />
                                     </div>
-                                </div>
+                                ) : (
+                                    <>
+                                        <input type="hidden" name="customer_id" value={selectedCustomerId} />
+                                        <div className="grid gap-2">
+                                            <div className="flex items-center justify-between">
+                                                <Label>{t('form.customer')}</Label>
+                                                {selectedCustomerId && (
+                                                    <Button 
+                                                        variant="link" 
+                                                        size="sm"
+                                                        className="h-auto p-0 text-xs text-blue-600 hover:text-blue-800"
+                                                        asChild
+                                                    >
+                                                        <Link href={`/customers/${selectedCustomerId}`}>
+                                                            Müşteri Profiline Git
+                                                        </Link>
+                                                    </Button>
+                                                )}
+                                            </div>
+                                            <div className="w-full">
+                                                <Combobox
+                                                    items={comboboxItems}
+                                                    value={selectedCustomerId}
+                                                    onChange={setSelectedCustomerId}
+                                                    placeholder={t('form.select')}
+                                                    searchPlaceholder={t('form.search') || 'Müşteri Ara...'}
+                                                    emptyText={t('form.noResults') || 'Müşteri bulunamadı.'}
+                                                    disabled={mode === 'edit' || (mode === 'create' && !!activity?.customer_id)}
+                                                />
+                                                <UpcomingActivitiesInfo customerId={selectedCustomerId} />
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
 
                                 <div className="grid gap-2">
                                     <Label>Proje</Label>

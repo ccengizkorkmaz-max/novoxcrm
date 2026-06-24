@@ -15,6 +15,8 @@ export async function createActivity(formData: FormData) {
 
     const customer_id_raw = (formData.get('customer_id') as string) || (formData.get('customer_id_select') as string)
     const customer_id = customer_id_raw && customer_id_raw.trim() !== '' ? customer_id_raw : null
+    const lead_id_raw = formData.get('lead_id') as string
+    const lead_id = lead_id_raw && lead_id_raw.trim() !== '' ? lead_id_raw : null
     const topic = formData.get('topic') as string
     const type = formData.get('type') as string
     const summary = formData.get('summary') as string
@@ -47,6 +49,7 @@ export async function createActivity(formData: FormData) {
         .insert({
             tenant_id: profile?.tenant_id,
             customer_id,
+            lead_id,
             user_id: user.id, // Creator
             owner_id: owner_id, // Assignee/Owner
             assigned_by_id: user.id,
@@ -180,12 +183,13 @@ export async function outcomeActivity(formData: FormData) {
 
     if (next_action_type && next_action_date) {
         // Fetch context from original activity
-        const { data: original } = await supabase.from('activities').select('customer_id, project_id, unit_id, owner_id').eq('id', id).single()
+        const { data: original } = await supabase.from('activities').select('customer_id, lead_id, project_id, unit_id, owner_id').eq('id', id).single()
 
         if (original) {
             await supabase.from('activities').insert({
                 tenant_id: profile?.tenant_id,
                 customer_id: original.customer_id,
+                lead_id: original.lead_id,
                 user_id: user?.id,
                 owner_id: original.owner_id, // Keep same owner
                 assigned_by_id: user?.id,
