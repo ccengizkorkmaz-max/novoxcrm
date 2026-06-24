@@ -31,8 +31,8 @@ export async function GET(request: Request) {
 
     try {
         const { data: allSettings } = await supabase.from('notification_settings').select('*')
-        const { data: tenants } = await supabase.from('tenants').select('id')
-        const tenantIds = tenants?.map(t => t.id) || []
+        const { data: tenants } = await supabase.from('tenants').select('id, custom_domain')
+        const tenantList = tenants || []
 
         const today = new Date()
         today.setHours(0, 0, 0, 0)
@@ -49,7 +49,10 @@ export async function GET(request: Request) {
         const sevenDaysAgo = new Date(today)
         sevenDaysAgo.setDate(today.getDate() - 7)
 
-        for (const tenantId of tenantIds) {
+        for (const tenant of tenantList) {
+            const tenantId = tenant.id
+            const customDomain = tenant.custom_domain
+            const appUrl = customDomain ? `https://${customDomain}` : (process.env.NEXT_PUBLIC_APP_URL || 'https://www.novoxcrm.com')
             const settings = allSettings?.find(s => s.tenant_id === tenantId)
 
             // 0. Auto-expire expired reservations/options
@@ -417,7 +420,7 @@ export async function GET(request: Request) {
                                         ` : ''}
                                     </table>
                                     <div style="margin-top: 30px; text-align: center;">
-                                        <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:5050'}/activities" 
+                                        <a href="${appUrl}/activities" 
                                            style="background-color: #2563eb; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
                                             Aktiviteyi Görüntüle
                                         </a>
