@@ -110,7 +110,7 @@ export function OikosMarketingPage() {
                     </h1>
                     
                     <p className="text-base md:text-lg text-[#9FE1CB] max-w-xl mx-auto mb-10 leading-relaxed">
-                        Oikos CRM, gayrimenkul geliştirme şirketleri ve ulusal/uluslararası emlak ağları için tasarlandı. İlk temastan satış kapanışına kadar tüm müşteri iletişimini — neredeyse insan müdahanesine gerek kalmadan — AI ile yönetir.
+                        Oikos CRM, gayrimenkul geliştirme şirketleri ve ulusal/uluslararası emlak ağları için tasarlandı. İlk temastan satış kapanışına kadar tüm müşteri iletişimini — neredeyse insan müdahalesine gerek kalmadan — AI ile yönetir.
                     </p>
 
                     {/* Slogan Banner */}
