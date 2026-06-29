@@ -1582,10 +1582,18 @@ export default function LeadsPageClient({ leads, teamMembers, projects, userRole
                                         let contentClass = 'bg-white dark:bg-slate-950 border-slate-100 dark:border-slate-900'
 
                                         if (act.type === 'Call') {
-                                            icon = <Sparkles className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
-                                            iconBg = 'bg-indigo-50 border-indigo-100 dark:bg-indigo-950/50 dark:border-indigo-900/50'
-                                            typeLabel = 'AI Arama Özeti'
-                                            contentClass = 'bg-indigo-50/20 dark:bg-indigo-950/5 border-indigo-100/40 dark:border-indigo-900/20 shadow-xs'
+                                            const isAiCall = act.summary?.includes('🤖') || act.summary?.includes('AI Arama') || act.user_name === 'AI Asistanı'
+                                            if (isAiCall) {
+                                                icon = <Sparkles className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+                                                iconBg = 'bg-indigo-50 border-indigo-100 dark:bg-indigo-950/50 dark:border-indigo-900/50'
+                                                typeLabel = 'AI Arama Özeti'
+                                                contentClass = 'bg-indigo-50/20 dark:bg-indigo-950/5 border-indigo-100/40 dark:border-indigo-900/20 shadow-xs'
+                                            } else {
+                                                icon = <Phone className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
+                                                iconBg = 'bg-green-50 border-green-100 dark:bg-green-950/50 dark:border-green-900/50'
+                                                typeLabel = 'Telefon Görüşmesi'
+                                                contentClass = 'bg-green-50/20 dark:bg-green-950/5 border-green-100/40 dark:border-green-900/20 shadow-xs'
+                                            }
                                         } else if (act.type === 'Note') {
                                             icon = <StickyNote className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
                                             iconBg = 'bg-amber-50 border-amber-100 dark:bg-amber-950/50 dark:border-amber-900/50'

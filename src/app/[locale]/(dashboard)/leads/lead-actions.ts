@@ -227,25 +227,27 @@ export async function convertLeadToCustomer(leadId: string, options?: {
         })
         .eq('id', leadId)
 
-    // 4.5 Move lead activities to the customer
+    // 4.5 Move lead activities to the customer and clear lead_id
+    // Clearing lead_id prevents the "Müşteri Adayı" badge from showing on the customer card
     const { error: actMoveErr } = await supabase
         .from('activities')
-        .update({ customer_id: newCustomer.id })
+        .update({ customer_id: newCustomer.id, lead_id: null })
         .eq('lead_id', leadId)
 
     if (actMoveErr) {
         console.error('Failed to move lead activities to customer:', actMoveErr)
     }
 
-    // 5. Opsiyonel: Fırsat oluştur (SCRUM-14)
+    // 5. Opsiyonel: Fırsat (Opportunities) oluştur — yalnızca checkbox işaretliyse
     let opportunityId: string | null = null
     if (options?.createOpportunity) {
-        const { data: opp } = await supabase
+        const oppTitle = options.opportunityTitle || (newCompanyId ? `${companyName} - Fırsat` : `${lead.full_name} - Fırsat`)
+        const { data: opp, error: oppErr } = await supabase
             .from('opportunities')
             .insert({
                 tenant_id: profile.tenant_id,
                 customer_id: newCustomer.id,
-                title: options.opportunityTitle || (newCompanyId ? `${companyName} - Fırsat` : `${lead.full_name} - Fırsat`),
+                title: oppTitle,
                 stage: options.opportunityStage || 'prospect',
                 value: options.opportunityValue || null,
                 currency: options.opportunityCurrency || 'TRY',
@@ -257,22 +259,34 @@ export async function convertLeadToCustomer(leadId: string, options?: {
             .select('id')
             .single()
 
+        if (oppErr) {
+            console.error('Lead conversion - Opportunity creation error:', oppErr)
+        }
         opportunityId = opp?.id || null
     }
 
-    // 6. Satış kaydı da oluştur (mevcut CRM pipeline ile entegrasyon)
-    // Lead zaten niteliklendirilmiş, CRM'de direkt "Prospect" olarak başlar
-    await supabase.from('sales').insert({
+    // 6. CRM Satış Pipeline kaydı oluştur (Fırsat = Sales)
+    // Lead zaten niteliklendirilmiş, CRM'de direkt "Lead" olarak başlar
+    const { data: newSale, error: saleErr } = await supabase.from('sales').insert({
         tenant_id: profile.tenant_id,
         customer_id: newCustomer.id,
-        status: 'Prospect',
+        status: 'Lead',
         project_id: lead.project_id || null,
         assigned_to: lead.assigned_to || user.id,
         created_by: user.id,
         description: newCompanyId 
             ? `Lead dönüşümü (Firma): ${lead.source || 'Bilinmeyen kaynak'}`
             : `Lead dönüşümü: ${lead.source || 'Bilinmeyen kaynak'}`,
-    })
+    }).select('id').single()
+
+    if (saleErr) {
+        console.error('Lead conversion - Sales (Fırsat) creation error:', saleErr)
+        // Satış kaydı oluşturulamazsa kritik hata — kullanıcıya bildirelim
+        return {
+            success: false,
+            error: `Müşteri oluşturuldu ancak CRM Fırsat kaydı oluşturulamadı: ${saleErr.message}`
+        }
+    }
 
     // 7. Lead bildirim modu: on_conversion ise dönüştürme anında WhatsApp gönder
     const { data: tenantNotif } = await supabase
@@ -428,6 +442,7 @@ export async function getLeadActivities(leadId: string) {
     if (!user) return { success: false, error: 'Oturum bulunamadı' }
 
     // Standart aktiviteleri çek (profiles'tan full_name ile join)
+    // NOT: outreach_step_logs ayrıca merge edilmiyor çünkü Vapi webhook zaten activities tablosuna kayıt oluşturuyor
     const { data: activities, error: actErr } = await supabase
         .from('activities')
         .select('*, profiles!user_id(full_name)')
@@ -440,51 +455,15 @@ export async function getLeadActivities(leadId: string) {
         return { success: false, error: actErr.message }
     }
 
-    // AI Arama kayıtlarını çek
-    const { data: callLogs, error: callLogsErr } = await supabase
-        .from('outreach_step_logs')
-        .select(`
-            id,
-            executed_at,
-            call_summary,
-            call_recording_url,
-            call_duration_seconds,
-            outreach_executions!inner (
-                lead_id,
-                workflows:outreach_workflows ( name )
-            )
-        `)
-        .eq('outreach_executions.lead_id', leadId)
-        .not('call_summary', 'is', null)
-
-    if (callLogsErr) {
-        console.error("Error fetching AI call logs:", callLogsErr)
-    }
-
-    // AI Arama kayıtlarını aktivite formatına map et
-    const aiActivities = (callLogs || []).map((log: any) => ({
-        id: `ai-${log.id}`,
-        type: 'Call',
-        summary: 'AI Araması: ' + (log.outreach_executions?.workflows?.name || 'Genel'),
-        notes: log.call_summary || '',
-        created_at: log.executed_at,
-        call_recording_url: log.call_recording_url,
-        call_duration_seconds: log.call_duration_seconds,
-        user_name: 'AI Asistanı'
-    }))
-
-    // İki listeyi birleştir ve tarihe göre sırala
-    const combined = [
-        ...(activities || []).map(a => ({
-            id: a.id,
-            type: a.type,
-            summary: a.summary,
-            notes: a.notes,
-            created_at: a.created_at,
-            user_name: a.profiles?.full_name || 'Sistem'
-        })),
-        ...aiActivities
-    ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    const combined = (activities || []).map(a => ({
+        id: a.id,
+        type: a.type,
+        summary: a.summary,
+        notes: a.notes,
+        created_at: a.created_at,
+        call_recording_url: a.call_recording_url,
+        user_name: a.profiles?.full_name || 'Sistem'
+    })).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 
     return { success: true, activities: combined }
 }
