@@ -1,6 +1,7 @@
 import { login, signup, resetPassword } from './actions'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { PasswordInput } from "@/components/ui/password-input"
 import { Label } from "@/components/ui/label"
 import Link from 'next/link'
 import { Building2, ArrowRight, ShieldCheck } from 'lucide-react'
@@ -143,10 +144,9 @@ export default async function LoginPage(props: {
                             <div className="flex items-center justify-between">
                                 <Label htmlFor="password" className="font-semibold">{t('passwordLabel')}</Label>
                             </div>
-                            <Input
+                            <PasswordInput
                                 id="password"
                                 name="password"
-                                type="password"
                                 required
                                 className={cn(
                                     "h-11 border-gray-200 transition-colors", 

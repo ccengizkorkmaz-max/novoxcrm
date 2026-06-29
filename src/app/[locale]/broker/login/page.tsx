@@ -1,6 +1,7 @@
 import { brokerLogin, brokerResetPassword } from './actions'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { PasswordInput } from "@/components/ui/password-input"
 import { Label } from "@/components/ui/label"
 import { Building2, ArrowRight, ShieldCheck, Briefcase } from 'lucide-react'
 import Link from 'next/link'
@@ -114,13 +115,12 @@ export default async function BrokerLoginPage({
 
                             <div className="space-y-2">
                                 <Label htmlFor="password" className="text-slate-300 font-semibold text-sm">Şifre</Label>
-                                <Input
+                                <PasswordInput
                                     id="password"
                                     name="password"
-                                    type="password"
                                     placeholder="••••••••"
                                     required
-                                    className="h-12 bg-white/5 border-white/10 text-white placeholder:text-slate-500 focus:border-blue-500/50 focus:bg-white/10 rounded-xl"
+                                    className="h-12 bg-white/5 border-white/10 text-white placeholder:text-slate-500 focus:border-blue-500/50 focus:bg-white/10 rounded-xl pr-10"
                                 />
                             </div>
 
