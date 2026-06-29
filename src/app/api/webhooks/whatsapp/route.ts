@@ -350,8 +350,10 @@ export async function POST(req: NextRequest) {
 
                 // CRM envanter bilgisi devre dışı - proje bilgileri system prompt'taki web sitesinden alınan Bilgi Bankası'ndan geliyor
                 const crmContext = '';
+                const { getTenantDocumentsContext } = await import('@/lib/whatsapp/context');
+                const documentsContext = await getTenantDocumentsContext(supabase, tenantId);
                 const customerContext = await buildCustomerContext(supabase, tenantId, normalizedPhone, payload.name);
-                const finalPrompt = assembleFinalPrompt(tenantData, crmContext, customerContext);
+                const finalPrompt = assembleFinalPrompt(tenantData, crmContext, customerContext, documentsContext);
 
                 let aiReply = await generateAIReply(
                     resolvedAi.provider,
@@ -363,6 +365,33 @@ export async function POST(req: NextRequest) {
 
                 if (aiReply) {
                     // GİZLİ KOMUTLARI İŞLE VE METİNDEN TEMİZLE
+                    
+                    // Parse email send command: [SEND_EMAIL: {"email": "...", "project_id": "..."}]
+                    const emailRegex = /\[SEND_EMAIL:\s*({[^\]]+})\s*\]/i;
+                    const emailMatch = aiReply.match(emailRegex);
+                    if (emailMatch) {
+                        try {
+                            const emailParams = JSON.parse(emailMatch[1]);
+                            const { handleAndSendCatalogEmail } = await import('@/lib/email/catalog-email');
+                            
+                            handleAndSendCatalogEmail({
+                                supabase,
+                                tenantId,
+                                email: emailParams.email,
+                                projectId: emailParams.project_id,
+                                phone: normalizedPhone
+                            }).then(result => {
+                                console.log('[WhatsApp Email Command] Result:', result);
+                            }).catch(err => {
+                                console.error('[WhatsApp Email Command] Error:', err);
+                            });
+                        } catch (e: any) {
+                            console.error('[WhatsApp Email Command] JSON Parse Error:', e.message, emailMatch[1]);
+                        }
+                        // Clean tag from message
+                        aiReply = aiReply.replace(emailRegex, '');
+                    }
+
                     const scoreResult = await extractAndUpdateLeadScore(supabase, tenantId, conversationId, aiReply, payload.message);
                     aiReply = scoreResult.aiReply;
 

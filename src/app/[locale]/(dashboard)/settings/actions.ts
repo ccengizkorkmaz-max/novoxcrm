@@ -762,6 +762,13 @@ export async function updateAiSettings(formData: FormData) {
         updates.wa_auto_template_enabled = autoActionOnNewLead === 'whatsapp'
     }
 
+    // Catalog Email Template fields
+    const catalogEmailSubject = formData.get('catalog_email_subject') as string
+    const catalogEmailHtml = formData.get('catalog_email_html') as string
+
+    if (catalogEmailSubject !== null) updates.catalog_email_subject = catalogEmailSubject || '{project_name} - Proje Kataloğu ve Bilgileri'
+    if (catalogEmailHtml !== null) updates.catalog_email_html = catalogEmailHtml || ''
+
     const { error } = await supabase
         .from('tenants')
         .update(updates)

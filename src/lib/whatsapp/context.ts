@@ -59,12 +59,14 @@ Müşteri WhatsApp Adı: ${payloadName}
     for (const variant of phoneVariants) {
         const { data: crmCustomer } = await supabase
             .from('customers')
-            .select('id, full_name, email, notes, contact_type, budget_min, budget_max, desired_rooms, desired_districts')
+            .select('id, full_name, email, email2, notes, contact_type, budget_min, budget_max, desired_rooms, desired_districts')
             .eq('tenant_id', tenantId)
             .eq('phone', variant)
             .single();
         if (crmCustomer) {
             customerContext += `\nCRM Kayıtlı İsim: ${crmCustomer.full_name}`;
+            if (crmCustomer.email) customerContext += `\nMüşteri E-Posta: ${crmCustomer.email}`;
+            if ((crmCustomer as any).email2) customerContext += `\nMüşteri 2. E-Posta: ${(crmCustomer as any).email2}`;
             customerContext += `\nÖNEMLİ HİTAP KURALI: Müşterinin gerçek adı CRM sistemimizde "${crmCustomer.full_name}" olarak kayıtlıdır. Müşteriye hitap ederken mutlaka bu ismi (CRM Kayıtlı İsim) baz alarak hitap et. Örneğin "${crmCustomer.full_name}" bir erkek adı olduğundan hitap ederken "Merhaba Şentürk Bey" veya "... Bey" şeklinde doğru hitap eki (Bey/Hanım) kullan. WhatsApp profil adı ("${payloadName}") farklı olsa dahi hitapta kesinlikle WhatsApp profil adını KULLANMA, her zaman CRM Kayıtlı İsim bilgisini kullan.`;
             if (crmCustomer.notes) customerContext += `\nMüşteri Notları: ${crmCustomer.notes}`;
             if (crmCustomer.budget_min || crmCustomer.budget_max) customerContext += `\nBütçe: ${crmCustomer.budget_min || '?'} - ${crmCustomer.budget_max || '?'} TL`;
@@ -164,7 +166,14 @@ GİZLİ SİSTEM KOMUTLARI (SADECE ŞARTLAR SAĞLANDIĞINDA YANITININ EN SONUNA E
 
   ÖNEMLİ: Şüphede kalırsan mevcut skoru koru. Skor ASLA düşmez (disqualified HARİÇ - disqualified her zaman uygulanır).
   Bu etiketi HER yanıtına MUTLAKA ekle.
-9. LINK YASAĞI: Müşteriye ASLA kendin link/URL üretip paylaşma. Sadece bilgi bankasında birebir yazılı olan linkleri gönderebilirsin. Link yoksa "Hemen bakıp iletiyorum" de. Sahte link paylaşmak müşteriyi kaybettirir.`;
+9. LINK YASAĞI: Müşteriye ASLA kendin link/URL üretip paylaşma. Sadece bilgi bankasında veya proje dokümanlarında yazılı olan linkleri gönderebilirsin. Link yoksa "Hemen bakıp iletiyorum" de. Sahte link paylaşmak müşteriyi kaybettirir.
+10. E-POSTA İLE KATALOG GÖNDERME KURALI: 
+  - Müşteri broşür/katalog/dokümanların e-posta ile gönderilmesini isterse, mutlaka e-posta adresini sor veya doğrula (eğer kayıtlı e-postası yukarıda verilmişse "kayıtlı olan ... adresinize mi gönderelim?" diyerek doğrula).
+  - E-posta adresini aldığında, yanıtının en sonuna şu gizli komutu birebir ekle (kullanıcı görmez, sistem işler):
+    [SEND_EMAIL: {"email": "musterinin@postasi.com", "project_id": "ilgili-projenin-uuid-degeri"}]
+    Örnek: [SEND_EMAIL: {"email": "ahmet@gmail.com", "project_id": "89b2829e-fc21-477e-8fd8-9f9f0c587e81"}]
+    Not: Proje ID'si (UUID formatında) aşağıdaki proje listesinde her projenin yanında PROJE ID olarak yazmaktadır. Komutu eksiksiz ve doğru JSON formatında yazdığından emin ol.
+  - WhatsApp üzerinden e-posta istenir ise e-posta adresini sor. Telefonda sesli görüşme yapılıyor ise e-posta adresini heceletip veya harf harf alarak kaydet.`;
 }
 
 /**
@@ -173,17 +182,18 @@ GİZLİ SİSTEM KOMUTLARI (SADECE ŞARTLAR SAĞLANDIĞINDA YANITININ EN SONUNA E
 export function assembleFinalPrompt(
     tenantData: any,
     crmContext: string,
-    customerContext: string
+    customerContext: string,
+    documentsContext: string = ''
 ): string {
     // CRM envanter bilgisi devre dışı - proje bilgileri system prompt'taki web sitesinden alınan Bilgi Bankası'ndan geliyor
     // Units tablosundaki veriler eksik/güncel olmayabilir, AI'ı yanıltıyor
 
-    let knowledgeContext = tenantData.ai_knowledge_base ? `\n\n--- ŞİRKET BİLGİ BANKASI VE AKTİF PROJELER ---\n${tenantData.ai_knowledge_base}\n\nÖNEMLİ KURAL: Projeler hakkında SADECE yukarıdaki BİLGİ BANKASI'nda yazan bilgileri kullan. Bilmediğin veya bilgi bankasında yazmayan bir detay (fiyat, metrekare, teslim tarihi vb.) sorulursa ASLA uydurma, 'Bu detay şu an sistemimde mevcut değil, dilerseniz ilgili satış uzmanımızın size net bilgi vermesini sağlayabilirim' şeklinde yanıt ver.\nLİNK/URL YASAĞI: ASLA kendin link veya URL uydurma. Sadece yukarıdaki BİLGİ BANKASI'nda açıkça yazılmış linkleri paylaş. Bilgi bankasında link yoksa 'Linki şu an bulamadım, hemen bakıp iletiyorum' de. Olmayan site adresi, canlı izleme linki, sanal tur linki gibi URL'ler KESINLIKLE üretme.\n` : '';
+    let knowledgeContext = tenantData.ai_knowledge_base ? `\n\n--- ŞİRKET BİLGİ BANKASI VE AKTİF PROJELER ---\n${tenantData.ai_knowledge_base}\n\nÖNEMLİ KURAL: Projeler hakkında SADECE yukarıdaki BİLGİ BANKASI'nda yazan bilgileri kullan. Bilmediğin veya bilgi bankasında yazmayan bir detay (fiyat, metrekare, teslim tarihi vb.) sorulursa ASLA uydurma, 'Bu detay şu an sistemimde mevcut değil, dilerseniz ilgili satış uzmanımızın size net bilgi vermesini sağlayabilirim' şeklinde yanıt ver.\nLİNK/URL YASAĞI: ASLA kendin link veya URL uydurma. Sadece yukarıdaki BİLGİ BANKASI'nda veya proje dokümanlarında açıkça yazılmış linkleri paylaş. Bilgi bankasında link yoksa 'Linki şu an bulamadım, hemen bakıp iletiyorum' de. Olmayan site adresi, canlı izleme linki, sanal tur linki gibi URL'ler KESINLIKLE üretme.\n` : '';
 
     const basePrompt = tenantData.ai_system_prompt || tenantData.ai_assistant_instructions || getDefaultSystemPrompt();
     const strictHumanPersona = getStrictHumanPersona();
 
-    return basePrompt + knowledgeContext + crmContext + customerContext + strictHumanPersona;
+    return basePrompt + knowledgeContext + crmContext + documentsContext + customerContext + strictHumanPersona;
 }
 
 /**
@@ -239,3 +249,57 @@ export async function getTenantCrmContext(supabase: any, tenantId: string): Prom
         return '';
     }
 }
+
+const CATEGORY_MAP: Record<string, string> = {
+    'Brochure': 'Broşür',
+    'Floor Plan': 'Kat Planı',
+    'Price List': 'Fiyat Listesi',
+    '3D/Virtual': '3D/Sanal Tur',
+    'Marketing': 'Tanıtım Kataloğu',
+    'Legal': 'Yasal Evrak'
+};
+
+/**
+ * Veritabanından projeler ve onlara ait genel/kamusal (public) dokümanları/katalogları context olarak çeker.
+ */
+export async function getTenantDocumentsContext(supabase: any, tenantId: string): Promise<string> {
+    try {
+        const { data: projects } = await supabase
+            .from('projects')
+            .select('id, name')
+            .eq('tenant_id', tenantId)
+            .eq('status', 'Active');
+
+        if (!projects || projects.length === 0) return '';
+
+        const { data: docs } = await supabase
+            .from('document_library')
+            .select('id, name, file_url, category, project_id')
+            .eq('tenant_id', tenantId)
+            .eq('permissions', 'public');
+
+        let context = '\n\n--- PROJE DOKÜMANLARI / KATALOG & BROŞÜR LİSTESİ ---\n';
+        context += 'Müşteri katalog veya broşür talep ettiğinde bu dokümanların indirme linklerini (file_url) kendileriyle paylaşabilirsin:\n';
+        
+        let hasDocs = false;
+        for (const p of projects) {
+            const projDocs = (docs || []).filter((d: any) => d.project_id === p.id);
+            if (projDocs.length > 0) {
+                hasDocs = true;
+                context += `\nProje Adı: ${p.name} (PROJE ID: ${p.id})\n`;
+                projDocs.forEach((d: any) => {
+                    const categoryLabel = CATEGORY_MAP[d.category] || d.category;
+                    context += `  - [DOKÜMAN ID: ${d.id}] ${d.name} (${categoryLabel}) -> Link: ${d.file_url}\n`;
+                });
+            }
+        }
+
+        if (!hasDocs) return '';
+        context += '------------------------------------------------\n';
+        return context;
+    } catch (e) {
+        console.error('Error fetching tenant documents context:', e);
+        return '';
+    }
+}
+

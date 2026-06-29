@@ -163,6 +163,21 @@ Gelen aramaları karşıla, bilgi bankasındaki proje bilgilerini paylaş, rande
                     systemPrompt += `\n\n⚠️ BİLGİ BANKASI TANIMLANMAMIŞ. Tüm proje detayları için müşteriyi satış ekibine yönlendir: "Detaylı bilgi için sizi aratmamı ister misiniz?"\n`
                 }
 
+                // Expose public brochures context
+                try {
+                    const { getTenantDocumentsContext } = await import('@/lib/whatsapp/context');
+                    const documentsContext = await getTenantDocumentsContext(adminSupabase, tenant_id);
+                    if (documentsContext) {
+                        systemPrompt += documentsContext;
+                        systemPrompt += `\n\n--- E-POSTA İLE KATALOG GÖNDERME GÖREVİ ---
+- Müşteri broşür, katalog veya tanıtım dosyalarının e-posta adresine gönderilmesini isterse, kendisinden e-posta adresini harf harf veya heceleyerek doğrulatıp al.
+- E-posta adresini aldığında, mutlaka "sendCatalogEmail" aracını (tool) çalıştır. Aracı çalıştırmak için müşterinin e-posta adresini ve ilgilendiği projenin ID değerini (PROJE ID) belirtmelisin. Proje ID'si yukarıdaki Proje ve Doküman Listesinde yazmaktadır.
+- Araç başarıyla tamamlandığında müşteriye kataloğu e-posta adresine gönderdiğini bildir.\n`;
+                    }
+                } catch (docErr) {
+                    console.error('[Vapi Webhook] Failed to fetch documents context:', docErr);
+                }
+
                 // Fetch customer details and activities for dynamic context (Yapay Zeka Geçmiş Hafızası)
                 let customerContext = ''
                 if (customer) {
@@ -282,6 +297,21 @@ Gelen aramaları karşıla, bilgi bankasındaki proje bilgilerini paylaş, rande
                                                 notes: { type: 'string', description: 'Randevu konusu ve müşteri notları' }
                                             },
                                             required: ['date']
+                                        }
+                                    }
+                                },
+                                {
+                                    type: 'function',
+                                    function: {
+                                        name: 'sendCatalogEmail',
+                                        description: 'Sends the project brochure/catalog via email to the customer. Ask for the customer\'s email address first.',
+                                        parameters: {
+                                            type: 'object',
+                                            properties: {
+                                                email: { type: 'string', description: 'Müşterinin e-posta adresi (örn: ahmet@example.com)' },
+                                                project_id: { type: 'string', description: 'Müşterinin ilgilendiği projenin IDsi (PROJE ID)' }
+                                            },
+                                            required: ['email', 'project_id']
                                         }
                                     }
                                 }
@@ -497,6 +527,32 @@ Gelen aramaları karşıla, bilgi bankasındaki proje bilgilerini paylaş, rande
                             } catch (fnErr: any) {
                                 console.error(`[Vapi Webhook] Randevu kayıt hatası:`, fnErr.message)
                                 resultMessage = "Randevu kaydedilirken bir hata oluştu."
+                            }
+                        } else if (functionName === 'sendCatalogEmail') {
+                            try {
+                                const adminSupabase = createAdminClient()
+                                const { handleAndSendCatalogEmail } = await import('@/lib/email/catalog-email');
+                                const metadata = parsed.metadata || {};
+                                
+                                console.log(`[Vapi Tool] sendCatalogEmail triggered: email=${functionParams.email}, project_id=${functionParams.project_id}`);
+                                
+                                const result = await handleAndSendCatalogEmail({
+                                    supabase: adminSupabase,
+                                    tenantId: metadata.tenant_id,
+                                    email: functionParams.email,
+                                    projectId: functionParams.project_id,
+                                    customerId: metadata.customer_id,
+                                    phone: metadata.caller_phone
+                                });
+                                
+                                if (result.success) {
+                                    resultMessage = `E-posta başarıyla gönderildi. Müşteriye e-posta gönderdiğini söyle ve başka isteği olup olmadığını sor.`;
+                                } else {
+                                    resultMessage = `E-posta gönderilemedi: ${result.message}`;
+                                }
+                            } catch (fnErr: any) {
+                                console.error(`[Vapi Webhook] sendCatalogEmail tool error:`, fnErr.message);
+                                resultMessage = "E-posta gönderilirken sistemsel bir hata oluştu.";
                             }
                         } else {
                             console.log(`[Vapi Webhook] Unknown function: ${functionName}`)

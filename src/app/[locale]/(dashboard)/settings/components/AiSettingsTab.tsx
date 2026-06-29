@@ -10,7 +10,7 @@ import { Brain, Sparkles, AlertCircle, Info, ToggleLeft, ToggleRight, Phone, Fac
 import { toast } from 'sonner'
 import { updateAiSettings, updateAiAssistantCharacter } from '../actions'
 import { useTranslations } from 'next-intl'
-import { MessageSquare, User, HelpCircle, Save, Link2 } from 'lucide-react'
+import { MessageSquare, User, HelpCircle, Save, Link2, Mail } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
@@ -42,6 +42,8 @@ interface AiSettingsTabProps {
         ai_outreach_settings?: { max_concurrent_calls?: number } | null
         // Yeni Lead Aksiyonu
         auto_action_on_new_lead?: string | null
+        catalog_email_subject?: string | null
+        catalog_email_html?: string | null
     }
 }
 
@@ -367,6 +369,54 @@ export default function AiSettingsTab({ tenant }: AiSettingsTabProps) {
                                         defaultValue={tenant.wa_auto_template_rule || 'new_lead'}
                                     />
                                     <p className="text-[10px] text-muted-foreground">Şablon mesajının ne zaman tetikleneceği</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Katalog E-Posta Şablonu Section */}
+                        <div className="p-4 rounded-xl border bg-blue-50/20 space-y-4">
+                            <div className="space-y-0.5">
+                                <Label className="text-base flex items-center gap-2">
+                                    <Mail className="h-4 w-4 text-blue-600" />
+                                    Katalog E-Posta Şablonu
+                                </Label>
+                                <p className="text-xs text-muted-foreground">Müşterilere otomatik gönderilecek katalog/broşür e-postasını özelleştirin.</p>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="catalog_email_subject" className="text-xs text-slate-500 flex items-center gap-1">
+                                        E-Posta Konusu
+                                    </Label>
+                                    <Input
+                                        id="catalog_email_subject"
+                                        name="catalog_email_subject"
+                                        defaultValue={tenant.catalog_email_subject || '{project_name} - Proje Kataloğu ve Bilgileri'}
+                                        placeholder="Örn: {project_name} - Proje Kataloğu ve Bilgileri"
+                                        className="bg-white text-sm"
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="catalog_email_html" className="text-xs text-slate-500 flex items-center gap-1">
+                                        E-Posta HTML İçeriği
+                                    </Label>
+                                    <Textarea
+                                        id="catalog_email_html"
+                                        name="catalog_email_html"
+                                        defaultValue={tenant.catalog_email_html || ''}
+                                        placeholder="HTML formatında e-posta şablonu..."
+                                        rows={12}
+                                        className="bg-white font-mono text-xs"
+                                    />
+                                    <div className="p-3 bg-slate-100/50 rounded-lg text-[10px] text-slate-600 space-y-1">
+                                        <p className="font-semibold">Kullanılabilir Değişkenler:</p>
+                                        <ul className="list-disc pl-4 space-y-0.5 font-mono">
+                                            <li>{"{project_name}"} - İlgilenilen projenin adı</li>
+                                            <li>{"{tenant_name}"} - Kurumunuzun adı</li>
+                                            <li>{"{document_links}"} - Projenin yayındaki katalog/broşür indirme linkleri (renkli butonlar şeklinde yerleşir)</li>
+                                        </ul>
+                                    </div>
                                 </div>
                             </div>
                         </div>
