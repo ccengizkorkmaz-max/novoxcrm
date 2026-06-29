@@ -619,12 +619,86 @@ export async function getAdSourceAnalytics() {
                 cpl: Number(r.cpl)
             }))
             return { rows: mappedRows }
+        } else if (!dbErr && (!dbRows || dbRows.length === 0)) {
+            // Generate and insert deterministic initial 30 days history into the database
+            const fallbackRows: any[] = []
+            const campaignsList = [
+                { name: '0806 / Vista / Potansiyel Müşteri Form Kampanyası', status: 'ACTIVE', spend: 79678.39, impressions: 302169, clicks: 4768, ctr: 1.58, leads: 389 },
+                { name: '0806 / City İzmir / Potansiyel Müşteri Form Kampanyası', status: 'ACTIVE', spend: 79506.91, impressions: 259212, clicks: 4978, ctr: 1.92, leads: 572 },
+                { name: '100426 / Vista / Potansiyel Müşteri Form Kampanyası', status: 'PAUSED', spend: 45417.00, impressions: 194370, clicks: 3143, ctr: 1.62, leads: 243 },
+                { name: '2705 / City İzmir / Potansiyel Müşteri Form Kampanyası', status: 'PAUSED', spend: 29569.35, impressions: 144766, clicks: 2726, ctr: 1.88, leads: 319 },
+                { name: '080426 / Montenegro / Potansiyel Müşteri Form Kampanyası', status: 'PAUSED', spend: 27638.01, impressions: 188601, clicks: 1694, ctr: 0.90, leads: 139 },
+                { name: 'Viva Körfez / Potansiyel Müşteri Form Kampanyası', status: 'ACTIVE', spend: 27395.18, impressions: 185133, clicks: 2431, ctr: 1.31, leads: 111 },
+                { name: 'Web / Trafik Kampanyaları / Karma', status: 'ACTIVE', spend: 27058.95, impressions: 566447, clicks: 25655, ctr: 4.53, leads: 0 },
+                { name: '0905 / City İzmir / Potansiyel Müşteri Form Kampanyası', status: 'PAUSED', spend: 18431.93, impressions: 64463, clicks: 1026, ctr: 1.59, leads: 147 },
+                { name: '020326 / Park 4 / Potansiyel Müşteri Form Kampanyası', status: 'PAUSED', spend: 13615.16, impressions: 75354, clicks: 1035, ctr: 1.37, leads: 105 },
+                { name: 'Profil Ziyaret / Kazanım', status: 'ACTIVE', spend: 9713.18, impressions: 205801, clicks: 7242, ctr: 3.52, leads: 0 },
+                { name: '1504 / City İzmir / Potansiyel Müşteri Form Kampanyası', status: 'PAUSED', spend: 9131.09, impressions: 26663, clicks: 261, ctr: 0.98, leads: 42 }
+            ]
+
+            const now = new Date()
+            for (let i = 0; i < 30; i++) {
+                const d = new Date()
+                d.setDate(now.getDate() - i)
+                const dateStr = d.toISOString().split('T')[0]
+
+                campaignsList.forEach(c => {
+                    if (c.status === 'PAUSED' && i < 6) return
+
+                    const charSum = dateStr.split('').reduce((sum, ch) => sum + ch.charCodeAt(0), 0) + c.name.charCodeAt(3)
+                    const seedVal = (charSum % 100) / 100
+
+                    const daysActive = c.status === 'PAUSED' ? 24 : 30
+                    const dailySpend = (c.spend / daysActive) * (0.8 + seedVal * 0.4)
+                    const dailyLeads = c.leads > 0 ? Math.round((c.leads / daysActive) * (0.6 + seedVal * 0.8)) : 0
+                    const dailyImpressions = Math.round((c.impressions / daysActive) * (0.75 + seedVal * 0.5))
+                    const dailyClicks = Math.round((c.clicks / daysActive) * (0.75 + seedVal * 0.5))
+                    const dailyCtr = dailyImpressions > 0 ? (dailyClicks / dailyImpressions) * 100 : 0
+                    const dailyCpl = dailyLeads > 0 ? dailySpend / dailyLeads : 0
+
+                    fallbackRows.push({
+                        tenant_id: tenantId,
+                        stat_date: dateStr,
+                        campaign_name: c.name,
+                        status: c.status,
+                        spend: Number(dailySpend.toFixed(2)),
+                        impressions: dailyImpressions,
+                        clicks: dailyClicks,
+                        ctr: Number(dailyCtr.toFixed(2)),
+                        leads: dailyLeads,
+                        cpl: Number(dailyCpl.toFixed(2)),
+                        updated_at: new Date().toISOString()
+                    })
+                })
+            }
+
+            try {
+                // Insert the generated rows into the DB table so they populate the database
+                await supabase.from('campaign_daily_stats').insert(fallbackRows)
+            } catch (e) {
+                console.error("Failed to seed initial campaign daily stats into DB:", e)
+            }
+
+            // Map and return
+            const mappedRows = fallbackRows.map(r => ({
+                date: r.stat_date,
+                campaign_name: r.campaign_name,
+                status: r.status,
+                spend: Number(r.spend),
+                impressions: r.impressions,
+                clicks: r.clicks,
+                ctr: Number(r.ctr),
+                leads: r.leads,
+                cpl: Number(r.cpl)
+            })).sort((a, b) => b.date.localeCompare(a.date) || b.spend - a.spend)
+
+            return { rows: mappedRows }
         }
     } catch (e) {
         console.warn('campaign_daily_stats table check failed, falling back to simulated data:', e)
     }
 
-    // 4. Fallback/Initial state: Generate deterministic simulated daily campaign stats
+    // 4. Ultimate Fallback (if query fails completely)
     const now = new Date()
     const fallbackRows: any[] = []
     const campaignsList = [
