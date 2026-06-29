@@ -273,7 +273,6 @@ export async function convertLeadToCustomer(leadId: string, options?: {
         status: 'Lead',
         project_id: lead.project_id || null,
         assigned_to: lead.assigned_to || user.id,
-        created_by: user.id,
         description: newCompanyId 
             ? `Lead dönüşümü (Firma): ${lead.source || 'Bilinmeyen kaynak'}`
             : `Lead dönüşümü: ${lead.source || 'Bilinmeyen kaynak'}`,

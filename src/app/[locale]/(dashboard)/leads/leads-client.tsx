@@ -395,7 +395,7 @@ export default function LeadsPageClient({ leads, teamMembers, projects, userRole
                     setConvertResult(null)
                 }, 2000)
             } else {
-                toast.error(res.message || 'Dönüştürme hatası')
+                toast.error(res.error || 'Dönüştürme hatası')
             }
         })
     }
