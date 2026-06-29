@@ -540,7 +540,8 @@
             "hotLeads": "Sıcak Lead Analizi",
             "outreachCeo": "Outreach CEO Raporu",
             "outreachCost": "Outreach Maliyet Analizi",
-            "metaAutomation": "Reklam Analitiği"
+            "metaAutomation": "Reklam Analitiği",
+            "adSourceAnalytics": "Reklam Kaynağı Analizi"
         },
         "Inbox": {
             "title": "Gelen Kutusu",

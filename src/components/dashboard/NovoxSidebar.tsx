@@ -569,6 +569,9 @@ export function NovoxSidebar({
                         <NavItem href="/reports/meta-automation" icon={Zap} onClick={onElementClick} isCollapsed={isCollapsed} isSubItem>
                             {labels.reports?.metaAutomation || 'Reklam Analitiği'}
                         </NavItem>
+                        <NavItem href="/reports/ad-source-analytics" icon={Target} onClick={onElementClick} isCollapsed={isCollapsed} isSubItem>
+                            {labels.reports?.adSourceAnalytics || 'Reklam Kaynağı Analizi'}
+                        </NavItem>
                         <NavItem href="/reports/ai-feedback" icon={Brain} onClick={onElementClick} isCollapsed={isCollapsed} isSubItem>
                             {'AI Geri Bildirim'}
                         </NavItem>
@@ -653,6 +656,9 @@ export function NovoxSidebar({
                                 </NavItem>
                                 <NavItem href="/reports/meta-automation" icon={Zap} onClick={onElementClick} isSubItem>
                                     {labels.reports?.metaAutomation || 'Reklam Analitiği'}
+                                </NavItem>
+                                <NavItem href="/reports/ad-source-analytics" icon={Target} onClick={onElementClick} isSubItem>
+                                    {labels.reports?.adSourceAnalytics || 'Reklam Kaynağı Analizi'}
                                 </NavItem>
                                 <NavItem href="/reports/ai-feedback" icon={Brain} onClick={onElementClick} isSubItem>
                                     {'AI Geri Bildirim'}

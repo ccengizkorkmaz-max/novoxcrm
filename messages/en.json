@@ -512,7 +512,8 @@
             "hotLeads": "Hot Lead Analysis",
             "outreachCeo": "Outreach CEO Report",
             "outreachCost": "Outreach Cost Analysis",
-            "metaAutomation": "Advertising Analytics"
+            "metaAutomation": "Advertising Analytics",
+            "adSourceAnalytics": "Ad Source Analytics"
         },
         "Inbox": {
             "title": "Inbox",
