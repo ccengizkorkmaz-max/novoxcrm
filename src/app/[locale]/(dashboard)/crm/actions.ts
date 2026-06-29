@@ -18,10 +18,10 @@ export async function getCustomerFullProfile(customerId: string) {
 
     console.log('[getCustomerFullProfile] customerId:', customerId)
 
-    const { data: customer, error: customerError } = await supabase.from('customers').select('*, customer_demands(*), company:companies(id, name)').eq('id', customerId).single()
+    const { data: customer, error: customerError } = await supabase.from('customers').select('*, customer_demands(*), company:companies(id, name), addresses:customer_addresses(*)').eq('id', customerId).single()
     if (customerError) console.error('[getCustomerFullProfile] customer error:', customerError.message)
 
-    const { data: activities, error: activitiesError } = await supabase.from('activities').select('*').eq('customer_id', customerId).order('created_at', { ascending: false })
+    const { data: activities, error: activitiesError } = await supabase.from('activities').select('*').eq('customer_id', customerId).neq('type', 'Transcript').order('created_at', { ascending: false })
     if (activitiesError) console.error('[getCustomerFullProfile] activities error:', activitiesError.message)
     console.log('[getCustomerFullProfile] activities count:', activities?.length)
 
@@ -1964,8 +1964,14 @@ export async function updateSaleToReservation(saleId: string, unitId: string, ex
         return { error: 'Failed to update sale record: ' + saleError.message }
     }
 
-    // 3.1. Create Deposit Record if > 0
+    // 3.1. Cancel existing pending deposits and Create Deposit Record if > 0
     if (depositAmount > 0) {
+        await supabase
+            .from('deposits')
+            .update({ status: 'Cancelled' })
+            .eq('sale_id', updatedSale.id)
+            .in('status', ['Pending', 'Refund Pending'])
+
         const { error: depositError } = await supabase.from('deposits').insert({
             tenant_id: profile.tenant_id,
             customer_id: updatedSale.customer_id,
@@ -2008,26 +2014,45 @@ export async function updateSaleToReservation(saleId: string, unitId: string, ex
     }
 
     // 6. Create or Update Offer record for document tracking
-    // Check if an offer already exists for this sale's customer + unit combo
-    const saleCustomerId = (await supabase.from('sales').select('customer_id').eq('id', saleId).single()).data?.customer_id
+    const saleCustomerId = updatedSale.customer_id
     
     const { data: existingOffer } = await supabase
         .from('offers')
         .select('id')
         .eq('customer_id', saleCustomerId)
         .eq('unit_id', unitId)
-        .in('status', ['Sent', 'Draft', 'Pending'])
+        .in('status', ['Sent', 'Draft', 'Pending', 'Teklif - Kapora Bekleniyor'])
         .order('created_at', { ascending: false })
         .limit(1)
-        .single()
+        .maybeSingle()
 
     if (existingOffer) {
-        // Update existing offer's expiry date
+        // Update existing offer's expiry date and status
         const { error: offerError } = await supabase
             .from('offers')
-            .update({ valid_until: expiryDate })
+            .update({ 
+                valid_until: expiryDate,
+                status: depositAmount > 0 ? 'Teklif - Kapora Bekleniyor' : 'Sent'
+            })
             .eq('id', existingOffer.id)
         if (offerError) console.error('Update Offer Error (Reservation):', offerError)
+    } else {
+        // Auto-create offer for reservation/deposit
+        const paymentPlan = await getPaymentPlan(saleId)
+        const { error: offerError } = await supabase.from('offers').insert({
+            tenant_id: profile.tenant_id,
+            customer_id: saleCustomerId,
+            unit_id: unitId,
+            sale_id: saleId,
+            user_id: user?.id,
+            price: unit?.price || 0,
+            currency: unit?.currency || 'TRY',
+            status: depositAmount > 0 ? 'Teklif - Kapora Bekleniyor' : 'Sent',
+            valid_until: expiryDate,
+            payment_plan: paymentPlan,
+            created_at: new Date().toISOString()
+        })
+        if (offerError) console.error('Auto-create Offer Error (Reservation):', offerError)
     }
 
     // Notification: Reservation created

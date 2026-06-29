@@ -278,11 +278,7 @@ export function NovoxSidebar({
                                 {labels.salesManagement || 'Sales Management'}
                             </NavItem>
 
-                            {isAdvanceMode && (
-                                <NavItem href="/opportunities" icon={Trophy} onClick={onElementClick} isCollapsed={isCollapsed} isSubItem>
-                                    Fırsatlar
-                                </NavItem>
-                            )}
+
 
                             {isDeveloper && (
                                 <>
@@ -349,12 +345,6 @@ export function NovoxSidebar({
                                             <NavItem href="/crm" icon={Activity} onClick={onElementClick} isSubItem>
                                                 {labels.salesManagement || 'Sales Management'}
                                             </NavItem>
-
-                                            {isAdvanceMode && (
-                                                <NavItem href="/opportunities" icon={Trophy} onClick={onElementClick} isSubItem>
-                                                    Fırsatlar
-                                                </NavItem>
-                                            )}
 
                                             {isDeveloper && (
                                                 <>

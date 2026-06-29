@@ -304,12 +304,12 @@ export async function convertReservationToOffer(unitId: string) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) redirect('/login')
 
-    // 1. Get the current reservation sale
+    // 1. Get the current reservation sale (restrict to active reservation/option statuses)
     const { data: sale } = await supabase
         .from('sales')
         .select('*')
         .eq('unit_id', unitId)
-        .in('status', ['Reservation', 'Lead', 'Opsiyon - Kapora Bekleniyor', 'Prospect', 'Potential', 'Proposal', 'Opsiyonlu'])
+        .in('status', ['Reservation', 'Opsiyon - Kapora Bekleniyor'])
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle()
@@ -339,35 +339,25 @@ export async function convertReservationToOffer(unitId: string) {
     await syncBrokerLeadFromSale(sale.id, 'Proposal')
 
     // 4. Update the active offer with the new price and payment plan
-    // We need to fetch the payment plan snapshot for the offer
-    // This logic is similar to crm/actions.ts updateSaleStatus
     const { data: paymentPlan } = await supabase
         .from('payment_plans')
         .select('*, payment_items(*)')
         .eq('sale_id', sale.id)
-        .single()
+        .maybeSingle()
 
-    // 5. Upsert offer record
-    // We update based on customer_id and unit_id to avoid duplicates, 
-    // or insert if it doesn't exist.
-    const { error: offerError } = await supabase
+    // 5. Check and Insert/Update offer record manually to avoid unique constraint issues
+    const { data: existingOffer } = await supabase
         .from('offers')
-        .upsert({
-            tenant_id: sale.tenant_id,
-            customer_id: sale.customer_id,
-            unit_id: unitId,
-            user_id: user.id,
-            status: 'Sent',
-            price: sale.final_price || 0,
-            currency: sale.currency || 'TRY',
-            payment_plan: paymentPlan,
-            updated_at: new Date().toISOString()
-        }, { onConflict: 'customer_id,unit_id' })
+        .select('id')
+        .eq('customer_id', sale.customer_id)
+        .eq('unit_id', unitId)
+        .eq('sale_id', sale.id)
+        .limit(1)
+        .maybeSingle()
 
-    if (offerError) {
-        console.error('Upsert Offer Error (Conversion):', offerError)
-        // If upsert fails due to missing constraint or other, try a less strict update
-        await supabase
+    let offerError = null
+    if (existingOffer) {
+        const { error } = await supabase
             .from('offers')
             .update({
                 status: 'Sent',
@@ -376,9 +366,25 @@ export async function convertReservationToOffer(unitId: string) {
                 payment_plan: paymentPlan,
                 updated_at: new Date().toISOString()
             })
-            .match({ customer_id: sale.customer_id, unit_id: unitId })
+            .eq('id', existingOffer.id)
+        offerError = error
+    } else {
+        const { error } = await supabase
+            .from('offers')
+            .insert({
+                tenant_id: sale.tenant_id,
+                customer_id: sale.customer_id,
+                unit_id: unitId,
+                sale_id: sale.id,
+                user_id: user.id,
+                status: 'Sent',
+                price: sale.final_price || 0,
+                currency: sale.currency || 'TRY',
+                payment_plan: paymentPlan,
+                created_at: new Date().toISOString()
+            })
+        offerError = error
     }
-
 
     if (offerError) {
         console.error('Update Offer Error (Conversion):', offerError)

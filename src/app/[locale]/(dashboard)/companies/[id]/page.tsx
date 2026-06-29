@@ -39,7 +39,7 @@ export default async function CompanyPage({ params }: CompanyPageProps) {
     if (id !== 'new') {
         const { data: dbCompany, error } = await supabase
             .from('companies')
-            .select('*')
+            .select('*, addresses:customer_addresses(*)')
             .eq('id', id)
             .eq('tenant_id', profile.tenant_id)
             .maybeSingle()

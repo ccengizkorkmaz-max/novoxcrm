@@ -31,7 +31,7 @@ export default async function EditCustomerPage(props: {
 
     const { data: customer, error } = await supabase
         .from('customers')
-        .select('*, customer_demands(*)')
+        .select('*, customer_demands(*), addresses:customer_addresses(*)')
         .eq('id', id)
         .single()
 

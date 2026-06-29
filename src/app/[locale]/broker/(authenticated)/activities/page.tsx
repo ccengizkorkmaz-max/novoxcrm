@@ -56,7 +56,7 @@ export default async function BrokerActivitiesPage(props: {
     if (allCustomerIds.length > 0) {
         const { data: actData } = await supabase
             .from('activities')
-            .select('*, customers(full_name), owner:profiles!activities_owner_id_fkey(full_name)')
+            .select('*, customers(full_name, customer_type, company_name, company:companies(name)), leads(full_name), owner:profiles!activities_owner_id_fkey(full_name)')
             .or(`owner_id.eq.${user.id}${allCustomerIds.length > 0 ? `,customer_id.in.(${allCustomerIds.join(',')})` : ''}`)
             .order('created_at', { ascending: false })
             .limit(200)
@@ -65,7 +65,7 @@ export default async function BrokerActivitiesPage(props: {
         // If no customers, only show activities owned by broker
         const { data: actData } = await supabase
             .from('activities')
-            .select('*, customers(full_name), owner:profiles!activities_owner_id_fkey(full_name)')
+            .select('*, customers(full_name, customer_type, company_name, company:companies(name)), leads(full_name), owner:profiles!activities_owner_id_fkey(full_name)')
             .eq('owner_id', user.id)
             .order('created_at', { ascending: false })
             .limit(200)

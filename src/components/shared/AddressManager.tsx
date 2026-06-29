@@ -69,7 +69,11 @@ export default function AddressManager({ addresses, ownerId, ownerType }: Addres
 
     useEffect(() => {
         if (addresses) {
-            setLocalAddresses(addresses)
+            const localIds = localAddresses.map(a => a.id).sort().join(',')
+            const propIds = addresses.map(a => a.id).sort().join(',')
+            if (localIds !== propIds) {
+                setLocalAddresses(addresses)
+            }
         }
     }, [addresses])
 

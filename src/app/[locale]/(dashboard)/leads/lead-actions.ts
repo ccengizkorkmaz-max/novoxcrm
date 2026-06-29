@@ -199,6 +199,7 @@ export async function convertLeadToCustomer(leadId: string, options?: {
             company_id: newCompanyId,
             source: source || (newCompanyId ? 'Lead Conversion (Company)' : 'Lead Conversion'),
             contact_type: 'buyer',
+            created_by: user.id,
             notes: newCompanyId 
                 ? `Lead'den dönüştürüldü (Firma: ${companyName}). Orijinal lead: ${lead.id}${lead.notes ? '\n' + lead.notes : ''}`
                 : `Lead'den dönüştürüldü. Orijinal lead: ${lead.id}${lead.notes ? '\n' + lead.notes : ''}`
@@ -266,6 +267,8 @@ export async function convertLeadToCustomer(leadId: string, options?: {
         customer_id: newCustomer.id,
         status: 'Prospect',
         project_id: lead.project_id || null,
+        assigned_to: lead.assigned_to || user.id,
+        created_by: user.id,
         description: newCompanyId 
             ? `Lead dönüşümü (Firma): ${lead.source || 'Bilinmeyen kaynak'}`
             : `Lead dönüşümü: ${lead.source || 'Bilinmeyen kaynak'}`,
@@ -429,6 +432,7 @@ export async function getLeadActivities(leadId: string) {
         .from('activities')
         .select('*, profiles!user_id(full_name)')
         .eq('lead_id', leadId)
+        .neq('type', 'Transcript')
         .order('created_at', { ascending: false })
 
     if (actErr) {

@@ -31,6 +31,7 @@ interface Company {
     status: string
     notes: string | null
     created_at: string
+    addresses?: any[]
 }
 
 interface CompanyFormProps {
@@ -257,7 +258,7 @@ export default function CompanyForm({ company }: CompanyFormProps) {
                     {/* Address Manager (Only when editing) */}
                     {!isCreateMode && (
                         <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm hover:shadow-md transition-shadow">
-                            <AddressManager addresses={[]} ownerId={company.id} ownerType="company" />
+                            <AddressManager addresses={company.addresses || []} ownerId={company.id} ownerType="company" />
                         </div>
                     )}
                 </div>

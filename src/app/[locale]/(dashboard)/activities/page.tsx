@@ -51,7 +51,7 @@ export default async function ActivitiesPage(props: {
         // Project names are mapped client-side from the projects list
         supabase
             .from('activities')
-            .select('*, customers(full_name), owner:profiles!activities_owner_id_fkey(full_name)')
+            .select('*, customers(full_name, customer_type, company_name, company:companies(name)), leads(full_name), owner:profiles!activities_owner_id_fkey(full_name)')
             .in('type', ['Call', 'Meeting', 'Task', 'OfficeMeeting', 'OnlineMeeting', 'Site Visit', 'Whatsapp', 'Email'])
             .order('created_at', { ascending: false })
             .limit(500)

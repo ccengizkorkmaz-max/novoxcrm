@@ -33,7 +33,7 @@ export default async function CustomerPage({ params }: CustomerPageProps) {
 
     const { data: customer } = await supabase
         .from('customers')
-        .select('*, customer_demands(*), company:companies(id, name)')
+        .select('*, customer_demands(*), company:companies(id, name), addresses:customer_addresses(*)')
         .eq('id', id)
         .single()
 
@@ -46,6 +46,7 @@ export default async function CustomerPage({ params }: CustomerPageProps) {
         .from('activities')
         .select('*')
         .eq('customer_id', id)
+        .neq('type', 'Transcript')
         .order('due_date', { ascending: false })
 
     // Fetch AI call logs

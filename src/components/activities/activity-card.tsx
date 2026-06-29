@@ -33,7 +33,12 @@ export interface Activity {
     topic?: string
     summary: string
     customer_id: string
-    customers?: { full_name: string }
+    customers?: { 
+        full_name: string
+        customer_type?: string
+        company_name?: string | null
+        company?: { name: string } | null
+    }
     owner?: { full_name: string }
     projects?: { name: string }
     project_id?: string
@@ -247,11 +252,24 @@ export function ActivityCard({ activity, customers, profiles, projects, onComple
                                 </div>
                             )
                         })()}
-                        {activity.customers?.full_name && (
-                            <Link href={`/customers/${activity.customer_id}`} onClick={(e: React.MouseEvent) => e.stopPropagation()}>
-                                <div className="flex items-center gap-1 text-[11px] text-slate-700 font-semibold truncate bg-slate-100 hover:bg-slate-200 hover:text-blue-700 cursor-pointer rounded px-1.5 py-0.5 w-fit max-w-full transition-colors">
-                                    <User className="h-3 w-3 shrink-0" />
-                                    <span className="truncate">{activity.customers.full_name}</span>
+                        {activity.customers?.full_name && (() => {
+                            const c = activity.customers
+                            const customerTypeLabel = c.customer_type === 'company' ? 'Firma' : 'Kişi'
+                            const companyInfo = c.company?.name || c.company_name
+                            return (
+                                <Link href={`/customers/${activity.customer_id}`} onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+                                    <div className="flex items-center gap-1 text-[11px] text-slate-700 font-semibold truncate bg-slate-100 hover:bg-slate-200 hover:text-blue-700 cursor-pointer rounded px-1.5 py-0.5 w-fit max-w-full transition-colors">
+                                        <User className="h-3 w-3 shrink-0" />
+                                        <span className="truncate">{c.full_name} ({customerTypeLabel}{companyInfo ? ` - ${companyInfo}` : ''})</span>
+                                    </div>
+                                </Link>
+                            )
+                        })()}
+                        {activity.leads?.full_name && (
+                            <Link href={`/leads?search=${encodeURIComponent(activity.leads.full_name)}`} onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+                                <div className="flex items-center gap-1 text-[11px] text-orange-700 font-semibold truncate bg-orange-50 hover:bg-orange-100 cursor-pointer rounded px-1.5 py-0.5 w-fit max-w-full border border-orange-100 transition-colors">
+                                    <User className="h-3 w-3 shrink-0 text-orange-500" />
+                                    <span className="truncate">{activity.leads.full_name} (Müşteri Adayı)</span>
                                 </div>
                             </Link>
                         )}
@@ -391,10 +409,21 @@ export function ActivityCard({ activity, customers, profiles, projects, onComple
                                     {format(new Date(activity.due_date), 'd MMMM yyyy, HH:mm', { locale: locale === 'tr' ? tr : enUS })}
                                 </div>
                             )}
-                            {activity.customers?.full_name && (
-                                <div className="flex items-center gap-1">
-                                    <User className="h-3.5 w-3.5" />
-                                    {activity.customers.full_name}
+                            {activity.customers?.full_name && (() => {
+                                const c = activity.customers
+                                const customerTypeLabel = c.customer_type === 'company' ? 'Firma' : 'Kişi'
+                                const companyInfo = c.company?.name || c.company_name
+                                return (
+                                    <div className="flex items-center gap-1 font-semibold text-slate-700">
+                                        <User className="h-3.5 w-3.5 text-slate-500" />
+                                        {c.full_name} ({customerTypeLabel}{companyInfo ? ` - ${companyInfo}` : ''})
+                                    </div>
+                                )
+                            })()}
+                            {activity.leads?.full_name && (
+                                <div className="flex items-center gap-1 font-semibold text-slate-700">
+                                    <User className="h-3.5 w-3.5 text-orange-500" />
+                                    {activity.leads.full_name} (Müşteri Adayı)
                                 </div>
                             )}
                         </div>

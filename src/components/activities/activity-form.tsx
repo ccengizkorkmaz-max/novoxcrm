@@ -133,7 +133,9 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
     }
 
     const isLeadMode = !!activity?.lead_id || !!defaultLeadId
-    const leadName = activity?.lead_name || activity?.leads?.full_name || 'Müşteri Adayı'
+    const leadName = activity?.leads?.full_name 
+        ? `${activity.leads.full_name} (Müşteri Adayı)` 
+        : (activity?.lead_name || 'Müşteri Adayı')
 
     useEffect(() => {
         if (open && activity) {
@@ -148,11 +150,23 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
 
     // Ensure the current customer is in the list even if not in the top 1000
     const comboboxItems = useMemo(() => {
-        const items = customers?.map((c: any) => ({ value: c.id, label: c.full_name })) || []
+        const items = customers?.map((c: any) => {
+            const customerTypeLabel = c.customer_type === 'company' ? 'Firma' : 'Kişi'
+            const companyInfo = c.company?.name || c.company_name
+            return {
+                value: c.id,
+                label: `${c.full_name} (${customerTypeLabel}${companyInfo ? ` - ${companyInfo}` : ''})`
+            }
+        }) || []
 
         // If we have a selected customer but they aren't in the list, add them
         if (selectedCustomerId && !items.find(i => i.value === selectedCustomerId)) {
-            const currentCustomerName = activity?.customers?.full_name || activity?.customer?.full_name || 'Seçili Müşteri'
+            const cust = activity?.customers || activity?.customer
+            const customerTypeLabel = cust?.customer_type === 'company' ? 'Firma' : 'Kişi'
+            const companyInfo = cust?.company?.name || cust?.company_name
+            const currentCustomerName = cust 
+                ? `${cust.full_name} (${customerTypeLabel}${companyInfo ? ` - ${companyInfo}` : ''})` 
+                : 'Seçili Müşteri'
             items.unshift({ value: selectedCustomerId, label: currentCustomerName })
         }
 
