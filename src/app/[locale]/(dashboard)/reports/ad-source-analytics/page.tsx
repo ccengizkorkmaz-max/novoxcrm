@@ -34,39 +34,47 @@ export default async function AdSourceAnalyticsPage() {
         return d.toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' })
     }
 
+    // Helper to format Date to 'YYYY-MM-DD' in local timezone (avoiding UTC timezone shift bugs)
+    const toLocalDateStr = (d: Date) => {
+        const year = d.getFullYear()
+        const month = String(d.getMonth() + 1).padStart(2, '0')
+        const day = String(d.getDate()).padStart(2, '0')
+        return `${year}-${month}-${day}`
+    }
+
     // --- Date Calculations for Periods ---
     const now = new Date()
     
     // Today
-    const todayStr = now.toISOString().split('T')[0]
+    const todayStr = toLocalDateStr(now)
     
     // Yesterday
     const yesterday = new Date()
     yesterday.setDate(now.getDate() - 1)
-    const yesterdayStr = yesterday.toISOString().split('T')[0]
+    const yesterdayStr = toLocalDateStr(yesterday)
     
     // This Week (Monday start)
     const dayOfWeek = now.getDay()
     const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1
     const thisWeekStart = new Date(now)
     thisWeekStart.setDate(now.getDate() - mondayOffset)
-    const thisWeekStartStr = thisWeekStart.toISOString().split('T')[0]
+    const thisWeekStartStr = toLocalDateStr(thisWeekStart)
     
     // Last Week
     const lastWeekStart = new Date(thisWeekStart)
     lastWeekStart.setDate(lastWeekStart.getDate() - 7)
-    const lastWeekStartStr = lastWeekStart.toISOString().split('T')[0]
+    const lastWeekStartStr = toLocalDateStr(lastWeekStart)
     const lastWeekEndStr = thisWeekStartStr
 
     // This Month
     const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
-    const thisMonthStartStr = thisMonthStart.toISOString().split('T')[0]
+    const thisMonthStartStr = toLocalDateStr(thisMonthStart)
     
     // Last Month
     const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-    const lastMonthStartStr = lastMonthStart.toISOString().split('T')[0]
+    const lastMonthStartStr = toLocalDateStr(lastMonthStart)
     const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 1)
-    const lastMonthEndStr = lastMonthEnd.toISOString().split('T')[0]
+    const lastMonthEndStr = toLocalDateStr(lastMonthEnd)
 
     // Aggregation Helper
     const aggregate = (filteredRows: any[]) => {
