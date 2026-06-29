@@ -251,6 +251,28 @@ export async function getTenantCrmContext(supabase: any, tenantId: string): Prom
 }
 
 const CATEGORY_MAP: Record<string, string> = {
+    // Tanıtım ve Pazarlama
+    'catalog': 'Proje Kataloğu',
+    'brochure': 'Proje Broşürü',
+    'renders': '3D Render / Görseller',
+    'virtual_tour': 'Sanal Tur / 3D Gösterim',
+    'video': 'Tanıtım Videosu',
+    
+    // Mimari ve Yerleşim
+    'floor_plan': 'Kat Planı',
+    'site_plan': 'Vaziyet Planı',
+    'land_plan': 'Arsa / İmar Planı',
+    
+    // Fiyat ve Ödeme
+    'price_list': 'Fiyat Listesi',
+    'payment_plan': 'Ödeme Planı Şablonu',
+    
+    // Hukuki ve Teknik
+    'technical_spec': 'Teknik Şartname',
+    'permits': 'Ruhsat ve İzinler',
+    'sample_contract': 'Örnek Sözleşme',
+
+    // Eski Kategori Fallback Değerleri
     'Brochure': 'Broşür',
     'Floor Plan': 'Kat Planı',
     'Price List': 'Fiyat Listesi',
@@ -272,11 +294,27 @@ export async function getTenantDocumentsContext(supabase: any, tenantId: string)
 
         if (!projects || projects.length === 0) return '';
 
-        const { data: docs } = await supabase
+        const { data: libraryDocs } = await supabase
             .from('document_library')
             .select('id, name, file_url, category, project_id')
             .eq('tenant_id', tenantId)
             .eq('permissions', 'public');
+
+        const { data: projectDocs } = await supabase
+            .from('project_documents')
+            .select('id, document_name, file_url, category, project_id')
+            .eq('tenant_id', tenantId)
+            .eq('permissions', 'public');
+
+        const normalizedProjectDocs = (projectDocs || []).map((d: any) => ({
+            id: d.id,
+            name: d.document_name,
+            file_url: d.file_url,
+            category: d.category,
+            project_id: d.project_id
+        }));
+
+        const docs = [...(libraryDocs || []), ...normalizedProjectDocs];
 
         let context = '\n\n--- PROJE DOKÜMANLARI / KATALOG & BROŞÜR LİSTESİ ---\n';
         context += 'Müşteri katalog veya broşür talep ettiğinde bu dokümanların indirme linklerini (file_url) kendileriyle paylaşabilirsin:\n';

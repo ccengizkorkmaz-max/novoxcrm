@@ -124,6 +124,8 @@ export async function saveDocumentMetadata(metadata: {
     fileSize: number
     documentName: string
     description: string
+    category?: string
+    permissions?: string
 }) {
     const supabase = await createClient()
 
@@ -150,6 +152,8 @@ export async function saveDocumentMetadata(metadata: {
             file_size: metadata.fileSize,
             document_name: metadata.documentName,
             description: metadata.description,
+            category: metadata.category || 'brochure',
+            permissions: metadata.permissions || 'public',
             uploaded_by: user.id
         })
 

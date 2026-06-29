@@ -10,6 +10,28 @@ interface CatalogEmailParams {
 }
 
 const CATEGORY_MAP: Record<string, string> = {
+    // Tanıtım ve Pazarlama
+    'catalog': 'Proje Kataloğu',
+    'brochure': 'Proje Broşürü',
+    'renders': '3D Render / Görseller',
+    'virtual_tour': 'Sanal Tur / 3D Gösterim',
+    'video': 'Tanıtım Videosu',
+    
+    // Mimari ve Yerleşim
+    'floor_plan': 'Kat Planı',
+    'site_plan': 'Vaziyet Planı',
+    'land_plan': 'Arsa / İmar Planı',
+    
+    // Fiyat ve Ödeme
+    'price_list': 'Fiyat Listesi',
+    'payment_plan': 'Ödeme Planı Şablonu',
+    
+    // Hukuki ve Teknik
+    'technical_spec': 'Teknik Şartname',
+    'permits': 'Ruhsat ve İzinler',
+    'sample_contract': 'Örnek Sözleşme',
+
+    // Eski Kategori Fallback Değerleri
     'Brochure': 'Broşür',
     'Floor Plan': 'Kat Planı',
     'Price List': 'Fiyat Listesi',
@@ -152,14 +174,28 @@ export async function handleAndSendCatalogEmail(params: CatalogEmailParams): Pro
     const tenantName = tenant?.name || 'Novo Şirketler Grubu';
 
     // 4. Fetch Public Documents for Project
-    const { data: docs } = await supabase
+    const { data: libraryDocs } = await supabase
         .from('document_library')
         .select('name, file_url, category')
         .eq('project_id', projectId)
         .eq('permissions', 'public');
 
-    if (!docs || docs.length === 0) {
-        console.warn(`[CatalogEmail] No public documents found in library for project: ${projectName} (${projectId})`);
+    const { data: projectDocs } = await supabase
+        .from('project_documents')
+        .select('document_name, file_url, category')
+        .eq('project_id', projectId)
+        .eq('permissions', 'public');
+
+    const normalizedProjectDocs = (projectDocs || []).map((d: any) => ({
+        name: d.document_name,
+        file_url: d.file_url,
+        category: d.category
+    }));
+
+    const docs = [...(libraryDocs || []), ...normalizedProjectDocs];
+
+    if (docs.length === 0) {
+        console.warn(`[CatalogEmail] No public documents found in library or project documents for project: ${projectName} (${projectId})`);
         return { success: false, message: `Bu projeye ait yayında olan bir broşür veya katalog bulunamadı.` };
     }
 

@@ -29,6 +29,28 @@ import { DeleteAllUnitsButton } from '@/components/projects/DeleteAllUnitsButton
 import { UnitListClient } from './components/UnitListClient'
 import { DynamicAmenities } from '@/components/projects/DynamicAmenities'
 
+const CATEGORY_LABELS: Record<string, string> = {
+    'catalog': 'Proje Kataloğu',
+    'brochure': 'Proje Broşürü',
+    'renders': '3D Render / Görseller',
+    'virtual_tour': 'Sanal Tur',
+    'video': 'Tanıtım Videosu',
+    'floor_plan': 'Kat Planı',
+    'site_plan': 'Vaziyet Planı',
+    'land_plan': 'Arsa Planı',
+    'price_list': 'Fiyat Listesi',
+    'payment_plan': 'Ödeme Planı',
+    'technical_spec': 'Teknik Şartname',
+    'permits': 'Ruhsat ve İzinler',
+    'sample_contract': 'Örnek Sözleşme',
+    'Brochure': 'Broşür',
+    'Floor Plan': 'Kat Planı',
+    'Price List': 'Fiyat Listesi',
+    '3D/Virtual': '3D/Sanal Tur',
+    'Marketing': 'Katalog',
+    'Legal': 'Yasal Evrak'
+};
+
 export const dynamic = 'force-dynamic'
 
 export default async function ProjectDetailPage(props: {
@@ -517,6 +539,8 @@ export default async function ProjectDetailPage(props: {
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead>Döküman Adı</TableHead>
+                                        <TableHead>Kategori</TableHead>
+                                        <TableHead>İzin Seviyesi</TableHead>
                                         <TableHead>Açıklama</TableHead>
                                         <TableHead>Yükleme Tarihi</TableHead>
                                         <TableHead>Yükleyen</TableHead>
@@ -528,6 +552,20 @@ export default async function ProjectDetailPage(props: {
                                         documents.map((doc: any) => (
                                             <TableRow key={doc.id}>
                                                 <TableCell className="font-medium">{doc.document_name}</TableCell>
+                                                <TableCell>
+                                                    <Badge variant="outline" className="text-xs">
+                                                        {CATEGORY_LABELS[doc.category] || doc.category || '-'}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell>
+                                                    {doc.permissions === 'public' ? (
+                                                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Kamusal</Badge>
+                                                    ) : doc.permissions === 'broker_only' ? (
+                                                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Broker</Badge>
+                                                    ) : (
+                                                        <Badge variant="outline" className="bg-slate-100 text-slate-700">Dahili</Badge>
+                                                    )}
+                                                </TableCell>
                                                 <TableCell className="max-w-xs truncate">{doc.description || '-'}</TableCell>
                                                 <TableCell>{new Date(doc.created_at).toLocaleDateString('tr-TR')}</TableCell>
                                                 <TableCell>{doc.uploader_name || 'Unknown'}</TableCell>
@@ -540,7 +578,7 @@ export default async function ProjectDetailPage(props: {
                                                         </Link>
                                                         {isAdmin && (
                                                             <form action={handleDeleteDocument.bind(null, doc.id)}>
-                                                                <Button size="sm" variant="destructive" type="submit">
+                                                                 <Button size="sm" variant="destructive" type="submit">
                                                                     <Trash2 className="h-4 w-4" />
                                                                 </Button>
                                                             </form>
@@ -551,7 +589,7 @@ export default async function ProjectDetailPage(props: {
                                         ))
                                     ) : (
                                         <TableRow>
-                                            <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">
+                                            <TableCell colSpan={7} className="text-center h-24 text-muted-foreground">
                                                 Henüz döküman yüklenmemiş.
                                             </TableCell>
                                         </TableRow>

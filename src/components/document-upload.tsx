@@ -36,6 +36,8 @@ export function DocumentUpload({ projectId }: DocumentUploadProps) {
         const file = formData.get('file') as File
         const documentName = formData.get('document_name') as string
         const description = formData.get('description') as string
+        const category = formData.get('category') as string
+        const permissions = formData.get('permissions') as string
 
         if (!file || !documentName) {
             toast.error('Dosya ve döküman adı zorunludur.')
@@ -74,7 +76,9 @@ export function DocumentUpload({ projectId }: DocumentUploadProps) {
                 fileType: file.type,
                 fileSize: file.size,
                 documentName,
-                description
+                description,
+                category,
+                permissions
             })
 
             setLoading(false)
@@ -132,6 +136,44 @@ export function DocumentUpload({ projectId }: DocumentUploadProps) {
                                 placeholder="Döküman hakkında kısa açıklama"
                                 rows={3}
                             />
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="category">Kategori *</Label>
+                                <select
+                                    id="category"
+                                    name="category"
+                                    required
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    <option value="brochure">Proje Broşürü</option>
+                                    <option value="catalog">Proje Kataloğu</option>
+                                    <option value="renders">3D Render / Görseller</option>
+                                    <option value="virtual_tour">Sanal Tur / 3D Gösterim</option>
+                                    <option value="video">Tanıtım Videosu</option>
+                                    <option value="floor_plan">Kat Planı</option>
+                                    <option value="site_plan">Vaziyet Planı</option>
+                                    <option value="land_plan">Arsa / İmar Planı</option>
+                                    <option value="price_list">Fiyat Listesi</option>
+                                    <option value="payment_plan">Ödeme Planı Şablonu</option>
+                                    <option value="technical_spec">Teknik Şartname</option>
+                                    <option value="permits">Ruhsat ve İzinler</option>
+                                    <option value="sample_contract">Örnek Sözleşme</option>
+                                </select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="permissions">İzin Seviyesi *</Label>
+                                <select
+                                    id="permissions"
+                                    name="permissions"
+                                    required
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    <option value="public">Kamusal (Müşteriye Açık)</option>
+                                    <option value="internal">Dahili (Sadece Firma)</option>
+                                    <option value="broker_only">Sadece Brokerlar</option>
+                                </select>
+                            </div>
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="file">Dosya *</Label>

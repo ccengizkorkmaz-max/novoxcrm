@@ -31,11 +31,15 @@ interface Doc {
 
 const CATEGORIES = [
     { id: 'all', label: 'Tümü', icon: Library },
-    { id: 'Brochure', label: 'Broşürler', icon: FileText },
-    { id: 'Floor Plan', label: 'Kat Planları', icon: Map },
-    { id: 'Price List', label: 'Fiyat Listeleri', icon: BadgeTurkishLira },
-    { id: '3D/Virtual', label: '3D & Görsel', icon: Video },
-    { id: 'Legal', label: 'Hukuki / Sözleşme', icon: Scale },
+    { id: 'catalog', label: 'Kataloglar', icon: FileText },
+    { id: 'brochure', label: 'Broşürler', icon: FileText },
+    { id: 'floor_plan', label: 'Kat Planları', icon: Map },
+    { id: 'site_plan', label: 'Vaziyet Planları', icon: Map },
+    { id: 'price_list', label: 'Fiyat Listeleri', icon: BadgeTurkishLira },
+    { id: 'renders', label: '3D & Görseller', icon: Video },
+    { id: 'virtual_tour', label: 'Sanal Turlar', icon: Video },
+    { id: 'technical_spec', label: 'Teknik Şartnameler', icon: Scale },
+    { id: 'sample_contract', label: 'Örnek Sözleşmeler', icon: Scale },
 ]
 
 export function BrokerDocumentsClient({ documents }: { documents: Doc[] }) {
@@ -46,7 +50,25 @@ export function BrokerDocumentsClient({ documents }: { documents: Doc[] }) {
         const matchesSearch = search.trim() === '' ||
             doc.name.toLowerCase().includes(search.toLowerCase()) ||
             (Array.isArray(doc.projects) ? doc.projects[0]?.name : doc.projects?.name)?.toLowerCase().includes(search.toLowerCase())
-        const matchesCategory = activeCategory === 'all' || doc.category === activeCategory
+        
+        let matchesCategory = activeCategory === 'all'
+        if (!matchesCategory) {
+            if (activeCategory === 'catalog' && (doc.category === 'catalog' || doc.category === 'Marketing')) {
+                matchesCategory = true
+            } else if (activeCategory === 'brochure' && (doc.category === 'brochure' || doc.category === 'Brochure')) {
+                matchesCategory = true
+            } else if (activeCategory === 'floor_plan' && (doc.category === 'floor_plan' || doc.category === 'Floor Plan')) {
+                matchesCategory = true
+            } else if (activeCategory === 'price_list' && (doc.category === 'price_list' || doc.category === 'Price List')) {
+                matchesCategory = true
+            } else if (activeCategory === 'renders' && (doc.category === 'renders' || doc.category === '3D/Virtual')) {
+                matchesCategory = true
+            } else if (activeCategory === 'technical_spec' && (doc.category === 'technical_spec' || doc.category === 'Legal')) {
+                matchesCategory = true
+            } else {
+                matchesCategory = doc.category === activeCategory
+            }
+        }
         return matchesSearch && matchesCategory
     })
 
