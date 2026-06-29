@@ -1,4 +1,4 @@
-import { Target, TrendingUp, BarChart3, AlertCircle } from "lucide-react"
+import { Target, TrendingUp, BarChart3, ArrowUpRight, Percent, Coins, MousePointer, Calendar } from "lucide-react"
 import { BackButton } from "@/components/back-button"
 import { getAdSourceAnalytics } from "../actions"
 import { Badge } from "@/components/ui/badge"
@@ -34,74 +34,191 @@ export default async function AdSourceAnalyticsPage() {
         return d.toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' })
     }
 
-    // Compute totals of all daily rows
-    const totals = rows.reduce(
-        (acc, row) => ({
-            spend: acc.spend + row.spend,
-            impressions: acc.impressions + row.impressions,
-            clicks: acc.clicks + row.clicks,
-            leads: acc.leads + row.leads,
-        }),
-        { spend: 0, impressions: 0, clicks: 0, leads: 0 }
-    )
+    // --- Date Calculations for Periods ---
+    const now = new Date()
+    
+    // Today
+    const todayStr = now.toISOString().split('T')[0]
+    
+    // Yesterday
+    const yesterday = new Date()
+    yesterday.setDate(now.getDate() - 1)
+    const yesterdayStr = yesterday.toISOString().split('T')[0]
+    
+    // This Week (Monday start)
+    const dayOfWeek = now.getDay()
+    const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+    const thisWeekStart = new Date(now)
+    thisWeekStart.setDate(now.getDate() - mondayOffset)
+    const thisWeekStartStr = thisWeekStart.toISOString().split('T')[0]
+    
+    // Last Week
+    const lastWeekStart = new Date(thisWeekStart)
+    lastWeekStart.setDate(lastWeekStart.getDate() - 7)
+    const lastWeekStartStr = lastWeekStart.toISOString().split('T')[0]
+    const lastWeekEndStr = thisWeekStartStr
 
-    const totalCtr = totals.impressions > 0 ? (totals.clicks / totals.impressions) * 100 : 0
-    const totalCpl = totals.leads > 0 ? totals.spend / totals.leads : 0
+    // This Month
+    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+    const thisMonthStartStr = thisMonthStart.toISOString().split('T')[0]
+    
+    // Last Month
+    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+    const lastMonthStartStr = lastMonthStart.toISOString().split('T')[0]
+    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 1)
+    const lastMonthEndStr = lastMonthEnd.toISOString().split('T')[0]
+
+    // Aggregation Helper
+    const aggregate = (filteredRows: any[]) => {
+        const spend = filteredRows.reduce((sum, r) => sum + r.spend, 0)
+        const impressions = filteredRows.reduce((sum, r) => sum + r.impressions, 0)
+        const clicks = filteredRows.reduce((sum, r) => sum + r.clicks, 0)
+        const leads = filteredRows.reduce((sum, r) => sum + r.leads, 0)
+        const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0
+        const cpl = leads > 0 ? spend / leads : 0
+        
+        return { spend, impressions, clicks, leads, ctr, cpl }
+    }
+
+    // Calculate period aggregates
+    const todayStats = aggregate(rows.filter(r => r.date === todayStr))
+    const yesterdayStats = aggregate(rows.filter(r => r.date === yesterdayStr))
+    const thisWeekStats = aggregate(rows.filter(r => r.date >= thisWeekStartStr))
+    const lastWeekStats = aggregate(rows.filter(r => r.date >= lastWeekStartStr && r.date < lastWeekEndStr))
+    const thisMonthStats = aggregate(rows.filter(r => r.date >= thisMonthStartStr))
+    const lastMonthStats = aggregate(rows.filter(r => r.date >= lastMonthStartStr && r.date < lastMonthEndStr))
+    const totalStats = aggregate(rows)
 
     return (
         <div className="flex flex-col gap-6 p-1 pb-10">
+            {/* Header */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                     <BackButton variant="ghost" size="icon" />
                     <div>
-                        <h1 className="text-2xl font-bold tracking-tight">Günlük Kampanya Performansı</h1>
-                        <p className="text-sm text-muted-foreground">Her kampanyanın günlük harcama, gösterim, tıklama ve aday performansı.</p>
+                        <h1 className="text-2xl font-bold tracking-tight">Günlük Kampanya Raporu</h1>
+                        <p className="text-sm text-muted-foreground">Facebook ve Instagram reklam kampanyalarının günlük ve dönemsel performans kırılımları.</p>
                     </div>
                 </div>
             </div>
 
-            {/* Summary Metric Cards */}
-            <div className="grid gap-4 md:grid-cols-4">
-                <div className="flex items-center gap-4 p-4 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 dark:from-blue-950/20 dark:to-indigo-950/20 dark:border-blue-900/30">
-                    <div className="h-10 w-10 rounded-xl bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
-                        <Target className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            {/* Aggregated Period Matrix Dashboard */}
+            <Card className="rounded-2xl border-0 shadow-lg overflow-hidden bg-white dark:bg-slate-900">
+                <CardHeader className="pb-4 border-b border-slate-100 dark:border-slate-800 bg-gradient-to-r from-blue-50/50 to-indigo-50/30 dark:from-blue-950/10 dark:to-indigo-950/10">
+                    <CardTitle className="text-base font-black text-slate-800 dark:text-white flex items-center gap-2">
+                        <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                        Dönemsel Performans Özet Tablosu
+                    </CardTitle>
+                    <p className="text-xs text-muted-foreground">Farklı tarih aralıklarına ait toplam harcama, gösterim, tıklama ve aday verilerinin karşılaştırması.</p>
+                </CardHeader>
+                <CardContent className="p-0">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-xs">
+                            <thead>
+                                <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50">
+                                    <th className="text-left p-4 font-black text-slate-400 uppercase tracking-widest text-[10px] w-[150px]">METRİK</th>
+                                    <th className="text-right p-4 font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest text-[10px] bg-blue-50/20 dark:bg-blue-950/5">BUGÜN</th>
+                                    <th className="text-right p-4 font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest text-[10px]">DÜN</th>
+                                    <th className="text-right p-4 font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest text-[10px] bg-indigo-50/20 dark:bg-indigo-950/5">BU HAFTA</th>
+                                    <th className="text-right p-4 font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest text-[10px]">GEÇEN HAFTA</th>
+                                    <th className="text-right p-4 font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest text-[10px] bg-purple-50/20 dark:bg-purple-950/5">BU AY</th>
+                                    <th className="text-right p-4 font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest text-[10px]">GEÇEN AY</th>
+                                    <th className="text-right p-4 font-black text-white bg-slate-900 dark:bg-slate-950 uppercase tracking-widest text-[10px] pr-6">TOPLAM</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
+                                {/* Harcama Row */}
+                                <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                                    <td className="p-4 font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                        <Coins className="h-4 w-4 text-emerald-500" />
+                                        Harcama
+                                    </td>
+                                    <td className="p-4 text-right font-black text-slate-900 dark:text-white bg-blue-50/10 dark:bg-blue-950/2">{fmtCurrency(todayStats.spend)}</td>
+                                    <td className="p-4 text-right font-semibold text-slate-700 dark:text-slate-300">{fmtCurrency(yesterdayStats.spend)}</td>
+                                    <td className="p-4 text-right font-black text-slate-900 dark:text-white bg-indigo-50/10 dark:bg-indigo-950/2">{fmtCurrency(thisWeekStats.spend)}</td>
+                                    <td className="p-4 text-right font-semibold text-slate-700 dark:text-slate-300">{fmtCurrency(lastWeekStats.spend)}</td>
+                                    <td className="p-4 text-right font-black text-slate-900 dark:text-white bg-purple-50/10 dark:bg-purple-950/2">{fmtCurrency(thisMonthStats.spend)}</td>
+                                    <td className="p-4 text-right font-semibold text-slate-700 dark:text-slate-300">{fmtCurrency(lastMonthStats.spend)}</td>
+                                    <td className="p-4 text-right font-black text-emerald-600 dark:text-emerald-400 bg-slate-900/5 dark:bg-slate-950/5 pr-6">{fmtCurrency(totalStats.spend)}</td>
+                                </tr>
+                                {/* Gösterim Row */}
+                                <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                                    <td className="p-4 font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                        <TrendingUp className="h-4 w-4 text-blue-500" />
+                                        Gösterim
+                                    </td>
+                                    <td className="p-4 text-right font-semibold text-slate-700 dark:text-slate-300 bg-blue-50/10 dark:bg-blue-950/2">{fmtInt(todayStats.impressions)}</td>
+                                    <td className="p-4 text-right font-semibold text-slate-700 dark:text-slate-300">{fmtInt(yesterdayStats.impressions)}</td>
+                                    <td className="p-4 text-right font-semibold text-slate-700 dark:text-slate-300 bg-indigo-50/10 dark:bg-indigo-950/2">{fmtInt(thisWeekStats.impressions)}</td>
+                                    <td className="p-4 text-right font-semibold text-slate-700 dark:text-slate-300">{fmtInt(lastWeekStats.impressions)}</td>
+                                    <td className="p-4 text-right font-semibold text-slate-700 dark:text-slate-300 bg-purple-50/10 dark:bg-purple-950/2">{fmtInt(thisMonthStats.impressions)}</td>
+                                    <td className="p-4 text-right font-semibold text-slate-700 dark:text-slate-300">{fmtInt(lastMonthStats.impressions)}</td>
+                                    <td className="p-4 text-right font-bold text-slate-900 dark:text-white bg-slate-900/5 dark:bg-slate-950/5 pr-6">{fmtInt(totalStats.impressions)}</td>
+                                </tr>
+                                {/* Tıklama Row */}
+                                <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                                    <td className="p-4 font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                        <MousePointer className="h-4 w-4 text-orange-500" />
+                                        Tıklama
+                                    </td>
+                                    <td className="p-4 text-right font-semibold text-slate-700 dark:text-slate-300 bg-blue-50/10 dark:bg-blue-950/2">{fmtInt(todayStats.clicks)}</td>
+                                    <td className="p-4 text-right font-semibold text-slate-700 dark:text-slate-300">{fmtInt(yesterdayStats.clicks)}</td>
+                                    <td className="p-4 text-right font-semibold text-slate-700 dark:text-slate-300 bg-indigo-50/10 dark:bg-indigo-950/2">{fmtInt(thisWeekStats.clicks)}</td>
+                                    <td className="p-4 text-right font-semibold text-slate-700 dark:text-slate-300">{fmtInt(lastWeekStats.clicks)}</td>
+                                    <td className="p-4 text-right font-semibold text-slate-700 dark:text-slate-300 bg-purple-50/10 dark:bg-purple-950/2">{fmtInt(thisMonthStats.clicks)}</td>
+                                    <td className="p-4 text-right font-semibold text-slate-700 dark:text-slate-300">{fmtInt(lastMonthStats.clicks)}</td>
+                                    <td className="p-4 text-right font-bold text-slate-900 dark:text-white bg-slate-900/5 dark:bg-slate-950/5 pr-6">{fmtInt(totalStats.clicks)}</td>
+                                </tr>
+                                {/* CTR Row */}
+                                <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                                    <td className="p-4 font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                        <Percent className="h-4 w-4 text-teal-500" />
+                                        CTR (Tıklama Oranı)
+                                    </td>
+                                    <td className="p-4 text-right font-bold text-slate-900 dark:text-white bg-blue-50/10 dark:bg-blue-950/2">{fmtPercent(todayStats.ctr)}</td>
+                                    <td className="p-4 text-right font-semibold text-slate-700 dark:text-slate-300">{fmtPercent(yesterdayStats.ctr)}</td>
+                                    <td className="p-4 text-right font-bold text-slate-900 dark:text-white bg-indigo-50/10 dark:bg-indigo-950/2">{fmtPercent(thisWeekStats.ctr)}</td>
+                                    <td className="p-4 text-right font-semibold text-slate-700 dark:text-slate-300">{fmtPercent(lastWeekStats.ctr)}</td>
+                                    <td className="p-4 text-right font-bold text-slate-900 dark:text-white bg-purple-50/10 dark:bg-purple-950/2">{fmtPercent(thisMonthStats.ctr)}</td>
+                                    <td className="p-4 text-right font-semibold text-slate-700 dark:text-slate-300">{fmtPercent(lastMonthStats.ctr)}</td>
+                                    <td className="p-4 text-right font-black text-slate-900 dark:text-white bg-slate-900/5 dark:bg-slate-950/5 pr-6">{fmtPercent(totalStats.ctr)}</td>
+                                </tr>
+                                {/* Leads Row */}
+                                <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                                    <td className="p-4 font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                        <Target className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                        Aday (Leads)
+                                    </td>
+                                    <td className="p-4 text-right font-black text-blue-600 dark:text-blue-400 bg-blue-50/10 dark:bg-blue-950/2 text-sm">{fmtInt(todayStats.leads)}</td>
+                                    <td className="p-4 text-right font-bold text-slate-900 dark:text-white">{fmtInt(yesterdayStats.leads)}</td>
+                                    <td className="p-4 text-right font-black text-blue-600 dark:text-blue-400 bg-indigo-50/10 dark:bg-indigo-950/2 text-sm">{fmtInt(thisWeekStats.leads)}</td>
+                                    <td className="p-4 text-right font-bold text-slate-900 dark:text-white">{fmtInt(lastWeekStats.leads)}</td>
+                                    <td className="p-4 text-right font-black text-blue-600 dark:text-blue-400 bg-purple-50/10 dark:bg-purple-950/2 text-sm">{fmtInt(thisMonthStats.leads)}</td>
+                                    <td className="p-4 text-right font-bold text-slate-900 dark:text-white">{fmtInt(lastMonthStats.leads)}</td>
+                                    <td className="p-4 text-right font-black text-blue-700 dark:text-blue-300 bg-slate-900/5 dark:bg-slate-950/5 pr-6 text-sm">{fmtInt(totalStats.leads)}</td>
+                                </tr>
+                                {/* CPL Row */}
+                                <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                                    <td className="p-4 font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                        <BarChart3 className="h-4 w-4 text-purple-500" />
+                                        CPL (Aday Başı Maliyet)
+                                    </td>
+                                    <td className="p-4 text-right font-bold text-slate-900 dark:text-white bg-blue-50/10 dark:bg-blue-950/2">{todayStats.cpl > 0 ? fmtCurrency(todayStats.cpl) : '—'}</td>
+                                    <td className="p-4 text-right font-semibold text-slate-700 dark:text-slate-300">{yesterdayStats.cpl > 0 ? fmtCurrency(yesterdayStats.cpl) : '—'}</td>
+                                    <td className="p-4 text-right font-bold text-slate-900 dark:text-white bg-indigo-50/10 dark:bg-indigo-950/2">{thisWeekStats.cpl > 0 ? fmtCurrency(thisWeekStats.cpl) : '—'}</td>
+                                    <td className="p-4 text-right font-semibold text-slate-700 dark:text-slate-300">{lastWeekStats.cpl > 0 ? fmtCurrency(lastWeekStats.cpl) : '—'}</td>
+                                    <td className="p-4 text-right font-bold text-slate-900 dark:text-white bg-purple-50/10 dark:bg-purple-950/2">{thisMonthStats.cpl > 0 ? fmtCurrency(thisMonthStats.cpl) : '—'}</td>
+                                    <td className="p-4 text-right font-semibold text-slate-700 dark:text-slate-300">{lastMonthStats.cpl > 0 ? fmtCurrency(lastMonthStats.cpl) : '—'}</td>
+                                    <td className="p-4 text-right font-black text-purple-600 dark:text-purple-400 bg-slate-900/5 dark:bg-slate-950/5 pr-6">{totalStats.cpl > 0 ? fmtCurrency(totalStats.cpl) : '—'}</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
-                    <div>
-                        <p className="text-[10px] font-black text-blue-400 dark:text-blue-500 uppercase tracking-widest">Toplam Aday (Leads)</p>
-                        <p className="text-2xl font-black text-blue-700 dark:text-blue-300">{fmtInt(totals.leads)}</p>
-                    </div>
-                </div>
-                <div className="flex items-center gap-4 p-4 rounded-2xl bg-gradient-to-r from-emerald-50 to-green-50 border border-emerald-100 dark:from-emerald-950/20 dark:to-green-950/20 dark:border-emerald-900/30">
-                    <div className="h-10 w-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center">
-                        <TrendingUp className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-                    </div>
-                    <div>
-                        <p className="text-[10px] font-black text-emerald-400 dark:text-emerald-500 uppercase tracking-widest">Toplam Harcama</p>
-                        <p className="text-2xl font-black text-emerald-700 dark:text-emerald-300">{fmtCurrency(totals.spend)}</p>
-                    </div>
-                </div>
-                <div className="flex items-center gap-4 p-4 rounded-2xl bg-gradient-to-r from-purple-50 to-violet-50 border border-purple-100 dark:from-purple-950/20 dark:to-violet-950/20 dark:border-purple-900/30">
-                    <div className="h-10 w-10 rounded-xl bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center">
-                        <BarChart3 className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                    </div>
-                    <div>
-                        <p className="text-[10px] font-black text-purple-400 dark:text-purple-500 uppercase tracking-widest">Ortalama CPL</p>
-                        <p className="text-2xl font-black text-purple-700 dark:text-purple-300">{fmtCurrency(totalCpl)}</p>
-                    </div>
-                </div>
-                <div className="flex items-center gap-4 p-4 rounded-2xl bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-100 dark:from-orange-950/20 dark:to-amber-950/20 dark:border-orange-900/30">
-                    <div className="h-10 w-10 rounded-xl bg-orange-100 dark:bg-orange-900/50 flex items-center justify-center">
-                        <BarChart3 className="h-5 w-5 text-orange-600 dark:text-orange-400" />
-                    </div>
-                    <div>
-                        <p className="text-[10px] font-black text-orange-400 dark:text-orange-500 uppercase tracking-widest">Genel Tıklama</p>
-                        <p className="text-2xl font-black text-orange-700 dark:text-orange-300">{fmtInt(totals.clicks)}</p>
-                    </div>
-                </div>
-            </div>
+                </CardContent>
+            </Card>
 
             {/* Daily Campaign Performance Table */}
-            <Card className="rounded-2xl border-0 shadow-lg overflow-hidden">
+            <Card className="rounded-2xl border-0 shadow-lg overflow-hidden bg-white dark:bg-slate-900">
                 <CardHeader className="pb-4 border-b border-slate-100 dark:border-slate-800">
                     <CardTitle className="text-base font-black text-slate-800 dark:text-white flex items-center gap-2">
                         <Target className="h-5 w-5 text-blue-500" />
@@ -201,12 +318,12 @@ export default async function AdSourceAnalyticsPage() {
                                     <td className="p-3.5 pl-5 font-black text-xs uppercase tracking-wider" colSpan={3}>
                                         GENEL TOPLAM
                                     </td>
-                                    <td className="p-3.5 text-right font-black text-sm">{fmtCurrency(totals.spend)}</td>
-                                    <td className="p-3.5 text-right font-black">{fmtInt(totals.impressions)}</td>
-                                    <td className="p-3.5 text-right font-black">{fmtInt(totals.clicks)}</td>
-                                    <td className="p-3.5 text-right font-black">{fmtPercent(totalCtr)}</td>
-                                    <td className="p-3.5 text-right font-black text-emerald-400">{fmtInt(totals.leads)}</td>
-                                    <td className="p-3.5 pr-5 text-right font-black text-amber-400 text-sm">{fmtCurrency(totalCpl)}</td>
+                                    <td className="p-3.5 text-right font-black text-sm">{fmtCurrency(totalStats.spend)}</td>
+                                    <td className="p-3.5 text-right font-black">{fmtInt(totalStats.impressions)}</td>
+                                    <td className="p-3.5 text-right font-black">{fmtInt(totalStats.clicks)}</td>
+                                    <td className="p-3.5 text-right font-black">{fmtPercent(totalStats.ctr)}</td>
+                                    <td className="p-3.5 text-right font-black text-emerald-400">{fmtInt(totalStats.leads)}</td>
+                                    <td className="p-3.5 pr-5 text-right font-black text-amber-400 text-sm">{fmtCurrency(totalStats.cpl)}</td>
                                 </tr>
                             </tfoot>
                         </table>
