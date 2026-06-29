@@ -978,10 +978,10 @@ export async function updateSaleStatus(
             }
         }
 
-        // Rule 3: Reservation or Opsiyon - Kapora Bekleniyor -> only Lost allowed manually
+        // Rule 3: Reservation or Opsiyon - Kapora Bekleniyor -> only Lost or Proposal allowed manually
         if (currentStatus === 'Reservation' || currentStatus === 'Opsiyon - Kapora Bekleniyor') {
-            if (status !== 'Lost') {
-                return { error: 'Opsiyonlu bir kayıt manuel olarak başka bir duruma getirilemez. Opsiyonu kaldırmak için lütfen "İptal Et" butonunu kullanın.' }
+            if (status !== 'Lost' && status !== 'Proposal') {
+                return { error: 'Opsiyonlu bir kayıt yalnızca Teklif veya Kaybedildi durumuna getirilebilir.' }
             }
         }
 

@@ -309,7 +309,7 @@ export async function convertReservationToOffer(unitId: string) {
         .from('sales')
         .select('*')
         .eq('unit_id', unitId)
-        .in('status', ['Reservation', 'Opsiyon - Kapora Bekleniyor'])
+        .in('status', ['Reservation', 'Opsiyon - Kapora Bekleniyor', 'Proposal', 'Teklif - Kapora Bekleniyor', 'Opsiyonlu'])
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle()
