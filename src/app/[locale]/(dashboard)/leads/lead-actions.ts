@@ -211,7 +211,28 @@ export async function convertLeadToCustomer(leadId: string, options?: {
         return { success: false, error: `Müşteri oluşturma hatası: ${custErr?.message}` }
     }
 
-    // 4. Lead'i converted olarak güncelle
+    // 4. CRM Satış Pipeline kaydı oluştur (Fırsat = Sales)
+    // Bu adım lead'i converted yapmadan ÖNCE yapılmalı — eğer başarısız olursa lead tekrar dönüştürülebilir
+    const { data: newSale, error: saleErr } = await supabase.from('sales').insert({
+        tenant_id: profile.tenant_id,
+        customer_id: newCustomer.id,
+        status: 'Lead',
+        project_id: lead.project_id || null,
+        assigned_to: lead.assigned_to || user.id,
+        description: newCompanyId 
+            ? `Lead dönüşümü (Firma): ${lead.source || 'Bilinmeyen kaynak'}`
+            : `Lead dönüşümü: ${lead.source || 'Bilinmeyen kaynak'}`,
+    }).select('id').single()
+
+    if (saleErr) {
+        console.error('Lead conversion - Sales (Fırsat) creation error:', saleErr)
+        return {
+            success: false,
+            error: `Müşteri oluşturuldu ancak CRM Fırsat kaydı oluşturulamadı: ${saleErr.message}`
+        }
+    }
+
+    // 5. Sales başarılı — artık lead'i converted olarak güncelle
     await supabase
         .from('leads')
         .update({
@@ -227,7 +248,7 @@ export async function convertLeadToCustomer(leadId: string, options?: {
         })
         .eq('id', leadId)
 
-    // 4.5 Move lead activities to the customer and clear lead_id
+    // 5.5 Move lead activities to the customer and clear lead_id
     // Clearing lead_id prevents the "Müşteri Adayı" badge from showing on the customer card
     const { error: actMoveErr } = await supabase
         .from('activities')
@@ -238,7 +259,7 @@ export async function convertLeadToCustomer(leadId: string, options?: {
         console.error('Failed to move lead activities to customer:', actMoveErr)
     }
 
-    // 5. Opsiyonel: Fırsat (Opportunities) oluştur — yalnızca checkbox işaretliyse
+    // 6. Opsiyonel: Fırsat (Opportunities) oluştur — yalnızca checkbox işaretliyse
     let opportunityId: string | null = null
     if (options?.createOpportunity) {
         const oppTitle = options.opportunityTitle || (newCompanyId ? `${companyName} - Fırsat` : `${lead.full_name} - Fırsat`)
@@ -263,28 +284,6 @@ export async function convertLeadToCustomer(leadId: string, options?: {
             console.error('Lead conversion - Opportunity creation error:', oppErr)
         }
         opportunityId = opp?.id || null
-    }
-
-    // 6. CRM Satış Pipeline kaydı oluştur (Fırsat = Sales)
-    // Lead zaten niteliklendirilmiş, CRM'de direkt "Lead" olarak başlar
-    const { data: newSale, error: saleErr } = await supabase.from('sales').insert({
-        tenant_id: profile.tenant_id,
-        customer_id: newCustomer.id,
-        status: 'Lead',
-        project_id: lead.project_id || null,
-        assigned_to: lead.assigned_to || user.id,
-        description: newCompanyId 
-            ? `Lead dönüşümü (Firma): ${lead.source || 'Bilinmeyen kaynak'}`
-            : `Lead dönüşümü: ${lead.source || 'Bilinmeyen kaynak'}`,
-    }).select('id').single()
-
-    if (saleErr) {
-        console.error('Lead conversion - Sales (Fırsat) creation error:', saleErr)
-        // Satış kaydı oluşturulamazsa kritik hata — kullanıcıya bildirelim
-        return {
-            success: false,
-            error: `Müşteri oluşturuldu ancak CRM Fırsat kaydı oluşturulamadı: ${saleErr.message}`
-        }
     }
 
     // 7. Lead bildirim modu: on_conversion ise dönüştürme anında WhatsApp gönder
