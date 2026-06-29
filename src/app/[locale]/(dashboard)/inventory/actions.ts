@@ -146,22 +146,8 @@ export async function reserveUnit(formData: FormData) {
         }
     }
 
-    // 4. Create Offer record so "Document" exists
-    const { error: offerError } = await supabase.from('offers').insert({
-        tenant_id: profile.tenant_id,
-        customer_id: customerId,
-        unit_id: unitId,
-        user_id: user.id,
-        price: unit.price || 0,
-        currency: unit.currency || 'TRY',
-        status: 'Sent',
-        valid_until: expiryDate,
-        created_at: new Date().toISOString()
-    })
-
-    if (offerError) {
-        console.error('Create offer error:', offerError)
-    }
+    // NOT: Teklif (offer) kaydı opsiyonlama sırasında oluşturulmaz.
+    // Teklif, kullanıcı CRM'de satışı "Teklif (Proposal)" aşamasına taşıdığında otomatik oluşur.
 
     revalidatePath('/inventory')
     revalidatePath('/options')
