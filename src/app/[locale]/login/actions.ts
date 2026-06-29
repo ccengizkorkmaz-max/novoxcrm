@@ -70,7 +70,7 @@ export async function resetPassword(formData: FormData) {
 
     if (!email || !email.includes('@')) {
         const locale = await getLocale()
-        redirect({ href: '/login?error=Lütfen geçerli bir e-posta adresi girin.', locale })
+        redirect({ href: `/login?error=${encodeURIComponent('Lütfen geçerli bir e-posta adresi girin.')}`, locale })
     }
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -80,9 +80,9 @@ export async function resetPassword(formData: FormData) {
     if (error) {
         console.error('Password reset error:', error)
         const locale = await getLocale()
-        redirect({ href: '/login?error=Şifre sıfırlama e-postası gönderilemedi.', locale })
+        redirect({ href: `/login?error=${encodeURIComponent('Şifre sıfırlama e-postası gönderilemedi.')}`, locale })
     }
 
     const locale = await getLocale()
-    redirect({ href: `/login?message=Şifre sıfırlama bağlantısı e-posta adresinize gönderildi.`, locale })
+    redirect({ href: `/login?message=${encodeURIComponent('Şifre sıfırlama bağlantısı e-posta adresinize gönderildi.')}`, locale })
 }
