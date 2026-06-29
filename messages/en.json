@@ -513,7 +513,7 @@
             "outreachCeo": "Outreach CEO Report",
             "outreachCost": "Outreach Cost Analysis",
             "metaAutomation": "Advertising Analytics",
-            "adSourceAnalytics": "Ad Source Analytics"
+            "adSourceAnalytics": "Daily Campaign Performance"
         },
         "Inbox": {
             "title": "Inbox",
@@ -945,8 +945,8 @@
                 "description": "Per-rep overdue activities, idle periods, and pipeline tracking. Early warning system for managers."
             },
             "ad-source-analytics": {
-                "title": "Ad Source Analytics",
-                "description": "Detailed comparative report of leads from ads and other channels by period (Today, Yesterday, This Week, This Month, etc.)."
+                "title": "Daily Campaign Performance",
+                "description": "Daily report breakdown of spend, impressions, clicks, CTR, leads, and CPL for each advertisement campaign."
             },
             "marketing": {
                 "title": "Marketing Analytics",

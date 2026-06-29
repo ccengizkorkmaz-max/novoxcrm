@@ -440,3 +440,61 @@ export async function fetchMetaAdsAnalytics(
         datePreset: typeof datePreset === 'string' ? datePreset : 'custom',
     }
 }
+
+export interface MetaCampaignDailyInsight {
+    date: string
+    campaign_name: string
+    status: string
+    spend: number
+    impressions: number
+    clicks: number
+    ctr: number
+    leads: number
+    cpl: number
+}
+
+export async function getCampaignDailyInsights(
+    adAccountId: string,
+    token: string,
+    datePreset: string | { since: string; until: string } = 'last_30d'
+): Promise<MetaCampaignDailyInsight[]> {
+    const fields = 'campaign_id,campaign_name,spend,impressions,clicks,actions,ctr'
+    let url = `${META_BASE_URL}/${adAccountId}/insights?fields=${fields}&time_increment=1&level=campaign&limit=500`
+    url = appendDateParam(url, datePreset)
+
+    try {
+        const allData = await metaFetchAll(url, token)
+
+        // Also fetch campaign statuses
+        let campaignStatuses: Record<string, string> = {}
+        try {
+            const campaignsUrl = `${META_BASE_URL}/${adAccountId}/campaigns?fields=id,status&limit=100`
+            const campaigns = await metaFetchAll(campaignsUrl, token)
+            campaigns.forEach((c: any) => {
+                campaignStatuses[c.id] = c.status || 'UNKNOWN'
+            })
+        } catch { /* ignore */ }
+
+        return allData.map((row: any) => {
+            const spend = safeFloat(row.spend)
+            const leads = extractLeadCount(row.actions)
+            const status = campaignStatuses[row.campaign_id] || 'ACTIVE'
+
+            return {
+                date: row.date_start || '',
+                campaign_name: row.campaign_name || 'Unnamed Campaign',
+                status,
+                spend,
+                impressions: safeInt(row.impressions),
+                clicks: safeInt(row.clicks),
+                ctr: safeFloat(row.ctr),
+                leads,
+                cpl: leads > 0 ? spend / leads : 0,
+            }
+        }).sort((a, b) => b.date.localeCompare(a.date)) // newest date first
+    } catch (e) {
+        console.error('getCampaignDailyInsights error:', e)
+        return []
+    }
+}
+

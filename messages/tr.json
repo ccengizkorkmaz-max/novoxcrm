@@ -541,7 +541,7 @@
             "outreachCeo": "Outreach CEO Raporu",
             "outreachCost": "Outreach Maliyet Analizi",
             "metaAutomation": "Reklam Analitiği",
-            "adSourceAnalytics": "Reklam Kaynağı Analizi"
+            "adSourceAnalytics": "Günlük Kampanya Raporu"
         },
         "Inbox": {
             "title": "Gelen Kutusu",
@@ -971,8 +971,8 @@
                 "description": "Danışman bazlı geciken aktiviteler, hareketsiz kişiler ve pipeline takibi. Yönetici için erken uyarı sistemi."
             },
             "ad-source-analytics": {
-                "title": "Reklam Kaynağı Analizi",
-                "description": "Reklam ve diğer kanallardan gelen lead'lerin dönemsel (Bugün, Dün, Bu Hafta, Bu Ay vb.) detaylı karşılaştırma raporu."
+                "title": "Günlük Kampanya Performansı",
+                "description": "Her bir reklam kampanyasının günlük harcama, gösterim, tıklama ve aday (lead) kırılımları raporu."
             },
             "marketing": {
                 "title": "Pazarlama Analizi",
