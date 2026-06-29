@@ -5,6 +5,7 @@ import { redirect } from '@/i18n/routing'
 import { getLocale } from 'next-intl/server'
 
 import { createClient } from '@/lib/supabase/server'
+import { getHostFromHeaders } from '@/lib/tenant/resolve-brand-from-host'
 
 export async function login(formData: FormData) {
     const supabase = await createClient()
@@ -73,8 +74,13 @@ export async function resetPassword(formData: FormData) {
         redirect({ href: `/login?error=${encodeURIComponent('Lütfen geçerli bir e-posta adresi girin.')}`, locale })
     }
 
+    const host = await getHostFromHeaders()
+    const isLocal = host.includes('localhost') || host.includes('127.0.0.1')
+    const protocol = isLocal ? 'http' : 'https'
+    const origin = `${protocol}://${host}`
+
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.novoxcrm.com'}/auth/callback?next=/update-password`,
+        redirectTo: `${origin}/auth/callback?next=/update-password`,
     })
 
     if (error) {
