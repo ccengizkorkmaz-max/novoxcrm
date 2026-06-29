@@ -969,6 +969,10 @@
                 "title": "Aktivite Takip & Uyarı Raporu",
                 "description": "Danışman bazlı geciken aktiviteler, hareketsiz kişiler ve pipeline takibi. Yönetici için erken uyarı sistemi."
             },
+            "ad-source-analytics": {
+                "title": "Reklam Kaynağı Analizi",
+                "description": "Reklam ve diğer kanallardan gelen lead'lerin dönemsel (Bugün, Dün, Bu Hafta, Bu Ay vb.) detaylı karşılaştırma raporu."
+            },
             "marketing": {
                 "title": "Pazarlama Analizi",
                 "description": "Form ve reklam kaynaklı lead'lerin pipeline içerisindeki performans ve dönüşümleri."

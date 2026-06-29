@@ -22,7 +22,8 @@ import {
     MessageSquare,
     Filter,
     Bot,
-    ArrowUpDown
+    ArrowUpDown,
+    Target
 } from "lucide-react"
 import Link from "next/link"
 import { getTranslations } from 'next-intl/server'
@@ -83,6 +84,13 @@ const reportCards = [
         icon: AlertTriangle,
         color: "text-red-600",
         bgColor: "bg-red-100"
+    },
+    {
+        id: "ad-source-analytics",
+        href: "/reports/ad-source-analytics",
+        icon: Target,
+        color: "text-cyan-600",
+        bgColor: "bg-cyan-100"
     },
     {
         id: "marketing",

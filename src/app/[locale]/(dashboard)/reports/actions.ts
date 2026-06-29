@@ -545,6 +545,114 @@ export async function getMarketingAnalytics() {
     }
 }
 
+export async function getAdSourceAnalytics() {
+    const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single()
+    if (!profile?.tenant_id) return { error: 'Tenant bulunamadı' }
+
+    // Fetch all leads with created_at and source for this tenant
+    const { data: leads, error } = await supabase
+        .from('leads')
+        .select('source, created_at')
+        .eq('tenant_id', profile.tenant_id)
+        .order('created_at', { ascending: false })
+
+    if (error) return { error: error.message }
+
+    const now = new Date()
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const yesterdayStart = new Date(todayStart)
+    yesterdayStart.setDate(yesterdayStart.getDate() - 1)
+    const yesterdayEnd = new Date(todayStart)
+
+    // This week (Monday start)
+    const dayOfWeek = now.getDay()
+    const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+    const thisWeekStart = new Date(todayStart)
+    thisWeekStart.setDate(thisWeekStart.getDate() - mondayOffset)
+
+    // Last week
+    const lastWeekStart = new Date(thisWeekStart)
+    lastWeekStart.setDate(lastWeekStart.getDate() - 7)
+    const lastWeekEnd = new Date(thisWeekStart)
+
+    // This month
+    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+
+    // Last month
+    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 1)
+
+    const sourceMap: Record<string, {
+        source: string
+        today: number
+        yesterday: number
+        thisWeek: number
+        lastWeek: number
+        thisMonth: number
+        lastMonth: number
+        total: number
+    }> = {}
+
+    const sourceLabels: Record<string, string> = {
+        'meta_ads': 'Meta Reklamları',
+        'facebook': 'Facebook',
+        'instagram': 'Instagram',
+        'google_ads': 'Google Ads',
+        'whatsapp': 'WhatsApp',
+        'web_form': 'Web Formu',
+        'website': 'Web Sitesi',
+        'manual': 'Manuel Giriş',
+        'referral': 'Referans',
+        'phone': 'Telefon',
+        'email': 'E-Posta',
+        'broker': 'Broker',
+        'Lead Conversion': 'Lead Dönüşümü',
+        'Lead Conversion (Company)': 'Lead Dönüşümü (Firma)',
+    }
+
+    let grandTotal = 0
+
+    for (const lead of (leads || [])) {
+        const rawSource = lead.source || 'Belirtilmemiş'
+        const sourceKey = rawSource
+        const label = sourceLabels[rawSource] || rawSource
+
+        if (!sourceMap[sourceKey]) {
+            sourceMap[sourceKey] = {
+                source: label,
+                today: 0,
+                yesterday: 0,
+                thisWeek: 0,
+                lastWeek: 0,
+                thisMonth: 0,
+                lastMonth: 0,
+                total: 0,
+            }
+        }
+
+        const entry = sourceMap[sourceKey]
+        const createdAt = new Date(lead.created_at)
+        entry.total++
+        grandTotal++
+
+        if (createdAt >= todayStart) entry.today++
+        if (createdAt >= yesterdayStart && createdAt < yesterdayEnd) entry.yesterday++
+        if (createdAt >= thisWeekStart) entry.thisWeek++
+        if (createdAt >= lastWeekStart && createdAt < lastWeekEnd) entry.lastWeek++
+        if (createdAt >= thisMonthStart) entry.thisMonth++
+        if (createdAt >= lastMonthStart && createdAt < lastMonthEnd) entry.lastMonth++
+    }
+
+    const rows = Object.values(sourceMap).sort((a, b) => b.total - a.total)
+
+    return { rows, grandTotal }
+}
+
 export async function getSalesComparisonReport() {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()

@@ -943,6 +943,10 @@
                 "title": "Activity Tracking & Alerts",
                 "description": "Per-rep overdue activities, idle periods, and pipeline tracking. Early warning system for managers."
             },
+            "ad-source-analytics": {
+                "title": "Ad Source Analytics",
+                "description": "Detailed comparative report of leads from ads and other channels by period (Today, Yesterday, This Week, This Month, etc.)."
+            },
             "marketing": {
                 "title": "Marketing Analytics",
                 "description": "Form and ad sourced lead pipeline performance and conversions."
