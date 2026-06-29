@@ -1354,3 +1354,56 @@ export async function updateSipSettings(formData: FormData) {
     revalidatePath('/settings')
     return { success: true }
 }
+
+export async function sendTestCatalogEmailAction(emailAddress: string, projectId: string) {
+    try {
+        const supabase = await createClient()
+
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return { error: 'Oturum açmanız gerekiyor.' }
+
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('tenant_id')
+            .eq('id', user.id)
+            .single()
+
+        if (!profile?.tenant_id) return { error: 'Şirket kaydınız bulunamadı.' }
+
+        // Fetch the project to verify it belongs to this tenant
+        const { data: project } = await supabase
+            .from('projects')
+            .select('id, name')
+            .eq('tenant_id', profile.tenant_id)
+            .eq('id', projectId)
+            .single()
+
+        if (!project) {
+            return { error: 'Geçersiz veya yetkiniz olmayan bir proje seçildi.' }
+        }
+
+        // Call our unified helper to send the catalog email
+        const { handleAndSendCatalogEmail } = await import('@/lib/email/catalog-email')
+        
+        // Use a admin or client connection
+        const { createAdminClient } = await import('@/lib/supabase/admin')
+        const adminSupabase = createAdminClient()
+
+        const result = await handleAndSendCatalogEmail({
+            supabase: adminSupabase,
+            tenantId: profile.tenant_id,
+            email: emailAddress.trim(),
+            projectId: project.id
+        })
+
+        if (!result.success) {
+            return { error: result.message }
+        }
+
+        return { success: true, message: result.message }
+    } catch (e: any) {
+        console.error('[sendTestCatalogEmailAction] error:', e)
+        return { error: 'Test e-postası gönderilirken sistemsel bir hata oluştu: ' + e.message }
+    }
+}
+

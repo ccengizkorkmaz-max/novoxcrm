@@ -301,7 +301,11 @@ export default async function SettingsPage() {
 
                 {/* Email Accounts Tab */}
                 <TabsContent value="email" className="space-y-4">
-                    <EmailAccountsTab accounts={emailAccounts || []} />
+                    <EmailAccountsTab 
+                        accounts={emailAccounts || []} 
+                        tenant={tenant as any} 
+                        projects={projects || []} 
+                    />
                 </TabsContent>
 
                 {/* Templates Tab */}
