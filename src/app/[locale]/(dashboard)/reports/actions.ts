@@ -554,23 +554,77 @@ export async function getAdSourceAnalytics() {
     const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single()
     if (!profile?.tenant_id) return { error: 'Tenant bulunamadı' }
 
-    // 1. Try to fetch from Meta Graph API if token is configured
+    const tenantId = profile.tenant_id
     const metaToken = process.env.META_ADS_ACCESS_TOKEN
     const adAccountId = 'act_4061690447453961'
 
+    let dailyCampaignInsights: any[] = []
+    let metaConnected = false
+
+    // 1. Fetch from Meta API if token is configured
     if (metaToken) {
         try {
             const metaApi = await import('@/lib/meta-api')
-            const dailyCampaignInsights = await metaApi.getCampaignDailyInsights(adAccountId, metaToken, 'last_30d')
-            if (dailyCampaignInsights && dailyCampaignInsights.length > 0) {
-                return { rows: dailyCampaignInsights }
-            }
+            dailyCampaignInsights = await metaApi.getCampaignDailyInsights(adAccountId, metaToken, 'last_30d')
+            metaConnected = dailyCampaignInsights && dailyCampaignInsights.length > 0
         } catch (e) {
             console.error('Failed to fetch Meta daily campaign insights:', e)
         }
     }
 
-    // 2. Fallback: Generate deterministic daily campaign metrics for the user's 11 campaigns
+    // 2. If Meta API is connected and fetched data, upsert into the DB table to accumulate data over time
+    if (metaConnected && dailyCampaignInsights.length > 0) {
+        try {
+            const upsertRows = dailyCampaignInsights.map(row => ({
+                tenant_id: tenantId,
+                stat_date: row.date,
+                campaign_name: row.campaign_name,
+                status: row.status,
+                spend: row.spend,
+                impressions: row.impressions,
+                clicks: row.clicks,
+                ctr: row.ctr,
+                leads: row.leads,
+                cpl: row.cpl,
+                updated_at: new Date().toISOString()
+            }))
+
+            await supabase
+                .from('campaign_daily_stats')
+                .upsert(upsertRows, { onConflict: 'tenant_id,stat_date,campaign_name' })
+        } catch (e) {
+            console.error('Failed to upsert campaign daily stats (table might not be created yet):', e)
+        }
+    }
+
+    // 3. Try to read the accumulated daily campaign stats from DB first
+    try {
+        const { data: dbRows, error: dbErr } = await supabase
+            .from('campaign_daily_stats')
+            .select('*')
+            .eq('tenant_id', tenantId)
+            .order('stat_date', { ascending: false })
+            .limit(1000)
+
+        if (!dbErr && dbRows && dbRows.length > 0) {
+            const mappedRows = dbRows.map(r => ({
+                date: r.stat_date,
+                campaign_name: r.campaign_name,
+                status: r.status,
+                spend: Number(r.spend),
+                impressions: r.impressions,
+                clicks: r.clicks,
+                ctr: Number(r.ctr),
+                leads: r.leads,
+                cpl: Number(r.cpl)
+            }))
+            return { rows: mappedRows }
+        }
+    } catch (e) {
+        console.warn('campaign_daily_stats table check failed, falling back to simulated data:', e)
+    }
+
+    // 4. Fallback/Initial state: Generate deterministic simulated daily campaign stats
     const now = new Date()
     const fallbackRows: any[] = []
     const campaignsList = [
@@ -593,12 +647,10 @@ export async function getAdSourceAnalytics() {
         const dateStr = d.toISOString().split('T')[0]
 
         campaignsList.forEach(c => {
-            // Paused campaigns might not run on some recent days in real life
             if (c.status === 'PAUSED' && i < 6) return
 
-            // Seed based on date string and campaign name to generate deterministic data
             const charSum = dateStr.split('').reduce((sum, ch) => sum + ch.charCodeAt(0), 0) + c.name.charCodeAt(3)
-            const seedVal = (charSum % 100) / 100 // value between 0.0 and 0.99
+            const seedVal = (charSum % 100) / 100
 
             const daysActive = c.status === 'PAUSED' ? 24 : 30
             const dailySpend = (c.spend / daysActive) * (0.8 + seedVal * 0.4)
@@ -622,7 +674,6 @@ export async function getAdSourceAnalytics() {
         })
     }
 
-    // Sort by Date desc, then spend desc
     fallbackRows.sort((a, b) => b.date.localeCompare(a.date) || b.spend - a.spend)
 
     return { rows: fallbackRows }
