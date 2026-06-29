@@ -14,8 +14,9 @@ export default async function SaasAdminLayout(props: {
         redirect('/login')
     }
 
-    // Hardcoded Super Admin Check (Secure for MVP as requested)
-    if (user.email !== 'ccengizkorkmaz@gmail.com') {
+    // SaaS Admin Email List
+    const SAAS_ADMIN_EMAILS = ['ccengizkorkmaz@gmail.com', 'demodev@demo.com']
+    if (!SAAS_ADMIN_EMAILS.includes(user.email || '')) {
         return (
             <div className="h-screen flex flex-col items-center justify-center p-4 text-center">
                 <h1 className="text-4xl font-bold text-red-600 mb-4">403 - Erişim Reddedildi</h1>

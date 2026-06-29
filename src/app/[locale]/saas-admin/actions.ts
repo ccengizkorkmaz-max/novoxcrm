@@ -11,9 +11,12 @@ async function checkSuperAdmin() {
 
     if (!user) return false
 
-    // For now, we check if the user is the specific owner email
-    // OR if they have a special 'super_admin' metadata/claim (future proofing)
-    if (user.email === 'ccengizkorkmaz@gmail.com') return true
+    // Check if the user is in the saas-admin allowed list
+    const SAAS_ADMIN_EMAILS = [
+        'ccengizkorkmaz@gmail.com',
+        'demodev@demo.com',
+    ]
+    if (SAAS_ADMIN_EMAILS.includes(user.email || '')) return true
 
     return false
 }
