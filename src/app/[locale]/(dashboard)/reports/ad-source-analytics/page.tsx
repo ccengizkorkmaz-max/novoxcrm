@@ -126,7 +126,7 @@ export default async function AdSourceAnalyticsPage() {
                                     <th className="text-right p-4 font-black text-white bg-slate-900 dark:bg-slate-950 uppercase tracking-widest text-[9.5px] pr-6 w-[120px]">TOPLAM</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
+                            <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
                                 {/* Harcama Row */}
                                 <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
                                     <td className="p-4 font-bold text-slate-900 dark:text-white flex items-center gap-2 border-r border-slate-200 dark:border-slate-800 bg-slate-100/30 dark:bg-slate-950/20">
