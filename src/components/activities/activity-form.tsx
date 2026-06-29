@@ -133,9 +133,34 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
     }
 
     const isLeadMode = !!activity?.lead_id || !!defaultLeadId
-    const leadName = activity?.leads?.full_name 
-        ? `${activity.leads.full_name} (Müşteri Adayı)` 
-        : (activity?.lead_name || 'Müşteri Adayı')
+    const [resolvedLeadName, setResolvedLeadName] = useState(
+        activity?.leads?.full_name 
+            ? `${activity.leads.full_name} (Müşteri Adayı)` 
+            : (activity?.lead_name || '')
+    )
+
+    // Fetch lead name client-side if the server join didn't return it
+    useEffect(() => {
+        const leadId = activity?.lead_id || defaultLeadId
+        if (!leadId || resolvedLeadName) return
+
+        const fetchLeadName = async () => {
+            const supabase = createClient()
+            const { data } = await supabase
+                .from('leads')
+                .select('full_name')
+                .eq('id', leadId)
+                .single()
+            if (data?.full_name) {
+                setResolvedLeadName(`${data.full_name} (Müşteri Adayı)`)
+            } else {
+                setResolvedLeadName('Müşteri Adayı')
+            }
+        }
+        fetchLeadName()
+    }, [activity?.lead_id, defaultLeadId])
+
+    const leadName = resolvedLeadName || 'Müşteri Adayı'
 
     useEffect(() => {
         if (open && activity) {
@@ -145,6 +170,12 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
             setStatus(activity?.status || 'Planned')
             setSelectedCustomerId(activity?.customer_id || '')
             setSelectedProjectId(activity?.project_id || '')
+            // Reset lead name from join data when activity changes
+            setResolvedLeadName(
+                activity?.leads?.full_name 
+                    ? `${activity.leads.full_name} (Müşteri Adayı)` 
+                    : (activity?.lead_name || '')
+            )
         }
     }, [open, activity])
 
