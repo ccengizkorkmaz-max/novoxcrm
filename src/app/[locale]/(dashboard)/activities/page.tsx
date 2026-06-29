@@ -38,10 +38,10 @@ export default async function ActivitiesPage(props: {
     // Run all queries in parallel — NO MORE fetchAll while-loops!
     // Limit activities and customers to reasonable amounts instead of fetching ALL records
     const [customers, activities, profilesResult, t, projects] = await Promise.all([
-        // Customers — only id and full_name, limit to 3000 (was fetching ALL via while-loop)
+        // Customers — include customer_type and company info for proper combobox display
         supabase
             .from('customers')
-            .select('id, full_name')
+            .select('id, full_name, customer_type, company_name, company:companies(name)')
             .order('full_name', { ascending: true })
             .limit(3000)
             .then(r => r.data || []),
