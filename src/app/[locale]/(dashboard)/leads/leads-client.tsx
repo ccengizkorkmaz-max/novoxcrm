@@ -1678,7 +1678,16 @@ export default function LeadsPageClient({ leads, teamMembers, projects, userRole
 
             <ActivityForm
                 open={showCreateActivityDialog}
-                onOpenChange={setShowCreateActivityDialog}
+                onOpenChange={async (open) => {
+                    setShowCreateActivityDialog(open)
+                    // When dialog closes, refresh the timeline
+                    if (!open && selectedDetailLead) {
+                        const actRes = await getLeadActivities(selectedDetailLead.id)
+                        if (actRes.success && actRes.activities) {
+                            setDetailActivities(actRes.activities)
+                        }
+                    }
+                }}
                 mode="create"
                 activity={{ lead_id: selectedDetailLead?.id, lead_name: selectedDetailLead?.full_name }}
                 defaultLeadId={selectedDetailLead?.id}
