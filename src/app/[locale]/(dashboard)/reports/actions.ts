@@ -555,8 +555,11 @@ export async function getAdSourceAnalytics() {
     if (!profile?.tenant_id) return { error: 'Tenant bulunamadı' }
 
     const tenantId = profile.tenant_id
-    const metaToken = process.env.META_ADS_ACCESS_TOKEN
-    const adAccountId = 'act_4061690447453961'
+    
+    // Yalnızca Novo Şirketler Grubu (89b2829e-fc21-477e-8fd8-9f9f0c587e81) için Meta entegrasyonu tanımlı
+    const isNovoTenant = tenantId === '89b2829e-fc21-477e-8fd8-9f9f0c587e81'
+    const metaToken = isNovoTenant ? process.env.META_ADS_ACCESS_TOKEN : null
+    const adAccountId = isNovoTenant ? 'act_4061690447453961' : null
 
     let dailyCampaignInsights: any[] = []
     let metaConnected = false

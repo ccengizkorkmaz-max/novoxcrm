@@ -49,31 +49,34 @@ export default async function AdSourceAnalyticsPage() {
     const todayStr = toLocalDateStr(now)
     
     // Yesterday
-    const yesterday = new Date()
+    const yesterday = new Date(now)
     yesterday.setDate(now.getDate() - 1)
     const yesterdayStr = toLocalDateStr(yesterday)
     
-    // This Week (Monday start)
-    const dayOfWeek = now.getDay()
-    const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+    // Son 7 Gün (This Week equivalent)
     const thisWeekStart = new Date(now)
-    thisWeekStart.setDate(now.getDate() - mondayOffset)
+    thisWeekStart.setDate(now.getDate() - 6)
     const thisWeekStartStr = toLocalDateStr(thisWeekStart)
     
-    // Last Week
-    const lastWeekStart = new Date(thisWeekStart)
-    lastWeekStart.setDate(lastWeekStart.getDate() - 7)
+    // Önceki 7 Gün (Last Week equivalent)
+    const lastWeekStart = new Date(now)
+    lastWeekStart.setDate(now.getDate() - 13)
     const lastWeekStartStr = toLocalDateStr(lastWeekStart)
-    const lastWeekEndStr = thisWeekStartStr
+    const lastWeekEnd = new Date(now)
+    lastWeekEnd.setDate(now.getDate() - 6)
+    const lastWeekEndStr = toLocalDateStr(lastWeekEnd)
 
-    // This Month
-    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+    // Son 30 Gün (This Month equivalent)
+    const thisMonthStart = new Date(now)
+    thisMonthStart.setDate(now.getDate() - 29)
     const thisMonthStartStr = toLocalDateStr(thisMonthStart)
     
-    // Last Month
-    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+    // Önceki 30 Gün (Last Month equivalent)
+    const lastMonthStart = new Date(now)
+    lastMonthStart.setDate(now.getDate() - 59)
     const lastMonthStartStr = toLocalDateStr(lastMonthStart)
-    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 1)
+    const lastMonthEnd = new Date(now)
+    lastMonthEnd.setDate(now.getDate() - 29)
     const lastMonthEndStr = toLocalDateStr(lastMonthEnd)
 
     // Aggregation Helper
@@ -123,21 +126,21 @@ export default async function AdSourceAnalyticsPage() {
                     <div className="overflow-x-auto">
                         <table className="w-full text-xs">
                             <thead>
-                                <tr className="border-b border-slate-200 dark:border-slate-750 bg-slate-100 dark:bg-slate-900/90 text-slate-800 dark:text-slate-200">
-                                    <th className="text-left p-4 font-black uppercase tracking-widest text-[9.5px] w-[180px] border-r border-slate-200 dark:border-slate-800 bg-slate-200/60 dark:bg-slate-950/40 text-slate-800 dark:text-slate-100">METRİK</th>
+                                <tr className="border-b border-indigo-200 dark:border-indigo-800/50 bg-indigo-50/80 dark:bg-indigo-900/20 text-indigo-800 dark:text-indigo-200">
+                                    <th className="text-left p-4 font-black uppercase tracking-widest text-[9.5px] w-[180px] border-r border-indigo-200 dark:border-indigo-800/50 bg-indigo-100/60 dark:bg-indigo-900/40 text-indigo-900 dark:text-indigo-100">METRİK</th>
                                     <th className="text-right p-4 font-extrabold uppercase tracking-widest text-[9.5px]">BUGÜN</th>
                                     <th className="text-right p-4 font-extrabold uppercase tracking-widest text-[9.5px]">DÜN</th>
-                                    <th className="text-right p-4 font-extrabold uppercase tracking-widest text-[9.5px]">BU HAFTA</th>
-                                    <th className="text-right p-4 font-extrabold uppercase tracking-widest text-[9.5px]">GEÇEN HAFTA</th>
-                                    <th className="text-right p-4 font-extrabold uppercase tracking-widest text-[9.5px]">BU AY</th>
-                                    <th className="text-right p-4 font-extrabold uppercase tracking-widest text-[9.5px] border-r border-slate-200 dark:border-slate-800">GEÇEN AY</th>
-                                    <th className="text-right p-4 font-black text-white bg-slate-900 dark:bg-slate-950 uppercase tracking-widest text-[9.5px] pr-6 w-[120px]">TOPLAM</th>
+                                    <th className="text-right p-4 font-extrabold uppercase tracking-widest text-[9.5px]">SON 7 GÜN</th>
+                                    <th className="text-right p-4 font-extrabold uppercase tracking-widest text-[9.5px]">ÖNCEKİ 7 GÜN</th>
+                                    <th className="text-right p-4 font-extrabold uppercase tracking-widest text-[9.5px]">SON 30 GÜN</th>
+                                    <th className="text-right p-4 font-extrabold uppercase tracking-widest text-[9.5px] border-r border-indigo-200 dark:border-indigo-800/50">ÖNCEKİ 30 GÜN</th>
+                                    <th className="text-right p-4 font-black text-white bg-indigo-900 dark:bg-indigo-950 uppercase tracking-widest text-[9.5px] pr-6 w-[120px]">TOPLAM</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
                                 {/* Harcama Row */}
-                                <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
-                                    <td className="p-4 font-bold text-slate-900 dark:text-white flex items-center gap-2 border-r border-slate-200 dark:border-slate-800 bg-slate-100/30 dark:bg-slate-950/20">
+                                <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors border-b border-slate-100 dark:border-slate-800/50">
+                                    <td className="p-4 font-bold flex items-center gap-2 border-r bg-emerald-50/50 dark:bg-emerald-900/20 text-emerald-900 dark:text-emerald-100 border-emerald-100 dark:border-emerald-800/50">
                                         <Coins className="h-4 w-4 text-emerald-500" />
                                         Harcama
                                     </td>
@@ -150,8 +153,8 @@ export default async function AdSourceAnalyticsPage() {
                                     <td className="p-4 text-right font-black text-emerald-700 dark:text-emerald-300 bg-emerald-100/30 dark:bg-emerald-900/10 pr-6 text-sm">{fmtCurrency(totalStats.spend)}</td>
                                 </tr>
                                 {/* Gösterim Row */}
-                                <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
-                                    <td className="p-4 font-bold text-slate-900 dark:text-white flex items-center gap-2 border-r border-slate-200 dark:border-slate-800 bg-slate-100/30 dark:bg-slate-950/20">
+                                <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors border-b border-slate-100 dark:border-slate-800/50">
+                                    <td className="p-4 font-bold flex items-center gap-2 border-r bg-blue-50/50 dark:bg-blue-900/20 text-blue-900 dark:text-blue-100 border-blue-100 dark:border-blue-800/50">
                                         <TrendingUp className="h-4 w-4 text-blue-500" />
                                         Gösterim
                                     </td>
@@ -164,8 +167,8 @@ export default async function AdSourceAnalyticsPage() {
                                     <td className="p-4 text-right font-bold text-slate-900 dark:text-white bg-slate-100/20 dark:bg-slate-900/10 pr-6">{fmtInt(totalStats.impressions)}</td>
                                 </tr>
                                 {/* Tıklama Row */}
-                                <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
-                                    <td className="p-4 font-bold text-slate-900 dark:text-white flex items-center gap-2 border-r border-slate-200 dark:border-slate-800 bg-slate-100/30 dark:bg-slate-950/20">
+                                <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors border-b border-slate-100 dark:border-slate-800/50">
+                                    <td className="p-4 font-bold flex items-center gap-2 border-r bg-orange-50/50 dark:bg-orange-900/20 text-orange-900 dark:text-orange-100 border-orange-100 dark:border-orange-800/50">
                                         <MousePointer className="h-4 w-4 text-orange-500" />
                                         Tıklama
                                     </td>
@@ -178,8 +181,8 @@ export default async function AdSourceAnalyticsPage() {
                                     <td className="p-4 text-right font-bold text-slate-900 dark:text-white bg-slate-100/20 dark:bg-slate-900/10 pr-6">{fmtInt(totalStats.clicks)}</td>
                                 </tr>
                                 {/* CTR Row */}
-                                <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
-                                    <td className="p-4 font-bold text-slate-900 dark:text-white flex items-center gap-2 border-r border-slate-200 dark:border-slate-800 bg-slate-100/30 dark:bg-slate-950/20">
+                                <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors border-b border-slate-100 dark:border-slate-800/50">
+                                    <td className="p-4 font-bold flex items-center gap-2 border-r bg-teal-50/50 dark:bg-teal-900/20 text-teal-900 dark:text-teal-100 border-teal-100 dark:border-teal-800/50">
                                         <Percent className="h-4 w-4 text-teal-500" />
                                         CTR (Tıklama Oranı)
                                     </td>
@@ -192,9 +195,9 @@ export default async function AdSourceAnalyticsPage() {
                                     <td className="p-4 text-right font-extrabold text-teal-700 dark:text-teal-300 bg-teal-100/30 dark:bg-teal-900/10 pr-6">{fmtPercent(totalStats.ctr)}</td>
                                 </tr>
                                 {/* Leads Row */}
-                                <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
-                                    <td className="p-4 font-bold text-slate-900 dark:text-white flex items-center gap-2 border-r border-slate-200 dark:border-slate-800 bg-slate-100/30 dark:bg-slate-950/20">
-                                        <Target className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors border-b border-slate-100 dark:border-slate-800/50">
+                                    <td className="p-4 font-bold flex items-center gap-2 border-r bg-indigo-50/50 dark:bg-indigo-900/20 text-indigo-900 dark:text-indigo-100 border-indigo-100 dark:border-indigo-800/50">
+                                        <Target className="h-4 w-4 text-indigo-500 dark:text-indigo-400" />
                                         Aday (Leads)
                                     </td>
                                     <td className="p-4 text-right font-extrabold text-blue-600 dark:text-blue-400 bg-blue-50/10 dark:bg-blue-950/2 text-sm">{fmtInt(todayStats.leads)}</td>
@@ -206,8 +209,8 @@ export default async function AdSourceAnalyticsPage() {
                                     <td className="p-4 text-right font-black text-blue-700 dark:text-blue-300 bg-blue-100/30 dark:bg-blue-900/10 pr-6 text-sm">{fmtInt(totalStats.leads)}</td>
                                 </tr>
                                 {/* CPL Row */}
-                                <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors">
-                                    <td className="p-4 font-bold text-slate-900 dark:text-white flex items-center gap-2 border-r border-slate-200 dark:border-slate-800 bg-slate-100/30 dark:bg-slate-950/20">
+                                <tr className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors border-b border-slate-100 dark:border-slate-800/50">
+                                    <td className="p-4 font-bold flex items-center gap-2 border-r bg-purple-50/50 dark:bg-purple-900/20 text-purple-900 dark:text-purple-100 border-purple-100 dark:border-purple-800/50">
                                         <BarChart3 className="h-4 w-4 text-purple-500" />
                                         CPL (Aday Başı Maliyet)
                                     </td>
@@ -238,16 +241,16 @@ export default async function AdSourceAnalyticsPage() {
                     <div className="overflow-x-auto">
                         <table className="w-full text-xs">
                             <thead>
-                                <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/50">
-                                    <th className="text-left p-3.5 pl-5 font-black text-slate-400 uppercase tracking-widest text-[10px]">TARİH</th>
-                                    <th className="text-left p-3.5 font-black text-slate-400 uppercase tracking-widest text-[10px]">KAMPANYA</th>
-                                    <th className="text-left p-3.5 font-black text-slate-400 uppercase tracking-widest text-[10px]">DURUM</th>
-                                    <th className="text-right p-3.5 font-black text-slate-400 uppercase tracking-widest text-[10px]">HARCAMA</th>
-                                    <th className="text-right p-3.5 font-black text-slate-400 uppercase tracking-widest text-[10px]">GÖSTERİM</th>
-                                    <th className="text-right p-3.5 font-black text-slate-400 uppercase tracking-widest text-[10px]">TIKLAMA</th>
-                                    <th className="text-right p-3.5 font-black text-slate-400 uppercase tracking-widest text-[10px]">CTR</th>
-                                    <th className="text-right p-3.5 font-black text-slate-400 uppercase tracking-widest text-[10px]">LEADS</th>
-                                    <th className="text-right p-3.5 pr-5 font-black text-slate-400 uppercase tracking-widest text-[10px]">CPL</th>
+                                <tr className="border-b border-indigo-200 dark:border-indigo-800/50 bg-indigo-50/80 dark:bg-indigo-900/20 text-indigo-800 dark:text-indigo-200">
+                                    <th className="text-left p-3.5 pl-5 font-black uppercase tracking-widest text-[10px]">TARİH</th>
+                                    <th className="text-left p-3.5 font-black uppercase tracking-widest text-[10px]">KAMPANYA</th>
+                                    <th className="text-left p-3.5 font-black uppercase tracking-widest text-[10px]">DURUM</th>
+                                    <th className="text-right p-3.5 font-black uppercase tracking-widest text-[10px]">HARCAMA</th>
+                                    <th className="text-right p-3.5 font-black uppercase tracking-widest text-[10px]">GÖSTERİM</th>
+                                    <th className="text-right p-3.5 font-black uppercase tracking-widest text-[10px]">TIKLAMA</th>
+                                    <th className="text-right p-3.5 font-black uppercase tracking-widest text-[10px]">CTR</th>
+                                    <th className="text-right p-3.5 font-black uppercase tracking-widest text-[10px]">LEADS</th>
+                                    <th className="text-right p-3.5 pr-5 font-black uppercase tracking-widest text-[10px]">CPL</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
