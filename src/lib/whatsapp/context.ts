@@ -6,6 +6,7 @@
  */
 
 import type { ChatMessage } from './types';
+import { encodeUuid } from '@/lib/utils';
 
 /**
  * Varsayılan AI system prompt
@@ -294,6 +295,16 @@ export async function getTenantDocumentsContext(supabase: any, tenantId: string)
 
         if (!projects || projects.length === 0) return '';
 
+        const { data: tenant } = await supabase
+            .from('tenants')
+            .select('custom_domain')
+            .eq('id', tenantId)
+            .maybeSingle();
+
+        const baseUrl = tenant?.custom_domain
+            ? `https://${tenant.custom_domain}`
+            : (process.env.NEXT_PUBLIC_APP_URL || 'https://crm.novox.co');
+
         const { data: libraryDocs } = await supabase
             .from('document_library')
             .select('id, name, file_url, category, project_id')
@@ -327,7 +338,8 @@ export async function getTenantDocumentsContext(supabase: any, tenantId: string)
                 context += `\nProje Adı: ${p.name} (PROJE ID: ${p.id})\n`;
                 projDocs.forEach((d: any) => {
                     const categoryLabel = CATEGORY_MAP[d.category] || d.category;
-                    context += `  - [DOKÜMAN ID: ${d.id}] ${d.name} (${categoryLabel}) -> Link: ${d.file_url}\n`;
+                    const shortUrl = `${baseUrl}/d/${encodeUuid(d.id)}`;
+                    context += `  - [DOKÜMAN ID: ${d.id}] ${d.name} (${categoryLabel}) -> Link: ${shortUrl}\n`;
                 });
             }
         }

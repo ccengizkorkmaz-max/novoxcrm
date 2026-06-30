@@ -565,7 +565,7 @@ export async function getAdSourceAnalytics() {
     let metaConnected = false
 
     // 1. Fetch from Meta API if token is configured
-    if (metaToken) {
+    if (metaToken && adAccountId) {
         try {
             const metaApi = await import('@/lib/meta-api')
             dailyCampaignInsights = await metaApi.getCampaignDailyInsights(adAccountId, metaToken, 'last_30d')

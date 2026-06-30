@@ -1,4 +1,5 @@
 import { sendSystemEmail } from '@/lib/email/mailer'
+import { encodeUuid } from '@/lib/utils'
 
 interface CatalogEmailParams {
     supabase: any
@@ -166,7 +167,7 @@ export async function handleAndSendCatalogEmail(params: CatalogEmailParams): Pro
 
     const { data: tenant } = await supabase
         .from('tenants')
-        .select('name, catalog_email_subject, catalog_email_html')
+        .select('name, catalog_email_subject, catalog_email_html, custom_domain')
         .eq('id', tenantId)
         .maybeSingle();
 
@@ -176,33 +177,44 @@ export async function handleAndSendCatalogEmail(params: CatalogEmailParams): Pro
     // 4. Fetch Public Documents for Project
     const { data: libraryDocs } = await supabase
         .from('document_library')
-        .select('name, file_url, category')
+        .select('id, name, file_url, category')
         .eq('project_id', projectId)
         .eq('permissions', 'public');
 
     const { data: projectDocs } = await supabase
         .from('project_documents')
-        .select('document_name, file_url, category')
+        .select('id, document_name, file_url, category')
         .eq('project_id', projectId)
         .eq('permissions', 'public');
 
     const normalizedProjectDocs = (projectDocs || []).map((d: any) => ({
+        id: d.id,
         name: d.document_name,
         file_url: d.file_url,
         category: d.category
     }));
 
-    const docs = [...(libraryDocs || []), ...normalizedProjectDocs];
+    const docs = [...(libraryDocs || []).map((d: any) => ({
+        id: d.id,
+        name: d.name,
+        file_url: d.file_url,
+        category: d.category
+    })), ...normalizedProjectDocs];
 
     if (docs.length === 0) {
         console.warn(`[CatalogEmail] No public documents found in library or project documents for project: ${projectName} (${projectId})`);
         return { success: false, message: `Bu projeye ait yayında olan bir broşür veya katalog bulunamadı.` };
     }
 
+    const baseUrl = tenant?.custom_domain 
+        ? `https://${tenant.custom_domain}` 
+        : (process.env.NEXT_PUBLIC_APP_URL || 'https://crm.novox.co');
+
     // 5. Build HTML Links/Buttons
     const documentLinksHtml = docs.map((doc: any) => {
         const categoryLabel = CATEGORY_MAP[doc.category] || doc.category;
-        return `<a href="${doc.file_url}" target="_blank" style="display: inline-block; padding: 12px 24px; background-color: #0f172a; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px; margin: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">${doc.name} (${categoryLabel}) İndir</a>`;
+        const shortUrl = `${baseUrl}/d/${encodeUuid(doc.id)}`;
+        return `<a href="${shortUrl}" target="_blank" style="display: inline-block; padding: 12px 24px; background-color: #0f172a; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px; margin: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">${doc.name} (${categoryLabel}) İndir</a>`;
     }).join('\n');
 
     // 6. Template replacements

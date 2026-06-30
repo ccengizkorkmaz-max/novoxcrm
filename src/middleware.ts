@@ -55,8 +55,12 @@ function isCacheableMarketingPath(pathname: string): boolean {
 }
 
 export async function middleware(request: NextRequest) {
-    // Skip i18n and auth for shared public report pages and guest meeting pages
-    if (request.nextUrl.pathname.startsWith('/shared/') || request.nextUrl.pathname.startsWith('/meeting/')) {
+    // Skip i18n and auth for shared public report pages, guest meeting pages, and document short links
+    if (
+        request.nextUrl.pathname.startsWith('/shared/') || 
+        request.nextUrl.pathname.startsWith('/meeting/') ||
+        request.nextUrl.pathname.startsWith('/d/')
+    ) {
         return NextResponse.next()
     }
 
