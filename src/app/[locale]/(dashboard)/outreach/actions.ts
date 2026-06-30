@@ -1852,15 +1852,29 @@ export async function getWorkflowDiagnosticInfo(workflowId: string) {
     }
 
     // 3. Fetch Executions count and status
-    const { data: execs, error: execsErr } = await adminDb.from('outreach_executions')
-        .select('customer_id, sale_id, lead_id, status, started_at')
-        .eq('workflow_id', workflowId)
+    let execList: any[] = []
+    let from = 0
+    let hasMore = true
+    while (hasMore) {
+        const { data: chunk, error: execsErr } = await adminDb.from('outreach_executions')
+            .select('customer_id, sale_id, lead_id, status, started_at')
+            .eq('workflow_id', workflowId)
+            .range(from, from + 999)
 
-    if (execsErr) {
-        console.error('[Diagnostic] Fetch executions error:', execsErr.message)
+        if (execsErr) {
+            console.error('[Diagnostic] Fetch executions error:', execsErr.message)
+            hasMore = false
+        } else if (!chunk || chunk.length === 0) {
+            hasMore = false
+        } else {
+            execList = execList.concat(chunk)
+            if (chunk.length < 1000) {
+                hasMore = false
+            } else {
+                from += 1000
+            }
+        }
     }
-
-    const execList = execs || []
     executedCount = execList.length
 
     const isLqSource = resolvedLeadIds.length > 0 && resolvedLeadIds[0].startsWith('lq:')
