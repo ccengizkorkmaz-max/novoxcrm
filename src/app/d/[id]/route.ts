@@ -6,9 +6,9 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
-    const rawId = params.id;
+    const { id: rawId } = await params;
     if (!rawId) {
         return new NextResponse('Invalid ID', { status: 400 });
     }
