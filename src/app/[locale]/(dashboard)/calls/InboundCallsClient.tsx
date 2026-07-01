@@ -17,9 +17,11 @@ import {
     FileText, Volume2, VolumeX, X, Loader2, SkipBack, SkipForward, Download
 } from 'lucide-react'
 import { Link } from '@/i18n/routing'
+import { getVapiRecordingUrl } from '@/lib/utils'
 
 interface CallRecord {
     id: string
+    vapi_call_id?: string | null
     customer_id: string
     customer_name: string
     customer_phone: string
@@ -176,7 +178,7 @@ function InlineAudioPlayer({ url, callId }: { url: string; callId: string }) {
 
     return (
         <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
-            <audio ref={audioRef} src={url} preload="metadata" />
+            <audio ref={audioRef} src={getVapiRecordingUrl(url, callId)} preload="metadata" />
             
             {/* Skip back */}
             <button
@@ -556,7 +558,7 @@ export default function InboundCallsClient({ calls, totalCount, page, pageSize }
                                                 Ses Kaydı
                                             </p>
                                             <a 
-                                                href={selectedCall.recording_url} 
+                                                href={getVapiRecordingUrl(selectedCall.recording_url, selectedCall.vapi_call_id)} 
                                                 target="_blank" 
                                                 rel="noopener noreferrer"
                                                 className="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600 transition-colors"
@@ -565,7 +567,7 @@ export default function InboundCallsClient({ calls, totalCount, page, pageSize }
                                                 İndir
                                             </a>
                                         </div>
-                                        <audio controls className="w-full" src={selectedCall.recording_url}>
+                                        <audio controls className="w-full" src={getVapiRecordingUrl(selectedCall.recording_url, selectedCall.vapi_call_id)}>
                                             Tarayıcınız ses oynatmayı desteklemiyor.
                                         </audio>
                                     </div>

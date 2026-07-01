@@ -97,6 +97,7 @@ export default async function CallsPage({
             summary: call.summary || '',
             transcript: call.transcript || '',
             recording_url: call.recording_url,
+            vapi_call_id: call.vapi_call_id,
             cost: call.cost ? parseFloat(call.cost) : null,
             is_known_customer: !!call.customer_id,
         }

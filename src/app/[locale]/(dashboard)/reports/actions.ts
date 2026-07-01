@@ -1977,6 +1977,7 @@ export async function getAICallPerformance() {
             leadScore: l.call_outcome,
             summary: l.call_summary,
             recordingUrl: l.call_recording_url,
+            externalId: l.external_id,
             executedAt: l.executed_at
         }
     })

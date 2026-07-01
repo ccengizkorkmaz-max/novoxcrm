@@ -11,6 +11,7 @@ import {
     PhoneOff, PhoneIncoming, RefreshCw, AlertCircle, CheckCircle2, XCircle, DollarSign
 } from 'lucide-react'
 import { getDetailedCallLogs } from '../actions'
+import { getVapiRecordingUrl } from '@/lib/utils'
 
 // ─── Types ───────────────────────────────────────────────────
 
@@ -276,7 +277,7 @@ function CallLogCard({ log, isExpanded, onToggle }: { log: any; isExpanded: bool
                             {log.call_recording_url && (
                                 <div className="space-y-1">
                                     <p className="text-[10px] font-semibold text-muted-foreground uppercase">Kayıt</p>
-                                    <audio controls className="w-full h-8" src={log.call_recording_url}>
+                                    <audio controls className="w-full h-8" src={getVapiRecordingUrl(log.call_recording_url, log.external_id)}>
                                         <track kind="captions" />
                                     </audio>
                                 </div>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Phone, PhoneCall, Plus, Trash2, Play, Loader2, CheckCircle, XCircle, Clock, ChevronDown, ChevronUp, Volume2, MessageSquareText, Mail } from 'lucide-react';
+import { getVapiRecordingUrl } from '@/lib/utils';
 
 interface CallRecord {
   id: string;
@@ -477,7 +478,7 @@ export default function AiCallerPage() {
                       {call.artifact?.recordingUrl && (
                         <div className="flex items-center gap-2">
                           <Volume2 className="h-4 w-4 text-muted-foreground" />
-                          <audio controls src={call.artifact.recordingUrl} className="h-8 flex-1" />
+                          <audio controls src={getVapiRecordingUrl(call.artifact.recordingUrl, call.id)} className="h-8 flex-1" />
                         </div>
                       )}
                       {call.artifact?.transcript && (

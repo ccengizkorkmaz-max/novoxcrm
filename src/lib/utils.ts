@@ -46,3 +46,16 @@ export function decodeUuid(slug: string): string | null {
   }
   return null;
 }
+
+export function getVapiRecordingUrl(url: string | null | undefined, callId?: string | null): string {
+  if (!url) return '';
+  if (url.startsWith('/api/vapi/recording')) return url;
+  if (!url.includes('storage.vapi.ai') && !url.includes('calllogs.vapi.ai')) return url;
+  
+  const encodedUrl = encodeURIComponent(url);
+  let proxyUrl = `/api/vapi/recording?url=${encodedUrl}`;
+  if (callId) {
+    proxyUrl += `&callId=${callId}`;
+  }
+  return proxyUrl;
+}

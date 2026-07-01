@@ -16,6 +16,7 @@ import { format } from 'date-fns'
 import { tr } from 'date-fns/locale'
 import { exportToExcel } from '@/lib/report-export'
 import { toast } from 'sonner'
+import { getVapiRecordingUrl } from '@/lib/utils'
 import {
     BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
     PieChart, Pie, Cell, AreaChart, Area, CartesianGrid, Legend
@@ -269,7 +270,7 @@ export default function AICallPerformancePage() {
                                         </TableCell>
                                         <TableCell className="text-center">
                                             {call.recordingUrl ? (
-                                                <a href={call.recordingUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800">
+                                                <a href={getVapiRecordingUrl(call.recordingUrl, call.externalId)} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800">
                                                     <Play className="h-4 w-4" />
                                                 </a>
                                             ) : <span className="text-slate-300">-</span>}
