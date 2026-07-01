@@ -314,6 +314,20 @@ Gelen aramaları karşıla, bilgi bankasındaki proje bilgilerini paylaş, rande
                                             required: ['email', 'project_id']
                                         }
                                     }
+                                },
+                                {
+                                    type: 'function',
+                                    function: {
+                                        name: 'sendWhatsAppLink',
+                                        description: 'Sends the project brochure/catalog web link to the customer via WhatsApp message. Do not read the URL link verbally, just tell the customer that you have sent it.',
+                                        parameters: {
+                                            type: 'object',
+                                            properties: {
+                                                project_id: { type: 'string', description: 'Müşterinin ilgilendiği projenin IDsi (PROJE ID)' }
+                                            },
+                                            required: ['project_id']
+                                        }
+                                    }
                                 }
                             ]
                         },
@@ -553,6 +567,69 @@ Gelen aramaları karşıla, bilgi bankasındaki proje bilgilerini paylaş, rande
                             } catch (fnErr: any) {
                                 console.error(`[Vapi Webhook] sendCatalogEmail tool error:`, fnErr.message);
                                 resultMessage = "E-posta gönderilirken sistemsel bir hata oluştu.";
+                            }
+                        } else if (functionName === 'sendWhatsAppLink') {
+                            try {
+                                const adminSupabase = createAdminClient()
+                                const metadata = parsed.metadata || {};
+                                const tenantId = metadata.tenant_id;
+                                
+                                console.log(`[Vapi Tool] sendWhatsAppLink triggered: customer=${metadata.customer_id}, project_id=${functionParams.project_id}, phone=${metadata.caller_phone}`);
+                                
+                                const { data: tenantData } = await adminSupabase
+                                    .from('tenants')
+                                    .select('wa_phone_number_id, wa_access_token, custom_domain')
+                                    .eq('id', tenantId)
+                                    .single();
+
+                                // Find public documents for this project
+                                const { data: docs } = await adminSupabase
+                                    .from('project_documents')
+                                    .select('id, document_name')
+                                    .eq('project_id', functionParams.project_id)
+                                    .eq('permissions', 'public')
+                                    .limit(1);
+                                
+                                const { data: libDocs } = await adminSupabase
+                                    .from('document_library')
+                                    .select('id, name')
+                                    .eq('project_id', functionParams.project_id)
+                                    .eq('permissions', 'public')
+                                    .limit(1);
+
+                                const docId = docs?.[0]?.id || libDocs?.[0]?.id;
+                                
+                                const baseUrl = tenantData?.custom_domain
+                                    ? `https://${tenantData.custom_domain}`
+                                    : 'https://www.novoxcrm.com';
+
+                                let messageText = '';
+                                if (docId) {
+                                    const { encodeUuid } = await import('@/lib/utils');
+                                    const shortUrl = `${baseUrl}/d/${encodeUuid(docId)}`;
+                                    messageText = `Merhaba, talep ettiğiniz proje bilgileri ve broşür linki aşağıdadır:\n\n🔗 ${shortUrl}\n\nİyi günler dileriz.`;
+                                } else {
+                                    const { data: project } = await adminSupabase
+                                        .from('projects')
+                                        .select('name')
+                                        .eq('id', functionParams.project_id)
+                                        .maybeSingle();
+                                    
+                                    const fallbackUrl = 'https://www.novosirketlergrubu.com/novo-yapi-insaat/';
+                                    messageText = `Merhaba, talep ettiğiniz ${project?.name || 'proje'} bilgileri ve detaylı web sitesi aşağıdadır:\n\n🔗 ${fallbackUrl}\n\nİyi günler dileriz.`;
+                                }
+
+                                if (tenantData?.wa_phone_number_id && tenantData?.wa_access_token && metadata.caller_phone) {
+                                    const { sendWhatsAppMessage } = await import('@/lib/whatsapp');
+                                    await sendWhatsAppMessage(metadata.caller_phone, messageText, tenantData.wa_phone_number_id, tenantData.wa_access_token);
+                                    console.log(`[Vapi Tool] sendWhatsAppLink sent successfully to ${metadata.caller_phone}`);
+                                    resultMessage = "WhatsApp mesajı başarıyla gönderildi. Müşteriye linki WhatsApp'tan ilettiğini söyle ve sesli olarak kesinlikle link okuma.";
+                                } else {
+                                    resultMessage = "WhatsApp mesajı gönderilemedi (WhatsApp entegrasyonu yapılandırılmamış veya numara eksik).";
+                                }
+                            } catch (fnErr: any) {
+                                console.error(`[Vapi Webhook] sendWhatsAppLink tool error:`, fnErr.message);
+                                resultMessage = "WhatsApp mesajı gönderilirken sistemsel bir hata oluştu.";
                             }
                         } else {
                             console.log(`[Vapi Webhook] Unknown function: ${functionName}`)

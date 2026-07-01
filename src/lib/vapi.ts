@@ -45,6 +45,15 @@ export const TURKISH_VOICE_RULES = `
 13. Görüşme Sonlandırma: Görüşmeyi bitirirken her zaman nezaketle ve duruma uygun vedalaşarak telefonu kapat.
 === DİL KURALLARI SONU ===
 
+=== PDF / KATALOG / DÖKÜMAN VE WHATSAPP TALEPLERİ (KRİTİK) ===
+Müşteri sizden telefon görüşmesinde WhatsApp veya SMS üzerinden PDF, katalog, broşür, fiyat listesi veya yazılı bilgi/link paylaşmanızı isterse:
+→ KESİNLİKLE "bunu yapamam", "gönderemem", "yetkim yok" gibi olumsuz, reddedici veya yetersizlik belirten ifadeler kullanmayın.
+→ Şöyle cevap verin (HARFİYEN):
+   "Tabii ki, sizinle proje bilgilerini ve web sitesi adresimizi WhatsApp üzerinden paylaşacağım."
+→ Ardından, HEMEN "sendWhatsAppLink" fonksiyonunu/aracını (tool) çalıştırın. Aracı çalıştırmak için müşterinin ilgilendiği projenin ID değerini (PROJE ID) belirtmelisiniz.
+→ Sesli konuşmada KESİNLİKLE web sitesi linkini/URL'yi ("h-t-t-p-s-slash-slash-w-w-w..." gibi) müşteriye sesli olarak okumayın, hecelemeyin. Sadece WhatsApp üzerinden gönderdiğinizi belirtin.
+=== PDF / KATALOG / DÖKÜMAN VE WHATSAPP TALEPLERİ SONU ===
+
 === YAPAY ZEKA KİMLİĞİ İTİRAZ YÖNETİMİ (KRİTİK) ===
 Müşteri "Yapay zeka mısınız?", "Robot musunuz?", "Gerçek bir insan mısınız?", "Sen bot musun?" gibi sorular sorarsa:
 → KESİNLİKLE inkar etme! "Ben satış danışmanıyım" deme!
@@ -278,6 +287,51 @@ export async function makeOutboundCall(options: VapiCallOptions): Promise<VapiCa
                     tools: [
                         {
                             type: 'endCall'
+                        },
+                        {
+                            type: 'function',
+                            function: {
+                                name: 'scheduleAppointment',
+                                description: 'Schedules a physical or phone appointment/meeting with a sales representative.',
+                                parameters: {
+                                    type: 'object',
+                                    properties: {
+                                        date: { type: 'string', description: 'Tarih ve zaman bilgisi (örn: yarın saat 14:00)' },
+                                        time: { type: 'string', description: 'Saat bilgisi' },
+                                        notes: { type: 'string', description: 'Randevu konusu ve müşteri notları' }
+                                    },
+                                    required: ['date']
+                                }
+                            }
+                        },
+                        {
+                            type: 'function',
+                            function: {
+                                name: 'sendCatalogEmail',
+                                description: 'Sends the project brochure/catalog via email to the customer. Ask for the customer\'s email address first.',
+                                parameters: {
+                                    type: 'object',
+                                    properties: {
+                                        email: { type: 'string', description: 'Müşterinin e-posta adresi (örn: ahmet@example.com)' },
+                                        project_id: { type: 'string', description: 'Müşterinin ilgilendiği projenin IDsi (PROJE ID)' }
+                                    },
+                                    required: ['email', 'project_id']
+                                }
+                            }
+                        },
+                        {
+                            type: 'function',
+                            function: {
+                                name: 'sendWhatsAppLink',
+                                description: 'Sends the project brochure/catalog web link to the customer via WhatsApp message. Do not read the URL link verbally, just tell the customer that you have sent it.',
+                                parameters: {
+                                    type: 'object',
+                                    properties: {
+                                        project_id: { type: 'string', description: 'Müşterinin ilgilendiği projenin IDsi (PROJE ID)' }
+                                    },
+                                    required: ['project_id']
+                                }
+                            }
                         }
                     ],
                 },
