@@ -1004,12 +1004,31 @@ export async function updateSmsSettings(formData: FormData) {
         return { error: 'Yalnızca yönetici yetkisi olanlar bu ayarları değiştirebilir.' }
     }
 
+    const { data: tenant } = await supabase
+        .from('tenants')
+        .select('brand_config')
+        .eq('id', profile.tenant_id)
+        .single()
+
+    const brandConfig = tenant?.brand_config || {}
+    const smsSettings = (brandConfig.sms_settings || {}) as Record<string, any>
+    const activeProvider = formData.get('sms_provider') as string
+
+    smsSettings[activeProvider] = {
+        user: formData.get('sms_api_user') as string,
+        pass: formData.get('sms_api_password') as string,
+        sender_id: formData.get('sms_sender_id') as string
+    }
+
+    brandConfig.sms_settings = smsSettings
+
     const updates = {
-        sms_provider: formData.get('sms_provider') as string,
+        sms_provider: activeProvider,
         sms_api_user: formData.get('sms_api_user') as string,
         sms_api_password: formData.get('sms_api_password') as string,
         sms_sender_id: formData.get('sms_sender_id') as string,
         is_sms_notifications_enabled: formData.get('is_sms_notifications_enabled') === 'on',
+        brand_config: brandConfig
     }
 
     const { error } = await supabase

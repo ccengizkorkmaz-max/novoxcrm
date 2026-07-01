@@ -20,6 +20,7 @@ interface SmsSettingsTabProps {
         sms_api_password?: string | null
         sms_sender_id?: string | null
         is_sms_notifications_enabled?: boolean
+        brand_config?: any
     }
 }
 
@@ -27,7 +28,36 @@ export default function SmsSettingsTab({ tenant }: SmsSettingsTabProps) {
     const [isPending, setIsPending] = useState(false)
     const [isTesting, setIsTesting] = useState(false)
     const [testPhone, setTestPhone] = useState('')
-    const [smsProvider, setSmsProvider] = useState(tenant.sms_provider || 'polidijital')
+
+    const smsSettings = (tenant.brand_config?.sms_settings || {}) as Record<string, { user?: string; pass?: string; sender_id?: string }>
+    const initialProvider = tenant.sms_provider || 'polidijital'
+    
+    if (initialProvider && !smsSettings[initialProvider]) {
+        smsSettings[initialProvider] = {
+            user: tenant.sms_api_user || '',
+            pass: tenant.sms_api_password || '',
+            sender_id: tenant.sms_sender_id || ''
+        }
+    }
+
+    const [smsProvider, setSmsProvider] = useState(initialProvider)
+    const [smsApiUser, setSmsApiUser] = useState(smsSettings[initialProvider]?.user || '')
+    const [smsApiPassword, setSmsApiPassword] = useState(smsSettings[initialProvider]?.pass || '')
+    const [smsSenderId, setSmsSenderId] = useState(smsSettings[initialProvider]?.sender_id || '')
+
+    const handleProviderChange = (newProvider: string) => {
+        smsSettings[smsProvider] = {
+            user: smsApiUser,
+            pass: smsApiPassword,
+            sender_id: smsSenderId
+        }
+
+        setSmsProvider(newProvider)
+        const saved = smsSettings[newProvider] || {}
+        setSmsApiUser(saved.user || '')
+        setSmsApiPassword(saved.pass || '')
+        setSmsSenderId(saved.sender_id || '')
+    }
 
     const handleTestSms = async () => {
         setIsTesting(true)
@@ -90,7 +120,7 @@ export default function SmsSettingsTab({ tenant }: SmsSettingsTabProps) {
                             <div className="space-y-4 pt-2">
                                 <div className="space-y-2">
                                     <Label htmlFor="sms_provider_select">SMS Servis Sağlayıcı</Label>
-                                    <Select value={smsProvider} onValueChange={setSmsProvider}>
+                                    <Select value={smsProvider} onValueChange={handleProviderChange}>
                                         <SelectTrigger id="sms_provider_select" className="w-full">
                                             <SelectValue placeholder="Sağlayıcı seçiniz" />
                                         </SelectTrigger>
@@ -106,7 +136,8 @@ export default function SmsSettingsTab({ tenant }: SmsSettingsTabProps) {
                                     <Input
                                         id="sms_api_user"
                                         name="sms_api_user"
-                                        defaultValue={tenant.sms_api_user || ''}
+                                        value={smsApiUser}
+                                        onChange={(e) => setSmsApiUser(e.target.value)}
                                         placeholder="Kullanıcı adınız..."
                                         required
                                     />
@@ -117,7 +148,8 @@ export default function SmsSettingsTab({ tenant }: SmsSettingsTabProps) {
                                         id="sms_api_password"
                                         name="sms_api_password"
                                         type="password"
-                                        defaultValue={tenant.sms_api_password || ''}
+                                        value={smsApiPassword}
+                                        onChange={(e) => setSmsApiPassword(e.target.value)}
                                         placeholder="Şifreniz..."
                                         required
                                     />
@@ -127,7 +159,8 @@ export default function SmsSettingsTab({ tenant }: SmsSettingsTabProps) {
                                     <Input
                                         id="sms_sender_id"
                                         name="sms_sender_id"
-                                        defaultValue={tenant.sms_sender_id || ''}
+                                        value={smsSenderId}
+                                        onChange={(e) => setSmsSenderId(e.target.value)}
                                         placeholder="Örn: NOVOEMLAK"
                                         required
                                     />
