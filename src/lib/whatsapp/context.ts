@@ -303,7 +303,7 @@ export async function getTenantDocumentsContext(supabase: any, tenantId: string)
 
         const baseUrl = tenant?.custom_domain
             ? `https://${tenant.custom_domain}`
-            : (process.env.NEXT_PUBLIC_APP_URL || 'https://crm.novox.co');
+            : (process.env.NEXT_PUBLIC_APP_URL || 'https://www.novoxcrm.com');
 
         const { data: libraryDocs } = await supabase
             .from('document_library')

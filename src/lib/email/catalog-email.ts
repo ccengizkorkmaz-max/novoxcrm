@@ -208,7 +208,7 @@ export async function handleAndSendCatalogEmail(params: CatalogEmailParams): Pro
 
     const baseUrl = tenant?.custom_domain 
         ? `https://${tenant.custom_domain}` 
-        : (process.env.NEXT_PUBLIC_APP_URL || 'https://crm.novox.co');
+        : (process.env.NEXT_PUBLIC_APP_URL || 'https://www.novoxcrm.com');
 
     // 5. Build HTML Links/Buttons
     const documentLinksHtml = docs.map((doc: any) => {
