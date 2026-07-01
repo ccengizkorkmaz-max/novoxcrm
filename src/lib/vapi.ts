@@ -1161,6 +1161,16 @@ export async function handleManualVapiCallResult(callData: {
         }
         console.log(`[Vapi Webhook] 📊 Manual lead scored: ${customerId} → ${leadScore} (${newLqStatus})`)
 
+        // --- AUTO CONVERT TO SALE (LEAD) ---
+        if (leadScore === 'hot' || leadScore === 'warm' || leadScore === 'call_requested') {
+            try {
+                const { autoConvertQualificationToSale } = await import('@/lib/crm/auto-convert');
+                await autoConvertQualificationToSale(supabase, tenantId, customerId, leadScore, notes);
+            } catch (autoErr) {
+                console.error('[Vapi Webhook] Failed to auto convert qualification to sale:', autoErr);
+            }
+        }
+
         // ─── AUTO COMMUNICATION OFF: do_not_contact → iletişim kapat ───
         const doNotContact = structuredData?.do_not_contact === true
         if (doNotContact) {

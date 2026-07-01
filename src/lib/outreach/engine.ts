@@ -1947,6 +1947,16 @@ export async function handleVapiCallResult(callData: {
                     })
             }
             console.log(`[Outreach] 📊 Lead scored: ${execution.customer_id} → ${structuredData.lead_score} (${newStatus})`)
+
+            // --- AUTO CONVERT TO SALE (LEAD) ---
+            if (structuredData.lead_score === 'hot' || structuredData.lead_score === 'warm' || structuredData.lead_score === 'call_requested') {
+                try {
+                    const { autoConvertQualificationToSale } = await import('@/lib/crm/auto-convert');
+                    await autoConvertQualificationToSale(supabase, execution.tenant_id, execution.customer_id, structuredData.lead_score, structuredData.notes);
+                } catch (autoErr) {
+                    console.error('[Outreach Lead Scoring] Failed to auto convert qualification to sale:', autoErr);
+                }
+            }
         } else if (execution.lead_id) {
             const leadStatusMap: Record<string, string> = {
                 hot: 'qualified',

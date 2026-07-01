@@ -107,6 +107,16 @@ export async function extractAndUpdateLeadScore(
                 .eq('customer_id', convData.customer_id)
                 .eq('tenant_id', tenantId);
             console.log(`📊 Lead qualification interest_level güncellendi: ${finalScore} (customer: ${convData.customer_id})`);
+
+            // --- AUTO CONVERT TO SALE (LEAD) ---
+            if (finalScore === 'hot' || finalScore === 'warm' || finalScore === 'call_requested') {
+                try {
+                    const { autoConvertQualificationToSale } = await import('@/lib/crm/auto-convert');
+                    await autoConvertQualificationToSale(supabase, tenantId, convData.customer_id, finalScore);
+                } catch (autoErr) {
+                    console.error('[WhatsApp Lead Scoring] Failed to auto convert qualification to sale:', autoErr);
+                }
+            }
         }
 
         // Müşteri Adayı (Lead) ise durumunu ve skorunu güncelle
