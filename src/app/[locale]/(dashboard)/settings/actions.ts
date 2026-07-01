@@ -848,6 +848,7 @@ export async function updateAiAssistantCharacter(formData: FormData) {
         ai_assistant_gender: formData.get('ai_assistant_gender') as string,
         ai_assistant_instructions: formData.get('ai_assistant_instructions') as string,
         ai_knowledge_base: formData.get('ai_knowledge_base') as string,
+        ai_system_prompt: null, // Clear the hidden/legacy system prompt so it doesn't override instructions!
     }
 
     const { error } = await supabase
