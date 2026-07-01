@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
-import { MessageSquare, ShieldCheck, Send, Loader2, Save, ExternalLink } from 'lucide-react'
+import { MessageSquare, ShieldCheck, Send, Loader2, Save, ExternalLink, Mail, Phone, Lock } from 'lucide-react'
 import { toast } from 'sonner'
 import { updateSmsSettings, testSms } from '../actions'
 import { Badge } from '@/components/ui/badge'
@@ -57,6 +57,44 @@ export default function SmsSettingsTab({ tenant }: SmsSettingsTabProps) {
         setSmsApiUser(saved.user || '')
         setSmsApiPassword(saved.pass || '')
         setSmsSenderId(saved.sender_id || '')
+    }
+
+    const getServicesList = () => {
+        const isConfigured = !!smsApiUser && !!smsApiPassword
+        const isBulk = smsProvider === 'postaguvercini'
+        const isOtp = smsProvider === 'postaguvercini_otp'
+        const isPoli = smsProvider === 'polidijital'
+
+        return [
+            {
+                name: 'Toplu SMS Kampanyaları',
+                description: 'Pazarlama, kampanya ve toplu müşteri bilgilendirme gönderimleri.',
+                supported: isPoli || isBulk || isOtp,
+                status: isConfigured && (isPoli || isBulk || isOtp) ? 'active' : 'inactive',
+                icon: Phone,
+            },
+            {
+                name: 'Müşteri Sistem Bildirimleri',
+                description: 'Otomatik form yanıtları, müşteri aktivasyonları ve sistem SMS bildirimleri.',
+                supported: isPoli || isBulk || isOtp,
+                status: isConfigured && (isPoli || isBulk || isOtp) ? 'active' : 'inactive',
+                icon: ShieldCheck,
+            },
+            {
+                name: 'Tek Kullanımlık Şifre (OTP)',
+                description: 'Güvenli kullanıcı girişleri ve kimlik doğrulama SMS\'leri.',
+                supported: isPoli || isOtp,
+                status: isConfigured && (isPoli || isOtp) ? 'active' : 'inactive',
+                icon: Lock,
+            },
+            {
+                name: 'E-Posta Entegrasyonu',
+                description: 'Toplu e-posta gönderim altyapısı (Posta Güvercini e-posta servisi).',
+                supported: isBulk,
+                status: isConfigured && isBulk ? 'active' : 'inactive',
+                icon: Mail,
+            }
+        ]
     }
 
     const handleTestSms = async () => {
@@ -249,6 +287,54 @@ export default function SmsSettingsTab({ tenant }: SmsSettingsTabProps) {
                             </Button>
                         </div>
                     </form>
+
+                    <div className="mt-8 pt-6 border-t space-y-4">
+                        <div className="flex items-center gap-2">
+                            <MessageSquare className="h-5 w-5 text-blue-600" />
+                            <div>
+                                <h3 className="text-sm font-semibold text-slate-900">Entegrasyon & Servis Durumu</h3>
+                                <p className="text-xs text-muted-foreground">Seçili sağlayıcı ve girilen kimlik bilgileriyle aktif olan servislerin listesi.</p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {getServicesList().map((service, index) => {
+                                const Icon = service.icon
+                                return (
+                                    <div key={index} className="flex items-start gap-3 p-4 rounded-xl border bg-slate-50/50 hover:bg-slate-50 transition-colors">
+                                        <div className={`p-2 rounded-lg ${
+                                            service.status === 'active' 
+                                                ? 'bg-emerald-100 text-emerald-700' 
+                                                : service.supported 
+                                                ? 'bg-amber-100 text-amber-700' 
+                                                : 'bg-slate-100 text-slate-400'
+                                        }`}>
+                                            <Icon className="h-4 w-4" />
+                                        </div>
+                                        <div className="space-y-1 flex-1">
+                                            <div className="flex items-center justify-between gap-2">
+                                                <span className="text-xs font-semibold text-slate-700">{service.name}</span>
+                                                <Badge className={`text-[10px] px-1.5 py-0.5 border ${
+                                                    service.status === 'active'
+                                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                                        : service.supported
+                                                        ? 'bg-amber-50 text-amber-600 border-amber-200'
+                                                        : 'bg-slate-100 text-slate-500 border-slate-200'
+                                                }`}>
+                                                    {service.status === 'active' 
+                                                        ? 'Aktif' 
+                                                        : service.supported 
+                                                        ? 'Yapılandırılmamış' 
+                                                        : 'Desteklenmiyor'}
+                                                </Badge>
+                                            </div>
+                                            <p className="text-[11px] text-muted-foreground leading-relaxed">{service.description}</p>
+                                        </div>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    </div>
                 </CardContent>
             </Card>
         </div>
