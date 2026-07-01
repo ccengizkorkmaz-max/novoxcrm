@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { Resend } from 'resend'
-import { sendPoliSms } from '@/lib/sms'
+import { sendPoliSms, sendSms } from '@/lib/sms'
 
 // ===== CAMPAIGN MANAGEMENT =====
 
@@ -386,7 +386,7 @@ export async function sendCampaignSMS(campaignId: string) {
     // 3. Get SMS API credentials from tenant settings
     const { data: tenant } = await supabase
         .from('tenants')
-        .select('sms_api_user, sms_api_password, sms_sender_id')
+        .select('sms_api_user, sms_api_password, sms_sender_id, sms_provider')
         .eq('id', campaign.tenant_id)
         .single()
 
@@ -432,13 +432,13 @@ export async function sendCampaignSMS(campaignId: string) {
         const personalBody = interpolate(campaign.body || '', customer)
 
         try {
-            const result = await sendPoliSms({
+            const result = await sendSms({
                 user: smsUser,
                 pass: smsPass,
                 message: personalBody,
                 contacts: [customer.phone],
                 header
-            })
+            }, tenant?.sms_provider || 'polidijital')
 
             if (result.success) {
                 await supabase

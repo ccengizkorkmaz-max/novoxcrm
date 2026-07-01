@@ -3,7 +3,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { makeOutboundCall, getTurkishNameTitle, normalizeToE164 } from '@/lib/vapi'
 import { sendWhatsAppTemplate, sendWhatsAppMessage } from '@/lib/whatsapp'
-import { sendPoliSms, normalizePhone } from '@/lib/sms'
+import { sendPoliSms, sendSms, normalizePhone } from '@/lib/sms'
 
 // ─── Eşzamanlı Arama Limiti ────────────────────────────────
 // Vapi planı: max 10 eş zamanlı arama. 2 slot gelen aramalar için ayrılmış.
@@ -1279,7 +1279,7 @@ async function executeSms(execution: any, step: any, config: StepConfig, phone: 
         // Get tenant's SMS credentials
         const { data: tenant } = await supabase
             .from('tenants')
-            .select('sms_api_user, sms_api_password, sms_sender_id')
+            .select('sms_api_user, sms_api_password, sms_sender_id, sms_provider')
             .eq('id', execution.tenant_id)
             .single()
 
@@ -1291,13 +1291,13 @@ async function executeSms(execution: any, step: any, config: StepConfig, phone: 
             return
         }
 
-        result = await sendPoliSms({
+        result = await sendSms({
             user: smsUser,
             pass: smsPass,
             message,
             contacts: [phone],
             header: tenant?.sms_sender_id || process.env.POLI_SMS_HEADER || 'NOVOEMLAK',
-        })
+        }, tenant?.sms_provider || 'polidijital')
     }
 
     await supabase.from('outreach_step_logs').insert({

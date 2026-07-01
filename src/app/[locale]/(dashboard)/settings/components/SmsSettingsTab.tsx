@@ -10,6 +10,7 @@ import { MessageSquare, ShieldCheck, Send, Loader2, Save, ExternalLink } from 'l
 import { toast } from 'sonner'
 import { updateSmsSettings, testSms } from '../actions'
 import { Badge } from '@/components/ui/badge'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 interface SmsSettingsTabProps {
     tenant: {
@@ -26,6 +27,7 @@ export default function SmsSettingsTab({ tenant }: SmsSettingsTabProps) {
     const [isPending, setIsPending] = useState(false)
     const [isTesting, setIsTesting] = useState(false)
     const [testPhone, setTestPhone] = useState('')
+    const [smsProvider, setSmsProvider] = useState(tenant.sms_provider || 'polidijital')
 
     const handleTestSms = async () => {
         setIsTesting(true)
@@ -54,11 +56,11 @@ export default function SmsSettingsTab({ tenant }: SmsSettingsTabProps) {
                                 SMS Gateway Ayarları
                             </CardTitle>
                             <CardDescription>
-                                Polidijital altyapısını kullanarak müşterilerinize otomatik bildirimler gönderebilirsiniz.
+                                Tercih ettiğiniz SMS altyapısını kullanarak müşterilerinize otomatik bildirimler gönderebilirsiniz.
                             </CardDescription>
                         </div>
                         <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 font-medium">
-                            Poli Dijital Aktif
+                            {smsProvider === 'postaguvercini' ? 'Posta Güvercini Aktif' : smsProvider === 'postaguvercini_otp' ? 'Posta Güvercini OTP Aktif' : 'Poli Dijital Aktif'}
                         </Badge>
                     </div>
                 </CardHeader>
@@ -81,11 +83,24 @@ export default function SmsSettingsTab({ tenant }: SmsSettingsTabProps) {
                         }}
                         className="space-y-6"
                     >
-                        <input type="hidden" name="sms_provider" value="polidijital" />
+                        <input type="hidden" name="sms_provider" value={smsProvider} />
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {/* User Credentials */}
                             <div className="space-y-4 pt-2">
+                                <div className="space-y-2">
+                                    <Label htmlFor="sms_provider_select">SMS Servis Sağlayıcı</Label>
+                                    <Select value={smsProvider} onValueChange={setSmsProvider}>
+                                        <SelectTrigger id="sms_provider_select" className="w-full">
+                                            <SelectValue placeholder="Sağlayıcı seçiniz" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="polidijital">Poli Dijital</SelectItem>
+                                            <SelectItem value="postaguvercini">Posta Güvercini (Bulk)</SelectItem>
+                                            <SelectItem value="postaguvercini_otp">Posta Güvercini (OTP)</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="sms_api_user">API Kullanıcı Adı</Label>
                                     <Input
@@ -144,7 +159,9 @@ export default function SmsSettingsTab({ tenant }: SmsSettingsTabProps) {
                                             Entegrasyon Bilgisi
                                         </div>
                                         <p className="text-xs text-slate-500 leading-relaxed">
-                                            Bilgileriniz doğrudan Poli Dijital sunucuları ile 9588 portu üzerinden şifreli (SSL) olarak iletilir. Verileriniz CRM güvenliği altındadır.
+                                            {smsProvider === 'postaguvercini' || smsProvider === 'postaguvercini_otp'
+                                                ? 'Bilgileriniz doğrudan Posta Güvercini REST API sunucuları ile HTTPS protokolü üzerinden şifreli olarak iletilir. Verileriniz CRM güvenliği altındadır.'
+                                                : 'Bilgileriniz doğrudan Poli Dijital sunucuları ile 9588 portu üzerinden şifreli (SSL) olarak iletilir. Verileriniz CRM güvenliği altındadır.'}
                                         </p>
                                     </div>
                                 </div>

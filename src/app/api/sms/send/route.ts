@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sendPoliSms } from '@/lib/sms';
+import { sendSms } from '@/lib/sms';
 import { createClient } from '@/lib/supabase/server';
 
 export async function POST(request: NextRequest) {
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     // Get tenant's SMS settings
     const { data: tenant } = await supabase
       .from('tenants')
-      .select('sms_api_user, sms_api_password, sms_sender_id')
+      .select('sms_api_user, sms_api_password, sms_sender_id, sms_provider')
       .eq('id', profile.tenant_id)
       .single();
 
@@ -48,13 +48,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'SMS API credentials (sms_api_user/password) are missing for this tenant.' }, { status: 500 });
     }
 
-    const result = await sendPoliSms({
+    const result = await sendSms({
       user: smsUser,
       pass: smsPass,
       message,
       contacts: [phone],
       header,
-    });
+    }, tenant?.sms_provider || 'polidijital');
 
     if (!result.success) {
       return NextResponse.json({ error: result.error || 'Failed to send SMS' }, { status: 500 });

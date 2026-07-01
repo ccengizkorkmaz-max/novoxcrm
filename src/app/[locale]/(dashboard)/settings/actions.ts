@@ -984,7 +984,7 @@ export async function deleteEmailAccount(id: string) {
     return { success: true }
 }
 
-import { sendPoliSms } from '@/lib/sms'
+import { sendPoliSms, sendSms } from '@/lib/sms'
 
 export async function updateSmsSettings(formData: FormData) {
     const supabase = await createClient()
@@ -1056,7 +1056,7 @@ export async function testSms(phoneNumber?: string) {
 
     const { data: tenant } = await supabase
         .from('tenants')
-        .select('sms_api_user, sms_api_password, sms_sender_id')
+        .select('sms_api_user, sms_api_password, sms_sender_id, sms_provider')
         .eq('id', profile.tenant_id)
         .single()
 
@@ -1064,13 +1064,16 @@ export async function testSms(phoneNumber?: string) {
         return { error: 'Önce API kullanıcı bilgilerini yukarıdaki formdan kaydediniz.' }
     }
 
-    const result = await sendPoliSms({
+    const provider = tenant.sms_provider || 'polidijital'
+    const providerName = provider === 'postaguvercini' ? 'Posta Güvercini' : provider === 'postaguvercini_otp' ? 'Posta Güvercini OTP' : 'Poli Dijital'
+
+    const result = await sendSms({
         user: tenant.sms_api_user,
         pass: tenant.sms_api_password,
         header: tenant.sms_sender_id || 'NOVOEMLAK',
         contacts: [targetPhone],
-        message: `NovoCRM Test Mesajı\n\nMerhaba ${profile.full_name}, SMS altyapınız Polidijital ile başarıyla bağlandı!\n\n${new Date().toLocaleString('tr-TR')}`
-    })
+        message: `NovoCRM Test Mesajı\n\nMerhaba ${profile.full_name}, SMS altyapınız ${providerName} ile başarıyla bağlandı!\n\n${new Date().toLocaleString('tr-TR')}`
+    }, provider)
 
     return result
 }

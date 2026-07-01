@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
-import { sendPoliSms } from '@/lib/sms'
+import { sendPoliSms, sendSms } from '@/lib/sms'
 
 /**
  * Parse project name from inbox message (looks in Konu/Subject field)
@@ -154,7 +154,7 @@ export async function approveInboxItem(
         // Get tenant mode
         const { data: tenant } = await supabase
             .from('tenants')
-            .select('crm_mode, lead_assignment_mode, is_sms_notifications_enabled, sms_api_user, sms_api_password, sms_sender_id, name')
+            .select('crm_mode, lead_assignment_mode, is_sms_notifications_enabled, sms_api_user, sms_api_password, sms_sender_id, sms_provider, name')
             .eq('id', inboxItem.tenant_id)
             .single()
 
@@ -284,13 +284,13 @@ export async function approveInboxItem(
             // Send SMS Notification (Optional)
             if (tenant?.is_sms_notifications_enabled && finalPhone && tenant.sms_api_user && tenant.sms_api_password) {
                 try {
-                    await sendPoliSms({
+                    await sendSms({
                         user: tenant.sms_api_user,
                         pass: tenant.sms_api_password,
                         header: tenant.sms_sender_id || 'NOVOEMLAK',
                         contacts: [finalPhone],
                         message: `Sayın ${finalName}, talebiniz başarıyla alınmıştır. En kısa sürede sizinle iletişime geçilecektir. Teşekkürler. ${tenant.name || ''}`
-                    })
+                    }, tenant.sms_provider || 'polidijital')
                 } catch (smsError) {
                     console.error('Automatic SMS Error:', smsError)
                 }
@@ -451,13 +451,13 @@ export async function approveInboxItem(
 
         if (tenant?.is_sms_notifications_enabled && finalPhone && tenant.sms_api_user && tenant.sms_api_password) {
             try {
-                await sendPoliSms({
+                await sendSms({
                     user: tenant.sms_api_user,
                     pass: tenant.sms_api_password,
                     header: tenant.sms_sender_id || 'NOVOEMLAK',
                     contacts: [finalPhone],
                     message: `Sayın ${finalName}, talebiniz başarıyla alınmıştır. En kısa sürede sizinle iletişime geçilecektir. Teşekkürler. ${tenant.name || ''}`
-                })
+                }, tenant.sms_provider || 'polidijital')
             } catch (smsError) {
                 console.error('Automatic SMS Error:', smsError)
             }
