@@ -238,6 +238,7 @@ Gelen aramaları karşıla, bilgi bankasındaki proje bilgilerini paylaş, rande
                         name: assistantName,
                         firstMessage: firstMessage,
                         firstMessageMode: 'assistant-speaks-first',
+                        endCallMessage: 'İyi günler dilerim.',
                         serverUrl: serverUrl,
                         serverMessages: ['end-of-call-report', 'status-update', 'function-call'],
                         maxDurationSeconds: 300,
