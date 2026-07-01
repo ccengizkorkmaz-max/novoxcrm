@@ -1022,13 +1022,19 @@ export async function updateSmsSettings(formData: FormData) {
 
     brandConfig.sms_settings = smsSettings
 
-    const updates = {
+    const updates: Record<string, any> = {
         sms_provider: activeProvider,
         sms_api_user: formData.get('sms_api_user') as string,
         sms_api_password: formData.get('sms_api_password') as string,
         sms_sender_id: formData.get('sms_sender_id') as string,
         is_sms_notifications_enabled: formData.get('is_sms_notifications_enabled') === 'on',
         brand_config: brandConfig
+    }
+
+    if (activeProvider === 'postaguvercini' || activeProvider === 'postaguvercini_otp') {
+        updates.figensoft_username = formData.get('sms_api_user') as string
+        updates.figensoft_password = formData.get('sms_api_password') as string
+        updates.figensoft_sender_id = formData.get('sms_sender_id') as string
     }
 
     const { error } = await supabase
