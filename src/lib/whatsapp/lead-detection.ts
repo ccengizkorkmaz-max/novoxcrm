@@ -265,7 +265,7 @@ export async function processHotLeadDetection(
                             tenant_id: tenantId,
                             customer_id: customerId,
                             status: 'Lead',
-                            lead_origin: 'whatsapp_ai'
+                            lead_origin: 'company'
                         });
                         console.log(`✅ ${customerName} (AI Hot Lead) otomatik satış panosuna eklendi (Lead).`);
                     }

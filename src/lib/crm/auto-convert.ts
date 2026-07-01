@@ -35,18 +35,25 @@ export async function autoConvertQualificationToSale(
             return { success: false, reason: 'No active qualification' };
         }
 
+        // Project check: Must have an interested project
+        if (!qual.project_id && !fallbackProjectId) {
+            console.log(`[AutoConvert] Qualification ${qual.id} has no project_id. Skipping auto-conversion.`);
+            return { success: false, reason: 'No project_id' };
+        }
+
         // 2. Check if there is already an active sale for this customer
-        const { data: existingSale, error: saleCheckErr } = await supabase
+        const { data: existingSales, error: saleCheckErr } = await supabase
             .from('sales')
             .select('id')
             .eq('customer_id', customerId)
             .in('status', ['Lead', 'Prospect', 'Proposal', 'Reservation', 'Negotiation', 'Contract'])
-            .maybeSingle();
+            .limit(1);
 
         if (saleCheckErr) {
             console.error('[AutoConvert] Error checking existing sale:', saleCheckErr);
         }
 
+        const existingSale = existingSales && existingSales.length > 0 ? existingSales[0] : null;
         let saleId = existingSale?.id;
 
         if (!saleId) {
@@ -63,7 +70,7 @@ export async function autoConvertQualificationToSale(
                     status: 'Lead', // Automatically converted as a Lead
                     assigned_to: assignedTo,
                     project_id: projectId,
-                    lead_origin: 'whatsapp_ai',
+                    lead_origin: 'company',
                     description: `AI tarafından otomatik olarak Satış Yönetimine aktarıldı (Skor: ${score.toUpperCase()})` + (notes ? ` - ${notes}` : '')
                 })
                 .select()

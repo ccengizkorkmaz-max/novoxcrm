@@ -64,7 +64,7 @@ export async function handleCampaignReply(
                         tenant_id: tenantId,
                         customer_id: customer.id,
                         status: 'Lead',
-                        lead_origin: 'whatsapp_campaign'
+                        lead_origin: 'company'
                     });
                     console.log(`✅ ${customer.full_name} otomatik satış panosuna eklendi (Lead).`);
                 }
