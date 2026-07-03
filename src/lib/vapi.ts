@@ -554,10 +554,19 @@ export async function createOutreachAssistant(config: {
 /**
  * Translates Vapi API error messages to Turkish for user display
  */
-export function translateVapiError(error: string | undefined | null): string {
+export function translateVapiError(error: any): string {
     if (!error) return 'Bilinmeyen bir hata oluştu.';
     
-    const msg = error.toLowerCase();
+    let errorStr = '';
+    if (typeof error === 'string') {
+        errorStr = error;
+    } else if (typeof error === 'object') {
+        errorStr = error.message || error.error || JSON.stringify(error);
+    } else {
+        errorStr = String(error);
+    }
+
+    const msg = errorStr.toLowerCase();
     
     if (msg.includes('insufficient_funds') || msg.includes('insufficient funds') || msg.includes('balance') || msg.includes('funds') || msg.includes('credit')) {
         return 'Sistem bakiyesi yetersiz. Lütfen Vapi hesabının bakiyesini kontrol edin.';
@@ -581,7 +590,7 @@ export function translateVapiError(error: string | undefined | null): string {
         return 'Arama asistanı yapılandırılmamış veya bulunamadı.';
     }
     
-    return error;
+    return errorStr;
 }
 
 /**
