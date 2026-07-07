@@ -573,9 +573,25 @@ Gelen aramaları karşıla, bilgi bankasındaki proje bilgilerini paylaş, rande
                             try {
                                 const adminSupabase = createAdminClient()
                                 const metadata = parsed.metadata || {};
+                                let resolvedProjectId = functionParams.project_id;
+                                 
+                                // Check if project_id is a valid UUID, if not query projects table by name
+                                const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+                                if (resolvedProjectId && !uuidRegex.test(resolvedProjectId)) {
+                                    const { data: matchedProj } = await adminSupabase
+                                        .from('projects')
+                                        .select('id')
+                                        .ilike('name', `%${resolvedProjectId}%`)
+                                        .limit(1)
+                                        .maybeSingle();
+                                    if (matchedProj) {
+                                        resolvedProjectId = matchedProj.id;
+                                    }
+                                }
+
                                 const tenantId = metadata.tenant_id;
                                 
-                                console.log(`[Vapi Tool] sendWhatsAppLink triggered: customer=${metadata.customer_id}, project_id=${functionParams.project_id}, phone=${metadata.caller_phone}`);
+                                console.log(`[Vapi Tool] sendWhatsAppLink triggered: customer=${metadata.customer_id}, project_id=${resolvedProjectId}, phone=${metadata.caller_phone}`);
                                 
                                 const { data: tenantData } = await adminSupabase
                                     .from('tenants')
@@ -586,38 +602,46 @@ Gelen aramaları karşıla, bilgi bankasındaki proje bilgilerini paylaş, rande
                                 // Find public documents for this project
                                 const { data: docs } = await adminSupabase
                                     .from('project_documents')
-                                    .select('id, document_name')
-                                    .eq('project_id', functionParams.project_id)
-                                    .eq('permissions', 'public')
-                                    .limit(1);
+                                    .select('id, document_name, category')
+                                    .eq('project_id', resolvedProjectId)
+                                    .eq('permissions', 'public');
                                 
                                 const { data: libDocs } = await adminSupabase
                                     .from('document_library')
-                                    .select('id, name')
-                                    .eq('project_id', functionParams.project_id)
-                                    .eq('permissions', 'public')
-                                    .limit(1);
+                                    .select('id, name, category')
+                                    .eq('project_id', resolvedProjectId)
+                                    .eq('permissions', 'public');
 
-                                const docId = docs?.[0]?.id || libDocs?.[0]?.id;
+                                const allDocs = [...(docs || []), ...(libDocs || [])];
+                                // Prioritize brochures and catalogs first, fall back to any other public document
+                                const bestDoc = allDocs.find(d => d.category === 'brochure' || d.category === 'catalog') || allDocs[0];
+                                const docId = bestDoc?.id;
                                 
                                 const baseUrl = tenantData?.custom_domain
                                     ? `https://${tenantData.custom_domain}`
-                                    : 'https://www.novoxcrm.com';
+                                    : (process.env.NEXT_PUBLIC_APP_URL || 'https://www.novoxcrm.com');
+
+                                const { data: project } = await adminSupabase
+                                    .from('projects')
+                                    .select('name, website_url')
+                                    .eq('id', resolvedProjectId)
+                                    .maybeSingle();
+
+                                const projectWebsite = project?.website_url;
+                                const projectName = project?.name || 'proje';
 
                                 let messageText = '';
-                                if (docId) {
+                                if (docId && projectWebsite) {
                                     const { encodeUuid } = await import('@/lib/utils');
                                     const shortUrl = `${baseUrl}/d/${encodeUuid(docId)}`;
-                                    messageText = `Merhaba, talep ettiğiniz proje bilgileri ve broşür linki aşağıdadır:\n\n🔗 ${shortUrl}\n\nİyi günler dileriz.`;
+                                    messageText = `Merhaba, talep ettiğiniz ${projectName} bilgileri ve broşür linki aşağıdadır:\n\n📄 Broşür: ${shortUrl}\n🔗 Web Sitesi: ${projectWebsite}\n\nİyi günler dileriz.`;
+                                } else if (docId) {
+                                    const { encodeUuid } = await import('@/lib/utils');
+                                    const shortUrl = `${baseUrl}/d/${encodeUuid(docId)}`;
+                                    messageText = `Merhaba, talep ettiğiniz ${projectName} bilgileri ve broşür linki aşağıdadır:\n\n📄 Broşür: ${shortUrl}\n\nİyi günler dileriz.`;
                                 } else {
-                                    const { data: project } = await adminSupabase
-                                        .from('projects')
-                                        .select('name')
-                                        .eq('id', functionParams.project_id)
-                                        .maybeSingle();
-                                    
-                                    const fallbackUrl = 'https://www.novosirketlergrubu.com/novo-yapi-insaat/';
-                                    messageText = `Merhaba, talep ettiğiniz ${project?.name || 'proje'} bilgileri ve detaylı web sitesi aşağıdadır:\n\n🔗 ${fallbackUrl}\n\nİyi günler dileriz.`;
+                                    const fallbackUrl = projectWebsite || 'https://www.novosirketlergrubu.com/novo-yapi-insaat/';
+                                    messageText = `Merhaba, talep ettiğiniz ${projectName} bilgileri ve detaylı web sitesi aşağıdadır:\n\n🔗 Web Sitesi: ${fallbackUrl}\n\nİyi günler dileriz.`;
                                 }
 
                                 if (tenantData?.wa_phone_number_id && tenantData?.wa_access_token && metadata.caller_phone) {
