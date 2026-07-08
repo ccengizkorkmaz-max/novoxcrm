@@ -162,8 +162,8 @@
         "plans": {
             "starter": {
                 "name": "Starter",
-                "price": "$29",
-                "yearlyPrice": "$24",
+                "price": "$59",
+                "yearlyPrice": "$49",
                 "period": "/mo",
                 "description": "Essential CRM for small real estate offices and boutique sales teams.",
                 "features": [
@@ -179,8 +179,8 @@
             },
             "professional": {
                 "name": "Professional",
-                "price": "$59",
-                "yearlyPrice": "$49",
+                "price": "$89",
+                "yearlyPrice": "$74",
                 "period": "/mo",
                 "description": "AI-powered sales, WhatsApp and finance management for growing teams.",
                 "features": [
@@ -198,8 +198,8 @@
             },
             "business": {
                 "name": "Business",
-                "price": "$99",
-                "yearlyPrice": "$79",
+                "price": "$149",
+                "yearlyPrice": "$119",
                 "period": "/mo",
                 "description": "Full power with AI voice calls, outreach automation and broker management.",
                 "features": [

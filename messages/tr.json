@@ -188,8 +188,8 @@
         "plans": {
             "starter": {
                 "name": "Starter",
-                "price": "₺999",
-                "yearlyPrice": "₺829",
+                "price": "₺1.999",
+                "yearlyPrice": "₺1.659",
                 "period": "/ay",
                 "description": "Küçük emlak ofisleri ve butik satış ekipleri için temel CRM.",
                 "features": [
@@ -205,8 +205,8 @@
             },
             "professional": {
                 "name": "Professional",
-                "price": "₺1.999",
-                "yearlyPrice": "₺1.659",
+                "price": "₺2.999",
+                "yearlyPrice": "₺2.499",
                 "period": "/ay",
                 "description": "AI destekli satış, WhatsApp ve finans yönetimi ile büyüyen ekipler için.",
                 "features": [
@@ -224,8 +224,8 @@
             },
             "business": {
                 "name": "Business",
-                "price": "₺3.499",
-                "yearlyPrice": "₺2.799",
+                "price": "₺4.999",
+                "yearlyPrice": "₺3.999",
                 "period": "/ay",
                 "description": "AI sesli arama, outreach otomasyonu ve broker ağı yönetimi ile tam güç.",
                 "features": [
