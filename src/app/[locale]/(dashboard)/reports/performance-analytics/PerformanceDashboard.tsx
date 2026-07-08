@@ -111,14 +111,14 @@ export default function PerformanceDashboard() {
 
             // BOM for Excel UTF-8 support
             const BOM = '\uFEFF'
-            const headers = ['Tarih', 'Saat', 'Tür', 'Müşteri', 'Telefon', 'Arayan', 'Durum', 'Süre (sn)', 'İlgi Seviyesi', 'Özet']
+            const headers = ['Tarih', 'Saat', 'Tür', 'Kaynak', 'Müşteri', 'Telefon', 'Durum', 'Süre (sn)', 'İlgi Seviyesi', 'Özet']
             const rows = allRecords.map(r => [
                 new Date(r.date).toLocaleDateString('tr-TR'),
                 new Date(r.date).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
                 typeLabels[r.type] || r.type,
+                r.call_source || '',
                 r.customer_name || '',
                 r.phone || '',
-                r.created_by || '',
                 r.status || '',
                 r.duration_seconds != null ? String(r.duration_seconds) : '',
                 r.interest_level || '',
@@ -849,9 +849,9 @@ export default function PerformanceDashboard() {
                                         <tr className="bg-slate-50/80">
                                             <th className="text-left px-4 py-3 text-[11px] font-black text-slate-500 uppercase">Tarih / Saat</th>
                                             <th className="text-left px-4 py-3 text-[11px] font-black text-slate-500 uppercase">Tür</th>
+                                            <th className="text-left px-4 py-3 text-[11px] font-black text-slate-500 uppercase">Kaynak</th>
                                             <th className="text-left px-4 py-3 text-[11px] font-black text-slate-500 uppercase">Müşteri</th>
                                             <th className="text-left px-4 py-3 text-[11px] font-black text-slate-500 uppercase">Telefon</th>
-                                            <th className="text-left px-4 py-3 text-[11px] font-black text-slate-500 uppercase">Arayan</th>
                                             <th className="text-left px-4 py-3 text-[11px] font-black text-slate-500 uppercase">Durum</th>
                                             <th className="text-right px-4 py-3 text-[11px] font-black text-slate-500 uppercase">Süre</th>
                                             <th className="text-left px-4 py-3 text-[11px] font-black text-slate-500 uppercase">Özet</th>
@@ -874,9 +874,22 @@ export default function PerformanceDashboard() {
                                                         {r.type === 'manuel' ? '📞 Manuel' : r.type === 'ai_outbound' ? '🤖 AI Giden' : '📥 Gelen'}
                                                     </span>
                                                 </td>
+                                                <td className="px-4 py-3">
+                                                    {r.call_source ? (
+                                                        <span className={cn(
+                                                            "text-[10px] font-bold px-2 py-1 rounded-md",
+                                                            r.call_source.startsWith('Outreach') ? "bg-purple-50 text-purple-700" :
+                                                            r.call_source.startsWith('Manuel AI') ? "bg-teal-50 text-teal-700" :
+                                                            r.call_source.startsWith('Gelen') ? "bg-indigo-50 text-indigo-700" :
+                                                            r.call_source.startsWith('Manuel Arama') ? "bg-blue-50 text-blue-700" :
+                                                            "bg-slate-50 text-slate-600"
+                                                        )}>
+                                                            {r.call_source}
+                                                        </span>
+                                                    ) : '—'}
+                                                </td>
                                                 <td className="px-4 py-3 font-bold text-slate-700">{r.customer_name || '—'}</td>
                                                 <td className="px-4 py-3 text-slate-500 font-mono text-xs">{r.phone || '—'}</td>
-                                                <td className="px-4 py-3 text-slate-600">{r.created_by || '—'}</td>
                                                 <td className="px-4 py-3">
                                                     <span className={cn(
                                                         "text-[10px] font-black px-2 py-0.5 rounded-md",

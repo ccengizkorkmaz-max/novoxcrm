@@ -263,6 +263,7 @@ export interface CallCDRRecord {
     status: string | null
     duration_seconds: number | null
     interest_level: string | null
+    call_source: string | null
 }
 
 export async function getCallCDR(period: PeriodKey, page: number = 1, pageSize: number = 50): Promise<{ records: CallCDRRecord[]; total: number }> {
@@ -294,10 +295,10 @@ export async function getCallCDR(period: PeriodKey, page: number = 1, pageSize: 
         .order('created_at', { ascending: false })
         .range(offset, offset + pageSize - 1)
 
-    // 2. AI Outbound (lead_qualifications)
+    // 2. AI Outbound (lead_qualifications) — with caller profile and customer_id for workflow lookup
     const { data: aiOutbound, count: aiOutCount } = await supabase
         .from('lead_qualifications')
-        .select('id, last_call_at, interest_level, call_duration_seconds, call_notes, customer:customers(full_name, phone)', { count: 'exact' })
+        .select('id, last_call_at, interest_level, call_duration_seconds, call_notes, customer_id, customer:customers(full_name, phone), caller:profiles!last_call_by(full_name)', { count: 'exact' })
         .eq('tenant_id', profile.tenant_id)
         .not('last_call_at', 'is', null)
         .gte('last_call_at', fromTs)
@@ -314,6 +315,27 @@ export async function getCallCDR(period: PeriodKey, page: number = 1, pageSize: 
         .lte('started_at', toTs)
         .order('started_at', { ascending: false })
         .range(offset, offset + pageSize - 1)
+
+    // 4. Bulk lookup: outreach workflow names for AI outbound customer_ids
+    const aiCustomerIds = (aiOutbound || []).map(c => c.customer_id).filter(Boolean)
+    let workflowMap = new Map<string, string>()  // customer_id -> workflow_name
+    if (aiCustomerIds.length > 0) {
+        const { data: executions } = await supabase
+            .from('outreach_executions')
+            .select('customer_id, outreach_workflows(name)')
+            .in('customer_id', aiCustomerIds)
+            .in('status', ['running', 'completed', 'converted', 'paused'])
+            .order('created_at', { ascending: false })
+        
+        if (executions) {
+            for (const exec of executions) {
+                if (exec.customer_id && !workflowMap.has(exec.customer_id)) {
+                    const wfName = (exec.outreach_workflows as any)?.name
+                    if (wfName) workflowMap.set(exec.customer_id, wfName)
+                }
+            }
+        }
+    }
 
     const records: CallCDRRecord[] = []
 
@@ -335,33 +357,54 @@ export async function getCallCDR(period: PeriodKey, page: number = 1, pageSize: 
             if (phoneMatch) cPhone = phoneMatch.replace(/[\s-]/g, '')
         }
 
+        // Determine call source from summary
+        const isAI = (c.summary || '').includes('🤖') || (c.summary || '').toLowerCase().includes('ai arama')
+        const creatorName = (c.creator as any)?.full_name || null
+        const callSource = isAI 
+            ? `Manuel AI Arama${creatorName ? ` (${creatorName})` : ''}`
+            : `Manuel Arama${creatorName ? ` (${creatorName})` : ''}`
+
         records.push({
             id: c.id,
             type: 'manuel',
             date: c.created_at,
             customer_name: cName,
             phone: cPhone,
-            created_by: (c.creator as any)?.full_name || null,
+            created_by: creatorName,
             summary: c.summary,
             status: c.status,
             duration_seconds: null,
             interest_level: null,
+            call_source: callSource,
         })
     }
 
     // Map AI outbound
     for (const c of aiOutbound || []) {
+        const callerName = (c.caller as any)?.full_name || null
+        const workflowName = c.customer_id ? workflowMap.get(c.customer_id) : null
+        
+        let callSource: string
+        if (workflowName) {
+            callSource = `Outreach (${workflowName})`
+        } else if (callerName) {
+            callSource = `Manuel AI Arama (${callerName})`
+        } else {
+            callSource = 'AI Arama'
+        }
+
         records.push({
             id: c.id,
             type: 'ai_outbound',
             date: c.last_call_at!,
             customer_name: (c.customer as any)?.full_name || null,
             phone: (c.customer as any)?.phone || null,
-            created_by: 'Maya AI',
+            created_by: callerName || 'Maya AI',
             summary: c.call_notes,
             status: c.interest_level === 'hot' ? 'Hot Lead' : c.interest_level === 'warm' ? 'Ilık Lead' : 'Tamamlandı',
             duration_seconds: c.call_duration_seconds,
             interest_level: c.interest_level,
+            call_source: callSource,
         })
     }
 
@@ -378,6 +421,7 @@ export async function getCallCDR(period: PeriodKey, page: number = 1, pageSize: 
             status: 'Karşılandı',
             duration_seconds: c.duration_seconds,
             interest_level: null,
+            call_source: 'Gelen Arama',
         })
     }
 
@@ -417,10 +461,10 @@ export async function getCallCDRExport(period: PeriodKey): Promise<CallCDRRecord
         .not('summary', 'ilike', '%ILIK SATIŞ%')
         .order('created_at', { ascending: false })
 
-    // 2. AI Outbound — tümü
+    // 2. AI Outbound — tümü with caller and customer_id
     const { data: aiOutbound } = await supabase
         .from('lead_qualifications')
-        .select('id, last_call_at, interest_level, call_duration_seconds, call_notes, customer:customers(full_name, phone)')
+        .select('id, last_call_at, interest_level, call_duration_seconds, call_notes, customer_id, customer:customers(full_name, phone), caller:profiles!last_call_by(full_name)')
         .eq('tenant_id', profile.tenant_id)
         .not('last_call_at', 'is', null)
         .gte('last_call_at', fromTs)
@@ -435,6 +479,26 @@ export async function getCallCDRExport(period: PeriodKey): Promise<CallCDRRecord
         .gte('started_at', fromTs)
         .lte('started_at', toTs)
         .order('started_at', { ascending: false })
+
+    // Bulk lookup: outreach workflow names
+    const aiCustomerIds = (aiOutbound || []).map(c => c.customer_id).filter(Boolean)
+    let workflowMap = new Map<string, string>()
+    if (aiCustomerIds.length > 0) {
+        const { data: executions } = await supabase
+            .from('outreach_executions')
+            .select('customer_id, outreach_workflows(name)')
+            .in('customer_id', aiCustomerIds)
+            .in('status', ['running', 'completed', 'converted', 'paused'])
+            .order('created_at', { ascending: false })
+        if (executions) {
+            for (const exec of executions) {
+                if (exec.customer_id && !workflowMap.has(exec.customer_id)) {
+                    const wfName = (exec.outreach_workflows as any)?.name
+                    if (wfName) workflowMap.set(exec.customer_id, wfName)
+                }
+            }
+        }
+    }
 
     const records: CallCDRRecord[] = []
 
@@ -452,23 +516,30 @@ export async function getCallCDRExport(period: PeriodKey): Promise<CallCDRRecord
             const phoneMatch = (c as any).description.match(/Telefon:\s*(\+?\d[\d\s-]{8,})/)?.[1]
             if (phoneMatch) cPhone = phoneMatch.replace(/[\s-]/g, '')
         }
+        const isAI = (c.summary || '').includes('🤖') || (c.summary || '').toLowerCase().includes('ai arama')
+        const creatorName = (c.creator as any)?.full_name || null
         records.push({
             id: c.id, type: 'manuel', date: c.created_at,
             customer_name: cName, phone: cPhone,
-            created_by: (c.creator as any)?.full_name || null,
+            created_by: creatorName,
             summary: c.summary, status: c.status,
             duration_seconds: null, interest_level: null,
+            call_source: isAI ? `Manuel AI Arama${creatorName ? ` (${creatorName})` : ''}` : `Manuel Arama${creatorName ? ` (${creatorName})` : ''}`,
         })
     }
 
     for (const c of aiOutbound || []) {
+        const callerName = (c.caller as any)?.full_name || null
+        const workflowName = c.customer_id ? workflowMap.get(c.customer_id) : null
+        let callSource = workflowName ? `Outreach (${workflowName})` : callerName ? `Manuel AI Arama (${callerName})` : 'AI Arama'
         records.push({
             id: c.id, type: 'ai_outbound', date: c.last_call_at!,
             customer_name: (c.customer as any)?.full_name || null,
             phone: (c.customer as any)?.phone || null,
-            created_by: 'Maya AI', summary: c.call_notes,
+            created_by: callerName || 'Maya AI', summary: c.call_notes,
             status: c.interest_level === 'hot' ? 'Hot Lead' : c.interest_level === 'warm' ? 'Ilık Lead' : 'Tamamlandı',
             duration_seconds: c.call_duration_seconds, interest_level: c.interest_level,
+            call_source: callSource,
         })
     }
 
@@ -479,6 +550,7 @@ export async function getCallCDRExport(period: PeriodKey): Promise<CallCDRRecord
             phone: c.caller_phone, created_by: 'Maya AI (Gelen)',
             summary: c.summary, status: 'Karşılandı',
             duration_seconds: c.duration_seconds, interest_level: null,
+            call_source: 'Gelen Arama',
         })
     }
 
