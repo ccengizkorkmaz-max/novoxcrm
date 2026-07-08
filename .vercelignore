@@ -8,6 +8,7 @@ node_modules
 *.sql
 *.log
 *.png
+!public/**
 .env*
 /scratch
 /tmp
