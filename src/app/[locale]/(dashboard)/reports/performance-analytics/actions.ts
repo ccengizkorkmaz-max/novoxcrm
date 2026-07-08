@@ -311,14 +311,22 @@ export async function getCallCDR(period: PeriodKey, page: number = 1, pageSize: 
         .order('started_at', { ascending: false })
         .range(offset, offset + pageSize - 1)
 
-    // 4. Bulk lookup: outreach workflow names for AI outbound customer_ids
-    const aiCustomerIds = (aiOutbound || []).map(c => c.customer_id).filter(Boolean)
+    // 4. Bulk lookup: outreach workflow names for ALL customer_ids (activities + lead_qualifications)
+    const allCustomerIds = new Set<string>()
+    for (const c of manualCalls || []) {
+        const custId = (c as any).customer_id
+        if (custId) allCustomerIds.add(custId)
+    }
+    for (const c of aiOutbound || []) {
+        if (c.customer_id) allCustomerIds.add(c.customer_id)
+    }
+
     let workflowMap = new Map<string, string>()  // customer_id -> workflow_name
-    if (aiCustomerIds.length > 0) {
+    if (allCustomerIds.size > 0) {
         const { data: executions } = await supabase
             .from('outreach_executions')
             .select('customer_id, outreach_workflows(name)')
-            .in('customer_id', aiCustomerIds)
+            .in('customer_id', Array.from(allCustomerIds))
             .in('status', ['running', 'completed', 'converted', 'paused'])
             .order('created_at', { ascending: false })
         
@@ -333,7 +341,6 @@ export async function getCallCDR(period: PeriodKey, page: number = 1, pageSize: 
     }
 
     // Build dedup set: customer_id + date combos from lead_qualifications to avoid double-counting
-    // AI calls appear in BOTH activities (as 🤖 entries) and lead_qualifications
     const lqDedupSet = new Set<string>()
     for (const c of aiOutbound || []) {
         if (c.customer_id && c.last_call_at) {
@@ -344,7 +351,7 @@ export async function getCallCDR(period: PeriodKey, page: number = 1, pageSize: 
 
     const records: CallCDRRecord[] = []
 
-    // Map manual calls — skip AI-generated activities that are already in lead_qualifications
+    // Map activities — skip AI entries already in lead_qualifications, use workflowMap for source
     for (const c of manualCalls || []) {
         const isAI = (c.summary || '').includes('🤖') || (c.summary || '').toLowerCase().includes('ai arama')
         const custId = (c as any).customer_id
@@ -358,7 +365,6 @@ export async function getCallCDR(period: PeriodKey, page: number = 1, pageSize: 
         let cName = (c.customer as any)?.full_name || null
         let cPhone = (c.customer as any)?.phone || null
 
-        // Fallback: parse from description if customer_id is null
         if (!cName && (c as any).description) {
             const bracketMatch = (c as any).description.match(/\[([^\]]+)\]/)
             if (bracketMatch) {
@@ -371,12 +377,18 @@ export async function getCallCDR(period: PeriodKey, page: number = 1, pageSize: 
             if (phoneMatch) cPhone = phoneMatch.replace(/[\s-]/g, '')
         }
 
-        // Determine call source from summary
-        const isAI = (c.summary || '').includes('🤖') || (c.summary || '').toLowerCase().includes('ai arama')
+        // Determine call source — check outreach workflow first
         const creatorName = (c.creator as any)?.full_name || null
-        const callSource = isAI 
-            ? `Manuel AI Arama${creatorName ? ` (${creatorName})` : ''}`
-            : `Manuel Arama${creatorName ? ` (${creatorName})` : ''}`
+        const workflowName = custId ? workflowMap.get(custId) : null
+        
+        let callSource: string
+        if (workflowName) {
+            callSource = `Outreach (${workflowName})`
+        } else if (isAI) {
+            callSource = `Manuel AI Arama${creatorName ? ` (${creatorName})` : ''}`
+        } else {
+            callSource = `Manuel Arama${creatorName ? ` (${creatorName})` : ''}`
+        }
 
         records.push({
             id: c.id,
@@ -489,14 +501,21 @@ export async function getCallCDRExport(period: PeriodKey): Promise<CallCDRRecord
         .lte('started_at', toTs)
         .order('started_at', { ascending: false })
 
-    // Bulk lookup: outreach workflow names
-    const aiCustomerIds = (aiOutbound || []).map(c => c.customer_id).filter(Boolean)
+    // Bulk lookup: outreach workflow names for ALL customer_ids
+    const allCustomerIds = new Set<string>()
+    for (const c of manualCalls || []) {
+        const custId = (c as any).customer_id
+        if (custId) allCustomerIds.add(custId)
+    }
+    for (const c of aiOutbound || []) {
+        if (c.customer_id) allCustomerIds.add(c.customer_id)
+    }
     let workflowMap = new Map<string, string>()
-    if (aiCustomerIds.length > 0) {
+    if (allCustomerIds.size > 0) {
         const { data: executions } = await supabase
             .from('outreach_executions')
             .select('customer_id, outreach_workflows(name)')
-            .in('customer_id', aiCustomerIds)
+            .in('customer_id', Array.from(allCustomerIds))
             .in('status', ['running', 'completed', 'converted', 'paused'])
             .order('created_at', { ascending: false })
         if (executions) {
@@ -521,10 +540,10 @@ export async function getCallCDRExport(period: PeriodKey): Promise<CallCDRRecord
     const records: CallCDRRecord[] = []
 
     for (const c of manualCalls || []) {
-        const isAIActivity = (c.summary || '').includes('🤖') || (c.summary || '').toLowerCase().includes('ai arama')
+        const isAI = (c.summary || '').includes('🤖') || (c.summary || '').toLowerCase().includes('ai arama')
         const custId = (c as any).customer_id
         const actDate = new Date(c.created_at).toISOString().split('T')[0]
-        if (isAIActivity && custId && lqDedupSet.has(`${custId}_${actDate}`)) continue
+        if (isAI && custId && lqDedupSet.has(`${custId}_${actDate}`)) continue
 
         let cName = (c.customer as any)?.full_name || null
         let cPhone = (c.customer as any)?.phone || null
@@ -539,15 +558,25 @@ export async function getCallCDRExport(period: PeriodKey): Promise<CallCDRRecord
             const phoneMatch = (c as any).description.match(/Telefon:\s*(\+?\d[\d\s-]{8,})/)?.[1]
             if (phoneMatch) cPhone = phoneMatch.replace(/[\s-]/g, '')
         }
-        const isAI = (c.summary || '').includes('🤖') || (c.summary || '').toLowerCase().includes('ai arama')
+
         const creatorName = (c.creator as any)?.full_name || null
+        const workflowName = custId ? workflowMap.get(custId) : null
+        let callSource: string
+        if (workflowName) {
+            callSource = `Outreach (${workflowName})`
+        } else if (isAI) {
+            callSource = `Manuel AI Arama${creatorName ? ` (${creatorName})` : ''}`
+        } else {
+            callSource = `Manuel Arama${creatorName ? ` (${creatorName})` : ''}`
+        }
+
         records.push({
             id: c.id, type: 'manuel', date: c.created_at,
             customer_name: cName, phone: cPhone,
             created_by: creatorName,
             summary: c.summary, status: c.status,
             duration_seconds: null, interest_level: null,
-            call_source: isAI ? `Manuel AI Arama${creatorName ? ` (${creatorName})` : ''}` : `Manuel Arama${creatorName ? ` (${creatorName})` : ''}`,
+            call_source: callSource,
         })
     }
 
