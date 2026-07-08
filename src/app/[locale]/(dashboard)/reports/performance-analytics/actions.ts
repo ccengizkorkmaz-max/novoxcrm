@@ -653,88 +653,119 @@ export async function getCallSummaryBreakdown(period: PeriodKey): Promise<CallSu
     const fromTs = `${range.from}T00:00:00`
     const toTs = `${range.to}T23:59:59`
 
-    // 1. Manuel aramalar — sayfa sayfa tümünü çek
-    const manualCalls = await fetchAllRows<{ summary: string | null; created_at: string; customer_id: string | null }>(
-        async (offset, limit) => {
-            return await supabase
-                .from('activities')
-                .select('summary, created_at, customer_id')
-                .eq('type', 'Call')
-                .eq('tenant_id', profile.tenant_id)
-                .gte('created_at', fromTs)
-                .lte('created_at', toTs)
-                .order('created_at', { ascending: false })
-                .range(offset, offset + limit - 1)
-        }
-    )
-
-    // 2. AI Outbound — sayfa sayfa tümünü çek
-    const aiOutbound = await fetchAllRows<{ interest_level: string | null; call_notes: string | null; last_call_at: string | null; customer_id: string | null }>(
-        async (offset, limit) => {
-            return await supabase
-                .from('lead_qualifications')
-                .select('interest_level, call_notes, last_call_at, customer_id')
-                .eq('tenant_id', profile.tenant_id)
-                .not('last_call_at', 'is', null)
-                .gte('last_call_at', fromTs)
-                .lte('last_call_at', toTs)
-                .order('last_call_at', { ascending: false })
-                .range(offset, offset + limit - 1)
-        }
-    )
-
-    // 3. AI Inbound — sayfa sayfa tümünü çek
-    const inboundCalls = await fetchAllRows<{ summary: string | null }>(
-        async (offset, limit) => {
-            return await supabase
-                .from('inbound_calls')
-                .select('summary')
-                .eq('tenant_id', profile.tenant_id)
-                .gte('started_at', fromTs)
-                .lte('started_at', toTs)
-                .order('started_at', { ascending: false })
-                .range(offset, offset + limit - 1)
-        }
-    )
-
-    // Categorize all summaries
     const counts: Record<string, number> = {}
+    let useFallback = true
 
-    // Build dedup set: customer_id + date combos from lead_qualifications to avoid double-counting
-    const lqDedupSet = new Set<string>()
-    for (const c of aiOutbound || []) {
-        if (c.customer_id && c.last_call_at) {
-            const dateKey = new Date(c.last_call_at).toISOString().split('T')[0]
-            lqDedupSet.add(`${c.customer_id}_${dateKey}`)
+    // 1. Try to read cumulative daily statistics from report_daily_stats table (specialized summary_breakdown)
+    try {
+        const { data: statsRows, error: statsErr } = await supabase
+            .from('report_daily_stats')
+            .select('summary_breakdown')
+            .eq('tenant_id', profile.tenant_id)
+            .gte('stat_date', range.from)
+            .lte('stat_date', range.to)
+
+        if (!statsErr && statsRows && statsRows.length > 0) {
+            let hasCumulativeData = false
+            for (const row of statsRows) {
+                const breakdown = (row as any).summary_breakdown
+                if (breakdown && typeof breakdown === 'object' && Object.keys(breakdown).length > 0) {
+                    hasCumulativeData = true
+                    for (const [cat, cnt] of Object.entries(breakdown)) {
+                        counts[cat] = (counts[cat] || 0) + (Number(cnt) || 0)
+                    }
+                }
+            }
+            if (hasCumulativeData) {
+                useFallback = false
+            }
         }
+    } catch (e) {
+        console.warn('[Analytics] Failed to fetch summary_breakdown from report_daily_stats:', e)
     }
 
-    // Manual calls — categorize from summary text (skip AI activities already in lead_qualifications)
-    for (const c of manualCalls || []) {
-        const summaryText = c.summary || ''
-        const isAI = summaryText.includes('🤖') || summaryText.toLowerCase().includes('ai arama')
-        const custId = (c as any).customer_id
-        const actDate = new Date(c.created_at).toISOString().split('T')[0]
-        
-        if (isAI && custId && lqDedupSet.has(`${custId}_${actDate}`)) {
-            continue
+    // 2. Graceful Fallback: Fetch raw calls page-by-page if cumulative data is not populated yet
+    if (useFallback) {
+        // 1. Manuel aramalar — sayfa sayfa tümünü çek
+        const manualCalls = await fetchAllRows<{ summary: string | null; created_at: string; customer_id: string | null }>(
+            async (offset, limit) => {
+                return await supabase
+                    .from('activities')
+                    .select('summary, created_at, customer_id')
+                    .eq('type', 'Call')
+                    .eq('tenant_id', profile.tenant_id)
+                    .gte('created_at', fromTs)
+                    .lte('created_at', toTs)
+                    .order('created_at', { ascending: false })
+                    .range(offset, offset + limit - 1)
+            }
+        )
+
+        // 2. AI Outbound — sayfa sayfa tümünü çek
+        const aiOutbound = await fetchAllRows<{ interest_level: string | null; call_notes: string | null; last_call_at: string | null; customer_id: string | null }>(
+            async (offset, limit) => {
+                return await supabase
+                    .from('lead_qualifications')
+                    .select('interest_level, call_notes, last_call_at, customer_id')
+                    .eq('tenant_id', profile.tenant_id)
+                    .not('last_call_at', 'is', null)
+                    .gte('last_call_at', fromTs)
+                    .lte('last_call_at', toTs)
+                    .order('last_call_at', { ascending: false })
+                    .range(offset, offset + limit - 1)
+            }
+        )
+
+        // 3. AI Inbound — sayfa sayfa tümünü çek
+        const inboundCalls = await fetchAllRows<{ summary: string | null }>(
+            async (offset, limit) => {
+                return await supabase
+                    .from('inbound_calls')
+                    .select('summary')
+                    .eq('tenant_id', profile.tenant_id)
+                    .gte('started_at', fromTs)
+                    .lte('started_at', toTs)
+                    .order('started_at', { ascending: false })
+                    .range(offset, offset + limit - 1)
+            }
+        )
+
+        // Build dedup set: customer_id + date combos from lead_qualifications to avoid double-counting
+        const lqDedupSet = new Set<string>()
+        for (const c of aiOutbound || []) {
+            if (c.customer_id && c.last_call_at) {
+                const dateKey = new Date(c.last_call_at).toISOString().split('T')[0]
+                lqDedupSet.add(`${c.customer_id}_${dateKey}`)
+            }
         }
 
-        const cat = categorizeCallSummary(summaryText, 'manuel')
-        counts[cat] = (counts[cat] || 0) + 1
-    }
+        // Manual calls — categorize from summary text (skip AI activities already in lead_qualifications)
+        for (const c of manualCalls || []) {
+            const summaryText = c.summary || ''
+            const isAI = summaryText.includes('🤖') || summaryText.toLowerCase().includes('ai arama')
+            const custId = (c as any).customer_id
+            const actDate = new Date(c.created_at).toISOString().split('T')[0]
+            
+            if (isAI && custId && lqDedupSet.has(`${custId}_${actDate}`)) {
+                continue
+            }
 
-    // AI outbound — categorize from call_notes / interest_level
-    for (const c of aiOutbound || []) {
-        const summary = c.call_notes || ''
-        const cat = categorizeCallSummary(summary, 'ai_outbound', c.interest_level)
-        counts[cat] = (counts[cat] || 0) + 1
-    }
+            const cat = categorizeCallSummary(summaryText, 'manuel')
+            counts[cat] = (counts[cat] || 0) + 1
+        }
 
-    // AI inbound — categorize from summary
-    for (const c of inboundCalls || []) {
-        const cat = categorizeCallSummary(c.summary || '', 'ai_inbound')
-        counts[cat] = (counts[cat] || 0) + 1
+        // AI outbound — categorize from call_notes / interest_level
+        for (const c of aiOutbound || []) {
+            const summary = c.call_notes || ''
+            const cat = categorizeCallSummary(summary, 'ai_outbound', c.interest_level)
+            counts[cat] = (counts[cat] || 0) + 1
+        }
+
+        // AI inbound — categorize from summary
+        for (const c of inboundCalls || []) {
+            const cat = categorizeCallSummary(c.summary || '', 'ai_inbound')
+            counts[cat] = (counts[cat] || 0) + 1
+        }
     }
 
     // Define category metadata
