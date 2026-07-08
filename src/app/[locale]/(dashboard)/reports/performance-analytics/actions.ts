@@ -311,31 +311,22 @@ export async function getCallCDR(period: PeriodKey, page: number = 1, pageSize: 
         .order('started_at', { ascending: false })
         .range(offset, offset + pageSize - 1)
 
-    // 4. Bulk lookup: outreach workflow names for ALL customer_ids (activities + lead_qualifications)
-    const allCustomerIds = new Set<string>()
-    for (const c of manualCalls || []) {
-        const custId = (c as any).customer_id
-        if (custId) allCustomerIds.add(custId)
-    }
-    for (const c of aiOutbound || []) {
-        if (c.customer_id) allCustomerIds.add(c.customer_id)
-    }
-
+    // 4. Outreach workflow names — tenant seviyesinde çek, customer_id → workflow_name map
+    // NOT: .in('customer_id', devArray) PostgREST URL limitine takılıyordu
     let workflowMap = new Map<string, string>()  // customer_id -> workflow_name
-    if (allCustomerIds.size > 0) {
-        const { data: executions } = await supabase
-            .from('outreach_executions')
-            .select('customer_id, outreach_workflows(name)')
-            .in('customer_id', Array.from(allCustomerIds))
-            .in('status', ['running', 'completed', 'converted', 'paused'])
-            .order('created_at', { ascending: false })
-        
-        if (executions) {
-            for (const exec of executions) {
-                if (exec.customer_id && !workflowMap.has(exec.customer_id)) {
-                    const wfName = (exec.outreach_workflows as any)?.name
-                    if (wfName) workflowMap.set(exec.customer_id, wfName)
-                }
+    const { data: allExecutions } = await supabase
+        .from('outreach_executions')
+        .select('customer_id, outreach_workflows(name)')
+        .eq('tenant_id', profile.tenant_id)
+        .not('customer_id', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(10000)
+    
+    if (allExecutions) {
+        for (const exec of allExecutions) {
+            if (exec.customer_id && !workflowMap.has(exec.customer_id)) {
+                const wfName = (exec.outreach_workflows as any)?.name
+                if (wfName) workflowMap.set(exec.customer_id, wfName)
             }
         }
     }
@@ -481,6 +472,7 @@ export async function getCallCDRExport(period: PeriodKey): Promise<CallCDRRecord
         .gte('created_at', fromTs)
         .lte('created_at', toTs)
         .order('created_at', { ascending: false })
+        .limit(10000)
 
     // 2. AI Outbound — tümü with caller and customer_id
     const { data: aiOutbound } = await supabase
@@ -491,6 +483,7 @@ export async function getCallCDRExport(period: PeriodKey): Promise<CallCDRRecord
         .gte('last_call_at', fromTs)
         .lte('last_call_at', toTs)
         .order('last_call_at', { ascending: false })
+        .limit(10000)
 
     // 3. AI Inbound — tümü
     const { data: inboundCalls } = await supabase
@@ -500,30 +493,22 @@ export async function getCallCDRExport(period: PeriodKey): Promise<CallCDRRecord
         .gte('started_at', fromTs)
         .lte('started_at', toTs)
         .order('started_at', { ascending: false })
+        .limit(10000)
 
-    // Bulk lookup: outreach workflow names for ALL customer_ids
-    const allCustomerIds = new Set<string>()
-    for (const c of manualCalls || []) {
-        const custId = (c as any).customer_id
-        if (custId) allCustomerIds.add(custId)
-    }
-    for (const c of aiOutbound || []) {
-        if (c.customer_id) allCustomerIds.add(c.customer_id)
-    }
+    // Outreach workflow names — tenant seviyesinde çek
     let workflowMap = new Map<string, string>()
-    if (allCustomerIds.size > 0) {
-        const { data: executions } = await supabase
-            .from('outreach_executions')
-            .select('customer_id, outreach_workflows(name)')
-            .in('customer_id', Array.from(allCustomerIds))
-            .in('status', ['running', 'completed', 'converted', 'paused'])
-            .order('created_at', { ascending: false })
-        if (executions) {
-            for (const exec of executions) {
-                if (exec.customer_id && !workflowMap.has(exec.customer_id)) {
-                    const wfName = (exec.outreach_workflows as any)?.name
-                    if (wfName) workflowMap.set(exec.customer_id, wfName)
-                }
+    const { data: allExecutions } = await supabase
+        .from('outreach_executions')
+        .select('customer_id, outreach_workflows(name)')
+        .eq('tenant_id', profile.tenant_id)
+        .not('customer_id', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(10000)
+    if (allExecutions) {
+        for (const exec of allExecutions) {
+            if (exec.customer_id && !workflowMap.has(exec.customer_id)) {
+                const wfName = (exec.outreach_workflows as any)?.name
+                if (wfName) workflowMap.set(exec.customer_id, wfName)
             }
         }
     }
