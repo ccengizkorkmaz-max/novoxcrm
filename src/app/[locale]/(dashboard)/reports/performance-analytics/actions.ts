@@ -614,28 +614,25 @@ export async function getCallSummaryBreakdown(period: PeriodKey): Promise<CallSu
     const fromTs = `${range.from}T00:00:00`
     const toTs = `${range.to}T23:59:59`
 
-    // 1. Manuel aramalar — sadece summary'leri al (pagination yok, hepsini say)
+    // 1. Manuel aramalar — tüm type='Call' kayıtları (pagination yok, hepsini say)
     const { data: manualCalls } = await supabase
         .from('activities')
-        .select('summary')
+        .select('summary, created_at, customer_id')
         .eq('type', 'Call')
         .eq('tenant_id', profile.tenant_id)
         .gte('created_at', fromTs)
         .lte('created_at', toTs)
-        .not('summary', 'ilike', '%MAYA Takip%')
-        .not('summary', 'ilike', '%Atama Bekleyen%')
-        .not('summary', 'ilike', '%ARAMA TALEBİ%')
-        .not('summary', 'ilike', '%ACİL SATIŞ%')
-        .not('summary', 'ilike', '%ILIK SATIŞ%')
+        .limit(50000)
 
-    // 2. AI Outbound — interest_level + call_notes
+    // 2. AI Outbound — interest_level + call_notes + last_call_at + customer_id
     const { data: aiOutbound } = await supabase
         .from('lead_qualifications')
-        .select('interest_level, call_notes')
+        .select('interest_level, call_notes, last_call_at, customer_id')
         .eq('tenant_id', profile.tenant_id)
         .not('last_call_at', 'is', null)
         .gte('last_call_at', fromTs)
         .lte('last_call_at', toTs)
+        .limit(50000)
 
     // 3. AI Inbound
     const { data: inboundCalls } = await supabase
@@ -644,13 +641,32 @@ export async function getCallSummaryBreakdown(period: PeriodKey): Promise<CallSu
         .eq('tenant_id', profile.tenant_id)
         .gte('started_at', fromTs)
         .lte('started_at', toTs)
+        .limit(50000)
 
     // Categorize all summaries
     const counts: Record<string, number> = {}
 
-    // Manual calls — categorize from summary text
+    // Build dedup set: customer_id + date combos from lead_qualifications to avoid double-counting
+    const lqDedupSet = new Set<string>()
+    for (const c of aiOutbound || []) {
+        if (c.customer_id && c.last_call_at) {
+            const dateKey = new Date(c.last_call_at).toISOString().split('T')[0]
+            lqDedupSet.add(`${c.customer_id}_${dateKey}`)
+        }
+    }
+
+    // Manual calls — categorize from summary text (skip AI activities already in lead_qualifications)
     for (const c of manualCalls || []) {
-        const cat = categorizeCallSummary(c.summary || '', 'manuel')
+        const summaryText = c.summary || ''
+        const isAI = summaryText.includes('🤖') || summaryText.toLowerCase().includes('ai arama')
+        const custId = (c as any).customer_id
+        const actDate = new Date(c.created_at).toISOString().split('T')[0]
+        
+        if (isAI && custId && lqDedupSet.has(`${custId}_${actDate}`)) {
+            continue
+        }
+
+        const cat = categorizeCallSummary(summaryText, 'manuel')
         counts[cat] = (counts[cat] || 0) + 1
     }
 
