@@ -463,37 +463,49 @@ export async function getCallCDRExport(period: PeriodKey): Promise<CallCDRRecord
     const fromTs = `${range.from}T00:00:00`
     const toTs = `${range.to}T23:59:59`
 
-    // 1. Manuel aramalar — tümü (dashboard ile uyumlu — filtresiz)
-    const { data: manualCalls } = await supabase
-        .from('activities')
-        .select('id, created_at, summary, description, status, customer_id, customer:customers(full_name, phone), creator:profiles!user_id(full_name)')
-        .eq('type', 'Call')
-        .eq('tenant_id', profile.tenant_id)
-        .gte('created_at', fromTs)
-        .lte('created_at', toTs)
-        .order('created_at', { ascending: false })
-        .limit(10000)
+    // 1. Manuel aramalar — tümü (dashboard ile uyumlu — filtresiz) — sayfa sayfa tümünü çek
+    const manualCalls = await fetchAllRows<any>(
+        async (offset, limit) => {
+            return await supabase
+                .from('activities')
+                .select('id, created_at, summary, description, status, customer_id, customer:customers(full_name, phone), creator:profiles!user_id(full_name)')
+                .eq('type', 'Call')
+                .eq('tenant_id', profile.tenant_id)
+                .gte('created_at', fromTs)
+                .lte('created_at', toTs)
+                .order('created_at', { ascending: false })
+                .range(offset, offset + limit - 1)
+        }
+    )
 
-    // 2. AI Outbound — tümü with caller and customer_id
-    const { data: aiOutbound } = await supabase
-        .from('lead_qualifications')
-        .select('id, last_call_at, interest_level, call_duration_seconds, call_notes, customer_id, customer:customers(full_name, phone), caller:profiles!last_call_by(full_name)')
-        .eq('tenant_id', profile.tenant_id)
-        .not('last_call_at', 'is', null)
-        .gte('last_call_at', fromTs)
-        .lte('last_call_at', toTs)
-        .order('last_call_at', { ascending: false })
-        .limit(10000)
+    // 2. AI Outbound — tümü with caller and customer_id — sayfa sayfa tümünü çek
+    const aiOutbound = await fetchAllRows<any>(
+        async (offset, limit) => {
+            return await supabase
+                .from('lead_qualifications')
+                .select('id, last_call_at, interest_level, call_duration_seconds, call_notes, customer_id, customer:customers(full_name, phone), caller:profiles!last_call_by(full_name)')
+                .eq('tenant_id', profile.tenant_id)
+                .not('last_call_at', 'is', null)
+                .gte('last_call_at', fromTs)
+                .lte('last_call_at', toTs)
+                .order('last_call_at', { ascending: false })
+                .range(offset, offset + limit - 1)
+        }
+    )
 
-    // 3. AI Inbound — tümü
-    const { data: inboundCalls } = await supabase
-        .from('inbound_calls')
-        .select('id, started_at, caller_phone, duration_seconds, summary, customer:customers(full_name)')
-        .eq('tenant_id', profile.tenant_id)
-        .gte('started_at', fromTs)
-        .lte('started_at', toTs)
-        .order('started_at', { ascending: false })
-        .limit(10000)
+    // 3. AI Inbound — tümü — sayfa sayfa tümünü çek
+    const inboundCalls = await fetchAllRows<any>(
+        async (offset, limit) => {
+            return await supabase
+                .from('inbound_calls')
+                .select('id, started_at, caller_phone, duration_seconds, summary, customer:customers(full_name)')
+                .eq('tenant_id', profile.tenant_id)
+                .gte('started_at', fromTs)
+                .lte('started_at', toTs)
+                .order('started_at', { ascending: false })
+                .range(offset, offset + limit - 1)
+        }
+    )
 
     // Outreach workflow names — tenant seviyesinde çek
     let workflowMap = new Map<string, string>()
@@ -602,6 +614,33 @@ export interface CallSummaryBreakdown {
     total: number
 }
 
+// Helper function to page through all rows from Supabase to bypass the 1000 max rows limit
+async function fetchAllRows<T>(
+    fetchFn: (offset: number, limit: number) => Promise<{ data: T[] | null; error: any }>
+): Promise<T[]> {
+    const allData: T[] = []
+    const limit = 1000
+    let offset = 0
+    let hasMore = true
+    let iterations = 0 // Safe guard against infinite loops
+    
+    while (hasMore && iterations < 50) {
+        const { data, error } = await fetchFn(offset, limit)
+        if (error || !data || data.length === 0) {
+            hasMore = false
+            break
+        }
+        allData.push(...data)
+        if (data.length < limit) {
+            hasMore = false
+        } else {
+            offset += limit
+        }
+        iterations++
+    }
+    return allData
+}
+
 export async function getCallSummaryBreakdown(period: PeriodKey): Promise<CallSummaryBreakdown> {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -614,34 +653,49 @@ export async function getCallSummaryBreakdown(period: PeriodKey): Promise<CallSu
     const fromTs = `${range.from}T00:00:00`
     const toTs = `${range.to}T23:59:59`
 
-    // 1. Manuel aramalar — tüm type='Call' kayıtları (pagination yok, hepsini say)
-    const { data: manualCalls } = await supabase
-        .from('activities')
-        .select('summary, created_at, customer_id')
-        .eq('type', 'Call')
-        .eq('tenant_id', profile.tenant_id)
-        .gte('created_at', fromTs)
-        .lte('created_at', toTs)
-        .limit(50000)
+    // 1. Manuel aramalar — sayfa sayfa tümünü çek
+    const manualCalls = await fetchAllRows<{ summary: string | null; created_at: string; customer_id: string | null }>(
+        async (offset, limit) => {
+            return await supabase
+                .from('activities')
+                .select('summary, created_at, customer_id')
+                .eq('type', 'Call')
+                .eq('tenant_id', profile.tenant_id)
+                .gte('created_at', fromTs)
+                .lte('created_at', toTs)
+                .order('created_at', { ascending: false })
+                .range(offset, offset + limit - 1)
+        }
+    )
 
-    // 2. AI Outbound — interest_level + call_notes + last_call_at + customer_id
-    const { data: aiOutbound } = await supabase
-        .from('lead_qualifications')
-        .select('interest_level, call_notes, last_call_at, customer_id')
-        .eq('tenant_id', profile.tenant_id)
-        .not('last_call_at', 'is', null)
-        .gte('last_call_at', fromTs)
-        .lte('last_call_at', toTs)
-        .limit(50000)
+    // 2. AI Outbound — sayfa sayfa tümünü çek
+    const aiOutbound = await fetchAllRows<{ interest_level: string | null; call_notes: string | null; last_call_at: string | null; customer_id: string | null }>(
+        async (offset, limit) => {
+            return await supabase
+                .from('lead_qualifications')
+                .select('interest_level, call_notes, last_call_at, customer_id')
+                .eq('tenant_id', profile.tenant_id)
+                .not('last_call_at', 'is', null)
+                .gte('last_call_at', fromTs)
+                .lte('last_call_at', toTs)
+                .order('last_call_at', { ascending: false })
+                .range(offset, offset + limit - 1)
+        }
+    )
 
-    // 3. AI Inbound
-    const { data: inboundCalls } = await supabase
-        .from('inbound_calls')
-        .select('summary')
-        .eq('tenant_id', profile.tenant_id)
-        .gte('started_at', fromTs)
-        .lte('started_at', toTs)
-        .limit(50000)
+    // 3. AI Inbound — sayfa sayfa tümünü çek
+    const inboundCalls = await fetchAllRows<{ summary: string | null }>(
+        async (offset, limit) => {
+            return await supabase
+                .from('inbound_calls')
+                .select('summary')
+                .eq('tenant_id', profile.tenant_id)
+                .gte('started_at', fromTs)
+                .lte('started_at', toTs)
+                .order('started_at', { ascending: false })
+                .range(offset, offset + limit - 1)
+        }
+    )
 
     // Categorize all summaries
     const counts: Record<string, number> = {}
