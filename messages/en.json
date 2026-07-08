@@ -151,21 +151,20 @@
         ]
     },
     "PricingSection": {
-        "title": "Our Solution Packages",
-        "description": "Choose the package that suits your needs. Contact our team for a custom quote.",
+        "title": "Transparent Pricing",
+        "description": "No hidden costs. Try free for 14 days, no credit card required.",
         "popularTag": "Most Popular",
         "monthly": "Monthly",
         "yearly": "Yearly",
         "yearlySave": "Save 17%",
         "perUser": "per user",
-        "bottomNote": "All packages include a 14-day free trial. Pricing is customized based on your user count and needs.",
-        "requestInfo": "Request Info",
+        "bottomNote": "All plans include a 14-day free trial. Cancel anytime. Prices exclude VAT.",
         "plans": {
             "starter": {
                 "name": "Starter",
-                "price": "Request Info",
-                "yearlyPrice": "Request Info",
-                "period": "",
+                "price": "$29",
+                "yearlyPrice": "$24",
+                "period": "/mo",
                 "description": "Essential CRM for small real estate offices and boutique sales teams.",
                 "features": [
                     "CRM & Sales Pipeline",
@@ -176,13 +175,13 @@
                     "Up to 5 Users",
                     "Email Notifications"
                 ],
-                "cta": "Request Info"
+                "cta": "Start Free Trial"
             },
             "professional": {
                 "name": "Professional",
-                "price": "Request Info",
-                "yearlyPrice": "Request Info",
-                "period": "",
+                "price": "$59",
+                "yearlyPrice": "$49",
+                "period": "/mo",
                 "description": "AI-powered sales, WhatsApp and finance management for growing teams.",
                 "features": [
                     "Everything in Starter",
@@ -195,13 +194,13 @@
                     "Advanced Reports",
                     "500 AI Operation Limit/Month"
                 ],
-                "cta": "Request Info"
+                "cta": "Start Free Trial"
             },
             "business": {
                 "name": "Business",
-                "price": "Request Info",
-                "yearlyPrice": "Request Info",
-                "period": "",
+                "price": "$99",
+                "yearlyPrice": "$79",
+                "period": "/mo",
                 "description": "Full power with AI voice calls, outreach automation and broker management.",
                 "features": [
                     "Everything in Professional",
@@ -214,12 +213,12 @@
                     "2,000 AI Operation Limit/Month",
                     "Priority Support"
                 ],
-                "cta": "Request Info"
+                "cta": "Start Free Trial"
             },
             "enterprise": {
                 "name": "Enterprise",
-                "price": "Request Info",
-                "yearlyPrice": "Request Info",
+                "price": "Custom",
+                "yearlyPrice": "Custom",
                 "period": "",
                 "description": "Custom solution for holding companies, multi-brand and 50+ users.",
                 "features": [
@@ -233,7 +232,7 @@
                     "Unlimited Users",
                     "Dedicated Account Manager"
                 ],
-                "cta": "Request Info"
+                "cta": "Contact Us"
             }
         }
     },
