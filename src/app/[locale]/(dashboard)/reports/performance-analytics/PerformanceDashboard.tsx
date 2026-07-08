@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { cn } from '@/lib/utils'
-import { getPerformanceAnalytics, getCallCDR, getWhatsAppCDR, type PeriodKey, type PeriodStats, type PerformanceData, type CallCDRRecord, type WhatsAppCDRRecord } from './actions'
+import { getPerformanceAnalytics, getCallCDR, getWhatsAppCDR, getCallSummaryBreakdown, getCallCDRExport, type PeriodKey, type PeriodStats, type PerformanceData, type CallCDRRecord, type WhatsAppCDRRecord, type CallSummaryBreakdown } from './actions'
 import {
     MessageSquare, Phone, PhoneIncoming, PhoneOutgoing, Snowflake, Sun, Flame,
     TrendingUp, TrendingDown, Minus, ArrowLeft, RefreshCw,
-    BarChart3, Activity, Clock, ChevronLeft, ChevronRight, Search
+    BarChart3, Activity, Clock, ChevronLeft, ChevronRight, Search, Download
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useRouter } from 'next/navigation'
@@ -93,7 +93,60 @@ export default function PerformanceDashboard() {
     const [waCDR, setWaCDR] = useState<{ records: WhatsAppCDRRecord[]; total: number }>({ records: [], total: 0 })
     const [cdrPage, setCdrPage] = useState(1)
     const [cdrLoading, setCdrLoading] = useState(false)
+    const [summaryBreakdown, setSummaryBreakdown] = useState<CallSummaryBreakdown | null>(null)
+    const [summaryLoading, setSummaryLoading] = useState(false)
+    const [exporting, setExporting] = useState(false)
     const CDR_PAGE_SIZE = 50
+
+    // Excel/CSV export function
+    const exportCDR = async () => {
+        setExporting(true)
+        try {
+            const allRecords = await getCallCDRExport(activePeriod)
+            if (allRecords.length === 0) return
+
+            const typeLabels: Record<string, string> = { manuel: 'Manuel', ai_outbound: 'AI Giden', ai_inbound: 'AI Gelen' }
+            const periodLabel = PERIODS.find(p => p.key === activePeriod)?.label || activePeriod
+
+            // BOM for Excel UTF-8 support
+            const BOM = '\uFEFF'
+            const headers = ['Tarih', 'Saat', 'Tür', 'Müşteri', 'Telefon', 'Arayan', 'Durum', 'Süre (sn)', 'İlgi Seviyesi', 'Özet']
+            const rows = allRecords.map(r => [
+                new Date(r.date).toLocaleDateString('tr-TR'),
+                new Date(r.date).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
+                typeLabels[r.type] || r.type,
+                r.customer_name || '',
+                r.phone || '',
+                r.created_by || '',
+                r.status || '',
+                r.duration_seconds != null ? String(r.duration_seconds) : '',
+                r.interest_level || '',
+                (r.summary || '').replace(/[\n\r]/g, ' '),
+            ])
+
+            const escapeCSV = (val: string) => {
+                if (val.includes(',') || val.includes('"') || val.includes('\n')) {
+                    return `"${val.replace(/"/g, '""')}"`
+                }
+                return val
+            }
+
+            const csvContent = BOM + [headers, ...rows].map(row => row.map(escapeCSV).join(',')).join('\n')
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+            const url = URL.createObjectURL(blob)
+            const link = document.createElement('a')
+            link.href = url
+            link.download = `Telefon_CDR_${periodLabel}_${new Date().toISOString().split('T')[0]}.csv`
+            document.body.appendChild(link)
+            link.click()
+            document.body.removeChild(link)
+            URL.revokeObjectURL(url)
+        } catch (e) {
+            console.error('Export error:', e)
+        } finally {
+            setExporting(false)
+        }
+    }
 
     const fetchData = useCallback(async () => {
         setLoading(true)
@@ -113,6 +166,9 @@ export default function PerformanceDashboard() {
             setCdrLoading(true)
             setCdrPage(1)
             getCallCDR(activePeriod, 1, CDR_PAGE_SIZE).then(setCallCDR).finally(() => setCdrLoading(false))
+            // Also fetch summary breakdown
+            setSummaryLoading(true)
+            getCallSummaryBreakdown(activePeriod).then(setSummaryBreakdown).finally(() => setSummaryLoading(false))
         } else if (activeTab === 'whatsapp') {
             setCdrLoading(true)
             setCdrPage(1)
@@ -699,6 +755,65 @@ export default function PerformanceDashboard() {
                 </>
             ) : activeTab === 'telefon' ? (
                 /* ═══════ TELEFON CDR TAB ═══════ */
+                <>
+                {/* ═══════ ÖZET KIRILIMI DASHBOARD ═══════ */}
+                {summaryLoading ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-7 gap-3">
+                        {[1,2,3,4,5,6,7].map(i => (
+                            <div key={i} className="bg-white rounded-2xl border border-slate-100 p-4 animate-pulse">
+                                <div className="h-3 w-14 bg-slate-200 rounded mb-3" />
+                                <div className="h-8 w-12 bg-slate-200 rounded mb-2" />
+                                <div className="h-2 w-full bg-slate-100 rounded" />
+                            </div>
+                        ))}
+                    </div>
+                ) : summaryBreakdown && summaryBreakdown.categories.length > 0 ? (
+                    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                        <div className="px-5 py-3.5 border-b border-slate-100 bg-gradient-to-r from-violet-50 to-indigo-50 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="h-8 w-8 rounded-lg bg-violet-100 text-violet-600 flex items-center justify-center">
+                                    <BarChart3 className="h-4 w-4" />
+                                </div>
+                                <div>
+                                    <h2 className="text-sm font-black text-slate-700 uppercase tracking-wider">Arama Sonuç Kırılımı</h2>
+                                    <p className="text-[11px] text-slate-400">
+                                        {PERIODS.find(p => p.key === activePeriod)?.label} — {summaryBreakdown.total.toLocaleString('tr-TR')} arama
+                                    </p>
+                                </div>
+                            </div>
+                            <span className="text-xl font-black text-violet-700">{summaryBreakdown.total.toLocaleString('tr-TR')}</span>
+                        </div>
+                        <div className="p-4">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                                {summaryBreakdown.categories.map((cat, idx) => {
+                                    const pct = summaryBreakdown.total > 0 ? Math.round((cat.count / summaryBreakdown.total) * 100) : 0
+                                    const maxCount = summaryBreakdown.categories[0]?.count || 1
+                                    const barWidth = Math.max((cat.count / maxCount) * 100, 4)
+                                    return (
+                                        <div
+                                            key={cat.key}
+                                            className="group relative bg-slate-50/60 hover:bg-white rounded-xl border border-slate-100 hover:border-slate-200 p-3.5 transition-all hover:shadow-md cursor-default"
+                                        >
+                                            <div className="flex items-center justify-between mb-2">
+                                                <span className="text-lg">{cat.emoji}</span>
+                                                <span className="text-[10px] font-black text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">%{pct}</span>
+                                            </div>
+                                            <p className="text-xl font-black text-slate-800 mb-1">{cat.count.toLocaleString('tr-TR')}</p>
+                                            <p className="text-[10px] font-bold text-slate-500 leading-tight mb-2.5 min-h-[28px]">{cat.label}</p>
+                                            <div className="h-1.5 bg-slate-200/80 rounded-full overflow-hidden">
+                                                <div
+                                                    className={cn("h-full rounded-full transition-all duration-700 group-hover:opacity-80", cat.color)}
+                                                    style={{ width: `${barWidth}%` }}
+                                                />
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                ) : null}
+
                 <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
                     <div className="px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-blue-50 to-indigo-50 flex items-center justify-between">
                         <div className="flex items-center gap-3">
@@ -710,6 +825,16 @@ export default function PerformanceDashboard() {
                                 <p className="text-[11px] text-slate-400">{PERIODS.find(p => p.key === activePeriod)?.label} — {callCDR.total.toLocaleString('tr-TR')} kayıt</p>
                             </div>
                         </div>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={exportCDR}
+                            disabled={exporting || callCDR.records.length === 0}
+                            className="gap-2 rounded-xl h-9 px-4 font-bold text-xs"
+                        >
+                            <Download className={cn("h-3.5 w-3.5", exporting && "animate-bounce")} />
+                            {exporting ? 'İndiriliyor...' : 'Excel Export'}
+                        </Button>
                     </div>
                     {cdrLoading ? (
                         <div className="p-12 text-center"><RefreshCw className="h-6 w-6 animate-spin text-slate-400 mx-auto" /></div>
@@ -789,6 +914,7 @@ export default function PerformanceDashboard() {
                         </>
                     )}
                 </div>
+                </>
             ) : (
                 /* ═══════ WHATSAPP CDR TAB ═══════ */
                 <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">

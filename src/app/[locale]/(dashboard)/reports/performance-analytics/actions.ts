@@ -387,6 +387,251 @@ export async function getCallCDR(period: PeriodKey, page: number = 1, pageSize: 
     return { records: records.slice(0, pageSize), total }
 }
 
+// ─── CDR: Telefon Excel/CSV Export (Tüm Kayıtlar) ──────────
+
+export async function getCallCDRExport(period: PeriodKey): Promise<CallCDRRecord[]> {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return []
+
+    const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single()
+    if (!profile?.tenant_id) return []
+
+    const range = getDateRange(period)
+    const fromTs = `${range.from}T00:00:00`
+    const toTs = `${range.to}T23:59:59`
+
+    // 1. Manuel aramalar — tümü
+    const { data: manualCalls } = await supabase
+        .from('activities')
+        .select('id, created_at, summary, description, status, customer:customers(full_name, phone), creator:profiles!user_id(full_name)')
+        .eq('type', 'Call')
+        .eq('tenant_id', profile.tenant_id)
+        .gte('created_at', fromTs)
+        .lte('created_at', toTs)
+        .not('summary', 'ilike', '%MAYA Takip%')
+        .not('summary', 'ilike', '%Atama Bekleyen%')
+        .not('summary', 'ilike', '%ARAMA TALEBİ%')
+        .not('summary', 'ilike', '%ACİL SATIŞ%')
+        .not('summary', 'ilike', '%ILIK SATIŞ%')
+        .order('created_at', { ascending: false })
+
+    // 2. AI Outbound — tümü
+    const { data: aiOutbound } = await supabase
+        .from('lead_qualifications')
+        .select('id, last_call_at, interest_level, call_duration_seconds, call_notes, customer:customers(full_name, phone)')
+        .eq('tenant_id', profile.tenant_id)
+        .not('last_call_at', 'is', null)
+        .gte('last_call_at', fromTs)
+        .lte('last_call_at', toTs)
+        .order('last_call_at', { ascending: false })
+
+    // 3. AI Inbound — tümü
+    const { data: inboundCalls } = await supabase
+        .from('inbound_calls')
+        .select('id, started_at, caller_phone, duration_seconds, summary, customer:customers(full_name)')
+        .eq('tenant_id', profile.tenant_id)
+        .gte('started_at', fromTs)
+        .lte('started_at', toTs)
+        .order('started_at', { ascending: false })
+
+    const records: CallCDRRecord[] = []
+
+    for (const c of manualCalls || []) {
+        let cName = (c.customer as any)?.full_name || null
+        let cPhone = (c.customer as any)?.phone || null
+        if (!cName && (c as any).description) {
+            const bracketMatch = (c as any).description.match(/\[([^\]]+)\]/)
+            if (bracketMatch) {
+                const parts = bracketMatch[1].split(',').map((s: string) => s.trim())
+                if (parts[0] && !parts[0].match(/^\d/)) cName = parts[0]
+            }
+        }
+        if (!cPhone && (c as any).description) {
+            const phoneMatch = (c as any).description.match(/Telefon:\s*(\+?\d[\d\s-]{8,})/)?.[1]
+            if (phoneMatch) cPhone = phoneMatch.replace(/[\s-]/g, '')
+        }
+        records.push({
+            id: c.id, type: 'manuel', date: c.created_at,
+            customer_name: cName, phone: cPhone,
+            created_by: (c.creator as any)?.full_name || null,
+            summary: c.summary, status: c.status,
+            duration_seconds: null, interest_level: null,
+        })
+    }
+
+    for (const c of aiOutbound || []) {
+        records.push({
+            id: c.id, type: 'ai_outbound', date: c.last_call_at!,
+            customer_name: (c.customer as any)?.full_name || null,
+            phone: (c.customer as any)?.phone || null,
+            created_by: 'Maya AI', summary: c.call_notes,
+            status: c.interest_level === 'hot' ? 'Hot Lead' : c.interest_level === 'warm' ? 'Ilık Lead' : 'Tamamlandı',
+            duration_seconds: c.call_duration_seconds, interest_level: c.interest_level,
+        })
+    }
+
+    for (const c of inboundCalls || []) {
+        records.push({
+            id: c.id, type: 'ai_inbound', date: c.started_at,
+            customer_name: (c.customer as any)?.full_name || null,
+            phone: c.caller_phone, created_by: 'Maya AI (Gelen)',
+            summary: c.summary, status: 'Karşılandı',
+            duration_seconds: c.duration_seconds, interest_level: null,
+        })
+    }
+
+    records.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    return records
+}
+
+// ─── CDR: Telefon Özet Kırılımı (Summary Breakdown) ────────
+
+export interface CallSummaryBreakdown {
+    categories: { key: string; label: string; emoji: string; color: string; count: number }[]
+    total: number
+}
+
+export async function getCallSummaryBreakdown(period: PeriodKey): Promise<CallSummaryBreakdown> {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { categories: [], total: 0 }
+
+    const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single()
+    if (!profile?.tenant_id) return { categories: [], total: 0 }
+
+    const range = getDateRange(period)
+    const fromTs = `${range.from}T00:00:00`
+    const toTs = `${range.to}T23:59:59`
+
+    // 1. Manuel aramalar — sadece summary'leri al (pagination yok, hepsini say)
+    const { data: manualCalls } = await supabase
+        .from('activities')
+        .select('summary')
+        .eq('type', 'Call')
+        .eq('tenant_id', profile.tenant_id)
+        .gte('created_at', fromTs)
+        .lte('created_at', toTs)
+        .not('summary', 'ilike', '%MAYA Takip%')
+        .not('summary', 'ilike', '%Atama Bekleyen%')
+        .not('summary', 'ilike', '%ARAMA TALEBİ%')
+        .not('summary', 'ilike', '%ACİL SATIŞ%')
+        .not('summary', 'ilike', '%ILIK SATIŞ%')
+
+    // 2. AI Outbound — interest_level + call_notes
+    const { data: aiOutbound } = await supabase
+        .from('lead_qualifications')
+        .select('interest_level, call_notes')
+        .eq('tenant_id', profile.tenant_id)
+        .not('last_call_at', 'is', null)
+        .gte('last_call_at', fromTs)
+        .lte('last_call_at', toTs)
+
+    // 3. AI Inbound
+    const { data: inboundCalls } = await supabase
+        .from('inbound_calls')
+        .select('summary')
+        .eq('tenant_id', profile.tenant_id)
+        .gte('started_at', fromTs)
+        .lte('started_at', toTs)
+
+    // Categorize all summaries
+    const counts: Record<string, number> = {}
+
+    // Manual calls — categorize from summary text
+    for (const c of manualCalls || []) {
+        const cat = categorizeCallSummary(c.summary || '', 'manuel')
+        counts[cat] = (counts[cat] || 0) + 1
+    }
+
+    // AI outbound — categorize from call_notes / interest_level
+    for (const c of aiOutbound || []) {
+        const summary = c.call_notes || ''
+        const cat = categorizeCallSummary(summary, 'ai_outbound', c.interest_level)
+        counts[cat] = (counts[cat] || 0) + 1
+    }
+
+    // AI inbound — categorize from summary
+    for (const c of inboundCalls || []) {
+        const cat = categorizeCallSummary(c.summary || '', 'ai_inbound')
+        counts[cat] = (counts[cat] || 0) + 1
+    }
+
+    // Define category metadata
+    const categoryMeta: Record<string, { label: string; emoji: string; color: string }> = {
+        'gorusme_tamamlandi': { label: 'Görüşme Tamamlandı', emoji: '✅', color: 'bg-emerald-500' },
+        'musteri_ilgilendi': { label: 'Müşteri İlgilendi', emoji: '🔥', color: 'bg-red-500' },
+        'skor_hot': { label: 'Skor: HOT', emoji: '🔥', color: 'bg-red-500' },
+        'skor_warm': { label: 'Skor: WARM', emoji: '🟠', color: 'bg-amber-500' },
+        'skor_follow_up': { label: 'Skor: FOLLOW UP', emoji: '📞', color: 'bg-blue-500' },
+        'skor_disqualified': { label: 'Skor: DISQUALIFIED', emoji: '⛔', color: 'bg-slate-500' },
+        'cevap_vermedi': { label: 'Cevap Vermedi', emoji: '📵', color: 'bg-orange-500' },
+        'hat_mesgul': { label: 'Hat Meşgul', emoji: '🔴', color: 'bg-rose-500' },
+        'acti_ama_kapatti': { label: 'Açtı ama Kapattı', emoji: '📵', color: 'bg-pink-500' },
+        'musait_degil': { label: 'Müsait Değil / Tekrar Aranacak', emoji: '🔄', color: 'bg-sky-500' },
+        'gorusuldu_ilgilenmedi': { label: 'Görüşüldü, İlgilenmedi', emoji: '❌', color: 'bg-gray-500' },
+        'gelen_karsilandi': { label: 'Gelen Arama Karşılandı', emoji: '📥', color: 'bg-indigo-500' },
+        'manuel_arama': { label: 'Manuel Arama', emoji: '📞', color: 'bg-blue-400' },
+        'diger': { label: 'Diğer', emoji: '📋', color: 'bg-slate-400' },
+    }
+
+    // Build sorted result
+    const categories = Object.entries(counts)
+        .map(([key, count]) => {
+            const meta = categoryMeta[key] || { label: key, emoji: '📋', color: 'bg-slate-400' }
+            return { key, label: meta.label, emoji: meta.emoji, color: meta.color, count }
+        })
+        .sort((a, b) => b.count - a.count)
+
+    const total = categories.reduce((sum, c) => sum + c.count, 0)
+
+    return { categories, total }
+}
+
+function categorizeCallSummary(summary: string, type: 'manuel' | 'ai_outbound' | 'ai_inbound', interestLevel?: string | null): string {
+    const s = summary.toLowerCase()
+
+    // AI inbound calls
+    if (type === 'ai_inbound') {
+        return 'gelen_karsilandi'
+    }
+
+    // AI outbound — check patterns from engine.ts summary mapping
+    if (type === 'ai_outbound' || s.includes('ai arama') || s.includes('🤖')) {
+        // Skor-based from call_notes or summary
+        if (s.includes('skor: hot') || s.includes('skor hot') || interestLevel === 'hot') return 'skor_hot'
+        if (s.includes('skor: warm') || s.includes('skor warm') || interestLevel === 'warm') return 'skor_warm'
+        if (s.includes('skor: follow') || s.includes('skor follow') || interestLevel === 'follow_up') return 'skor_follow_up'
+        if (s.includes('skor: disqualified') || s.includes('skor disqualified') || interestLevel === 'disqualified') return 'skor_disqualified'
+
+        // Outcome-based from activities.summary (engine.ts summaryMap)
+        if (s.includes('müşteri ilgilendi') || s.includes('ilgilendi ✅')) return 'musteri_ilgilendi'
+        if (s.includes('görüşüldü, ilgilenmedi') || s.includes('ilgilenmedi ❌')) return 'gorusuldu_ilgilenmedi'
+        if (s.includes('görüşme tamamlandı') || s.includes('görüşüldü') || s.includes('görüşme yapıldı')) return 'gorusme_tamamlandi'
+        if (s.includes('cevap vermedi')) return 'cevap_vermedi'
+        if (s.includes('hat meşgul') || s.includes('meşgul')) return 'hat_mesgul'
+        if (s.includes('açtı ama kapattı') || s.includes('kapattı')) return 'acti_ama_kapatti'
+        if (s.includes('müsait değil') || s.includes('tekrar aranacak') || s.includes('callback')) return 'musait_degil'
+
+        // If it's an AI call but doesn't match known patterns
+        if (interestLevel === 'cold') return 'skor_disqualified'
+        return 'gorusme_tamamlandi'
+    }
+
+    // Manuel arama
+    if (type === 'manuel') {
+        // Check if summary contains outcome info
+        if (s.includes('görüşme tamamlandı') || s.includes('görüşüldü')) return 'gorusme_tamamlandi'
+        if (s.includes('cevap vermedi') || s.includes('ulaşılamadı')) return 'cevap_vermedi'
+        if (s.includes('meşgul')) return 'hat_mesgul'
+        if (s.includes('ilgilendi') || s.includes('ilgili')) return 'musteri_ilgilendi'
+        if (s.includes('ilgilenmedi') || s.includes('ilgilenmiyor')) return 'gorusuldu_ilgilenmedi'
+        return 'manuel_arama'
+    }
+
+    return 'diger'
+}
+
 // ─── CDR: WhatsApp Detay Kayıtları ─────────────────────────
 
 export interface WhatsAppCDRRecord {
