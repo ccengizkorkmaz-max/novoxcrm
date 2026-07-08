@@ -19,9 +19,11 @@ import {
     Archive,
     Trash2,
     CheckSquare,
-    Square
+    Square,
+    Filter
 } from 'lucide-react'
 import { approveInboxItem, rejectInboxItem, deleteArchivedItems, deleteAllArchivedItems } from '../actions'
+import { startOfDay, startOfWeek, startOfMonth, subDays, isAfter, isEqual } from 'date-fns'
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -58,12 +60,53 @@ interface InboxListProps {
 }
 
 type Tab = 'pending' | 'archive'
+type DateFilter = 'all' | 'today' | 'yesterday' | 'this_week' | 'this_month'
+
+const DATE_FILTERS: { key: DateFilter; label: string }[] = [
+    { key: 'all', label: 'Tümü' },
+    { key: 'today', label: 'Bugün' },
+    { key: 'yesterday', label: 'Dün' },
+    { key: 'this_week', label: 'Bu Hafta' },
+    { key: 'this_month', label: 'Bu Ay' },
+]
+
+function filterByDate(items: InboxItem[], filter: DateFilter): InboxItem[] {
+    if (filter === 'all') return items
+    const now = new Date()
+    let from: Date
+    let to: Date | null = null
+
+    switch (filter) {
+        case 'today':
+            from = startOfDay(now)
+            break
+        case 'yesterday':
+            from = startOfDay(subDays(now, 1))
+            to = startOfDay(now)
+            break
+        case 'this_week':
+            from = startOfWeek(now, { weekStartsOn: 1 })
+            break
+        case 'this_month':
+            from = startOfMonth(now)
+            break
+        default:
+            return items
+    }
+
+    return items.filter(item => {
+        const d = new Date(item.created_at)
+        if (to) return (isAfter(d, from) || isEqual(d, from)) && !isAfter(d, to)
+        return isAfter(d, from) || isEqual(d, from)
+    })
+}
 
 export function InboxList({ initialItems, archivedItems = [], pendingCount, archivedCount }: InboxListProps) {
     const t = useTranslations('Sidebar.Inbox')
     const locale = useLocale()
     const router = useRouter()
     const [activeTab, setActiveTab] = useState<Tab>('pending')
+    const [dateFilter, setDateFilter] = useState<DateFilter>('all')
     const [viewingItem, setViewingItem] = useState<InboxItem | null>(null)
     const [approving, setApproving] = useState(false)
     const [rejecting, setRejecting] = useState(false)
@@ -262,7 +305,8 @@ export function InboxList({ initialItems, archivedItems = [], pendingCount, arch
         }
     }
 
-    const currentItems = activeTab === 'pending' ? initialItems : archivedItems
+    const rawItems = activeTab === 'pending' ? initialItems : archivedItems
+    const currentItems = filterByDate(rawItems, dateFilter)
 
     const renderStatusBadge = (status: string) => {
         if (status === 'approved') return <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">Onaylandı</Badge>
@@ -273,40 +317,67 @@ export function InboxList({ initialItems, archivedItems = [], pendingCount, arch
 
     return (
         <>
-            {/* Tab Bar */}
-            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg w-fit">
-                <button
-                    onClick={() => { setActiveTab('pending'); setSelectedIds(new Set()) }}
-                    className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-all ${
-                        activeTab === 'pending'
-                            ? 'bg-white text-slate-900 shadow-sm'
-                            : 'text-slate-500 hover:text-slate-700'
-                    }`}
-                >
-                    <Mail className="h-4 w-4" />
-                    Bekleyen
-                    {(pendingCount ?? initialItems.length) > 0 && (
-                        <span className="bg-amber-100 text-amber-700 text-xs font-bold px-1.5 py-0.5 rounded-full">
-                            {pendingCount ?? initialItems.length}
+            {/* Tab Bar + Date Filter */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg w-fit">
+                    <button
+                        onClick={() => { setActiveTab('pending'); setSelectedIds(new Set()) }}
+                        className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-all ${
+                            activeTab === 'pending'
+                                ? 'bg-white text-slate-900 shadow-sm'
+                                : 'text-slate-500 hover:text-slate-700'
+                        }`}
+                    >
+                        <Mail className="h-4 w-4" />
+                        Bekleyen
+                        {(pendingCount ?? initialItems.length) > 0 && (
+                            <span className="bg-amber-100 text-amber-700 text-xs font-bold px-1.5 py-0.5 rounded-full">
+                                {pendingCount ?? initialItems.length}
+                            </span>
+                        )}
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('archive')}
+                        className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-all ${
+                            activeTab === 'archive'
+                                ? 'bg-white text-slate-900 shadow-sm'
+                                : 'text-slate-500 hover:text-slate-700'
+                        }`}
+                    >
+                        <Archive className="h-4 w-4" />
+                        Arşiv
+                        {(archivedCount ?? archivedItems.length) > 0 && (
+                            <span className="bg-slate-200 text-slate-600 text-xs font-bold px-1.5 py-0.5 rounded-full">
+                                {archivedCount ?? archivedItems.length}
+                            </span>
+                        )}
+                    </button>
+                </div>
+
+                {/* Date Filter */}
+                <div className="flex items-center gap-1.5">
+                    <Filter className="h-3.5 w-3.5 text-slate-400" />
+                    <div className="flex items-center gap-1 bg-slate-100/80 p-0.5 rounded-lg">
+                        {DATE_FILTERS.map(f => (
+                            <button
+                                key={f.key}
+                                onClick={() => setDateFilter(f.key)}
+                                className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                                    dateFilter === f.key
+                                        ? 'bg-white text-slate-900 shadow-sm'
+                                        : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'
+                                }`}
+                            >
+                                {f.label}
+                            </button>
+                        ))}
+                    </div>
+                    {dateFilter !== 'all' && (
+                        <span className="text-[11px] text-slate-400 font-medium">
+                            {currentItems.length} / {rawItems.length} kayıt
                         </span>
                     )}
-                </button>
-                <button
-                    onClick={() => setActiveTab('archive')}
-                    className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-all ${
-                        activeTab === 'archive'
-                            ? 'bg-white text-slate-900 shadow-sm'
-                            : 'text-slate-500 hover:text-slate-700'
-                    }`}
-                >
-                    <Archive className="h-4 w-4" />
-                    Arşiv
-                    {(archivedCount ?? archivedItems.length) > 0 && (
-                        <span className="bg-slate-200 text-slate-600 text-xs font-bold px-1.5 py-0.5 rounded-full">
-                            {archivedCount ?? archivedItems.length}
-                        </span>
-                    )}
-                </button>
+                </div>
             </div>
 
             {/* Archive toolbar */}
