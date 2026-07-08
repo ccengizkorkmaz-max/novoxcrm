@@ -319,7 +319,7 @@ export async function getCallCDR(period: PeriodKey, page: number = 1, pageSize: 
         .select('customer_id, outreach_workflows(name)')
         .eq('tenant_id', profile.tenant_id)
         .not('customer_id', 'is', null)
-        .order('created_at', { ascending: false })
+        .order('started_at', { ascending: false })
         .limit(10000)
     
     if (allExecutions) {
@@ -502,7 +502,7 @@ export async function getCallCDRExport(period: PeriodKey): Promise<CallCDRRecord
         .select('customer_id, outreach_workflows(name)')
         .eq('tenant_id', profile.tenant_id)
         .not('customer_id', 'is', null)
-        .order('created_at', { ascending: false })
+        .order('started_at', { ascending: false })
         .limit(10000)
     if (allExecutions) {
         for (const exec of allExecutions) {
