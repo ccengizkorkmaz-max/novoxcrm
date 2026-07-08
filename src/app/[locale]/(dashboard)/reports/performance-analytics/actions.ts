@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 
-export type PeriodKey = 'today' | 'yesterday' | 'this_week' | 'this_month' | 'last_month'
+export type PeriodKey = 'today' | 'yesterday' | 'this_week' | 'this_month' | 'last_month' | 'all_time'
 
 interface DateRange {
     from: string  // YYYY-MM-DD
@@ -36,6 +36,11 @@ function getDateRange(period: PeriodKey): DateRange {
             const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
             const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0)
             return { from: lastMonthStart.toISOString().split('T')[0], to: lastMonthEnd.toISOString().split('T')[0] }
+        }
+        case 'all_time': {
+            // Go back 2 years to cover all possible data
+            const allStart = new Date(now.getFullYear() - 2, 0, 1)
+            return { from: allStart.toISOString().split('T')[0], to: today }
         }
     }
 }
@@ -75,15 +80,11 @@ export async function getPerformanceAnalytics(): Promise<PerformanceData> {
 
     const tenantId = profile.tenant_id
 
-    // Fetch all needed data in a single query — last 60 days covers all periods
-    const sixtyDaysAgo = new Date()
-    sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60)
-    
+    // Fetch all available stats data (no date limit to support 'all_time')
     let { data: stats } = await supabase
         .from('report_daily_stats')
         .select('stat_date, whatsapp_count, outbound_call_count, inbound_call_count, cold_count, warm_count, hot_count, whatsapp_breakdown, calls_breakdown, updated_at')
         .eq('tenant_id', tenantId)
-        .gte('stat_date', sixtyDaysAgo.toISOString().split('T')[0])
         .order('stat_date', { ascending: true })
 
     // Auto-refresh/Self-healing check:
@@ -117,7 +118,6 @@ export async function getPerformanceAnalytics(): Promise<PerformanceData> {
                 .from('report_daily_stats')
                 .select('stat_date, whatsapp_count, outbound_call_count, inbound_call_count, cold_count, warm_count, hot_count, whatsapp_breakdown, calls_breakdown, updated_at')
                 .eq('tenant_id', tenantId)
-                .gte('stat_date', sixtyDaysAgo.toISOString().split('T')[0])
                 .order('stat_date', { ascending: true })
             
             if (refreshedStats) {
@@ -147,7 +147,8 @@ export async function getPerformanceAnalytics(): Promise<PerformanceData> {
         { key: 'yesterday', label: 'Dün' },
         { key: 'this_week', label: 'Bu Hafta' },
         { key: 'this_month', label: 'Bu Ay' },
-        { key: 'last_month', label: 'Geçen Ay' }
+        { key: 'last_month', label: 'Geçen Ay' },
+        { key: 'all_time', label: 'Tüm Zamanlar' }
     ]
 
     // Helper: aggregate wa_breakdown JSONB across date range

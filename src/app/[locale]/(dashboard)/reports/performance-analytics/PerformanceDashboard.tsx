@@ -18,7 +18,8 @@ const PERIODS: { key: PeriodKey; label: string; shortLabel: string }[] = [
     { key: 'yesterday', label: 'Dün', shortLabel: 'Dün' },
     { key: 'this_week', label: 'Bu Hafta', shortLabel: 'Hafta' },
     { key: 'this_month', label: 'Bu Ay', shortLabel: 'Ay' },
-    { key: 'last_month', label: 'Geçen Ay', shortLabel: 'G.Ay' }
+    { key: 'last_month', label: 'Geçen Ay', shortLabel: 'G.Ay' },
+    { key: 'all_time', label: 'Tüm Zamanlar', shortLabel: 'Tümü' }
 ]
 
 function AnimatedNumber({ value, className }: { value: number; className?: string }) {
@@ -193,7 +194,7 @@ export default function PerformanceDashboard() {
 
     // Previous period for trend comparison
     const getPreviousPeriodStats = (): PeriodStats | undefined => {
-        const periodOrder: PeriodKey[] = ['today', 'yesterday', 'this_week', 'this_month', 'last_month']
+        const periodOrder: PeriodKey[] = ['today', 'yesterday', 'this_week', 'this_month', 'last_month', 'all_time']
         const idx = periodOrder.indexOf(activePeriod)
         if (idx <= 0) return undefined
         return data?.periods.find(p => p.period === periodOrder[idx - 1])
