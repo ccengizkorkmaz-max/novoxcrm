@@ -279,19 +279,14 @@ export async function getCallCDR(period: PeriodKey, page: number = 1, pageSize: 
     const toTs = `${range.to}T23:59:59`
     const offset = (page - 1) * pageSize
 
-    // 1. Manuel aramalar (activities) — görev/bildirim kayıtlarını hariç tut
+    // 1. Manuel aramalar (activities) — tüm type='Call' kayıtları (dashboard ile uyumlu)
     const { data: manualCalls, count: manualCount } = await supabase
         .from('activities')
-        .select('id, created_at, summary, description, status, customer:customers(full_name, phone), creator:profiles!user_id(full_name)', { count: 'exact' })
+        .select('id, created_at, summary, description, status, customer_id, customer:customers(full_name, phone), creator:profiles!user_id(full_name)', { count: 'exact' })
         .eq('type', 'Call')
         .eq('tenant_id', profile.tenant_id)
         .gte('created_at', fromTs)
         .lte('created_at', toTs)
-        .not('summary', 'ilike', '%MAYA Takip%')
-        .not('summary', 'ilike', '%Atama Bekleyen%')
-        .not('summary', 'ilike', '%ARAMA TALEBİ%')
-        .not('summary', 'ilike', '%ACİL SATIŞ%')
-        .not('summary', 'ilike', '%ILIK SATIŞ%')
         .order('created_at', { ascending: false })
         .range(offset, offset + pageSize - 1)
 
@@ -337,10 +332,29 @@ export async function getCallCDR(period: PeriodKey, page: number = 1, pageSize: 
         }
     }
 
+    // Build dedup set: customer_id + date combos from lead_qualifications to avoid double-counting
+    // AI calls appear in BOTH activities (as 🤖 entries) and lead_qualifications
+    const lqDedupSet = new Set<string>()
+    for (const c of aiOutbound || []) {
+        if (c.customer_id && c.last_call_at) {
+            const dateKey = new Date(c.last_call_at).toISOString().split('T')[0]
+            lqDedupSet.add(`${c.customer_id}_${dateKey}`)
+        }
+    }
+
     const records: CallCDRRecord[] = []
 
-    // Map manual calls
+    // Map manual calls — skip AI-generated activities that are already in lead_qualifications
     for (const c of manualCalls || []) {
+        const isAI = (c.summary || '').includes('🤖') || (c.summary || '').toLowerCase().includes('ai arama')
+        const custId = (c as any).customer_id
+        const actDate = new Date(c.created_at).toISOString().split('T')[0]
+        
+        // Skip if this is an AI activity that's already represented in lead_qualifications
+        if (isAI && custId && lqDedupSet.has(`${custId}_${actDate}`)) {
+            continue
+        }
+
         let cName = (c.customer as any)?.full_name || null
         let cPhone = (c.customer as any)?.phone || null
 
@@ -446,19 +460,14 @@ export async function getCallCDRExport(period: PeriodKey): Promise<CallCDRRecord
     const fromTs = `${range.from}T00:00:00`
     const toTs = `${range.to}T23:59:59`
 
-    // 1. Manuel aramalar — tümü
+    // 1. Manuel aramalar — tümü (dashboard ile uyumlu — filtresiz)
     const { data: manualCalls } = await supabase
         .from('activities')
-        .select('id, created_at, summary, description, status, customer:customers(full_name, phone), creator:profiles!user_id(full_name)')
+        .select('id, created_at, summary, description, status, customer_id, customer:customers(full_name, phone), creator:profiles!user_id(full_name)')
         .eq('type', 'Call')
         .eq('tenant_id', profile.tenant_id)
         .gte('created_at', fromTs)
         .lte('created_at', toTs)
-        .not('summary', 'ilike', '%MAYA Takip%')
-        .not('summary', 'ilike', '%Atama Bekleyen%')
-        .not('summary', 'ilike', '%ARAMA TALEBİ%')
-        .not('summary', 'ilike', '%ACİL SATIŞ%')
-        .not('summary', 'ilike', '%ILIK SATIŞ%')
         .order('created_at', { ascending: false })
 
     // 2. AI Outbound — tümü with caller and customer_id
@@ -500,9 +509,23 @@ export async function getCallCDRExport(period: PeriodKey): Promise<CallCDRRecord
         }
     }
 
+    // Dedup: AI calls appear in BOTH activities and lead_qualifications
+    const lqDedupSet = new Set<string>()
+    for (const c of aiOutbound || []) {
+        if (c.customer_id && c.last_call_at) {
+            const dateKey = new Date(c.last_call_at).toISOString().split('T')[0]
+            lqDedupSet.add(`${c.customer_id}_${dateKey}`)
+        }
+    }
+
     const records: CallCDRRecord[] = []
 
     for (const c of manualCalls || []) {
+        const isAIActivity = (c.summary || '').includes('🤖') || (c.summary || '').toLowerCase().includes('ai arama')
+        const custId = (c as any).customer_id
+        const actDate = new Date(c.created_at).toISOString().split('T')[0]
+        if (isAIActivity && custId && lqDedupSet.has(`${custId}_${actDate}`)) continue
+
         let cName = (c.customer as any)?.full_name || null
         let cPhone = (c.customer as any)?.phone || null
         if (!cName && (c as any).description) {
