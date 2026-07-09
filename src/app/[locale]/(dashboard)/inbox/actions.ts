@@ -623,7 +623,7 @@ export async function getBulkApproveTargetIds() {
             .select('id')
             .eq('tenant_id', profile.tenant_id)
             .eq('status', 'pending')
-            .or('message.ilike.%Proje Bilgi Talep Formu%,email.eq.web@novosirketlergrubu.com')
+            .or('message.ilike.%Proje Bilgi Talep Formu%,email.eq.web@novosirketlergrubu.com,message.ilike.%KVKK Onayı%,message.ilike.%KVKK Onayi%')
 
         if (fetchError) {
             console.error('Error fetching bulk target ids:', fetchError)
@@ -658,6 +658,8 @@ export async function getBulkArchiveTargetIds() {
             .eq('tenant_id', profile.tenant_id)
             .eq('status', 'pending')
             .not('message', 'ilike', '%Proje Bilgi Talep Formu%')
+            .not('message', 'ilike', '%KVKK Onayı%')
+            .not('message', 'ilike', '%KVKK Onayi%')
             .not('email', 'eq', 'web@novosirketlergrubu.com')
 
         if (fetchError) {
