@@ -1126,35 +1126,45 @@ export default function PipelineList({
                                                                          <MatchUnitDialog saleId={sale.id} currentUnitId={sale.unit_id} currentProjectId={sale.project_id || sale.units?.project_id} projects={projects} customerName={sale.customers?.full_name} triggerSize="xs" />
                                                                      )}
                                                                      {isAdvanceMode && !isBroker && !['Lost', 'Completed', 'Sold'].includes(sale.status) && (
-                                                                          <Button
-                                                                              variant="outline"
-                                                                              size="sm"
-                                                                              className="h-6 text-[10px] border-cyan-200 bg-cyan-50/50 hover:bg-cyan-100 hover:text-cyan-700 text-cyan-600 font-semibold px-2 flex items-center gap-1 shadow-sm transition-all"
-                                                                              onClick={() => {
-                                                                                  const activeOffer = (sale as any).offers?.find((o: any) => !['Rejected', 'Cancelled', 'Expired', 'Lost'].includes(o.status))
-                                                                                  if (activeOffer) {
-                                                                                      router.push(`/${locale}/offers?highlight=${activeOffer.id}`)
-                                                                                      return
-                                                                                  }
-                                                                                  if (['Reservation', 'Opsiyon - Kapora Bekleniyor'].includes(sale.status)) {
-                                                                                      router.push(`/${locale}/options?highlight=${sale.id}`)
-                                                                                      return
-                                                                                  }
-                                                                                  setQuickProposalSale({
-                                                                                      saleId: sale.id,
-                                                                                      customerName: sale.customers?.full_name || '',
-                                                                                      unitId: sale.unit_id,
-                                                                                      projectId: sale.project_id || (sale.units as any)?.projects?.id,
-                                                                                      totalAmount: sale.final_price || sale.units?.price || 0,
-                                                                                      initialCurrency: sale.currency || sale.units?.currency || 'TRY'
-                                                                                  })
-                                                                                  setQuickProposalOpen(true)
-                                                                              }}
-                                                                              title="Teklif Ver"
-                                                                          >
-                                                                              <Send className="w-2.5 h-2.5" /> Teklif
-                                                                          </Button>
-                                                                      )}
+                                                                         <Button
+                                                                             variant="outline"
+                                                                             size="sm"
+                                                                             className="h-6 text-[10px] border-cyan-200 bg-cyan-50/50 hover:bg-cyan-100 hover:text-cyan-700 text-cyan-600 font-semibold px-2 flex items-center gap-1 shadow-sm transition-all"
+                                                                             onClick={async () => {
+                                                                                 if (['Proposal', 'Teklif - Kapora Bekleniyor', 'Negotiation'].includes(sale.status)) {
+                                                                                     const { createClient: createBrowserClient } = await import('@/lib/supabase/client')
+                                                                                     const supabase = createBrowserClient()
+                                                                                     const { data: activeOffers } = await supabase
+                                                                                         .from('offers')
+                                                                                         .select('id')
+                                                                                         .eq('sale_id', sale.id)
+                                                                                         .not('status', 'in', '("Rejected","Cancelled","Expired","Lost")')
+                                                                                         .limit(1)
+
+                                                                                     if (activeOffers && activeOffers.length > 0) {
+                                                                                         router.push(`/${locale}/offers?highlight=${activeOffers[0].id}`)
+                                                                                         return
+                                                                                     }
+                                                                                 }
+                                                                                 if (['Reservation', 'Opsiyon - Kapora Bekleniyor'].includes(sale.status)) {
+                                                                                     router.push(`/${locale}/options?highlight=${sale.id}`)
+                                                                                     return
+                                                                                 }
+                                                                                 setQuickProposalSale({
+                                                                                     saleId: sale.id,
+                                                                                     customerName: sale.customers?.full_name || '',
+                                                                                     unitId: sale.unit_id,
+                                                                                     projectId: sale.project_id || (sale.units as any)?.projects?.id,
+                                                                                     totalAmount: sale.final_price || sale.units?.price || 0,
+                                                                                     initialCurrency: sale.currency || sale.units?.currency || 'TRY'
+                                                                                 })
+                                                                                 setQuickProposalOpen(true)
+                                                                             }}
+                                                                             title="Teklif Ver"
+                                                                         >
+                                                                             <Send className="w-2.5 h-2.5" /> Teklif
+                                                                         </Button>
+                                                                     )}
                                                                      {isAdvanceMode && !isBroker && ['Proposal', 'Teklif - Kapora Bekleniyor', 'Negotiation'].includes(sale.status) && (
                                                                          <Button
                                                                              variant="outline"
