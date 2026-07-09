@@ -3773,7 +3773,7 @@ export async function createQuickProposal(params: {
             const { error: depositError } = await supabase.from('deposits').insert({
                 tenant_id: profile.tenant_id,
                 customer_id: sale.customer_id,
-                sale_id: saleId,
+                sale_id: null, // Pass null to comply with deposit_source_check constraint
                 offer_id: newOffer.id,
                 amount: depositAmount,
                 currency,
