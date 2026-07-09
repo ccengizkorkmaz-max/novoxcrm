@@ -1550,6 +1550,10 @@ export async function approveNegotiation(negotiationId: string, depositAmount: n
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) redirect('/login')
 
+    if (negotiationId.startsWith('initial-')) {
+        return { success: false, error: 'Sistem tarafından oluşturulan ilk teklif bedeli bu panelden doğrudan onaylanamaz. Pazarlık sürecini işletmek için lütfen yeni bir teklif girip onu onaylayın.' }
+    }
+
     // 1. Get negotiation detail
     const { data: neg, error: negError } = await supabase
         .from('offer_negotiations')

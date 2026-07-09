@@ -549,7 +549,7 @@ export default function NegotiationDialog({ offerId, currentPrice, currentCurren
                                                     <MessageSquare className="absolute -bottom-2 -right-2 h-12 w-12 text-slate-100 opacity-20 -rotate-12" />
                                                 </div>
                                             )}
-                                            {neg.status === 'Pending' && (
+                                            {neg.status === 'Pending' && !String(neg.id).startsWith('initial-') && (
                                                 <div className="flex flex-col gap-4 mt-6 pt-6 border-t border-slate-100">
                                                     <div className="flex items-center gap-4 justify-between bg-slate-50/50 p-3 rounded-xl border border-slate-100">
                                                         <Label className="text-[10px] uppercase font-black text-slate-400 tracking-widest">{t('depositOptional')}</Label>
