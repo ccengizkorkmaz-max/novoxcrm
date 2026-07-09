@@ -22,7 +22,7 @@ import {
     Square,
     Filter
 } from 'lucide-react'
-import { approveInboxItem, rejectInboxItem, deleteArchivedItems, deleteAllArchivedItems, bulkApproveProjectInfoRequests } from '../actions'
+import { approveInboxItem, rejectInboxItem, deleteArchivedItems, deleteAllArchivedItems, bulkApproveProjectInfoRequests, bulkArchiveNonProjectInfoRequests } from '../actions'
 import { startOfDay, startOfWeek, startOfMonth, subDays, isAfter, isEqual } from 'date-fns'
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -139,7 +139,26 @@ export function InboxList({ initialItems, archivedItems = [], pendingCount, arch
         }
     }
 
-    // Automatically refresh on mount
+    const [bulkArchiving, setBulkArchiving] = useState(false)
+
+    const handleBulkArchive = async () => {
+        if (window.confirm("Proje Bilgi Talep Formu dışındaki tüm bekleyen mesajlar arşive taşınacaktır. Devam etmek istiyor musunuz?")) {
+            setBulkArchiving(true)
+            try {
+                const res = await bulkArchiveNonProjectInfoRequests()
+                if (res.success) {
+                    toast.success(res.message || 'Kayıtlar arşive taşındı')
+                    router.refresh()
+                } else {
+                    toast.error(res.error || 'İşlem başarısız oldu')
+                }
+            } catch (err: any) {
+                toast.error(err.message || 'Bir hata oluştu')
+            } finally {
+                setBulkArchiving(false)
+            }
+        }
+    }
     React.useEffect(() => {
         handleRefresh(undefined, true)
     }, [])
@@ -445,7 +464,7 @@ export function InboxList({ initialItems, archivedItems = [], pendingCount, arch
                             variant="outline"
                             size="sm"
                             onClick={handleBulkApprove}
-                            disabled={bulkApproving || scanning}
+                            disabled={bulkApproving || bulkArchiving || scanning}
                             className="h-8 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[10px] uppercase tracking-wider transition-all shadow-md shadow-emerald-100 flex items-center gap-1.5 border-none active:scale-95"
                             title="Proje Bilgi Talep Formu yazan tüm kayıtları otomatik crm'e aktarır"
                         >
@@ -455,8 +474,19 @@ export function InboxList({ initialItems, archivedItems = [], pendingCount, arch
                         <Button
                             variant="outline"
                             size="sm"
+                            onClick={handleBulkArchive}
+                            disabled={bulkArchiving || bulkApproving || scanning}
+                            className="h-8 px-3 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-black text-[10px] uppercase tracking-wider transition-all shadow-md shadow-amber-100 flex items-center gap-1.5 border-none active:scale-95"
+                            title="Proje Bilgi Talep Formu dışındaki tüm mesajları arşive taşır"
+                        >
+                            <Archive className="h-3.5 w-3.5" />
+                            {bulkArchiving ? 'Arşivleniyor...' : 'Temizle & Arşivle'}
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
                             onClick={handleRefresh}
-                            disabled={scanning || bulkApproving}
+                            disabled={scanning || bulkApproving || bulkArchiving}
                             className="h-8 w-8 p-0 rounded-full bg-white/80 backdrop-blur-sm border-slate-200 hover:bg-white hover:border-blue-300 hover:text-blue-600 transition-all shadow-sm"
                             title="Taramayı Başlat (Yeni Mailler ve Formlar)"
                         >

@@ -661,3 +661,44 @@ export async function bulkApproveProjectInfoRequests() {
         return { success: false, error: error.message || 'Unknown error' }
     }
 }
+
+export async function bulkArchiveNonProjectInfoRequests() {
+    try {
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+
+        if (!user) {
+            return { success: false, error: 'Unauthorized' }
+        }
+
+        const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single()
+        if (!profile) return { success: false, error: 'Profile not found' }
+
+        const { error, count } = await supabase
+            .from('inbox_items')
+            .update({
+                status: 'rejected',
+                rejected_at: new Date().toISOString(),
+                rejected_by: user.id
+            }, { count: 'exact' })
+            .eq('tenant_id', profile.tenant_id)
+            .eq('status', 'pending')
+            .not('message', 'ilike', '%Proje Bilgi Talep Formu%')
+
+        if (error) {
+            console.error('Error in bulk archive:', error)
+            return { success: false, error: error.message }
+        }
+
+        revalidatePath('/[locale]/(dashboard)/inbox')
+
+        return {
+            success: true,
+            count: count || 0,
+            message: `${count || 0} adet ilgisiz kayıt başarıyla arşive taşındı.`
+        }
+    } catch (error: any) {
+        console.error('Server error in bulk archiving:', error)
+        return { success: false, error: error.message || 'Unknown error' }
+    }
+}
