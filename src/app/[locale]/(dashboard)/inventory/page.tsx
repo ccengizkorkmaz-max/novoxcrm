@@ -150,14 +150,14 @@ export default async function InventoryPage(props: {
     // 2. Fetch ALL data in parallel using Promise.all
     // Auth, profile, projects, units, reports — ALL run simultaneously
     const [
-        { data: projects },
-        { data: customers },
-        { data: unitTypes },
+        projectsRes,
+        customersRes,
+        unitTypesRes,
         agingData,
         velocityData,
         t,
-        { data: fetchedUnits },
-        { data: { user } }
+        unitsRes,
+        userRes
     ] = await Promise.all([
         supabase.from('projects').select('id, name'),
         supabase.from('customers').select('id, full_name').order('full_name', { ascending: true }),
@@ -169,8 +169,14 @@ export default async function InventoryPage(props: {
         supabase.auth.getUser()
     ])
 
+    const projects = projectsRes?.data || []
+    const customers = customersRes?.data || []
+    const unitTypes = unitTypesRes?.data || []
+    const fetchedUnits = unitsRes?.data || []
+    const user = userRes?.data?.user || null
+
     const units = fetchedUnits
-    if (units && sortBy === 'unit_number') {
+    if (units && units.length > 0 && sortBy === 'unit_number') {
         units.sort((a: any, b: any) => {
             const cmp = String(a.unit_number).localeCompare(String(b.unit_number), undefined, { numeric: true })
             return sortOrder === 'asc' ? cmp : -cmp
