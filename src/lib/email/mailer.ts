@@ -2,12 +2,20 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import nodemailer from 'nodemailer'
 import { Resend } from 'resend'
 
+interface EmailAttachment {
+    filename: string
+    content: string | Buffer
+    encoding?: string
+    contentType?: string
+}
+
 interface SendSystemEmailParams {
     tenantId: string
     to: string
     subject: string
     html: string
     fromName?: string
+    attachments?: EmailAttachment[]
 }
 
 /**
@@ -15,7 +23,7 @@ interface SendSystemEmailParams {
  * it will use their custom SMTP server. Otherwise, it falls back to Resend.
  */
 export async function sendSystemEmail(params: SendSystemEmailParams) {
-    const { tenantId, to, subject, html, fromName = 'Novo CRM' } = params
+    const { tenantId, to, subject, html, fromName = 'Novo CRM', attachments = [] } = params
     const supabase = createAdminClient()
 
     // Fetch active email account details for the tenant
@@ -52,11 +60,21 @@ export async function sendSystemEmail(params: SendSystemEmailParams) {
             }
         })
 
-        const mailOptions = {
+        const mailOptions: any = {
             from: `"${fromName}" <${account.email_address}>`,
             to: to,
             subject: subject,
             html: html
+        }
+
+        // Add attachments if provided (for PDF proposals etc.)
+        if (attachments.length > 0) {
+            mailOptions.attachments = attachments.map(att => ({
+                filename: att.filename,
+                content: att.content,
+                encoding: att.encoding || 'base64',
+                contentType: att.contentType || 'application/octet-stream'
+            }))
         }
 
         const info = await transporter.sendMail(mailOptions)
@@ -66,12 +84,25 @@ export async function sendSystemEmail(params: SendSystemEmailParams) {
         console.log(`[Mailer] No custom SMTP configured for tenant ${tenantId}. Falling back to Resend...`)
         
         const resend = new Resend(process.env.RESEND_API_KEY)
-        const { data, error } = await resend.emails.send({
+
+        const sendOptions: any = {
             from: `"${fromName}" <onboarding@novoxcrm.com>`,
             to: to,
             subject: subject,
             html: html
-        })
+        }
+
+        // Add attachments for Resend (expects content as Buffer)
+        if (attachments.length > 0) {
+            sendOptions.attachments = attachments.map(att => ({
+                filename: att.filename,
+                content: typeof att.content === 'string'
+                    ? Buffer.from(att.content, (att.encoding as BufferEncoding) || 'base64')
+                    : att.content
+            }))
+        }
+
+        const { data, error } = await resend.emails.send(sendOptions)
 
         if (error) {
             console.error(`[Mailer] Resend send error:`, error.message)

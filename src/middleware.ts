@@ -46,7 +46,8 @@ function isCacheableMarketingPath(pathname: string): boolean {
         pathWithoutLocale.startsWith('/sehir') ||
         pathWithoutLocale.startsWith('/sektor') ||
         pathWithoutLocale.startsWith('/karsilastirma') ||
-        pathWithoutLocale.startsWith('/industry-reports')
+        pathWithoutLocale.startsWith('/industry-reports') ||
+        pathWithoutLocale.startsWith('/teklif/')
     ) {
         return true
     }

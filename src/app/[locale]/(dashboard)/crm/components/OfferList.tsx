@@ -20,6 +20,7 @@ import NegotiationDialog from './NegotiationDialog'
 import ApproveOfferButton from './ApproveOfferButton'
 import { deleteOffer } from '@/app/[locale]/(dashboard)/offers/actions'
 import { toast } from 'sonner'
+import ProposalShareButton from '@/app/[locale]/(dashboard)/offers/components/ProposalPdfGenerator'
 
 
 interface Offer {
@@ -118,10 +119,7 @@ export default function OfferList({ offers, userRole }: { offers: Offer[], userR
         )[0]
     }
 
-    // Placeholder for delete or print actions
-    const handlePrint = (id: string) => {
-        toast.info('PDF yazdırma özelliği yakında eklenecek.')
-    }
+    // Print/PDF replaced by ProposalShareButton
 
     const handleDelete = async (id: string) => {
         if (!window.confirm("Teklifi silmek istediğinize emin misiniz?")) return
@@ -260,7 +258,8 @@ export default function OfferList({ offers, userRole }: { offers: Offer[], userR
                                         </TableCell>
 
                                         <TableCell className="text-right">
-                                            <div className="flex justify-end gap-2">
+                                            <div className="flex justify-end gap-2 items-center">
+                                                <ProposalShareButton offerId={offer.id} compact />
                                                 <Button variant="ghost" size="icon" onClick={() => openPlan(offer)} title={t('actions.viewPlan')}>
                                                     <ReceiptText className="h-4 w-4 text-blue-600" />
                                                 </Button>
