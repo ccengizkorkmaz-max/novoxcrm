@@ -356,8 +356,8 @@ export function InboxList({ initialItems, archivedItems = [], pendingCount, arch
 
     return (
         <>
-            {/* Tab Bar + Date Filter */}
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            {/* Tab Bar + Date Filter + Actions */}
+            <div className="flex flex-wrap items-center gap-4 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 mb-6 shadow-sm justify-start">
                 <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg w-fit">
                     <button
                         onClick={() => { setActiveTab('pending'); setSelectedIds(new Set()) }}
@@ -405,24 +405,22 @@ export function InboxList({ initialItems, archivedItems = [], pendingCount, arch
                                     dateFilter === f.key
                                         ? 'bg-white text-slate-900 shadow-sm'
                                         : 'text-slate-500 hover:text-slate-700 hover:bg-white/50'
-                                }`}
+                                    }`}
                             >
                                 {f.label}
                             </button>
                         ))}
                     </div>
                     {dateFilter !== 'all' && (
-                        <span className="text-[11px] text-slate-400 font-medium">
+                        <span className="text-[11px] text-slate-400 font-medium whitespace-nowrap">
                             {currentItems.length} / {rawItems.length} kayıt
                         </span>
                     )}
                 </div>
-            </div>
 
-            {/* Pending toolbar */}
-            {activeTab === 'pending' && (
-                <div className="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5">
-                    <div className="flex items-center gap-2">
+                {/* Actions (Only shown on pending tab, follows Date Filter) */}
+                {activeTab === 'pending' && (
+                    <div className="flex items-center gap-2 flex-wrap">
                         <Button
                             variant="outline"
                             size="sm"
@@ -445,19 +443,21 @@ export function InboxList({ initialItems, archivedItems = [], pendingCount, arch
                             <Archive className="h-4 w-4" />
                             {bulkArchiving ? 'Arşivleniyor...' : 'Temizle & Arşivle'}
                         </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleRefresh}
+                            disabled={scanning || bulkApproving || bulkArchiving}
+                            className="h-9 w-9 p-0 rounded-xl bg-white border-slate-200 hover:bg-slate-50 hover:text-blue-600 transition-all shadow-sm flex items-center justify-center"
+                            title="Taramayı Başlat (Yeni Mailler ve Formlar)"
+                        >
+                            <RefreshCw className={`h-4 w-4 ${scanning ? 'animate-spin' : ''}`} />
+                        </Button>
                     </div>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleRefresh}
-                        disabled={scanning || bulkApproving || bulkArchiving}
-                        className="h-9 w-9 p-0 rounded-xl bg-white border-slate-200 hover:bg-slate-50 hover:text-blue-600 transition-all shadow-sm flex items-center justify-center"
-                        title="Taramayı Başlat (Yeni Mailler ve Formlar)"
-                    >
-                        <RefreshCw className={`h-4 w-4 ${scanning ? 'animate-spin' : ''}`} />
-                    </Button>
-                </div>
-            )}
+                )}
+            </div>
+
+
 
             {/* Archive toolbar */}
             {activeTab === 'archive' && archivedItems.length > 0 && (
