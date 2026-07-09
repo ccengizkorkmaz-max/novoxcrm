@@ -1171,9 +1171,9 @@ export default function PipelineList({
                                                                              size="sm"
                                                                              className="h-6 text-[10px] border-red-200 bg-red-50/50 hover:bg-red-100 hover:text-red-700 text-red-600 font-semibold px-2 flex items-center gap-1 shadow-sm transition-all animate-in fade-in zoom-in-95 duration-200"
                                                                              onClick={() => openLostDialog(sale.id)}
-                                                                             title="Kaybedildi"
+                                                                             title="Süreci Sonlandır"
                                                                          >
-                                                                             <XCircle className="w-2.5 h-2.5" /> Kaybedildi
+                                                                             <XCircle className="w-2.5 h-2.5" /> Süreci Sonlandır
                                                                          </Button>
                                                                      )}
                                                                      {sale.status === 'Lost' && !sale.restarted_at && <RestartSaleButton saleId={sale.id} triggerSize="xs" />}
