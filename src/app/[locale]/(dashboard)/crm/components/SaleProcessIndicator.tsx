@@ -6,8 +6,6 @@ interface SaleProcessIndicatorProps {
     sale: {
         unit_id?: string | null
         status: string
-        offers?: Array<{ id: string; status: string; valid_until?: string; price?: number; currency?: string }> | null
-        deposits?: Array<{ id: string; amount: number; currency: string; status: string }> | null
         reservation_expiry?: string | null
     }
 }
@@ -22,46 +20,40 @@ interface Step {
 
 function getSteps(sale: SaleProcessIndicatorProps['sale']): Step[] {
     const hasUnit = !!sale.unit_id
-    const activeOffer = sale.offers?.find(o => !['Rejected', 'Cancelled', 'Expired', 'Lost'].includes(o.status))
-    const hasOffer = !!activeOffer
-    const pendingDeposit = sale.deposits?.find(d => d.status === 'Pending')
-    const paidDeposit = sale.deposits?.find(d => d.status === 'Paid')
-    const hasDeposit = !!pendingDeposit || !!paidDeposit
-    const isReservation = ['Reservation', 'Opsiyon - Kapora Bekleniyor'].includes(sale.status)
-    const isSold = ['Sold', 'Completed'].includes(sale.status)
+    const status = sale.status
 
-    // Step 1: Ünite Eşleme
+    // Derive steps from sale status (no extra queries needed)
+    const isProposal = ['Proposal', 'Teklif - Kapora Bekleniyor', 'Negotiation'].includes(status)
+    const isReservation = ['Reservation', 'Opsiyon - Kapora Bekleniyor'].includes(status)
+    const hasDepositPending = status === 'Teklif - Kapora Bekleniyor' || status === 'Opsiyon - Kapora Bekleniyor'
+    const isSold = ['Sold', 'Completed', 'Contract'].includes(status)
+
+    // Step 1: Ünite
     const unitStep: Step = {
         label: 'Ünite',
         status: hasUnit ? 'done' : 'pending',
-        detail: hasUnit ? 'Ünite eşlendi' : 'Ünite eşlenmedi'
+        detail: hasUnit ? 'Eşlendi' : 'Bekleniyor'
     }
 
     // Step 2: Teklif
     const offerStep: Step = {
         label: 'Teklif',
-        status: hasOffer ? 'done' : (hasUnit ? 'active' : 'pending'),
-        detail: hasOffer
-            ? `Teklif: ${activeOffer?.status}${activeOffer?.valid_until ? ` (${new Date(activeOffer.valid_until).toLocaleDateString('tr-TR')})` : ''}`
-            : 'Teklif verilmedi'
+        status: isProposal || isSold ? 'done' : (isReservation ? 'active' : 'pending'),
+        detail: isProposal ? 'Teklif verildi' : isSold ? 'Tamamlandı' : isReservation ? 'Opsiyonlu' : 'Bekleniyor'
     }
 
     // Step 3: Kapora
     const depositStep: Step = {
         label: 'Kapora',
-        status: paidDeposit ? 'done' : pendingDeposit ? 'active' : 'pending',
-        detail: paidDeposit
-            ? `Kapora ödendi`
-            : pendingDeposit
-                ? `Kapora bekleniyor`
-                : 'Kapora yok'
+        status: isSold ? 'done' : hasDepositPending ? 'active' : 'pending',
+        detail: hasDepositPending ? 'Bekleniyor' : isSold ? 'Tamamlandı' : '—'
     }
 
-    // Step 4: Onay / Satış
+    // Step 4: Satış
     const finalStep: Step = {
         label: 'Satış',
         status: isSold ? 'done' : 'pending',
-        detail: isSold ? 'Satış tamamlandı' : 'Satış bekleniyor'
+        detail: isSold ? 'Kapandı' : 'Bekleniyor'
     }
 
     return [unitStep, offerStep, depositStep, finalStep]
@@ -78,10 +70,8 @@ export default function SaleProcessIndicator({ sale }: SaleProcessIndicatorProps
     const completedCount = steps.filter(s => s.status === 'done').length
     const activeCount = steps.filter(s => s.status === 'active').length
 
-    // Don't show for Lost/Completed
+    // Don't show for Lost/Completed or if nothing started
     if (['Lost', 'Completed'].includes(sale.status)) return null
-
-    // If nothing has started (no unit), don't clutter
     if (completedCount === 0 && activeCount === 0) return null
 
     return (
