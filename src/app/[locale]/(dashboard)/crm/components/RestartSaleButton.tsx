@@ -16,14 +16,17 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { restartSale } from '../actions'
+import { useRouter } from 'next/navigation'
 
 interface RestartSaleButtonProps {
     saleId: string
     triggerSize?: 'xs'
+    onSuccess?: () => void
 }
 
-export function RestartSaleButton({ saleId, triggerSize }: RestartSaleButtonProps) {
+export function RestartSaleButton({ saleId, triggerSize, onSuccess }: RestartSaleButtonProps) {
     const [loading, setLoading] = useState(false)
+    const router = useRouter()
 
     const handleRestart = async () => {
         setLoading(true)
@@ -31,6 +34,8 @@ export function RestartSaleButton({ saleId, triggerSize }: RestartSaleButtonProp
             const res = await restartSale(saleId)
             if (res.success) {
                 toast.success('Yeni süreç başlatıldı')
+                router.refresh()
+                if (onSuccess) onSuccess()
             } else {
                 toast.error('Hata: ' + res.error)
             }
