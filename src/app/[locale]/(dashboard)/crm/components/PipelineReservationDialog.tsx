@@ -22,6 +22,7 @@ import { useRouter } from 'next/navigation'
 interface PipelineReservationDialogProps {
     saleId: string
     currentUnitId?: string | null
+    currentProjectId?: string | null
     customerName: string
     projects: any[]
     status?: string
@@ -36,6 +37,7 @@ interface PipelineReservationDialogProps {
 export default function PipelineReservationDialog({ 
     saleId, 
     currentUnitId, 
+    currentProjectId,
     customerName, 
     projects: projectsProp = [], 
     status, 
@@ -75,13 +77,14 @@ export default function PipelineReservationDialog({
             )
             setDepositAmount(0)
             if (!currentUnitId) {
-                setSelectedProjectId("")
+                // No unit but project exists → pre-fill project
+                setSelectedProjectId(currentProjectId || "")
                 setSelectedUnitId("")
             } else {
                 setSelectedUnitId(currentUnitId)
             }
         }
-    }, [isOpen, initialExpiryDate, currentUnitId])
+    }, [isOpen, initialExpiryDate, currentUnitId, currentProjectId])
 
     // Pre-fill project if unit is already matched
     useEffect(() => {

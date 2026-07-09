@@ -1104,10 +1104,10 @@ export default function PipelineList({
                                                              {!isCompleted && (
                                                                  <>
                                                                      {!isBroker && (['Lead', 'Prospect', 'Reservation', 'Reserved', 'Opsiyon - Kapora Bekleniyor'].includes(sale.status)) && (
-                                                                         <PipelineReservationDialog saleId={sale.id} currentUnitId={sale.unit_id} projects={projects} customerName={sale.customers?.full_name} status={sale.status} expiryDate={sale.reservation_expiry} triggerSize="xs" />
+                                                                         <PipelineReservationDialog saleId={sale.id} currentUnitId={sale.unit_id} currentProjectId={sale.project_id || sale.units?.project_id} projects={projects} customerName={sale.customers?.full_name} status={sale.status} expiryDate={sale.reservation_expiry} triggerSize="xs" />
                                                                      )}
                                                                      {!isBroker && ['Lead', 'Prospect'].includes(sale.status) && (
-                                                                         <MatchUnitDialog saleId={sale.id} currentUnitId={sale.unit_id} projects={projects} customerName={sale.customers?.full_name} triggerSize="xs" />
+                                                                         <MatchUnitDialog saleId={sale.id} currentUnitId={sale.unit_id} currentProjectId={sale.project_id || sale.units?.project_id} projects={projects} customerName={sale.customers?.full_name} triggerSize="xs" />
                                                                      )}
                                                                      {isAdvanceMode && !isBroker && ['Lead', 'Prospect', 'Reservation', 'Opsiyon - Kapora Bekleniyor'].includes(sale.status) && (
                                                                          <Button
@@ -1378,6 +1378,7 @@ export default function PipelineList({
                                                         <PipelineReservationDialog
                                                             saleId={sale.id}
                                                             currentUnitId={sale.unit_id}
+                                                            currentProjectId={sale.project_id || sale.units?.project_id}
                                                             projects={projects}
                                                             customerName={sale.customers?.full_name}
                                                             status={sale.status}
@@ -1388,6 +1389,7 @@ export default function PipelineList({
                                                         <MatchUnitDialog
                                                             saleId={sale.id}
                                                             currentUnitId={sale.unit_id}
+                                                            currentProjectId={sale.project_id || sale.units?.project_id}
                                                             customerName={sale.customers?.full_name}
                                                             projects={projects}
                                                         />

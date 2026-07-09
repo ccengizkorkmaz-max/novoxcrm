@@ -18,18 +18,31 @@ import { useTranslations } from 'next-intl'
 interface MatchUnitDialogProps {
     saleId: string
     currentUnitId?: string | null
+    currentProjectId?: string | null
     customerName: string
     projects: any[]
     triggerSize?: 'default' | 'sm' | 'xs'
 }
 
-export default function MatchUnitDialog({ saleId, currentUnitId, customerName, projects: projectsProp = [], triggerSize }: MatchUnitDialogProps) {
+export default function MatchUnitDialog({ saleId, currentUnitId, currentProjectId, customerName, projects: projectsProp = [], triggerSize }: MatchUnitDialogProps) {
     const t = useTranslations('CRM.matchUnit')
     const [isOpen, setIsOpen] = useState(false)
-    const [selectedProjectId, setSelectedProjectId] = useState("")
+    const [selectedProjectId, setSelectedProjectId] = useState(currentProjectId || "")
     const [selectedUnitId, setSelectedUnitId] = useState(currentUnitId || "")
     const [units, setUnits] = useState<any[]>([])
     const [isLoadingUnits, setIsLoadingUnits] = useState(false)
+
+    // Reset fields when dialog opens
+    useEffect(() => {
+        if (isOpen) {
+            if (!currentUnitId) {
+                setSelectedProjectId(currentProjectId || "")
+                setSelectedUnitId("")
+            } else {
+                setSelectedUnitId(currentUnitId)
+            }
+        }
+    }, [isOpen, currentUnitId, currentProjectId])
 
     // Map projects list directly from props
     const projects = useMemo(() => {
