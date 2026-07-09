@@ -4,7 +4,7 @@ import React, { useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { useSupabaseRealtime } from '@/hooks/useSupabaseRealtime'
-import toast from 'react-hot-toast'
+import { toast } from 'sonner'
 import {
     Mail,
     Calendar,
