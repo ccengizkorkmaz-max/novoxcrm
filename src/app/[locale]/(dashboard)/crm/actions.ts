@@ -2181,7 +2181,29 @@ export async function cancelReservation(saleId: string) {
         await supabase.from('units').update({ status: 'For Sale' }).eq('id', sale.unit_id)
     }
 
+    // 5. Cancel any active offers linked to this sale
+    const { data: activeOffers } = await supabase
+        .from('offers')
+        .select('id')
+        .eq('sale_id', saleId)
+        .not('status', 'in', '("Rejected","Cancelled","Expired","Lost")')
+
+    if (activeOffers && activeOffers.length > 0) {
+        await supabase
+            .from('offers')
+            .update({ status: 'Cancelled' })
+            .in('id', activeOffers.map(o => o.id))
+    }
+
+    // 6. Cancel pending deposits
+    await supabase
+        .from('deposits')
+        .update({ status: 'Cancelled' })
+        .eq('sale_id', saleId)
+        .eq('status', 'Pending')
+
     revalidatePath('/finance/deposits')
+    revalidatePath('/offers')
 
     // Broker Sync
     await syncBrokerLeadFromSale(saleId, targetStatus)
@@ -3616,4 +3638,195 @@ export async function toggleCommunication(customerId: string, enabled: boolean) 
 
     revalidatePath('/[locale]/(dashboard)/crm', 'page')
     return { error: null, enabled }
+}
+
+// ─── Quick Proposal (Hızlı Teklif) ─────────────────────────────────────────
+export async function createQuickProposal(params: {
+    saleId: string
+    unitId: string
+    projectId: string
+    offerPrice: number
+    listPrice: number
+    currency: string
+    validUntil: string
+    paymentPlanItems: any[]
+    paymentPlanTotal: number
+    depositAmount?: number
+}) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Oturum bulunamadı' }
+
+    const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single()
+    if (!profile?.tenant_id) return { error: 'Tenant bilgisi bulunamadı' }
+
+    const {
+        saleId, unitId, projectId, offerPrice, listPrice, currency,
+        validUntil, paymentPlanItems, paymentPlanTotal, depositAmount
+    } = params
+
+    try {
+        // 1. Get current sale info
+        const { data: sale } = await supabase
+            .from('sales')
+            .select('unit_id, customer_id, status, description')
+            .eq('id', saleId)
+            .single()
+
+        if (!sale) return { error: 'Satış kaydı bulunamadı' }
+
+        // 2. If unit changed, release old unit
+        if (sale.unit_id && sale.unit_id !== unitId) {
+            await supabase.from('units').update({ status: 'For Sale' }).eq('id', sale.unit_id)
+        }
+
+        // 3. Reserve the new unit
+        await supabase.from('units').update({ status: 'Reserved' }).eq('id', unitId)
+
+        // 4. Determine sale status
+        const hasDeposit = depositAmount && depositAmount > 0
+        const newStatus = hasDeposit ? 'Teklif - Kapora Bekleniyor' : 'Proposal'
+
+        // 5. Update Sale record
+        let newDescription = sale.description || ''
+        const currentStatus = sale.status
+        if (!['Reservation', 'Opsiyon - Kapora Bekleniyor', 'Proposal', 'Teklif - Kapora Bekleniyor'].includes(currentStatus)) {
+            newDescription = newDescription.replace(/\[prev_status:[^\]]+\]/g, '').trim()
+            newDescription = (newDescription ? newDescription + ' ' : '') + `[prev_status:${currentStatus}]`
+        }
+
+        await supabase.from('sales').update({
+            unit_id: unitId,
+            project_id: projectId,
+            status: newStatus,
+            reservation_expiry: validUntil,
+            final_price: paymentPlanTotal || offerPrice,
+            currency,
+            description: newDescription
+        }).eq('id', saleId)
+
+        // 6. Create Offer record
+        const { data: newOffer, error: offerError } = await supabase
+            .from('offers')
+            .insert({
+                tenant_id: profile.tenant_id,
+                user_id: user.id,
+                customer_id: sale.customer_id,
+                unit_id: unitId,
+                sale_id: saleId,
+                price: offerPrice,
+                currency,
+                status: hasDeposit ? 'Teklif - Kapora Bekleniyor' : 'Sent',
+                valid_until: validUntil,
+                payment_plan: {
+                    payment_items: paymentPlanItems,
+                    total_amount: paymentPlanTotal,
+                    installment_count: paymentPlanItems.filter((i: any) => i.payment_type === 'Installment').length,
+                    interest_amount: paymentPlanTotal > offerPrice ? paymentPlanTotal - offerPrice : 0
+                }
+            })
+            .select('id')
+            .single()
+
+        if (offerError) {
+            console.error('Quick Proposal - Offer Error:', offerError)
+            return { error: 'Teklif oluşturulamadı: ' + offerError.message }
+        }
+
+        // 7. Create initial negotiation record
+        try {
+            await supabase.from('offer_negotiations').insert({
+                offer_id: newOffer.id,
+                proposed_price: offerPrice,
+                proposed_currency: currency,
+                proposed_valid_until: validUntil,
+                proposed_payment_plan: {
+                    payment_items: paymentPlanItems,
+                    total_amount: paymentPlanTotal
+                },
+                proposed_by: user.id,
+                source: 'Sales',
+                status: 'Pending',
+                notes: 'Hızlı Teklif'
+            })
+        } catch (e) {
+            console.error('Quick Proposal - Negotiation record error:', e)
+        }
+
+        // 8. Create Payment Plan (structured)
+        await createPaymentPlan(saleId, paymentPlanItems, paymentPlanTotal, currency)
+
+        // 9. Create Deposit if needed
+        if (hasDeposit) {
+            await supabase
+                .from('deposits')
+                .update({ status: 'Cancelled' })
+                .eq('sale_id', saleId)
+                .in('status', ['Pending', 'Refund Pending'])
+
+            const { error: depositError } = await supabase.from('deposits').insert({
+                tenant_id: profile.tenant_id,
+                customer_id: sale.customer_id,
+                sale_id: saleId,
+                offer_id: newOffer.id,
+                amount: depositAmount,
+                currency,
+                status: 'Pending'
+            })
+            if (depositError) {
+                console.error('Quick Proposal - Deposit Error:', depositError)
+            }
+        }
+
+        // 10. Sync Opportunity stage
+        try {
+            let oppQuery = supabase
+                .from('opportunities')
+                .update({
+                    stage: 'proposal',
+                    project_id: projectId,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('tenant_id', profile.tenant_id)
+                .eq('customer_id', sale.customer_id)
+
+            if (projectId) {
+                oppQuery = oppQuery.eq('project_id', projectId)
+            }
+
+            await oppQuery
+        } catch (e) {
+            console.error('Quick Proposal - Opportunity sync error:', e)
+        }
+
+        // 11. Create Notification
+        const { data: customer } = await supabase.from('customers').select('full_name').eq('id', sale.customer_id).single()
+        const { data: unit } = await supabase.from('units').select('unit_number, block, projects(name)').eq('id', unitId).single()
+
+        createNotification({
+            tenant_id: profile.tenant_id,
+            type: 'Info',
+            category: 'CRM',
+            title: '📋 Hızlı Teklif Oluşturuldu',
+            // @ts-ignore
+            message: `${customer?.full_name || 'Müşteri'} - ${unit?.projects?.name || ''} ${unit?.block || ''} ${unit?.unit_number || ''} için teklif oluşturuldu. Geçerlilik: ${new Date(validUntil).toLocaleDateString('tr-TR')}`,
+            link: '/offers'
+        }).catch(console.error)
+
+        // 12. Broker sync
+        await syncBrokerLeadFromSale(saleId, newStatus)
+
+        // 13. Revalidate all related paths
+        revalidatePath('/crm')
+        revalidatePath('/offers')
+        revalidatePath('/options')
+        revalidatePath('/inventory')
+        revalidatePath('/finance/deposits')
+        revalidatePath('/opportunities')
+
+        return { success: true, offerId: newOffer.id }
+    } catch (err: any) {
+        console.error('Quick Proposal Error:', err)
+        return { error: 'Hızlı teklif oluşturulurken hata: ' + err.message }
+    }
 }

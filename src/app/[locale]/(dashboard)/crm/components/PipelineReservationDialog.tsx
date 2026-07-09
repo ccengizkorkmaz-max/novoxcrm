@@ -196,10 +196,31 @@ export default function PipelineReservationDialog({
     }
 
     const handleCancelReservation = async () => {
+        // Check if there are active offers linked to this sale
+        const { createClient: createBrowserClient } = await import('@/lib/supabase/client')
+        const supabase = createBrowserClient()
+        const { data: activeOffers } = await supabase
+            .from('offers')
+            .select('id, offer_number')
+            .eq('sale_id', saleId)
+            .not('status', 'in', '("Rejected","Cancelled","Expired","Lost")')
+
+        if (activeOffers && activeOffers.length > 0) {
+            const offerNumbers = activeOffers.map(o => o.offer_number || o.id.slice(0, 6)).join(', ')
+            const confirmed = window.confirm(
+                `Bu satışa bağlı aktif teklif bulundu (${offerNumbers}).\n\nOpsiyonu iptal ederseniz ilişkili teklif(ler) de iptal edilecektir.\n\nDevam etmek istiyor musunuz?`
+            )
+            if (!confirmed) return
+        }
+
         const res = await cancelReservation(saleId)
         if (res.success) {
             setIsOpen(false)
-            toast.success(t('successCancel'))
+            if (res.message) {
+                toast.info(res.message)
+            } else {
+                toast.success(t('successCancel'))
+            }
             router.refresh()
             if (onSuccess) onSuccess()
         } else {

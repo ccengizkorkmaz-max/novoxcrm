@@ -46,6 +46,8 @@ const PaymentPlanCalculator = dynamic(() => import('./PaymentPlanCalculator'), {
 const MatchUnitDialog = dynamic(() => import('./MatchUnitDialog'), { ssr: false })
 const PipelineReservationDialog = dynamic(() => import('./PipelineReservationDialog'), { ssr: false })
 const PipelineProposalDialog = dynamic(() => import('./PipelineProposalDialog'), { ssr: false })
+const QuickProposalDialog = dynamic(() => import('./QuickProposalDialog'), { ssr: false })
+import SaleProcessIndicator from './SaleProcessIndicator'
 
 const AiMatchDialog = dynamic(() => import('@/components/customers/AiMatchDialog').then(m => m.AiMatchDialog), { ssr: false })
 const ActivityForm = dynamic(() => import('@/components/activities/activity-form').then(m => m.ActivityForm), { ssr: false })
@@ -369,6 +371,17 @@ export default function PipelineList({
         projectId?: string | null
     } | null>(null)
     const [proposalOpen, setProposalOpen] = useState(false)
+
+    // Quick Proposal Dialog State
+    const [quickProposalSale, setQuickProposalSale] = useState<{
+        saleId: string
+        customerName: string
+        unitId?: string | null
+        projectId?: string | null
+        totalAmount: number
+        initialCurrency: string
+    } | null>(null)
+    const [quickProposalOpen, setQuickProposalOpen] = useState(false)
 
     // Lost Dialog State
     const [lostDialogOpen, setLostDialogOpen] = useState(false)
@@ -924,9 +937,12 @@ export default function PipelineList({
                                                                         <span>{statusLabel}</span>
                                                                     </div>
                                                                 ) : (
-                                                                    <div className={cn("inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-semibold gap-1.5 shadow-sm w-full justify-center", getStatusColor(sale.status))}>
-                                                                        <div className={cn("h-1.5 w-1.5 rounded-full shrink-0", getStatusDotColor(sale.status))} />
-                                                                        <span>{statusLabel}</span>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <div className={cn("inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-semibold gap-1.5 shadow-sm w-full justify-center", getStatusColor(sale.status))}>
+                                                                            <div className={cn("h-1.5 w-1.5 rounded-full shrink-0", getStatusDotColor(sale.status))} />
+                                                                            <span>{statusLabel}</span>
+                                                                        </div>
+                                                                        <SaleProcessIndicator sale={sale} />
                                                                     </div>
                                                                 )
                                                             ) : isCompleted ? (
@@ -1109,26 +1125,36 @@ export default function PipelineList({
                                                                      {!isBroker && ['Lead', 'Prospect'].includes(sale.status) && (
                                                                          <MatchUnitDialog saleId={sale.id} currentUnitId={sale.unit_id} currentProjectId={sale.project_id || sale.units?.project_id} projects={projects} customerName={sale.customers?.full_name} triggerSize="xs" />
                                                                      )}
-                                                                     {isAdvanceMode && !isBroker && ['Lead', 'Prospect', 'Reservation', 'Opsiyon - Kapora Bekleniyor'].includes(sale.status) && (
-                                                                         <Button
-                                                                             variant="outline"
-                                                                             size="sm"
-                                                                             className="h-6 text-[10px] border-cyan-200 bg-cyan-50/50 hover:bg-cyan-100 hover:text-cyan-700 text-cyan-600 font-semibold px-2 flex items-center gap-1 shadow-sm transition-all"
-                                                                             onClick={() => {
-                                                                                 setProposalSale({
-                                                                                     saleId: sale.id,
-                                                                                     customerName: sale.customers?.full_name || '',
-                                                                                     totalAmount: sale.final_price || sale.units?.price || 0,
-                                                                                     initialCurrency: sale.currency || sale.units?.currency || 'TRY',
-                                                                                     projectId: sale.units?.project_id || sale.project_id
-                                                                                 })
-                                                                                 setProposalOpen(true)
-                                                                             }}
-                                                                             title="Teklif Ver"
-                                                                         >
-                                                                             <Send className="w-2.5 h-2.5" /> Teklif
-                                                                         </Button>
-                                                                     )}
+                                                                     {isAdvanceMode && !isBroker && !['Lost', 'Completed', 'Sold'].includes(sale.status) && (
+                                                                          <Button
+                                                                              variant="outline"
+                                                                              size="sm"
+                                                                              className="h-6 text-[10px] border-cyan-200 bg-cyan-50/50 hover:bg-cyan-100 hover:text-cyan-700 text-cyan-600 font-semibold px-2 flex items-center gap-1 shadow-sm transition-all"
+                                                                              onClick={() => {
+                                                                                  const activeOffer = (sale as any).offers?.find((o: any) => !['Rejected', 'Cancelled', 'Expired', 'Lost'].includes(o.status))
+                                                                                  if (activeOffer) {
+                                                                                      router.push(`/${locale}/offers?highlight=${activeOffer.id}`)
+                                                                                      return
+                                                                                  }
+                                                                                  if (['Reservation', 'Opsiyon - Kapora Bekleniyor'].includes(sale.status)) {
+                                                                                      router.push(`/${locale}/options?highlight=${sale.id}`)
+                                                                                      return
+                                                                                  }
+                                                                                  setQuickProposalSale({
+                                                                                      saleId: sale.id,
+                                                                                      customerName: sale.customers?.full_name || '',
+                                                                                      unitId: sale.unit_id,
+                                                                                      projectId: sale.project_id || (sale.units as any)?.projects?.id,
+                                                                                      totalAmount: sale.final_price || sale.units?.price || 0,
+                                                                                      initialCurrency: sale.currency || sale.units?.currency || 'TRY'
+                                                                                  })
+                                                                                  setQuickProposalOpen(true)
+                                                                              }}
+                                                                              title="Teklif Ver"
+                                                                          >
+                                                                              <Send className="w-2.5 h-2.5" /> Teklif
+                                                                          </Button>
+                                                                      )}
                                                                      {isAdvanceMode && !isBroker && ['Proposal', 'Teklif - Kapora Bekleniyor', 'Negotiation'].includes(sale.status) && (
                                                                          <Button
                                                                              variant="outline"
@@ -1823,6 +1849,27 @@ export default function PipelineList({
                     onOpenChange={(open) => {
                         setProposalOpen(open)
                         if (!open) setProposalSale(null)
+                    }}
+                    onSuccess={() => {
+                        router.refresh()
+                    }}
+                />
+            )}
+
+            {quickProposalSale && (
+                <QuickProposalDialog
+                    saleId={quickProposalSale.saleId}
+                    customerName={quickProposalSale.customerName}
+                    currentUnitId={quickProposalSale.unitId}
+                    currentProjectId={quickProposalSale.projectId}
+                    projects={projects}
+                    totalAmount={quickProposalSale.totalAmount}
+                    initialCurrency={quickProposalSale.initialCurrency}
+                    templates={templates}
+                    isOpen={quickProposalOpen}
+                    onOpenChange={(open) => {
+                        setQuickProposalOpen(open)
+                        if (!open) setQuickProposalSale(null)
                     }}
                     onSuccess={() => {
                         router.refresh()
