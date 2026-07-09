@@ -606,7 +606,7 @@ export async function deleteAllArchivedItems() {
     }
 }
 
-export async function bulkApproveProjectInfoRequests() {
+export async function getBulkApproveTargetIds() {
     try {
         const supabase = await createClient()
         const { data: { user } } = await supabase.auth.getUser()
@@ -623,46 +623,24 @@ export async function bulkApproveProjectInfoRequests() {
             .select('id')
             .eq('tenant_id', profile.tenant_id)
             .eq('status', 'pending')
-            .ilike('message', '%Proje Bilgi Talep Formu%')
+            .or('message.ilike.%Proje Bilgi Talep Formu%,email.eq.web@novosirketlergrubu.com')
 
         if (fetchError) {
-            console.error('Error fetching bulk items:', fetchError)
+            console.error('Error fetching bulk target ids:', fetchError)
             return { success: false, error: fetchError.message }
         }
 
-        if (!items || items.length === 0) {
-            return { success: true, count: 0, message: 'Aktarılacak uygun kayıt bulunamadı.' }
-        }
-
-        let approvedCount = 0
-        let errorCount = 0
-
-        for (const item of items) {
-            const res = await approveInboxItem(item.id)
-            if (res.success) {
-                approvedCount++
-            } else {
-                errorCount++
-                console.error(`Bulk approve failed for item ${item.id}:`, res.error)
-            }
-        }
-
-        revalidatePath('/[locale]/(dashboard)/inbox')
-        revalidatePath('/[locale]/(dashboard)/leads')
-
         return {
             success: true,
-            count: approvedCount,
-            errors: errorCount,
-            message: `${approvedCount} adet kayıt başarıyla CRM'e aktarıldı.${errorCount > 0 ? ` (${errorCount} kayıt aktarılamadı)` : ''}`
+            ids: (items || []).map(i => i.id)
         }
     } catch (error: any) {
-        console.error('Server error in bulk approval:', error)
+        console.error('Server error fetching bulk target ids:', error)
         return { success: false, error: error.message || 'Unknown error' }
     }
 }
 
-export async function bulkArchiveNonProjectInfoRequests() {
+export async function getBulkArchiveTargetIds() {
     try {
         const supabase = await createClient()
         const { data: { user } } = await supabase.auth.getUser()
@@ -674,31 +652,25 @@ export async function bulkArchiveNonProjectInfoRequests() {
         const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single()
         if (!profile) return { success: false, error: 'Profile not found' }
 
-        const { error, count } = await supabase
+        const { data: items, error: fetchError } = await supabase
             .from('inbox_items')
-            .update({
-                status: 'rejected',
-                rejected_at: new Date().toISOString(),
-                rejected_by: user.id
-            }, { count: 'exact' })
+            .select('id')
             .eq('tenant_id', profile.tenant_id)
             .eq('status', 'pending')
             .not('message', 'ilike', '%Proje Bilgi Talep Formu%')
+            .not('email', 'eq', 'web@novosirketlergrubu.com')
 
-        if (error) {
-            console.error('Error in bulk archive:', error)
-            return { success: false, error: error.message }
+        if (fetchError) {
+            console.error('Error fetching bulk archive target ids:', fetchError)
+            return { success: false, error: fetchError.message }
         }
-
-        revalidatePath('/[locale]/(dashboard)/inbox')
 
         return {
             success: true,
-            count: count || 0,
-            message: `${count || 0} adet ilgisiz kayıt başarıyla arşive taşındı.`
+            ids: (items || []).map(i => i.id)
         }
     } catch (error: any) {
-        console.error('Server error in bulk archiving:', error)
+        console.error('Server error fetching bulk archive target ids:', error)
         return { success: false, error: error.message || 'Unknown error' }
     }
 }

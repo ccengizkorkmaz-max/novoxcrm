@@ -22,7 +22,7 @@ import {
     Square,
     Filter
 } from 'lucide-react'
-import { approveInboxItem, rejectInboxItem, deleteArchivedItems, deleteAllArchivedItems, bulkApproveProjectInfoRequests, bulkArchiveNonProjectInfoRequests } from '../actions'
+import { approveInboxItem, rejectInboxItem, deleteArchivedItems, deleteAllArchivedItems, getBulkApproveTargetIds, getBulkArchiveTargetIds } from '../actions'
 import { startOfDay, startOfWeek, startOfMonth, subDays, isAfter, isEqual } from 'date-fns'
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -128,133 +128,142 @@ export function InboxList({ initialItems, archivedItems = [], pendingCount, arch
     const [progressError, setProgressError] = useState(0)
     const [progressType, setProgressType] = useState<'approve' | 'archive'>('approve')
 
-    const handleBulkApprove = () => {
-        const targetItems = initialItems.filter(item => 
-            item.status === 'pending' && 
-            (getDisplayMessage(item.message).toLowerCase().includes('proje bilgi talep formu') || 
-             item.email === 'web@novosirketlergrubu.com')
-        )
+    const handleBulkApprove = async () => {
+        setBulkApproving(true)
+        try {
+            const res = await getBulkApproveTargetIds()
+            if (!res.success || !res.ids || res.ids.length === 0) {
+                toast.error("Aktarılacak uygun kayıt bulunamadı.")
+                setBulkApproving(false)
+                return
+            }
 
-        if (targetItems.length === 0) {
-            toast.error("Aktarılacak uygun kayıt bulunamadı.")
-            return
-        }
+            const targetIds = res.ids
+            setBulkApproving(false) // Reset loading state for confirm stage
 
-        toast(`Uygun ${targetItems.length} bekleyen kayıt crm'e aktarılsın mı?`, {
-            duration: 15000,
-            action: {
-                label: "Evet, Aktar",
-                onClick: async () => {
-                    setProgressTotal(targetItems.length)
-                    setProgressCurrent(0)
-                    setProgressSuccess(0)
-                    setProgressError(0)
-                    setProgressType('approve')
-                    setShowProgressModal(true)
-                    setBulkApproving(true)
+            toast(`Uygun ${targetIds.length} bekleyen kayıt crm'e aktarılsın mı?`, {
+                duration: 15000,
+                action: {
+                    label: "Evet, Aktar",
+                    onClick: async () => {
+                        setProgressTotal(targetIds.length)
+                        setProgressCurrent(0)
+                        setProgressSuccess(0)
+                        setProgressError(0)
+                        setProgressType('approve')
+                        setShowProgressModal(true)
+                        setBulkApproving(true)
 
-                    let approvedCount = 0
-                    let errorCount = 0
+                        let approvedCount = 0
+                        let errorCount = 0
 
-                    for (let i = 0; i < targetItems.length; i++) {
-                        const item = targetItems[i]
-                        // Update current state dynamically
-                        setProgressCurrent(i + 1)
-                        
-                        try {
-                            const res = await approveInboxItem(item.id)
-                            if (res.success) {
-                                approvedCount++
-                                setProgressSuccess(approvedCount)
-                            } else {
+                        for (let i = 0; i < targetIds.length; i++) {
+                            const itemId = targetIds[i]
+                            setProgressCurrent(i + 1)
+                            
+                            try {
+                                const approveRes = await approveInboxItem(itemId)
+                                if (approveRes.success) {
+                                    approvedCount++
+                                    setProgressSuccess(approvedCount)
+                                } else {
+                                    errorCount++
+                                    setProgressError(errorCount)
+                                    console.error(`Bulk approve failed for item ${itemId}:`, approveRes.error)
+                                }
+                            } catch (err) {
                                 errorCount++
                                 setProgressError(errorCount)
-                                console.error(`Bulk approve failed for item ${item.id}:`, res.error)
                             }
-                        } catch (err) {
-                            errorCount++
-                            setProgressError(errorCount)
                         }
-                    }
 
-                    setBulkApproving(false)
-                    toast.success(`${approvedCount} adet kayıt başarıyla CRM'e aktarıldı.${errorCount > 0 ? ` (${errorCount} hata)` : ''}`)
-                    
-                    setTimeout(() => {
-                        setShowProgressModal(false)
-                        router.refresh()
-                    }, 2000)
+                        setBulkApproving(false)
+                        toast.success(`${approvedCount} adet kayıt başarıyla CRM'e aktarıldı.${errorCount > 0 ? ` (${errorCount} hata)` : ''}`)
+                        
+                        setTimeout(() => {
+                            setShowProgressModal(false)
+                            router.refresh()
+                        }, 2000)
+                    }
+                },
+                cancel: {
+                    label: "Vazgeç",
+                    onClick: () => {}
                 }
-            },
-            cancel: {
-                label: "Vazgeç",
-                onClick: () => {}
-            }
-        })
+            })
+        } catch (err: any) {
+            setBulkApproving(false)
+            toast.error(err.message || 'Hedef kayıtlar çekilirken hata oluştu')
+        }
     }
 
-    const handleBulkArchive = () => {
-        const targetItems = initialItems.filter(item => 
-            item.status === 'pending' && 
-            !(getDisplayMessage(item.message).toLowerCase().includes('proje bilgi talep formu') || 
-              item.email === 'web@novosirketlergrubu.com')
-        )
+    const handleBulkArchive = async () => {
+        setBulkArchiving(true)
+        try {
+            const res = await getBulkArchiveTargetIds()
+            if (!res.success || !res.ids || res.ids.length === 0) {
+                toast.error("Arşivlenecek uygun kayıt bulunamadı.")
+                setBulkArchiving(false)
+                return
+            }
 
-        if (targetItems.length === 0) {
-            toast.error("Arşivlenecek uygun kayıt bulunamadı.")
-            return
-        }
+            const targetIds = res.ids
+            setBulkArchiving(false)
 
-        toast(`Diğer ilgisiz ${targetItems.length} bekleyen mesaj arşive taşınsın mı?`, {
-            duration: 15000,
-            action: {
-                label: "Evet, Arşivle",
-                onClick: async () => {
-                    setProgressTotal(targetItems.length)
-                    setProgressCurrent(0)
-                    setProgressSuccess(0)
-                    setProgressError(0)
-                    setProgressType('archive')
-                    setShowProgressModal(true)
-                    setBulkArchiving(true)
+            toast(`Diğer ilgisiz ${targetIds.length} bekleyen mesaj arşive taşınsın mı?`, {
+                duration: 15000,
+                action: {
+                    label: "Evet, Arşivle",
+                    onClick: async () => {
+                        setProgressTotal(targetIds.length)
+                        setProgressCurrent(0)
+                        setProgressSuccess(0)
+                        setProgressError(0)
+                        setProgressType('archive')
+                        setShowProgressModal(true)
+                        setBulkArchiving(true)
 
-                    let archivedCount = 0
-                    let errorCount = 0
+                        let archivedCount = 0
+                        let errorCount = 0
 
-                    for (let i = 0; i < targetItems.length; i++) {
-                        const item = targetItems[i]
-                        setProgressCurrent(i + 1)
-                        
-                        try {
-                            const res = await rejectInboxItem(item.id)
-                            if (res.success) {
-                                archivedCount++
-                                setProgressSuccess(archivedCount)
-                            } else {
+                        for (let i = 0; i < targetIds.length; i++) {
+                            const itemId = targetIds[i]
+                            setProgressCurrent(i + 1)
+                            
+                            try {
+                                const archiveRes = await rejectInboxItem(itemId)
+                                if (archiveRes.success) {
+                                    archivedCount++
+                                    setProgressSuccess(archivedCount)
+                                } else {
+                                    errorCount++
+                                    setProgressError(errorCount)
+                                    console.error(`Bulk archive failed for item ${itemId}:`, archiveRes.error)
+                                }
+                            } catch (err) {
                                 errorCount++
                                 setProgressError(errorCount)
-                                console.error(`Bulk archive failed for item ${item.id}:`, res.error)
                             }
-                        } catch (err) {
-                            errorCount++
-                            setProgressError(errorCount)
                         }
-                    }
 
-                    setBulkArchiving(false)
-                    toast.success(`${archivedCount} adet ilgisiz kayıt başarıyla arşive taşındı.${errorCount > 0 ? ` (${errorCount} hata)` : ''}`)
-                    
-                    setTimeout(() => {
-                        setShowProgressModal(false)
-                        router.refresh()
-                    }, 2000)
+                        setBulkArchiving(false)
+                        toast.success(`${archivedCount} adet ilgisiz kayıt başarıyla arşive taşındı.${errorCount > 0 ? ` (${errorCount} hata)` : ''}`)
+                        
+                        setTimeout(() => {
+                            setShowProgressModal(false)
+                            router.refresh()
+                        }, 2000)
+                    }
+                },
+                cancel: {
+                    label: "Vazgeç",
+                    onClick: () => {}
                 }
-            },
-            cancel: {
-                label: "Vazgeç",
-                onClick: () => {}
-            }
-        })
+            })
+        } catch (err: any) {
+            setBulkArchiving(false)
+            toast.error(err.message || 'Hedef kayıtlar çekilirken hata oluştu')
+        }
     }
 
     React.useEffect(() => {
