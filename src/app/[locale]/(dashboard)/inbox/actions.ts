@@ -605,3 +605,59 @@ export async function deleteAllArchivedItems() {
         return { success: false, error: error.message || 'Unknown error' }
     }
 }
+
+export async function bulkApproveProjectInfoRequests() {
+    try {
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+
+        if (!user) {
+            return { success: false, error: 'Unauthorized' }
+        }
+
+        const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single()
+        if (!profile) return { success: false, error: 'Profile not found' }
+
+        const { data: items, error: fetchError } = await supabase
+            .from('inbox_items')
+            .select('id')
+            .eq('tenant_id', profile.tenant_id)
+            .eq('status', 'pending')
+            .ilike('message', '%Proje Bilgi Talep Formu%')
+
+        if (fetchError) {
+            console.error('Error fetching bulk items:', fetchError)
+            return { success: false, error: fetchError.message }
+        }
+
+        if (!items || items.length === 0) {
+            return { success: true, count: 0, message: 'Aktarılacak uygun kayıt bulunamadı.' }
+        }
+
+        let approvedCount = 0
+        let errorCount = 0
+
+        for (const item of items) {
+            const res = await approveInboxItem(item.id)
+            if (res.success) {
+                approvedCount++
+            } else {
+                errorCount++
+                console.error(`Bulk approve failed for item ${item.id}:`, res.error)
+            }
+        }
+
+        revalidatePath('/[locale]/(dashboard)/inbox')
+        revalidatePath('/[locale]/(dashboard)/leads')
+
+        return {
+            success: true,
+            count: approvedCount,
+            errors: errorCount,
+            message: `${approvedCount} adet kayıt başarıyla CRM'e aktarıldı.${errorCount > 0 ? ` (${errorCount} kayıt aktarılamadı)` : ''}`
+        }
+    } catch (error: any) {
+        console.error('Server error in bulk approval:', error)
+        return { success: false, error: error.message || 'Unknown error' }
+    }
+}

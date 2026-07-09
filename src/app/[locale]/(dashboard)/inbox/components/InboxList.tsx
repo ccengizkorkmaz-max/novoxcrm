@@ -22,7 +22,7 @@ import {
     Square,
     Filter
 } from 'lucide-react'
-import { approveInboxItem, rejectInboxItem, deleteArchivedItems, deleteAllArchivedItems } from '../actions'
+import { approveInboxItem, rejectInboxItem, deleteArchivedItems, deleteAllArchivedItems, bulkApproveProjectInfoRequests } from '../actions'
 import { startOfDay, startOfWeek, startOfMonth, subDays, isAfter, isEqual } from 'date-fns'
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -118,6 +118,26 @@ export function InboxList({ initialItems, archivedItems = [], pendingCount, arch
     useSupabaseRealtime({ table: 'inbox_items' })
 
     const [scanning, setScanning] = useState(false)
+    const [bulkApproving, setBulkApproving] = useState(false)
+
+    const handleBulkApprove = async () => {
+        if (window.confirm("Mesajında 'Proje Bilgi Talep Formu' geçen tüm bekleyen kayıtlar otomatik olarak CRM'e aktarılacaktır. Devam etmek istiyor musunuz?")) {
+            setBulkApproving(true)
+            try {
+                const res = await bulkApproveProjectInfoRequests()
+                if (res.success) {
+                    toast.success(res.message || 'Kayıtlar başarıyla aktarıldı')
+                    router.refresh()
+                } else {
+                    toast.error(res.error || 'İşlem başarısız oldu')
+                }
+            } catch (err: any) {
+                toast.error(err.message || 'Bir hata oluştu')
+            } finally {
+                setBulkApproving(false)
+            }
+        }
+    }
 
     // Automatically refresh on mount
     React.useEffect(() => {
@@ -420,12 +440,23 @@ export function InboxList({ initialItems, archivedItems = [], pendingCount, arch
 
             <Card className="overflow-hidden border-slate-200 shadow-sm relative">
                 {activeTab === 'pending' && (
-                    <div className="absolute top-3 right-3 z-10">
+                    <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleBulkApprove}
+                            disabled={bulkApproving || scanning}
+                            className="h-8 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[10px] uppercase tracking-wider transition-all shadow-md shadow-emerald-100 flex items-center gap-1.5 border-none active:scale-95"
+                            title="Proje Bilgi Talep Formu yazan tüm kayıtları otomatik crm'e aktarır"
+                        >
+                            <Wand2 className={`h-3.5 w-3.5 ${bulkApproving ? 'animate-pulse' : ''}`} />
+                            {bulkApproving ? 'Aktarılıyor...' : 'CRM Toplu Aktarım'}
+                        </Button>
                         <Button
                             variant="outline"
                             size="sm"
                             onClick={handleRefresh}
-                            disabled={scanning}
+                            disabled={scanning || bulkApproving}
                             className="h-8 w-8 p-0 rounded-full bg-white/80 backdrop-blur-sm border-slate-200 hover:bg-white hover:border-blue-300 hover:text-blue-600 transition-all shadow-sm"
                             title="Taramayı Başlat (Yeni Mailler ve Formlar)"
                         >
