@@ -419,6 +419,46 @@ export function InboxList({ initialItems, archivedItems = [], pendingCount, arch
                 </div>
             </div>
 
+            {/* Pending toolbar */}
+            {activeTab === 'pending' && (
+                <div className="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5">
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleBulkApprove}
+                            disabled={bulkApproving || bulkArchiving || scanning}
+                            className="h-9 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-wider transition-all shadow-md shadow-emerald-100 flex items-center gap-2 border-none active:scale-95"
+                            title="Proje Bilgi Talep Formu yazan tüm kayıtları otomatik crm'e aktarır"
+                        >
+                            <Wand2 className={`h-4 w-4 ${bulkApproving ? 'animate-pulse' : ''}`} />
+                            {bulkApproving ? 'Aktarılıyor...' : 'CRM Toplu Aktarım'}
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleBulkArchive}
+                            disabled={bulkArchiving || bulkApproving || scanning}
+                            className="h-9 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-black text-xs uppercase tracking-wider transition-all shadow-md shadow-amber-100 flex items-center gap-2 border-none active:scale-95"
+                            title="Proje Bilgi Talep Formu dışındaki tüm mesajları arşive taşır"
+                        >
+                            <Archive className="h-4 w-4" />
+                            {bulkArchiving ? 'Arşivleniyor...' : 'Temizle & Arşivle'}
+                        </Button>
+                    </div>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleRefresh}
+                        disabled={scanning || bulkApproving || bulkArchiving}
+                        className="h-9 w-9 p-0 rounded-xl bg-white border-slate-200 hover:bg-slate-50 hover:text-blue-600 transition-all shadow-sm flex items-center justify-center"
+                        title="Taramayı Başlat (Yeni Mailler ve Formlar)"
+                    >
+                        <RefreshCw className={`h-4 w-4 ${scanning ? 'animate-spin' : ''}`} />
+                    </Button>
+                </div>
+            )}
+
             {/* Archive toolbar */}
             {activeTab === 'archive' && archivedItems.length > 0 && (
                 <div className="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5">
@@ -458,42 +498,6 @@ export function InboxList({ initialItems, archivedItems = [], pendingCount, arch
             )}
 
             <Card className="overflow-hidden border-slate-200 shadow-sm relative">
-                {activeTab === 'pending' && (
-                    <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handleBulkApprove}
-                            disabled={bulkApproving || bulkArchiving || scanning}
-                            className="h-8 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[10px] uppercase tracking-wider transition-all shadow-md shadow-emerald-100 flex items-center gap-1.5 border-none active:scale-95"
-                            title="Proje Bilgi Talep Formu yazan tüm kayıtları otomatik crm'e aktarır"
-                        >
-                            <Wand2 className={`h-3.5 w-3.5 ${bulkApproving ? 'animate-pulse' : ''}`} />
-                            {bulkApproving ? 'Aktarılıyor...' : 'CRM Toplu Aktarım'}
-                        </Button>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handleBulkArchive}
-                            disabled={bulkArchiving || bulkApproving || scanning}
-                            className="h-8 px-3 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-black text-[10px] uppercase tracking-wider transition-all shadow-md shadow-amber-100 flex items-center gap-1.5 border-none active:scale-95"
-                            title="Proje Bilgi Talep Formu dışındaki tüm mesajları arşive taşır"
-                        >
-                            <Archive className="h-3.5 w-3.5" />
-                            {bulkArchiving ? 'Arşivleniyor...' : 'Temizle & Arşivle'}
-                        </Button>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handleRefresh}
-                            disabled={scanning || bulkApproving || bulkArchiving}
-                            className="h-8 w-8 p-0 rounded-full bg-white/80 backdrop-blur-sm border-slate-200 hover:bg-white hover:border-blue-300 hover:text-blue-600 transition-all shadow-sm"
-                            title="Taramayı Başlat (Yeni Mailler ve Formlar)"
-                        >
-                            <RefreshCw className={`h-4 w-4 ${scanning ? 'animate-spin' : ''}`} />
-                        </Button>
-                    </div>
-                )}
                 <CardContent className="p-0">
                     {currentItems.length === 0 ? (
                         <div className="py-12 flex flex-col items-center justify-center text-muted-foreground bg-slate-50/50">
