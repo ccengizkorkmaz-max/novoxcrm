@@ -116,49 +116,147 @@ export function InboxList({ initialItems, archivedItems = [], pendingCount, arch
 
     // Real-time updates
     useSupabaseRealtime({ table: 'inbox_items' })
-
     const [scanning, setScanning] = useState(false)
     const [bulkApproving, setBulkApproving] = useState(false)
-
-    const handleBulkApprove = async () => {
-        if (window.confirm("Mesajında 'Proje Bilgi Talep Formu' geçen tüm bekleyen kayıtlar otomatik olarak CRM'e aktarılacaktır. Devam etmek istiyor musunuz?")) {
-            setBulkApproving(true)
-            try {
-                const res = await bulkApproveProjectInfoRequests()
-                if (res.success) {
-                    toast.success(res.message || 'Kayıtlar başarıyla aktarıldı')
-                    router.refresh()
-                } else {
-                    toast.error(res.error || 'İşlem başarısız oldu')
-                }
-            } catch (err: any) {
-                toast.error(err.message || 'Bir hata oluştu')
-            } finally {
-                setBulkApproving(false)
-            }
-        }
-    }
-
     const [bulkArchiving, setBulkArchiving] = useState(false)
 
-    const handleBulkArchive = async () => {
-        if (window.confirm("Proje Bilgi Talep Formu dışındaki tüm bekleyen mesajlar arşive taşınacaktır. Devam etmek istiyor musunuz?")) {
-            setBulkArchiving(true)
-            try {
-                const res = await bulkArchiveNonProjectInfoRequests()
-                if (res.success) {
-                    toast.success(res.message || 'Kayıtlar arşive taşındı')
-                    router.refresh()
-                } else {
-                    toast.error(res.error || 'İşlem başarısız oldu')
-                }
-            } catch (err: any) {
-                toast.error(err.message || 'Bir hata oluştu')
-            } finally {
-                setBulkArchiving(false)
-            }
+    // Progress Modal states
+    const [showProgressModal, setShowProgressModal] = useState(false)
+    const [progressTotal, setProgressTotal] = useState(0)
+    const [progressCurrent, setProgressCurrent] = useState(0)
+    const [progressSuccess, setProgressSuccess] = useState(0)
+    const [progressError, setProgressError] = useState(0)
+    const [progressType, setProgressType] = useState<'approve' | 'archive'>('approve')
+
+    const handleBulkApprove = () => {
+        const targetItems = initialItems.filter(item => 
+            item.status === 'pending' && 
+            (getDisplayMessage(item.message).toLowerCase().includes('proje bilgi talep formu') || 
+             item.email === 'web@novosirketlergrubu.com')
+        )
+
+        if (targetItems.length === 0) {
+            toast.error("Aktarılacak uygun kayıt bulunamadı.")
+            return
         }
+
+        toast(`Uygun ${targetItems.length} bekleyen kayıt crm'e aktarılsın mı?`, {
+            duration: 15000,
+            action: {
+                label: "Evet, Aktar",
+                onClick: async () => {
+                    setProgressTotal(targetItems.length)
+                    setProgressCurrent(0)
+                    setProgressSuccess(0)
+                    setProgressError(0)
+                    setProgressType('approve')
+                    setShowProgressModal(true)
+                    setBulkApproving(true)
+
+                    let approvedCount = 0
+                    let errorCount = 0
+
+                    for (let i = 0; i < targetItems.length; i++) {
+                        const item = targetItems[i]
+                        // Update current state dynamically
+                        setProgressCurrent(i + 1)
+                        
+                        try {
+                            const res = await approveInboxItem(item.id)
+                            if (res.success) {
+                                approvedCount++
+                                setProgressSuccess(approvedCount)
+                            } else {
+                                errorCount++
+                                setProgressError(errorCount)
+                                console.error(`Bulk approve failed for item ${item.id}:`, res.error)
+                            }
+                        } catch (err) {
+                            errorCount++
+                            setProgressError(errorCount)
+                        }
+                    }
+
+                    setBulkApproving(false)
+                    toast.success(`${approvedCount} adet kayıt başarıyla CRM'e aktarıldı.${errorCount > 0 ? ` (${errorCount} hata)` : ''}`)
+                    
+                    setTimeout(() => {
+                        setShowProgressModal(false)
+                        router.refresh()
+                    }, 2000)
+                }
+            },
+            cancel: {
+                label: "Vazgeç",
+                onClick: () => {}
+            }
+        })
     }
+
+    const handleBulkArchive = () => {
+        const targetItems = initialItems.filter(item => 
+            item.status === 'pending' && 
+            !(getDisplayMessage(item.message).toLowerCase().includes('proje bilgi talep formu') || 
+              item.email === 'web@novosirketlergrubu.com')
+        )
+
+        if (targetItems.length === 0) {
+            toast.error("Arşivlenecek uygun kayıt bulunamadı.")
+            return
+        }
+
+        toast(`Diğer ilgisiz ${targetItems.length} bekleyen mesaj arşive taşınsın mı?`, {
+            duration: 15000,
+            action: {
+                label: "Evet, Arşivle",
+                onClick: async () => {
+                    setProgressTotal(targetItems.length)
+                    setProgressCurrent(0)
+                    setProgressSuccess(0)
+                    setProgressError(0)
+                    setProgressType('archive')
+                    setShowProgressModal(true)
+                    setBulkArchiving(true)
+
+                    let archivedCount = 0
+                    let errorCount = 0
+
+                    for (let i = 0; i < targetItems.length; i++) {
+                        const item = targetItems[i]
+                        setProgressCurrent(i + 1)
+                        
+                        try {
+                            const res = await rejectInboxItem(item.id)
+                            if (res.success) {
+                                archivedCount++
+                                setProgressSuccess(archivedCount)
+                            } else {
+                                errorCount++
+                                setProgressError(errorCount)
+                                console.error(`Bulk archive failed for item ${item.id}:`, res.error)
+                            }
+                        } catch (err) {
+                            errorCount++
+                            setProgressError(errorCount)
+                        }
+                    }
+
+                    setBulkArchiving(false)
+                    toast.success(`${archivedCount} adet ilgisiz kayıt başarıyla arşive taşındı.${errorCount > 0 ? ` (${errorCount} hata)` : ''}`)
+                    
+                    setTimeout(() => {
+                        setShowProgressModal(false)
+                        router.refresh()
+                    }, 2000)
+                }
+            },
+            cancel: {
+                label: "Vazgeç",
+                onClick: () => {}
+            }
+        })
+    }
+
     React.useEffect(() => {
         handleRefresh(undefined, true)
     }, [])
@@ -727,6 +825,54 @@ export function InboxList({ initialItems, archivedItems = [], pendingCount, arch
                             {deleting ? 'Siliniyor...' : 'Evet, Kalıcı Olarak Sil'}
                         </Button>
                     </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Bulk Actions Progress Dialog */}
+            <Dialog open={showProgressModal} onOpenChange={() => {}}>
+                <DialogContent className="sm:max-w-[400px] rounded-3xl border-none shadow-2xl p-6 text-center bg-white" onPointerDownOutside={(e) => e.preventDefault()}>
+                    <div className="space-y-6 py-4">
+                        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-50 shadow-sm animate-pulse">
+                            {progressType === 'approve' ? <Wand2 className="h-7 w-7 text-emerald-600 animate-spin" /> : <Archive className="h-7 w-7 text-amber-500 animate-bounce" />}
+                        </div>
+                        
+                        <div className="space-y-2">
+                            <DialogTitle className="text-lg font-black text-slate-800">
+                                {progressType === 'approve' ? 'CRM Toplu Aktarım Başlatıldı' : 'Toplu Arşivleme Başlatıldı'}
+                            </DialogTitle>
+                            <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">
+                                {progressType === 'approve' ? 'Kayıtlar CRM Adaylarına Ekleniyor' : 'İlgisiz Kayıtlar Arşive Taşınıyor'}
+                            </p>
+                        </div>
+
+                        {/* Progress Bar Container */}
+                        <div className="space-y-2">
+                            <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden border border-slate-100/50 p-0.5">
+                                <div 
+                                    className={`h-full rounded-full transition-all duration-300 ${
+                                        progressType === 'approve' ? 'bg-gradient-to-r from-emerald-500 to-teal-400' : 'bg-gradient-to-r from-amber-500 to-orange-400'
+                                    }`}
+                                    style={{ width: `${progressTotal > 0 ? (progressCurrent / progressTotal) * 100 : 0}%` }}
+                                />
+                            </div>
+                            <div className="flex justify-between text-xs font-black text-slate-500 px-1">
+                                <span>%{Math.round(progressTotal > 0 ? (progressCurrent / progressTotal) * 100 : 0)}</span>
+                                <span>{progressCurrent} / {progressTotal} kayıt</span>
+                            </div>
+                        </div>
+
+                        {/* Stats Row */}
+                        <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                            <div className="text-center border-r border-slate-200/60">
+                                <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Başarılı</span>
+                                <p className="text-2xl font-black text-emerald-600 mt-1">{progressSuccess}</p>
+                            </div>
+                            <div className="text-center">
+                                <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Hata</span>
+                                <p className="text-2xl font-black text-red-500 mt-1">{progressError}</p>
+                            </div>
+                        </div>
+                    </div>
                 </DialogContent>
             </Dialog>
         </>
