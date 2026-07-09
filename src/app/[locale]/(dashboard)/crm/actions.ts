@@ -2117,8 +2117,13 @@ export async function cancelReservation(saleId: string) {
         return { success: true, message: 'Kapora ödemesi onaylı olduğu için iade süreci başlatıldı. Finans onayından sonra opsiyon kalkacaktır.' }
     }
 
-    // 3. Update Sale status to Lost
-    const targetStatus = 'Lost'
+    // 3. Revert Sale status to previous status (or Prospect if none)
+    let targetStatus = 'Prospect'
+    const prevStatusMatch = sale?.description?.match(/\[prev_status:([^\]]+)\]/)
+    if (prevStatusMatch && prevStatusMatch[1]) {
+        targetStatus = prevStatusMatch[1]
+    }
+
     let cleanDesc = sale?.description || ''
     if (cleanDesc) {
         cleanDesc = cleanDesc.replace(/\[prev_status:[^\]]+\]/g, '').trim()
@@ -2157,10 +2162,11 @@ export async function cancelReservation(saleId: string) {
             .single()
 
         if (saleData) {
+            const oppStage = targetStatus === 'Lead' ? 'lead' : 'prospect'
             let oppQuery = supabase
                 .from('opportunities')
                 .update({
-                    stage: 'lost',
+                    stage: oppStage,
                     updated_at: new Date().toISOString()
                 })
                 .eq('tenant_id', profileForCancel.tenant_id)
