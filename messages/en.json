@@ -994,6 +994,14 @@
             "period-comparison": {
                 "title": "Period Comparison",
                 "description": "This month vs last month performance analysis with 6-month sales, lead and revenue trends."
+            },
+            "call-timing": {
+                "title": "Call Timing Analysis",
+                "description": "Hourly and daily answer rates, golden hours, and optimal calling times."
+            },
+            "conversation-intelligence": {
+                "title": "Conversation Intelligence",
+                "description": "AI transcript analysis: most asked questions, objection trends, and script optimization suggestions."
             }
         }
     },

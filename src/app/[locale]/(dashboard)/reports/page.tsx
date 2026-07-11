@@ -23,7 +23,9 @@ import {
     Filter,
     Bot,
     ArrowUpDown,
-    Target
+    Target,
+    Clock,
+    Brain
 } from "lucide-react"
 import Link from "next/link"
 import { getTranslations } from 'next-intl/server'
@@ -175,6 +177,20 @@ const reportCards = [
         icon: Zap,
         color: "text-amber-600",
         bgColor: "bg-amber-100"
+    },
+    {
+        id: "call-timing",
+        href: "/reports/call-timing",
+        icon: Clock,
+        color: "text-amber-600",
+        bgColor: "bg-amber-50"
+    },
+    {
+        id: "conversation-intelligence",
+        href: "/reports/conversation-intelligence",
+        icon: Brain,
+        color: "text-violet-600",
+        bgColor: "bg-violet-50"
     }
 ]
 

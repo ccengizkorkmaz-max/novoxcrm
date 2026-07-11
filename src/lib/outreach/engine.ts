@@ -263,8 +263,8 @@ export async function processOutreachQueue() {
                     outreach_workflows!inner(
                         id, working_hours_start, working_hours_end, working_days, timezone, is_active, conversion_goal_status, batch_size, batch_interval_seconds, computed_params
                     ),
-                    customers(id, full_name, phone, email, communication_enabled),
-                    leads(id, full_name, phone, email, status, notes, assigned_to),
+                    customers(id, full_name, phone, email, communication_enabled, sms_consent, email_consent, call_consent),
+                    leads(id, full_name, phone, email, status, notes, assigned_to, sms_consent, email_consent, call_consent),
                     sales(id, status, project_id, unit_id)
                 `)
                 .eq('workflow_id', wf.id)
@@ -464,6 +464,102 @@ export async function processOutreachQueue() {
                     .update({ status: 'opted_out', completed_at: now, metadata: { ...execution.metadata, reason: 'communication_disabled' } })
                     .eq('id', execution.id)
                 continue
+            }
+
+            // ─── Cooldown & Fatigue Check ──────────────────────────
+            // Prevent calling the same person too many times within a configured period
+            if (tenantId) {
+                const { data: tenantCooldown } = await supabase
+                    .from('tenants')
+                    .select('ai_outreach_settings')
+                    .eq('id', tenantId)
+                    .single()
+
+                const cooldown = tenantCooldown?.ai_outreach_settings?.cooldown
+                if (cooldown) {
+                    const maxCalls = cooldown.max_calls_per_period || 3
+                    const periodDays = cooldown.period_days || 7
+                    const periodStart = new Date(Date.now() - periodDays * 24 * 60 * 60 * 1000).toISOString()
+
+                    // Count recent calls to this person
+                    const targetPhone = execution.customers?.phone || execution.leads?.phone
+                    if (targetPhone) {
+                        const { count: recentCalls } = await supabase
+                            .from('outreach_step_logs')
+                            .select('id', { count: 'exact', head: true })
+                            .eq('channel', 'ai_call')
+                            .eq('phone', normalizePhone(targetPhone))
+                            .gte('executed_at', periodStart)
+                            .in('status', ['sent', 'completed', 'answered'])
+
+                        if ((recentCalls || 0) >= maxCalls) {
+                            console.log(`[Outreach] ⛔ Cooldown: ${targetPhone} son ${periodDays} günde ${recentCalls} kez arandı (limit: ${maxCalls}). Atlanıyor.`)
+                            // Reschedule to after cooldown period
+                            const rescheduleAt = new Date(Date.now() + periodDays * 24 * 60 * 60 * 1000).toISOString()
+                            await supabase.from('outreach_executions')
+                                .update({ 
+                                    next_action_at: rescheduleAt,
+                                    metadata: { ...execution.metadata, cooldown_skipped: true, cooldown_until: rescheduleAt }
+                                })
+                                .eq('id', execution.id)
+                            continue
+                        }
+                    }
+
+                    // Quiet hours check
+                    const quietStart = cooldown.quiet_hours_start || '20:00'
+                    const quietEnd = cooldown.quiet_hours_end || '09:00'
+                    const nowHour = new Date().toLocaleTimeString('tr-TR', { timeZone: 'Europe/Istanbul', hour12: false, hour: '2-digit', minute: '2-digit' })
+                    
+                    const isInQuietHours = quietStart > quietEnd 
+                        ? (nowHour >= quietStart || nowHour < quietEnd)  // e.g., 20:00 - 09:00
+                        : (nowHour >= quietStart && nowHour < quietEnd)  // e.g., 22:00 - 06:00
+
+                    if (isInQuietHours) {
+                        console.log(`[Outreach] 🤫 Sessiz saat (${quietStart}-${quietEnd}, şu an: ${nowHour}). Execution ${execution.id} erteleniyor.`)
+                        // Reschedule to next morning
+                        const tomorrow = new Date()
+                        tomorrow.setDate(tomorrow.getDate() + 1)
+                        const [endH, endM] = quietEnd.split(':').map(Number)
+                        tomorrow.setHours(endH, endM, 0, 0)
+                        await supabase.from('outreach_executions')
+                            .update({ next_action_at: tomorrow.toISOString() })
+                            .eq('id', execution.id)
+                        continue
+                    }
+
+                    // Weekend check
+                    if (cooldown.block_weekends !== false) {
+                        const dayOfWeek = new Date().getDay() // 0=Sun, 6=Sat
+                        if (dayOfWeek === 0 || dayOfWeek === 6) {
+                            console.log(`[Outreach] 📅 Hafta sonu — arama engellendi. Execution ${execution.id} Pazartesi'ye erteleniyor.`)
+                            const monday = new Date()
+                            monday.setDate(monday.getDate() + (dayOfWeek === 0 ? 1 : 2))
+                            const [eH, eM] = (cooldown.quiet_hours_end || '09:00').split(':').map(Number)
+                            monday.setHours(eH, eM, 0, 0)
+                            await supabase.from('outreach_executions')
+                                .update({ next_action_at: monday.toISOString() })
+                                .eq('id', execution.id)
+                            continue
+                        }
+                    }
+
+                    // Lunch break check
+                    if (cooldown.block_lunch !== false) {
+                        const lunchStart = cooldown.lunch_start || '12:00'
+                        const lunchEnd = cooldown.lunch_end || '13:00'
+                        if (nowHour >= lunchStart && nowHour < lunchEnd) {
+                            console.log(`[Outreach] 🍽️ Öğle molası (${lunchStart}-${lunchEnd}). Execution ${execution.id} erteleniyor.`)
+                            const afterLunch = new Date()
+                            const [lH, lM] = lunchEnd.split(':').map(Number)
+                            afterLunch.setHours(lH, lM, 0, 0)
+                            await supabase.from('outreach_executions')
+                                .update({ next_action_at: afterLunch.toISOString() })
+                                .eq('id', execution.id)
+                            continue
+                        }
+                    }
+                }
             }
 
             // Get current step
@@ -726,8 +822,8 @@ export async function processOutreachQueue() {
                 outreach_workflows!inner(
                     id, working_hours_start, working_hours_end, working_days, timezone, is_active, conversion_goal_status, batch_size, batch_interval_seconds, computed_params
                 ),
-                customers(id, full_name, phone, email, communication_enabled),
-                leads(id, full_name, phone, email, status, notes, assigned_to),
+                customers(id, full_name, phone, email, communication_enabled, sms_consent, email_consent, call_consent),
+                leads(id, full_name, phone, email, status, notes, assigned_to, sms_consent, email_consent, call_consent),
                 sales(id, status, project_id, unit_id)
             `)
                 .in('status', ['active', 'waiting'])
@@ -867,6 +963,13 @@ async function executeAiCall(execution: any, step: any, config: StepConfig, phon
     // E.164: max 15 digits including country code
     if (!cleanPhone || cleanPhone.length < 10 || cleanPhone.length > 16 || cleanPhone.includes('ifempty')) {
         await logAndAdvance(execution, step, 'skipped', 'ai_call', `Geçersiz telefon: ${phone}`)
+        return
+    }
+
+    // Check granular call consent
+    if (customer?.call_consent !== 'yes') {
+        console.log(`[Outreach] ⛔ Target ${phone} does not have call consent ('yes'). Skipping.`)
+        await logAndAdvance(execution, step, 'opted_out', 'ai_call', 'No call consent')
         return
     }
 
@@ -1052,6 +1155,13 @@ async function executeWhatsApp(execution: any, step: any, config: StepConfig, ph
 
     if (!phone) {
         await logAndAdvance(execution, step, 'skipped', 'whatsapp', 'No phone number')
+        return
+    }
+
+    // Check granular SMS/WhatsApp consent
+    if (customer?.sms_consent !== 'yes') {
+        console.log(`[Outreach] ⛔ Target ${phone} does not have SMS/WhatsApp consent ('yes'). Skipping.`)
+        await logAndAdvance(execution, step, 'opted_out', 'whatsapp', 'No SMS/WhatsApp consent')
         return
     }
 
@@ -1244,6 +1354,13 @@ async function executeSms(execution: any, step: any, config: StepConfig, phone: 
 
     if (!phone) {
         await logAndAdvance(execution, step, 'skipped', 'sms', 'No phone number')
+        return
+    }
+
+    // Check granular SMS consent
+    if (customer?.sms_consent !== 'yes') {
+        console.log(`[Outreach] ⛔ Target ${phone} does not have SMS consent ('yes'). Skipping.`)
+        await logAndAdvance(execution, step, 'opted_out', 'sms', 'No SMS consent')
         return
     }
 

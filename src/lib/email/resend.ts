@@ -71,7 +71,7 @@ export async function sendCampaignEmails(campaignId: string) {
     // Müşterileri filtrele
     let query = supabase
         .from('customers')
-        .select('id, full_name, email, phone, communication_enabled')
+        .select('id, full_name, email, phone, communication_enabled, email_consent')
         .eq('tenant_id', campaign.tenant_id)
         .eq('communication_enabled', true)
         .not('email', 'is', null)
@@ -106,6 +106,7 @@ export async function sendCampaignEmails(campaignId: string) {
     const recipients = customers.filter(c => 
         c.email && 
         c.communication_enabled !== false &&
+        (c as any).email_consent === 'yes' &&
         !optoutCustomerIds.has(c.id)
     )
     

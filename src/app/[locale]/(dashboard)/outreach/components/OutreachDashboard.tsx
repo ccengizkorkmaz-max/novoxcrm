@@ -9,7 +9,7 @@ import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { OctagonX, Phone, MessageSquare, Mail, Zap, Plus, Play, Pause, Trash2,
-    BarChart3, Clock, Users, XCircle, PhoneOff,
+    BarChart3, Clock, Users, XCircle, PhoneOff, ShieldAlert,
     ArrowRight, Settings2, Eye, Bot, FileText, Target, Info
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -90,6 +90,24 @@ export function OutreachDashboard({
     // Prop değiştiğinde local state'i güncelle (router.refresh sonrası)
     useEffect(() => { setLocalWorkflows(workflows) }, [workflows])
     useEffect(() => { setLocalSegments(segments) }, [segments])
+
+    // Cooldown banner — count of leads skipped due to fatigue
+    const [cooldownCount, setCooldownCount] = useState(0)
+    useEffect(() => {
+        const fetchCooldown = async () => {
+            try {
+                const supabase = (await import('@/lib/supabase/client')).createClient()
+                const { count } = await supabase
+                    .from('outreach_executions')
+                    .select('id', { count: 'exact', head: true })
+                    .eq('tenant_id', tenantId)
+                    .eq('status', 'active')
+                    .not('metadata->cooldown_skipped', 'is', null)
+                setCooldownCount(count || 0)
+            } catch { /* ignore */ }
+        }
+        fetchCooldown()
+    }, [tenantId])
 
     const [launching, setLaunching] = useState<string | null>(null)
     const [stopping, setStopping] = useState<string | null>(null)
@@ -307,6 +325,17 @@ export function OutreachDashboard({
 
             {/* System Health Panel */}
             <SystemHealthPanel />
+
+            {/* Cooldown Banner */}
+            {cooldownCount > 0 && (
+                <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-orange-500/30 bg-orange-500/10 text-orange-300">
+                    <ShieldAlert className="h-4 w-4 flex-shrink-0" />
+                    <span className="text-xs font-medium">
+                        <strong>{cooldownCount}</strong> müşteri bu hafta arama limitine ulaştı ve otomatik olarak atlandı.
+                    </span>
+                    <Badge variant="outline" className="text-[9px] border-orange-500/30 text-orange-400 ml-auto">Cooldown</Badge>
+                </div>
+            )}
 
             {/* Tabs: Workflows & Activity */}
             <Tabs defaultValue="workflows" className="space-y-4">

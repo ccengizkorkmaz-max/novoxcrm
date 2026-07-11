@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
-import { Brain, Sparkles, AlertCircle, Info, ToggleLeft, ToggleRight, Phone, Facebook, Zap, Send } from 'lucide-react'
+import { Brain, Sparkles, AlertCircle, Info, ToggleLeft, ToggleRight, Phone, Facebook, Zap, Send, ShieldAlert, Clock } from 'lucide-react'
 import { toast } from 'sonner'
 import { updateAiSettings, updateAiAssistantCharacter } from '../actions'
 import { useTranslations } from 'next-intl'
@@ -39,7 +39,19 @@ interface AiSettingsTabProps {
         wa_auto_template_name?: string | null
         wa_auto_template_rule?: string | null
         // Outreach
-        ai_outreach_settings?: { max_concurrent_calls?: number } | null
+        ai_outreach_settings?: {
+            max_concurrent_calls?: number
+            cooldown?: {
+                max_calls_per_period?: number
+                period_days?: number
+                quiet_hours_start?: string
+                quiet_hours_end?: string
+                block_weekends?: boolean
+                block_lunch?: boolean
+                lunch_start?: string
+                lunch_end?: string
+            }
+        } | null
         // Yeni Lead Aksiyonu
         auto_action_on_new_lead?: string | null
         catalog_email_subject?: string | null
@@ -611,6 +623,150 @@ export default function AiSettingsTab({ tenant }: AiSettingsTabProps) {
                                         className="w-24 bg-white"
                                     />
                                     <p className="text-[10px] text-blue-700">Aynı anda kaç AI araması yapılabilir (1-10)</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Cooldown & Fatigue Yönetimi */}
+                        <div className="p-4 rounded-xl border-2 border-orange-200 bg-orange-50/50 space-y-4">
+                            <div className="flex items-center gap-2">
+                                <ShieldAlert className="h-4 w-4 text-orange-600" />
+                                <Label className="text-base font-semibold text-orange-900">Arama Yorgunluk Koruması</Label>
+                                <Badge variant="outline" className="text-[9px] border-orange-300 text-orange-700">Level 4</Badge>
+                            </div>
+                            <p className="text-xs text-orange-700">Müşterilerin aşırı sık aranmasını engeller. Belirli periyotta maksimum arama sayısı ve sessiz saatleri ayarlayın.</p>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                {/* Max arama / periyot */}
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs text-orange-800">Max Arama (Periyot Başına)</Label>
+                                    <Input
+                                        type="number"
+                                        min={1}
+                                        max={20}
+                                        defaultValue={tenant?.ai_outreach_settings?.cooldown?.max_calls_per_period || 3}
+                                        onChange={async (e) => {
+                                            const val = parseInt(e.target.value) || 3
+                                            if (val < 1 || val > 20) return
+                                            const supabase = (await import('@/lib/supabase/client')).createClient()
+                                            const currentSettings = tenant?.ai_outreach_settings || {}
+                                            await supabase.from('tenants').update({
+                                                ai_outreach_settings: {
+                                                    ...currentSettings,
+                                                    cooldown: { ...currentSettings.cooldown, max_calls_per_period: val }
+                                                }
+                                            }).eq('id', tenant?.id)
+                                        }}
+                                        className="w-24 bg-white"
+                                    />
+                                    <p className="text-[10px] text-orange-600">Bir müşteri bu kadar arandıktan sonra bekler</p>
+                                </div>
+
+                                {/* Periyot (gün) */}
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs text-orange-800">Periyot (Gün)</Label>
+                                    <Input
+                                        type="number"
+                                        min={1}
+                                        max={90}
+                                        defaultValue={tenant?.ai_outreach_settings?.cooldown?.period_days || 7}
+                                        onChange={async (e) => {
+                                            const val = parseInt(e.target.value) || 7
+                                            if (val < 1 || val > 90) return
+                                            const supabase = (await import('@/lib/supabase/client')).createClient()
+                                            const currentSettings = tenant?.ai_outreach_settings || {}
+                                            await supabase.from('tenants').update({
+                                                ai_outreach_settings: {
+                                                    ...currentSettings,
+                                                    cooldown: { ...currentSettings.cooldown, period_days: val }
+                                                }
+                                            }).eq('id', tenant?.id)
+                                        }}
+                                        className="w-24 bg-white"
+                                    />
+                                    <p className="text-[10px] text-orange-600">Kaç gün içindeki aramaları sayar</p>
+                                </div>
+                            </div>
+
+                            {/* Sessiz Saatler */}
+                            <div className="space-y-3 pt-2 border-t border-orange-200">
+                                <div className="flex items-center gap-2">
+                                    <Clock className="h-3.5 w-3.5 text-orange-600" />
+                                    <Label className="text-xs font-semibold text-orange-800">Sessiz Saatler</Label>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1.5">
+                                        <Label className="text-xs text-orange-800">Başlangıç</Label>
+                                        <Input
+                                            type="time"
+                                            defaultValue={tenant?.ai_outreach_settings?.cooldown?.quiet_hours_start || '20:00'}
+                                            onChange={async (e) => {
+                                                const supabase = (await import('@/lib/supabase/client')).createClient()
+                                                const currentSettings = tenant?.ai_outreach_settings || {}
+                                                await supabase.from('tenants').update({
+                                                    ai_outreach_settings: {
+                                                        ...currentSettings,
+                                                        cooldown: { ...currentSettings.cooldown, quiet_hours_start: e.target.value }
+                                                    }
+                                                }).eq('id', tenant?.id)
+                                            }}
+                                            className="w-32 bg-white"
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label className="text-xs text-orange-800">Bitiş</Label>
+                                        <Input
+                                            type="time"
+                                            defaultValue={tenant?.ai_outreach_settings?.cooldown?.quiet_hours_end || '09:00'}
+                                            onChange={async (e) => {
+                                                const supabase = (await import('@/lib/supabase/client')).createClient()
+                                                const currentSettings = tenant?.ai_outreach_settings || {}
+                                                await supabase.from('tenants').update({
+                                                    ai_outreach_settings: {
+                                                        ...currentSettings,
+                                                        cooldown: { ...currentSettings.cooldown, quiet_hours_end: e.target.value }
+                                                    }
+                                                }).eq('id', tenant?.id)
+                                            }}
+                                            className="w-32 bg-white"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Hafta sonu & Öğle molası */}
+                            <div className="flex flex-wrap gap-6 pt-2 border-t border-orange-200">
+                                <div className="flex items-center gap-2">
+                                    <Switch
+                                        defaultChecked={tenant?.ai_outreach_settings?.cooldown?.block_weekends !== false}
+                                        onCheckedChange={async (checked) => {
+                                            const supabase = (await import('@/lib/supabase/client')).createClient()
+                                            const currentSettings = tenant?.ai_outreach_settings || {}
+                                            await supabase.from('tenants').update({
+                                                ai_outreach_settings: {
+                                                    ...currentSettings,
+                                                    cooldown: { ...currentSettings.cooldown, block_weekends: checked }
+                                                }
+                                            }).eq('id', tenant?.id)
+                                        }}
+                                    />
+                                    <Label className="text-xs text-orange-800">Hafta sonu arama</Label>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <Switch
+                                        defaultChecked={tenant?.ai_outreach_settings?.cooldown?.block_lunch !== false}
+                                        onCheckedChange={async (checked) => {
+                                            const supabase = (await import('@/lib/supabase/client')).createClient()
+                                            const currentSettings = tenant?.ai_outreach_settings || {}
+                                            await supabase.from('tenants').update({
+                                                ai_outreach_settings: {
+                                                    ...currentSettings,
+                                                    cooldown: { ...currentSettings.cooldown, block_lunch: checked }
+                                                }
+                                            }).eq('id', tenant?.id)
+                                        }}
+                                    />
+                                    <Label className="text-xs text-orange-800">Öğle molası engelle (12:00-13:00)</Label>
                                 </div>
                             </div>
                         </div>

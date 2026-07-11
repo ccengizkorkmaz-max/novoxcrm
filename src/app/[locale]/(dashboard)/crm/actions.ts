@@ -110,6 +110,10 @@ export async function createCustomer(formData: FormData) {
     const heard_from = (formData.get('heard_from') as string)?.trim() || null
     const referral_name = (formData.get('referral_name') as string)?.trim() || null
 
+    const sms_consent = (formData.get('sms_consent') as string) || 'yes'
+    const email_consent = (formData.get('email_consent') as string) || 'yes'
+    const call_consent = (formData.get('call_consent') as string) || 'yes'
+
     const { data, error } = await adminSupabase
         .from('customers')
         .insert({
@@ -137,7 +141,10 @@ export async function createCustomer(formData: FormData) {
             company_email,
             gender,
             heard_from,
-            referral_name
+            referral_name,
+            sms_consent,
+            email_consent,
+            call_consent
         })
         .select()
         .single()
@@ -446,6 +453,10 @@ export async function updateCustomer(formData: FormData) {
     const referral_name = (formData.get('referral_name') as string)?.trim() || null
     const company_id = (formData.get('company_id') as string)?.trim() || null
 
+    const sms_consent = formData.get('sms_consent') as string
+    const email_consent = formData.get('email_consent') as string
+    const call_consent = formData.get('call_consent') as string
+
     let validCreatedAt = null;
     if (created_at_input) {
         const parsedDate = new Date(created_at_input);
@@ -456,27 +467,33 @@ export async function updateCustomer(formData: FormData) {
 
     if (!id) return { error: 'Customer ID required' }
 
+    const updatePayload: any = {
+        full_name,
+        phone,
+        email,
+        source,
+        address,
+        postal_code,
+        district,
+        city,
+        country,
+        portal_username,
+        portal_password,
+        gender,
+        heard_from,
+        referral_name,
+        company_id,
+        updated_by: user.id,
+        ...(validCreatedAt ? { created_at: validCreatedAt } : {})
+    };
+
+    if (sms_consent) updatePayload.sms_consent = sms_consent;
+    if (email_consent) updatePayload.email_consent = email_consent;
+    if (call_consent) updatePayload.call_consent = call_consent;
+
     const { error } = await supabase
         .from('customers')
-        .update({
-            full_name,
-            phone,
-            email,
-            source,
-            address,
-            postal_code,
-            district,
-            city,
-            country,
-            portal_username,
-            portal_password,
-            gender,
-            heard_from,
-            referral_name,
-            company_id,
-            updated_by: user.id,
-            ...(validCreatedAt ? { created_at: validCreatedAt } : {})
-        })
+        .update(updatePayload)
         .eq('id', id)
 
     if (error) {

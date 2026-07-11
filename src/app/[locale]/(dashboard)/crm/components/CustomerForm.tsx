@@ -60,6 +60,9 @@ export interface Customer {
     addresses?: any[]
     company_id?: string | null
     communication_enabled?: boolean
+    sms_consent?: string
+    email_consent?: string
+    call_consent?: string
 }
 
 interface CustomerFormProps {
@@ -285,10 +288,36 @@ export default function CustomerForm({ customer, activities, contracts = [], sal
                     <div className="space-y-1.5">
                         <Label className={labelClass}>Telefon <span className="text-red-500">*</span></Label>
                         <Input name="phone" defaultValue={customer?.phone || ''} required className={inputClass} placeholder="05XX XXX XX XX" />
+                        <div className="grid grid-cols-2 gap-2 mt-1.5">
+                            <div>
+                                <label className="text-[9px] font-bold text-slate-400 uppercase">Arama İzni</label>
+                                <select name="call_consent" defaultValue={customer?.call_consent || 'yes'} className={cn(inputClass, "h-9 text-xs px-2 py-0 mt-0.5 w-full bg-slate-50 border-slate-100")}>
+                                    <option value="yes">Evet (İzinli)</option>
+                                    <option value="no">Hayır (Ret)</option>
+                                    <option value="unknown">Belirsiz</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="text-[9px] font-bold text-slate-400 uppercase">SMS İzni</label>
+                                <select name="sms_consent" defaultValue={customer?.sms_consent || 'yes'} className={cn(inputClass, "h-9 text-xs px-2 py-0 mt-0.5 w-full bg-slate-50 border-slate-100")}>
+                                    <option value="yes">Evet (İzinli)</option>
+                                    <option value="no">Hayır (Ret)</option>
+                                    <option value="unknown">Belirsiz</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
                     <div className="space-y-1.5">
                         <Label className={labelClass}>E-posta</Label>
                         <Input name="email" type="email" defaultValue={customer?.email || ''} className={inputClass} placeholder="ornek@email.com" />
+                        <div className="mt-1.5 w-full">
+                            <label className="text-[9px] font-bold text-slate-400 uppercase block">E-posta İzni</label>
+                            <select name="email_consent" defaultValue={customer?.email_consent || 'yes'} className={cn(inputClass, "h-9 text-xs px-2 py-0 mt-0.5 w-full bg-slate-50 border-slate-100")}>
+                                <option value="yes">Evet (İzinli)</option>
+                                <option value="no">Hayır (Ret)</option>
+                                <option value="unknown">Belirsiz</option>
+                            </select>
+                        </div>
                     </div>
                     <div className="col-span-2 space-y-1.5">
                         <Label className={labelClass}>Cinsiyet</Label>
@@ -840,10 +869,36 @@ export default function CustomerForm({ customer, activities, contracts = [], sal
                                         <div className="space-y-1.5">
                                             <Label className={labelClass}>Telefon <span className="text-red-500">*</span></Label>
                                             <Input name="phone" defaultValue={customer?.phone || ''} required className={inputClass} placeholder="05XX XXX XX XX" />
+                                            <div className="grid grid-cols-2 gap-2 mt-1.5">
+                                                <div>
+                                                    <label className="text-[9px] font-bold text-slate-400 uppercase">Arama İzni</label>
+                                                    <select name="call_consent" defaultValue={customer?.call_consent || 'yes'} className={cn(inputClass, "h-9 text-xs px-2 py-0 mt-0.5 w-full bg-slate-50 border-slate-100")}>
+                                                        <option value="yes">Evet (İzinli)</option>
+                                                        <option value="no">Hayır (Ret)</option>
+                                                        <option value="unknown">Belirsiz</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label className="text-[9px] font-bold text-slate-400 uppercase">SMS İzni</label>
+                                                    <select name="sms_consent" defaultValue={customer?.sms_consent || 'yes'} className={cn(inputClass, "h-9 text-xs px-2 py-0 mt-0.5 w-full bg-slate-50 border-slate-100")}>
+                                                        <option value="yes">Evet (İzinli)</option>
+                                                        <option value="no">Hayır (Ret)</option>
+                                                        <option value="unknown">Belirsiz</option>
+                                                    </select>
+                                                </div>
+                                            </div>
                                         </div>
                                         <div className="space-y-1.5">
                                             <Label className={labelClass}>E-posta</Label>
                                             <Input name="email" type="email" defaultValue={customer?.email || ''} className={inputClass} placeholder="ornek@email.com" />
+                                            <div className="mt-1.5 w-full">
+                                                <label className="text-[9px] font-bold text-slate-400 uppercase block">E-posta İzni</label>
+                                                <select name="email_consent" defaultValue={customer?.email_consent || 'yes'} className={cn(inputClass, "h-9 text-xs px-2 py-0 mt-0.5 w-full bg-slate-50 border-slate-100")}>
+                                                    <option value="yes">Evet (İzinli)</option>
+                                                    <option value="no">Hayır (Ret)</option>
+                                                    <option value="unknown">Belirsiz</option>
+                                                </select>
+                                            </div>
                                         </div>
                                         <div className="col-span-2 space-y-1.5">
                                             <Label className={labelClass}>Cinsiyet</Label>
