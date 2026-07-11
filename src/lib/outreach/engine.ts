@@ -2162,7 +2162,9 @@ export async function handleVapiCallResult(callData: {
                     .from('lead_qualifications')
                     .update({
                         status: newStatus,
+                        interest_level: structuredData.lead_score,
                         call_notes: callNotes,
+                        last_call_at: new Date().toISOString(),
                         updated_at: new Date().toISOString(),
                     })
                     .eq('id', lqRecord.id)
