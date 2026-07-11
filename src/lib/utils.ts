@@ -6,12 +6,22 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatCurrency(amount: number, currency: string = 'TRY') {
-  return new Intl.NumberFormat('tr-TR', {
-    style: 'currency',
-    currency: currency,
-    maximumFractionDigits: 0,
-    minimumFractionDigits: 0,
-  }).format(amount)
+  // Validate currency code - must be a 3-letter ISO code
+  const validCurrency = (typeof currency === 'string' && /^[A-Z]{3}$/i.test(currency.trim()))
+    ? currency.trim().toUpperCase()
+    : 'TRY'
+  
+  try {
+    return new Intl.NumberFormat('tr-TR', {
+      style: 'currency',
+      currency: validCurrency,
+      maximumFractionDigits: 0,
+      minimumFractionDigits: 0,
+    }).format(amount)
+  } catch {
+    // Ultimate fallback - plain number formatting
+    return `${new Intl.NumberFormat('tr-TR').format(amount)} ${validCurrency}`
+  }
 }
 
 export function encodeUuid(uuid: string): string {
