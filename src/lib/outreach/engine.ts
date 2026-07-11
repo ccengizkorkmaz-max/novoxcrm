@@ -2541,6 +2541,22 @@ export async function resolveSegment(segmentId: string): Promise<string[]> {
     if (!segment) return []
     const filters = segment.filters as any
 
+    // Direct customer IDs mapping support for AI recommendations
+    if (filters.customer_ids && Array.isArray(filters.customer_ids) && filters.customer_ids.length > 0) {
+        if (filters.source === 'leads') {
+            return filters.customer_ids.map((id: string) => `lead:${id}`)
+        } else if (filters.source === 'lead_qualifications' || filters.source === 'lead_qualification') {
+            return filters.customer_ids.map((id: string) => `lq:${id}`)
+        } else {
+            const { data: sales } = await supabase
+                .from('sales')
+                .select('id')
+                .in('customer_id', filters.customer_ids)
+                .neq('status', 'Inbox')
+            return (sales || []).map((s: any) => s.id)
+        }
+    }
+
     // Leads source (Advance CRM mode) → returns lead_id list prefixed with lead:
     if (filters.source === 'leads') {
         const allIds: string[] = []

@@ -5,13 +5,16 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Sparkles, Rocket, ChevronDown, ChevronUp, Loader2 } from 'lucide-react'
-import { generateSegmentSuggestions } from '../segment-suggestions-actions'
+import { generateSegmentSuggestions, launchSuggestedCampaign } from '../segment-suggestions-actions'
 import { toast } from 'sonner'
+import { useRouter } from 'next/navigation'
 
-export function AiSuggestionsPanel({ tenantId }: { tenantId: string }) {
+export function AiSuggestionsPanel({ tenantId, crmMode = 'basic' }: { tenantId: string; crmMode?: 'basic' | 'advance' }) {
+    const router = useRouter()
     const [suggestions, setSuggestions] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [expanded, setExpanded] = useState(true)
+    const [launchingId, setLaunchingId] = useState<string | null>(null)
 
     useEffect(() => {
         loadSuggestions()
@@ -26,6 +29,32 @@ export function AiSuggestionsPanel({ tenantId }: { tenantId: string }) {
             console.error('Failed to load suggestions')
         }
         setLoading(false)
+    }
+
+    const handleLaunch = async (suggestion: any) => {
+        setLaunchingId(suggestion.id)
+        toast.loading(`${suggestion.title} için kampanya ve segment oluşturuluyor...`, { id: 'launch-campaign' })
+        
+        try {
+            const result = await launchSuggestedCampaign({
+                suggestionType: suggestion.segmentFilter.type,
+                title: suggestion.title,
+                customerIds: suggestion.segmentFilter.conditions.customer_ids || [],
+                crmMode
+            })
+
+            if (result.success) {
+                toast.success('Kampanya ve Segment başarıyla oluşturuldu! Aktifleştirmek için listeden başlatabilirsiniz.', { id: 'launch-campaign' })
+                loadSuggestions() // Refresh suggestions list
+                router.refresh() // Refresh the parent page to display the new workflow
+            } else {
+                toast.error(result.error || 'Kampanya oluşturulamadı.', { id: 'launch-campaign' })
+            }
+        } catch (err: any) {
+            toast.error('Kampanya oluşturulurken teknik bir hata meydana geldi: ' + err.message, { id: 'launch-campaign' })
+        } finally {
+            setLaunchingId(null)
+        }
     }
 
     if (loading) {
@@ -101,10 +130,16 @@ export function AiSuggestionsPanel({ tenantId }: { tenantId: string }) {
                             </div>
                             <Button
                                 size="sm"
-                                onClick={() => toast.info('Kampanya oluşturma özelliği yakında aktif olacak')}
+                                disabled={launchingId !== null}
+                                onClick={() => handleLaunch(s)}
                                 className="h-7 text-[10px] gap-1 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 flex-shrink-0"
                             >
-                                <Rocket className="h-3 w-3" /> Başlat
+                                {launchingId === s.id ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                    <Rocket className="h-3 w-3" />
+                                )}
+                                {launchingId === s.id ? 'Başlatılıyor...' : 'Başlat'}
                             </Button>
                         </div>
                     ))}

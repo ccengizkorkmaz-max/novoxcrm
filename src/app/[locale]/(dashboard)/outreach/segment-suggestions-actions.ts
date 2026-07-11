@@ -220,3 +220,206 @@ export async function generateSegmentSuggestions(tenantId: string): Promise<Segm
 
     return suggestions
 }
+
+export async function launchSuggestedCampaign(payload: {
+    suggestionType: string
+    title: string
+    customerIds: string[]
+    crmMode?: 'basic' | 'advance'
+}) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Yetkilendirme hatası' }
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', user.id)
+        .single()
+
+    if (!profile?.tenant_id) return { error: 'Tenant bulunamadı' }
+    const tenantId = profile.tenant_id
+
+    // 1. Get default script
+    const { data: defaultScript } = await supabase
+        .from('outreach_scripts')
+        .select('id')
+        .eq('tenant_id', tenantId)
+        .eq('is_active', true)
+        .eq('is_default', true)
+        .maybeSingle()
+
+    const scriptId = defaultScript?.id
+
+    // 2. Create the segment
+    const segmentName = `🤖 AI Önerisi: ${payload.title} (${new Date().toLocaleDateString('tr-TR')})`
+    const { data: segment, error: segmentError } = await supabase
+        .from('outreach_segments')
+        .insert({
+            tenant_id: tenantId,
+            name: segmentName,
+            description: `AI tarafından otomatik oluşturulan kampanya segmenti: ${payload.title}`,
+            filters: {
+                source: payload.crmMode === 'advance' ? 'leads' : 'sales',
+                customer_ids: payload.customerIds
+            },
+            created_by: user.id
+        })
+        .select()
+        .single()
+
+    if (segmentError || !segment) {
+        return { error: 'Segment oluşturulamadı: ' + segmentError?.message }
+    }
+
+    // 3. Define steps based on suggestion type
+    let steps: any[] = []
+    if (payload.suggestionType === 'silent_leads') {
+        steps = [
+            {
+                step_order: 1,
+                name: '💬 Re-engagement WhatsApp',
+                action_type: 'whatsapp',
+                config: { message: 'Merhaba, projemizle ilgili güncel detayları ve size özel ödeme planlarını paylaşmak isteriz. Uygun olduğunuzda görüşebilir miyiz?' }
+            },
+            {
+                step_order: 2,
+                name: '⏰ 1 Gün Bekle',
+                action_type: 'wait',
+                config: { duration_value: 1, duration_unit: 'days' }
+            },
+            {
+                step_order: 3,
+                name: '🤖 Maya Telefon Araması',
+                action_type: 'ai_call',
+                config: { script_id: scriptId }
+            }
+        ]
+    } else if (payload.suggestionType === 'high_score_uncalled') {
+        steps = [
+            {
+                step_order: 1,
+                name: '🔥 Acil AI Arama (Maya)',
+                action_type: 'ai_call',
+                config: { script_id: scriptId }
+            }
+        ]
+    } else if (payload.suggestionType === 'retry_unanswered') {
+        steps = [
+            {
+                step_order: 1,
+                name: '⏰ 4 Saat Bekle',
+                action_type: 'wait',
+                config: { duration_value: 4, duration_unit: 'hours' }
+            },
+            {
+                step_order: 2,
+                name: '📞 Cevapsız Arama Tekrarı',
+                action_type: 'ai_call',
+                config: { script_id: scriptId }
+            },
+            {
+                step_order: 3,
+                name: '⏰ 1 Gün Bekle',
+                action_type: 'wait',
+                config: { duration_value: 1, duration_unit: 'days' }
+            },
+            {
+                step_order: 4,
+                name: '💬 WhatsApp Takip Mesajı',
+                action_type: 'whatsapp',
+                config: { message: 'Merhabalar, size telefonla ulaşamadık. İlgilendiğiniz proje hakkında bilgi almak veya randevu oluşturmak isterseniz buradan yardımcı olabiliriz.' }
+            }
+        ]
+    } else if (payload.suggestionType === 'wa_responded') {
+        steps = [
+            {
+                step_order: 1,
+                name: '📞 Sıcak Lead AI Arama',
+                action_type: 'ai_call',
+                config: { script_id: scriptId }
+            }
+        ]
+    } else if (payload.suggestionType === 'aging_leads') {
+        steps = [
+            {
+                step_order: 1,
+                name: '💬 Yaşlanmış Lead Özel Teklifi (WA)',
+                action_type: 'whatsapp',
+                config: { message: 'Merhabalar, ilgilendiğiniz proje için özel fiyat indirimleri ve ödeme kolaylıkları tanımlandı. Detaylar için görüşmek isteriz.' }
+            },
+            {
+                step_order: 2,
+                name: '⏰ 1 Gün Bekle',
+                action_type: 'wait',
+                config: { duration_value: 1, duration_unit: 'days' }
+            },
+            {
+                step_order: 3,
+                name: '📱 SMS Bilgilendirme',
+                action_type: 'sms',
+                config: { message: 'Size özel gayrimenkul fırsatı ve katalog bilgisi WhatsApp hattımızda paylaşıldı.' }
+            }
+        ]
+    } else {
+        // Fallback to simple AI Call
+        steps = [
+            {
+                step_order: 1,
+                name: '🤖 AI Arama',
+                action_type: 'ai_call',
+                config: { script_id: scriptId }
+            }
+        ]
+    }
+
+    // 4. Create the workflow
+    const workflowName = `🤖 AI Kampanyası: ${payload.title}`
+    const { data: workflow, error: workflowError } = await supabase
+        .from('outreach_workflows')
+        .insert({
+            tenant_id: tenantId,
+            name: workflowName,
+            description: `AI tarafından otomatik önerilen ve oluşturulan kampanya.`,
+            segment_id: segment.id,
+            created_by: user.id,
+            is_active: false,
+            working_hours_start: '09:00',
+            working_hours_end: '18:00',
+            working_days: [1, 2, 3, 4, 5],
+            max_leads_per_day: 100,
+            batch_size: 30,
+            batch_interval_seconds: 60,
+            stop_on_customer_response: true
+        })
+        .select()
+        .single()
+
+    if (workflowError || !workflow) {
+        // Cleanup segment if workflow fails
+        await supabase.from('outreach_segments').delete().eq('id', segment.id)
+        return { error: 'Workflow oluşturulamadı: ' + workflowError?.message }
+    }
+
+    // 5. Create the steps
+    const stepsPayload = steps.map(s => ({
+        ...s,
+        workflow_id: workflow.id,
+        tenant_id: tenantId,
+        is_active: true
+    }))
+
+    const { error: stepsError } = await supabase
+        .from('outreach_steps')
+        .insert(stepsPayload)
+
+    if (stepsError) {
+        // Cleanup
+        await supabase.from('outreach_workflows').delete().eq('id', workflow.id)
+        await supabase.from('outreach_segments').delete().eq('id', segment.id)
+        return { error: 'Adımlar oluşturulamadı: ' + stepsError.message }
+    }
+
+    return { success: true, workflowId: workflow.id }
+}
+

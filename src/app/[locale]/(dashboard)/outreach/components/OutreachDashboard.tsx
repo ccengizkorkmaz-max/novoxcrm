@@ -328,7 +328,7 @@ export function OutreachDashboard({
             <SystemHealthPanel />
 
             {/* AI Suggestions */}
-            <AiSuggestionsPanel tenantId={tenantId} />
+            <AiSuggestionsPanel tenantId={tenantId} crmMode={crmMode} />
 
             {/* Cooldown Banner */}
             {cooldownCount > 0 && (
