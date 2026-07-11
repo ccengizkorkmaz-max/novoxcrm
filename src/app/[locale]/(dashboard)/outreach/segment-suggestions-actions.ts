@@ -221,6 +221,57 @@ export async function generateSegmentSuggestions(tenantId: string): Promise<Segm
     return suggestions
 }
 
+async function registerWhatsAppTemplateIfPossible(tenantId: string, name: string, text: string): Promise<string> {
+    const WABA_ID = process.env.WHATSAPP_BUSINESS_ACCOUNT_ID
+    let ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN
+
+    if (!WABA_ID || !ACCESS_TOKEN) {
+        console.log('[Outreach] WABA credentials not configured. Using fallback template.')
+        return 'novo_kampanya_genel_v2'
+    }
+
+    ACCESS_TOKEN = ACCESS_TOKEN.replace(/[\r\n"\s]+/g, '')
+    const cleanName = name.toLowerCase().replace(/[^a-z0-9_]/g, '_').substring(0, 50)
+
+    try {
+        const bodyPayload = {
+            name: cleanName,
+            category: 'UTILITY',
+            language: 'tr',
+            components: [
+                {
+                    type: 'BODY',
+                    text: text
+                }
+            ]
+        }
+
+        const res = await fetch(
+            `https://graph.facebook.com/v21.0/${WABA_ID}/message_templates`,
+            {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${ACCESS_TOKEN}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(bodyPayload)
+            }
+        )
+
+        const data = await res.json()
+        if (data.id) {
+            console.log(`[Outreach] WhatsApp template registered successfully: ${cleanName} (ID: ${data.id})`)
+            return cleanName
+        } else {
+            console.warn('[Outreach] Meta template registration failed:', data)
+            return 'novo_kampanya_genel_v2' // Fallback to generic template
+        }
+    } catch (err: any) {
+        console.error('[Outreach] Meta template registration exception:', err.message)
+        return 'novo_kampanya_genel_v2' // Fallback to generic template
+    }
+}
+
 export async function launchSuggestedCampaign(payload: {
     suggestionType: string
     title: string
@@ -240,18 +291,69 @@ export async function launchSuggestedCampaign(payload: {
     if (!profile?.tenant_id) return { error: 'Tenant bulunamadı' }
     const tenantId = profile.tenant_id
 
-    // 1. Get default script
-    const { data: defaultScript } = await supabase
+    // 1. Create a CUSTOM tailored outreach_scripts entry for this campaign
+    let prompt = ''
+    let firstMessage = ''
+
+    if (payload.suggestionType === 'silent_leads') {
+        prompt = `Sen gayrimenkul satış temsilcisi Maya'sın. Bu kampanya 2 haftadır sessiz kalmış eski leadleri yeniden kazanmak (re-engagement) için yapılıyor. Müşteri daha önce projemizle ilgilenmişti. Amacın sıcak bir sohbet başlatmak, son güncellemeleri sormak ve ofisimize bir kahve eşliğinde randevu oluşturmak. Kibar, asla emir kipi kullanmayan, samimi bir dille konuş.`
+        firstMessage = `Merhabalar, ben NovoCRM'den Maya. Nasılsınız? Projelerimizle daha önce ilgilenmiştiniz, güncel durumunuzu sormak ve yeni ödeme planlarımız hakkında bilgi vermek için rahatsız ettim.`
+    } else if (payload.suggestionType === 'high_score_uncalled') {
+        prompt = `Sen gayrimenkul satış temsilcisi Maya'sın. Bu kampanya AI tarafından satın alma ihtimali çok yüksek olarak puanlanmış (70+ skor) ama henüz aranmamış müşteriler için. Müşteri son derece sıcak ve ilgili. Amacın doğrudan randevu almak veya detaylı sunum yapmak üzere bir toplantı organize etmek. Profesyonel ve sonuç odaklı ol.`
+        firstMessage = `Merhabalar, ben NovoCRM'den Maya. Projelerimiz hakkında detaylı bilgi almak istediğinizi gördüm. Size en uygun ödeme seçeneklerini ve lansman fiyatlarını paylaşmak için hızlıca randevu organize etmek isterim.`
+    } else if (payload.suggestionType === 'retry_unanswered') {
+        prompt = `Sen gayrimenkul satış temsilcisi Maya'sın. Bu kampanya daha önce aradığımızda telefonunu açmamış müşteriler için. Müşterinin meşgul olduğunu varsayarak kibar ve saygılı yaklaş, onu sıkmadan kısa bir bilgi sunup uygun zamanı öğrenerek randevu almaya çalış.`
+        firstMessage = `Merhabalar, ben NovoCRM'den Maya. Daha önce ulaşamamıştım, meşgul olduğunuzu düşünerek tekrar şansımı denemek istedim. Projemiz hakkında kısa bir bilgi sunabilir miyim?`
+    } else if (payload.suggestionType === 'wa_responded') {
+        prompt = `Sen gayrimenkul satış temsilcisi Maya'sın. Bu kampanya WhatsApp mesajımıza cevap veren sıcak leadler için. Müşteri yazılı kanaldan ilgi gösterdi, şimdi telefonla hızlıca güven ilişkisi kurup projeyi anlatmalı ve randevu almalısın.`
+        firstMessage = `Merhabalar, ben NovoCRM'den Maya. WhatsApp üzerinden gönderdiğimiz bilgilere dönüş yaptığınız için teşekkürler. Detayları telefonda hızlıca aktarıp sorularınızı yanıtlamak istedim.`
+    } else if (payload.suggestionType === 'aging_leads') {
+        prompt = `Sen gayrimenkul satış temsilcisi Maya'sın. Bu kampanya 30+ gündür pipeline'da bekleyen yaşlanmış leadleri canlandırmak için. Müşteriye yeni tanımlanan indirimler ve ödeme kolaylıklarından bahset, ilgisini tekrar çekmeye çalış.`
+        firstMessage = `Merhabalar, ben NovoCRM'den Maya. İlgilendiğiniz konut projemiz için sınırlı sayıda üniteye özel yeni fiyat ve taksit avantajları tanımlandı. Detayları aktarmak isterim.`
+    } else {
+        prompt = `Sen gayrimenkul satış temsilcisi Maya'sın.`
+        firstMessage = `Merhabalar, ben NovoCRM'den Maya.`
+    }
+
+    const { data: newScript, error: scriptError } = await supabase
         .from('outreach_scripts')
-        .select('id')
-        .eq('tenant_id', tenantId)
-        .eq('is_active', true)
-        .eq('is_default', true)
-        .maybeSingle()
+        .insert({
+            tenant_id: tenantId,
+            name: `🤖 AI Script: ${payload.title}`,
+            description: `AI Kampanyası için özel oluşturulan script`,
+            prompt,
+            first_message: firstMessage,
+            voice: 'Mert Aksoy',
+            max_duration_seconds: 300,
+            is_active: true
+        })
+        .select()
+        .single()
 
-    const scriptId = defaultScript?.id
+    if (scriptError || !newScript) {
+        return { error: 'Özel kampanya scripti oluşturulamadı: ' + scriptError?.message }
+    }
+    const scriptId = newScript.id
 
-    // 2. Create the segment
+    // 2. Register WhatsApp Template or get fallback template
+    let waTemplateName = 'novo_kampanya_genel_v2'
+    let waTemplateParams = ['{customer_name}', '{project_name}']
+
+    if (payload.suggestionType === 'silent_leads') {
+        const text = 'Merhaba {{1}}, projemizle ilgili güncel detayları ve size özel ödeme planlarını paylaşmak isteriz. Uygun olduğunuzda görüşebilir miyiz?'
+        waTemplateName = await registerWhatsAppTemplateIfPossible(tenantId, 'ai_silent_leads', text)
+        waTemplateParams = waTemplateName === 'novo_kampanya_genel_v2' ? ['{customer_name}', '{project_name}'] : ['{customer_name}']
+    } else if (payload.suggestionType === 'retry_unanswered') {
+        const text = 'Merhabalar {{1}}, size telefonla ulaşamadık. İlgilendiğiniz proje hakkında bilgi almak veya randevu oluşturmak isterseniz buradan yardımcı olabiliriz.'
+        waTemplateName = await registerWhatsAppTemplateIfPossible(tenantId, 'ai_retry_unanswered', text)
+        waTemplateParams = waTemplateName === 'novo_kampanya_genel_v2' ? ['{customer_name}', '{project_name}'] : ['{customer_name}']
+    } else if (payload.suggestionType === 'aging_leads') {
+        const text = 'Merhabalar {{1}}, ilgilendiğiniz proje için özel fiyat indirimleri ve ödeme kolaylıkları tanımlandı. Detaylar için görüşmek isteriz.'
+        waTemplateName = await registerWhatsAppTemplateIfPossible(tenantId, 'ai_aging_leads', text)
+        waTemplateParams = waTemplateName === 'novo_kampanya_genel_v2' ? ['{customer_name}', '{project_name}'] : ['{customer_name}']
+    }
+
+    // 3. Create the segment
     const segmentName = `🤖 AI Önerisi: ${payload.title} (${new Date().toLocaleDateString('tr-TR')})`
     const { data: segment, error: segmentError } = await supabase
         .from('outreach_segments')
@@ -269,10 +371,12 @@ export async function launchSuggestedCampaign(payload: {
         .single()
 
     if (segmentError || !segment) {
+        // Cleanup script if segment fails
+        await supabase.from('outreach_scripts').delete().eq('id', scriptId)
         return { error: 'Segment oluşturulamadı: ' + segmentError?.message }
     }
 
-    // 3. Define steps based on suggestion type
+    // 4. Define steps based on suggestion type
     let steps: any[] = []
     if (payload.suggestionType === 'silent_leads') {
         steps = [
@@ -280,7 +384,7 @@ export async function launchSuggestedCampaign(payload: {
                 step_order: 1,
                 name: '💬 Re-engagement WhatsApp',
                 action_type: 'whatsapp',
-                config: { message: 'Merhaba, projemizle ilgili güncel detayları ve size özel ödeme planlarını paylaşmak isteriz. Uygun olduğunuzda görüşebilir miyiz?' }
+                config: { template_name: waTemplateName, template_params: waTemplateParams }
             },
             {
                 step_order: 2,
@@ -328,7 +432,7 @@ export async function launchSuggestedCampaign(payload: {
                 step_order: 4,
                 name: '💬 WhatsApp Takip Mesajı',
                 action_type: 'whatsapp',
-                config: { message: 'Merhabalar, size telefonla ulaşamadık. İlgilendiğiniz proje hakkında bilgi almak veya randevu oluşturmak isterseniz buradan yardımcı olabiliriz.' }
+                config: { template_name: waTemplateName, template_params: waTemplateParams }
             }
         ]
     } else if (payload.suggestionType === 'wa_responded') {
@@ -346,7 +450,7 @@ export async function launchSuggestedCampaign(payload: {
                 step_order: 1,
                 name: '💬 Yaşlanmış Lead Özel Teklifi (WA)',
                 action_type: 'whatsapp',
-                config: { message: 'Merhabalar, ilgilendiğiniz proje için özel fiyat indirimleri ve ödeme kolaylıkları tanımlandı. Detaylar için görüşmek isteriz.' }
+                config: { template_name: waTemplateName, template_params: waTemplateParams }
             },
             {
                 step_order: 2,
@@ -362,7 +466,6 @@ export async function launchSuggestedCampaign(payload: {
             }
         ]
     } else {
-        // Fallback to simple AI Call
         steps = [
             {
                 step_order: 1,
@@ -373,7 +476,7 @@ export async function launchSuggestedCampaign(payload: {
         ]
     }
 
-    // 4. Create the workflow
+    // 5. Create the workflow
     const workflowName = `🤖 AI Kampanyası: ${payload.title}`
     const { data: workflow, error: workflowError } = await supabase
         .from('outreach_workflows')
@@ -396,12 +499,13 @@ export async function launchSuggestedCampaign(payload: {
         .single()
 
     if (workflowError || !workflow) {
-        // Cleanup segment if workflow fails
+        // Cleanup segment and script if workflow fails
         await supabase.from('outreach_segments').delete().eq('id', segment.id)
+        await supabase.from('outreach_scripts').delete().eq('id', scriptId)
         return { error: 'Workflow oluşturulamadı: ' + workflowError?.message }
     }
 
-    // 5. Create the steps
+    // 6. Create the steps
     const stepsPayload = steps.map(s => ({
         ...s,
         workflow_id: workflow.id,
@@ -416,6 +520,7 @@ export async function launchSuggestedCampaign(payload: {
         // Cleanup
         await supabase.from('outreach_workflows').delete().eq('id', workflow.id)
         await supabase.from('outreach_segments').delete().eq('id', segment.id)
+        await supabase.from('outreach_scripts').delete().eq('id', scriptId)
         return { error: 'Adımlar oluşturulamadı: ' + stepsError.message }
     }
 
