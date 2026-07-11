@@ -221,6 +221,15 @@ export async function generateSegmentSuggestions(tenantId: string): Promise<Segm
     return suggestions
 }
 
+function getSimpleHash(str: string): string {
+    let hash = 0
+    for (let i = 0; i < str.length; i++) {
+        hash = (hash << 5) - hash + str.charCodeAt(i)
+        hash |= 0
+    }
+    return Math.abs(hash).toString(36).substring(0, 5)
+}
+
 async function registerWhatsAppTemplateIfPossible(tenantId: string, name: string, text: string): Promise<string> {
     const WABA_ID = process.env.WHATSAPP_BUSINESS_ACCOUNT_ID
     let ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN
@@ -231,7 +240,10 @@ async function registerWhatsAppTemplateIfPossible(tenantId: string, name: string
     }
 
     ACCESS_TOKEN = ACCESS_TOKEN.replace(/[\r\n"\s]+/g, '')
-    const cleanName = name.toLowerCase().replace(/[^a-z0-9_]/g, '_').substring(0, 50)
+    
+    // Append a hash of the text to ensure text updates register a new template, and prevent name collision
+    const textHash = getSimpleHash(text)
+    const cleanName = `${name.toLowerCase().replace(/[^a-z0-9_]/g, '_').substring(0, 40)}_${textHash}`
 
     try {
         const bodyPayload = {
@@ -261,6 +273,9 @@ async function registerWhatsAppTemplateIfPossible(tenantId: string, name: string
         const data = await res.json()
         if (data.id) {
             console.log(`[Outreach] WhatsApp template registered successfully: ${cleanName} (ID: ${data.id})`)
+            return cleanName
+        } else if (data.error?.message?.includes('already exists') || data.error?.error_subcode === 2388042) {
+            console.log(`[Outreach] WhatsApp template already exists in Meta, reusing: ${cleanName}`)
             return cleanName
         } else {
             console.warn('[Outreach] Meta template registration failed:', data)
