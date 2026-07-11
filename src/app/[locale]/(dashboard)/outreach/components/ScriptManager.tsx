@@ -1,14 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
-import { ArrowLeft, Plus, Bot, Trash2, Edit3, Save, X, Copy } from 'lucide-react'
+import { ArrowLeft, Plus, Bot, Trash2, Edit3, Save, X, Copy, FlaskConical, Trophy, XCircle } from 'lucide-react'
 import { createScript, updateScript, deleteScript } from '../actions'
+import { createAbTest, getAbTestForScript, completeAbTest, cancelAbTest } from '../ab-test-actions'
 import { DEFAULT_OUTREACH_PROMPTS } from '@/lib/vapi'
 
 export function ScriptManager({ scripts: initialScripts, tenantId, onClose }: {
@@ -22,6 +23,11 @@ export function ScriptManager({ scripts: initialScripts, tenantId, onClose }: {
     const [prompt, setPrompt] = useState('')
     const [firstMessage, setFirstMessage] = useState('')
     const [saving, setSaving] = useState(false)
+    // A/B Test state
+    const [abTests, setAbTests] = useState<Record<string, any>>({})
+    const [abTestLoading, setAbTestLoading] = useState<string | null>(null)
+    const [showAbTestFor, setShowAbTestFor] = useState<string | null>(null)
+    const [selectedVariant, setSelectedVariant] = useState<string>('')
 
     const startNew = () => {
         setIsNew(true); setEditing(null)
@@ -65,6 +71,48 @@ export function ScriptManager({ scripts: initialScripts, tenantId, onClose }: {
         const p = (DEFAULT_OUTREACH_PROMPTS as any)[key]
         if (p) setPrompt(p)
     }
+
+    // A/B Test handlers
+    const startAbTest = async (scriptAId: string) => {
+        if (!selectedVariant) return alert('Varyant script seçin')
+        setAbTestLoading(scriptAId)
+        const scriptA = scripts.find(s => s.id === scriptAId)
+        const res = await createAbTest({
+            name: `${scriptA?.name || 'Script A'} vs Varyant`,
+            scriptAId,
+            scriptBId: selectedVariant
+        })
+        if (res.error) {
+            alert(res.error)
+        } else if (res.data) {
+            setAbTests(prev => ({ ...prev, [scriptAId]: res.data, [selectedVariant]: res.data }))
+        }
+        setShowAbTestFor(null)
+        setSelectedVariant('')
+        setAbTestLoading(null)
+    }
+
+    const handleCompleteTest = async (testId: string, winner: 'a' | 'b') => {
+        if (!confirm(`${winner === 'a' ? 'A' : 'B'} scriptini kazanan olarak ayarlamak istediğinize emin misiniz?`)) return
+        await completeAbTest(testId, winner)
+        setAbTests({})
+    }
+
+    const handleCancelTest = async (testId: string) => {
+        if (!confirm('A/B testi iptal edilsin mi?')) return
+        await cancelAbTest(testId)
+        setAbTests({})
+    }
+
+    // Load AB test status for each script on mount
+    useEffect(() => {
+        scripts.forEach(async (s) => {
+            const test = await getAbTestForScript(s.id)
+            if (test) {
+                setAbTests(prev => ({ ...prev, [s.id]: test }))
+            }
+        })
+    }, [scripts])
 
     const showForm = isNew || editing
 
@@ -134,6 +182,12 @@ export function ScriptManager({ scripts: initialScripts, tenantId, onClose }: {
                                     )}
                                 </div>
                                 <div className="flex gap-1 ml-2">
+                                    {!abTests[s.id] && (
+                                        <Button variant="ghost" size="sm" onClick={() => { setShowAbTestFor(s.id); setSelectedVariant('') }}
+                                            className="h-7 px-2 text-[10px] text-muted-foreground hover:text-violet-400 gap-1" title="A/B Test">
+                                            <FlaskConical className="h-3 w-3" /> A/B
+                                        </Button>
+                                    )}
                                     <Button variant="ghost" size="sm" onClick={() => startCopy(s)} className="h-7 w-7 p-0 text-muted-foreground hover:text-violet-400" title="Kopyala">
                                         <Copy className="h-3 w-3" />
                                     </Button>
@@ -146,6 +200,85 @@ export function ScriptManager({ scripts: initialScripts, tenantId, onClose }: {
                                     </Button>
                                 </div>
                             </div>
+
+                            {/* A/B Test Start Dialog */}
+                            {showAbTestFor === s.id && (
+                                <div className="mt-3 p-3 rounded-lg border border-violet-500/20 bg-violet-500/5 space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <h4 className="text-xs font-bold flex items-center gap-1.5">
+                                            <FlaskConical className="h-3.5 w-3.5 text-violet-400" /> A/B Test Başlat
+                                        </h4>
+                                        <Button variant="ghost" size="sm" onClick={() => setShowAbTestFor(null)} className="h-5 w-5 p-0">
+                                            <X className="h-3 w-3" />
+                                        </Button>
+                                    </div>
+                                    <p className="text-[10px] text-muted-foreground">Karşılaştırılacak varyant scripti seçin:</p>
+                                    <select
+                                        value={selectedVariant}
+                                        onChange={e => setSelectedVariant(e.target.value)}
+                                        className="w-full h-8 text-xs rounded-lg border bg-background px-2"
+                                    >
+                                        <option value="">Script seçin...</option>
+                                        {scripts.filter(v => v.id !== s.id).map(v => (
+                                            <option key={v.id} value={v.id}>{v.name}</option>
+                                        ))}
+                                    </select>
+                                    <Button
+                                        size="sm"
+                                        disabled={!selectedVariant || abTestLoading === s.id}
+                                        onClick={() => startAbTest(s.id)}
+                                        className="w-full h-8 text-xs gap-1.5 bg-gradient-to-r from-violet-600 to-purple-600"
+                                    >
+                                        <FlaskConical className="h-3 w-3" />
+                                        {abTestLoading === s.id ? 'Başlatılıyor...' : 'Testi Başlat (%50/%50)'}
+                                    </Button>
+                                </div>
+                            )}
+
+                            {/* Active AB Test Panel */}
+                            {abTests[s.id] && abTests[s.id].script_a_id === s.id && (
+                                <div className="mt-3 p-3 rounded-lg border border-amber-500/20 bg-amber-500/5 space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <h4 className="text-xs font-bold flex items-center gap-1.5">
+                                            <FlaskConical className="h-3.5 w-3.5 text-amber-400" /> 🔬 A/B Test Aktif
+                                        </h4>
+                                        <Badge variant="outline" className="text-[9px]">⏳ Devam ediyor</Badge>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {['A (Kontrol)', 'B (Varyant)'].map((label, idx) => {
+                                            const stats = idx === 0 ? abTests[s.id].stats_a : abTests[s.id].stats_b
+                                            const p = stats as any || {}
+                                            const answerRate = p.calls > 0 ? Math.round((p.answered / p.calls) * 100) : 0
+                                            const appointRate = p.calls > 0 ? Math.round((p.appointments / p.calls) * 100) : 0
+                                            return (
+                                                <div key={idx} className="text-center p-2 rounded-lg bg-background/50 border">
+                                                    <p className="text-[10px] font-bold mb-1">{label}</p>
+                                                    <p className="text-lg font-black">{p.calls || 0}</p>
+                                                    <p className="text-[9px] text-muted-foreground">arama</p>
+                                                    <div className="flex justify-center gap-2 mt-1 text-[9px]">
+                                                        <span>Cevap: %{answerRate}</span>
+                                                        <span>Randevu: %{appointRate}</span>
+                                                    </div>
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <Button size="sm" onClick={() => handleCompleteTest(abTests[s.id].id, 'a')}
+                                            className="flex-1 h-7 text-[10px] gap-1 bg-emerald-600 hover:bg-emerald-700">
+                                            <Trophy className="h-3 w-3" /> A Kazandı
+                                        </Button>
+                                        <Button size="sm" onClick={() => handleCompleteTest(abTests[s.id].id, 'b')}
+                                            className="flex-1 h-7 text-[10px] gap-1 bg-blue-600 hover:bg-blue-700">
+                                            <Trophy className="h-3 w-3" /> B Kazandı
+                                        </Button>
+                                        <Button size="sm" variant="outline" onClick={() => handleCancelTest(abTests[s.id].id)}
+                                            className="h-7 text-[10px] gap-1 text-red-400">
+                                            <XCircle className="h-3 w-3" /> İptal
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
                         </Card>
                     ))}
                 </div>

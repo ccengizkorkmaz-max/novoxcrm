@@ -984,15 +984,27 @@ export default function PipelineList({
                                                 }
                                                 if (colId === 'lead_score') {
                                                     const lq = sale.customers?.lead_qualifications?.[0]
+                                                    const aiScore = sale.customers?.ai_purchase_score
                                                     return (
                                                         <TableCell key="lead_score" className={cellCls}>
-                                                            <LeadScoreBadge
-                                                                customerId={sale.customers?.id}
-                                                                score={lq?.interest_level}
-                                                                source={lq?.interest_level_source || 'ai'}
-                                                                history={lq?.interest_level_history || []}
-                                                                userRole={userRole}
-                                                            />
+                                                            <div className="flex items-center gap-1.5">
+                                                                <LeadScoreBadge
+                                                                    customerId={sale.customers?.id}
+                                                                    score={lq?.interest_level}
+                                                                    source={lq?.interest_level_source || 'ai'}
+                                                                    history={lq?.interest_level_history || []}
+                                                                    userRole={userRole}
+                                                                />
+                                                                {aiScore != null && (
+                                                                    <span title={`AI Skor: ${aiScore}/100`} className={`text-[9px] font-black px-1 py-0.5 rounded ${
+                                                                        aiScore >= 70 ? 'bg-emerald-500/20 text-emerald-600' :
+                                                                        aiScore >= 40 ? 'bg-amber-500/20 text-amber-600' :
+                                                                        'bg-slate-500/15 text-slate-500'
+                                                                    }`}>
+                                                                        🧠{aiScore}
+                                                                    </span>
+                                                                )}
+                                                            </div>
                                                         </TableCell>
                                                     )
                                                 }

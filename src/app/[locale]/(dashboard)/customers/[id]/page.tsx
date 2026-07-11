@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { notFound, redirect } from 'next/navigation'
 import { CustomerView } from '@/components/customers/customer-view'
 import CustomerForm from '@/app/[locale]/(dashboard)/crm/components/CustomerForm'
+import { AiLeadScoreWidget } from '@/components/crm/AiLeadScoreWidget'
 
 interface CustomerPageProps {
     params: Promise<{
@@ -115,7 +116,13 @@ export default async function CustomerPage({ params }: CustomerPageProps) {
 
     if (isAdvanceMode) {
         return (
-            <div className="p-4 sm:p-6">
+            <div className="p-4 sm:p-6 space-y-4">
+                <AiLeadScoreWidget
+                    customerId={customer.id}
+                    initialScore={customer.ai_purchase_score ?? null}
+                    initialData={customer.ai_purchase_score_data ?? null}
+                    lastUpdated={customer.ai_purchase_score_updated_at ?? null}
+                />
                 <CustomerForm
                     customer={customer}
                     activities={activities || []}

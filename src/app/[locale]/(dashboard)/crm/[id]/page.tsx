@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { notFound, redirect } from 'next/navigation'
 import CustomerForm from '../components/CustomerForm'
+import { AiLeadScoreWidget } from '@/components/crm/AiLeadScoreWidget'
 
 export const dynamic = 'force-dynamic'
 
@@ -40,7 +41,14 @@ export default async function EditCustomerPage(props: {
     }
 
     return (
-        <div className="p-4 sm:p-6">
+        <div className="p-4 sm:p-6 space-y-4">
+            {/* AI Lead Score Widget */}
+            <AiLeadScoreWidget
+                customerId={customer.id}
+                initialScore={customer.ai_purchase_score ?? null}
+                initialData={customer.ai_purchase_score_data ?? null}
+                lastUpdated={customer.ai_purchase_score_updated_at ?? null}
+            />
             <CustomerForm customer={customer} crmMode={tenant?.crm_mode || 'basic'} />
         </div>
     )

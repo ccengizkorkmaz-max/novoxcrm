@@ -911,6 +911,9 @@ async function executeStep(execution: any, step: any) {
         case 'ai_personalize':
             await executeAiPersonalize(execution, step, config)
             break
+        case 'auto_channel':
+            await executeAutoChannel(execution, step, config, phone, customer)
+            break
         default:
             await advanceToNextStep(execution, step, 'success')
     }
@@ -958,6 +961,48 @@ async function executeAiCall(execution: any, step: any, config: StepConfig, phon
         return
     }
 
+    // Fetch script prompt from DB if script_id is set
+    let scriptPrompt: string | undefined
+    let abTestVariant: 'a' | 'b' | null = null
+    let abTestId: string | null = null
+    const resolvedScriptId = config.script_id && config.script_id !== 'default' ? config.script_id : null
+
+    if (resolvedScriptId) {
+        // Check for active A/B test
+        const { data: abTest } = await supabase
+            .from('outreach_ab_tests')
+            .select('id, script_a_id, script_b_id, traffic_split')
+            .eq('status', 'running')
+            .or(`script_a_id.eq.${resolvedScriptId},script_b_id.eq.${resolvedScriptId}`)
+            .limit(1)
+            .maybeSingle()
+
+        let finalScriptId = resolvedScriptId
+        if (abTest) {
+            abTestId = abTest.id
+            const split = abTest.traffic_split || 0.5
+            if (Math.random() < split) {
+                finalScriptId = abTest.script_a_id
+                abTestVariant = 'a'
+            } else {
+                finalScriptId = abTest.script_b_id
+                abTestVariant = 'b'
+            }
+        }
+
+        const { data: script } = await supabase
+            .from('outreach_scripts')
+            .select('prompt')
+            .eq('id', finalScriptId)
+            .single()
+        if (script?.prompt) {
+            // Replace variables in the prompt
+            scriptPrompt = script.prompt
+                .replace(/\{customer_name\}/g, customer?.full_name || 'Müşteri')
+                .replace(/\{project_name\}/g, execution.sales?.projects?.name || 'projemiz')
+        }
+    }
+
     // Normalize & validate phone
     let cleanPhone = normalizeToE164(phone)
     // E.164: max 15 digits including country code
@@ -986,21 +1031,6 @@ async function executeAiCall(execution: any, step: any, config: StepConfig, phon
         return
     }
 
-    // Fetch script prompt from DB if script_id is set
-    let scriptPrompt: string | undefined
-    if (config.script_id && config.script_id !== 'default') {
-        const { data: script } = await supabase
-            .from('outreach_scripts')
-            .select('prompt')
-            .eq('id', config.script_id)
-            .single()
-        if (script?.prompt) {
-            // Replace variables in the prompt
-            scriptPrompt = script.prompt
-                .replace(/\{customer_name\}/g, customer?.full_name || 'Müşteri')
-                .replace(/\{project_name\}/g, execution.sales?.projects?.name || 'projemiz')
-        }
-    }
 
     const nameWithTitle = getTurkishNameTitle(customer?.full_name);
     const isOikosTenant = execution.tenant_id === '3de3c038-8ce7-44b1-b5ba-8b99d63301f4'
@@ -1072,7 +1102,8 @@ Assistant: Görüşmek üzere, iyi günler dilerim.
                         customer_id: execution.customer_id,
                         lead_id: execution.lead_id,
                         customer_name: customer?.full_name,
-                        tenant_id: execution.tenant_id
+                        tenant_id: execution.tenant_id,
+                        ...(abTestId ? { ab_test_id: abTestId, ab_variant: abTestVariant } : {})
                     }
                 })
 
@@ -1098,6 +1129,7 @@ Assistant: Görüşmek üzere, iyi günler dilerim.
                 lead_id: execution.lead_id,
                 customer_name: customer?.full_name,
                 tenant_id: execution.tenant_id,
+                ...(abTestId ? { ab_test_id: abTestId, ab_variant: abTestVariant } : {})
             },
         })
     }
@@ -1111,6 +1143,7 @@ Assistant: Görüşmek üzere, iyi günler dilerim.
         status: result.success ? 'sent' : 'failed',
         external_id: result.callId,
         error_message: result.error,
+        metadata: abTestId ? { ab_test_id: abTestId, ab_variant: abTestVariant } : undefined,
     })
 
     if (result.success) {
@@ -1615,6 +1648,85 @@ async function executeAiPersonalize(execution: any, step: any, config: StepConfi
         await logAndAdvance(execution, step, 'sent', 'ai_personalize', `Personalized: ${personalizedMessage.substring(0, 50)}...`)
     } catch (err: any) {
         await logAndAdvance(execution, step, 'failed', 'ai_personalize', err.message)
+    }
+}
+
+// ─── Auto Channel Optimizer ──────────────────────────────────
+
+async function executeAutoChannel(execution: any, step: any, config: StepConfig, phone: string, customer: any) {
+    const supabase = createAdminClient()
+    const customerId = execution.customer_id
+
+    if (!customerId) {
+        await logAndAdvance(execution, step, 'skipped', 'auto_channel', 'No customer ID')
+        return
+    }
+
+    try {
+        // Analyze past interactions to find the best channel
+        const { data: logs } = await supabase
+            .from('outreach_step_logs')
+            .select('channel, status, call_outcome')
+            .eq('customer_id', customerId)
+            .order('executed_at', { ascending: false })
+            .limit(30)
+
+        const stats: Record<string, { sent: number; responded: number }> = {
+            ai_call: { sent: 0, responded: 0 },
+            whatsapp: { sent: 0, responded: 0 },
+            sms: { sent: 0, responded: 0 }
+        }
+
+        if (logs) {
+            for (const log of logs) {
+                const ch = log.channel
+                if (!stats[ch]) continue
+                stats[ch].sent++
+                const responded = (
+                    log.status === 'completed' || log.status === 'responded' ||
+                    (ch === 'ai_call' && ['completed', 'answered', 'interested', 'follow_up', 'hot', 'warm'].includes(log.call_outcome || ''))
+                )
+                if (responded) stats[ch].responded++
+            }
+        }
+
+        // Pick best channel
+        let bestChannel = 'ai_call'
+        let bestRate = -1
+        for (const ch of Object.keys(stats)) {
+            const rate = stats[ch].sent >= 2 ? stats[ch].responded / stats[ch].sent : -1
+            if (rate > bestRate) {
+                bestRate = rate
+                bestChannel = ch
+            }
+        }
+
+        console.log(`[Outreach] 🧠 Auto-channel for ${customer?.full_name}: ${bestChannel} (rate: ${Math.round(bestRate * 100)}%)`)
+
+        // Log the channel decision
+        await supabase.from('outreach_step_logs').insert({
+            execution_id: execution.id,
+            step_id: step.id,
+            channel: 'auto_channel',
+            status: 'sent',
+            metadata: { selected_channel: bestChannel, stats }
+        })
+
+        // Execute the selected channel
+        switch (bestChannel) {
+            case 'whatsapp':
+                await executeWhatsApp(execution, step, config, phone, customer)
+                break
+            case 'sms':
+                await executeSms(execution, step, config, phone, customer)
+                break
+            default:
+                await executeAiCall(execution, step, config, phone, customer)
+        }
+    } catch (err: any) {
+        console.error('[Outreach] Auto-channel error:', err.message)
+        // Fallback to AI call
+        await executeAiCall(execution, step, config, phone, customer)
     }
 }
 

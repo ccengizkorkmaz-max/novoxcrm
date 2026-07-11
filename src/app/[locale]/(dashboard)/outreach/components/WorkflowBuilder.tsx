@@ -21,6 +21,7 @@ const ACTION_TYPES = [
     { value: 'ai_call', label: 'AI Telefon Araması', icon: Phone, color: 'violet' },
     { value: 'whatsapp', label: 'WhatsApp Mesajı', icon: MessageSquare, color: 'emerald' },
     { value: 'sms', label: 'SMS Gönder', icon: Mail, color: 'blue' },
+    { value: 'auto_channel', label: '✨ Otomatik Kanal Seç (AI)', icon: Zap, color: 'purple' },
     { value: 'condition', label: 'Eğer/Değilse', icon: Target, color: 'emerald' },
     { value: 'ai_personalize', label: 'AI Kişiselleştir', icon: Sparkles, color: 'purple' },
     { value: 'wait', label: 'Bekle', icon: Clock, color: 'amber' },
@@ -35,6 +36,7 @@ const colorMap: Record<string, string> = {
     amber: 'border-amber-500/30 bg-amber-500/10',
     slate: 'border-slate-500/30 bg-slate-500/10',
     rose: 'border-rose-500/30 bg-rose-500/10',
+    purple: 'border-purple-500/30 bg-purple-500/10',
 }
 
 interface Step {
