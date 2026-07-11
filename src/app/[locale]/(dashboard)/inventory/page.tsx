@@ -147,7 +147,7 @@ export default async function InventoryPage(props: {
         query = query.eq('has_builtin_kitchen', true)
     }
 
-    // 2. Fetch ALL data in parallel using Promise.all
+    // 2. Fetch data sequentially to avoid Next.js async context issues
     let projects: any[] = []
     let customers: any[] = []
     let unitTypes: any[] = []
@@ -159,34 +159,22 @@ export default async function InventoryPage(props: {
     let isManager = false
 
     try {
-        // Fetch translations first (uses cookies/headers internally)
         t = await getTranslations('Inventory')
-
-        const [
-            projectsRes,
-            customersRes,
-            unitTypesRes,
-            agingResult,
-            velocityResult,
-            unitsRes,
-            userRes
-        ] = await Promise.all([
-            supabase.from('projects').select('id, name'),
-            supabase.from('customers').select('id, full_name').order('full_name', { ascending: true }),
-            supabase.from('unit_types').select('*').order('order_index', { ascending: true }),
-            getStockAgingReport(supabase),
-            getSalesVelocityReport(supabase),
-            query,
-            supabase.auth.getUser()
-        ])
-
-        projects = projectsRes?.data || []
-        customers = customersRes?.data || []
-        unitTypes = unitTypesRes?.data || []
-        agingData = agingResult || []
-        velocityData = velocityResult || []
-        const fetchedUnits = unitsRes?.data || []
+        
+        const userRes = await supabase.auth.getUser()
         user = userRes?.data?.user || null
+
+        const projectsRes = await supabase.from('projects').select('id, name')
+        projects = projectsRes?.data || []
+
+        const customersRes = await supabase.from('customers').select('id, full_name').order('full_name', { ascending: true })
+        customers = customersRes?.data || []
+
+        const unitTypesRes = await supabase.from('unit_types').select('*').order('order_index', { ascending: true })
+        unitTypes = unitTypesRes?.data || []
+
+        const unitsRes = await query
+        const fetchedUnits = unitsRes?.data || []
 
         units = fetchedUnits
         if (units && units.length > 0 && sortBy === 'unit_number') {
@@ -196,7 +184,10 @@ export default async function InventoryPage(props: {
             })
         }
 
-        // Get user role (profile fetch depends on user)
+        agingData = await getStockAgingReport(supabase)
+        velocityData = await getSalesVelocityReport(supabase)
+
+        // Get user role
         if (user?.id) {
             const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
             isManager = profile?.role === 'manager' || profile?.role === 'admin' || profile?.role === 'owner' || profile?.role === 'crm_manager'
@@ -204,7 +195,7 @@ export default async function InventoryPage(props: {
     } catch (error: any) {
         console.error('[INVENTORY PAGE ERROR]', error?.message || error)
         console.error('[INVENTORY PAGE ERROR STACK]', error?.stack)
-        throw error // re-throw so Next.js error page shows
+        throw error
     }
 
     // Helper maps for DB values to Translation Keys
