@@ -37,7 +37,14 @@ export const TURKISH_VOICE_RULES = `
 7. Samimi ama profesyonel bir Türkçe ile konuş. Doğal, akıcı cümleler kur.
 8. "Efendim", "Buyurun", "Tabii ki" gibi Türkçe nezaket kalıplarını kullan.
 9. Müşteriyle konuşurken kesinlikle teknik jargon kullanma, sade ve anlaşılır Türkçe tercih et.
-10. GÖRÜŞME SONLANDIRMA VE TELEFONU KAPATMA: Görüşmeyi sonlandırırken mutlaka uygun bir veda ve bağlama cümlesi kurup ardından HEMEN "endCall" fonksiyonunu/aracını (tool) çağırarak aramayı sonlandır.
+10. KİBARLIK VE EMİR KİPİ YASAĞI (KRİTİK): ASLA emir kipiyle konuşma! "Kapatın", "Bekleyin", "Dinleyin", "Bakın" gibi emir cümleleri KESİNLİKLE YASAKTIR. Bunun yerine her zaman kibar ve rica formu kullan:
+   - "Kapatın" yerine → "Kapatabilirsiniz" veya "Lütfen kapatınız"
+   - "Bekleyin" yerine → "Lütfen bir an bekleyebilir misiniz?" veya "Kısa bir süre beklemenizi rica ederim"
+   - "Dinleyin" yerine → "Sizinle bir bilgi paylaşmak istiyorum" veya "Dilerseniz kısaca aktarayım"
+   - "Bakın" yerine → "Şöyle ifade edeyim" veya "Bilginize sunmak isterim"
+   - "Söyleyin" yerine → "Paylaşabilir misiniz?" veya "Öğrenebilir miyim?"
+   Her cümlede müşteriye saygılı, kibar ve profesyonel bir ton kullan. Müşteri asla emirle muhatap edilmemeli, her zaman rica ve nezaketle yaklaşılmalıdır.
+11. GÖRÜŞME SONLANDIRMA VE TELEFONU KAPATMA: Görüşmeyi sonlandırırken mutlaka uygun bir veda ve bağlama cümlesi kurup ardından HEMEN "endCall" fonksiyonunu/aracını (tool) çağırarak aramayı sonlandır.
     - KESİNLİKLE "hoşçakal", "hoşça kal", "bay bay" veya "güle güle" gibi gayriresmi veya samimiyetsiz ifadeler kullanma. Bunun yerine her zaman kurumsal ve kibar bir vedalaşma kullan: "İyi günler dilerim.", "Görüşmek üzere, iyi günler dilerim." veya "Satış danışmanımız sizinle en kısa sürede iletişime geçecektir, iyi günler dilerim." de.
     - Eğer müşteri bütçesel çekinceler belirtirse veya kararsız kalırsa (örn: "beni sarsar", "şu an bir şey diyemiyorum"), aniden telefonu kapatmak yerine yumuşak ve kibar bir kapanış yap: "Peki efendim, sizi çok iyi anlıyorum. Dilerseniz size daha sonra tekrar detaylı bilgi verelim veya sizi yormayacak bir zamanda satış danışmanımız iletişime geçsin. İlginiz için çok teşekkür ederim, iyi günler dilerim." diyerek kapat.
     - Normal sonlandırmalarda: Müşteri ilgilendiğinde aniden vedalaşıp kapatma. Önce "Harika, detaylı bilgi için sizi satış danışmanımıza aratmamı ister misiniz?" diyerek onay al. Müşteri onaylarsa "En kısa sürede size dönüş yapacaklar, iyi günler dilerim." de ve aramayı sonlandır.
@@ -269,12 +276,12 @@ export async function makeOutboundCall(options: VapiCallOptions): Promise<VapiCa
                 endCallMessage: options.endCallMessage || 'İyi günler dilerim.',
                 firstMessageMode: options.firstMessage ? 'assistant-speaks-first' : 'assistant-waits-for-user',
                 startSpeakingPlan: {
-                    waitSeconds: 0.8
+                    waitSeconds: 0.4
                 },
                 stopSpeakingPlan: {
-                    numWords: 1, // Require at least 1 word to stop speaking, avoiding stopping on mere breath/ambient clicks
-                    voiceSeconds: 0.25,
-                    backoffSeconds: 0.8
+                    numWords: 1,
+                    voiceSeconds: 0.2,
+                    backoffSeconds: 0.5
                 },
                 backgroundSpeechDenoisingPlan: {
                     smartDenoisingPlan: {
@@ -515,12 +522,12 @@ export async function createOutreachAssistant(config: {
             maxDurationSeconds: config.maxDurationSeconds || 90,
             language: 'tr',
             startSpeakingPlan: {
-                waitSeconds: 0.8
+                waitSeconds: 0.4
             },
             stopSpeakingPlan: {
                 numWords: 1,
-                voiceSeconds: 0.25,
-                backoffSeconds: 0.8
+                voiceSeconds: 0.2,
+                backoffSeconds: 0.5
             },
             backgroundSpeechDenoisingPlan: {
                 smartDenoisingPlan: {
