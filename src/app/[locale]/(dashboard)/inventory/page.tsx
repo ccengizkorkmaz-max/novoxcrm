@@ -148,44 +148,64 @@ export default async function InventoryPage(props: {
     }
 
     // 2. Fetch ALL data in parallel using Promise.all
-    // Auth, profile, projects, units, reports — ALL run simultaneously
-    const [
-        projectsRes,
-        customersRes,
-        unitTypesRes,
-        agingData,
-        velocityData,
-        t,
-        unitsRes,
-        userRes
-    ] = await Promise.all([
-        supabase.from('projects').select('id, name'),
-        supabase.from('customers').select('id, full_name').order('full_name', { ascending: true }),
-        supabase.from('unit_types').select('*').order('order_index', { ascending: true }),
-        getStockAgingReport(supabase),
-        getSalesVelocityReport(supabase),
-        getTranslations('Inventory'),
-        query,
-        supabase.auth.getUser()
-    ])
+    let projects: any[] = []
+    let customers: any[] = []
+    let unitTypes: any[] = []
+    let agingData: any[] = []
+    let velocityData: any[] = []
+    let t: any
+    let units: any[] = []
+    let user: any = null
+    let isManager = false
 
-    const projects = projectsRes?.data || []
-    const customers = customersRes?.data || []
-    const unitTypes = unitTypesRes?.data || []
-    const fetchedUnits = unitsRes?.data || []
-    const user = userRes?.data?.user || null
+    try {
+        const [
+            projectsRes,
+            customersRes,
+            unitTypesRes,
+            agingResult,
+            velocityResult,
+            translations,
+            unitsRes,
+            userRes
+        ] = await Promise.all([
+            supabase.from('projects').select('id, name'),
+            supabase.from('customers').select('id, full_name').order('full_name', { ascending: true }),
+            supabase.from('unit_types').select('*').order('order_index', { ascending: true }),
+            getStockAgingReport(supabase),
+            getSalesVelocityReport(supabase),
+            getTranslations('Inventory'),
+            query,
+            supabase.auth.getUser()
+        ])
 
-    const units = fetchedUnits
-    if (units && units.length > 0 && sortBy === 'unit_number') {
-        units.sort((a: any, b: any) => {
-            const cmp = String(a.unit_number).localeCompare(String(b.unit_number), undefined, { numeric: true })
-            return sortOrder === 'asc' ? cmp : -cmp
-        })
+        projects = projectsRes?.data || []
+        customers = customersRes?.data || []
+        unitTypes = unitTypesRes?.data || []
+        agingData = agingResult || []
+        velocityData = velocityResult || []
+        t = translations
+        const fetchedUnits = unitsRes?.data || []
+        user = userRes?.data?.user || null
+
+        units = fetchedUnits
+        if (units && units.length > 0 && sortBy === 'unit_number') {
+            units.sort((a: any, b: any) => {
+                const cmp = String(a.unit_number).localeCompare(String(b.unit_number), undefined, { numeric: true })
+                return sortOrder === 'asc' ? cmp : -cmp
+            })
+        }
+
+        // Get user role (profile fetch depends on user)
+        if (user?.id) {
+            const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+            isManager = profile?.role === 'manager' || profile?.role === 'admin' || profile?.role === 'owner' || profile?.role === 'crm_manager'
+        }
+    } catch (error: any) {
+        console.error('[INVENTORY PAGE ERROR]', error?.message || error)
+        console.error('[INVENTORY PAGE ERROR STACK]', error?.stack)
+        throw error // re-throw so Next.js error page shows
     }
-
-    // Get user role (profile fetch depends on user)
-    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user?.id).single()
-    const isManager = profile?.role === 'manager' || profile?.role === 'admin' || profile?.role === 'owner' || profile?.role === 'crm_manager'
 
     // Helper maps for DB values to Translation Keys
     const directionMap: Record<string, string> = {
