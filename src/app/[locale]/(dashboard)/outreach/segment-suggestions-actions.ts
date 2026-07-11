@@ -405,7 +405,6 @@ export async function launchSuggestedCampaign(payload: {
     const stepsPayload = steps.map(s => ({
         ...s,
         workflow_id: workflow.id,
-        tenant_id: tenantId,
         is_active: true
     }))
 
