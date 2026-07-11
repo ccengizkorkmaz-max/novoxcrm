@@ -76,9 +76,18 @@
 
 ---
 
-## 📺 Slayt 8: Özet ve Rekabet Avantajı
+## 📺 Slayt 8: Parametrik Yönetim ve Dinamik Kontroller (Yeni)
+* **Başlık:** AI Stratejinizi Kendiniz Çizin
+* **Detaylar:**
+  * **Dinamik Cooldown (Yorgunluk Yönetimi):** Sıcak ve soğuk müşteriler için bekleme sürelerini parametrik olarak ayırın. Skor eşiğini (örn: 70+) ve bekleme gününü ayarlayarak sıcak lead'lere daha sık, soğuk lead'lere daha seyrek dokunun.
+  * **Olay Tetiklemeli Skorlama (Real-Time):** Yapay zeka skorlarının ne zaman güncelleneceğini seçin. WhatsApp yanıtı alındığında, yeni CRM aktivitesi eklendiğinde veya arama bittiğinde skorlar otomatik olarak gerçek zamanlı yeniden hesaplanır.
+* **İş Değeri:** AI algoritmalarını iş modelinize göre esnetin. Operasyonel kontrolü kaybetmeden en yüksek reaksiyon hızını yakalayın.
+
+---
+
+## 📺 Slayt 9: Özet ve Rekabet Avantajı
 * **Başlık:** Level 5 AI ile Sektörün Lideri Olun
 * **Karşılaştırma:**
   * **Geleneksel CRM:** Manuel arama listesi, rastgele scriptler, ölçülemeyen ROI.
-  * **NovoCRM Level 5:** Otonom arama, dinamik kanal seçimi, veri odaklı script iyileştirme, kuruşu kuruşuna gelir attribution.
+  * **NovoCRM Level 5:** Otonom arama, dinamik kanal seçimi, veri odaklı script iyileştirme, kuruşu kuruşuna gelir attribution ve esnek parametrik kontrol.
 * **Sonuç:** Ekiplerinizin operasyonel yükünü hafifletin, dönüşüm oranlarınızı katlayın ve satış süreçlerinizi otonomlaştırın.
