@@ -5,6 +5,7 @@ import { PlatformPowerSection } from '@/components/marketing/PlatformPowerSectio
 import { ComparisonSection } from '@/components/marketing/ComparisonSection'
 import { OutreachShowcase } from '@/components/marketing/OutreachShowcase'
 import { AiFeaturesSection } from '@/components/marketing/AiFeaturesSection'
+import { AutonomousAISection } from '@/components/marketing/AutonomousAISection'
 import { PainSection } from '@/components/marketing/PainSection'
 import { CRMLifecycle } from '@/components/marketing/CRMLifecycle'
 import { SolutionSection } from '@/components/marketing/SolutionSection'
@@ -112,6 +113,7 @@ export async function OldMarketingPage({
             <ComparisonSection />
             <OutreachShowcase />
             <AiFeaturesSection />
+            <AutonomousAISection />
             <PainSection />
             <CRMLifecycle />
             <div id="solutions">
