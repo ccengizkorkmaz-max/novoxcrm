@@ -166,11 +166,19 @@ export function InventoryGridView({ units, onUnitClick }: InventoryGridViewProps
     }
 
     const formatPrice = (price: number, currency: string = 'TRY') => {
-        return new Intl.NumberFormat('tr-TR', {
-            style: 'currency',
-            currency,
-            maximumFractionDigits: 0
-        }).format(price)
+        // Validate currency code - must be a 3-letter ISO code
+        const validCurrency = (typeof currency === 'string' && /^[A-Z]{3}$/i.test(currency.trim()))
+            ? currency.trim().toUpperCase()
+            : 'TRY'
+        try {
+            return new Intl.NumberFormat('tr-TR', {
+                style: 'currency',
+                currency: validCurrency,
+                maximumFractionDigits: 0
+            }).format(price)
+        } catch {
+            return `${new Intl.NumberFormat('tr-TR').format(price)} ${validCurrency}`
+        }
     }
 
     const formatM2Price = (price: number, area: number | null) => {
