@@ -1002,6 +1002,14 @@
             "conversation-intelligence": {
                 "title": "Conversation Intelligence",
                 "description": "AI transcript analysis: most asked questions, objection trends, and script optimization suggestions."
+            },
+            "revenue-attribution": {
+                "title": "Revenue Attribution",
+                "description": "Track every sale's journey: Maya AI contribution, channel ROI, and lead-to-close timelines."
+            },
+            "self-learning": {
+                "title": "Self-Learning Script",
+                "description": "AI analyzes successful call patterns and suggests prompt improvements automatically."
             }
         }
     },

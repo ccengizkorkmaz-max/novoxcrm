@@ -191,6 +191,20 @@ const reportCards = [
         icon: Brain,
         color: "text-violet-600",
         bgColor: "bg-violet-50"
+    },
+    {
+        id: "revenue-attribution",
+        href: "/reports/revenue-attribution",
+        icon: Banknote,
+        color: "text-amber-600",
+        bgColor: "bg-amber-50"
+    },
+    {
+        id: "self-learning",
+        href: "/reports/self-learning",
+        icon: Brain,
+        color: "text-purple-600",
+        bgColor: "bg-purple-50"
     }
 ]
 

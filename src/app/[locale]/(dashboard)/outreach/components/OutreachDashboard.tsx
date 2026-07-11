@@ -24,6 +24,7 @@ import { SystemHealthPanel } from './SystemHealthPanel'
 import { WorkflowLogDialog } from './WorkflowLogDialog'
 import { LeadAnalyticsPanel } from './LeadAnalyticsPanel'
 import { WorkflowDiagnosticDialog } from './WorkflowDiagnosticDialog'
+import { AiSuggestionsPanel } from './AiSuggestionsPanel'
 
 interface OutreachDashboardProps {
     workflows: any[]
@@ -325,6 +326,9 @@ export function OutreachDashboard({
 
             {/* System Health Panel */}
             <SystemHealthPanel />
+
+            {/* AI Suggestions */}
+            <AiSuggestionsPanel tenantId={tenantId} />
 
             {/* Cooldown Banner */}
             {cooldownCount > 0 && (
