@@ -412,6 +412,19 @@ Gelen aramaları karşıla, bilgi bankasındaki proje bilgilerini paylaş, rande
                         } else {
                             await handleManualVapiCallResult(callEndData)
                         }
+
+                        // Trigger event-driven AI scoring for the customer after call ended
+                        const custId = callEndData.metadata?.customer_id
+                        const tenantId = callEndData.metadata?.tenant_id
+                        if (custId && tenantId) {
+                            try {
+                                const { triggerEventDrivenScoring } = await import('@/lib/outreach/ai-lead-scoring')
+                                await triggerEventDrivenScoring(tenantId, custId, 'call')
+                            } catch (scoreErr: any) {
+                                console.error(`[Vapi Webhook AI Scoring] Trigger failed:`, scoreErr.message)
+                            }
+                        }
+
                         console.log(`[Vapi Webhook] ✅ Background processing completed for ${callEndData.callId}`)
                     } catch (afterErr: any) {
                         console.error(`[Vapi Webhook] ❌ Background processing error for ${callEndData.callId}:`, afterErr.message)

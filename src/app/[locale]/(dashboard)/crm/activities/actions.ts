@@ -84,6 +84,16 @@ export async function createActivity(formData: FormData) {
         return { error: `Geri bildirim: ${error.message} (Kod: ${error.code})` }
     }
 
+    // Trigger event-driven AI scoring for the customer
+    if (customer_id && profile?.tenant_id) {
+        try {
+            const { triggerEventDrivenScoring } = await import('@/lib/outreach/ai-lead-scoring')
+            await triggerEventDrivenScoring(profile.tenant_id, customer_id, 'activity')
+        } catch (err: any) {
+            console.error('[AI Scoring Activity Error] Failed to trigger:', err.message)
+        }
+    }
+
     // Auto-create next action if status is Completed
     if (newAct && status === 'Completed') {
         const next_action_summary = formData.get('next_action_summary') as string

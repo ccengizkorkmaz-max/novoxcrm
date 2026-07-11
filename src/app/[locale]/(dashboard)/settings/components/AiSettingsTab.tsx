@@ -50,6 +50,15 @@ interface AiSettingsTabProps {
                 block_lunch?: boolean
                 lunch_start?: string
                 lunch_end?: string
+                dynamic_cooldown_enabled?: boolean
+                hot_lead_score_threshold?: number
+                hot_lead_cooldown_days?: number
+            }
+            scoring?: {
+                event_driven_enabled?: boolean
+                trigger_on_whatsapp?: boolean
+                trigger_on_activity?: boolean
+                trigger_on_call?: boolean
             }
         } | null
         // Yeni Lead Aksiyonu
@@ -62,6 +71,8 @@ interface AiSettingsTabProps {
 export default function AiSettingsTab({ tenant }: AiSettingsTabProps) {
     const t = useTranslations('Settings')
     const [isPending, setIsPending] = useState(false)
+    const [dynamicCooldown, setDynamicCooldown] = useState(tenant?.ai_outreach_settings?.cooldown?.dynamic_cooldown_enabled === true)
+    const [eventDrivenScoring, setEventDrivenScoring] = useState(tenant?.ai_outreach_settings?.scoring?.event_driven_enabled === true)
 
     // Helper to mask key: Shows first 6 and last 4 chars
     const maskKey = (key?: string | null) => {
@@ -768,6 +779,170 @@ export default function AiSettingsTab({ tenant }: AiSettingsTabProps) {
                                     />
                                     <Label className="text-xs text-orange-800">Öğle molası engelle (12:00-13:00)</Label>
                                 </div>
+                            </div>
+
+                            {/* Dynamic Cooldown Section */}
+                            <div className="pt-4 border-t border-orange-200 space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-0.5">
+                                        <Label className="text-xs font-semibold text-orange-950">Dinamik Cooldown Etkinleştir</Label>
+                                        <p className="text-[10px] text-orange-700">Yüksek AI skorlu (sıcak) müşterilerin bekleme süresini kısaltır.</p>
+                                    </div>
+                                    <Switch
+                                        checked={dynamicCooldown}
+                                        onCheckedChange={async (checked) => {
+                                            setDynamicCooldown(checked)
+                                            const supabase = (await import('@/lib/supabase/client')).createClient()
+                                            const currentSettings = tenant?.ai_outreach_settings || {}
+                                            await supabase.from('tenants').update({
+                                                ai_outreach_settings: {
+                                                    ...currentSettings,
+                                                    cooldown: { ...currentSettings.cooldown, dynamic_cooldown_enabled: checked }
+                                                }
+                                            }).eq('id', tenant?.id)
+                                        }}
+                                    />
+                                </div>
+
+                                {dynamicCooldown && (
+                                    <div className="grid grid-cols-2 gap-4 pl-4 border-l-2 border-orange-300 pt-2">
+                                        <div className="space-y-1.5">
+                                            <Label className="text-xs text-orange-800">Sıcak Müşteri Skor Eşiği</Label>
+                                            <Input
+                                                type="number"
+                                                min={1}
+                                                max={100}
+                                                defaultValue={tenant?.ai_outreach_settings?.cooldown?.hot_lead_score_threshold || 70}
+                                                onChange={async (e) => {
+                                                    const val = parseInt(e.target.value) || 70
+                                                    if (val < 1 || val > 100) return
+                                                    const supabase = (await import('@/lib/supabase/client')).createClient()
+                                                    const currentSettings = tenant?.ai_outreach_settings || {}
+                                                    await supabase.from('tenants').update({
+                                                        ai_outreach_settings: {
+                                                            ...currentSettings,
+                                                            cooldown: { ...currentSettings.cooldown, hot_lead_score_threshold: val }
+                                                        }
+                                                    }).eq('id', tenant?.id)
+                                                }}
+                                                className="w-24 bg-white"
+                                            />
+                                            <p className="text-[9px] text-orange-600">Bu skor ve üzeri sıcak kabul edilir</p>
+                                        </div>
+
+                                        <div className="space-y-1.5">
+                                            <Label className="text-xs text-orange-800">Sıcak Müşteri Cooldown (Gün)</Label>
+                                            <Input
+                                                type="number"
+                                                min={1}
+                                                max={30}
+                                                defaultValue={tenant?.ai_outreach_settings?.cooldown?.hot_lead_cooldown_days || 2}
+                                                onChange={async (e) => {
+                                                    const val = parseInt(e.target.value) || 2
+                                                    if (val < 1 || val > 30) return
+                                                    const supabase = (await import('@/lib/supabase/client')).createClient()
+                                                    const currentSettings = tenant?.ai_outreach_settings || {}
+                                                    await supabase.from('tenants').update({
+                                                        ai_outreach_settings: {
+                                                            ...currentSettings,
+                                                            cooldown: { ...currentSettings.cooldown, hot_lead_cooldown_days: val }
+                                                        }
+                                                    }).eq('id', tenant?.id)
+                                                }}
+                                                className="w-24 bg-white"
+                                            />
+                                            <p className="text-[9px] text-orange-600">Sıcak leadlerin bekleme süresi</p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* AI Lead Scoring Tetikleyicileri */}
+                        <div className="p-4 rounded-xl border-2 border-purple-200 bg-purple-50/50 space-y-4">
+                            <div className="flex items-center gap-2">
+                                <Brain className="h-4 w-4 text-purple-600" />
+                                <Label className="text-base font-semibold text-purple-900">Yapay Zeka Olay Tetiklemeli Skorlama</Label>
+                                <Badge variant="outline" className="text-[9px] border-purple-300 text-purple-700">Level 5</Badge>
+                            </div>
+                            <p className="text-xs text-purple-700">Müşterilerin anlık aktivitelerine göre AI Satın Alma Skorunun otomatik ve gerçek zamanlı güncellenmesini tetikleyin.</p>
+
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-0.5">
+                                        <Label className="text-xs font-semibold text-purple-900">Olay Tetiklemeli Skorlama Etkinleştir</Label>
+                                        <p className="text-[10px] text-purple-700">AI Skorlama motoru olay tabanlı çalışmaya başlar.</p>
+                                    </div>
+                                    <Switch
+                                        checked={eventDrivenScoring}
+                                        onCheckedChange={async (checked) => {
+                                            setEventDrivenScoring(checked)
+                                            const supabase = (await import('@/lib/supabase/client')).createClient()
+                                            const currentSettings = tenant?.ai_outreach_settings || {}
+                                            await supabase.from('tenants').update({
+                                                ai_outreach_settings: {
+                                                    ...currentSettings,
+                                                    scoring: { ...currentSettings.scoring, event_driven_enabled: checked }
+                                                }
+                                            }).eq('id', tenant?.id)
+                                        }}
+                                    />
+                                </div>
+
+                                {eventDrivenScoring && (
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pl-4 border-l-2 border-purple-300 pt-2">
+                                        <div className="flex items-center gap-2">
+                                            <Switch
+                                                defaultChecked={tenant?.ai_outreach_settings?.scoring?.trigger_on_whatsapp !== false}
+                                                onCheckedChange={async (checked) => {
+                                                    const supabase = (await import('@/lib/supabase/client')).createClient()
+                                                    const currentSettings = tenant?.ai_outreach_settings || {}
+                                                    await supabase.from('tenants').update({
+                                                        ai_outreach_settings: {
+                                                            ...currentSettings,
+                                                            scoring: { ...currentSettings.scoring, trigger_on_whatsapp: checked }
+                                                        }
+                                                    }).eq('id', tenant?.id)
+                                                }}
+                                            />
+                                            <Label className="text-xs text-purple-800">WhatsApp Mesajı Geldiğinde</Label>
+                                        </div>
+
+                                        <div className="flex items-center gap-2">
+                                            <Switch
+                                                defaultChecked={tenant?.ai_outreach_settings?.scoring?.trigger_on_activity !== false}
+                                                onCheckedChange={async (checked) => {
+                                                    const supabase = (await import('@/lib/supabase/client')).createClient()
+                                                    const currentSettings = tenant?.ai_outreach_settings || {}
+                                                    await supabase.from('tenants').update({
+                                                        ai_outreach_settings: {
+                                                            ...currentSettings,
+                                                            scoring: { ...currentSettings.scoring, trigger_on_activity: checked }
+                                                        }
+                                                    }).eq('id', tenant?.id)
+                                                }}
+                                            />
+                                            <Label className="text-xs text-purple-800">Yeni Aktivite Eklendiğinde</Label>
+                                        </div>
+
+                                        <div className="flex items-center gap-2">
+                                            <Switch
+                                                defaultChecked={tenant?.ai_outreach_settings?.scoring?.trigger_on_call !== false}
+                                                onCheckedChange={async (checked) => {
+                                                    const supabase = (await import('@/lib/supabase/client')).createClient()
+                                                    const currentSettings = tenant?.ai_outreach_settings || {}
+                                                    await supabase.from('tenants').update({
+                                                        ai_outreach_settings: {
+                                                            ...currentSettings,
+                                                            scoring: { ...currentSettings.scoring, trigger_on_call: checked }
+                                                        }
+                                                    }).eq('id', tenant?.id)
+                                                }}
+                                            />
+                                            <Label className="text-xs text-purple-800">Arama Sonrasında</Label>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

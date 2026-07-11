@@ -325,6 +325,22 @@ export async function POST(req: NextRequest) {
             console.error('❌ Mesaj kaydedilemedi:', JSON.stringify(msgInsertError));
         } else {
             console.log('✅ Mesaj kaydedildi:', payload.message.substring(0, 30));
+            // Trigger event-driven AI scoring for the customer
+            try {
+                const { data: customerObj } = await supabase
+                    .from('customers')
+                    .select('id')
+                    .eq('phone', normalizedPhone)
+                    .eq('tenant_id', tenantId)
+                    .maybeSingle();
+
+                if (customerObj?.id) {
+                    const { triggerEventDrivenScoring } = await import('@/lib/outreach/ai-lead-scoring');
+                    await triggerEventDrivenScoring(tenantId, customerObj.id, 'whatsapp');
+                }
+            } catch (err: any) {
+                console.error('[AI Scoring Webhook Error] Failed to trigger:', err.message);
+            }
         }
 
         // ── 4.5. Kampanya Yanıt İşleme (Quick Reply butonları) ──────────

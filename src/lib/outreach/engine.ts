@@ -263,7 +263,7 @@ export async function processOutreachQueue() {
                     outreach_workflows!inner(
                         id, working_hours_start, working_hours_end, working_days, timezone, is_active, conversion_goal_status, batch_size, batch_interval_seconds, computed_params
                     ),
-                    customers(id, full_name, phone, email, communication_enabled, sms_consent, email_consent, call_consent),
+                    customers(id, full_name, phone, email, communication_enabled, sms_consent, email_consent, call_consent, ai_purchase_score),
                     leads(id, full_name, phone, email, status, notes, assigned_to, sms_consent, email_consent, call_consent),
                     sales(id, status, project_id, unit_id)
                 `)
@@ -478,7 +478,18 @@ export async function processOutreachQueue() {
                 const cooldown = tenantCooldown?.ai_outreach_settings?.cooldown
                 if (cooldown) {
                     const maxCalls = cooldown.max_calls_per_period || 3
-                    const periodDays = cooldown.period_days || 7
+                    
+                    let periodDays = cooldown.period_days || 7
+                    if (cooldown.dynamic_cooldown_enabled) {
+                        const leadScore = execution.customers?.ai_purchase_score || 0
+                        const hotThreshold = cooldown.hot_lead_score_threshold || 70
+                        const hotPeriodDays = cooldown.hot_lead_cooldown_days || 2
+                        if (leadScore >= hotThreshold) {
+                            periodDays = hotPeriodDays
+                            console.log(`[Outreach] 🧠 Dynamic Cooldown: Customer ${execution.customers?.phone || ''} is HOT (AI Score: ${leadScore} >= ${hotThreshold}). Reduced cooldown to ${periodDays} days.`)
+                        }
+                    }
+                    
                     const periodStart = new Date(Date.now() - periodDays * 24 * 60 * 60 * 1000).toISOString()
 
                     // Count recent calls to this person

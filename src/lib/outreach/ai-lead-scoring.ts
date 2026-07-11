@@ -244,3 +244,50 @@ export async function batchScoreLeads(tenantId: string, limit: number = 50) {
 
     return { scored, total: customers.length }
 }
+
+/**
+ * Triggers AI Lead Scoring recalculation based on an event (whatsapp, activity, call)
+ */
+export async function triggerEventDrivenScoring(
+    tenantId: string,
+    customerId: string | null,
+    eventType: 'whatsapp' | 'activity' | 'call'
+) {
+    if (!customerId || !tenantId) return { skipped: true, reason: 'Missing ID' }
+
+    const supabase = await createClient()
+
+    // 1. Fetch tenant scoring settings
+    const { data: tenant } = await supabase
+        .from('tenants')
+        .select('ai_outreach_settings')
+        .eq('id', tenantId)
+        .single()
+
+    const scoring = tenant?.ai_outreach_settings?.scoring
+    if (!scoring || !scoring.event_driven_enabled) {
+        return { skipped: true, reason: 'Event-driven scoring disabled' }
+    }
+
+    // 2. Check if this specific event type is enabled
+    let isEventEnabled = false
+    if (eventType === 'whatsapp' && scoring.trigger_on_whatsapp !== false) isEventEnabled = true
+    if (eventType === 'activity' && scoring.trigger_on_activity !== false) isEventEnabled = true
+    if (eventType === 'call' && scoring.trigger_on_call !== false) isEventEnabled = true
+
+    if (!isEventEnabled) {
+        return { skipped: true, reason: `Trigger disabled for event type: ${eventType}` }
+    }
+
+    console.log(`[AI Scoring Trigger] ⚡ Recalculating score for customer ${customerId} triggered by event: ${eventType}`)
+
+    // 3. Recalculate score asynchronously (without blocking caller)
+    try {
+        calculateAiLeadScore(customerId, tenantId).catch(err => {
+            console.error('[AI Scoring Trigger] Async calculation failed:', err)
+        })
+        return { success: true }
+    } catch (err: any) {
+        return { error: err.message }
+    }
+}
