@@ -43,36 +43,42 @@ export async function getSalesVelocityReport(supabase: SupabaseClient) {
     const { data: projects } = await supabase.from('projects').select('id, name')
     if (!projects) return []
 
-    const results = []
-
-    for (const project of projects) {
-        // Get total units for this project
-        const { count: totalUnits } = await supabase
-            .from('units')
-            .select('*', { count: 'exact', head: true })
-            .eq('project_id', project.id)
-
-        // Get available (For Sale) units
-        const { count: availableUnits } = await supabase
-            .from('units')
-            .select('*', { count: 'exact', head: true })
-            .eq('project_id', project.id)
-            .eq('status', 'For Sale')
-
-        // Get sold units count
-        const { count: soldUnits } = await supabase
-            .from('units')
-            .select('*', { count: 'exact', head: true })
-            .eq('project_id', project.id)
-            .in('status', ['Sold', 'Delivered'])
-
-        // Get sold units with dates to calculate velocity
-        const { data: salesData } = await supabase
-            .from('sales')
-            .select('created_at, unit_id, units!inner(project_id)')
-            .eq('units.project_id', project.id)
-            .in('status', ['Sold', 'Contract Signed', 'Delivered'])
-            .order('created_at', { ascending: true })
+    // Run all project queries in parallel instead of sequential for-loop
+    const results = await Promise.all(projects.map(async (project) => {
+        // Run all 5 queries for this project in parallel
+        const [
+            { count: totalUnits },
+            { count: availableUnits },
+            { count: soldUnits },
+            { data: salesData },
+            { data: priceData }
+        ] = await Promise.all([
+            supabase
+                .from('units')
+                .select('*', { count: 'exact', head: true })
+                .eq('project_id', project.id),
+            supabase
+                .from('units')
+                .select('*', { count: 'exact', head: true })
+                .eq('project_id', project.id)
+                .eq('status', 'For Sale'),
+            supabase
+                .from('units')
+                .select('*', { count: 'exact', head: true })
+                .eq('project_id', project.id)
+                .in('status', ['Sold', 'Delivered']),
+            supabase
+                .from('sales')
+                .select('created_at, unit_id, units!inner(project_id)')
+                .eq('units.project_id', project.id)
+                .in('status', ['Sold', 'Contract Signed', 'Delivered'])
+                .order('created_at', { ascending: true }),
+            supabase
+                .from('units')
+                .select('price')
+                .eq('project_id', project.id)
+                .eq('status', 'For Sale')
+        ])
 
         // Calculate monthly sales velocity (last 6 months)
         const sixMonthsAgo = new Date()
@@ -85,13 +91,6 @@ export async function getSalesVelocityReport(supabase: SupabaseClient) {
         const estimatedMonthsToDepletion = monthlyVelocity > 0 && (availableUnits || 0) > 0
             ? Math.round((availableUnits || 0) / monthlyVelocity)
             : null
-
-        // Get average prices
-        const { data: priceData } = await supabase
-            .from('units')
-            .select('price')
-            .eq('project_id', project.id)
-            .eq('status', 'For Sale')
 
         const avgPrice = priceData && priceData.length > 0
             ? Math.round(priceData.reduce((sum: number, u: any) => sum + (u.price || 0), 0) / priceData.length)
@@ -118,7 +117,7 @@ export async function getSalesVelocityReport(supabase: SupabaseClient) {
             monthlyBreakdown.push({ month, count })
         }
 
-        results.push({
+        return {
             projectId: project.id,
             projectName: project.name,
             totalUnits: totalUnits || 0,
@@ -130,8 +129,8 @@ export async function getSalesVelocityReport(supabase: SupabaseClient) {
             avgPrice,
             totalStockValue,
             monthlyBreakdown
-        })
-    }
+        }
+    }))
 
     return results
 }

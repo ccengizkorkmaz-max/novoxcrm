@@ -159,13 +159,15 @@ export default async function InventoryPage(props: {
     let isManager = false
 
     try {
+        // Fetch translations first (uses cookies/headers internally)
+        t = await getTranslations('Inventory')
+
         const [
             projectsRes,
             customersRes,
             unitTypesRes,
             agingResult,
             velocityResult,
-            translations,
             unitsRes,
             userRes
         ] = await Promise.all([
@@ -174,7 +176,6 @@ export default async function InventoryPage(props: {
             supabase.from('unit_types').select('*').order('order_index', { ascending: true }),
             getStockAgingReport(supabase),
             getSalesVelocityReport(supabase),
-            getTranslations('Inventory'),
             query,
             supabase.auth.getUser()
         ])
@@ -184,7 +185,6 @@ export default async function InventoryPage(props: {
         unitTypes = unitTypesRes?.data || []
         agingData = agingResult || []
         velocityData = velocityResult || []
-        t = translations
         const fetchedUnits = unitsRes?.data || []
         user = userRes?.data?.user || null
 
