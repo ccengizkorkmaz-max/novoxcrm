@@ -1,10 +1,7 @@
-'use server'
-
-import { createClient } from '@/lib/supabase/server'
+import { SupabaseClient } from '@supabase/supabase-js'
 
 // --- Stock Aging Report ---
-export async function getStockAgingReport() {
-    const supabase = await createClient()
+export async function getStockAgingReport(supabase: SupabaseClient) {
 
     const { data: units } = await supabase
         .from('units')
@@ -40,8 +37,7 @@ export async function getStockAgingReport() {
 }
 
 // --- Sales Velocity & Stock Depletion Report ---
-export async function getSalesVelocityReport() {
-    const supabase = await createClient()
+export async function getSalesVelocityReport(supabase: SupabaseClient) {
 
     // Get all projects
     const { data: projects } = await supabase.from('projects').select('id, name')

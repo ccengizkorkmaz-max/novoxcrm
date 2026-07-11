@@ -162,8 +162,8 @@ export default async function InventoryPage(props: {
         supabase.from('projects').select('id, name'),
         supabase.from('customers').select('id, full_name').order('full_name', { ascending: true }),
         supabase.from('unit_types').select('*').order('order_index', { ascending: true }),
-        getStockAgingReport(),
-        getSalesVelocityReport(),
+        getStockAgingReport(supabase),
+        getSalesVelocityReport(supabase),
         getTranslations('Inventory'),
         query,
         supabase.auth.getUser()
