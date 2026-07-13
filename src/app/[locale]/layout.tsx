@@ -107,7 +107,7 @@ export default async function RootLayout({
       >
         <NextIntlClientProvider messages={messages} locale={locale}>
           <Script
-            src="https://www.googletagmanager.com/gtag/js?id=G-FB3G9V25SP"
+            src="https://www.googletagmanager.com/gtag/js?id=AW-18295920582"
             strategy="afterInteractive"
           />
           <Script id="google-analytics" strategy="afterInteractive">
@@ -116,6 +116,7 @@ export default async function RootLayout({
               function gtag(){dataLayer.push(arguments);}
               gtag('js', new Date());
 
+              gtag('config', 'AW-18295920582');
               gtag('config', 'G-FB3G9V25SP');
             `}
           </Script>
