@@ -8,7 +8,7 @@ import {
     Activity, Phone, Users, Clock, CheckCircle2, XCircle,
     RefreshCw, ArrowLeft, Loader2, PhoneOff, PhoneIncoming,
     Timer, TrendingUp, AlertTriangle, ChevronLeft, ChevronRight,
-    MessageSquare
+    MessageSquare, Calendar
 } from 'lucide-react'
 import { getWorkflowMonitor } from '../actions'
 
@@ -342,6 +342,7 @@ export function WorkflowMonitor({ workflowId, workflowName, onClose }: WorkflowM
                             <tr>
                                 <th className="text-left p-2.5 font-medium text-muted-foreground">Müşteri</th>
                                 <th className="text-left p-2.5 font-medium text-muted-foreground">Telefon</th>
+                                <th className="text-center p-2.5 font-medium text-muted-foreground">Tarih</th>
                                 <th className="text-center p-2.5 font-medium text-muted-foreground">Adım</th>
                                 <th className="text-left p-2.5 font-medium text-muted-foreground">Şablon</th>
                                 <th className="text-center p-2.5 font-medium text-muted-foreground">Durum</th>
@@ -353,7 +354,7 @@ export function WorkflowMonitor({ workflowId, workflowName, onClose }: WorkflowM
                         <tbody>
                             {executions.length === 0 ? (
                                 <tr>
-                                    <td colSpan={8} className="p-8 text-center text-muted-foreground">
+                                    <td colSpan={9} className="p-8 text-center text-muted-foreground">
                                         <div className="flex flex-col items-center gap-2">
                                             {hasCall ? <Phone className="h-6 w-6 opacity-30" /> : hasWhatsApp ? <MessageSquare className="h-6 w-6 opacity-30" /> : <Phone className="h-6 w-6 opacity-30" />}
                                             <p>{hasCall ? 'Henüz arama başlatılmadı' : 'Henüz mesaj gönderilmedi'}</p>
@@ -423,6 +424,18 @@ export function WorkflowMonitor({ workflowId, workflowName, onClose }: WorkflowM
                                                 {contact?.phone
                                                     ? contact.phone.replace(/(\+90)(\d{3})(\d{3})(\d{2})(\d{2})/, '$1 $2 *** $5')
                                                     : '—'}
+                                            </td>
+                                            <td className="p-2.5 text-center text-muted-foreground whitespace-nowrap">
+                                                {(() => {
+                                                    const dateStr = log?.executed_at || exec.started_at
+                                                    if (!dateStr) return '—'
+                                                    const d = new Date(dateStr)
+                                                    const day = d.getDate().toString().padStart(2, '0')
+                                                    const month = (d.getMonth() + 1).toString().padStart(2, '0')
+                                                    const hour = d.getHours().toString().padStart(2, '0')
+                                                    const min = d.getMinutes().toString().padStart(2, '0')
+                                                    return `${day}.${month} ${hour}:${min}`
+                                                })()}
                                             </td>
                                             <td className="p-2.5 text-center">
                                                 <Badge variant="outline" className="text-[10px]">

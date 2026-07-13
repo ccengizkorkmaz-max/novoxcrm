@@ -2630,6 +2630,7 @@ export async function resolveSegment(segmentId: string): Promise<string[]> {
             let query = supabase
                 .from('lead_qualifications')
                 .select('id, customer_id, customers!inner(phone)')
+                .not('customers.phone', 'is', null)
                 .eq('tenant_id', segment.tenant_id)
                 .range(from, from + 999)
             if (filters.statuses?.length) query = query.in('status', filters.statuses)
@@ -2659,7 +2660,9 @@ export async function resolveSegment(segmentId: string): Promise<string[]> {
                 hasMore = false
             } else {
                 for (const q of quals) {
-                    allIds.push(`lq:${q.customer_id}`)
+                    if ((q.customers as any)?.phone) {
+                        allIds.push(`lq:${q.customer_id}`)
+                    }
                 }
                 if (quals.length < 1000) {
                     hasMore = false
@@ -2679,6 +2682,7 @@ export async function resolveSegment(segmentId: string): Promise<string[]> {
         let query = supabase
             .from('sales')
             .select('id, customer_id, customers!inner(phone)')
+            .not('customers.phone', 'is', null)
             .eq('tenant_id', segment.tenant_id)
             .neq('status', 'Inbox')
             .range(from, from + 999)
@@ -2705,7 +2709,9 @@ export async function resolveSegment(segmentId: string): Promise<string[]> {
             hasMore = false
         } else {
             for (const s of sales) {
-                allIds.push(s.id)
+                if ((s.customers as any)?.phone) {
+                    allIds.push(s.id)
+                }
             }
             if (sales.length < 1000) {
                 hasMore = false
@@ -2757,7 +2763,6 @@ export async function startWorkflowForLeads(workflowId: string, leadIds: string[
                 .from('leads')
                 .select('id, phone')
                 .in('id', chunk)
-                .not('phone', 'is', null)
         )
         const results = await Promise.all(promises)
         const dbLeads = results.flatMap(r => r.data || [])
@@ -2771,7 +2776,6 @@ export async function startWorkflowForLeads(workflowId: string, leadIds: string[
                 .from('customers')
                 .select('id, phone')
                 .in('id', chunk)
-                .not('phone', 'is', null)
         )
         const results = await Promise.all(promises)
         const customers = results.flatMap(r => r.data || [])
