@@ -139,6 +139,7 @@ export default function VoiceTab({ userId, tenantId }: VoiceTabProps) {
           full_name: parsedData.customer,
           phone: phoneInput,
           source: 'Sesli Asistan',
+          customer_type: 'Lead',
           notes: `Sesle kaydedilen not: "${voiceText}"`,
           assigned_to: userId,
           created_by: userId

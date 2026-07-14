@@ -25,8 +25,8 @@ export default function LeadsTab({ userId, tenantId }: LeadsTabProps) {
       setLoading(true)
       const { data, error } = await supabase
         .from('customers')
-        .select('id, full_name, phone, email, source, created_at')
-        .or(`assigned_to.eq.${userId},assigned_to.is.null`)
+        .select('id, full_name, phone, email, source, customer_type, created_at')
+        .or(`assigned_to.eq.${userId},created_by.eq.${userId}`)
         .order('created_at', { ascending: false })
 
       if (error) throw error
@@ -64,6 +64,7 @@ export default function LeadsTab({ userId, tenantId }: LeadsTabProps) {
           phone: newPhone,
           email: newEmail || null,
           source: 'Mobil Uygulama',
+          customer_type: 'Lead', // Default to Lead status
           created_by: userId,
           assigned_to: userId
         })
@@ -133,11 +134,18 @@ export default function LeadsTab({ userId, tenantId }: LeadsTabProps) {
               >
                 <div className="min-w-0 flex-1">
                   <h4 className="text-sm font-black text-white truncate">{lead.full_name}</h4>
-                  <p className="text-[10px] text-slate-400 mt-1 flex items-center gap-1">
+                  <div className="flex items-center gap-1.5 mt-1">
                     <span className="inline-block px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700/60 text-[8px] font-black uppercase text-slate-300">
                       {lead.source || 'Bilinmiyor'}
                     </span>
-                  </p>
+                    <span className={`inline-block px-1.5 py-0.5 rounded border text-[8px] font-black uppercase ${
+                      lead.customer_type === 'Lead' || !lead.customer_type
+                        ? 'bg-amber-500/10 border-amber-500/20 text-amber-400'
+                        : 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400'
+                    }`}>
+                      {lead.customer_type === 'Lead' || !lead.customer_type ? 'Müşteri Adayı' : 'Müşteri'}
+                    </span>
+                  </div>
                 </div>
                 
                 {/* Contact buttons */}
