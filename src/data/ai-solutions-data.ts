@@ -18,8 +18,8 @@ export const aiSolutions: AISolutionData[] = [
     {
         slug: 'ai-satis-asistani',
         title: 'AI Satış Asistanı',
-        metaTitle: 'AI Satış Asistanı | Gayrimenkul İçin Yapay Zeka CRM',
-        metaDescription: 'Gayrimenkul satışında yapay zeka destekli satış asistanı. Lead skorlama, otomatik takip hatırlatmaları ve akıllı müşteri eşleştirme ile satış dönüşümünüzü %40 artırın.',
+        metaTitle: 'Yapay Zeka ile Konut Satışı & AI Satış Asistanı | CRM',
+        metaDescription: 'Yapay zeka ile konut satışı süreçlerinizi hızlandırın. Akıllı satış asistanı, otomatik müşteri skorlama ve lead önceliklendirme ile dönüşümleri %40 artırın.',
         heroHeadline: 'Satış Ekibinizin Yanında 7/24 Çalışan AI Asistan',
         heroSubheadline: 'Yapay zeka, danışmanlarınıza hangi müşteriyi ne zaman araması gerektiğini söyler. Lead önceliklendirme, risk analizi ve günlük briefing ile hiçbir fırsat kaçmaz.',
         icon: 'Brain',
@@ -55,8 +55,8 @@ export const aiSolutions: AISolutionData[] = [
     {
         slug: 'ai-sesli-arama',
         title: 'AI Sesli Arama Sistemi',
-        metaTitle: 'AI Sesli Arama | Otomatik Gayrimenkul Soğuk Arama Robotu',
-        metaDescription: 'Yapay zeka ile otomatik sesli arama sistemi. Gayrimenkul leadlerine 7/24 Türkçe AI agent ile ulaşın. Vapi entegrasyonu ile doğal insan sesi.',
+        metaTitle: 'AI Call Center & AI Sesli Arama | Gayrimenkul Soğuk Arama Robotu',
+        metaDescription: 'Yapay zeka destekli AI Call Center sistemi. Gayrimenkul projeleriniz için 7/24 Türkçe konuşan yapay zeka sesli arama robotu ve Vapi entegrasyonu.',
         heroHeadline: 'AI Agent\'ınız Müşterilerinizi Sizin Yerinize Arar',
         heroSubheadline: 'Doğal Türkçe konuşan yapay zeka sesli arama sistemi ile leadlerinize otomatik ulaşın. İlgilenen müşterileri satış ekibine yönlendirin, ilgilenmeyenleri kayıt altına alın.',
         icon: 'Phone',

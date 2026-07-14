@@ -490,8 +490,63 @@ Novo CRM, özellikle konut projelerinde **satış hızına ve operasyonel kolayl
 
 Eğer odağınız milyonluk konut projelerini hatasız ve hızlı satmaksa, dikey (sektörel) çözümler maliyet ve zaman açısından her zaman bir adım öndedir.
         `
+    },
+    {
+        slug: 'yapay-zeka-ile-konut-satisinda-ai-call-center-donemi',
+        title: 'Yapay Zeka ile Konut Satışında AI Call Center ve Arama Robotu Dönemi',
+        excerpt: 'Konut projelerinde yapay zeka sesli arama robotları, Vapi ve ElevenLabs entegrasyonu ile AI call center altyapısı kurarak soğuk aramaları ve lead kalifikasyonunu otomatize etme rehberi.',
+        author: 'Caner Yılmaz',
+        authorTitle: 'Kıdemli CRM Stratejisti',
+        date: '14 Temmuz 2026',
+        readTime: '8 dk',
+        category: 'Yapay Zeka',
+        tldr: 'Gayrimenkul ve konut satışlarında yapay zeka sesli arama robotları (Vapi/ElevenLabs), soğuk arama operasyonlarını (AI Call Center) %100 otomatize eder. AI, ilgilenen sıcak leadleri tespit ederek satış danışmanlarına atar ve zaman kaybını önler.',
+        stats: [
+            { value: '500+', label: 'Günlük robot arama kapasitesi' },
+            { value: '%40', label: 'Satış dönüşüm artışı' },
+            { value: '%60', label: 'Müşteri karşılama zaman tasarrufu' },
+            { value: '%0', label: 'Cevapsız bırakılan müşteri formları' }
+        ],
+        faq: [
+            { question: 'AI Call Center gayrimenkul satışında nasıl kullanılır?', answer: 'Yeni konut projelerinin lansmanında binlerce lead form doldurur. AI arama robotu, bu kişileri saniyeler içinde arayarak doğal Türkçe konuşma ile projeyle ilgilenip ilgilenmediklerini sorar. İlgilenenleri anında sıcak lead olarak satış ofisine paslar.' },
+            { question: 'Arama robotunun sesi doğal mı?', answer: 'Evet, Vapi ve ElevenLabs işbirliğiyle Mert Aksoy gibi profesyonel ses modelleri kullanılır. Doğal tonlamalar ve gecikmesiz cevap yeteneğiyle müşteriler gerçek bir insanla konuştuklarını düşünür.' }
+        ],
+        content: `
+# Yapay Zeka ile Konut Satışında AI Call Center ve Arama Robotu Dönemi
+
+Konut projeleri üreten inşaat firmaları ve gayrimenkul geliştiricileri için en büyük maliyet ve zaman kaybı, **niteliksiz müşteri adaylarıyla (lead'ler) yapılan telefon görüşmeleridir.** Dijital reklamlardan (Facebook, Instagram formları) gelen yüzlerce formun tek tek satış danışmanları tarafından aranması, hem motivasyon kaybına yol açar hem de gerçek alıcıların gözden kaçmasına neden olur.
+
+İşte bu noktada **Yapay Zeka ile Konut Satışı** ve **AI Call Center (Sesli Arama Robotları)** devreye girerek tüm oyunu değiştiriyor.
+
+## AI Call Center Nedir ve Gayrimenkulde Nasıl Çalışır?
+
+AI Call Center, geleneksel çağrı merkezlerinin aksine, insan gücüne ihtiyaç duymadan **aynı anda binlerce müşteriyi arayabilen veya gelen çağrıları yanıtlayabilen yapay zeka sesli arama sistemidir.**
+
+1. **Anlık Arama (Instant Call):** Müşteri web sitenizden veya sosyal medya reklamınızdan form doldurduğu anda, yapay zeka arama robotu (Vapi entegrasyonu ile) **saniyeler içinde** müşteriyi cep telefonundan arar.
+2. **Doğal Türkçe İletişim:** Gelişmiş ElevenLabs altyapısı sayesinde yapay zeka, Mert Aksoy ses tonuyla son derece doğal, duraksamalı ve samimi bir Türkçe ile konuşur.
+3. **Müşteri Kalifikasyonu (Lead Qualification):** Robot, müşteriye projeyle ilgilenip ilgilenmediğini, bütçe aralığını veya ne zaman satış ofisini ziyaret edebileceğini sorar.
+4. **Akıllı Yönlendirme:** Eğer müşteri projeyle sıcak olarak ilgilendiğini belirtirse, sistem onu anında **"Sıcak Lead"** olarak işaretler ve detayları satış temsilcisinin ekranına düşürür. İlgilenmeyenleri ise otomatik eler.
+
+<div class="bg-blue-950/25 border border-blue-500/30 rounded-xl p-5 my-6"><strong class="text-blue-400 font-semibold">Tavsiye:</strong> Türkçe konuşan, Vapi ve ElevenLabs destekli arama robotu özelliklerimizi detaylı incelemek için <a href="/tr/solutions/ai-sesli-arama" class="text-blue-400 hover:underline">AI Sesli Arama Sistemi</a> sayfamızı ziyaret edebilirsiniz.</div>
+
+## Yapay Zeka ile Konut Satışının Sağladığı 3 Büyük Avantaj
+
+### 1. Zaman Kaybını Sıfırlama
+Satış temsilcileriniz gün boyunca telefon başında "numarayı aramak, ulaşılamayanlara tekrar dönmek veya yanlış numara girenlerle uğraşmak" zorunda kalmaz. Temsilciler sadece AI Call Center tarafından elenmiş, **ziyarete veya satın almaya hazır sıcak müşterilerle** görüşür.
+
+### 2. %100 Hızlı Geri Dönüş
+Reklam formlarına ilk 5 dakika içinde geri dönüldüğünde satışa dönüşme oranı %300 artar. Yapay zeka sesli robotu, form doldurulduğu anda (gece saat 3 olsa bile) anında arama yapabilir veya müşteriyi sabah araması için planlayabilir.
+
+### 3. WhatsApp ve Outreach Entegrasyonu
+Arama sonrasında yapay zeka, konuşmanın özetini çıkarır. Eğer müşteri "katalog gönderin" dediyse, sistem arkada çalışan **AI WhatsApp Agent** ile otomatik olarak PDF kataloğu, daire planlarını ve sanal tur linklerini müşterinin WhatsApp hattına ulaştırır.
+
+<div class="bg-emerald-950/25 border border-emerald-500/30 rounded-xl p-5 my-6"><strong class="text-emerald-400 font-semibold">Tavsiye:</strong> Arama sonrası müşterilerinize otomatik katalog ve teklif gönderebilen yapay zeka otomasyonunu görmek için <a href="/tr/solutions/ai-whatsapp-agent" class="text-blue-400 hover:underline">AI WhatsApp Agent</a> çözümlerimizi inceleyin.</div>
+
+## CRM Üzerinden Lead Skorlama ile Tam Kontrol
+
+Sistem, sesli arama robotlarından, WhatsApp mesajlarından ve web sitesi ziyaretlerinden gelen tüm sinyalleri birleştirerek her bir müşteriye 0-100 arası bir **AI Skoru** verir. En yüksek skorlu müşteriler satış ekibinin dashboard ekranında en üstte listelenir.
+
+Yapay zeka ile konut satışı, geleceğin teknolojisi değil; bugün satış ofislerinin en büyük büyüme kaldıraçlarından biridir. Manuel süreçleri geride bırakın ve satış ekibinizi yapay zeka ile güçlendirin.
+        `
     }
-
-
-
 ];
