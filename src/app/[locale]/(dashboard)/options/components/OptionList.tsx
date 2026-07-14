@@ -15,8 +15,9 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog"
 import PaymentPlanCalculator from '../../crm/components/PaymentPlanCalculator'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
+import { useSearchParams } from 'next/navigation'
 
 interface Option {
     id: string
@@ -32,7 +33,26 @@ interface Option {
 
 export default function OptionList({ options, templates = [] }: { options: Option[], templates?: any[] }) {
     const t = useTranslations('Options')
+    const searchParams = useSearchParams()
+    const highlightSaleId = searchParams.get('highlight')
     const [planOpen, setPlanOpen] = useState(false)
+
+    // Smoothly scroll the highlighted option row into view
+    useEffect(() => {
+        if (highlightSaleId) {
+            const optionToHighlight = options.find(opt => opt.sales?.some(s => s.id === highlightSaleId))
+            if (optionToHighlight) {
+                const timer = setTimeout(() => {
+                    const element = document.getElementById(`option-row-${optionToHighlight.id}`)
+                    if (element) {
+                        element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                    }
+                }, 200)
+                return () => clearTimeout(timer)
+            }
+        }
+    }, [highlightSaleId, options])
+
     const [selectedSaleId, setSelectedSaleId] = useState<string | null>(null)
     const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null)
     const [isDeleting, setIsDeleting] = useState<string | null>(null)
@@ -104,7 +124,14 @@ export default function OptionList({ options, templates = [] }: { options: Optio
                                     : null
 
                                 return (
-                                    <TableRow key={option.id} className={cn(isExpired && "opacity-60 bg-muted/30 grayscale-[0.5]")}>
+                                    <TableRow 
+                                        key={option.id} 
+                                        id={`option-row-${option.id}`}
+                                        className={cn(
+                                            isExpired && "opacity-60 bg-muted/30 grayscale-[0.5]",
+                                            option.sales?.some(s => s.id === highlightSaleId) && "bg-violet-50/80 hover:bg-violet-100/80 dark:bg-violet-950/30 border-l-4 border-l-violet-600 ring-2 ring-violet-500/20 transition-all duration-1000"
+                                        )}
+                                    >
                                         <TableCell className="font-medium">
                                             <div className="flex flex-col">
                                                 <span>{option.projects?.name || '-'}</span>

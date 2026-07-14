@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { FileText, Printer, FileSignature, ReceiptText, Calculator, Trash2, Loader2, XCircle, Hash, User, Building2, Banknote, Clock, Settings2 } from 'lucide-react'
@@ -13,7 +13,7 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog"
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { updateOfferStatus } from '@/app/[locale]/(dashboard)/offers/actions'
 
 import NegotiationDialog from './NegotiationDialog'
@@ -47,10 +47,39 @@ const COMPLETED_STATUSES = ['Contract', 'Rejected', 'Expired', 'Closed']
 export default function OfferList({ offers, userRole }: { offers: Offer[], userRole?: string }) {
     const t = useTranslations('Offers')
     const router = useRouter()
+    const searchParams = useSearchParams()
+    const highlightId = searchParams.get('highlight')
     const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null)
     const [isPlanOpen, setIsPlanOpen] = useState(false)
     const [startingContractId, setStartingContractId] = useState<string | null>(null)
     const [activeTab, setActiveTab] = useState<'active' | 'completed'>('active')
+
+    // Automatically switch tabs if the highlighted offer status is completed
+    useEffect(() => {
+        if (highlightId) {
+            const offerToHighlight = offers.find(o => o.id === highlightId)
+            if (offerToHighlight) {
+                if (COMPLETED_STATUSES.includes(offerToHighlight.status)) {
+                    setActiveTab('completed')
+                } else {
+                    setActiveTab('active')
+                }
+            }
+        }
+    }, [highlightId, offers])
+
+    // Smoothly scroll the highlighted row into view
+    useEffect(() => {
+        if (highlightId) {
+            const timer = setTimeout(() => {
+                const element = document.getElementById(`offer-row-${highlightId}`)
+                if (element) {
+                    element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                }
+            }, 200)
+            return () => clearTimeout(timer)
+        }
+    }, [highlightId, activeTab])
 
     const filteredOffers = useMemo(() => {
         const targetStatuses = activeTab === 'active' ? ACTIVE_STATUSES : COMPLETED_STATUSES
@@ -200,7 +229,11 @@ export default function OfferList({ offers, userRole }: { offers: Offer[], userR
                                 const displayDate = latestNeg ? latestNeg.proposed_valid_until : offer.valid_until
 
                                 return (
-                                    <TableRow key={offer.id}>
+                                    <TableRow 
+                                        key={offer.id}
+                                        id={`offer-row-${offer.id}`}
+                                        className={offer.id === highlightId ? "bg-amber-50/80 hover:bg-amber-100/80 border-l-4 border-l-amber-500 dark:bg-amber-950/30 ring-2 ring-amber-500/20 transition-all duration-1000" : ""}
+                                    >
                                         <TableCell className="font-medium text-xs text-muted-foreground whitespace-nowrap">
                                             {offer.offer_number || '-'}
                                         </TableCell>
@@ -295,7 +328,7 @@ export default function OfferList({ offers, userRole }: { offers: Offer[], userR
                                                                 variant="outline" 
                                                                 size="sm" 
                                                                 onClick={() => openLostDialog(offer.id)} 
-                                                                className="gap-2 h-9 px-4 rounded-xl bg-red-50 border-red-200 text-red-700 font-bold hover:bg-red-100 transition-all select-none"
+                                                                className="gap-2 h-9 px-4 rounded-xl bg-red-50 border-red-200 text-red-700 font-bold hover:bg-red-100 transition-all select-none text-[11px]"
                                                             >
                                                                 <XCircle className="h-4 w-4" />
                                                                 <span>Süreci Sonlandır</span>

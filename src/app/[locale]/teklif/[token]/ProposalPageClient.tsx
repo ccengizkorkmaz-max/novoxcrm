@@ -62,8 +62,9 @@ export default function ProposalPageClient({ data, isExpired }: ProposalPageClie
     const installmentCount = data.paymentPlan?.installment_count ||
         data.paymentPlan?.payment_items?.filter(i => i.payment_type === 'Installment').length || 0
 
-    const whatsappLink = data.consultantPhone
-        ? `https://wa.me/${data.consultantPhone.replace(/\D/g, '').replace(/^0/, '90')}?text=${encodeURIComponent(`Merhaba, ${data.offerNumber} numaralı teklif hakkında bilgi almak istiyorum.`)}`
+    const targetPhone = data.companyWhatsapp || data.consultantPhone
+    const whatsappLink = targetPhone
+        ? `https://wa.me/${targetPhone.replace(/\D/g, '').replace(/^0/, '90')}?text=${encodeURIComponent(`Merhaba, ${data.offerNumber} numaralı teklif hakkında bilgi almak istiyorum.`)}`
         : null
 
     return (
@@ -73,6 +74,10 @@ export default function ProposalPageClient({ data, isExpired }: ProposalPageClie
                 @media print {
                     .no-print { display: none !important; }
                     .print-break { page-break-inside: avoid; }
+                    .print-page-break-before { 
+                        page-break-before: always !important; 
+                        break-before: page !important;
+                    }
                     body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
                 }
             `}</style>
@@ -224,57 +229,6 @@ export default function ProposalPageClient({ data, isExpired }: ProposalPageClie
                         </section>
                     )}
 
-                    {/* ── PAYMENT PLAN ── */}
-                    {data.paymentPlan?.payment_items && data.paymentPlan.payment_items.length > 0 && (
-                        <section className="print-break bg-white rounded-2xl sm:rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
-                            <div className="px-5 sm:px-6 py-4 bg-slate-50/80 border-b border-slate-100">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-200/50">
-                                            <CreditCard className="h-4 w-4 text-white" />
-                                        </div>
-                                        <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight">Ödeme Planı</h3>
-                                    </div>
-                                    {installmentCount > 0 && (
-                                        <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full">
-                                            {installmentCount} Taksit
-                                        </span>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div className="divide-y divide-slate-100">
-                                {data.paymentPlan.payment_items.map((item, idx) => (
-                                    <div key={idx} className="px-5 sm:px-6 py-3.5 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
-                                        <div className="flex items-center gap-3">
-                                            <span className="h-6 w-6 rounded-lg bg-slate-100 text-slate-500 text-[10px] font-black flex items-center justify-center">
-                                                {idx + 1}
-                                            </span>
-                                            <div>
-                                                <p className="text-sm font-bold text-slate-700">{getPaymentTypeLabel(item.payment_type)}</p>
-                                                <p className="text-xs text-slate-400">{formatDate(item.due_date)}</p>
-                                            </div>
-                                        </div>
-                                        <p className="text-sm font-black text-slate-800">{formatCurrency(item.amount, data.offerCurrency)}</p>
-                                    </div>
-                                ))}
-
-                                {/* Total row */}
-                                <div className="px-5 sm:px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
-                                    <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Toplam</p>
-                                    <p className="text-lg font-black">{formatCurrency(totalPlanAmount, data.offerCurrency)}</p>
-                                </div>
-
-                                {data.paymentPlan.interest_amount && data.paymentPlan.interest_amount > 0 && (
-                                    <div className="px-5 sm:px-6 py-2.5 bg-blue-50 flex items-center justify-between">
-                                        <p className="text-xs font-semibold text-blue-600">Vade Farkı</p>
-                                        <p className="text-xs font-bold text-blue-700">+{formatCurrency(data.paymentPlan.interest_amount, data.offerCurrency)}</p>
-                                    </div>
-                                )}
-                            </div>
-                        </section>
-                    )}
-
                     {/* ── CONSULTANT ── */}
                     <section className="print-break bg-white rounded-2xl sm:rounded-3xl border border-slate-100 shadow-sm p-5 sm:p-6">
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">Satış Danışmanınız</p>
@@ -300,6 +254,57 @@ export default function ProposalPageClient({ data, isExpired }: ProposalPageClie
                             </div>
                         </div>
                     </section>
+
+                    {/* ── PAYMENT PLAN ── */}
+                    {data.paymentPlan?.payment_items && data.paymentPlan.payment_items.length > 0 && (
+                        <section className="print-page-break-before bg-white rounded-2xl sm:rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+                            <div className="px-5 sm:px-6 py-4 bg-slate-50/80 border-b border-slate-100">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-200/50">
+                                            <CreditCard className="h-4 w-4 text-white" />
+                                        </div>
+                                        <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight">Ödeme Planı</h3>
+                                    </div>
+                                    {installmentCount > 0 && (
+                                        <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full">
+                                            {installmentCount} Taksit
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="divide-y divide-slate-100">
+                                {data.paymentPlan.payment_items.map((item, idx) => (
+                                    <div key={idx} className="px-5 sm:px-6 py-2 print:py-1.5 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
+                                        <div className="flex items-center gap-3">
+                                            <span className="h-6 w-6 rounded-lg bg-slate-100 text-slate-500 text-[10px] font-black flex items-center justify-center">
+                                                {idx + 1}
+                                            </span>
+                                            <div>
+                                                <p className="text-sm font-bold text-slate-700">{getPaymentTypeLabel(item.payment_type)}</p>
+                                                <p className="text-xs text-slate-400">{formatDate(item.due_date)}</p>
+                                            </div>
+                                        </div>
+                                        <p className="text-sm font-black text-slate-800">{formatCurrency(item.amount, data.offerCurrency)}</p>
+                                    </div>
+                                ))}
+
+                                {/* Total row */}
+                                <div className="px-5 sm:px-6 py-2.5 print:py-2 bg-slate-900 text-white flex items-center justify-between">
+                                    <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Toplam</p>
+                                    <p className="text-lg font-black">{formatCurrency(totalPlanAmount, data.offerCurrency)}</p>
+                                </div>
+
+                                {data.paymentPlan.interest_amount && data.paymentPlan.interest_amount > 0 && (
+                                    <div className="px-5 sm:px-6 py-2.5 bg-blue-50 flex items-center justify-between">
+                                        <p className="text-xs font-semibold text-blue-600">Vade Farkı</p>
+                                        <p className="text-xs font-bold text-blue-700">+{formatCurrency(data.paymentPlan.interest_amount, data.offerCurrency)}</p>
+                                    </div>
+                                )}
+                            </div>
+                        </section>
+                    )}
 
                     {/* ── ACTION BUTTONS (Mobile-friendly, hidden in print) ── */}
                     <div className="no-print flex flex-col sm:flex-row gap-3 pt-2 pb-8">

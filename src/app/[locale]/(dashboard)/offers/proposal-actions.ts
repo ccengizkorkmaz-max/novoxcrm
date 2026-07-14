@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { headers } from 'next/headers'
 import { sendWhatsAppMessage, getWhatsAppLink, normalizePhone } from '@/lib/whatsapp'
 import { sendSystemEmail } from '@/lib/email/mailer'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -68,6 +69,7 @@ export interface ProposalData {
     // Branding
     companyName: string
     logoUrl: string | null
+    companyWhatsapp: string | null
 
     // Generated date
     generatedAt: string
@@ -167,7 +169,7 @@ async function fetchProposalDataInternal(offerId: string, supabase: any): Promis
             units(
                 unit_number, type, floor, block_id, area_gross, area_net, price, currency,
                 blocks(name),
-                projects(name, city, delivery_date)
+                projects(name, city, delivery_date_planned)
             ),
             offer_negotiations(
                 id, proposed_price, proposed_currency, proposed_valid_until, proposed_payment_plan, status,
@@ -225,6 +227,7 @@ async function fetchProposalDataInternal(offerId: string, supabase: any): Promis
     // 5. Get branding from tenant
     let companyName = 'Novo CRM'
     let logoUrl: string | null = null
+    let companyWhatsapp: string | null = null
 
     if (tenantId) {
         const { data: tenant } = await supabase
@@ -237,6 +240,7 @@ async function fetchProposalDataInternal(offerId: string, supabase: any): Promis
             companyName = tenant.name || companyName
             if (tenant.brand_config && typeof tenant.brand_config === 'object') {
                 logoUrl = (tenant.brand_config as any).logoUrl || null
+                companyWhatsapp = (tenant.brand_config as any).whatsappPhone || (tenant.brand_config as any).companyPhone || null
             }
         }
     }
@@ -283,7 +287,7 @@ async function fetchProposalDataInternal(offerId: string, supabase: any): Promis
 
         projectName: project?.name || '-',
         projectCity: project?.city || null,
-        deliveryDate: project?.delivery_date || null,
+        deliveryDate: project?.delivery_date_planned || null,
 
         unitNumber: unit?.unit_number || '-',
         unitType: unit?.type || null,
@@ -304,6 +308,7 @@ async function fetchProposalDataInternal(offerId: string, supabase: any): Promis
 
         companyName,
         logoUrl,
+        companyWhatsapp,
 
         generatedAt: new Date().toISOString()
     }
@@ -322,7 +327,10 @@ export async function createProposalLink(offerId: string): Promise<{ url: string
     if (!token) return { url: null, error: 'Token oluşturulamadı.' }
 
     // Build the public URL
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.novoxcrm.com'
+    const headersList = await headers()
+    const host = headersList.get('host') || 'novoxcrm.com'
+    const protocol = host.includes('localhost') || host.includes('127.0.0.1') ? 'http' : 'https'
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `${protocol}://${host}`
     const url = `${baseUrl}/tr/teklif/${token}`
 
     return { url, error: null }
@@ -340,7 +348,7 @@ export async function shareProposalViaWhatsApp(
     // Get offer + customer
     const { data: offer } = await supabase
         .from('offers')
-        .select('offer_number, proposal_token, customers(full_name, phone)')
+        .select('offer_number, proposal_token, tenant_id, customers(full_name, phone)')
         .eq('id', offerId)
         .single()
 
@@ -353,14 +361,39 @@ export async function shareProposalViaWhatsApp(
     const token = await ensureProposalToken(offerId)
     if (!token) return { success: false, error: 'Token oluşturulamadı.' }
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.novoxcrm.com'
+    const headersList = await headers()
+    const host = headersList.get('host') || 'novoxcrm.com'
+    const protocol = host.includes('localhost') || host.includes('127.0.0.1') ? 'http' : 'https'
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `${protocol}://${host}`
     const proposalUrl = `${baseUrl}/tr/teklif/${token}`
 
     const message = `Sayın ${customer.full_name}, size özel hazırlanan teklif belgenizi aşağıdaki linkten inceleyebilirsiniz:\n\n${proposalUrl}\n\nDetaylı bilgi için bize ulaşabilirsiniz.`
 
+    // Load tenant-specific WhatsApp config
+    let phoneId: string | undefined
+    let accessToken: string | undefined
+
+    if (offer.tenant_id) {
+        const { data: tenant } = await supabase
+            .from('tenants')
+            .select('whatsapp_config')
+            .eq('id', offer.tenant_id)
+            .single()
+
+        if (tenant?.whatsapp_config) {
+            const config = tenant.whatsapp_config as any
+            if (config.phone_number_id) {
+                phoneId = config.phone_number_id
+            }
+            if (config.access_token) {
+                accessToken = config.access_token
+            }
+        }
+    }
+
     // Try Cloud API first
     try {
-        const result = await sendWhatsAppMessage(customer.phone, message)
+        const result = await sendWhatsAppMessage(customer.phone, message, phoneId, accessToken)
         if (result.success) {
             return { success: true }
         }
@@ -407,7 +440,10 @@ export async function shareProposalViaEmail(
 
     if (!profile?.tenant_id) return { success: false, error: 'Tenant bulunamadı.' }
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.novoxcrm.com'
+    const headersList = await headers()
+    const host = headersList.get('host') || 'novoxcrm.com'
+    const protocol = host.includes('localhost') || host.includes('127.0.0.1') ? 'http' : 'https'
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `${protocol}://${host}`
     const proposalUrl = `${baseUrl}/tr/teklif/${token}`
 
     const html = `

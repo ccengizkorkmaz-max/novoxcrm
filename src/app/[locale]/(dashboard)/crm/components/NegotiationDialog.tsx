@@ -164,7 +164,7 @@ export default function NegotiationDialog({ offerId, currentPrice, currentCurren
         <>
             <Dialog open={isOpen} onOpenChange={setIsOpen}>
                 <DialogTrigger asChild>
-                    <Button variant="outline" size="sm" className="gap-2 h-9 px-4 rounded-xl bg-blue-50 border-blue-200 text-blue-700 font-bold hover:bg-blue-100 transition-all select-none">
+                    <Button variant="outline" size="sm" className="gap-2 h-9 px-4 rounded-xl bg-blue-50 border-blue-200 text-blue-700 font-bold hover:bg-blue-100 transition-all select-none text-[11px]">
                         <MessageSquare className="h-4 w-4" /> {tActions('negotiate')}
                     </Button>
                 </DialogTrigger>

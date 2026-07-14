@@ -64,7 +64,8 @@ export default function ProposalShareButton({ offerId, compact = false }: Propos
                 toast.success('Teklif linki WhatsApp ile gönderildi!')
             } else if (res.waLink) {
                 setWaLink(res.waLink)
-                toast.info('WhatsApp API kullanılamadı. Linki kullanarak manuel gönderebilirsiniz.', { duration: 5000 })
+                toast.info('WhatsApp API aktif değil. Sohbet ekranı yeni sekmede açılıyor...', { duration: 4000 })
+                window.open(res.waLink, '_blank')
             } else {
                 toast.error(res.error || 'WhatsApp gönderim hatası.')
             }
