@@ -319,10 +319,13 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
                 {/* Stats Cards (GEO Optimized) */}
                 {(article as any).stats && (article as any).stats.length > 0 && (
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
-                        {(article as any).stats.map((stat: {label: string; value: string}, i: number) => (
+                        {(article as any).stats.map((stat: {label: string; value: string; description?: string}, i: number) => (
                             <div key={i} className="p-4 rounded-xl bg-slate-900/50 border border-slate-800 text-center">
                                 <p className="text-2xl font-black text-blue-400">{stat.value}</p>
                                 <p className="text-xs text-slate-500 mt-1">{stat.label}</p>
+                                {stat.description && (
+                                    <p className="text-[10px] text-slate-600 mt-1 italic">{stat.description}</p>
+                                )}
                             </div>
                         ))}
                     </div>

@@ -10,7 +10,7 @@ export interface AISolutionData {
     features: { title: string; description: string; icon: string }[];
     benefits: string[];
     useCases: { title: string; description: string }[];
-    stats: { value: string; label: string }[];
+    stats: { value: string; label: string; description?: string }[];
     faq: { question: string; answer: string }[];
 }
 
@@ -79,7 +79,7 @@ export const aiSolutions: AISolutionData[] = [
             { title: 'Randevu Hatırlatma', description: 'Satış ofisi ziyaret randevusu olan müşterilere otomatik hatırlatma aramaları yapın.' },
         ],
         stats: [
-            { value: '5000+', label: 'Günlük Arama Kapasitesi' },
+            { value: '50.000+', label: 'Günlük Arama Kapasitesi', description: '(100 eş zamanlı kanal ile)' },
             { value: '%85', label: 'Doğal Konuşma Skoru' },
             { value: '24/7', label: 'Kesintisiz Çalışma' },
             { value: '%35', label: 'Lead Dönüşüm Artışı' },

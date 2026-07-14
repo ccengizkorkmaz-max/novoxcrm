@@ -142,12 +142,15 @@ export default async function AISolutionPage({ params }: { params: Promise<{ slu
             <section className="border-y border-slate-800 bg-slate-900/30">
                 <div className="container mx-auto px-4 py-10">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-                        {solution.stats.map((stat, i) => (
+                        {solution.stats.map((stat: any, i) => (
                             <div key={i} className="text-center">
                                 <p className={`text-3xl md:text-4xl font-black bg-gradient-to-r ${solution.gradient} bg-clip-text text-transparent`}>
                                     {stat.value}
                                 </p>
                                 <p className="text-sm text-slate-400 mt-1">{stat.label}</p>
+                                {stat.description && (
+                                    <p className="text-[10px] text-slate-500 mt-1 italic">{stat.description}</p>
+                                )}
                             </div>
                         ))}
                     </div>
