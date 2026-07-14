@@ -62,14 +62,8 @@ export default function QuickProposalDialog({
     defaultValidDate.setDate(defaultValidDate.getDate() + 7)
     const [validUntil, setValidUntil] = useState(defaultValidDate.toISOString().split('T')[0])
 
-    // Payment plan data (received from calculator)
-    const [paymentPlanItems, setPaymentPlanItems] = useState<any[]>([])
-    const [paymentPlanTotal, setPaymentPlanTotal] = useState(0)
-    const [planCurrency, setPlanCurrency] = useState(initialCurrency)
-
     // UI
     const [saving, setSaving] = useState(false)
-    const [step, setStep] = useState<'unit' | 'plan'>('unit')
 
     // Map projects
     const projectOptions = useMemo(() => {
@@ -84,9 +78,6 @@ export default function QuickProposalDialog({
             setWithDeposit(false)
             setDepositAmount(0)
             setDepositDisplay('')
-            setPaymentPlanItems([])
-            setPaymentPlanTotal(0)
-            setStep('unit')
             const newDate = new Date()
             newDate.setDate(newDate.getDate() + 7)
             setValidUntil(newDate.toISOString().split('T')[0])
@@ -168,20 +159,9 @@ export default function QuickProposalDialog({
         setDepositDisplay(new Intl.NumberFormat('tr-TR').format(num))
     }
 
-    const handlePlanConfirm = (plan: any[], totals: { interest: number; grandTotal: number }, currency: string) => {
-        setPaymentPlanItems(plan)
-        setPaymentPlanTotal(totals.grandTotal)
-        setPlanCurrency(currency)
-        toast.success('Ödeme planı hazırlandı!')
-    }
-
-    const handleSave = async () => {
+    const handlePlanConfirmAndSave = async (plan: any[], totals: { interest: number; grandTotal: number }, currency: string) => {
         if (!selectedUnitId) {
             toast.error('Lütfen bir ünite seçin')
-            return
-        }
-        if (!paymentPlanItems.length) {
-            toast.error('Lütfen ödeme planını hesaplayın ve onaylayın')
             return
         }
         if (!validUntil) {
@@ -197,10 +177,10 @@ export default function QuickProposalDialog({
                 projectId: selectedProjectId,
                 offerPrice: unitPrice,
                 listPrice: unitPrice,
-                currency: planCurrency || unitCurrency,
+                currency: currency || unitCurrency,
                 validUntil,
-                paymentPlanItems,
-                paymentPlanTotal,
+                paymentPlanItems: plan,
+                paymentPlanTotal: totals.grandTotal,
                 depositAmount: withDeposit ? depositAmount : undefined
             })
 
@@ -222,172 +202,141 @@ export default function QuickProposalDialog({
     const selectedUnit = units.find(u => u.id === selectedUnitId)
     const selectedProject = projectsProp.find(p => p.id === selectedProjectId)
 
+    const renderUnitSelectionInputs = () => (
+        <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-4 flex-shrink-0">
+            <div className="flex items-center gap-2 mb-1">
+                <Shield className="h-4 w-4 text-slate-500" />
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Proje & Ünite</span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                    <Label className="text-xs font-medium text-slate-600">Proje</Label>
+                    <Combobox
+                        items={projectOptions}
+                        value={selectedProjectId}
+                        onChange={(val) => {
+                            setSelectedProjectId(val)
+                            setSelectedUnitId('')
+                        }}
+                        placeholder="Proje seçin..."
+                        searchPlaceholder="Proje ara..."
+                        emptyText="Proje bulunamadı"
+                    />
+                </div>
+                <div className="space-y-1.5">
+                    <Label className="text-xs font-medium text-slate-600">Ünite</Label>
+                    <Combobox
+                        items={filteredUnits}
+                        value={selectedUnitId}
+                        onChange={setSelectedUnitId}
+                        placeholder={isLoadingUnits ? 'Yükleniyor...' : 'Ünite seçin...'}
+                        searchPlaceholder="Ünite ara..."
+                        emptyText="Uygun ünite bulunamadı"
+                        disabled={!selectedProjectId || isLoadingUnits}
+                    />
+                </div>
+            </div>
+
+            {/* Selected unit info */}
+            {selectedUnit && (
+                <div className="flex items-center gap-3 p-2.5 bg-white rounded-lg border border-blue-100">
+                    <div className="text-xs text-slate-500">Liste Fiyatı:</div>
+                    <div className="text-sm font-bold text-blue-700">
+                        {new Intl.NumberFormat('tr-TR').format(selectedUnit.price || 0)} {selectedUnit.currency || 'TRY'}
+                    </div>
+                </div>
+            )}
+
+            {/* Validity & Deposit row */}
+            <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                    <Label className="text-xs font-medium text-slate-600 flex items-center gap-1.5">
+                        <Calendar className="h-3.5 w-3.5" />
+                        Geçerlilik Tarihi (= Opsiyon Süresi)
+                    </Label>
+                    <Input
+                        type="date"
+                        value={validUntil}
+                        onChange={e => setValidUntil(e.target.value)}
+                        min={new Date().toISOString().split('T')[0]}
+                        className="h-9 text-sm"
+                    />
+                </div>
+                <div className="space-y-1.5">
+                    <div className="flex items-center gap-2">
+                        <Label className="text-xs font-medium text-slate-600 flex items-center gap-1.5">
+                            <CreditCard className="h-3.5 w-3.5" />
+                            Kaporalı Teklif
+                        </Label>
+                        <Switch
+                            checked={withDeposit}
+                            onCheckedChange={setWithDeposit}
+                        />
+                    </div>
+                    {withDeposit && (
+                        <Input
+                            type="text"
+                            value={depositDisplay}
+                            onChange={handleDepositChange}
+                            placeholder="Kapora tutarı"
+                            className="h-9 text-sm"
+                        />
+                    )}
+                </div>
+            </div>
+        </div>
+    )
+
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-2xl max-h-[92vh] overflow-y-auto">
-                <DialogHeader>
+            <DialogContent className="sm:max-w-6xl w-[95vw] h-[85vh] max-h-[85vh] overflow-hidden flex flex-col p-6">
+                <DialogHeader className="pb-2 border-b border-slate-100 flex-shrink-0">
                     <DialogTitle className="flex items-center gap-2 text-lg">
                         <FileText className="h-5 w-5 text-blue-500" />
                         Hızlı Teklif — {customerName}
                     </DialogTitle>
                 </DialogHeader>
 
-                <div className="space-y-4">
-                    {/* Step 1: Unit Selection & Validity */}
-                    <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-4">
-                        <div className="flex items-center gap-2 mb-1">
-                            <Shield className="h-4 w-4 text-slate-500" />
-                            <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Proje & Ünite</span>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3">
-                            <div className="space-y-1.5">
-                                <Label className="text-xs font-medium text-slate-600">Proje</Label>
-                                <Combobox
-                                    items={projectOptions}
-                                    value={selectedProjectId}
-                                    onChange={(val) => {
-                                        setSelectedProjectId(val)
-                                        setSelectedUnitId('')
-                                    }}
-                                    placeholder="Proje seçin..."
-                                    searchPlaceholder="Proje ara..."
-                                    emptyText="Proje bulunamadı"
-                                />
+                <div className="flex-1 overflow-hidden min-h-0 pt-4">
+                    {!selectedUnitId ? (
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full items-stretch">
+                            {/* Left Column: Proje & Ünite & Validity & Deposit */}
+                            <div className="lg:col-span-5 space-y-4">
+                                {renderUnitSelectionInputs()}
                             </div>
-                            <div className="space-y-1.5">
-                                <Label className="text-xs font-medium text-slate-600">Ünite</Label>
-                                <Combobox
-                                    items={filteredUnits}
-                                    value={selectedUnitId}
-                                    onChange={setSelectedUnitId}
-                                    placeholder={isLoadingUnits ? 'Yükleniyor...' : 'Ünite seçin...'}
-                                    searchPlaceholder="Ünite ara..."
-                                    emptyText="Uygun ünite bulunamadı"
-                                    disabled={!selectedProjectId || isLoadingUnits}
-                                />
-                            </div>
-                        </div>
-
-                        {/* Selected unit info */}
-                        {selectedUnit && (
-                            <div className="flex items-center gap-3 p-2.5 bg-white rounded-lg border border-blue-100">
-                                <div className="text-xs text-slate-500">Liste Fiyatı:</div>
-                                <div className="text-sm font-bold text-blue-700">
-                                    {new Intl.NumberFormat('tr-TR').format(selectedUnit.price || 0)} {selectedUnit.currency || 'TRY'}
+                            
+                            {/* Right Column: Empty State */}
+                            <div className="lg:col-span-7 flex flex-col items-center justify-center border-l border-slate-100 p-8 text-center text-slate-400 bg-slate-50/20 rounded-xl min-h-[300px]">
+                                <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center mb-4 text-blue-400 animate-pulse">
+                                    <FileText className="h-8 w-8" />
                                 </div>
-                            </div>
-                        )}
-
-                        {/* Validity & Deposit row */}
-                        <div className="grid grid-cols-2 gap-3">
-                            <div className="space-y-1.5">
-                                <Label className="text-xs font-medium text-slate-600 flex items-center gap-1.5">
-                                    <Calendar className="h-3.5 w-3.5" />
-                                    Geçerlilik Tarihi (= Opsiyon Süresi)
-                                </Label>
-                                <Input
-                                    type="date"
-                                    value={validUntil}
-                                    onChange={e => setValidUntil(e.target.value)}
-                                    min={new Date().toISOString().split('T')[0]}
-                                    className="h-9 text-sm"
-                                />
-                            </div>
-                            <div className="space-y-1.5">
-                                <div className="flex items-center gap-2">
-                                    <Label className="text-xs font-medium text-slate-600 flex items-center gap-1.5">
-                                        <CreditCard className="h-3.5 w-3.5" />
-                                        Kaporalı Teklif
-                                    </Label>
-                                    <Switch
-                                        checked={withDeposit}
-                                        onCheckedChange={setWithDeposit}
-                                    />
-                                </div>
-                                {withDeposit && (
-                                    <Input
-                                        type="text"
-                                        value={depositDisplay}
-                                        onChange={handleDepositChange}
-                                        placeholder="Kapora tutarı"
-                                        className="h-9 text-sm"
-                                    />
-                                )}
+                                <h3 className="text-sm font-bold text-slate-700 mb-1">Ödeme Planı Hazırlanıyor</h3>
+                                <p className="text-xs leading-relaxed max-w-sm">
+                                    Ödeme planı hesaplayıcıyı aktifleştirmek ve teklif detaylarını düzenlemek için lütfen sol menüden bir **Proje ve Ünite** seçin.
+                                </p>
                             </div>
                         </div>
-                    </div>
-
-                    {/* Step 2: Payment Plan Calculator */}
-                    {selectedUnitId && (
-                        <div className="rounded-xl border border-blue-100 bg-blue-50/30 p-4">
-                            <div className="flex items-center gap-2 mb-3">
-                                <CreditCard className="h-4 w-4 text-blue-500" />
-                                <span className="text-xs font-bold text-blue-500 uppercase tracking-widest">Ödeme Planı</span>
-                                {paymentPlanItems.length > 0 && (
-                                    <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-bold ml-auto">
-                                        ✓ Plan Hazır — {paymentPlanItems.length} kalem
-                                    </span>
-                                )}
-                            </div>
-                            <PaymentPlanCalculator
-                                saleId={saleId}
-                                totalAmount={unitPrice}
-                                initialCurrency={unitCurrency}
-                                templates={templates}
-                                onConfirm={handlePlanConfirm}
-                                confirmButtonText="Planı Teklife Uygula"
-                                disablePriceEdit={false}
-                            />
-                        </div>
-                    )}
-
-                    {/* Summary & Save */}
-                    {paymentPlanItems.length > 0 && (
-                        <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-4">
-                            <div className="grid grid-cols-3 gap-4 text-center mb-4">
-                                <div>
-                                    <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Teklif Fiyatı</div>
-                                    <div className="text-sm font-bold text-slate-800">
-                                        {new Intl.NumberFormat('tr-TR').format(unitPrice)} {planCurrency}
+                    ) : (
+                        <PaymentPlanCalculator
+                            saleId={saleId}
+                            totalAmount={unitPrice}
+                            initialCurrency={unitCurrency}
+                            templates={templates}
+                            onConfirm={handlePlanConfirmAndSave}
+                            confirmButtonText={saving ? "Teklif Oluşturuluyor..." : "Teklif Oluştur & Opsiyonla"}
+                            disablePriceEdit={false}
+                            isWide={true}
+                            rightHeader={
+                                withDeposit && depositAmount > 0 ? (
+                                    <div className="text-center text-xs text-orange-600 font-semibold mb-1 py-1.5 bg-orange-50 rounded-lg border border-orange-100 flex-shrink-0 animate-in fade-in">
+                                        💰 Kaporalı Teklif Tutarı: {new Intl.NumberFormat('tr-TR').format(depositAmount)} {unitCurrency}
                                     </div>
-                                </div>
-                                <div>
-                                    <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Vade Dahil Toplam</div>
-                                    <div className="text-sm font-bold text-blue-700">
-                                        {new Intl.NumberFormat('tr-TR').format(paymentPlanTotal)} {planCurrency}
-                                    </div>
-                                </div>
-                                <div>
-                                    <div className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Geçerlilik</div>
-                                    <div className="text-sm font-bold text-slate-800">
-                                        {new Date(validUntil).toLocaleDateString('tr-TR')}
-                                    </div>
-                                </div>
-                            </div>
-                            {withDeposit && depositAmount > 0 && (
-                                <div className="text-center text-xs text-orange-600 font-semibold mb-3">
-                                    💰 Kapora: {new Intl.NumberFormat('tr-TR').format(depositAmount)} {planCurrency}
-                                </div>
-                            )}
-                            <Button
-                                onClick={handleSave}
-                                disabled={saving}
-                                className="w-full h-11 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold shadow-lg"
-                            >
-                                {saving ? (
-                                    <>
-                                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                        Oluşturuluyor...
-                                    </>
-                                ) : (
-                                    <>
-                                        <FileText className="h-4 w-4 mr-2" />
-                                        Teklif Oluştur & Opsiyonla
-                                    </>
-                                )}
-                            </Button>
-                        </div>
+                                ) : null
+                            }
+                        >
+                            {renderUnitSelectionInputs()}
+                        </PaymentPlanCalculator>
                     )}
                 </div>
             </DialogContent>

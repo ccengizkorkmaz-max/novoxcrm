@@ -1,15 +1,9 @@
-import { login, signup, resetPassword } from './actions'
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { PasswordInput } from "@/components/ui/password-input"
-import { Label } from "@/components/ui/label"
-import Link from 'next/link'
-import { Building2, ArrowRight, ShieldCheck } from 'lucide-react'
-import { LeadCaptureModal } from '@/components/marketing/LeadCaptureModal'
+import { Building2, ShieldCheck } from 'lucide-react'
 import { getTranslations } from 'next-intl/server'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 import { getBrandNameFromHost, getHostFromHeaders } from '@/lib/tenant/resolve-brand-from-host'
 import { cn } from '@/lib/utils'
+import LoginForm from './LoginForm'
 
 export default async function LoginPage(props: {
     searchParams: Promise<{ message: string, error: string, email: string }>
@@ -20,6 +14,24 @@ export default async function LoginPage(props: {
     const brandName = await getBrandNameFromHost(host)
 
     const isOikos = brandName === 'Oikos CRM'
+
+    const translations = {
+        emailLabel: t('emailLabel'),
+        emailPlaceholder: t('emailPlaceholder'),
+        passwordLabel: t('passwordLabel'),
+        passwordPlaceholder: t('passwordPlaceholder'),
+        loginButton: t('loginButton'),
+        forgotPassword: t('forgotPassword'),
+        brokerLink: t('brokerLink'),
+        registerModalTitle: t('registerModalTitle'),
+        registerModalDesc: t('registerModalDesc'),
+        registerLink: t('registerLink'),
+        termsAgreement: t('termsAgreement'),
+        termsLink: t('termsLink'),
+        privacyLink: t('privacyLink'),
+        and: t('and'),
+        agreementSuffix: t('agreementSuffix'),
+    }
 
     return (
         <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2">
@@ -124,97 +136,11 @@ export default async function LoginPage(props: {
                         </div>
                     )}
 
-                    <form className="grid gap-6">
-                        <div className="grid gap-2">
-                            <Label htmlFor="email" className="font-semibold">{t('emailLabel')}</Label>
-                            <Input
-                                id="email"
-                                name="email"
-                                type="text"
-                                placeholder={t('emailPlaceholder')}
-                                required
-                                defaultValue={params?.email || ''}
-                                className={cn(
-                                    "h-11 border-gray-200 transition-colors", 
-                                    isOikos ? "focus:border-[#085041] focus:ring-[#085041]" : "focus:border-blue-500"
-                                )}
-                            />
-                        </div>
-                        <div className="grid gap-2">
-                            <div className="flex items-center justify-between">
-                                <Label htmlFor="password" className="font-semibold">{t('passwordLabel')}</Label>
-                            </div>
-                            <PasswordInput
-                                id="password"
-                                name="password"
-                                required
-                                className={cn(
-                                    "h-11 border-gray-200 transition-colors", 
-                                    isOikos ? "focus:border-[#085041] focus:ring-[#085041]" : "focus:border-blue-500"
-                                )}
-                                placeholder={t('passwordPlaceholder')}
-                            />
-                        </div>
-
-                        <div className="flex flex-col gap-3 pt-2">
-                            <Button 
-                                formAction={login} 
-                                className={cn(
-                                    "h-11 w-full text-white font-medium transition-all cursor-pointer",
-                                    isOikos 
-                                        ? "bg-[#085041] hover:bg-[#0F6E56] shadow-lg shadow-[#085041]/20 border-none" 
-                                        : "bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-600/20"
-                                )}
-                            >
-                                {t('loginButton')} <ArrowRight className="ml-2 h-4 w-4" />
-                            </Button>
-                            <Button 
-                                formAction={resetPassword} 
-                                formNoValidate 
-                                variant="ghost" 
-                                className={cn(
-                                    "h-9 w-full text-sm font-medium cursor-pointer",
-                                    isOikos ? "text-slate-500 hover:text-[#085041] hover:bg-[#085041]/5" : "text-slate-500 hover:text-blue-600"
-                                )}
-                            >
-                                {t('forgotPassword')}
-                            </Button>
-                        </div>
-                    </form>
-
-                    <div className="flex flex-col items-center gap-1">
-                        <Link
-                            href="/broker/apply"
-                            className={cn(
-                                "text-center text-sm font-medium hover:underline py-1",
-                                isOikos ? "text-[#085041] hover:text-[#0F6E56]" : "text-blue-600 hover:text-blue-700"
-                            )}
-                        >
-                            {t('brokerLink')}
-                        </Link>
-
-                        <LeadCaptureModal
-                            resourceName="SaaS Registration"
-                            title={t('registerModalTitle')}
-                            description={t('registerModalDesc')}
-                        >
-                            <button type="button" className="text-center text-xs font-medium text-slate-500 hover:text-slate-700 hover:underline py-1 cursor-pointer">
-                                {t('registerLink')}
-                            </button>
-                        </LeadCaptureModal>
-                    </div>
-
-                    <p className="px-8 text-center text-sm text-muted-foreground">
-                        {t('termsAgreement')}{" "}
-                        <a href="#" className="underline underline-offset-4 hover:text-primary">
-                            {t('termsLink')}
-                        </a>{" "}
-                        {t('and')}{" "}
-                        <a href="#" className="underline underline-offset-4 hover:text-primary">
-                            {t('privacyLink')}
-                        </a>
-                        {t('agreementSuffix')}
-                    </p>
+                    <LoginForm 
+                        isOikos={isOikos} 
+                        emailDefaultValue={params?.email || ''} 
+                        translations={translations} 
+                    />
                 </div>
             </div>
         </div>

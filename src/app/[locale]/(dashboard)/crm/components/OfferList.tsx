@@ -298,7 +298,7 @@ export default function OfferList({ offers, userRole }: { offers: Offer[], userR
                                                                 className="gap-2 h-9 px-4 rounded-xl bg-red-50 border-red-200 text-red-700 font-bold hover:bg-red-100 transition-all select-none"
                                                             >
                                                                 <XCircle className="h-4 w-4" />
-                                                                <span>Kaybedildi</span>
+                                                                <span>Süreci Sonlandır</span>
                                                             </Button>
                                                         )}
                                                     </>

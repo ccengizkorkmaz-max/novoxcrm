@@ -83,7 +83,7 @@ export default function NegotiationDialog({ offerId, currentPrice, currentCurren
             setNewPrice(currentPrice)
             setProposedPlan(initialPaymentPlan || null)
         }
-    }, [offerId, isOpen, currentPrice, initialPaymentPlan])
+    }, [isOpen, offerId])
 
     const loadTemplates = async () => {
         const data = await getPaymentTemplates()
@@ -307,33 +307,46 @@ export default function NegotiationDialog({ offerId, currentPrice, currentCurren
                                                 </Dialog>
                                             </div>
 
-                                            {proposedPlan && (
-                                                <div className="mt-3 p-3 bg-white rounded-xl border border-emerald-100 animate-in fade-in slide-in-from-top-1">
-                                                    <div className="flex justify-between items-center text-[10px] font-bold">
-                                                        <span className="text-slate-400 uppercase">Özet:</span>
-                                                        <span className="text-emerald-600 uppercase bg-emerald-50 px-2 py-0.5 rounded-full">PLAN HAZIR ✅</span>
-                                                    </div>
-                                                    <div className="mt-2 grid grid-cols-2 gap-2 text-xs font-black text-slate-800">
-                                                        <div className="flex flex-col">
-                                                            <span className="text-[8px] text-slate-400 uppercase tracking-tighter">İşlem Tutarı</span>
-                                                            <span>{formatCurrency(proposedPlan.total_amount, currentCurrency)}</span>
+                                            {(() => {
+                                                if (!proposedPlan) return null
+                                                const planItems = Array.isArray(proposedPlan)
+                                                    ? proposedPlan
+                                                    : (proposedPlan.payment_items || [])
+                                                const planTotal = proposedPlan.total_amount
+                                                    || planItems.reduce((acc: number, item: any) => acc + Number(item.amount || 0), 0)
+                                                    || currentPrice
+                                                const planInstallmentCount = proposedPlan.installment_count
+                                                    || planItems.filter((i: any) => i.payment_type === 'Installment').length
+                                                    || 0
+                                                return (
+                                                    <div className="mt-3 p-3 bg-white rounded-xl border border-emerald-100 animate-in fade-in slide-in-from-top-1">
+                                                        <div className="flex justify-between items-center text-[10px] font-bold">
+                                                            <span className="text-slate-400 uppercase">Özet:</span>
+                                                            <span className="text-emerald-600 uppercase bg-emerald-50 px-2 py-0.5 rounded-full">PLAN HAZIR ✅</span>
                                                         </div>
-                                                        <div className="flex flex-col text-right">
-                                                            <span className="text-[8px] text-slate-400 uppercase tracking-tighter">Vade</span>
-                                                            <span>{proposedPlan.installment_count} Taksit</span>
+                                                        <div className="mt-2 grid grid-cols-2 gap-2 text-xs font-black text-slate-800">
+                                                            <div className="flex flex-col">
+                                                                <span className="text-[8px] text-slate-400 uppercase tracking-tighter">İşlem Tutarı</span>
+                                                                <span>{formatCurrency(planTotal, currentCurrency)}</span>
+                                                            </div>
+                                                            <div className="flex flex-col text-right">
+                                                                <span className="text-[8px] text-slate-400 uppercase tracking-tighter">Vade</span>
+                                                                <span>{planInstallmentCount} Taksit</span>
+                                                            </div>
                                                         </div>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            disabled={isApproved}
+                                                            onClick={() => setProposedPlan(null)}
+                                                            className="w-full mt-3 h-7 text-[9px] font-bold uppercase text-red-500 hover:bg-red-50 hover:text-red-600"
+                                                            type="button"
+                                                        >
+                                                            Planı Kaldır
+                                                        </Button>
                                                     </div>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        disabled={isApproved}
-                                                        onClick={() => setProposedPlan(null)}
-                                                        className="w-full mt-3 h-7 text-[9px] font-bold uppercase text-red-500 hover:bg-red-50 hover:text-red-600"
-                                                    >
-                                                        Planı Kaldır
-                                                    </Button>
-                                                </div>
-                                            )}
+                                                )
+                                            })()}
                                         </div>
                                         <div className="space-y-2 sm:col-span-2">
                                             <Label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{t('notes')}</Label>
