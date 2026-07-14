@@ -213,6 +213,120 @@ export default async function AISolutionPage({ params }: { params: Promise<{ slu
                 </div>
             </section>
 
+            {/* Custom Interactive Inbound Calling and Recording section for AI Sesli Arama */}
+            {slug === 'ai-sesli-arama' && (
+                <section className="py-20 border-t border-slate-900 bg-slate-950/50">
+                    <div className="container mx-auto px-4 max-w-4xl">
+                        <div className="bg-gradient-to-br from-slate-900 via-blue-950/30 to-slate-900 border border-blue-500/20 rounded-[32px] p-8 md:p-12 relative overflow-hidden shadow-2xl">
+                            <div className="absolute top-0 right-0 w-80 h-80 bg-blue-500/5 blur-[100px] rounded-full pointer-events-none" />
+                            
+                            <div className="text-center mb-10">
+                                <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-4 py-1.5 text-xs font-bold text-blue-400 mb-4 animate-pulse">
+                                    <Phone size={14} /> Canlı Deneyim Hattı
+                                </div>
+                                <h2 className="text-3xl md:text-4xl font-extrabold text-white mb-4">
+                                    Yapay Zekayı Hemen Canlı Arayın
+                                </h2>
+                                <p className="text-slate-400 max-w-2xl mx-auto leading-relaxed text-sm">
+                                    Novo AI inbound agent&apos;ımızın hızını ve doğallığını doğrudan kendi telefonunuzdan test edin. Güncel gayrimenkul projelerimiz hakkında konuşun.
+                                </p>
+                            </div>
+
+                            {/* Call widget */}
+                            <div className="bg-slate-950/70 border border-slate-800/80 rounded-2xl p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 mb-12">
+                                <div className="space-y-2 text-center md:text-left">
+                                    <div className="text-xs text-slate-500 font-bold uppercase tracking-wider">Aranacak Telefon Numarası</div>
+                                    <div className="text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300 select-all hover:scale-102 transition-transform duration-200 inline-block">
+                                        0212 905 0559
+                                    </div>
+                                    <div className="text-xs text-slate-400">Aradığınızda yapay zeka sizi güncel konut projeleri hakkında bilgilendirecektir.</div>
+                                </div>
+                                <div className="shrink-0 w-full md:w-auto">
+                                    <a href="tel:02129050559" className="inline-flex items-center justify-center gap-2 w-full md:w-auto bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-bold px-8 py-4 rounded-full transition-all shadow-lg hover:shadow-blue-500/20 text-sm">
+                                        <Phone size={16} /> Hemen Ara
+                                    </a>
+                                </div>
+                            </div>
+
+                            {/* Audio Recording Player and Transcripts */}
+                            <div className="space-y-8">
+                                <div>
+                                    <h3 className="text-md font-bold text-white mb-4 flex items-center gap-2">
+                                        <Mic size={16} className="text-cyan-400" /> Başarılı Arama Ses Kaydı
+                                    </h3>
+                                    <div className="bg-slate-950/40 border border-slate-800 rounded-xl p-4 flex flex-col md:flex-row items-center gap-4">
+                                        <div className="text-xs text-slate-400 uppercase tracking-wider font-semibold shrink-0">Örnek Görüşme (Mert Aksoy Sesi)</div>
+                                        <audio 
+                                            controls 
+                                            className="w-full h-10 accent-blue-500 [&::-webkit-media-controls-panel]:bg-slate-900 [&::-webkit-media-controls-play-button]:text-blue-400"
+                                        >
+                                            <source src="/audio/sample_call.mp3" type="audio/mpeg" />
+                                            Tarayıcınız ses oynatıcısını desteklemiyor.
+                                        </audio>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <h3 className="text-md font-bold text-white mb-4 flex items-center gap-2">
+                                        <FileText size={16} className="text-purple-400" /> Maskelenmiş Arama Transkripti
+                                    </h3>
+                                    <div className="bg-slate-950/60 border border-slate-850 rounded-xl p-6 space-y-4 max-h-80 overflow-y-auto text-xs md:text-sm leading-relaxed scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
+                                        <div className="flex gap-3">
+                                            <div className="w-8 h-8 rounded-full bg-blue-500/10 text-blue-400 flex items-center justify-center shrink-0 text-[10px] font-bold font-mono">AI</div>
+                                            <div className="bg-blue-950/20 border border-blue-500/10 rounded-2xl rounded-tl-none p-3.5 text-slate-300 max-w-[85%]">
+                                                Merhaba, iyi günler! Ben Novo AI satış temsilcisi. Gönderdiğiniz form için ulaşıyorum. Yeni lansmana çıkacak olan Marina Towers konut projesiyle ilgilenmiştiniz, doğru mudur?
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-3 justify-end">
+                                            <div className="bg-slate-800/40 border border-slate-700/30 rounded-2xl rounded-tr-none p-3.5 text-slate-300 max-w-[85%]">
+                                                Evet, Marina Towers hakkında bilgi almak için formu doldurmuştum. Tam olarak nerede yapılacağını ve fiyat aralığını merak ediyorum.
+                                            </div>
+                                            <div className="w-8 h-8 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center shrink-0 text-[10px] font-bold font-mono">M***</div>
+                                        </div>
+                                        <div className="flex gap-3">
+                                            <div className="w-8 h-8 rounded-full bg-blue-500/10 text-blue-400 flex items-center justify-center shrink-0 text-[10px] font-bold font-mono">AI</div>
+                                            <div className="bg-blue-950/20 border border-blue-500/10 rounded-2xl rounded-tl-none p-3.5 text-slate-300 max-w-[85%]">
+                                                Tabii ki seve seve açıklayayım. Projemiz Kartal sahil hattında, marinaya yürüyüş mesafesinde konumlanıyor. 1+1 daire tipleri 4.5 Milyon TL&apos;den başlıyor. Yatırımlık mı düşünüyorsunuz yoksa oturum amaçlı mı?
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-3 justify-end">
+                                            <div className="bg-slate-800/40 border border-slate-700/30 rounded-2xl rounded-tr-none p-3.5 text-slate-300 max-w-[85%]">
+                                                Oturum için düşünüyoruz, 2+1 bakıyoruz aslında. Ödeme planı nasıl? Peşinat ne kadar olmalı?
+                                            </div>
+                                            <div className="w-8 h-8 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center shrink-0 text-[10px] font-bold font-mono">M***</div>
+                                        </div>
+                                        <div className="flex gap-3">
+                                            <div className="w-8 h-8 rounded-full bg-blue-500/10 text-blue-400 flex items-center justify-center shrink-0 text-[10px] font-bold font-mono">AI</div>
+                                            <div className="bg-blue-950/20 border border-blue-500/10 rounded-2xl rounded-tl-none p-3.5 text-slate-300 max-w-[85%]">
+                                                Marina projemizde 2+1 daireler için lansmana özel %35 peşinat ve kalan tutarı şirket bünyesinde 24 ay faizsiz taksitlendirebiliyoruz. Dilerseniz ödeme planı dökümünü ve detaylı kataloğu WhatsApp üzerinden hemen göndereyim? Cep numaranız 0532 *** ** 43, bu numaraya göndermem uygun mudur?
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-3 justify-end">
+                                            <div className="bg-slate-800/40 border border-slate-700/30 rounded-2xl rounded-tr-none p-3.5 text-slate-300 max-w-[85%]">
+                                                Harika olur, evet bu numaraya WhatsApp&apos;tan gönderebilirsiniz. Ben inceleyip eşime de göstereyim.
+                                            </div>
+                                            <div className="w-8 h-8 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center shrink-0 text-[10px] font-bold font-mono">M***</div>
+                                        </div>
+                                        <div className="flex gap-3">
+                                            <div className="w-8 h-8 rounded-full bg-blue-500/10 text-blue-400 flex items-center justify-center shrink-0 text-[10px] font-bold font-mono">AI</div>
+                                            <div className="bg-blue-950/20 border border-blue-500/10 rounded-2xl rounded-tl-none p-3.5 text-slate-300 max-w-[85%]">
+                                                Tabii ki M*** Bey, kataloğu ve size özel 2+1 ödeme planını anında iletiyorum. Ayrıca sizi cumartesi günü lansman ofisimizde kahve içmeye davet etmek isteriz. Satış danışmanımız müsaitliğinizi teyit etmek için ararsa uygun olur musunuz?
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-3 justify-end">
+                                            <div className="bg-slate-800/40 border border-slate-700/30 rounded-2xl rounded-tr-none p-3.5 text-slate-300 max-w-[85%]">
+                                                Cumartesi öğleden sonra uygunum, arayabilirler. Teşekkür ederim bilgi verdiğiniz için.
+                                            </div>
+                                            <div className="w-8 h-8 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center shrink-0 text-[10px] font-bold font-mono">M***</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            )}
+
             {/* Benefits */}
             <section className="py-24 border-t border-slate-900">
                 <div className="container mx-auto px-4 max-w-4xl">
