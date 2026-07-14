@@ -237,12 +237,12 @@ export default async function AISolutionPage({ params }: { params: Promise<{ slu
                                 <div className="space-y-2 text-center md:text-left">
                                     <div className="text-xs text-slate-500 font-bold uppercase tracking-wider">Aranacak Telefon Numarası</div>
                                     <div className="text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300 select-all hover:scale-102 transition-transform duration-200 inline-block">
-                                        0212 905 0559
+                                        0212 909 9559
                                     </div>
                                     <div className="text-xs text-slate-400">Aradığınızda yapay zeka sizi güncel konut projeleri hakkında bilgilendirecektir.</div>
                                 </div>
                                 <div className="shrink-0 w-full md:w-auto">
-                                    <a href="tel:02129050559" className="inline-flex items-center justify-center gap-2 w-full md:w-auto bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-bold px-8 py-4 rounded-full transition-all shadow-lg hover:shadow-blue-500/20 text-sm">
+                                    <a href="tel:02129099559" className="inline-flex items-center justify-center gap-2 w-full md:w-auto bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-bold px-8 py-4 rounded-full transition-all shadow-lg hover:shadow-blue-500/20 text-sm">
                                         <Phone size={16} /> Hemen Ara
                                     </a>
                                 </div>
