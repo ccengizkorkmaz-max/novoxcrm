@@ -115,8 +115,8 @@ export default function App() {
 
         {/* Tab Components Body */}
         <div className="flex-1 overflow-y-auto px-5 py-6 space-y-6">
-          {activeTab === 'agenda' && session?.user && (
-            <AgendaTab userId={session.user.id} />
+          {activeTab === 'agenda' && session?.user && profile?.tenant_id && (
+            <AgendaTab userId={session.user.id} tenantId={profile.tenant_id} />
           )}
 
           {activeTab === 'stock' && session?.user && profile?.tenant_id && (

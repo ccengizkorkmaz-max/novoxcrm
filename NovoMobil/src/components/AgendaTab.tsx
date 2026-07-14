@@ -1,51 +1,120 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-import { Calendar, Clock, Phone, MessageSquare, Loader2 } from 'lucide-react'
+import { 
+  Calendar, Clock, Phone, MessageSquare, Loader2, 
+  Plus, X, Sparkles 
+} from 'lucide-react'
 
 interface AgendaTabProps {
   userId: string
+  tenantId: string
 }
 
-export default function AgendaTab({ userId }: AgendaTabProps) {
+export default function AgendaTab({ userId, tenantId }: AgendaTabProps) {
   const [meetings, setMeetings] = useState<any[]>([])
+  const [customers, setCustomers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    async function fetchAgenda() {
-      try {
-        setLoading(true)
-        const { data, error: fetchError } = await supabase
-          .from('meetings')
-          .select(`
-            id,
-            title,
-            description,
-            meeting_type,
-            scheduled_at,
-            notes,
-            customers (
-              full_name,
-              phone
-            )
-          `)
-          .eq('host_user_id', userId)
-          .order('scheduled_at', { ascending: true })
+  // New Activity Modal State
+  const [isAdding, setIsAdding] = useState(false)
+  const [selectedCust, setSelectedCust] = useState('')
+  const [title, setTitle] = useState('')
+  const [meetType, setMeetType] = useState('Arama')
+  const [scheduledAt, setScheduledAt] = useState('')
+  const [notes, setNotes] = useState('')
+  const [saving, setSaving] = useState(false)
 
-        if (fetchError) throw fetchError
-        setMeetings(data || [])
-      } catch (err: any) {
-        console.error('Fetch agenda error:', err)
-        setError('Randevular yüklenemedi.')
-      } finally {
-        setLoading(false)
-      }
+  const fetchAgenda = async () => {
+    try {
+      setLoading(true)
+      const { data, error: fetchError } = await supabase
+        .from('meetings')
+        .select(`
+          id,
+          title,
+          description,
+          meeting_type,
+          scheduled_at,
+          notes,
+          customers (
+            full_name,
+            phone
+          )
+        `)
+        .eq('host_user_id', userId)
+        .order('scheduled_at', { ascending: true })
+
+      if (fetchError) throw fetchError
+      setMeetings(data || [])
+    } catch (err: any) {
+      console.error('Fetch agenda error:', err)
+      setError('Randevular yüklenemedi.')
+    } finally {
+      setLoading(false)
     }
+  }
 
+  const fetchCustomers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('customers')
+        .select('id, full_name')
+        .or(`assigned_to.eq.${userId},created_by.eq.${userId}`)
+        .order('full_name', { ascending: true })
+      
+      if (error) throw error
+      setCustomers(data || [])
+    } catch (err) {
+      console.error('Fetch customers error:', err)
+    }
+  }
+
+  useEffect(() => {
     if (userId) {
       fetchAgenda()
+      fetchCustomers()
     }
   }, [userId])
+
+  const handleAddActivity = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedCust || !title || !scheduledAt) {
+      alert('Lütfen gerekli alanları doldurun.')
+      return
+    }
+
+    setSaving(true)
+    try {
+      const { error } = await supabase
+        .from('meetings')
+        .insert({
+          tenant_id: tenantId,
+          customer_id: selectedCust,
+          title,
+          description: notes || null,
+          meeting_type: meetType,
+          scheduled_at: new Date(scheduledAt).toISOString(),
+          host_user_id: userId,
+          status: 'Scheduled'
+        })
+
+      if (error) throw error
+
+      setIsAdding(false)
+      setTitle('')
+      setSelectedCust('')
+      setMeetType('Arama')
+      setScheduledAt('')
+      setNotes('')
+      fetchAgenda()
+    } catch (err: any) {
+      console.error('Add meeting error:', err)
+      alert(err.message || 'Aktivite eklenirken hata oluştu.')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const formatDateTime = (isoString: string) => {
     if (!isoString) return { date: '', time: '' }
@@ -87,6 +156,14 @@ export default function AgendaTab({ userId }: AgendaTabProps) {
         <p className="text-xs text-indigo-100 font-medium mt-1">
           {meetings.length > 0 ? 'Bugün sizi bekleyen görüşmeler aşağıda listelenmiştir.' : 'Bugün planlanmış bir randevunuz bulunmamaktadır.'}
         </p>
+
+        {/* Floating action button inside banner */}
+        <button 
+          onClick={() => setIsAdding(true)}
+          className="absolute right-5 top-5 h-10 w-10 rounded-2xl bg-white text-indigo-600 flex items-center justify-center shadow-lg active:scale-95 transition-transform cursor-pointer"
+        >
+          <Plus className="w-5 h-5" />
+        </button>
       </div>
 
       {meetings.length === 0 ? (
@@ -149,6 +226,116 @@ export default function AgendaTab({ userId }: AgendaTabProps) {
               </div>
             )
           })}
+        </div>
+      )}
+
+      {/* Quick Add Activity Modal */}
+      {isAdding && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <form 
+            onSubmit={handleAddActivity}
+            className="bg-slate-900 border border-slate-800 w-full max-w-md rounded-t-3xl sm:rounded-3xl p-6 space-y-5 animate-in slide-in-from-bottom duration-300"
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-indigo-400" />
+                <h3 className="text-md font-black text-white">Yeni Aktivite Ekle</h3>
+              </div>
+              <button 
+                type="button"
+                onClick={() => setIsAdding(false)}
+                className="h-8 w-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Input fields */}
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Müşteri Seçin</label>
+                <select
+                  value={selectedCust}
+                  onChange={(e) => setSelectedCust(e.target.value)}
+                  required
+                  className="w-full bg-slate-800/60 border border-slate-700/80 rounded-xl py-2.5 px-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                >
+                  <option value="" className="bg-slate-900">Seçiniz...</option>
+                  {customers.map((c) => (
+                    <option key={c.id} value={c.id} className="bg-slate-900">{c.full_name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Aktivite Başlığı</label>
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Örn: 2+1 Daire Gösterimi"
+                  required
+                  className="w-full bg-slate-800/60 border border-slate-700/80 rounded-xl py-2.5 px-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Görüşme Tipi</label>
+                  <select
+                    value={meetType}
+                    onChange={(e) => setMeetType(e.target.value)}
+                    className="w-full bg-slate-800/60 border border-slate-700/80 rounded-xl py-2.5 px-3 text-xs text-white focus:outline-none focus:border-indigo-500"
+                  >
+                    <option value="Arama" className="bg-slate-900">Arama</option>
+                    <option value="Ziyaret" className="bg-slate-900">Ofis Ziyareti</option>
+                    <option value="Toplantı" className="bg-slate-900">Toplantı</option>
+                    <option value="Online" className="bg-slate-900">Online Görüşme</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Tarih / Saat</label>
+                  <input
+                    type="datetime-local"
+                    value={scheduledAt}
+                    onChange={(e) => setScheduledAt(e.target.value)}
+                    required
+                    className="w-full bg-slate-800/60 border border-slate-700/80 rounded-xl py-2 px-3 text-xs text-white focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Açıklama / Notlar (İsteğe Bağlı)</label>
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Randevu ile ilgili notlar..."
+                  className="w-full h-20 bg-slate-800/60 border border-slate-700/80 rounded-xl py-2 px-3 text-xs text-white focus:outline-none focus:border-indigo-500 resize-none"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={saving}
+                className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-bold text-xs py-3.5 rounded-xl shadow-lg shadow-indigo-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Kaydediliyor...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4" />
+                    Aktivite Planla
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
         </div>
       )}
     </div>
