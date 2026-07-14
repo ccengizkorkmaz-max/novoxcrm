@@ -109,6 +109,8 @@ Dış brokerların en büyük korkusu, getirdikleri müşterinin satış ofisi v
 
 Satış gerçekleştikten sonra broker için en sancılı süreç komisyon takibidir. "Hangi dairenin ödemesi geldi? Benim param ne zaman yatar?" sorularının cevabı CRM'de otomatiktir. Satış yapıldığı anda hakediş hesaplanır, ödeme planına bağlanır ve broker kendi panelinden şeffafça takip eder.
 
+<div class="bg-emerald-950/25 border border-emerald-500/30 rounded-xl p-5 my-6"><strong class="text-emerald-400 font-semibold">Tavsiye:</strong> Satış bedeli, KDV ve stopaj oranlarına göre net acente/broker komisyonunu ve hakediş paylaşımlarını hesaplamak için ücretsiz <a href="/tr/tools/broker-komisyon-hesaplayici" class="text-blue-400 hover:underline">Broker Komisyon Hesaplama Aracımızı</a> kullanabilirsiniz.</div>
+
 ## Eğitim ve Materyal Desteği
 
 Brokerlarınıza güncel PDF kataloglar, profesyonel renderlar ve ödeme planı şablonlarını Google Drive linkleriyle değil, doğrudan CRM içindeki **Pazarlama Havuzu**'ndan sunun. Unutmayın; broker'ın işini ne kadar kolaylaştırırsanız, o kadar hızlı satış yaparsınız.
@@ -377,6 +379,8 @@ Canlı stok, projedeki her bir ünitenin durumunun (boş, rezerve, opsiyonlu, sa
 - **Şerefiye Yönetimi:** Her dairenin şerefiye puanı ve buna bağlı fiyatı sistemde sabittir; danışman inisiyatifiyle yanlış fiyat verilmesi engellenir.
 - **Interaktif Lejant:** Satış ofisindeki dev ekranlarda, projenin mimari planı üzerinde hangi dairelerin satıldığını renklerle göstermek, alıcıda güven oluşturur.
 
+<div class="bg-emerald-950/25 border border-emerald-500/30 rounded-xl p-5 my-6"><strong class="text-emerald-400 font-semibold">Tavsiye:</strong> Projenizdeki dairelerin konum, kat, cephe ve manzara avantajlarına göre şerefiye dağılımını bilimsel yöntemlerle hesaplamak için ücretsiz ve anlık çalışan <a href="/tr/tools/serefiye-hesaplayici" class="text-blue-400 hover:underline">Şerefiye Hesaplayıcı Aracımızı</a> kullanabilirsiniz.</div>
+
 Novo CRM, inşaat firmalarına bu profesyonel stok yönetimini en basit ve en hızlı arayüzle sunar.
         `
     },
@@ -425,6 +429,8 @@ Manuel hazırlanan bir ödeme planında yapılacak tek bir tarih veya tutar hata
 
 ## CRM ile Dijital Ödeme Yönetimi
 Novo CRM'in **Ödeme Planı Sihirbazı**, saniyeler içinde binlerce senaryoyu hatasız hesaplar. Taksitlerin vadesi geldiğinde hem müşteriye hem de finans ekibine otomatik hatırlatmalar gider.
+
+<div class="bg-emerald-950/25 border border-emerald-500/30 rounded-xl p-5 my-6"><strong class="text-emerald-400 font-semibold">Tavsiye:</strong> Müşterileriniz için en uygun konut kredisi oranlarını karşılaştırmak, taksit ödeme tablosunu simüle etmek ve aylık maliyetleri analiz etmek için ücretsiz <a href="/tr/tools/konut-kredisi-karsilastirma" class="text-blue-400 hover:underline">Konut Kredisi Karşılaştırma Aracımızı</a> kullanabilirsiniz.</div>
 
 ## Finans ve Satış Senkronizasyonu
 Satış ekibinin sattığı dairenin tahsilat durumunu anlık görmesi gerekir. "Müşteri ödemesini yaptı mı?" sorusu için artık muhasebe ile telefon trafiği yapılmasına gerek kalmaz. Her şey CRM üzerinde şeffaftır.

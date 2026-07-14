@@ -3,13 +3,23 @@ import { getBrandNameFromHost, getHostFromHeaders } from "@/lib/tenant/resolve-b
 import DamgaVergisiClient from "./DamgaVergisiClient"
 import Link from "next/link"
 
-export async function generateMetadata(): Promise<Metadata> {
+export async function generateMetadata(
+    { params }: { params: Promise<{ locale: string }> }
+): Promise<Metadata> {
+    const { locale } = await params
     const host = await getHostFromHeaders()
     const brandName = await getBrandNameFromHost(host)
     return {
         title: `Damga Vergisi Hesaplayıcı 2026 | Sözleşme Damga Vergisi - ${brandName}`,
         description: 'Damga vergisi hesaplama aracı. Gayrimenkul satış, kira ve taahhüt sözleşmelerinin damga vergisini 2026 güncel oranlarıyla anlık hesaplayın.',
         keywords: 'damga vergisi hesaplama, damga vergisi oranı 2026, sözleşme damga vergisi, gayrimenkul damga vergisi hesaplayıcı',
+        alternates: {
+            canonical: locale === 'en' ? `/en/tools/damga-vergisi-hesaplayici` : `/tools/damga-vergisi-hesaplayici`,
+            languages: {
+                tr: `/tools/damga-vergisi-hesaplayici`,
+                en: `/en/tools/damga-vergisi-hesaplayici`,
+            }
+        }
     }
 }
 

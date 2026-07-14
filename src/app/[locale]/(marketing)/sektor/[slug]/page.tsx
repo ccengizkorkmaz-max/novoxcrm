@@ -36,6 +36,13 @@ export async function generateMetadata(
         description: adjustBranding(sector.metaDescription, brandName),
         keywords: `${sector.title} crm, gayrimenkul crm, inşaat crm`,
         robots: locale === 'en' ? { index: false, follow: false } : undefined,
+        alternates: {
+            canonical: locale === 'en' ? `/en/sektor/${slug}` : `/sektor/${slug}`,
+            languages: {
+                tr: `/sektor/${slug}`,
+                en: `/en/sektor/${slug}`,
+            }
+        },
     }
 }
 

@@ -3,13 +3,23 @@ import { getBrandNameFromHost, getHostFromHeaders } from "@/lib/tenant/resolve-b
 import InsaatMaliyetClient from "./InsaatMaliyetClient"
 import Link from "next/link"
 
-export async function generateMetadata(): Promise<Metadata> {
+export async function generateMetadata(
+    { params }: { params: Promise<{ locale: string }> }
+): Promise<Metadata> {
+    const { locale } = await params
     const host = await getHostFromHeaders()
     const brandName = await getBrandNameFromHost(host)
     return {
         title: `İnşaat Maliyet Hesaplayıcı 2026 | Proje Maliyet Tahmini - ${brandName}`,
         description: 'İnşaat maliyet hesaplama aracı. Kaba inşaat, ince işler, mekanik ve çevre düzenleme dahil toplam proje maliyetini hesaplayın. 2026 güncel birim fiyatları.',
         keywords: 'inşaat maliyet hesaplama, inşaat m2 birim fiyat 2026, bina yapım maliyeti, konut inşaat maliyeti hesaplayıcı',
+        alternates: {
+            canonical: locale === 'en' ? `/en/tools/insaat-maliyet-hesaplayici` : `/tools/insaat-maliyet-hesaplayici`,
+            languages: {
+                tr: `/tools/insaat-maliyet-hesaplayici`,
+                en: `/en/tools/insaat-maliyet-hesaplayici`,
+            }
+        }
     }
 }
 

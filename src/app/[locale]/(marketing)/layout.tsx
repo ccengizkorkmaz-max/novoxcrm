@@ -29,13 +29,6 @@ export async function generateMetadata(
             icon: brandName === 'Oikos CRM' ? '/oikos-logo.svg' : '/favicon.ico',
             apple: brandName === 'Oikos CRM' ? '/oikos-logo.svg' : '/icon-512.png',
         },
-        alternates: {
-            canonical: '/',
-            languages: {
-                'tr': '/tr',
-                'en': '/en',
-            },
-        },
         robots: locale === 'en' ? { index: false, follow: false } : undefined,
         openGraph: {
             type: 'website',

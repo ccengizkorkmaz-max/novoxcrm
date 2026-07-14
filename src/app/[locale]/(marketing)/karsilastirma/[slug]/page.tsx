@@ -31,6 +31,13 @@ export async function generateMetadata(
         title: adjustBranding(comp.metaTitle, brandName), 
         description: adjustBranding(comp.metaDescription, brandName),
         robots: locale === 'en' ? { index: false, follow: false } : undefined,
+        alternates: {
+            canonical: locale === 'en' ? `/en/karsilastirma/${slug}` : `/karsilastirma/${slug}`,
+            languages: {
+                tr: `/karsilastirma/${slug}`,
+                en: `/en/karsilastirma/${slug}`,
+            }
+        },
     }
 }
 

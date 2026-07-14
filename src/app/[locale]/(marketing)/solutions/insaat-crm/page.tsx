@@ -7,12 +7,22 @@ import { LeadCaptureModal } from '@/components/marketing/LeadCaptureModal'
 import { getBrandNameFromHost, getHostFromHeaders } from '@/lib/tenant/resolve-brand-from-host'
 import { getCanonicalBaseUrl } from '@/lib/seo-constants'
 
-export async function generateMetadata(): Promise<Metadata> {
+export async function generateMetadata(
+    { params }: { params: Promise<{ locale: string }> }
+): Promise<Metadata> {
+    const { locale } = await params
     const host = await getHostFromHeaders()
     const brandName = await getBrandNameFromHost(host)
     return {
         title: `Insaat Firmalari icin CRM | Proje Satis ve Stok Yonetimi - ${brandName}`,
         description: `Insaat firmalarina ozel CRM yazilimi. Proje bazli satis takibi, daire envanteri ve odeme plani ${brandName}'de.`,
+        alternates: {
+            canonical: locale === 'en' ? `/en/solutions/insaat-crm` : `/solutions/insaat-crm`,
+            languages: {
+                tr: `/solutions/insaat-crm`,
+                en: `/en/solutions/insaat-crm`,
+            }
+        }
     }
 }
 

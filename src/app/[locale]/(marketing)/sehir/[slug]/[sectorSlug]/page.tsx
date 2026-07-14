@@ -60,6 +60,13 @@ export async function generateMetadata(
         description: adjustBranding(description, brandName),
         keywords: `${city.name} ${sector.slug.replace('-crm', '')} crm, ${city.name} ${sector.title}, ${city.name} emlak yazılımı, ${sector.title} programı`,
         robots: locale === 'en' ? { index: false, follow: false } : undefined,
+        alternates: {
+            canonical: locale === 'en' ? `/en/sehir/${slug}/${sectorSlug}` : `/sehir/${slug}/${sectorSlug}`,
+            languages: {
+                tr: `/sehir/${slug}/${sectorSlug}`,
+                en: `/en/sehir/${slug}/${sectorSlug}`,
+            }
+        },
     }
 }
 

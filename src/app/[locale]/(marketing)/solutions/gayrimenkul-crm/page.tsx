@@ -7,12 +7,22 @@ import { LeadCaptureModal } from '@/components/marketing/LeadCaptureModal'
 import { getBrandNameFromHost, getHostFromHeaders } from '@/lib/tenant/resolve-brand-from-host'
 import { getCanonicalBaseUrl } from '@/lib/seo-constants'
 
-export async function generateMetadata(): Promise<Metadata> {
+export async function generateMetadata(
+    { params }: { params: Promise<{ locale: string }> }
+): Promise<Metadata> {
+    const { locale } = await params
     const host = await getHostFromHeaders()
     const brandName = await getBrandNameFromHost(host)
     return {
         title: `Gayrimenkul CRM Yazilimi | Konut Projeleri icin Satis Takibi - ${brandName}`,
         description: `Gayrimenkul firmalari icin ozel CRM cozumu. Konut projelerinde musteri, stok ve broker yonetimini ${brandName} ile dijitallestirin.`,
+        alternates: {
+            canonical: locale === 'en' ? `/en/solutions/gayrimenkul-crm` : `/solutions/gayrimenkul-crm`,
+            languages: {
+                tr: `/solutions/gayrimenkul-crm`,
+                en: `/en/solutions/gayrimenkul-crm`,
+            }
+        }
     }
 }
 

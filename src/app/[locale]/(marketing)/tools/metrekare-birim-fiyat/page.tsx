@@ -3,13 +3,23 @@ import { getBrandNameFromHost, getHostFromHeaders } from "@/lib/tenant/resolve-b
 import MetrekareFiyatClient from "./MetrekareFiyatClient"
 import Link from "next/link"
 
-export async function generateMetadata(): Promise<Metadata> {
+export async function generateMetadata(
+    { params }: { params: Promise<{ locale: string }> }
+): Promise<Metadata> {
+    const { locale } = await params
     const host = await getHostFromHeaders()
     const brandName = await getBrandNameFromHost(host)
     return {
         title: `m² Birim Fiyat Hesaplayıcı | Metrekare Fiyat Hesaplama - ${brandName}`,
         description: 'Gayrimenkul metrekare birim fiyat hesaplama aracı. Toplam fiyattan m² fiyatını veya m² fiyattan toplam bedeli anlık hesaplayın.',
         keywords: 'metrekare fiyat hesaplama, m2 birim fiyat, gayrimenkul birim fiyat hesaplayıcı, konut metrekare fiyatı',
+        alternates: {
+            canonical: locale === 'en' ? `/en/tools/metrekare-birim-fiyat` : `/tools/metrekare-birim-fiyat`,
+            languages: {
+                tr: `/tools/metrekare-birim-fiyat`,
+                en: `/en/tools/metrekare-birim-fiyat`,
+            }
+        }
     }
 }
 

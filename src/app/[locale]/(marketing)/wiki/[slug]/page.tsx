@@ -38,6 +38,13 @@ export async function generateMetadata(
         description,
         keywords: article.tags?.join(', '),
         robots: locale === 'en' ? { index: false, follow: false } : undefined,
+        alternates: {
+            canonical: locale === 'en' ? `/en/wiki/${slug}` : `/wiki/${slug}`,
+            languages: {
+                tr: `/wiki/${slug}`,
+                en: `/en/wiki/${slug}`,
+            }
+        },
         openGraph: {
             title: adjustBranding(article.title, brandName),
             description: description,

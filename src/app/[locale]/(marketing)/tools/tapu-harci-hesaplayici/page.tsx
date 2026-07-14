@@ -4,13 +4,23 @@ import { getCanonicalBaseUrl } from "@/lib/seo-constants"
 import TapuHarciClient from "./TapuHarciClient"
 import Link from "next/link"
 
-export async function generateMetadata(): Promise<Metadata> {
+export async function generateMetadata(
+    { params }: { params: Promise<{ locale: string }> }
+): Promise<Metadata> {
+    const { locale } = await params
     const host = await getHostFromHeaders()
     const brandName = await getBrandNameFromHost(host)
     return {
         title: `Tapu Harcı Hesaplama 2026 | Ücretsiz Hesaplayıcı - ${brandName}`,
         description: 'Tapu harcı hesaplama aracı. Gayrimenkul alım-satımında tapu harcı, KDV ve döner sermaye ücretlerini anlık hesaplayın. 2026 güncel oranları.',
         keywords: 'tapu harcı hesaplama, tapu harcı hesaplayıcı, tapu masrafları 2026, gayrimenkul tapu harcı, konut tapu harcı',
+        alternates: {
+            canonical: locale === 'en' ? `/en/tools/tapu-harci-hesaplayici` : `/tools/tapu-harci-hesaplayici`,
+            languages: {
+                tr: `/tools/tapu-harci-hesaplayici`,
+                en: `/en/tools/tapu-harci-hesaplayici`,
+            }
+        }
     }
 }
 

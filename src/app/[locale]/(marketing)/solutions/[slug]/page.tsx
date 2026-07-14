@@ -36,7 +36,7 @@ export async function generateStaticParams() {
 export async function generateMetadata(
     { params }: { params: Promise<{ slug: string; locale: string }> }
 ): Promise<Metadata> {
-    const { slug } = await params
+    const { slug, locale } = await params
     const solution = aiSolutions.find(s => s.slug === slug)
     if (!solution) return {}
     const host = await getHostFromHeaders()
@@ -45,6 +45,13 @@ export async function generateMetadata(
         title: solution.metaTitle.replace('NovoxCRM', brandName),
         description: solution.metaDescription,
         keywords: `${solution.title}, gayrimenkul ai, yapay zeka crm, ${brandName}`,
+        alternates: {
+            canonical: locale === 'en' ? `/en/solutions/${slug}` : `/solutions/${slug}`,
+            languages: {
+                tr: `/solutions/${slug}`,
+                en: `/en/solutions/${slug}`,
+            }
+        },
         openGraph: {
             title: solution.metaTitle.replace('NovoxCRM', brandName),
             description: solution.metaDescription,

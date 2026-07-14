@@ -16,13 +16,20 @@ export async function generateStaticParams() {
 export async function generateMetadata(
     { params }: { params: Promise<{ slug: string; locale: string }> }
 ): Promise<Metadata> {
-    const { slug } = await params
+    const { slug, locale } = await params
     const report = reports.find(r => r.slug === slug)
     if (!report) return {}
     return {
         title: report.metaTitle,
         description: report.metaDescription,
         keywords: `${report.title.toLowerCase()}, gayrimenkul benchmark, konut satış istatistikleri`,
+        alternates: {
+            canonical: locale === 'en' ? `/en/industry-reports/${slug}` : `/industry-reports/${slug}`,
+            languages: {
+                tr: `/industry-reports/${slug}`,
+                en: `/en/industry-reports/${slug}`,
+            }
+        },
     }
 }
 

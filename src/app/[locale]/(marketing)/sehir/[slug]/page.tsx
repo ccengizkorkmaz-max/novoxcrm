@@ -33,6 +33,13 @@ export async function generateMetadata(
         description: `${locative} inşaat firmaları ve gayrimenkul geliştiricileri için CRM yazılımı. ${city.population} nüfuslu ${city.name} pazarında satış süreçlerinizi ${brandName} ile dijitalleştirin.`,
         keywords: `${city.name} gayrimenkul CRM, ${city.name} inşaat CRM, ${city.name} konut satış yazılımı, ${city.name} CRM`,
         robots: locale === 'en' ? { index: false, follow: false } : undefined,
+        alternates: {
+            canonical: locale === 'en' ? `/en/sehir/${slug}` : `/sehir/${slug}`,
+            languages: {
+                tr: `/sehir/${slug}`,
+                en: `/en/sehir/${slug}`,
+            }
+        },
     }
 }
 

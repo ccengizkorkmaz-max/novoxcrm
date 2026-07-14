@@ -6,7 +6,7 @@ import { comparisons } from '@/data/comparisons-data'
 import { sectors } from '@/data/sectors-data'
 import { aiSolutions } from '@/data/ai-solutions-data'
 import { reports } from '@/data/reports-data'
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@supabase/supabase-js'
 import { getHostFromHeaders } from '@/lib/tenant/resolve-brand-from-host'
 import { getCanonicalBaseUrl } from '@/lib/seo-constants'
 
@@ -93,7 +93,10 @@ export async function getSitemapUrls(): Promise<MetadataRoute.Sitemap> {
     const host = await getHostFromHeaders()
     const baseUrls = getBaseUrls(host)
     const canonicalBaseUrl = getCanonicalBaseUrl(host) // non-www for alternates
-    const supabase = await createClient()
+    const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
 
     // Helper: generate entries for a path across all base URLs and locales
     function generateVariants(

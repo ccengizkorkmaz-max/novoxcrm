@@ -4,13 +4,23 @@ import { getCanonicalBaseUrl } from "@/lib/seo-constants"
 import BrokerKomisyonClient from "./BrokerKomisyonClient"
 import Link from "next/link"
 
-export async function generateMetadata(): Promise<Metadata> {
+export async function generateMetadata(
+    { params }: { params: Promise<{ locale: string }> }
+): Promise<Metadata> {
+    const { locale } = await params
     const host = await getHostFromHeaders()
     const brandName = await getBrandNameFromHost(host)
     return {
         title: `Broker Komisyon Hesaplayıcı 2026 | Ücretsiz Araç - ${brandName}`,
         description: 'Gayrimenkul broker komisyon hesaplama aracı. Satış bedeli, komisyon oranı, KDV ve stopaj dahil net broker gelirini anlık hesaplayın.',
         keywords: 'broker komisyon hesaplama, gayrimenkul komisyon oranı, emlak komisyon hesaplayıcı, broker hakediş hesaplama',
+        alternates: {
+            canonical: locale === 'en' ? `/en/tools/broker-komisyon-hesaplayici` : `/tools/broker-komisyon-hesaplayici`,
+            languages: {
+                tr: `/tools/broker-komisyon-hesaplayici`,
+                en: `/en/tools/broker-komisyon-hesaplayici`,
+            }
+        }
     }
 }
 

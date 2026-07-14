@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { Calculator, Info } from "lucide-react"
+import { LeadCaptureModal } from "@/components/marketing/LeadCaptureModal"
 
 export default function TapuHarciClient() {
     const [propertyValue, setPropertyValue] = useState("")
@@ -162,6 +163,17 @@ export default function TapuHarciClient() {
                             <div className="border-t border-slate-700 pt-4 flex justify-between text-lg font-bold">
                                 <span className="text-white">Alıcı Toplam Maliyet</span>
                                 <span className="text-emerald-400">{formatCurrency(totalBuyerCost)}</span>
+                            </div>
+                            <div className="flex justify-end pt-2 border-t border-slate-750">
+                                <LeadCaptureModal 
+                                    title="Hesaplama Detaylarını Alın" 
+                                    description="Bu tapu masrafları dökümünü PDF raporu olarak e-postanıza gönderin." 
+                                    resourceName="Tapu_Harci_Report"
+                                >
+                                    <button className="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-5 py-2.5 rounded-xl transition-all shadow-md text-xs">
+                                        PDF Olarak İndir & E-postala
+                                    </button>
+                                </LeadCaptureModal>
                             </div>
                         </div>
 

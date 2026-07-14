@@ -4,13 +4,23 @@ import { getCanonicalBaseUrl } from "@/lib/seo-constants"
 import ROIClient from "./ROIClient"
 import Link from "next/link"
 
-export async function generateMetadata(): Promise<Metadata> {
+export async function generateMetadata(
+    { params }: { params: Promise<{ locale: string }> }
+): Promise<Metadata> {
+    const { locale } = await params
     const host = await getHostFromHeaders()
     const brandName = await getBrandNameFromHost(host)
     return {
         title: `Gayrimenkul ROI Hesaplayıcı 2026 | Yatırım Getirisi - ${brandName}`,
         description: 'Gayrimenkul yatırım getirisi (ROI) hesaplama aracı. Alış-satış fiyatı, kira geliri ve giderlerle toplam yatırım getirinizi hesaplayın.',
         keywords: 'gayrimenkul ROI hesaplama, yatırım getirisi hesaplayıcı, kira getirisi hesaplama, gayrimenkul yatırım analizi',
+        alternates: {
+            canonical: locale === 'en' ? `/en/tools/yatirim-getirisi-hesaplayici` : `/tools/yatirim-getirisi-hesaplayici`,
+            languages: {
+                tr: `/tools/yatirim-getirisi-hesaplayici`,
+                en: `/en/tools/yatirim-getirisi-hesaplayici`,
+            }
+        }
     }
 }
 
