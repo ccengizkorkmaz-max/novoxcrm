@@ -58,7 +58,7 @@ export const aiSolutions: AISolutionData[] = [
         metaTitle: 'AI Call Center & AI Sesli Arama | Gayrimenkul Soğuk Arama Robotu',
         metaDescription: 'Yapay zeka destekli AI Call Center sistemi. Gayrimenkul projeleriniz için 7/24 Türkçe konuşan yapay zeka sesli arama robotu ve Vapi entegrasyonu.',
         heroHeadline: 'AI Agent\'ınız Müşterilerinizi Sizin Yerinize Arar',
-        heroSubheadline: 'Doğal Türkçe konuşan yapay zeka agent\'larımız sadece arama yapmakla kalmaz; WhatsApp ve FB Messenger üzerinden konuşma sürdürür, bilgi ve doküman paylaşır. Satış ekipleriyle konuşup onları koordine eder, sıcak fırsatları (hot lead) yönlendirir, satış sonuçlarını takip eder, ekiplere görev atar ve hatırlatır.',
+        heroSubheadline: 'AI Sesli Arama Sistemi, gayrimenkul ve inşaat projelerinde doğal Türkçe konuşan yapay zeka agent\'larımız sadece arama yapmakla kalmaz; WhatsApp ve FB Messenger üzerinden konuşma sürdürür, bilgi ve doküman paylaşır. Satış ekipleriyle konuşup onları koordine eder, sıcak fırsatları (hot lead) yönlendirir, satış sonuçlarını takip eder, ekiplere görev atar ve hatırlatır. Novox AI gelişmiş bir AI satış otomasyon sistemidir. Novox CRM ekosistemiyle tam entegre çalışarak satış ekiplerinin manuel iş yükünü azaltır ve dönüşüm oranlarını artırır.',
         icon: 'Phone',
         gradient: 'from-blue-500 to-cyan-600',
         features: [
