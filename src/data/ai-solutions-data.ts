@@ -58,13 +58,14 @@ export const aiSolutions: AISolutionData[] = [
         metaTitle: 'AI Call Center & AI Sesli Arama | Gayrimenkul Soğuk Arama Robotu',
         metaDescription: 'Yapay zeka destekli AI Call Center sistemi. Gayrimenkul projeleriniz için 7/24 Türkçe konuşan yapay zeka sesli arama robotu ve Vapi entegrasyonu.',
         heroHeadline: 'AI Agent\'ınız Müşterilerinizi Sizin Yerinize Arar',
-        heroSubheadline: 'Doğal Türkçe konuşan yapay zeka sesli arama sistemi ile leadlerinize otomatik ulaşın. İlgilenen müşterileri satış ekibine yönlendirin, ilgilenmeyenleri kayıt altına alın.',
+        heroSubheadline: 'Doğal Türkçe konuşan yapay zeka agent\'larımız sadece arama yapmakla kalmaz; WhatsApp ve FB Messenger üzerinden konuşma sürdürür, bilgi ve doküman paylaşır. Satış ekipleriyle konuşup onları koordine eder, sıcak fırsatları (hot lead) yönlendirir, satış sonuçlarını takip eder, ekiplere görev atar ve hatırlatır.',
         icon: 'Phone',
         gradient: 'from-blue-500 to-cyan-600',
         features: [
             { title: 'Doğal Türkçe Konuşma', description: 'ElevenLabs teknolojisi ile gerçek bir insan gibi konuşan AI agent. Müşteriler yapay zeka ile konuştuğunu fark etmez.', icon: 'Mic' },
             { title: 'Akıllı Senaryo Yönetimi', description: 'İtiraz yönetimi, soru-cevap ve yönlendirme senaryolarını önceden tanımlayın. AI agent duruma göre doğal tepkiler verir.', icon: 'GitBranch' },
             { title: 'Otomatik Transkript & Kayıt', description: 'Her arama otomatik olarak kaydedilir ve yazıya dökülür. Arama sonuçları CRM\'e anında işlenir.', icon: 'FileText' },
+            { title: 'Çok Kanallı Takip & Görev Atama', description: 'WhatsApp ve FB Messenger üzerinden konuşur, doküman paylaşır. Sıcak leadleri ekibe yönlendirip otomatik görev ve hatırlatma atamaları yapar.', icon: 'Network' },
         ],
         benefits: [
             'Günde yüzlerce arama kapasitesi — yorulmadan, durmadan',

@@ -260,7 +260,7 @@ export default async function AISolutionPage({ params }: { params: Promise<{ slu
                                             controls 
                                             className="w-full h-10 accent-blue-500 [&::-webkit-media-controls-panel]:bg-slate-900 [&::-webkit-media-controls-play-button]:text-blue-400"
                                         >
-                                            <source src="/audio/sample_call.mp3" type="audio/mpeg" />
+                                            <source src="/audio/sample_call.wav" type="audio/wav" />
                                             Tarayıcınız ses oynatıcısını desteklemiyor.
                                         </audio>
                                     </div>
@@ -274,50 +274,68 @@ export default async function AISolutionPage({ params }: { params: Promise<{ slu
                                         <div className="flex gap-3">
                                             <div className="w-8 h-8 rounded-full bg-blue-500/10 text-blue-400 flex items-center justify-center shrink-0 text-[10px] font-bold font-mono">AI</div>
                                             <div className="bg-blue-950/20 border border-blue-500/10 rounded-2xl rounded-tl-none p-3.5 text-slate-300 max-w-[85%]">
-                                                Merhaba, iyi günler! Ben Novo AI satış temsilcisi. Gönderdiğiniz form için ulaşıyorum. Yeni lansmana çıkacak olan Marina Towers konut projesiyle ilgilenmiştiniz, doğru mudur?
+                                                Merhaba E*** C***. Ben Nova&apos;dan Çiçek. Daha önce ilgilenmiş olduğunuz Nova City İzmir Projesi hakkında görüşmek için aramıştım. Müsaitseniz kısaca bilgi aktarabilir miyim?
                                             </div>
                                         </div>
                                         <div className="flex gap-3 justify-end">
                                             <div className="bg-slate-800/40 border border-slate-700/30 rounded-2xl rounded-tr-none p-3.5 text-slate-300 max-w-[85%]">
-                                                Evet, Marina Towers hakkında bilgi almak için formu doldurmuştum. Tam olarak nerede yapılacağını ve fiyat aralığını merak ediyorum.
+                                                Tamam.
                                             </div>
-                                            <div className="w-8 h-8 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center shrink-0 text-[10px] font-bold font-mono">M***</div>
+                                            <div className="w-8 h-8 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center shrink-0 text-[10px] font-bold font-mono">E***</div>
                                         </div>
                                         <div className="flex gap-3">
                                             <div className="w-8 h-8 rounded-full bg-blue-500/10 text-blue-400 flex items-center justify-center shrink-0 text-[10px] font-bold font-mono">AI</div>
                                             <div className="bg-blue-950/20 border border-blue-500/10 rounded-2xl rounded-tl-none p-3.5 text-slate-300 max-w-[85%]">
-                                                Tabii ki seve seve açıklayayım. Projemiz Kartal sahil hattında, marinaya yürüyüş mesafesinde konumlanıyor. 1+1 daire tipleri 4.5 Milyon TL&apos;den başlıyor. Yatırımlık mı düşünüyorsunuz yoksa oturum amaçlı mı?
+                                                Projemiz Pancar Organize Sanayi Bölgesi&apos;nin hemen yanında yer alıyor. Lansman fiyatlarıyla avantajlı bir yatırım fırsatı sunuyor. Otobana cephe konumuyla yüksek ulaşım kolaylığı ve sürdürülebilir kiralama talebine sahip. Proje hakkında detay vermeye devam etmemi ister misiniz?
                                             </div>
                                         </div>
                                         <div className="flex gap-3 justify-end">
                                             <div className="bg-slate-800/40 border border-slate-700/30 rounded-2xl rounded-tr-none p-3.5 text-slate-300 max-w-[85%]">
-                                                Oturum için düşünüyoruz, 2+1 bakıyoruz aslında. Ödeme planı nasıl? Peşinat ne kadar olmalı?
+                                                Evet.
                                             </div>
-                                            <div className="w-8 h-8 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center shrink-0 text-[10px] font-bold font-mono">M***</div>
+                                            <div className="w-8 h-8 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center shrink-0 text-[10px] font-bold font-mono">E***</div>
                                         </div>
                                         <div className="flex gap-3">
                                             <div className="w-8 h-8 rounded-full bg-blue-500/10 text-blue-400 flex items-center justify-center shrink-0 text-[10px] font-bold font-mono">AI</div>
                                             <div className="bg-blue-950/20 border border-blue-500/10 rounded-2xl rounded-tl-none p-3.5 text-slate-300 max-w-[85%]">
-                                                Marina projemizde 2+1 daireler için lansmana özel %35 peşinat ve kalan tutarı şirket bünyesinde 24 ay faizsiz taksitlendirebiliyoruz. Dilerseniz ödeme planı dökümünü ve detaylı kataloğu WhatsApp üzerinden hemen göndereyim? Cep numaranız 0532 *** ** 43, bu numaraya göndermem uygun mudur?
+                                                Nova City İzmir projesinde 1+0 ve 1+1 daire tipleri mevcut. 1+0 daireler 1 milyon 990 bin lira, 1+1 daireler ise 2 milyon 490 bin lira başlangıç fiyatıyla sunuluyor. Peşinat ödemesi sonrası 60 ay boyunca vade farksız sabit taksit imkanı da bulunuyor. Bu ödeme planı sizin için uygun olur mu?
                                             </div>
                                         </div>
                                         <div className="flex gap-3 justify-end">
                                             <div className="bg-slate-800/40 border border-slate-700/30 rounded-2xl rounded-tr-none p-3.5 text-slate-300 max-w-[85%]">
-                                                Harika olur, evet bu numaraya WhatsApp&apos;tan gönderebilirsiniz. Ben inceleyip eşime de göstereyim.
+                                                Bu uygun.
                                             </div>
-                                            <div className="w-8 h-8 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center shrink-0 text-[10px] font-bold font-mono">M***</div>
+                                            <div className="w-8 h-8 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center shrink-0 text-[10px] font-bold font-mono">E***</div>
                                         </div>
                                         <div className="flex gap-3">
                                             <div className="w-8 h-8 rounded-full bg-blue-500/10 text-blue-400 flex items-center justify-center shrink-0 text-[10px] font-bold font-mono">AI</div>
                                             <div className="bg-blue-950/20 border border-blue-500/10 rounded-2xl rounded-tl-none p-3.5 text-slate-300 max-w-[85%]">
-                                                Tabii ki M*** Bey, kataloğu ve size özel 2+1 ödeme planını anında iletiyorum. Ayrıca sizi cumartesi günü lansman ofisimizde kahve içmeye davet etmek isteriz. Satış danışmanımız müsaitliğinizi teyit etmek için ararsa uygun olur musunuz?
+                                                Harika. Proje kapalı otopark, yüzme havuzu, tenis kortu, basketbol sahası gibi sosyal donatılarla da dikkat çekiyor. Ayrıca market, kuaför, hamam ve sauna gibi olanaklar da mevcut. Proje hakkında başka merak ettiğiniz bir şey var mı? Yatırım amaçlı mı yoksa oturum amaçlı mı düşünüyorsunuz?
                                             </div>
                                         </div>
                                         <div className="flex gap-3 justify-end">
                                             <div className="bg-slate-800/40 border border-slate-700/30 rounded-2xl rounded-tr-none p-3.5 text-slate-300 max-w-[85%]">
-                                                Cumartesi öğleden sonra uygunum, arayabilirler. Teşekkür ederim bilgi verdiğiniz için.
+                                                Oturum.
                                             </div>
-                                            <div className="w-8 h-8 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center shrink-0 text-[10px] font-bold font-mono">M***</div>
+                                            <div className="w-8 h-8 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center shrink-0 text-[10px] font-bold font-mono">E***</div>
+                                        </div>
+                                        <div className="flex gap-3">
+                                            <div className="w-8 h-8 rounded-full bg-blue-500/10 text-blue-400 flex items-center justify-center shrink-0 text-[10px] font-bold font-mono">AI</div>
+                                            <div className="bg-blue-950/20 border border-blue-500/10 rounded-2xl rounded-tl-none p-3.5 text-slate-300 max-w-[85%]">
+                                                Anladım, oturum amaçlı düşünüyorsunuz. Nova City İzmir konumu ve sunduğu sosyal olanaklarla oturum için oldukça ideal bir seçenek. Başka bir sorunuz veya merak ettiğiniz bir detay var mı? Eğer isterseniz sizi ilgili satış uzmanımıza yönlendirebilirim.
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-3 justify-end">
+                                            <div className="bg-slate-800/40 border border-slate-700/30 rounded-2xl rounded-tr-none p-3.5 text-slate-300 max-w-[85%]">
+                                                Tamam.
+                                            </div>
+                                            <div className="w-8 h-8 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center shrink-0 text-[10px] font-bold font-mono">E***</div>
+                                        </div>
+                                        <div className="flex gap-3">
+                                            <div className="w-8 h-8 rounded-full bg-blue-500/10 text-blue-400 flex items-center justify-center shrink-0 text-[10px] font-bold font-mono">AI</div>
+                                            <div className="bg-blue-950/20 border border-blue-500/10 rounded-2xl rounded-tl-none p-3.5 text-slate-300 max-w-[85%]">
+                                                Görüşmek üzere, iyi günler dilerim.
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

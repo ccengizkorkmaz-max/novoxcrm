@@ -59,6 +59,7 @@ export function Navbar() {
         : [
             { name: t('solutions_realestate'), href: '/solutions/gayrimenkul-crm' },
             { name: t('solutions_construction'), href: '/solutions/insaat-crm' },
+            { name: t('solutions_ai_calling'), href: '/solutions/ai-sesli-arama' },
             { name: t('wiki'), href: '/wiki' },
             { name: t('pricing'), href: '/#pricing' },
         ]

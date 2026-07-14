@@ -1,6 +1,7 @@
 import { Link } from '@/i18n/routing'
 import { Hero } from '@/components/marketing/Hero'
 import { TrustSection } from '@/components/marketing/TrustSection'
+import { LeadCaptureModal } from '@/components/marketing/LeadCaptureModal'
 import { PlatformPowerSection } from '@/components/marketing/PlatformPowerSection'
 import { ComparisonSection } from '@/components/marketing/ComparisonSection'
 import { OutreachShowcase } from '@/components/marketing/OutreachShowcase'
@@ -130,12 +131,11 @@ export async function OldMarketingPage({
                     <p className="text-xl text-slate-300 mb-8 max-w-2xl mx-auto">
                         {t('description')}
                     </p>
-                    <Link
-                        href="/auth/register"
-                        className="inline-flex h-12 items-center justify-center rounded-full bg-blue-600 px-8 text-lg font-medium text-white transition-colors hover:bg-blue-700"
-                    >
-                        {t('button')}
-                    </Link>
+                    <LeadCaptureModal title={t('button')} description={t('description')} resourceName="OldMarketingPage_Bottom_CTA">
+                        <button className="inline-flex h-12 items-center justify-center rounded-full bg-blue-600 px-8 text-lg font-medium text-white transition-colors hover:bg-blue-700">
+                            {t('button')}
+                        </button>
+                    </LeadCaptureModal>
                 </div>
             </section>
         </div>
