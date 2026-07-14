@@ -502,7 +502,7 @@ Eğer odağınız milyonluk konut projelerini hatasız ve hızlı satmaksa, dike
         category: 'Yapay Zeka',
         tldr: 'Gayrimenkul ve konut satışlarında yapay zeka sesli arama robotları (Vapi/ElevenLabs), soğuk arama operasyonlarını (AI Call Center) %100 otomatize eder. AI, ilgilenen sıcak leadleri tespit ederek satış danışmanlarına atar ve zaman kaybını önler.',
         stats: [
-            { value: '500+', label: 'Günlük robot arama kapasitesi' },
+            { value: '5000+', label: 'Günlük robot arama kapasitesi' },
             { value: '%40', label: 'Satış dönüşüm artışı' },
             { value: '%60', label: 'Müşteri karşılama zaman tasarrufu' },
             { value: '%0', label: 'Cevapsız bırakılan müşteri formları' }

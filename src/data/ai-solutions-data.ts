@@ -79,7 +79,7 @@ export const aiSolutions: AISolutionData[] = [
             { title: 'Randevu Hatırlatma', description: 'Satış ofisi ziyaret randevusu olan müşterilere otomatik hatırlatma aramaları yapın.' },
         ],
         stats: [
-            { value: '500+', label: 'Günlük Arama Kapasitesi' },
+            { value: '5000+', label: 'Günlük Arama Kapasitesi' },
             { value: '%85', label: 'Doğal Konuşma Skoru' },
             { value: '24/7', label: 'Kesintisiz Çalışma' },
             { value: '%35', label: 'Lead Dönüşüm Artışı' },
