@@ -30,6 +30,12 @@ export function ContactForm({ brokerId, brokerEmail, brokerName, tenantId }: Con
         const result = await submitContactForm(formData)
 
         if (result.success) {
+            // Trigger Google Ads conversion tracking event
+            if (typeof window !== 'undefined' && (window as any).gtag) {
+                (window as any).gtag('event', 'conversion', {
+                    'send_to': 'AW-18295920582/CRPnCMvCjtAcEMavlpRE'
+                });
+            }
             setSubmitted(true)
         } else {
             setError(result.error || 'Bir hata oluştu.')

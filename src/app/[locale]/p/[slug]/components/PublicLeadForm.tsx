@@ -47,6 +47,12 @@ export default function PublicLeadForm({ brokerId, tenantId, brokerName, project
             toast.error(res.error)
             setLoading(false)
         } else {
+            // Trigger Google Ads conversion tracking event
+            if (typeof window !== 'undefined' && (window as any).gtag) {
+                (window as any).gtag('event', 'conversion', {
+                    'send_to': 'AW-18295920582/CRPnCMvCjtAcEMavlpRE'
+                });
+            }
             setSuccess(true)
             toast.success(t('form.success'))
             setLoading(false)

@@ -73,6 +73,12 @@ export default function PublicInventoryView({ linkData }: PublicInventoryViewPro
         setSubmitting(false)
 
         if (result.success) {
+            // Trigger Google Ads conversion tracking event
+            if (typeof window !== 'undefined' && (window as any).gtag) {
+                (window as any).gtag('event', 'conversion', {
+                    'send_to': 'AW-18295920582/CRPnCMvCjtAcEMavlpRE'
+                });
+            }
             toast.success('Mesajınız iletildi! En kısa sürede size geri dönüş yapacağız.')
             setInquiryOpen(false)
             setForm({ name: '', phone: '', email: '', message: '' })
