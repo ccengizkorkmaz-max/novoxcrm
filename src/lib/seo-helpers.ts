@@ -1,4 +1,4 @@
-import { adjustBranding } from './tenant/resolve-brand-from-host';
+import { adjustBranding } from './tenant/adjust-branding';
 
 export interface GeoData {
     question: string;

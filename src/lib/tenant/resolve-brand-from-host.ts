@@ -1,4 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
 import { resolveBrand, DEFAULT_BRAND, type BrandConfig } from '@/lib/brand-config'
 import { headers } from 'next/headers'
 
@@ -86,34 +85,7 @@ export async function getBrandNameFromHost(hostname: string): Promise<string> {
     return 'Novo CRM'
 }
 
-/**
- * Dynamically replace brand names in text content to ensure strict brand separation.
- * If brand is "Novo CRM", replaces "Oikos CRM" -> "Novo CRM", "oikoscrm" -> "novoxcrm", etc.
- * If brand is "Oikos CRM", replaces "Novo CRM" -> "Oikos CRM", "novoxcrm" -> "oikoscrm", etc.
- */
-export function adjustBranding(text: string, brandName: string): string {
-    if (!text) return text
-    if (brandName === 'Novo CRM') {
-        return text
-            .replaceAll('Oikos CRM', 'Novo CRM')
-            .replaceAll('oikos-crm', 'novo-crm')
-            .replaceAll('oikoscrm.com', 'novoxcrm.com')
-            .replaceAll('oikoscrm', 'novoxcrm')
-            .replaceAll('Oikos\'', 'Novo\'')
-            .replaceAll('Oikos', 'Novo')
-    } else {
-        return text
-            .replaceAll('NovoxCRM', 'Oikos CRM')
-            .replaceAll('Novox CRM', 'Oikos CRM')
-            .replaceAll('Novox', 'Oikos')
-            .replaceAll('Novo CRM', 'Oikos CRM')
-            .replaceAll('novo-crm', 'oikos-crm')
-            .replaceAll('novoxcrm.com', 'oikoscrm.com')
-            .replaceAll('novoxcrm', 'oikoscrm')
-            .replaceAll('Novo\'', 'Oikos\'')
-            .replaceAll('Novo', 'Oikos')
-    }
-}
+export { adjustBranding } from './adjust-branding'
 
 /**
  * Resolves the correct Turkish locative suffix (-deki / -daki / -teki / -taki) for a city name.

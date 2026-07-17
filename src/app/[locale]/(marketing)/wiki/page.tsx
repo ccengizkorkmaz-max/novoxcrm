@@ -6,7 +6,7 @@ import { Search, BookOpen, ArrowRight, Sparkles } from 'lucide-react'
 import Image from 'next/image'
 import { wikiArticles } from '@/data/wiki-data'
 import { useBrand } from '@/components/providers/BrandProvider'
-import { adjustBranding } from '@/lib/tenant/resolve-brand-from-host'
+import { adjustBranding } from '@/lib/tenant/adjust-branding'
 
 // ======= KAVRAMSAl ARAMA SİSTEMİ =======
 // Her kavram grubu birbirleriyle eşanlamlı veya kavramsal olarak ilişkilidir.
