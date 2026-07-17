@@ -82,6 +82,7 @@ export default function IysSettingsTab({ tenant }: IysSettingsTabProps) {
             const result = await testIysConnection({
                 api_url: apiUrl,
                 api_key: apiKey,
+                username: username,
                 brand_code: brandCode,
                 iys_code: iysCode,
             })

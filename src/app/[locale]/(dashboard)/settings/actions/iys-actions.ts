@@ -53,6 +53,7 @@ export async function updateIysSettings(payload: IysSettingsPayload) {
 interface TestConnectionPayload {
     api_url: string
     api_key: string
+    username: string
     brand_code: string
     iys_code: string
 }
@@ -63,79 +64,59 @@ export async function testIysConnection(payload: TestConnectionPayload): Promise
     if (!user) return { success: false, message: 'Oturum bulunamadı.' }
 
     try {
-        // Try a simple status check to validate credentials
-        const url = `${payload.api_url}/api/v1/brand/info`
-        const response = await fetch(url, {
-            method: 'GET',
+        const baseUrl = payload.api_url.replace(/\/+$/, '')
+        const endpoint = `${baseUrl}/api/iys/add-consent`
+        const apiKey = `${payload.username}:${payload.api_key}`
+
+        // Send a real add-consent request with a test number
+        const response = await fetch(endpoint, {
+            method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${payload.api_key}`,
+                'x-api-key': apiKey,
             },
-            signal: AbortSignal.timeout(10000),
+            body: JSON.stringify({
+                iysCode: Number(payload.iys_code) || 111111,
+                brandCode: Number(payload.brand_code) || 111111,
+                consentType: 0,      // ARAMA
+                recipientType: 1,    // TACIR
+                source: 6,           // HS_WEB
+                status: 1,           // ONAY
+                list: [
+                    { recipient: '+905001234567' }
+                ]
+            }),
+            signal: AbortSignal.timeout(15000),
         })
 
-        if (response.ok) {
-            const data = await response.json()
+        const raw = await response.text()
+        let parsed: any = {}
+        try { parsed = JSON.parse(raw) } catch {}
+
+        if (response.ok && parsed.data) {
+            const info = parsed.data.userInfo
             return {
                 success: true,
-                message: `Bağlantı başarılı. ${data.brand_name ? `Marka: ${data.brand_name}` : 'API yanıt verdi.'}`
-            }
-        }
-
-        // If brand/info doesn't exist, try a basic health check
-        if (response.status === 404) {
-            // Try alternative endpoint
-            const healthResponse = await fetch(`${payload.api_url}/api/v1/iys/status`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${payload.api_key}`,
-                },
-                body: JSON.stringify({
-                    recipient: 'test@test.com',
-                    channel: 'EPOSTA',
-                    brand_code: payload.brand_code,
-                    iys_code: payload.iys_code,
-                }),
-                signal: AbortSignal.timeout(10000),
-            })
-
-            if (healthResponse.ok || healthResponse.status === 400) {
-                // 400 is acceptable — means API is reachable and auth works, but request was invalid
-                return {
-                    success: true,
-                    message: 'API bağlantısı başarılı. Kimlik bilgileri doğrulandı.'
-                }
-            }
-
-            if (healthResponse.status === 401 || healthResponse.status === 403) {
-                return {
-                    success: false,
-                    message: 'API Token geçersiz. Lütfen token bilgisini kontrol edin.'
-                }
-            }
-
-            return {
-                success: false,
-                message: `API yanıt kodu: ${healthResponse.status}. Lütfen URL ve kimlik bilgilerini kontrol edin.`
+                message: `Bağlantı başarılı! Hesap: ${info?.title || payload.username} · Entegratör: ${parsed.data.integratorInfo?.title || 'Bilinmiyor'}`
             }
         }
 
         if (response.status === 401 || response.status === 403) {
             return {
                 success: false,
-                message: 'API Token geçersiz veya yetkisiz. Lütfen token bilgisini kontrol edin.'
+                message: 'API kimlik bilgileri geçersiz. Kullanıcı adı ve token bilgisini kontrol edin.'
             }
         }
 
         return {
             success: false,
-            message: `Beklenmeyen yanıt kodu: ${response.status}. URL ve kimlik bilgilerini kontrol edin.`
+            message: `API yanıt kodu: ${response.status}. ${parsed.error || parsed.message || raw.substring(0, 200)}`
         }
     } catch (e: any) {
         if (e.name === 'TimeoutError' || e.name === 'AbortError') {
-            return { success: false, message: 'Bağlantı zaman aşımına uğradı. URL adresini kontrol edin.' }
+            return { success: false, message: 'Bağlantı zaman aşımına uğradı (15s). URL adresini kontrol edin.' }
         }
         return { success: false, message: `Bağlantı hatası: ${e.message}` }
     }
 }
+
