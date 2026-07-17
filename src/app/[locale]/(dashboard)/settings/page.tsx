@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge'
 import { updateTenantProfile } from './actions'
 import { FormImageUpload } from '@/components/ui/form-image-upload'
-import { Building2, Users, FileText, Database, Banknote, Bell, Brain, Mail, MessageSquare, Globe, Phone, Send } from 'lucide-react'
+import { Building2, Users, FileText, Database, Banknote, Bell, Brain, Mail, MessageSquare, Globe, Phone, Send, ShieldCheck } from 'lucide-react'
 import UserManagementHeader from './components/UserManagementHeader'
 import UserTableActions from './components/UserTableActions'
 import TenantProfileForm from './components/TenantProfileForm'
@@ -34,6 +34,7 @@ import UnitFieldOptionsTab from './components/UnitFieldOptionsTab'
 import NotificationCatalogTab from './components/NotificationCatalogTab'
 import CrmModeTab from './components/CrmModeTab'
 import PipelineEditor from './components/PipelineEditor'
+import IysSettingsTab from './components/IysSettingsTab'
 import { FileWarning, Palette, Link2, ListChecks, Rocket } from 'lucide-react'
 
 export default async function SettingsPage() {
@@ -202,6 +203,10 @@ export default async function SettingsPage() {
                         <Phone className="w-4 h-4 mr-2 shrink-0" />
                         <span className="hidden md:inline truncate">SIP / Telefon</span>
                     </TabsTrigger>
+                    <TabsTrigger value="iys" className="justify-start w-full py-2 px-3 rounded-lg text-sm data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-sm transition-all">
+                        <ShieldCheck className="w-4 h-4 mr-2 shrink-0" />
+                        <span className="hidden md:inline truncate">İYS</span>
+                    </TabsTrigger>
 
                     <TabsTrigger value="seo" className="justify-start w-full py-2 px-3 rounded-lg text-sm data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-sm transition-all">
                         <Globe className="w-4 h-4 mr-2 shrink-0" />
@@ -343,6 +348,11 @@ export default async function SettingsPage() {
                 {/* SIP / Telefon Settings Tab */}
                 <TabsContent value="sip" className="space-y-4">
                     <SipSettingsTab tenant={tenant as any} />
+                </TabsContent>
+
+                {/* IYS Settings Tab */}
+                <TabsContent value="iys" className="space-y-4">
+                    <IysSettingsTab tenant={tenant as any} />
                 </TabsContent>
 
 
