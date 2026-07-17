@@ -10,7 +10,7 @@ import { getMessages } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { routing } from '@/i18n/routing';
 import PWARegister from '@/components/PWARegister';
-import { getBrandNameFromHost, getHostFromHeaders } from '@/lib/tenant/resolve-brand-from-host';
+import { getBrandNameFromHost, getHostFromHeaders, adjustBranding } from '@/lib/tenant/resolve-brand-from-host';
 import { BrandProvider } from '@/components/providers/BrandProvider';
 import { getCanonicalBaseUrl } from '@/lib/seo-constants';
 
@@ -94,14 +94,33 @@ export default async function RootLayout({
     notFound();
   }
 
-  // Providing all messages to the client
-  // side is the easiest way to get started
-  const messages = await getMessages();
+  const rawMessages = await getMessages();
 
   // Resolve brand for BrandProvider
   const host = await getHostFromHeaders();
   const brandName = await getBrandNameFromHost(host);
   const brandDomain = host.split(':')[0];
+
+  // Recursively apply brand name substitution to all i18n message strings
+  // so the RSC payload never contains stale brand references (e.g. "Novo CRM" on oikoscrm.com)
+  function brandifyMessages(obj: any): any {
+    if (typeof obj === 'string') {
+      return adjustBranding(obj, brandName);
+    }
+    if (Array.isArray(obj)) {
+      return obj.map(brandifyMessages);
+    }
+    if (obj && typeof obj === 'object') {
+      const result: any = {};
+      for (const key of Object.keys(obj)) {
+        result[key] = brandifyMessages(obj[key]);
+      }
+      return result;
+    }
+    return obj;
+  }
+
+  const messages = brandName === 'Novo CRM' ? rawMessages : brandifyMessages(rawMessages);
   return (
     <html lang={locale} suppressHydrationWarning data-ui-style="spatial">
       <head>
