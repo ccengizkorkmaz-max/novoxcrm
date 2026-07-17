@@ -58,7 +58,14 @@ function isCacheableMarketingPath(pathname: string): boolean {
 export async function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl
 
-    // 1. 301 Redirects for old solutions paths to new cozum paths
+    // 1. Permanent redirect for /broker/apply to Turkish localized form /broker/basvuru
+    if (pathname === '/broker/apply' || pathname === '/tr/broker/apply') {
+        const redirectUrl = request.nextUrl.clone()
+        redirectUrl.pathname = '/broker/basvuru'
+        return NextResponse.redirect(redirectUrl, 308)
+    }
+
+    // 2. 301 Redirects for old solutions paths to new cozum paths
     if (pathname.startsWith('/solutions') || pathname.startsWith('/en/solutions')) {
         const isEn = pathname.startsWith('/en/solutions')
         const pathSuffix = isEn ? pathname.slice(13) : pathname.slice(10)
@@ -127,11 +134,18 @@ export async function middleware(request: NextRequest) {
     // Then update session (Supabase)
     const finalResponse = await updateSession(request, response)
 
+    // Add build version header for production diagnostics and caching mismatch checks
+    finalResponse.headers.set(
+        'x-build-version',
+        process.env.VERCEL_GIT_COMMIT_SHA || 'development'
+    )
+
     // Add Vercel-CDN-Cache-Control for public marketing paths to prevent serverless function invocation spikes
     if (isCacheableMarketingPath(request.nextUrl.pathname)) {
+        // Lower s-maxage to 60 seconds so updates propagate rapidly to CDN, while keeping long stale revalidation
         finalResponse.headers.set(
             'Vercel-CDN-Cache-Control',
-            'public, s-maxage=86400, stale-while-revalidate=604800'
+            'public, s-maxage=60, stale-while-revalidate=600'
         )
     }
 

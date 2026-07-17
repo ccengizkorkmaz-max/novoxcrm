@@ -1,4 +1,5 @@
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 import type { Metadata } from "next";
 import { getBrandNameFromHost, getHostFromHeaders } from "@/lib/tenant/resolve-brand-from-host";

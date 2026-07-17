@@ -1,4 +1,5 @@
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 import { Building2, ShieldCheck } from 'lucide-react'
 import { getTranslations } from 'next-intl/server'
