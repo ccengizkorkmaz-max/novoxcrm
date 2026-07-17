@@ -1,9 +1,22 @@
 import { Building2, ShieldCheck } from 'lucide-react'
 import { getTranslations } from 'next-intl/server'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
-import { getBrandNameFromHost, getHostFromHeaders } from '@/lib/tenant/resolve-brand-from-host'
+import { getBrandNameFromHost, getHostFromHeaders, adjustBranding } from '@/lib/tenant/resolve-brand-from-host'
 import { cn } from '@/lib/utils'
 import LoginForm from './LoginForm'
+import type { Metadata } from 'next'
+
+export async function generateMetadata(): Promise<Metadata> {
+    const host = await getHostFromHeaders()
+    const brandName = await getBrandNameFromHost(host)
+    return {
+        title: `Giriş Yap | ${brandName}`,
+        robots: {
+            index: false,
+            follow: false,
+        }
+    }
+}
 
 export default async function LoginPage(props: {
     searchParams: Promise<{ message: string, error: string, email: string }>
@@ -23,9 +36,9 @@ export default async function LoginPage(props: {
         loginButton: t('loginButton'),
         forgotPassword: t('forgotPassword'),
         brokerLink: t('brokerLink'),
-        registerModalTitle: t('registerModalTitle'),
-        registerModalDesc: t('registerModalDesc'),
-        registerLink: t('registerLink'),
+        registerModalTitle: adjustBranding(t('registerModalTitle'), brandName),
+        registerModalDesc: adjustBranding(t('registerModalDesc'), brandName),
+        registerLink: adjustBranding(t('registerLink'), brandName),
         termsAgreement: t('termsAgreement'),
         termsLink: t('termsLink'),
         privacyLink: t('privacyLink'),
@@ -75,17 +88,17 @@ export default async function LoginPage(props: {
 
                     <div className="space-y-6 max-w-lg">
                         <h1 className="text-4xl font-bold tracking-tight leading-tight">
-                            {t('sidebarTitle')}
+                            {adjustBranding(t('sidebarTitle'), brandName)}
                         </h1>
                         <p className="text-slate-300 text-lg">
-                            {t('sidebarDesc')}
+                            {adjustBranding(t('sidebarDesc'), brandName)}
                         </p>
                     </div>
 
                     <div className="flex items-center gap-4 text-sm text-slate-400">
                         <div className="flex items-center gap-2">
                             <ShieldCheck className="h-4 w-4" />
-                            <span>{t('secureInfrastructure')}</span>
+                            <span>{adjustBranding(t('secureInfrastructure'), brandName)}</span>
                         </div>
                         <div className="h-1 w-1 bg-slate-600 rounded-full" />
                         <span>{t('version')}</span>
@@ -121,7 +134,7 @@ export default async function LoginPage(props: {
                         </div>
                         <h1 className="text-3xl font-bold tracking-tight">{t('welcome')}</h1>
                         <p className="text-muted-foreground">
-                            {t('description')}
+                            {adjustBranding(t('description'), brandName)}
                         </p>
                     </div>
 

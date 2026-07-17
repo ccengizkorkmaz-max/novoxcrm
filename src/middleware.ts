@@ -56,6 +56,27 @@ function isCacheableMarketingPath(pathname: string): boolean {
 }
 
 export async function middleware(request: NextRequest) {
+    const { pathname } = request.nextUrl
+    if (pathname.startsWith('/en/')) {
+        const pathWithoutEn = pathname.slice(3) // removes '/en'
+        // Define paths that are Turkish-only and should be redirected
+        if (
+            pathWithoutEn.startsWith('/solutions/') ||
+            pathWithoutEn.startsWith('/cozum/') ||
+            pathWithoutEn.startsWith('/wiki') ||
+            pathWithoutEn.startsWith('/tools/') ||
+            pathWithoutEn.startsWith('/sehir/') ||
+            pathWithoutEn.startsWith('/sektor/') ||
+            pathWithoutEn.startsWith('/karsilastirma/') ||
+            pathWithoutEn.startsWith('/industry-reports') ||
+            pathWithoutEn === '/hakkimizda'
+        ) {
+            const redirectUrl = request.nextUrl.clone()
+            redirectUrl.pathname = pathWithoutEn
+            return NextResponse.redirect(redirectUrl, 301)
+        }
+    }
+
     // Skip i18n and auth for shared public report pages, guest meeting pages, and document short links
     if (
         request.nextUrl.pathname.startsWith('/shared/') || 

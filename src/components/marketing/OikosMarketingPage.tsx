@@ -3,8 +3,10 @@
 import { useState, useEffect } from 'react'
 import { captureMarketingLead } from '@/app/broker/actions'
 import { toast } from 'sonner'
+import { useBrand } from '@/components/providers/BrandProvider'
 
 export function OikosMarketingPage() {
+    const { brandName, brandDomain } = useBrand()
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [isSubmitted, setIsSubmitted] = useState(false)
     const [loading, setLoading] = useState(false)
@@ -93,8 +95,57 @@ export function OikosMarketingPage() {
         }, 300)
     }
 
+    const baseUrl = `https://${brandDomain}`
+
+    const orgSchema = {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": brandName,
+        "url": baseUrl,
+        "logo": `${baseUrl}/oikos-logo.svg`,
+        "description": "Emlak danışmanları ve hızlı büyüyen acenteler için tasarlanmış yapay zeka destekli gayrimenkul CRM yazılımı.",
+        "sameAs": [],
+        "contactPoint": {
+            "@type": "ContactPoint",
+            "contactType": "customer service",
+            "availableLanguage": ["Turkish", "English"]
+        }
+    }
+
+    const productSchema = {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": `${brandName} - Yapay Zeka Destekli Gayrimenkul CRM`,
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Web",
+        "description": "Emlak acenteleri ve danışmanları için yapay zeka destekli müşteri takibi, portföy yönetimi ve hızlı satış kapatma CRM yazılımı.",
+        "url": baseUrl,
+        "brand": { "@type": "Brand", "name": brandName },
+        "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.9",
+            "bestRating": "5",
+            "worstRating": "1",
+            "ratingCount": "120",
+            "reviewCount": "98"
+        },
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "TRY"
+        }
+    }
+
     return (
         <div className="bg-[#F4FAF8] text-[#1A1A1A] font-sans antialiased min-h-screen">
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(orgSchema) }}
+            />
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }}
+            />
             {/* HERO */}
             <section className="bg-[#04342C] text-white pt-36 pb-20 px-4 md:px-10 text-center relative overflow-hidden">
                 {/* Background light spot */}

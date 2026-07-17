@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { LeadCaptureModal } from '@/components/marketing/LeadCaptureModal'
 import { CRMLifecycle } from '@/components/marketing/CRMLifecycle'
-import { getBrandNameFromHost, getHostFromHeaders } from '@/lib/tenant/resolve-brand-from-host'
+import { getBrandNameFromHost, getHostFromHeaders, adjustBranding } from '@/lib/tenant/resolve-brand-from-host'
 import { aiSolutions } from '@/data/ai-solutions-data'
 
 export default async function SolutionsPage() {
@@ -109,7 +109,7 @@ export default async function SolutionsPage() {
                             <div className="aspect-video bg-slate-950 rounded-2xl border border-slate-800 flex items-center justify-center relative overflow-hidden">
                                 <Image
                                     src="/images/broker-portal-final.png"
-                                    alt="Novo Broker Portal"
+                                    alt={`${brandName} Broker Portal`}
                                     fill
                                     className="object-cover opacity-60 group-hover:opacity-100 transition-opacity duration-500 scale-105 group-hover:scale-100 transition-transform"
                                 />
@@ -124,7 +124,7 @@ export default async function SolutionsPage() {
                             <div className="aspect-video bg-slate-950 rounded-2xl border border-slate-800 flex items-center justify-center relative overflow-hidden">
                                 <Image
                                     src="/images/operational-speed-final.png"
-                                    alt="Novo Operational Dashboard"
+                                    alt={`${brandName} Operational Dashboard`}
                                     fill
                                     className="object-cover opacity-60 group-hover:opacity-100 transition-opacity duration-500 scale-105 group-hover:scale-100 transition-transform"
                                 />
@@ -242,13 +242,15 @@ export default async function SolutionsPage() {
                         {aiSolutions.map((sol) => {
                             const iconMap: Record<string, any> = { Brain, Phone, MessageCircle, Target, Network, Workflow, Users, Sparkles }
                             const SolIcon = iconMap[sol.icon] || Brain
+                            const title = adjustBranding(sol.title, brandName)
+                            const subheadline = adjustBranding(sol.heroSubheadline, brandName)
                             return (
                                 <Link key={sol.slug} href={`/tr/solutions/${sol.slug}`} className="group p-6 rounded-2xl bg-slate-900/40 border border-slate-800 hover:border-violet-500/40 transition-all hover:shadow-lg hover:shadow-violet-500/5">
                                     <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${sol.gradient} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
                                         <SolIcon className="text-white" size={24} />
                                     </div>
-                                    <h3 className="text-lg font-bold text-white mb-2 group-hover:text-violet-300 transition-colors">{sol.title}</h3>
-                                    <p className="text-sm text-slate-400 leading-relaxed line-clamp-3">{sol.heroSubheadline}</p>
+                                    <h3 className="text-lg font-bold text-white mb-2 group-hover:text-violet-300 transition-colors">{title}</h3>
+                                    <p className="text-sm text-slate-400 leading-relaxed line-clamp-3">{subheadline}</p>
                                     <div className="mt-4 flex items-center gap-1 text-xs text-violet-400 font-semibold">
                                         Detayları İncele <ArrowRight size={12} />
                                     </div>

@@ -23,6 +23,10 @@ export async function generateMetadata(props: { params: Promise<{ locale: string
     return {
         title: titles[locale as 'tr' | 'en'] || titles.tr,
         description: descriptions[locale as 'tr' | 'en'] || descriptions.tr,
+        robots: {
+            index: false,
+            follow: false,
+        }
     }
 }
 

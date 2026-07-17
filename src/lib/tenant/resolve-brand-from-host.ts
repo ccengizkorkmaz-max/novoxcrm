@@ -104,6 +104,8 @@ export function adjustBranding(text: string, brandName: string): string {
     } else {
         return text
             .replaceAll('NovoxCRM', 'Oikos CRM')
+            .replaceAll('Novox CRM', 'Oikos CRM')
+            .replaceAll('Novox', 'Oikos')
             .replaceAll('Novo CRM', 'Oikos CRM')
             .replaceAll('novo-crm', 'oikos-crm')
             .replaceAll('novoxcrm.com', 'oikoscrm.com')

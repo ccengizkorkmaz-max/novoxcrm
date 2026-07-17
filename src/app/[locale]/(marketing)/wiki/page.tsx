@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { Search, BookOpen, ArrowRight, Sparkles } from 'lucide-react'
 import Image from 'next/image'
 import { wikiArticles } from '@/data/wiki-data'
+import { useBrand } from '@/components/providers/BrandProvider'
+import { adjustBranding } from '@/lib/tenant/resolve-brand-from-host'
 
 // ======= KAVRAMSAl ARAMA SİSTEMİ =======
 // Her kavram grubu birbirleriyle eşanlamlı veya kavramsal olarak ilişkilidir.
@@ -127,6 +129,7 @@ function matchesAnyTerm(text: string, terms: string[]): boolean {
 
 export default function WikiPage() {
     const params = useParams()
+    const { brandName } = useBrand()
     const locale = (params?.locale as string) || 'tr'
     const [searchTerm, setSearchTerm] = useState('')
     const [selectedCategory, setSelectedCategory] = useState('Tümü')
@@ -252,11 +255,11 @@ export default function WikiPage() {
                                     </div>
 
                                     <h3 className="text-xl font-bold text-white mb-4 group-hover:text-blue-400 transition-colors line-clamp-2">
-                                        {article.title}
+                                        {adjustBranding(article.title, brandName)}
                                     </h3>
 
                                     <p className="text-slate-400 text-sm leading-relaxed mb-8 line-clamp-3">
-                                        {article.excerpt}
+                                        {adjustBranding(article.excerpt, brandName)}
                                     </p>
 
                                     <div className="mt-auto flex items-center justify-between">

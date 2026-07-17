@@ -168,6 +168,7 @@ export const useCases: UseCaseData[] = [
         ],
         features: [
             { title: 'Esnek Taksitlendirme Motoru', description: 'Peşinat oranı, ara ödeme tarihleri ve balon ödeme tutarlarına göre saniyeler içinde ödeme tablosu oluşturun.', icon: 'Zap' },
+            { title: 'Pazarlık & Fiyat Geçmişi Takibi', description: 'Müşteriye verilen ilk tekliften nihai anlaşmaya kadar yapılan tüm fiyat revizyonlarını, iskonto oranlarını ve pazarlık geçmişini geriye dönük izleyin.', icon: 'TrendingUp' },
             { title: 'Gecikme & Vade Hatırlatıcılar', description: 'Vadesi yaklaşan taksitler ve geciken ödemeler için müşterilere SMS, e-posta veya WhatsApp üzerinden otomatik bildirim gönderin.', icon: 'Clock' },
             { title: 'Döviz Bazlı Takip & Kur Farkı', description: 'Ödemeleri USD, EUR veya TL olarak planlayın; tahsilat günündeki Merkez Bankası kuruna göre kur farklarını otomatik hesaplayın.', icon: 'DollarSign' }
         ],
@@ -183,6 +184,40 @@ export const useCases: UseCaseData[] = [
         faq: [
             { question: 'Kur farkı hesaplaması nasıl yapılıyor?', answer: 'TCMB (Türkiye Cumhuriyeti Merkez Bankası) API entegrasyonu sayesinde tahsilat gününün döviz kuru baz alınarak kur farkı otomatik yansıtılır.' },
             { question: 'Ödeme planı PDF olarak paylaşılabiliyor mu?', answer: 'Evet, hazırladığınız planı kurumsal logonuzla birlikte saniyeler içinde PDF olarak indirebilir ve müşteriye iletebilirsiniz.' }
+        ]
+    },
+    {
+        slug: 'musteri-portali',
+        title: 'Müşteri Deneyimi ve Bilgi Portalı',
+        metaTitle: 'Müşteriye Özel Gayrimenkul Deneyim Portalı | NovoxCRM',
+        metaDescription: 'Müşterilerinizin kendi ödeme planlarını, senet durumlarını, sözleşmelerini ve tapu süreçlerini takip edebileceği kendin-yap (self-service) müşteri portalı.',
+        heroHeadline: 'Müşterilerinize Şeffaf ve Güvenli Bir Deneyim Sunun',
+        heroSubheadline: 'Her müşteriye özel açılan güvenli portal ile ödeme planlarını, taksit geçmişini ve tapu/teslimat durumlarını 7/24 izlemelerini sağlayın.',
+        icon: 'Users',
+        gradient: 'from-teal-500 to-emerald-600',
+        stats: [
+            { value: '%80', label: 'Daha Az Telefon Trafiği' },
+            { value: '%100', label: 'Şeffaf Ödeme Takibi' },
+            { value: '7/24', label: 'Self-Service Erişim' },
+            { value: 'Sıfır', label: 'Hatalı Bilgilendirme' }
+        ],
+        features: [
+            { title: 'Kişiye Özel Güvenli Giriş', description: 'Her müşteriye özel üretilen SMS/e-posta onaylı şifresiz giriş linkleri ile yüksek güvenlikli erişim.', icon: 'ShieldCheck' },
+            { title: 'Canlı Ödeme & Taksit İzleme', description: 'Müşteriler ödedikleri taksitleri, kalan senetlerini ve yaklaşan ödemelerini canlı olarak portal üzerinden takip eder.', icon: 'Activity' },
+            { title: 'Belge & Sözleşme Deposu', description: 'Satış sözleşmesi, kat planı, teknik şartname ve tapu evrakları gibi tüm resmi belgeler müşterinin kendi ekranında saklanır.', icon: 'FileText' }
+        ],
+        useCases: [
+            { title: 'Taksit ve Senet Hatırlatma', description: 'Müşteri yaklaşan ödemesini portal üzerinden görerek gecikme yaşamadan bütçesini planlar.' },
+            { title: 'Teslimat ve Kusur Bildirimi', description: 'Daire teslim aşamasında müşteri tespit ettiği eksiklikleri doğrudan portaldan fotoğraf yükleyerek bildirebilir.' }
+        ],
+        benefits: [
+            'Müşteri temsilcilerinin telefon ve mesaj trafiğini %80 oranında azaltma',
+            'Finansal süreçlerde tam şeffaflık sağlayarak güven bağı oluşturma',
+            'Evrak ve sözleşme kayıplarının tamamen önüne geçilmesi'
+        ],
+        faq: [
+            { question: 'Müşteri portalı güvenli mi?', answer: 'Evet, portal tamamen şifreli olup her müşteri sadece kendi sözleşmesini ve ödemelerini görebilir; diğer daire veya kişisel verilere erişmesi imkansızdır.' },
+            { question: 'Ödeme planı güncellendiğinde buraya yansır mı?', answer: 'Evet, CRM üzerinde yaptığınız her revizyon veya tahsilat girişi anında müşterinin portal ekranına yansır.' }
         ]
     }
 ];

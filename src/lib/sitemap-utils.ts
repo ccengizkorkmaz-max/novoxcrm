@@ -6,6 +6,7 @@ import { comparisons } from '@/data/comparisons-data'
 import { sectors } from '@/data/sectors-data'
 import { aiSolutions } from '@/data/ai-solutions-data'
 import { reports } from '@/data/reports-data'
+import { useCases } from '@/data/use-cases-data'
 import { createClient } from '@supabase/supabase-js'
 import { getHostFromHeaders } from '@/lib/tenant/resolve-brand-from-host'
 import { getCanonicalBaseUrl } from '@/lib/seo-constants'
@@ -43,7 +44,6 @@ const STATIC_PAGE_DATES: Record<string, string> = {
     '/broker/apply': '2026-02-15T00:00:00.000Z',
     '/privacy-policy': '2026-02-01T00:00:00.000Z',
     '/ebooks/gayrimenkul-projelerinde-dijital-donusum-rehberi': '2026-04-15T00:00:00.000Z',
-    '/login': '2026-02-01T00:00:00.000Z',
     '/tools/tapu-harci-hesaplayici': '2026-05-15T00:00:00.000Z',
     '/tools/serefiye-hesaplayici': '2026-05-15T00:00:00.000Z',
     '/tools/emlak-vergisi-hesaplayici': '2026-05-15T00:00:00.000Z',
@@ -103,7 +103,8 @@ export async function getSitemapUrls(): Promise<MetadataRoute.Sitemap> {
         path: string,
         date: Date,
         changeFreq: 'weekly' | 'monthly' | 'daily',
-        priority: number
+        priority: number,
+        isTrOnly = false
     ) {
         return baseUrls.flatMap((base) => {
             // Turkish URL (no prefix because localePrefix is 'as-needed' and defaultLocale is tr)
@@ -114,6 +115,12 @@ export async function getSitemapUrls(): Promise<MetadataRoute.Sitemap> {
                 priority,
                 _path: path,
             }
+            
+            // If it's TR-only, don't output the /en variant to sitemap
+            if (isTrOnly) {
+                return [trEntry]
+            }
+
             // English URL (with /en prefix)
             const enEntry = {
                 url: `${base}/en${path}`,
@@ -128,7 +135,19 @@ export async function getSitemapUrls(): Promise<MetadataRoute.Sitemap> {
 
     // ── 1. Marketing routes ──
     const marketingRoutes = Object.entries(STATIC_PAGE_DATES).flatMap(
-        ([route, date]) => generateVariants(route, new Date(date), 'weekly', route === '' ? 1 : 0.8)
+        ([route, date]) => {
+            const isTrOnly = [
+                '/solutions/gayrimenkul-crm',
+                '/solutions/insaat-crm',
+                '/wiki',
+                '/bir-bakista-novocrm',
+                '/bir-bakista-novoxcrm',
+                '/ebooks/gayrimenkul-projelerinde-dijital-donusum-rehberi',
+                '/hakkimizda'
+            ].includes(route) || route.startsWith('/tools/') || route === '/industry-reports'
+
+            return generateVariants(route, new Date(date), 'weekly', route === '' ? 1 : 0.8, isTrOnly)
+        }
     )
 
     // ── 1.1 AI Solutions routes ──
@@ -137,7 +156,19 @@ export async function getSitemapUrls(): Promise<MetadataRoute.Sitemap> {
             `/solutions/${sol.slug}`,
             new Date('2026-05-31T00:00:00.000Z'),
             'monthly',
-            0.8
+            0.8,
+            true // TR-only content
+        )
+    )
+
+    // ── 1.2 Use Case / Çözüm routes ──
+    const useCaseRoutes = useCases.flatMap((uc) =>
+        generateVariants(
+            `/cozum/${uc.slug}`,
+            new Date('2026-06-01T00:00:00.000Z'),
+            'monthly',
+            0.8,
+            true // TR-only content
         )
     )
 
@@ -147,7 +178,8 @@ export async function getSitemapUrls(): Promise<MetadataRoute.Sitemap> {
             `/wiki/${article.slug}`,
             new Date(parseTurkishDate(article.date)),
             'monthly',
-            0.6
+            0.6,
+            true // TR-only content
         )
     )
 
@@ -157,7 +189,8 @@ export async function getSitemapUrls(): Promise<MetadataRoute.Sitemap> {
             `/sehir/${city.slug}`,
             new Date('2026-05-15T00:00:00.000Z'),
             'monthly',
-            0.6
+            0.6,
+            true // TR-only content
         )
     )
 
@@ -167,7 +200,8 @@ export async function getSitemapUrls(): Promise<MetadataRoute.Sitemap> {
             `/sektor/${sector.slug}`,
             new Date('2026-05-30T00:00:00.000Z'),
             'monthly',
-            0.7
+            0.7,
+            true // TR-only content
         )
     )
 
@@ -178,7 +212,8 @@ export async function getSitemapUrls(): Promise<MetadataRoute.Sitemap> {
                 `/sehir/${city.slug}/${sector.slug}`,
                 new Date('2026-05-31T00:00:00.000Z'),
                 'monthly',
-                0.5
+                0.5,
+                true // TR-only content
             )
         )
     )
@@ -189,7 +224,8 @@ export async function getSitemapUrls(): Promise<MetadataRoute.Sitemap> {
             `/karsilastirma/${comp.slug}`,
             new Date('2026-05-20T00:00:00.000Z'),
             'monthly',
-            0.7
+            0.7,
+            true // TR-only content
         )
     )
 
@@ -215,7 +251,8 @@ export async function getSitemapUrls(): Promise<MetadataRoute.Sitemap> {
             `/industry-reports/${rep.slug}`,
             new Date('2026-05-31T00:00:00.000Z'),
             'monthly',
-            0.7
+            0.7,
+            true // TR-only content
         )
     )
 
@@ -223,6 +260,7 @@ export async function getSitemapUrls(): Promise<MetadataRoute.Sitemap> {
     const allRoutes = [
         ...marketingRoutes, 
         ...aiSolutionRoutes, 
+        ...useCaseRoutes,
         ...wikiRoutes, 
         ...cityRoutes, 
         ...sectorRoutes, 
@@ -238,6 +276,36 @@ export async function getSitemapUrls(): Promise<MetadataRoute.Sitemap> {
         // /p/ routes don't have locale alternates
         if (_path === null) {
             return rest as any
+        }
+
+        // Determine if this path is TR-only content
+        const isTrOnlyPath = 
+            _path.startsWith('/solutions/') ||
+            _path.startsWith('/cozum/') ||
+            _path.startsWith('/wiki') ||
+            _path.startsWith('/tools/') ||
+            _path.startsWith('/sehir/') ||
+            _path.startsWith('/sektor/') ||
+            _path.startsWith('/karsilastirma/') ||
+            _path.startsWith('/industry-reports') ||
+            [
+                '/solutions/gayrimenkul-crm',
+                '/solutions/insaat-crm',
+                '/bir-bakista-novocrm',
+                '/bir-bakista-novoxcrm',
+                '/ebooks/gayrimenkul-projelerinde-dijital-donusum-rehberi',
+                '/hakkimizda'
+            ].includes(_path)
+
+        if (isTrOnlyPath) {
+            return {
+                ...rest,
+                alternates: {
+                    languages: {
+                        tr: `${canonicalBaseUrl}${_path || '/'}`,
+                    },
+                },
+            } as any
         }
 
         return {
