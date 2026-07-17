@@ -57,6 +57,41 @@ function isCacheableMarketingPath(pathname: string): boolean {
 
 export async function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl
+
+    // 1. 301 Redirects for old solutions paths to new cozum paths
+    if (pathname.startsWith('/solutions') || pathname.startsWith('/en/solutions')) {
+        const isEn = pathname.startsWith('/en/solutions')
+        const pathSuffix = isEn ? pathname.slice(13) : pathname.slice(10)
+        
+        const redirectMap: Record<string, string> = {
+            '': '/cozum',
+            '/': '/cozum',
+            '/insaat-crm': '/cozum/insaat-crm',
+            '/gayrimenkul-crm': '/cozum/gayrimenkul-crm',
+            '/ai-sesli-arama': '/cozum/ai-sesli-arama',
+            '/ai-outreach-otomasyonu': '/cozum/ai-outreach-otomasyonu',
+            '/ai-whatsapp-agent': '/cozum/ai-whatsapp-ajani',
+            '/ai-lead-qualification': '/cozum/ai-lead-qualification',
+            '/ai-broker-matching': '/cozum/ai-broker-eslestirme',
+            '/ai-satis-asistani': '/cozum/ai-satis-asistani',
+            '/ai-musteri-analizi': '/cozum/ai-musteri-analizi',
+            '/ai-satis-copilot': '/cozum/ai-satis-copilot',
+            '/ai-emlak-agent': '/cozum/ai-emlak-agent',
+            '/voice-ai-real-estate': '/cozum/ai-sesli-arama',
+            '/ai-outreach-automation': '/cozum/ai-outreach-otomasyonu',
+            '/omnichannel-inbox': '/cozum/whatsapp-entegrasyonu',
+        }
+
+        const cleanSuffix = pathSuffix.replace(/\/$/, '')
+        const targetPath = redirectMap[pathSuffix] || redirectMap[cleanSuffix]
+        
+        if (targetPath) {
+            const redirectUrl = request.nextUrl.clone()
+            redirectUrl.pathname = targetPath
+            return NextResponse.redirect(redirectUrl, 301)
+        }
+    }
+
     if (pathname.startsWith('/en/')) {
         const pathWithoutEn = pathname.slice(3) // removes '/en'
         // Define paths that are Turkish-only and should be redirected

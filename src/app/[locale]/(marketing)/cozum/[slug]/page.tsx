@@ -3,13 +3,14 @@ export const dynamic = 'force-dynamic'
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { useCases } from "@/data/use-cases-data"
+import { aiSolutions } from "@/data/ai-solutions-data"
 import { Button } from "@/components/ui/button"
 import { LeadCaptureModal } from "@/components/marketing/LeadCaptureModal"
 import { getBrandNameFromHost, getHostFromHeaders, adjustBranding } from "@/lib/tenant/resolve-brand-from-host"
 import { getCanonicalBaseUrl } from "@/lib/seo-constants"
 import { GeoBlock } from "@/components/marketing/GeoBlock"
 import { generateGeoData } from "@/lib/seo-helpers"
-import Link from "next/link"
+import { Link } from '@/i18n/routing'
 import {
     Brain, Phone, MessageCircle, Target, Network, Workflow, Users, Sparkles,
     CheckCircle2, ChevronDown, ArrowRight, Zap, Star,
@@ -30,8 +31,12 @@ const ICON_MAP: Record<string, any> = {
 
 export async function generateStaticParams() {
     const locales = ['tr', 'en']
+    const allSlugs = [
+        ...useCases.map(uc => uc.slug),
+        ...aiSolutions.map(sol => sol.slug)
+    ]
     return locales.flatMap(locale =>
-        useCases.map(uc => ({ locale, slug: uc.slug }))
+        allSlugs.map(slug => ({ locale, slug }))
     )
 }
 
@@ -39,26 +44,33 @@ export async function generateMetadata(
     { params }: { params: Promise<{ slug: string; locale: string }> }
 ): Promise<Metadata> {
     const { slug, locale } = await params
-    const uc = useCases.find(u => u.slug === slug)
+    const uc = useCases.find(u => u.slug === slug) || aiSolutions.find(s => s.slug === slug)
     if (!uc) return {}
     const host = await getHostFromHeaders()
     const brandName = await getBrandNameFromHost(host)
     return {
         title: adjustBranding(uc.metaTitle, brandName),
         description: adjustBranding(uc.metaDescription, brandName),
-        keywords: `${uc.title}, gayrimenkul crm, emlak yazılımı, ${brandName}`,
-        robots: locale === 'en' ? { index: false, follow: false } : undefined,
+        keywords: `${uc.title}, gayrimenkul crm, emlak yazılımı, yapay zeka crm, ${brandName}`,
+        alternates: {
+            canonical: locale === 'en' ? `/en/solutions/${slug}` : `/cozum/${slug}`,
+            languages: {
+                tr: `/cozum/${slug}`,
+                en: `/en/solutions/${slug}`,
+            }
+        }
     }
 }
 
 export default async function UseCasePage({ params }: { params: Promise<{ slug: string; locale: string }> }) {
     const { slug, locale } = await params
-    const rawUc = useCases.find(u => u.slug === slug)
+    const rawUc = useCases.find(u => u.slug === slug) || aiSolutions.find(s => s.slug === slug)
     if (!rawUc) notFound()
 
     const host = await getHostFromHeaders()
     const brandName = await getBrandNameFromHost(host)
     const baseUrl = getCanonicalBaseUrl(host)
+    const isAiSolution = aiSolutions.some(s => s.slug === slug)
 
     const uc = {
         ...rawUc,
@@ -147,6 +159,18 @@ export default async function UseCasePage({ params }: { params: Promise<{ slug: 
                     { name: 'Planı Hesaplayın ve Senetleri Yazdırın', text: 'Taksit tablosunu saniyeler içinde hesaplayarak ödeme planı PDF\'ini ve vadeli senetleri yazdırın.' },
                     { name: 'Otomatik Hatırlatıcıları Kurun', text: 'Günü yaklaşan taksitler ve geciken ödemeler için otomatik SMS veya WhatsApp uyarılarını ayarlayın.' }
                 ]
+            case 'musteri-portali':
+                return [
+                    { name: 'SMS Onaylı Giriş', text: 'Müşterilerinize özel üretilen şifresiz, SMS onaylı güvenli portal giriş linklerini paylaşın.' },
+                    { name: 'Ödeme Tablosunu Yayınlayın', text: 'CRM veritabanındaki ödeme ve taksit bilgilerinin portalda canlı görüntülenmesini sağlayın.' },
+                    { name: 'Sözleşme ve Evrakları Yükleyin', text: 'Tapu bilgileri, kat planı ve resmi satış sözleşmelerini müşterinin görebileceği şekilde arşive ekleyin.' }
+                ]
+            case 'satis-sonrasi-hizmetler':
+                return [
+                    { name: 'Kontrol Listesini Hazırlayın', text: 'Daire teslimatı öncesi tamamlanacak teknik ve idari kontrol listelerini sisteme girin.' },
+                    { name: 'Kusurları Fotoğraflayın', text: 'Saha teslimatında tespit edilen eksiklikleri mobil uygulama üzerinden fotoğraflı olarak tutanağa ekleyin.' },
+                    { name: 'İş Emirlerini Dağıtın', text: 'Oluşan kusurları ilgili alt yüklenici veya teknik ekiplere iş emri olarak otomatik atayın.' }
+                ]
             default:
                 return []
         }
@@ -167,7 +191,7 @@ export default async function UseCasePage({ params }: { params: Promise<{ slug: 
         }))
     } : null
 
-    const geoData = generateGeoData('use-case', uc.slug, uc, brandName)
+    const geoData = generateGeoData(isAiSolution ? 'solution' : 'use-case', uc.slug, uc, brandName)
     const GradientIcon = ICON_MAP[uc.icon] || Target
 
     return (
@@ -185,7 +209,9 @@ export default async function UseCasePage({ params }: { params: Promise<{ slug: 
 
                 <div className={`inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-gradient-to-r ${uc.gradient} bg-clip-text px-4 py-1.5 text-sm font-bold mb-8`}>
                     <GradientIcon size={16} className="text-blue-400" />
-                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">Ürün Özelliği</span>
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">
+                        {isAiSolution ? 'Yapay Zeka Destekli Çözüm' : 'Ürün Özelliği'}
+                    </span>
                 </div>
 
                 <h1 className="text-4xl md:text-6xl font-bold mb-8 text-white tracking-tight leading-tight max-w-4xl mx-auto">
@@ -352,7 +378,16 @@ export default async function UseCasePage({ params }: { params: Promise<{ slug: 
                         {useCases.filter(u => u.slug !== uc.slug).map(u => {
                             const SIcon = ICON_MAP[u.icon] || Target
                             return (
-                                <Link key={u.slug} href={`/${locale}/cozum/${u.slug}`} className="flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800 text-slate-300 text-sm hover:bg-blue-600 hover:text-white transition-colors">
+                                <Link key={u.slug} href={`/cozum/${u.slug}`} className="flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800 text-slate-300 text-sm hover:bg-blue-600 hover:text-white transition-colors">
+                                    <SIcon size={14} />
+                                    {u.title} →
+                                </Link>
+                            )
+                        })}
+                        {aiSolutions.filter(u => u.slug !== uc.slug).map(u => {
+                            const SIcon = ICON_MAP[u.icon] || Target
+                            return (
+                                <Link key={u.slug} href={`/cozum/${u.slug}`} className="flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800 text-slate-300 text-sm hover:bg-purple-600 hover:text-white transition-colors">
                                     <SIcon size={14} />
                                     {u.title} →
                                 </Link>

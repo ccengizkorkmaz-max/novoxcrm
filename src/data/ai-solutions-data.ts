@@ -91,7 +91,7 @@ export const aiSolutions: AISolutionData[] = [
         ]
     },
     {
-        slug: 'ai-whatsapp-agent',
+        slug: 'ai-whatsapp-ajani',
         title: 'AI WhatsApp Agent',
         metaTitle: 'AI WhatsApp Chatbot | Gayrimenkul WhatsApp Otomasyonu',
         metaDescription: 'Gayrimenkul satışı için AI WhatsApp chatbot. 7/24 müşteri sorularını yanıtlayın, lead yakalayın ve otomatik proje tanıtımı yapın.',
@@ -165,7 +165,7 @@ export const aiSolutions: AISolutionData[] = [
         ]
     },
     {
-        slug: 'ai-broker-matching',
+        slug: 'ai-broker-eslestirme',
         title: 'AI Broker Eşleştirme',
         metaTitle: 'AI Broker Eşleştirme | Gayrimenkul Broker Yönetim Sistemi',
         metaDescription: 'Yapay zeka ile müşteri-broker eşleştirme. Doğru müşteriyi doğru brokera yönlendirin, komisyon verimliliğini artırın.',

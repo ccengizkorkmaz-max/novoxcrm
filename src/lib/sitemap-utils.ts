@@ -1,4 +1,3 @@
-
 import { MetadataRoute } from 'next'
 import { wikiArticles } from '@/data/wiki-data'
 import { turkishCities } from '@/data/cities-data'
@@ -33,15 +32,14 @@ function parseTurkishDate(dateStr: string): string {
 // Static dates for marketing pages — update these when you actually change the page content
 const STATIC_PAGE_DATES: Record<string, string> = {
     '': '2026-03-15T00:00:00.000Z',                                // Homepage
-    '/solutions': '2026-03-10T00:00:00.000Z',
-    '/solutions/gayrimenkul-crm': '2026-03-10T00:00:00.000Z',
-    '/solutions/insaat-crm': '2026-03-10T00:00:00.000Z',
+    '/cozum': '2026-03-10T00:00:00.000Z',
+    '/cozum/gayrimenkul-crm': '2026-03-10T00:00:00.000Z',
+    '/cozum/insaat-crm': '2026-03-10T00:00:00.000Z',
     '/wiki': '2026-04-01T00:00:00.000Z',
     '/payment-plan-calculator': '2026-02-20T00:00:00.000Z',
     '/system-details': '2026-03-01T00:00:00.000Z',
     '/bir-bakista-novocrm': '2026-03-15T00:00:00.000Z',
     '/bir-bakista-novoxcrm': '2026-03-15T00:00:00.000Z',
-    '/broker/apply': '2026-02-15T00:00:00.000Z',
     '/privacy-policy': '2026-02-01T00:00:00.000Z',
     '/ebooks/gayrimenkul-projelerinde-dijital-donusum-rehberi': '2026-04-15T00:00:00.000Z',
     '/tools/tapu-harci-hesaplayici': '2026-05-15T00:00:00.000Z',
@@ -77,17 +75,64 @@ function getBaseUrls(host: string): string[] {
 }
 
 /**
+ * Maps standard Next.js pathnames to localized pathnames dynamically.
+ */
+function getLocalizedPath(path: string, locale: 'tr' | 'en'): string {
+    const pathnames: Record<string, { tr: string; en: string }> = {
+        '/cozum': {
+            tr: '/cozum',
+            en: '/solutions'
+        },
+        '/cozum/insaat-crm': {
+            tr: '/cozum/insaat-crm',
+            en: '/solutions/insaat-crm'
+        },
+        '/cozum/gayrimenkul-crm': {
+            tr: '/cozum/gayrimenkul-crm',
+            en: '/solutions/gayrimenkul-crm'
+        },
+        '/payment-plan-calculator': {
+            tr: '/araclar/odeme-plani-hesaplayici',
+            en: '/tools/payment-plan-calculator'
+        },
+        '/system-details': {
+            tr: '/guvenlik-ve-altyapi',
+            en: '/security-and-infrastructure'
+        }
+    }
+
+    if (pathnames[path]) {
+        return pathnames[path][locale]
+    }
+
+    // Dynamic cozum/[slug] checks
+    if (path.startsWith('/cozum/')) {
+        const slug = path.split('/')[2]
+        if (locale === 'tr') {
+            return `/cozum/${slug}`
+        } else {
+            const slugMap: Record<string, string> = {
+                'ai-sesli-arama': 'voice-ai-real-estate',
+                'ai-outreach-otomasyonu': 'ai-outreach-automation',
+                'whatsapp-entegrasyonu': 'omnichannel-inbox',
+                'ai-whatsapp-ajani': 'ai-whatsapp-agent',
+                'broker-yonetimi': 'broker-management',
+                'ai-broker-eslestirme': 'ai-broker-matching',
+                'satis-sonrasi-hizmetler': 'after-sales-services',
+                'stok-yonetimi': 'inventory-management',
+                'odeme-plani': 'payment-plan',
+                'musteri-portali': 'customer-portal'
+            }
+            const enSlug = slugMap[slug] || slug
+            return `/solutions/${enSlug}`
+        }
+    }
+
+    return path
+}
+
+/**
  * Generate sitemap URLs using the current request's hostname.
- * Each domain (novoxcrm.com, oikoscrm.com) gets its own sitemap
- * with URLs pointing to itself — essential for independent indexing.
- * 
- * Generates entries for ALL URL variants that Google has historically indexed:
- *  - domain.com/wiki/slug           (root, no www)
- *  - domain.com/tr/wiki/slug        (tr locale, no www)
- *  - domain.com/en/wiki/slug        (en locale, no www)
- *  - www.domain.com/wiki/slug       (root, www)
- *  - www.domain.com/tr/wiki/slug    (tr locale, www)
- *  - www.domain.com/en/wiki/slug    (en locale, www)
  */
 export async function getSitemapUrls(): Promise<MetadataRoute.Sitemap> {
     const host = await getHostFromHeaders()
@@ -107,13 +152,15 @@ export async function getSitemapUrls(): Promise<MetadataRoute.Sitemap> {
         isTrOnly = false
     ) {
         return baseUrls.flatMap((base) => {
+            const trPath = getLocalizedPath(path, 'tr')
+            
             // Turkish URL (no prefix because localePrefix is 'as-needed' and defaultLocale is tr)
             const trEntry = {
-                url: `${base}${path || '/'}`,
+                url: `${base}${trPath || '/'}`,
                 lastModified: date,
                 changeFrequency: changeFreq,
                 priority,
-                _path: path,
+                _rootPath: path,
             }
             
             // If it's TR-only, don't output the /en variant to sitemap
@@ -121,13 +168,14 @@ export async function getSitemapUrls(): Promise<MetadataRoute.Sitemap> {
                 return [trEntry]
             }
 
+            const enPath = getLocalizedPath(path, 'en')
             // English URL (with /en prefix)
             const enEntry = {
-                url: `${base}/en${path}`,
+                url: `${base}/en${enPath}`,
                 lastModified: date,
                 changeFrequency: changeFreq,
                 priority,
-                _path: path,
+                _rootPath: path,
             }
             return [trEntry, enEntry]
         })
@@ -137,8 +185,8 @@ export async function getSitemapUrls(): Promise<MetadataRoute.Sitemap> {
     const marketingRoutes = Object.entries(STATIC_PAGE_DATES).flatMap(
         ([route, date]) => {
             const isTrOnly = [
-                '/solutions/gayrimenkul-crm',
-                '/solutions/insaat-crm',
+                '/cozum/gayrimenkul-crm',
+                '/cozum/insaat-crm',
                 '/wiki',
                 '/bir-bakista-novocrm',
                 '/bir-bakista-novoxcrm',
@@ -153,7 +201,7 @@ export async function getSitemapUrls(): Promise<MetadataRoute.Sitemap> {
     // ── 1.1 AI Solutions routes ──
     const aiSolutionRoutes = aiSolutions.flatMap((sol) =>
         generateVariants(
-            `/solutions/${sol.slug}`,
+            `/cozum/${sol.slug}`,
             new Date('2026-05-31T00:00:00.000Z'),
             'monthly',
             0.8,
@@ -241,7 +289,7 @@ export async function getSitemapUrls(): Promise<MetadataRoute.Sitemap> {
             lastModified: new Date(profile.updated_at || '2026-03-01T00:00:00.000Z'),
             changeFrequency: 'daily' as const,
             priority: 0.7,
-            _path: null as string | null,
+            _rootPath: null as string | null,
         }))
     )
 
@@ -271,38 +319,40 @@ export async function getSitemapUrls(): Promise<MetadataRoute.Sitemap> {
     ]
 
     return allRoutes.map((route) => {
-        const { _path, ...rest } = route
+        const { _rootPath, ...rest } = route
 
         // /p/ routes don't have locale alternates
-        if (_path === null) {
+        if (_rootPath === null) {
             return rest as any
         }
 
         // Determine if this path is TR-only content
         const isTrOnlyPath = 
-            _path.startsWith('/solutions/') ||
-            _path.startsWith('/cozum/') ||
-            _path.startsWith('/wiki') ||
-            _path.startsWith('/tools/') ||
-            _path.startsWith('/sehir/') ||
-            _path.startsWith('/sektor/') ||
-            _path.startsWith('/karsilastirma/') ||
-            _path.startsWith('/industry-reports') ||
+            _rootPath.startsWith('/cozum/') ||
+            _rootPath.startsWith('/wiki') ||
+            _rootPath.startsWith('/tools/') ||
+            _rootPath.startsWith('/sehir/') ||
+            _rootPath.startsWith('/sektor/') ||
+            _rootPath.startsWith('/karsilastirma/') ||
+            _rootPath.startsWith('/industry-reports') ||
             [
-                '/solutions/gayrimenkul-crm',
-                '/solutions/insaat-crm',
+                '/cozum/gayrimenkul-crm',
+                '/cozum/insaat-crm',
                 '/bir-bakista-novocrm',
                 '/bir-bakista-novoxcrm',
                 '/ebooks/gayrimenkul-projelerinde-dijital-donusum-rehberi',
                 '/hakkimizda'
-            ].includes(_path)
+            ].includes(_rootPath)
+
+        const trUrlPath = getLocalizedPath(_rootPath, 'tr')
+        const enUrlPath = getLocalizedPath(_rootPath, 'en')
 
         if (isTrOnlyPath) {
             return {
                 ...rest,
                 alternates: {
                     languages: {
-                        tr: `${canonicalBaseUrl}${_path || '/'}`,
+                        tr: `${canonicalBaseUrl}${trUrlPath || '/'}`,
                     },
                 },
             } as any
@@ -312,8 +362,8 @@ export async function getSitemapUrls(): Promise<MetadataRoute.Sitemap> {
             ...rest,
             alternates: {
                 languages: {
-                    tr: `${canonicalBaseUrl}${_path || '/'}`,
-                    en: `${canonicalBaseUrl}/en${_path}`,
+                    tr: `${canonicalBaseUrl}${trUrlPath || '/'}`,
+                    en: `${canonicalBaseUrl}/en${enUrlPath}`,
                 },
             },
         } as any

@@ -219,5 +219,39 @@ export const useCases: UseCaseData[] = [
             { question: 'Müşteri portalı güvenli mi?', answer: 'Evet, portal tamamen şifreli olup her müşteri sadece kendi sözleşmesini ve ödemelerini görebilir; diğer daire veya kişisel verilere erişmesi imkansızdır.' },
             { question: 'Ödeme planı güncellendiğinde buraya yansır mı?', answer: 'Evet, CRM üzerinde yaptığınız her revizyon veya tahsilat girişi anında müşterinin portal ekranına yansır.' }
         ]
+    },
+    {
+        slug: 'satis-sonrasi-hizmetler',
+        title: 'Satış Sonrası Hizmetler ve Teslimat',
+        metaTitle: 'Gayrimenkul Satış Sonrası Hizmetler ve Teslimat Takip Sistemi | NovoxCRM',
+        metaDescription: 'Konut teslimat takip, daire teslim, eksik ve kusur (defect) listesi yönetimi. Satış sonrası servis talepleri, teknik ekip atamaları ve müşteri bildirimleri.',
+        heroHeadline: 'Eksiksiz Teslimat ve Kusursuz Satış Sonrası Hizmetler',
+        heroSubheadline: 'Daire teslimat süreçlerini, teknik kusurları ve müşteri servis taleplerini tek platformda toplayın. Müşteri memnuniyetini en üst düzeye çıkarın.',
+        icon: 'ClipboardCheck',
+        gradient: 'from-cyan-500 to-blue-600',
+        stats: [
+            { value: '3 Kat', label: 'Daha Hızlı Servis Çözümü' },
+            { value: '0 Kağıt', label: 'Dijital Teslimat Tutanakları' },
+            { value: '%98', label: 'Müşteri Memnuniyeti' },
+            { value: 'Anlık', label: 'Mobil Kusur Bildirimi' }
+        ],
+        features: [
+            { title: 'Daire Teslimat & Eksik/Kusur Takibi', description: 'Teslimat esnasında tespit edilen eksiklikleri (defect) fotoğraf ve notlarla sisteme kaydedin, teknik ekibe anında iş emri oluşturun.', icon: 'ClipboardCheck' },
+            { title: 'Satış Sonrası Servis Talepleri', description: 'Müşterilerinizden gelen servis ve onarım taleplerini kategorilendirip öncelik seviyesine göre teknik personele atayın.', icon: 'Activity' },
+            { title: 'Müşteri Portalı Entegrasyonu', description: 'Müşteriler teslim aldıkları dairelerin durumunu ve açtıkları servis taleplerinin ilerleme aşamalarını kendi portallarından izler.', icon: 'Users' }
+        ],
+        useCases: [
+            { title: 'Dijital Teslim Tutanakları', description: 'Daire teslimi esnasında tablette kontrol listesini doldurun, müşteriye dijital olarak imzalatarak yasal teslim sürecini tamamlayın.' },
+            { title: 'Garanti ve Bakım Takibi', description: 'Daire içindeki ankastre, klima gibi cihazların garanti sürelerini ve periyodik bakım takvimlerini sistemden izleyin.' }
+        ],
+        benefits: [
+            'Teslimat esnasındaki müşteri anlaşmazlıklarını minimuma indirme',
+            'Teknik ekiplerin müdahale ve çözüm sürelerini %60 kısaltma',
+            'Tüm servis geçmişini daire envanter kartı altında kurumsal hafızada saklama'
+        ],
+        faq: [
+            { question: 'Daire teslimat tutanağı yasal olarak geçerli midir?', answer: 'Evet, dijital olarak onaylanan tutanaklar ve eklenen fotoğraflar yasal olarak teslimatın ve tespit edilen kusurların resmi beyanı sayılır.' },
+            { question: 'Müşteri servis taleplerine nasıl yanıt verilir?', answer: 'Talepler ilgili departmana düştüğünde, yetkili personel atanır ve durum güncellendikçe müşteriye SMS/e-posta ile bildirim gider.' }
+        ]
     }
 ];

@@ -1,0 +1,234 @@
+import type { Metadata } from "next";
+import Image from 'next/image'
+import { CheckCircle2, TrendingUp, Users, Shield, Zap, LayoutDashboard, Database } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Link } from '@/i18n/routing'
+import { LeadCaptureModal } from '@/components/marketing/LeadCaptureModal'
+import { getBrandNameFromHost, getHostFromHeaders } from '@/lib/tenant/resolve-brand-from-host'
+import { getCanonicalBaseUrl } from '@/lib/seo-constants'
+
+export async function generateMetadata(
+    { params }: { params: Promise<{ locale: string }> }
+): Promise<Metadata> {
+    const { locale } = await params
+    const host = await getHostFromHeaders()
+    const brandName = await getBrandNameFromHost(host)
+    return {
+        title: `Insaat Firmalari icin CRM | Proje Satis ve Stok Yonetimi - ${brandName}`,
+        description: `Insaat firmalarina ozel CRM yazilimi. Proje bazli satis takibi, daire envanteri ve odeme plani ${brandName}'de.`,
+        alternates: {
+            canonical: locale === 'en' ? `/en/solutions/insaat-crm` : `/cozum/insaat-crm`,
+            languages: {
+                tr: `/cozum/insaat-crm`,
+                en: `/en/solutions/insaat-crm`,
+            }
+        }
+    }
+}
+
+export default async function InsaatCRMPage() {
+    const host = await getHostFromHeaders()
+    const brandName = await getBrandNameFromHost(host)
+    const baseUrl = getCanonicalBaseUrl(host)
+
+    // SoftwareApplication + AggregateRating Schema → SERP'te ⭐⭐⭐⭐⭐
+    const productSchema = {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": `${brandName} - İnşaat CRM Yazılımı`,
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Web",
+        "description": "İnşaat firmaları için proje bazlı satış takibi, daire envanteri, ödeme planı ve broker yönetimi CRM yazılımı.",
+        "url": `${baseUrl}/cozum/insaat-crm`,
+        "brand": { "@type": "Brand", "name": brandName },
+        "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.8",
+            "bestRating": "5",
+            "worstRating": "1",
+            "ratingCount": "52",
+            "reviewCount": "41"
+        },
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "TRY",
+            "description": "Ücretsiz Demo",
+            "availability": "https://schema.org/InStock"
+        },
+        "featureList": [
+            "Proje bazlı satış ve stok takibi",
+            "Daire envanteri yönetimi",
+            "Ödeme planı ve taksit takibi",
+            "Satış ofisi & broker entegrasyonu",
+            "Hakediş ve komisyon raporlama",
+            "Nakit akış tablosu"
+        ]
+    }
+
+    // FAQPage Schema → "İnsanlar şunu da sordu" kutusunu ele geçirme
+    const faqSchema = {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+            {
+                "@type": "Question",
+                "name": "İnşaat CRM nedir?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "İnşaat CRM, konut projeleri üreten inşaat firmalarının satış süreçlerini, müşteri takibini, daire bazlı stok yönetimini ve ödeme planlarını tek bir dijital platformdan yönetmesini sağlayan sektöre özel bir yazılımdır."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "İnşaat firmaları neden CRM kullanmalı?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "İnşaat projelerinde satış döngüleri uzundur, birden fazla proje aynı anda yürütülür ve broker ağları ile koordinasyon gerekir. CRM olmadan müşteri kaybı, veri tutarsızlığı ve gelir kaçağı kaçınılmazdır. CRM ile tüm süreçler otomatik ve şeffaf hale gelir."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "İnşaat CRM ile standart CRM arasındaki fark nedir?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Standart CRM'ler genel satış takibi yapar. İnşaat CRM'leri ise daire bazlı stok takibi, şerefiye hesaplama, ödeme planı oluşturma, tapu takibi ve broker yönetimi gibi inşaat sektörüne özgü modüller içerir."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "İnşaat CRM yazılımı fiyatları nedir?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": `${brandName} inşaat CRM fiyatları kullanıcı sayısı ve aktif proje sayısına göre değişir. Ücretsiz demo ile sistemi test edebilir, firmanıza özel fiyat teklifi alabilirsiniz.`
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "İnşaat CRM'de satış ofisi ve merkez ofis nasıl bağlanır?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Bulut tabanlı CRM yazılımları ile satış ofisi ve merkez ofis aynı veritabanını paylaşır. Saha ekibi anlık stok güncelleme yapar, merkez ofis raporları canlı olarak izler. Broker portalı ile dış acenteler de güvenli erişim sağlar."
+                }
+            }
+        ]
+    }
+
+    return (
+        <div className="bg-slate-950 min-h-screen pt-24 pb-20">
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }}
+            />
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+            />
+            <section className="container mx-auto px-4 py-16 text-center">
+                <div className="inline-flex items-center rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-sm font-medium text-emerald-300 mb-8">
+                    İnşaat Sektörüne Özel Çözüm
+                </div>
+                <h1 className="text-4xl md:text-7xl font-bold mb-8 text-white tracking-tight leading-tight">
+                    İnşaat Firmaları için <br />
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-blue-400">
+                        Uçtan Uca Satış CRM
+                    </span>
+                </h1>
+                <p className="text-xl text-slate-400 max-w-3xl mx-auto leading-relaxed mb-12">
+                    Insaat projelerinde satis surecleri, klasik CRM sistemleriyle yonetilemeyecek kadar karmasiktir. {brandName}, insaat firmalarinin proje satislarini tek panelden yonetmesini saglar.
+                </p>
+                <div className="flex flex-wrap justify-center gap-6">
+                    <LeadCaptureModal
+                        title="İnşaat CRM Demo"
+                        description="Projenizin satışlarını nasıl dijitalleştirebileceğimizi konuşalım."
+                        resourceName="InsaatCRM_Hero_Demo"
+                    >
+                        <Button size="lg" className="bg-emerald-600 hover:bg-emerald-700 text-white h-14 px-8 text-lg rounded-full">
+                            Detaylı Bilgi Alın
+                        </Button>
+                    </LeadCaptureModal>
+                </div>
+            </section>
+
+            <section className="py-24 border-t border-slate-900 relative">
+                <div className="container mx-auto px-4">
+                    <div className="text-center mb-16">
+                        <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">İnşaat CRM Neden Gereklidir?</h2>
+                    </div>
+                    <div className="grid lg:grid-cols-2 gap-16 items-center">
+                        <div className="space-y-8">
+                            <div className="flex gap-4 p-6 rounded-3xl bg-slate-900/50 border border-slate-800">
+                                <LayoutDashboard className="text-emerald-500 shrink-0" size={32} />
+                                <div>
+                                    <h3 className="text-xl font-bold text-white mb-2">Proje Bazlı Satış ve Stok</h3>
+                                    <p className="text-slate-400">Daire bazlı stok durumu, satıldı/opsiyonlu ayrımı ve interaktif lejant yönetimi.</p>
+                                </div>
+                            </div>
+                            <div className="flex gap-4 p-6 rounded-3xl bg-slate-900/50 border border-slate-800">
+                                <Database className="text-blue-500 shrink-0" size={32} />
+                                <div>
+                                    <h3 className="text-xl font-bold text-white mb-2">Daire Envanteri Yönetimi</h3>
+                                    <p className="text-slate-400">Brüt/net metrekare, yön, kat ve teknik özelliklerin daire bazlı dijital kaydı.</p>
+                                </div>
+                            </div>
+                            <div className="flex gap-4 p-6 rounded-3xl bg-slate-900/50 border border-slate-800">
+                                <Shield className="text-purple-500 shrink-0" size={32} />
+                                <div>
+                                    <h3 className="text-xl font-bold text-white mb-2">Ödeme Planı Takibi</h3>
+                                    <p className="text-slate-400">Peşinat, ara ödeme ve taksitlerin proje bazlı otomatik hesaplanması ve takibi.</p>
+                                </div>
+                            </div>
+                            {/* Inner link to After-Sales page */}
+                            <Link href="/cozum/satis-sonrasi-hizmetler" className="flex gap-4 p-6 rounded-3xl bg-slate-900/50 border border-slate-800 hover:border-emerald-500/40 transition-all group">
+                                <CheckCircle2 className="text-emerald-500 shrink-0 group-hover:scale-110 transition-transform" size={32} />
+                                <div>
+                                    <h3 className="text-xl font-bold text-white mb-2 group-hover:text-emerald-400 transition-colors">Satış Sonrası & Teslimat</h3>
+                                    <p className="text-slate-400">Daire teslimat süreçleri, kusur (defect) takip listeleri ve satış sonrası teknik servis taleplerinin yönetimi.</p>
+                                </div>
+                            </Link>
+                        </div>
+                        <div className="bg-slate-900 rounded-3xl border border-slate-800 p-8">
+                            <h3 className="text-2xl font-bold text-white mb-6">Satış Ofisi & Broker Entegrasyonu</h3>
+                            <p className="text-slate-400 mb-6 italic">
+                                "Broker ağları ile çalışan inşaat firmaları için özel geliştirilen broker portalı sayesinde, yetkilendirme ve satış takibi güvenli şekilde yapılır."
+                            </p>
+                            <ul className="space-y-4">
+                                {[
+                                    "Acente bazlı yetkilendirme",
+                                    "Gerçek zamanlı fiyat listesi paylaşımı",
+                                    "Lead koruma ve müşteri çakışma önleme",
+                                    "Hakediş ve komisyon raporlaması"
+                                ].map((item, i) => (
+                                    <li key={i} className="flex items-center gap-3 text-slate-300">
+                                        <CheckCircle2 size={20} className="text-emerald-500 shrink-0" />
+                                        <span>{item}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section className="py-24 bg-slate-950/50 border-t border-slate-900 text-center">
+                <div className="container mx-auto px-4">
+                    <h2 className="text-3xl md:text-5xl font-bold text-white mb-12">İnşaat Satışlarınızı Dijitalleştirin</h2>
+                    <div className="max-w-4xl mx-auto p-12 rounded-[40px] bg-gradient-to-br from-emerald-900/20 to-slate-900 border border-emerald-500/20">
+                        <p className="text-xl text-slate-400 mb-8">
+                            Excel listelerinden kurtulun, tüm projelerinizi tek bir akıllı platform üzerinden yönetin.
+                        </p>
+                        <LeadCaptureModal
+                            title="Şimdi Başlayın"
+                            description="İnşaat CRM çözümümüzü incelemek için bir demo randevusu alın."
+                            resourceName="InsaatCRM_Bottom_CTA"
+                        >
+                            <Button size="lg" className="bg-emerald-600 hover:bg-emerald-700 text-white h-14 px-10 rounded-full font-bold">
+                                ŞİMDİ DEMO ALIN
+                            </Button>
+                        </LeadCaptureModal>
+                    </div>
+                </div>
+            </section>
+        </div>
+    )
+}
