@@ -54,7 +54,9 @@ export function generateGeoData(
             
             return {
                 question: `${title} nedir?`,
-                answer: `${title}, gayrimenkul ve inşaat projelerinde ${desc.toLowerCase()} amacıyla geliştirilmiş gelişmiş bir otomasyon sistemidir. ${rawBrand} ekosistemiyle tam entegre çalışarak satış ekiplerinin manuel iş yükünü azaltır ve dönüşüm oranlarını artırır.`,
+                answer: data.definition
+                    ? adjustBranding(data.definition, rawBrand)
+                    : `${title}, gayrimenkul ve inşaat projelerinde süreçlerinizi optimize etmek amacıyla geliştirilmiş gelişmiş bir otomasyon sistemidir. ${rawBrand} ekosistemiyle tam entegre çalışarak satış ekiplerinin manuel iş yükünü azaltır ve dönüşüm oranlarını artırır.`,
                 summary: `${rawBrand} altyapısı üzerinde çalışan, satışlarınızı hızlandırmaya yönelik ${title} çözümü.`,
                 highlights: features.length > 0
                     ? features.slice(0, 3).map((f: any) => adjustBranding(f.title, rawBrand))

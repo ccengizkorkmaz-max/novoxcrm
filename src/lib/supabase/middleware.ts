@@ -10,9 +10,11 @@ function isPublicPath(pathWithoutLocale: string): boolean {
         pathWithoutLocale === '/robots.txt' ||
         pathWithoutLocale.startsWith('/api') ||
         pathWithoutLocale.startsWith('/payment-plan-calculator') ||
+        pathWithoutLocale.startsWith('/araclar/odeme-plani-hesaplayici') ||
         pathWithoutLocale.startsWith('/solutions') ||
         pathWithoutLocale.startsWith('/cozum') ||
         pathWithoutLocale.startsWith('/system-details') ||
+        pathWithoutLocale.startsWith('/guvenlik-ve-altyapi') ||
         pathWithoutLocale.startsWith('/wiki') ||
         pathWithoutLocale.startsWith('/ebooks') ||
         pathWithoutLocale.startsWith('/login') ||
@@ -21,6 +23,7 @@ function isPublicPath(pathWithoutLocale: string): boolean {
         pathWithoutLocale.startsWith('/p/') ||
         pathWithoutLocale.startsWith('/ai') ||
         pathWithoutLocale.startsWith('/broker/apply') ||
+        pathWithoutLocale.startsWith('/broker/basvuru') ||
         pathWithoutLocale.startsWith('/broker/login') ||
         pathWithoutLocale.startsWith('/tools') ||
         pathWithoutLocale.startsWith('/sehir') ||
@@ -29,6 +32,7 @@ function isPublicPath(pathWithoutLocale: string): boolean {
         pathWithoutLocale.startsWith('/gizlilik-sozlesmesi') ||
         pathWithoutLocale.startsWith('/mesafeli-satis-sozlesmesi') ||
         pathWithoutLocale.startsWith('/teslimat-ve-iade-sartlari') ||
+        pathWithoutLocale.startsWith('/privacy-policy') ||
         pathWithoutLocale.startsWith('/hakkimizda') ||
         pathWithoutLocale.startsWith('/industry-reports') ||
         pathWithoutLocale.startsWith('/teklif/')

@@ -12,6 +12,7 @@ export interface UseCaseData {
     useCases: { title: string; description: string }[];
     benefits: string[];
     faq: { question: string; answer: string }[];
+    definition?: string;
 }
 
 export const useCases: UseCaseData[] = [
@@ -20,6 +21,7 @@ export const useCases: UseCaseData[] = [
         title: 'Müşteri Adayı (Lead) Yönetimi',
         metaTitle: 'Gayrimenkul Lead Yönetimi ve Otomatik Dağıtım Yazılımı | NovoxCRM',
         metaDescription: 'Reklamlardan gelen müşteri adaylarını saniyeler içinde danışmanlara atayın. Gayrimenkul lead takibi, otomatik hatırlatıcılar ve yapay zeka kalifikasyonu.',
+        definition: 'Oikos CRM Müşteri ve Lead Yönetimi modülü, reklam kanallarından gelen müşteri adaylarını anında yakalamak, ekipler arasında otomatik dağıtmak ve tüm satış sürecini tek merkezden izlemek için geliştirilmiştir.',
         heroHeadline: 'Müşteri Adaylarını Saniyeler İçinde Satışa Dönüştürün',
         heroSubheadline: 'Meta, Google ve web sitenizden gelen leadleri anında yakalayın, doğru danışmana adil şekilde dağıtın ve hiçbir takibi kaçırmayın.',
         icon: 'Target',
@@ -54,6 +56,7 @@ export const useCases: UseCaseData[] = [
         title: 'WhatsApp CRM ve Otomasyonu',
         metaTitle: 'Yapay Zeka Destekli WhatsApp CRM Entegrasyonu | NovoxCRM',
         metaDescription: 'Müşterilerinizle WhatsApp üzerinden tek tıkla görüşme başlatın. Otomatik şablonlar, toplu mesaj gönderimi ve AI WhatsApp asistanı.',
+        definition: 'Oikos CRM WhatsApp Entegrasyonu modülü, müşteri mesajlarını, şablon katalog gönderimlerini ve tüm iletişim geçmişini CRM paneli üzerinde otomatik kaydetmek ve yönetmek için geliştirilmiştir.',
         heroHeadline: 'Müşterileriniz Neredeyse Satış Ekibiniz de Orada',
         heroSubheadline: 'WhatsApp konuşmalarını CRM kayıtlarıyla eşleştirin, şablon mesajlarla saniyeler içinde teklif iletin ve 7/24 AI asistanlarla yanıt verin.',
         icon: 'MessageCircle',
@@ -88,6 +91,7 @@ export const useCases: UseCaseData[] = [
         title: 'Stok ve Daire Lejantı Yönetimi',
         metaTitle: 'Gayrimenkul Stok Yönetimi ve İnteraktif Daire Lejantı | NovoxCRM',
         metaDescription: 'Projelerinizin blok ve daire planlarını interaktif lejant üzerinden takip edin. Satılan, rezerve olan ve boş daireleri renk kodlarıyla anlık yönetin.',
+        definition: 'Oikos CRM Stok ve Envanter Yönetimi modülü, konut projelerindeki daire durumlarını, şerefiye bedellerini ve satış lejantlarını interaktif blok planı üzerinden canlı takip etmek için geliştirilmiştir.',
         heroHeadline: 'Daire Stoklarınızı ve Satış Durumunu Anlık Görün',
         heroSubheadline: 'Mükerrer (çifte) satış riskini sıfıra indirin. İnteraktif kat planı ve blok lejantı ile güncel stoğu tüm ekiple ve brokerlarla paylaşın.',
         icon: 'Building',
@@ -122,6 +126,7 @@ export const useCases: UseCaseData[] = [
         title: 'B2B Broker ve Acente Portalı',
         metaTitle: 'Broker Yönetim Sistemi ve Acente Portalı Yazılımı | NovoxCRM',
         metaDescription: 'Dış broker ve acentelerinizi sisteme entegre edin. Stok paylaşımı, lead yönlendirme, komisyon takibi ve hakediş süreçleri.',
+        definition: 'Oikos CRM Broker ve Acente Yönetimi modülü, dış satış ortaklarınızın sisteme güvenle dahil olmasını sağlamak, portföy paylaşımını kontrol etmek ve komisyon hakedişlerini otomatik hesaplamak için geliştirilmiştir.',
         heroHeadline: 'Dış Satış Ağınızı Güvenli Bir Satış Motoruna Dönüştürün',
         heroSubheadline: 'Projenizdeki satılabilir stokları harici acente ve brokerlarla paylaşın, gönderdikleri leadleri güvenle izleyin ve komisyon süreçlerini otomatiğe bağlayın.',
         icon: 'Network',
@@ -156,6 +161,7 @@ export const useCases: UseCaseData[] = [
         title: 'Dinamik Ödeme Planı ve Tahsilat',
         metaTitle: 'Gayrimenkul Ödeme Planı Hesaplama ve Taksit Takip Programı | NovoxCRM',
         metaDescription: 'Müşteriye özel peşinat, ara ödemeler ve balon ödemelerle dinamik ödeme planları hazırlayın. Senet takibi ve gecikmiş tahsilat yönetimi.',
+        definition: 'Oikos CRM Ödeme Planı ve Senet Takibi modülü, vadeli satışlar için peşinat, ara ödeme ve taksit planlarını saniyeler içinde oluşturmak, sözleşmeleri ve senetleri dijital basmak için geliştirilmiştir.',
         heroHeadline: 'Excel Karmaşasına Son: Dinamik Ödeme Planları',
         heroSubheadline: 'Müşterilerinizin bütçesine göre esnek taksitlendirmeler oluşturun, döviz bazlı ödemeleri takip edin ve senet tahsilatlarını otomatikleştirin.',
         icon: 'Calculator',
@@ -191,6 +197,7 @@ export const useCases: UseCaseData[] = [
         title: 'Müşteri Deneyimi ve Bilgi Portalı',
         metaTitle: 'Müşteriye Özel Gayrimenkul Deneyim Portalı | NovoxCRM',
         metaDescription: 'Müşterilerinizin kendi ödeme planlarını, senet durumlarını, sözleşmelerini ve tapu süreçlerini takip edebileceği kendin-yap (self-service) müşteri portalı.',
+        definition: 'Oikos CRM Müşteri Deneyimi ve Bilgi Portalı, gayrimenkul alıcılarının kendi ödeme durumlarını, kalan taksitlerini, teslimat belgelerini ve sözleşme detaylarını 7/24 şeffaf şekilde takip edebileceği bir self-servis paneldir.',
         heroHeadline: 'Müşterilerinize Şeffaf ve Güvenli Bir Deneyim Sunun',
         heroSubheadline: 'Her müşteriye özel açılan güvenli portal ile ödeme planlarını, taksit geçmişini ve tapu/teslimat durumlarını 7/24 izlemelerini sağlayın.',
         icon: 'Users',
@@ -225,6 +232,7 @@ export const useCases: UseCaseData[] = [
         title: 'Satış Sonrası Hizmetler ve Teslimat',
         metaTitle: 'Gayrimenkul Satış Sonrası Hizmetler ve Teslimat Takip Sistemi | NovoxCRM',
         metaDescription: 'Konut teslimat takip, daire teslim, eksik ve kusur (defect) listesi yönetimi. Satış sonrası servis talepleri, teknik ekip atamaları ve müşteri bildirimleri.',
+        definition: 'Oikos CRM Satış Sonrası Hizmetler modülü, dairelerin teslimat süreçlerini, tablet üzerinden tutulan eksik/kusur (defect) listelerini ve satış sonrası teknik servis taleplerini tek merkezden yönetmek için geliştirilmiştir.',
         heroHeadline: 'Eksiksiz Teslimat ve Kusursuz Satış Sonrası Hizmetler',
         heroSubheadline: 'Daire teslimat süreçlerini, teknik kusurları ve müşteri servis taleplerini tek platformda toplayın. Müşteri memnuniyetini en üst düzeye çıkarın.',
         icon: 'ClipboardCheck',
@@ -250,7 +258,7 @@ export const useCases: UseCaseData[] = [
             'Tüm servis geçmişini daire envanter kartı altında kurumsal hafızada saklama'
         ],
         faq: [
-            { question: 'Daire teslimat tutanağı yasal olarak geçerli midir?', answer: 'Evet, dijital olarak onaylanan tutanaklar ve eklenen fotoğraflar yasal olarak teslimatın ve tespit edilen kusurların resmi beyanı sayılır.' },
+            { question: 'Daire teslimat tutanağı yasal olarak geçerli midir?', answer: 'Dijital teslim tutanakları; tarih, kullanıcı, fotoğraf ve işlem kayıtlarıyla sürecin belgelenmesini sağlar. Güvenli elektronik imza kullanılan belgelerin hukuki niteliği 5070 sayılı Elektronik İmza Kanunu kapsamında değerlendirilir. Belgenin kullanım şekline göre hukuk danışmanınızdan görüş alınması önerilir.' },
             { question: 'Müşteri servis taleplerine nasıl yanıt verilir?', answer: 'Talepler ilgili departmana düştüğünde, yetkili personel atanır ve durum güncellendikçe müşteriye SMS/e-posta ile bildirim gider.' }
         ]
     }

@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { Building2, ShieldCheck } from 'lucide-react'
 import { getTranslations } from 'next-intl/server'
 import LanguageSwitcher from '@/components/LanguageSwitcher'

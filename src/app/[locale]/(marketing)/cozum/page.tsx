@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Image from 'next/image'
 import { CheckCircle2, TrendingUp, Users, Shield, Zap, Globe, ArrowRight, Brain, Phone, MessageCircle, Target, Network, Workflow, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'

@@ -8,7 +8,7 @@ import { headers } from 'next/headers'
 export async function getHostFromHeaders(): Promise<string> {
     try {
         const headerList = await headers()
-        return headerList.get('host') || 'novoxcrm.com'
+        return headerList.get('x-forwarded-host') || headerList.get('host') || 'novoxcrm.com'
     } catch {
         // headers() throws during static generation - return default
         return 'novoxcrm.com'

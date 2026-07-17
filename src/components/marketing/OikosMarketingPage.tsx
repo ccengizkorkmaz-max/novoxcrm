@@ -175,6 +175,13 @@ export function OikosMarketingPage() {
                         </p>
                     </div>
                     
+                    {/* Trust Rating Badge */}
+                    <div className="flex justify-center items-center gap-1.5 mb-8 text-[#9FE1CB]/90 text-sm">
+                        <span className="text-[#EF9F27]">★★★★★</span>
+                        <span className="text-white font-semibold">4.9 / 5</span>
+                        <span>(120+ Müşteri Değerlendirmesi)</span>
+                    </div>
+
                     <div className="flex flex-wrap gap-4 justify-center mb-16">
                         <button 
                             className="bg-[#EF9F27] hover:bg-[#FAC775] text-[#412402] px-8 py-3.5 rounded-lg text-base font-semibold transition-colors cursor-pointer"

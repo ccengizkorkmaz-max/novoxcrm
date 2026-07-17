@@ -48,8 +48,10 @@ export async function generateMetadata(
     if (!uc) return {}
     const host = await getHostFromHeaders()
     const brandName = await getBrandNameFromHost(host)
+    const rawTitle = adjustBranding(uc.metaTitle, brandName)
+    const cleanTitle = rawTitle.replace(/\s*\|\s*(Oikos CRM|Novox CRM|NovoxCRM|Novo CRM|OikosCRM)\s*$/i, '')
     return {
-        title: adjustBranding(uc.metaTitle, brandName),
+        title: cleanTitle,
         description: adjustBranding(uc.metaDescription, brandName),
         keywords: `${uc.title}, gayrimenkul crm, emlak yazılımı, yapay zeka crm, ${brandName}`,
         alternates: {
@@ -237,12 +239,15 @@ export default async function UseCasePage({ params }: { params: Promise<{ slug: 
                         {uc.stats.map((stat, i) => (
                             <div key={i} className="text-center">
                                 <p className={`text-3xl md:text-4xl font-black bg-gradient-to-r ${uc.gradient} bg-clip-text text-transparent`}>
-                                    {stat.value}
+                                    {stat.value}*
                                 </p>
                                 <p className="text-sm text-slate-400 mt-1">{stat.label}</p>
                             </div>
                         ))}
                     </div>
+                    <p className="text-[11px] text-slate-500 text-center mt-8 max-w-2xl mx-auto leading-relaxed">
+                        * Belirtilen oranlar ve istatistikler, 2025–2026 döneminde platformu aktif kullanan 8 farklı gayrimenkul projesinin verilerinden derlenmiş ortalama değerler veya hedeflenen potansiyel kazanımlardır. Gerçekleşen sonuçlar proje büyüklüğü, ekip yapısı ve süreçlere göre değişiklik gösterebilir.
+                    </p>
                 </div>
             </section>
 
@@ -284,10 +289,10 @@ export default async function UseCasePage({ params }: { params: Promise<{ slug: 
             <section className="py-20 border-t border-slate-900 bg-slate-900/20">
                 <div className="container mx-auto px-4">
                     <h2 className="text-3xl md:text-4xl font-bold text-white mb-4 text-center">
-                        Kullanım Senaryoları
+                        Örnek Kullanım Senaryoları
                     </h2>
                     <p className="text-slate-400 text-center mb-16 max-w-2xl mx-auto">
-                        Sektörün en başarılı ekiplerinden gerçek kullanım örnekleri.
+                        Farklı iş modellerine ve ekiplere uygun örnek kullanım senaryoları.
                     </p>
                     <div className="max-w-4xl mx-auto space-y-6">
                         {uc.useCases.map((ucItem, i) => (

@@ -12,6 +12,7 @@ export interface AISolutionData {
     useCases: { title: string; description: string }[];
     stats: { value: string; label: string; description?: string }[];
     faq: { question: string; answer: string }[];
+    definition?: string;
 }
 
 export const aiSolutions: AISolutionData[] = [
@@ -20,6 +21,7 @@ export const aiSolutions: AISolutionData[] = [
         title: 'AI Satış Asistanı',
         metaTitle: 'Yapay Zeka ile Konut Satışı & AI Satış Asistanı | CRM',
         metaDescription: 'Yapay zeka ile konut satışı süreçlerinizi hızlandırın. Akıllı satış asistanı, otomatik müşteri skorlama ve lead önceliklendirme ile dönüşümleri %40 artırın.',
+        definition: 'Oikos CRM AI Satış Asistanı, gayrimenkul danışmanlarının günlük iş akışlarını yapay zeka ile organize etmek, hangi müşteriyi ne zaman aramaları gerektiğini bildirmek ve sıcak lead fırsatlarını önceliklendirmek için geliştirilmiş akıllı bir yardımcıdır.',
         heroHeadline: 'Satış Ekibinizin Yanında 7/24 Çalışan AI Asistan',
         heroSubheadline: 'Yapay zeka, danışmanlarınıza hangi müşteriyi ne zaman araması gerektiğini söyler. Lead önceliklendirme, risk analizi ve günlük briefing ile hiçbir fırsat kaçmaz.',
         icon: 'Brain',
@@ -57,6 +59,7 @@ export const aiSolutions: AISolutionData[] = [
         title: 'AI Sesli Arama Sistemi',
         metaTitle: 'AI Call Center & AI Sesli Arama | Gayrimenkul Soğuk Arama Robotu',
         metaDescription: 'Yapay zeka destekli AI Call Center sistemi. Gayrimenkul projeleriniz için 7/24 Türkçe konuşan yapay zeka sesli arama robotu ve Vapi entegrasyonu.',
+        definition: 'Oikos CRM AI Sesli Arama Sistemi, potansiyel alıcı listelerini doğal konuşma dilinde otomatik olarak aramak, ilk kalifikasyon sorularını sormak ve sadece ilgilenen sıcak fırsatları satış ekibine aktarmak amacıyla geliştirilmiş sesli bir yapay zeka otomasyonudur.',
         heroHeadline: 'AI Agent\'ınız Müşterilerinizi Sizin Yerinize Arar',
         heroSubheadline: 'AI Sesli Arama Sistemi, gayrimenkul ve inşaat projelerinde doğal Türkçe konuşan yapay zeka agent\'larımız sadece arama yapmakla kalmaz; WhatsApp ve FB Messenger üzerinden konuşma sürdürür, bilgi ve doküman paylaşır. Satış ekipleriyle konuşup onları koordine eder, sıcak fırsatları (hot lead) yönlendirir, satış sonuçlarını takip eder, ekiplere görev atar ve hatırlatır. Novox AI gelişmiş bir AI satış otomasyon sistemidir. Novox CRM ekosistemiyle tam entegre çalışarak satış ekiplerinin manuel iş yükünü azaltır ve dönüşüm oranlarını artırır.',
         icon: 'Phone',
@@ -95,6 +98,7 @@ export const aiSolutions: AISolutionData[] = [
         title: 'AI WhatsApp Agent',
         metaTitle: 'AI WhatsApp Chatbot | Gayrimenkul WhatsApp Otomasyonu',
         metaDescription: 'Gayrimenkul satışı için AI WhatsApp chatbot. 7/24 müşteri sorularını yanıtlayın, lead yakalayın ve otomatik proje tanıtımı yapın.',
+        definition: 'Oikos CRM AI WhatsApp Ajanı, müşterilerden gelen yazılı mesajlara 7/24 anında yanıt vermek, proje kataloglarını paylaşmak, fiyat aralıklarını iletmek ve randevu taleplerini otomatik olarak sisteme kaydetmek amacıyla geliştirilmiştir.',
         heroHeadline: 'WhatsApp\'ta 7/24 Satış Yapan AI Agent',
         heroSubheadline: 'Müşterileriniz WhatsApp\'tan yazdığında AI agent anında yanıt verir. Proje bilgisi paylaşır, randevu oluşturur ve lead bilgilerini CRM\'e kaydeder.',
         icon: 'MessageCircle',
@@ -132,6 +136,7 @@ export const aiSolutions: AISolutionData[] = [
         title: 'AI Lead Skorlama',
         metaTitle: 'AI Lead Skorlama | Gayrimenkul Lead Qualification Sistemi',
         metaDescription: 'Yapay zeka ile otomatik lead skorlama ve kalifikasyon. Gayrimenkul leadlerinizi sıcak-ılık-soğuk olarak sınıflandırın, satış ekibinizin zamanını optimize edin.',
+        definition: 'Oikos CRM AI Lead Skorlama modülü, müşteri adaylarının reklam etkileşimlerini, mesajlaşmalarını ve arama geçmişlerini analiz ederek 0-100 arasında bir satın alma potansiyeli skoru atamak ve en değerli müşterileri ön plana çıkarmak için geliştirilmiştir.',
         heroHeadline: 'Her Lead\'in Gerçek Potansiyelini Bilin',
         heroSubheadline: 'AI, her müşteri adayının davranışlarını analiz eder ve 0-100 arası bir skor verir. Satış ekibiniz en yüksek skorlu leadlere öncelik vererek zamanını en verimli kullanır.',
         icon: 'Target',
@@ -169,6 +174,7 @@ export const aiSolutions: AISolutionData[] = [
         title: 'AI Broker Eşleştirme',
         metaTitle: 'AI Broker Eşleştirme | Gayrimenkul Broker Yönetim Sistemi',
         metaDescription: 'Yapay zeka ile müşteri-broker eşleştirme. Doğru müşteriyi doğru brokera yönlendirin, komisyon verimliliğini artırın.',
+        definition: 'Oikos CRM AI Broker Eşleştirme modülü, sisteme gelen müşteri taleplerinin bütçe, bölge ve tercih kriterlerini analiz ederek en başarılı satış geçmişine sahip en uygun broker ile otomatik eşleştirmek için geliştirilmiştir.',
         heroHeadline: 'Doğru Müşteriyi Doğru Broker\'a AI Yönlendirsin',
         heroSubheadline: 'AI, her broker\'ın uzmanlık alanını ve başarı geçmişini analiz ederek gelen leadleri en uygun broker\'a otomatik atar. Hem müşteri memnuniyeti hem satış hızı artar.',
         icon: 'Network',
@@ -206,6 +212,7 @@ export const aiSolutions: AISolutionData[] = [
         title: 'AI Outreach Otomasyonu',
         metaTitle: 'AI Outreach Otomasyonu | Gayrimenkul Satış Otomasyonu',
         metaDescription: 'AI sesli arama → WhatsApp → SMS → E-posta. Gayrimenkul satışında otomatik çok kanallı iletişim zinciri ile her müşteriye ulaşın.',
+        definition: 'Oikos CRM AI Outreach Otomasyonu, sesli aramaları, WhatsApp mesajlarını, SMS ve e-postaları entegre bir senaryo zinciri şeklinde yöneterek her müşteri adayına en doğru kanaldan ve doğru zamanda otomatik ulaşmak için geliştirilmiştir.',
         heroHeadline: 'Çok Kanallı Otomatik Satış İletişim Motoru',
         heroSubheadline: 'AI agent önce arar, ilgileniyorsa WhatsApp\'tan detay gönderir, cevap gelmezse SMS atar, ardından e-posta ile takip eder. Tüm süreç tamamen otomatik.',
         icon: 'Workflow',
@@ -243,6 +250,7 @@ export const aiSolutions: AISolutionData[] = [
         title: 'AI Müşteri Analizi',
         metaTitle: 'AI Müşteri Analizi | Gayrimenkul Müşteri Segmentasyonu',
         metaDescription: 'Yapay zeka ile gayrimenkul müşteri analizi ve segmentasyonu. Alım davranışlarını, bütçe profillerini ve tercihlerini AI ile analiz edin.',
+        definition: 'Oikos CRM AI Müşteri Analizi modülü, gayrimenkul alıcılarının geçmiş davranışlarını ve portföy tercihlerini inceleyerek yatırımcı veya son kullanıcı profillerini otomatik segmente etmek ve vazgeçme riski yüksek müşterileri saptamak amacıyla geliştirilmiştir.',
         heroHeadline: 'Müşterilerinizi AI Gözüyle Tanıyın',
         heroSubheadline: 'Yapay zeka, müşterilerinizin alım davranışlarını, bütçe profillerini ve tercihlerini analiz ederek kişiselleştirilmiş satış stratejileri önerir.',
         icon: 'Users',
@@ -280,6 +288,7 @@ export const aiSolutions: AISolutionData[] = [
         title: 'AI Satış Co-Pilot',
         metaTitle: 'AI Satış Co-Pilot | Gayrimenkul Danışmanı İçin AI Asistan',
         metaDescription: 'Gayrimenkul danışmanları için AI co-pilot. Gerçek zamanlı satış koçluğu, itiraz yönetimi önerileri ve anlaşma kapama stratejileri.',
+        definition: 'Oikos CRM AI Satış Co-Pilot, danışmanlara görüşme esnasında gerçek zamanlı itiraz yönetimi ipuçları, fiyat müzakeresi taktikleri ve anlaşma kapama stratejileri sunarak satış performansını yükseltmek amacıyla geliştirilmiş dijital bir koçtur.',
         heroHeadline: 'Her Danışmanın Yanında Bir AI Koç',
         heroSubheadline: 'AI Co-Pilot, satış görüşmesi sırasında danışmana gerçek zamanlı öneriler sunar. İtiraz yönetimi, fiyat müzakeresi ve anlaşma kapama stratejileri.',
         icon: 'Sparkles',
@@ -317,6 +326,7 @@ export const aiSolutions: AISolutionData[] = [
         title: 'AI Emlak Agent',
         metaTitle: 'Yapay Zeka Emlak Danışmanı | AI Emlak Agent | NovoxCRM',
         metaDescription: 'Emlak acenteleri ve brokerlar için 7/24 çalışan yapay zeka emlak danışmanı. Otomatik portföy eşleştirme, randevu planlama ve lead yönetimi.',
+        definition: 'Oikos CRM AI Emlak Agent, emlak ofisleri ve brokerlar için portföy kriterlerini müşteri talepleriyle eşleştiren, randevuları organize eden ve 7/24 müşterilerle ilk teması kuran yapay zeka destekli bir sanal danışmandır.',
         heroHeadline: '7/24 Çalışan Yapay Zeka Emlak Danışmanınız',
         heroSubheadline: 'Müşterilerinizle WhatsApp ve sesli aramalar üzerinden konuşan, portföy kriterlerini eşleştiren ve randevu alan akıllı emlak agentı.',
         icon: 'UserCheck',
@@ -354,6 +364,7 @@ export const aiSolutions: AISolutionData[] = [
         title: 'Voice AI Real Estate',
         metaTitle: 'Gayrimenkul Sesli Yapay Zeka Sistemleri | Voice AI Real Estate | NovoxCRM',
         metaDescription: 'Gayrimenkul sektörüne özel sesli yapay zeka arama robotu. Vapi + ElevenLabs entegrasyonu ile doğal Türkçe konuşan akıllı arama asistanı.',
+        definition: 'Oikos CRM Voice AI Real Estate, gayrimenkul projelerine özel olarak tasarlanmış, nefes alma ve duraklama doğallığında konuşan, aramaları yaparken transkript ve özet raporlarını anında CRM veritabanına işleyen sesli bir yapay zeka asistanıdır.',
         heroHeadline: 'Gayrimenkul Arama Süreçlerinde Doğal Sesli Yapay Zeka',
         heroSubheadline: 'Sesli yapay zeka ile soğuk aramaları, randevu hatırlatmalarını ve eski lead reaktivasyonunu insan doğallığında otomatikleştirin.',
         icon: 'Mic',

@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "../globals.css";
@@ -106,20 +108,40 @@ export default async function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <NextIntlClientProvider messages={messages} locale={locale}>
-          <Script
-            src="https://www.googletagmanager.com/gtag/js?id=AW-18295920582"
-            strategy="afterInteractive"
-          />
-          <Script id="google-analytics" strategy="afterInteractive">
-            {`
-              window.dataLayer = window.dataLayer || [];
-              function gtag(){dataLayer.push(arguments);}
-              gtag('js', new Date());
+          {brandName === 'Oikos CRM' ? (
+            <>
+              <Script
+                src="https://www.googletagmanager.com/gtag/js?id=G-563X2HFRBC"
+                strategy="afterInteractive"
+              />
+              <Script id="oikos-google-analytics" strategy="afterInteractive">
+                {`
+                  window.dataLayer = window.dataLayer || [];
+                  function gtag(){dataLayer.push(arguments);}
+                  gtag('js', new Date());
 
-              gtag('config', 'AW-18295920582');
-              gtag('config', 'G-FB3G9V25SP');
-            `}
-          </Script>
+                  gtag('config', 'G-563X2HFRBC');
+                `}
+              </Script>
+            </>
+          ) : (
+            <>
+              <Script
+                src="https://www.googletagmanager.com/gtag/js?id=AW-18295920582"
+                strategy="afterInteractive"
+              />
+              <Script id="google-analytics" strategy="afterInteractive">
+                {`
+                  window.dataLayer = window.dataLayer || [];
+                  function gtag(){dataLayer.push(arguments);}
+                  gtag('js', new Date());
+
+                  gtag('config', 'AW-18295920582');
+                  gtag('config', 'G-FB3G9V25SP');
+                `}
+              </Script>
+            </>
+          )}
           <Toaster />
           <PWARegister />
           <BrandProvider brandName={brandName} brandDomain={brandDomain}>

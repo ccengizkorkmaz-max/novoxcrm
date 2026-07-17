@@ -72,7 +72,7 @@ export function Hero() {
                 </p>
 
                 {/* CTA Buttons */}
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20">
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
                     <LeadCaptureModal
                         title={t('demoTitle')}
                         description={t('demoDescription')}
@@ -91,6 +91,13 @@ export function Hero() {
                             {t('ctaSecondary')}
                         </Link>
                     </Button>
+                </div>
+
+                {/* Trust Rating Badge */}
+                <div className="flex justify-center items-center gap-1.5 mb-12 text-slate-400 text-sm">
+                    <span className="text-[#EF9F27]">★★★★★</span>
+                    <span className="text-white font-semibold">4.9 / 5</span>
+                    <span>(53+ Müşteri Değerlendirmesi)</span>
                 </div>
 
                 <HeroCarousel />

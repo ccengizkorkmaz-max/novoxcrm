@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { RegisterForm } from './RegisterForm'
 import { getBrandNameFromHost, getHostFromHeaders } from '@/lib/tenant/resolve-brand-from-host'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
