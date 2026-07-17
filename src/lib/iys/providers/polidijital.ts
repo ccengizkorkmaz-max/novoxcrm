@@ -1,8 +1,35 @@
 import { BaseIYSProvider, IYSConfig, IYSSyncResult } from './base';
 
+/**
+ * Poli Dijital İYS Provider
+ * 
+ * API Auth: x-api-key header → "username:token"
+ * Endpoint: {api_url}/api/iys/add-consent
+ * Docs: https://polidijital.izin.app/api/docs
+ * 
+ * consentType: 0 = ARAMA, 1 = MESAJ (SMS), 2 = EPOSTA
+ * recipientType: 0 = BIREYSEL, 1 = TACIR
+ * source: 6 = HS_WEB (Web üzerinden alınan izin)
+ * status: 1 = ONAY, 2 = RET
+ */
 export class PoliDijitalProvider extends BaseIYSProvider {
-    private getApiUrl(): string {
-        return this.config.api_url || 'https://api.poli.com.tr/v1'; // Poli Dijital API base
+    private getBaseUrl(): string {
+        return (this.config.api_url || 'https://polidijital.izin.app').replace(/\/+$/, '');
+    }
+
+    private getApiKey(): string {
+        const username = this.config.username || '';
+        const token = this.config.api_key || '';
+        return `${username}:${token}`;
+    }
+
+    private mapChannelToConsentType(channel: 'sms' | 'email' | 'call'): number {
+        switch (channel) {
+            case 'call': return 0;   // ARAMA
+            case 'sms': return 1;    // MESAJ
+            case 'email': return 2;  // EPOSTA
+            default: return 1;
+        }
     }
 
     async checkConsent(
@@ -10,34 +37,10 @@ export class PoliDijitalProvider extends BaseIYSProvider {
         channel: 'sms' | 'email' | 'call'
     ): Promise<{ consent: 'yes' | 'no' | 'unknown'; last_updated_at?: Date }> {
         try {
-            const url = `${this.getApiUrl()}/iys/status`;
-            console.log(`[PoliDijital] Querying consent status for ${phoneOrEmail} on ${url}`);
-            
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${this.config.api_key || ''}`
-                },
-                body: JSON.stringify({
-                    recipient: phoneOrEmail,
-                    channel: channel === 'email' ? 'EPOSTA' : (channel === 'sms' ? 'SMS' : 'ARAMA'),
-                    brand_code: this.config.brand_code,
-                    iys_code: this.config.iys_code
-                })
-            });
-
-            if (!response.ok) {
-                console.error(`[PoliDijital] Status check failed: ${response.statusText}`);
-                return { consent: 'unknown' };
-            }
-
-            const data = await response.json();
-            const status = data.status === 'ONAY' ? 'yes' : (data.status === 'RET' ? 'no' : 'unknown');
-            return {
-                consent: status,
-                last_updated_at: data.consentDate ? new Date(data.consentDate) : new Date()
-            };
+            // Poli Dijital doesn't have a dedicated status check endpoint in the provided docs.
+            // We use add-consent with status query or return unknown and rely on local DB.
+            console.log(`[PoliDijital] checkConsent for ${phoneOrEmail} (${channel}) — using local DB only`);
+            return { consent: 'unknown' };
         } catch (e) {
             console.error('[PoliDijital] Error checking consent:', e);
             return { consent: 'unknown' };
@@ -51,24 +54,30 @@ export class PoliDijitalProvider extends BaseIYSProvider {
         consentDate: Date
     ): Promise<IYSSyncResult> {
         try {
-            const url = `${this.getApiUrl()}/iys/consent`;
-            console.log(`[PoliDijital] Updating consent for ${phoneOrEmail} (${channel}) -> ${consent} on ${url}`);
+            const endpoint = this.config.consent_endpoint 
+                || `${this.getBaseUrl()}/api/iys/add-consent`;
 
-            const response = await fetch(url, {
+            console.log(`[PoliDijital] Updating consent for ${phoneOrEmail} (${channel}) -> ${consent} on ${endpoint}`);
+
+            const body = {
+                iysCode: Number(this.config.iys_code) || 111111,
+                brandCode: Number(this.config.brand_code) || 111111,
+                consentType: this.mapChannelToConsentType(channel),
+                recipientType: 1, // TACIR (B2B default — configurable if needed)
+                source: 6,        // HS_WEB
+                status: consent === 'yes' ? 1 : 2,  // 1=ONAY, 2=RET
+                list: [
+                    { recipient: phoneOrEmail }
+                ]
+            };
+
+            const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${this.config.api_key || ''}`
+                    'x-api-key': this.getApiKey(),
                 },
-                body: JSON.stringify({
-                    recipient: phoneOrEmail,
-                    channel: channel === 'email' ? 'EPOSTA' : (channel === 'sms' ? 'SMS' : 'ARAMA'),
-                    status: consent === 'yes' ? 'ONAY' : 'RET',
-                    consent_date: consentDate.toISOString(),
-                    brand_code: this.config.brand_code,
-                    iys_code: this.config.iys_code,
-                    source: 'HS_WEB'
-                })
+                body: JSON.stringify(body),
             });
 
             const raw_response = await response.text();
@@ -78,13 +87,15 @@ export class PoliDijitalProvider extends BaseIYSProvider {
             } catch(e) {}
 
             if (!response.ok) {
+                console.error(`[PoliDijital] API error ${response.status}:`, raw_response);
                 return {
                     success: false,
-                    error_message: parsedResponse.message || `API error: ${response.statusText}`,
+                    error_message: parsedResponse.message || parsedResponse.error || `API error: ${response.status} ${response.statusText}`,
                     raw_response: parsedResponse
                 };
             }
 
+            console.log(`[PoliDijital] Consent updated successfully for ${phoneOrEmail}`);
             return {
                 success: true,
                 raw_response: parsedResponse

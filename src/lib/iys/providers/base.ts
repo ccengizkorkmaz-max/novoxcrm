@@ -4,6 +4,8 @@ export interface IYSConfig {
     api_key?: string;
     brand_code?: string;
     iys_code?: string;
+    api_url?: string;
+    consent_endpoint?: string;
     [key: string]: any;
 }
 

@@ -23,6 +23,7 @@ interface IysSettingsTabProps {
             api_key?: string
             brand_code?: string
             iys_code?: string
+            consent_endpoint?: string
         } | null
         iys_sync_enabled?: boolean | null
     }
@@ -41,6 +42,7 @@ export default function IysSettingsTab({ tenant }: IysSettingsTabProps) {
     const [password, setPassword] = useState(config.password || '')
     const [brandCode, setBrandCode] = useState(config.brand_code || '')
     const [iysCode, setIysCode] = useState(config.iys_code || '')
+    const [consentEndpoint, setConsentEndpoint] = useState(config.consent_endpoint || '')
     const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null)
 
     const isConfigured = !!apiUrl && !!apiKey && !!brandCode && !!iysCode
@@ -58,6 +60,7 @@ export default function IysSettingsTab({ tenant }: IysSettingsTabProps) {
                     api_key: apiKey,
                     brand_code: brandCode,
                     iys_code: iysCode,
+                    consent_endpoint: consentEndpoint,
                 }
             })
             if (result?.error) {
@@ -246,6 +249,19 @@ export default function IysSettingsTab({ tenant }: IysSettingsTabProps) {
                             </div>
                         </div>
 
+                        {/* Consent Endpoint */}
+                        <div className="space-y-2">
+                            <Label htmlFor="iys_consent_endpoint">İzin Gönderim Endpoint</Label>
+                            <Input
+                                id="iys_consent_endpoint"
+                                value={consentEndpoint}
+                                onChange={(e) => setConsentEndpoint(e.target.value)}
+                                placeholder="https://polidijital.izin.app/api/iys/add-consent"
+                            />
+                            <p className="text-xs text-muted-foreground">
+                                İzin onay/ret bilgilerinin gönderileceği API endpoint adresi.
+                            </p>
+                        </div>
                         {/* Test Result */}
                         {testResult && (
                             <div className={`flex items-center gap-2 p-3 rounded-lg text-sm ${testResult.success ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>

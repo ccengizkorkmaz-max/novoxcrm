@@ -13,6 +13,7 @@ interface IysSettingsPayload {
         api_key?: string
         brand_code?: string
         iys_code?: string
+        consent_endpoint?: string
     }
 }
 
