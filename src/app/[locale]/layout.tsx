@@ -4,7 +4,6 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "../globals.css";
 import { Toaster } from 'sonner';
-import Script from 'next/script';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import { notFound } from 'next/navigation';
@@ -104,44 +103,48 @@ export default async function RootLayout({
   const brandDomain = host.split(':')[0];
   return (
     <html lang={locale} suppressHydrationWarning data-ui-style="spatial">
+      <head>
+        {brandName === 'Oikos CRM' ? (
+          <>
+            <script
+              async
+              src="https://www.googletagmanager.com/gtag/js?id=G-563X2HFRBC"
+            />
+            <script
+              dangerouslySetInnerHTML={{
+                __html: `
+                  window.dataLayer = window.dataLayer || [];
+                  function gtag(){dataLayer.push(arguments);}
+                  gtag('js', new Date());
+                  gtag('config', 'G-563X2HFRBC');
+                `
+              }}
+            />
+          </>
+        ) : (
+          <>
+            <script
+              async
+              src="https://www.googletagmanager.com/gtag/js?id=AW-18295920582"
+            />
+            <script
+              dangerouslySetInnerHTML={{
+                __html: `
+                  window.dataLayer = window.dataLayer || [];
+                  function gtag(){dataLayer.push(arguments);}
+                  gtag('js', new Date());
+                  gtag('config', 'AW-18295920582');
+                  gtag('config', 'G-FB3G9V25SP');
+                `
+              }}
+            />
+          </>
+        )}
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <NextIntlClientProvider messages={messages} locale={locale}>
-          {brandName === 'Oikos CRM' ? (
-            <>
-              <Script
-                src="https://www.googletagmanager.com/gtag/js?id=G-563X2HFRBC"
-                strategy="afterInteractive"
-              />
-              <Script id="oikos-google-analytics" strategy="afterInteractive">
-                {`
-                  window.dataLayer = window.dataLayer || [];
-                  function gtag(){dataLayer.push(arguments);}
-                  gtag('js', new Date());
-
-                  gtag('config', 'G-563X2HFRBC');
-                `}
-              </Script>
-            </>
-          ) : (
-            <>
-              <Script
-                src="https://www.googletagmanager.com/gtag/js?id=AW-18295920582"
-                strategy="afterInteractive"
-              />
-              <Script id="google-analytics" strategy="afterInteractive">
-                {`
-                  window.dataLayer = window.dataLayer || [];
-                  function gtag(){dataLayer.push(arguments);}
-                  gtag('js', new Date());
-
-                  gtag('config', 'AW-18295920582');
-                  gtag('config', 'G-FB3G9V25SP');
-                `}
-              </Script>
-            </>
-          )}
           <Toaster />
           <PWARegister />
           <BrandProvider brandName={brandName} brandDomain={brandDomain}>
