@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { PasswordInput } from '@/components/ui/password-input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { saveEmailAccount } from '../actions'
@@ -163,7 +164,7 @@ export function EmailAccountFormModal({ isOpen, onClose, account }: { isOpen: bo
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="smtp_password">Şifre</Label>
-                                    <Input id="smtp_password" type="password" value={smtpPassword} onChange={e => setSmtpPassword(e.target.value)} />
+                                    <PasswordInput id="smtp_password" value={smtpPassword} onChange={e => setSmtpPassword(e.target.value)} />
                                 </div>
                             </div>
                         </TabsContent>
@@ -218,7 +219,7 @@ export function EmailAccountFormModal({ isOpen, onClose, account }: { isOpen: bo
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="incoming_password">Şifre</Label>
-                                    <Input id="incoming_password" type="password" value={incomingPassword} onChange={e => setIncomingPassword(e.target.value)} />
+                                    <PasswordInput id="incoming_password" value={incomingPassword} onChange={e => setIncomingPassword(e.target.value)} />
                                 </div>
                             </div>
                         </TabsContent>

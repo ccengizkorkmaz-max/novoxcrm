@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { PasswordInput } from '@/components/ui/password-input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
@@ -182,10 +183,9 @@ export default function SmsSettingsTab({ tenant }: SmsSettingsTabProps) {
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="sms_api_password">API Şifresi</Label>
-                                    <Input
+                                    <PasswordInput
                                         id="sms_api_password"
                                         name="sms_api_password"
-                                        type="password"
                                         value={smsApiPassword}
                                         onChange={(e) => setSmsApiPassword(e.target.value)}
                                         placeholder="Şifreniz..."

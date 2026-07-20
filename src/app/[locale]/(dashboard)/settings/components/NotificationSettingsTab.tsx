@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { PasswordInput } from '@/components/ui/password-input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -117,16 +118,14 @@ export default function NotificationSettingsTab({ settings }: NotificationSettin
                                 </div>
                                 <div className="grid gap-2">
                                     <Label>API Key / Kullanıcı Adı</Label>
-                                    <Input
-                                        type="password"
+                                    <PasswordInput
                                         value={formData.sms_api_key}
                                         onChange={(e) => setFormData({ ...formData, sms_api_key: e.target.value })}
                                     />
                                 </div>
                                 <div className="grid gap-2">
                                     <Label>API Secret / Şifre</Label>
-                                    <Input
-                                        type="password"
+                                    <PasswordInput
                                         value={formData.sms_api_secret}
                                         onChange={(e) => setFormData({ ...formData, sms_api_secret: e.target.value })}
                                     />

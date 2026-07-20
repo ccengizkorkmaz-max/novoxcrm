@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { PasswordInput } from '@/components/ui/password-input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
@@ -197,9 +198,8 @@ export default function IysSettingsTab({ tenant }: IysSettingsTabProps) {
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="iys_api_key">API Token</Label>
-                                <Input
+                                <PasswordInput
                                     id="iys_api_key"
-                                    type="password"
                                     value={apiKey}
                                     onChange={(e) => setApiKey(e.target.value)}
                                     placeholder="••••••••••••"
@@ -219,9 +219,8 @@ export default function IysSettingsTab({ tenant }: IysSettingsTabProps) {
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="iys_password">Panel Şifresi</Label>
-                                <Input
+                                <PasswordInput
                                     id="iys_password"
-                                    type="password"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     placeholder="••••••••••••"

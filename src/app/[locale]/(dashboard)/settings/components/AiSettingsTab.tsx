@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { PasswordInput } from '@/components/ui/password-input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
@@ -137,10 +138,9 @@ export default function AiSettingsTab({ tenant }: AiSettingsTabProps) {
                                         </span>
                                     )}
                                 </div>
-                                <Input
+                                <PasswordInput
                                     id="openai_api_key"
                                     name="openai_api_key"
-                                    type="password"
                                     defaultValue={tenant.openai_api_key || ''}
                                     placeholder="sk-..."
                                     className="bg-white"
@@ -199,10 +199,9 @@ export default function AiSettingsTab({ tenant }: AiSettingsTabProps) {
                                         </span>
                                     )}
                                 </div>
-                                <Input
+                                <PasswordInput
                                     id="gemini_api_key"
                                     name="gemini_api_key"
-                                    type="password"
                                     defaultValue={tenant.gemini_api_key || ''}
                                     placeholder="AIzaSy..."
                                     className="bg-white"
@@ -283,10 +282,9 @@ export default function AiSettingsTab({ tenant }: AiSettingsTabProps) {
                                         </span>
                                     )}
                                 </div>
-                                <Input
+                                <PasswordInput
                                     id="wa_access_token"
                                     name="wa_access_token"
-                                    type="password"
                                     defaultValue={tenant.wa_access_token || ''}
                                     placeholder="EAAG..."
                                     className="bg-white"

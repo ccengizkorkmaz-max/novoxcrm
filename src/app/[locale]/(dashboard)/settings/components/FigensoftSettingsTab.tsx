@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { PasswordInput } from '@/components/ui/password-input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -101,10 +102,9 @@ export default function FigensoftSettingsTab({ tenant }: FigensoftSettingsTabPro
                                         </span>
                                     )}
                                 </div>
-                                <Input
+                                <PasswordInput
                                     id="figensoft_password"
                                     name="figensoft_password"
-                                    type="password"
                                     defaultValue={tenant.figensoft_password || ''}
                                     placeholder="••••••••"
                                     className="bg-white"
