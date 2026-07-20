@@ -19,8 +19,8 @@ function extractCallIdFromVapiStore(url: string): string | null {
     }
   }
 
-  // 2. If it's storage.vapi.ai
-  if (url.includes('storage.vapi.ai')) {
+  // 2. If it's storage.vapi.ai or cloudflarestorage.com
+  if (url.includes('storage.vapi.ai') || url.includes('cloudflarestorage.com')) {
     const parts = url.split('/');
     const filename = parts[parts.length - 1];
     if (filename) {
