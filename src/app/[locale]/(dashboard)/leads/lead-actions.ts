@@ -453,15 +453,24 @@ export async function getLeadActivities(leadId: string) {
         return { success: false, error: actErr.message }
     }
 
-    const combined = (activities || []).map(a => ({
-        id: a.id,
-        type: a.type,
-        summary: a.summary,
-        notes: a.notes,
-        created_at: a.created_at,
-        call_recording_url: a.call_recording_url,
-        user_name: a.profiles?.full_name || 'Sistem'
-    })).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    const combined = (activities || []).map(a => {
+        const recordingMatch = a.description?.match(/(?:\[RECORDING\]:|🎙️ Kayıt:)\s*(https?:\/\/[^\s]+)/);
+        const call_recording_url = recordingMatch ? recordingMatch[1] : a.call_recording_url;
+
+        const callIdMatch = a.description?.match(/\[Call\s+ID:\s*([^\]]+)\]/i);
+        const vapi_call_id = callIdMatch ? callIdMatch[1].trim() : null;
+
+        return {
+            id: a.id,
+            type: a.type,
+            summary: a.summary,
+            notes: a.notes || a.description,
+            created_at: a.created_at,
+            call_recording_url: call_recording_url,
+            vapi_call_id: vapi_call_id,
+            user_name: a.profiles?.full_name || 'Sistem'
+        };
+    }).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 
     return { success: true, activities: combined }
 }

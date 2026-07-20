@@ -28,6 +28,7 @@ import { AiSignalBadge } from "@/components/ui/ai-signal-badge"
 import { LeadScoreBadge } from "@/components/customers/LeadScoreBadge"
 import ColumnVisibilityPicker from '@/components/ui/column-visibility-picker'
 import { toast } from 'sonner'
+import { getVapiRecordingUrl } from '@/lib/utils'
 import dynamic from 'next/dynamic'
 import * as XLSX from 'xlsx'
 import { ActivityForm } from '@/components/activities/activity-form'
@@ -1638,7 +1639,7 @@ export default function LeadsPageClient({ leads, teamMembers, projects, userRole
                                                                     </span>
                                                                 )}
                                                             </div>
-                                                            <audio src={act.call_recording_url} controls className="w-full h-8 max-w-full rounded-md shadow-xs bg-slate-50 dark:bg-slate-900" />
+                                                            <audio src={getVapiRecordingUrl(act.call_recording_url, act.vapi_call_id)} controls className="w-full h-8 max-w-full rounded-md shadow-xs bg-slate-50 dark:bg-slate-900" />
                                                         </div>
                                                     )}
                                                 </div>

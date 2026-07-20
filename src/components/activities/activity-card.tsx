@@ -24,7 +24,7 @@ import { useTranslations, useLocale } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { cancelActivity, deleteActivity } from '@/app/[locale]/(dashboard)/crm/activities/actions'
 import { toast } from 'sonner'
-import { cn } from "@/lib/utils"
+import { cn, getVapiRecordingUrl } from "@/lib/utils"
 import { MiniAudioPlayer } from "@/components/ui/mini-audio-player"
 
 export interface Activity {
@@ -242,9 +242,13 @@ export function ActivityCard({ activity, customers, profiles, projects, onComple
                         })()}
                         {(() => {
                             const recordingMatch = activity.description?.match(/(?:\[RECORDING\]:|🎙️ Kayıt:)\s*(https?:\/\/[^\s]+)/)
-                            const recUrl = recordingMatch ? recordingMatch[1] : activity.call_recording_url
+                            const rawRecUrl = recordingMatch ? recordingMatch[1] : activity.call_recording_url
                             
-                            if (!recUrl) return null;
+                            if (!rawRecUrl) return null;
+                            
+                            const callIdMatch = activity.description?.match(/\[Call\s+ID:\s*([^\]]+)\]/i)
+                            const callId = callIdMatch ? callIdMatch[1].trim() : undefined
+                            const recUrl = getVapiRecordingUrl(rawRecUrl, callId)
                             
                             return (
                                 <div className="mt-2 mb-2" onClick={(e) => e.stopPropagation()}>
@@ -390,9 +394,13 @@ export function ActivityCard({ activity, customers, profiles, projects, onComple
 
                         {(() => {
                             const recordingMatch = activity.description?.match(/(?:\[RECORDING\]:|🎙️ Kayıt:)\s*(https?:\/\/[^\s]+)/)
-                            const recUrl = recordingMatch ? recordingMatch[1] : activity.call_recording_url
+                            const rawRecUrl = recordingMatch ? recordingMatch[1] : activity.call_recording_url
                             
-                            if (!recUrl) return null;
+                            if (!rawRecUrl) return null;
+                            
+                            const callIdMatch = activity.description?.match(/\[Call\s+ID:\s*([^\]]+)\]/i)
+                            const callId = callIdMatch ? callIdMatch[1].trim() : undefined
+                            const recUrl = getVapiRecordingUrl(rawRecUrl, callId)
                             
                             return (
                                 <div>

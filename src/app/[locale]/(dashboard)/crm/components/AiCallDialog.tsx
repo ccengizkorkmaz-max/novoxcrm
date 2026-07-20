@@ -29,6 +29,7 @@ import {
 import { getAiCallModalData, initiateAiCall, getCallDetails, stopAiCall, syncCallResult } from '../actions'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
+import { getVapiRecordingUrl } from '@/lib/utils'
 
 interface AiCallDialogProps {
     saleId?: string | null
@@ -442,7 +443,7 @@ export default function AiCallDialog({ saleId = null, leadId = null, onClose }: 
                                             <Volume2 className="h-3.5 w-3.5 text-slate-500 animate-pulse" /> Ses Kaydı
                                         </span>
                                         <audio 
-                                            src={recordingUrl} 
+                                            src={getVapiRecordingUrl(recordingUrl, callId)} 
                                             controls 
                                             className="w-full h-8 outline-none bg-slate-50 rounded"
                                         />
