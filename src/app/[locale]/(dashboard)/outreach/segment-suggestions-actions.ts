@@ -30,27 +30,43 @@ export async function generateSegmentSuggestions(tenantId: string): Promise<Segm
         .select('id, customer_id, created_at, status')
         .eq('tenant_id', tenantId)
         .not('status', 'in', '("lost","cancelled")')
-        .limit(1000)
+        .limit(10000)
 
     if (allSales && allSales.length > 0) {
         const customerIds = [...new Set(allSales.map(s => s.customer_id).filter(Boolean))]
 
-        // Get recent activity per customer
-        const { data: recentActivities } = await supabase
-            .from('activities')
-            .select('customer_id, created_at')
-            .in('customer_id', customerIds.slice(0, 200))
-            .gte('created_at', twoWeeksAgo.toISOString())
+        // Helper to chunk array for .in() queries to avoid query length limits
+        const chunkArray = <T>(arr: T[], size: number): T[][] => {
+            const chunks: T[][] = []
+            for (let i = 0; i < arr.length; i += size) {
+                chunks.push(arr.slice(i, i + size))
+            }
+            return chunks
+        }
 
+        // Get recent activity per customer
+        const custChunks = chunkArray(customerIds, 500)
+        const activityPromises = custChunks.map(chunk =>
+            supabase
+                .from('activities')
+                .select('customer_id')
+                .in('customer_id', chunk)
+                .gte('created_at', twoWeeksAgo.toISOString())
+        )
+        const activityResults = await Promise.all(activityPromises)
+        const recentActivities = activityResults.flatMap(r => r.data || [])
         const activeCustomerIds = new Set((recentActivities || []).map(a => a.customer_id))
 
         // Get recent outreach per customer
-        const { data: recentOutreach } = await supabase
-            .from('outreach_step_logs')
-            .select('customer_id')
-            .in('customer_id', customerIds.slice(0, 200))
-            .gte('executed_at', twoWeeksAgo.toISOString())
-
+        const outreachPromises = custChunks.map(chunk =>
+            supabase
+                .from('outreach_step_logs')
+                .select('customer_id')
+                .in('customer_id', chunk)
+                .gte('executed_at', twoWeeksAgo.toISOString())
+        )
+        const outreachResults = await Promise.all(outreachPromises)
+        const recentOutreach = outreachResults.flatMap(r => r.data || [])
         const outreachedCustomerIds = new Set((recentOutreach || []).map(o => o.customer_id))
 
         const silentLeads = customerIds.filter(id =>
@@ -69,26 +85,34 @@ export async function generateSegmentSuggestions(tenantId: string): Promise<Segm
                 icon: '🔇',
                 segmentFilter: {
                     type: 'silent_leads',
-                    conditions: { no_activity_days: 14, customer_ids: silentLeads.slice(0, 50) }
+                    conditions: { no_activity_days: 14, customer_ids: silentLeads }
                 }
             })
         }
 
         // 2. Yüksek AI skorlu ama aranmamış
-        const { data: highScoreCustomers } = await supabase
-            .from('customers')
-            .select('id, full_name, ai_purchase_score')
-            .in('id', customerIds.slice(0, 200))
-            .gte('ai_purchase_score', 60)
+        const scorePromises = custChunks.map(chunk =>
+            supabase
+                .from('customers')
+                .select('id, full_name, ai_purchase_score')
+                .in('id', chunk)
+                .gte('ai_purchase_score', 60)
+        )
+        const scoreResults = await Promise.all(scorePromises)
+        const highScoreCustomers = scoreResults.flatMap(r => r.data || [])
 
         if (highScoreCustomers && highScoreCustomers.length > 0) {
-            // Check which ones have NOT been called recently
-            const { data: recentCalls } = await supabase
-                .from('outreach_step_logs')
-                .select('customer_id')
-                .in('customer_id', highScoreCustomers.map(c => c.id))
-                .eq('channel', 'ai_call')
-                .gte('executed_at', twoWeeksAgo.toISOString())
+            const hsChunks = chunkArray(highScoreCustomers.map(c => c.id), 500)
+            const callPromises = hsChunks.map(chunk =>
+                supabase
+                    .from('outreach_step_logs')
+                    .select('customer_id')
+                    .in('customer_id', chunk)
+                    .eq('channel', 'ai_call')
+                    .gte('executed_at', twoWeeksAgo.toISOString())
+            )
+            const callResults = await Promise.all(callPromises)
+            const recentCalls = callResults.flatMap(r => r.data || [])
 
             const calledIds = new Set((recentCalls || []).map(c => c.customer_id))
             const uncalledHighScore = highScoreCustomers.filter(c => !calledIds.has(c.id))
@@ -105,7 +129,7 @@ export async function generateSegmentSuggestions(tenantId: string): Promise<Segm
                     icon: '🔥',
                     segmentFilter: {
                         type: 'high_score_uncalled',
-                        conditions: { min_score: 60, customer_ids: uncalledHighScore.map(c => c.id).slice(0, 50) }
+                        conditions: { min_score: 60, customer_ids: uncalledHighScore.map(c => c.id) }
                     }
                 })
             }
@@ -125,15 +149,27 @@ export async function generateSegmentSuggestions(tenantId: string): Promise<Segm
 
     if (unansweredCalls && unansweredCalls.length > 0) {
         const unansweredIds = [...new Set(unansweredCalls.map(c => c.customer_id).filter(Boolean))]
+        const chunkArray = <T>(arr: T[], size: number): T[][] => {
+            const chunks: T[][] = []
+            for (let i = 0; i < arr.length; i += size) {
+                chunks.push(arr.slice(i, i + size))
+            }
+            return chunks
+        }
+        const uChunks = chunkArray(unansweredIds, 500)
 
         // Exclude those who were answered later
-        const { data: answeredLater } = await supabase
-            .from('outreach_step_logs')
-            .select('customer_id')
-            .in('customer_id', unansweredIds.slice(0, 200))
-            .eq('channel', 'ai_call')
-            .in('call_outcome', ['answered', 'completed', 'interested'])
-            .gte('executed_at', oneWeekAgo.toISOString())
+        const answeredPromises = uChunks.map(chunk =>
+            supabase
+                .from('outreach_step_logs')
+                .select('customer_id')
+                .in('customer_id', chunk)
+                .eq('channel', 'ai_call')
+                .in('call_outcome', ['answered', 'completed', 'interested'])
+                .gte('executed_at', oneWeekAgo.toISOString())
+        )
+        const answeredResults = await Promise.all(answeredPromises)
+        const answeredLater = answeredResults.flatMap(r => r.data || [])
 
         const answeredSet = new Set((answeredLater || []).map(a => a.customer_id))
         const stillUnanswered = unansweredIds.filter(id => !answeredSet.has(id))
@@ -150,7 +186,7 @@ export async function generateSegmentSuggestions(tenantId: string): Promise<Segm
                 icon: '📞',
                 segmentFilter: {
                     type: 'retry_unanswered',
-                    conditions: { call_outcome: 'no_answer', customer_ids: stillUnanswered.slice(0, 50) }
+                    conditions: { call_outcome: 'no_answer', customer_ids: stillUnanswered }
                 }
             })
         }
@@ -179,7 +215,7 @@ export async function generateSegmentSuggestions(tenantId: string): Promise<Segm
             icon: '💬',
             segmentFilter: {
                 type: 'wa_responded',
-                conditions: { customer_ids: respondedIds.slice(0, 50) }
+                conditions: { customer_ids: respondedIds }
             }
         })
     }
@@ -193,7 +229,7 @@ export async function generateSegmentSuggestions(tenantId: string): Promise<Segm
         .eq('tenant_id', tenantId)
         .not('status', 'in', '("lost","cancelled","won")')
         .lte('created_at', thirtyDaysAgo.toISOString())
-        .limit(200)
+        .limit(10000)
 
     if (oldLeads && oldLeads.length >= 10) {
         const oldIds = [...new Set(oldLeads.map(l => l.customer_id).filter(Boolean))]
@@ -209,7 +245,7 @@ export async function generateSegmentSuggestions(tenantId: string): Promise<Segm
             icon: '⏰',
             segmentFilter: {
                 type: 'aging_leads',
-                conditions: { min_age_days: 30, customer_ids: oldIds.slice(0, 50) }
+                conditions: { min_age_days: 30, customer_ids: oldIds }
             }
         })
     }
@@ -505,8 +541,8 @@ export async function launchSuggestedCampaign(payload: {
             working_hours_start: '09:00',
             working_hours_end: '18:00',
             working_days: [1, 2, 3, 4, 5],
-            max_leads_per_day: 100,
-            batch_size: 30,
+            max_leads_per_day: 5000,
+            batch_size: 100,
             batch_interval_seconds: 60,
             stop_on_customer_response: true
         })
