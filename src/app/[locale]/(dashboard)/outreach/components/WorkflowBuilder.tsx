@@ -690,10 +690,17 @@ function WhatsAppStepConfig({ c, onConfigChange }: {
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        getWhatsAppTemplates().then(res => {
-            setTemplates(res)
-            setLoading(false)
-        }).catch(() => setLoading(false))
+        getWhatsAppTemplates()
+            .then(res => {
+                if (Array.isArray(res)) {
+                    setTemplates(res)
+                }
+                setLoading(false)
+            })
+            .catch(err => {
+                console.error('Failed to load WA templates:', err)
+                setLoading(false)
+            })
     }, [])
 
     const selected = templates.find(t => t.name === c.template_name)
@@ -702,17 +709,23 @@ function WhatsAppStepConfig({ c, onConfigChange }: {
         <div className="space-y-2">
             <div>
                 <Label className="text-[10px]">WhatsApp Şablonu (Meta Onaylı)</Label>
-                <Select value={c.template_name || ''} onValueChange={v => onConfigChange('template_name', v)}>
+                <Select value={c.template_name || undefined} onValueChange={v => onConfigChange('template_name', v)}>
                     <SelectTrigger className="h-7 text-[11px]">
                         <SelectValue placeholder={loading ? 'Şablonlar yükleniyor...' : 'Şablon seç...'} />
                     </SelectTrigger>
-                    <SelectContent>
-                        {templates.map(t => (
-                            <SelectItem key={t.name} value={t.name}>
-                                <span className="font-medium">{t.name}</span>
-                                {t.status && <span className="ml-2 text-[9px] text-muted-foreground">({t.status})</span>}
+                    <SelectContent position="popper" className="max-h-60 z-[9999]">
+                        {templates.length === 0 ? (
+                            <SelectItem value="_empty" disabled>
+                                {loading ? 'Şablonlar yükleniyor...' : 'Şablon bulunamadı'}
                             </SelectItem>
-                        ))}
+                        ) : (
+                            templates.map(t => (
+                                <SelectItem key={t.name} value={t.name}>
+                                    <span className="font-medium">{t.name}</span>
+                                    {t.status && <span className="ml-2 text-[9px] text-muted-foreground">({t.status})</span>}
+                                </SelectItem>
+                            ))
+                        )}
                     </SelectContent>
                 </Select>
             </div>

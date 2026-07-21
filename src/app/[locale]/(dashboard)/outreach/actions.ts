@@ -826,17 +826,19 @@ export async function getWhatsAppTemplates() {
     let ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN
     const WABA_ID = process.env.WHATSAPP_BUSINESS_ACCOUNT_ID
 
-    if (!PHONE_ID || !ACCESS_TOKEN) return []
-    ACCESS_TOKEN = ACCESS_TOKEN.replace(/[\r\n"\s]+/g, '')
+    if (ACCESS_TOKEN) {
+        ACCESS_TOKEN = ACCESS_TOKEN.replace(/[\r\n"\s]+/g, '')
+    }
 
-    // WABA_ID varsa direkt API'den çek
-    if (WABA_ID) {
+    // 1. WABA_ID ve ACCESS_TOKEN varsa Meta API'den çek
+    if (WABA_ID && ACCESS_TOKEN) {
         try {
             const res = await fetch(
-                `https://graph.facebook.com/v21.0/${WABA_ID}/message_templates?fields=name,status,components&limit=100&access_token=${ACCESS_TOKEN}`
+                `https://graph.facebook.com/v21.0/${WABA_ID}/message_templates?fields=name,status,components&limit=100&access_token=${ACCESS_TOKEN}`,
+                { next: { revalidate: 60 } }
             )
             const data = await res.json()
-            if (data.data) {
+            if (data.data && Array.isArray(data.data) && data.data.length > 0) {
                 return data.data
                     .filter((t: any) => t.status === 'APPROVED')
                     .map((t: any) => {
@@ -846,27 +848,44 @@ export async function getWhatsAppTemplates() {
                     })
                     .sort((a: any, b: any) => a.name.localeCompare(b.name))
             }
-        } catch { /* fallthrough */ }
+        } catch (err) {
+            console.error('[getWhatsAppTemplates] Meta API error:', err)
+        }
     }
 
-    // Fallback: DB'deki kayıtlı şablon listesi
-    const { tenantId } = await getAuthContext()
-    const supabase = createAdminClient()
-    const { data: tenant } = await supabase
-        .from('tenants')
-        .select('wa_template_list')
-        .eq('id', tenantId)
-        .single()
+    // 2. Fallback: DB'deki kayıtlı şablon listesi
+    try {
+        const { tenantId } = await getAuthContext()
+        if (tenantId) {
+            const supabase = createAdminClient()
+            const { data: tenant } = await supabase
+                .from('tenants')
+                .select('wa_template_list')
+                .eq('id', tenantId)
+                .single()
 
-    if (tenant?.wa_template_list && Array.isArray(tenant.wa_template_list)) {
-        return tenant.wa_template_list
+            if (tenant?.wa_template_list && Array.isArray(tenant.wa_template_list) && tenant.wa_template_list.length > 0) {
+                return tenant.wa_template_list
+            }
+        }
+    } catch {
+        /* Auth/DB error ignore, return fallback list */
     }
 
-    // Son çare: hardcoded mevcut şablonlar
+    // 3. Son çare: Yaygın ve aktif Meta onaylı varsayılan şablonlar
     return [
-        { name: 'novo_talep_alindi', status: 'APPROVED', body: 'Merhaba {{1}}, talebiniz alındı. En kısa sürede sizinle iletişime geçeceğiz.', params: 1 },
+        { name: 'novo_talep_alindi', status: 'APPROVED', body: 'Merhaba {{1}}, {{2}} hakkındaki talebiniz alınmıştır.', params: 2 },
         { name: 'novo_izmir_versiyon_a', status: 'APPROVED', body: 'Merhaba {{customer_name}}, NOVO City İzmir projemiz için talep bırakmıştınız...', params: 1 },
-        { name: 'novo_kampanya_genel_v2', status: 'APPROVED', body: 'Merhaba {{customer_name}}, {{project_name}} projemizdeki yeni fırsatlarla ilgilenir misiniz?', params: 2 },
+        { name: 'novo_izmir_versiyon_b', status: 'APPROVED', body: 'Merhaba {{customer_name}}, NOVO City İzmir Projemizde ön lansman fiyatları aktif...', params: 1 },
+        { name: 'novo_kampanya_genel_v2', status: 'APPROVED', body: 'Merhaba {{1}} 👋 Novo Şirketler Grubu projeleri hakkında bilgi...', params: 1 },
+        { name: 'novo_kampanya_izmir_v2', status: 'APPROVED', body: 'Merhaba {{1}} 👋 Novo City Izmir projemiz hakkinda bilgi almistiniz.', params: 1 },
+        { name: 'novo_kampanya_etili_v2', status: 'APPROVED', body: 'Merhaba {{1}} 👋 Novo Park 1 Etili projemiz hakkinda bilgi almistiniz.', params: 1 },
+        { name: 'novo_kampanya_kocaeli_v2', status: 'APPROVED', body: 'Merhaba {{1}} 👋 Novo Park 4 Kocaeli projemiz hakkinda bilgi almistiniz.', params: 1 },
+        { name: 'novo_kampanya_vista_v2', status: 'APPROVED', body: 'Merhaba {{1}} 👋 Novo Park Vista projemiz hakkinda bilgi almistiniz.', params: 1 },
+        { name: 'novo_kampanya_montenegro_v2', status: 'APPROVED', body: 'Merhaba {{1}} 👋 Novo Park Montenegro projemiz hakkinda bilgi almistiniz.', params: 1 },
+        { name: 'novo_kampanya_yalova_v2', status: 'APPROVED', body: 'Merhaba {{1}} 👋 Novo Park 2 Yalova projemiz hakkinda bilgi almistiniz.', params: 1 },
+        { name: 'hot_lead_notification', status: 'APPROVED', body: '👤 Müşteri: {{1}}\n📞 Telefon: {{2}}\n⏰ Zaman: {{3}}\n📋 Özet: {{4}}', params: 4 },
+        { name: 'novo_takip_cicek_butonlu', status: 'APPROVED', body: 'Merhaba {{1}}, Novo İnşaat’tan Maya ben. Kampanya dönemi başlattık...', params: 1 },
     ]
 }
 
