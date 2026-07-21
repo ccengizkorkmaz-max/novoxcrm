@@ -2866,20 +2866,20 @@ export async function startWorkflowForLeads(workflowId: string, leadIds: string[
     // In-batch deduplication: Collapse duplicate customer/lead IDs within this batch
     const seenIds = new Set<string>()
     const newLeads = newLeadsFiltered.filter(l => {
-        const id = isLeadsSource ? l.lead_id : l.customer_id
+        const id = l.lead_id || l.customer_id
         if (!id) return false
         if (seenIds.has(id)) return false
         seenIds.add(id)
         return true
     })
 
-    if (!newLeads.length) return { started: 0, skipped: existingIds.size }
+    if (!newLeads.length) return { started: 0, skipped: existingCustIds.size + existingLeadIds.size }
 
     // Create executions
     const executions = newLeads.map(lead => ({
         tenant_id: tenantId,
         workflow_id: workflowId,
-        sale_id: (isLqSource || isLeadsSource) ? null : lead.id,
+        sale_id: (lead.lead_id || !lead.customer_id) ? null : (salesIds.includes(lead.id) ? lead.id : null),
         customer_id: lead.customer_id,
         lead_id: lead.lead_id,
         current_step_id: firstStep.id,
@@ -2896,7 +2896,7 @@ export async function startWorkflowForLeads(workflowId: string, leadIds: string[
         .update({ total_executions: (await supabase.from('outreach_executions').select('id', { count: 'exact', head: true }).eq('workflow_id', workflowId)).count || 0 })
         .eq('id', workflowId)
 
-    return { started: newLeads.length, skipped: existingIds.size }
+    return { started: newLeads.length, skipped: existingCustIds.size + existingLeadIds.size }
 }
 
 // ─── Helpers ─────────────────────────────────────────────────
