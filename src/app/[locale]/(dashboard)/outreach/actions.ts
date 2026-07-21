@@ -379,6 +379,66 @@ export async function updateWorkflow(id: string, payload: Partial<{
     return { success: true }
 }
 
+export async function saveWorkflowAll(
+    workflowId: string,
+    workflowPayload: any,
+    steps: any[],
+    deletedStepIds: string[]
+) {
+    const { supabase } = await getAuthContext()
+
+    // 1. Update workflow
+    const { error: wfError } = await supabase.from('outreach_workflows')
+        .update({ ...workflowPayload, updated_at: new Date().toISOString() })
+        .eq('id', workflowId)
+    if (wfError) return { error: 'Workflow güncellenemedi: ' + wfError.message }
+
+    // 2. Delete removed steps
+    if (deletedStepIds.length > 0) {
+        const { error: delError } = await supabase.from('outreach_steps')
+            .delete()
+            .in('id', deletedStepIds)
+        if (delError) return { error: 'Adım silme hatası: ' + delError.message }
+    }
+
+    // 3. Upsert steps
+    for (const s of steps) {
+        if (s.id.startsWith('temp-')) {
+            const { error: insError } = await supabase.from('outreach_steps')
+                .insert({
+                    workflow_id: workflowId,
+                    is_active: true,
+                    step_order: s.step_order,
+                    name: s.name,
+                    action_type: s.action_type,
+                    config: s.config,
+                    on_success: s.on_success,
+                    on_failure: s.on_failure,
+                    next_step_id_on_success: s.next_step_id_on_success,
+                    next_step_id_on_failure: s.next_step_id_on_failure,
+                })
+            if (insError) return { error: 'Yeni adım eklenemedi: ' + insError.message }
+        } else {
+            const { error: updError } = await supabase.from('outreach_steps')
+                .update({
+                    step_order: s.step_order,
+                    name: s.name,
+                    config: s.config,
+                    on_success: s.on_success,
+                    on_failure: s.on_failure,
+                    next_step_id_on_success: s.next_step_id_on_success,
+                    next_step_id_on_failure: s.next_step_id_on_failure,
+                })
+                .eq('id', s.id)
+            if (updError) return { error: 'Adım güncellenemedi: ' + updError.message }
+        }
+    }
+
+    // 4. Revalidate once
+    revalidatePath('/outreach')
+    return { success: true }
+}
+
 export async function toggleWorkflow(id: string, isActive: boolean) {
     return updateWorkflow(id, { is_active: isActive })
 }
@@ -1079,30 +1139,28 @@ export async function getWorkflowMonitor(workflowId: string, page: number = 1) {
         })
     }
 
-    // 2. Get total counts by status (always full, paginated to avoid 1000 limit)
+    // 2. Get total counts by status (always full, paginated in parallel to avoid 1000 limit)
+    const { count: totalExecsCount } = await adminDb.from('outreach_executions')
+        .select('id', { count: 'exact', head: true })
+        .eq('workflow_id', workflowId)
+
     const allExecs: any[] = []
-    let fromExec = 0
-    let hasMoreExecs = true
-    while (hasMoreExecs && allExecs.length < 50000) {
-        const { data: chunk, error } = await adminDb.from('outreach_executions')
-            .select('status, customer_id, lead_id, started_at, current_step_order, current_retry_count')
-            .eq('workflow_id', workflowId)
-            .range(fromExec, fromExec + 999)
-        if (error) {
-            console.error('[getWorkflowMonitor] error fetching executions chunk:', error)
-            break
-        }
-        if (!chunk || chunk.length === 0) {
-            hasMoreExecs = false
-        } else {
-            allExecs.push(...chunk)
-            if (chunk.length < 1000) {
-                hasMoreExecs = false
-            } else {
-                fromExec += 1000
-            }
-        }
+    const execPromises: PromiseLike<any>[] = []
+    const execChunkSize = 1000
+    const totalExecs = totalExecsCount || 0
+
+    for (let fromExec = 0; fromExec < totalExecs; fromExec += execChunkSize) {
+        execPromises.push(
+            adminDb.from('outreach_executions')
+                .select('status, customer_id, lead_id, started_at, current_step_order, current_retry_count')
+                .eq('workflow_id', workflowId)
+                .range(fromExec, fromExec + execChunkSize - 1)
+                .then(r => r.data || [])
+        )
     }
+
+    const execsResults = await Promise.all(execPromises)
+    allExecs.push(...execsResults.flat())
 
     // De-duplicate: for each customer/lead, keep only the LATEST execution
     const customerLatest = new Map<string, any>()
@@ -1176,20 +1234,30 @@ export async function getWorkflowMonitor(workflowId: string, page: number = 1) {
     })
 
     // 3.5 Get channel-specific stats from step logs
-    // Fetch ALL communication logs for this workflow (ai_call, whatsapp, sms)
+    // Fetch ALL communication logs for this workflow (ai_call, whatsapp, sms) in parallel
+    const { count: totalLogsCount } = await adminDb.from('outreach_step_logs')
+        .select('id, outreach_executions!inner(workflow_id)', { count: 'exact', head: true })
+        .eq('outreach_executions.workflow_id', workflowId)
+        .in('channel', ['ai_call', 'whatsapp', 'sms'])
+
     const allChannelLogs: any[] = []
-    let clPage = 0
-    while (true) {
-        const { data: clData, error: clErr } = await adminDb.from('outreach_step_logs')
-            .select('execution_id, channel, status, external_id, call_summary, call_recording_url, call_outcome, outreach_executions!inner(workflow_id, customer_id, lead_id)')
-            .eq('outreach_executions.workflow_id', workflowId)
-            .in('channel', ['ai_call', 'whatsapp', 'sms'])
-            .range(clPage * 1000, (clPage + 1) * 1000 - 1)
-        if (clErr || !clData || clData.length === 0) break
-        allChannelLogs.push(...clData)
-        if (clData.length < 1000) break
-        clPage++
+    const logPromises: PromiseLike<any>[] = []
+    const logChunkSize = 1000
+    const totalLogs = totalLogsCount || 0
+
+    for (let clPage = 0; clPage * logChunkSize < totalLogs; clPage++) {
+        logPromises.push(
+            adminDb.from('outreach_step_logs')
+                .select('execution_id, channel, status, external_id, call_summary, call_recording_url, call_outcome, outreach_executions!inner(workflow_id, customer_id, lead_id)')
+                .eq('outreach_executions.workflow_id', workflowId)
+                .in('channel', ['ai_call', 'whatsapp', 'sms'])
+                .range(clPage * logChunkSize, (clPage + 1) * logChunkSize - 1)
+                .then(r => r.data || [])
+        )
     }
+
+    const logsResults = await Promise.all(logPromises)
+    allChannelLogs.push(...logsResults.flat())
 
     // ── AI Call Stats ──
     const allCallLogs = allChannelLogs.filter(l => l.channel === 'ai_call' && l.external_id)

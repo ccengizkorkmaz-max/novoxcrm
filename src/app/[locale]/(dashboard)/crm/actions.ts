@@ -645,13 +645,56 @@ export async function createSale(formData: FormData) {
     const { data: { user } } = await supabase.auth.getUser()
     const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user?.id).single()
 
-    const customer_id = formData.get('customer_id') as string
+    let customer_id = formData.get('customer_id') as string
     const unit_id = formData.get('unit_id') as string
     const project_id = formData.get('project_id') as string
     const description = (formData.get('description') as string)?.trim() || null
     const source = (formData.get('source') as string)?.trim() || null
     const budget = formData.get('budget') ? Number(formData.get('budget')) : null
     const sendWaMessage = formData.get('send_wa_message') === 'on'
+
+    if (customer_id === 'new') {
+        const newName = (formData.get('new_customer_name') as string)?.trim()
+        const newPhone = (formData.get('new_customer_phone') as string)?.trim()
+        const newEmail = (formData.get('new_customer_email') as string)?.trim() || null
+
+        if (!newName || !newPhone) {
+            return { error: 'Yeni müşteri bilgileri eksik (İsim ve Telefon alanları zorunludur).' }
+        }
+
+        // Check if a customer with the same phone already exists in this tenant
+        const cleanPhone = newPhone.replace(/\D/g, '')
+        const { data: existing } = await supabase
+            .from('customers')
+            .select('id')
+            .eq('tenant_id', profile?.tenant_id)
+            .ilike('phone', `%${cleanPhone.slice(-10)}%`)
+            .maybeSingle()
+
+        if (existing) {
+            customer_id = existing.id
+        } else {
+            // Create new customer
+            const { data: newCust, error: custErr } = await supabase
+                .from('customers')
+                .insert({
+                    tenant_id: profile?.tenant_id,
+                    full_name: newName,
+                    phone: newPhone,
+                    email: newEmail,
+                    source: source || 'Manuel Giriş',
+                    contact_type: 'buyer'
+                })
+                .select('id')
+                .single()
+
+            if (custErr || !newCust) {
+                console.error('Inline Customer Creation Error:', custErr)
+                return { error: 'Yeni müşteri kaydı oluşturulamadı: ' + (custErr?.message || 'Bilinmeyen hata') }
+            }
+            customer_id = newCust.id
+        }
+    }
 
     if (!customer_id) return { error: 'Missing customer' }
 

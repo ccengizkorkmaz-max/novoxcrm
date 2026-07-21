@@ -40,6 +40,12 @@ export default function NewSaleButton({
     const [selectedUnitIdForSale, setSelectedUnitIdForSale] = useState(initialState?.unitId || "")
     const [sendWaMessage, setSendWaMessage] = useState(false)
 
+    // Inline new customer states
+    const [isNewCustomer, setIsNewCustomer] = useState(false)
+    const [newCustomerName, setNewCustomerName] = useState("")
+    const [newCustomerPhone, setNewCustomerPhone] = useState("")
+    const [newCustomerEmail, setNewCustomerEmail] = useState("")
+
     // Extract unique projects from available units
     const projects = useMemo(() => {
         const projectMap = new Map()
@@ -84,6 +90,10 @@ export default function NewSaleButton({
             setIsCreateOpen(open)
             if (!open) {
                 setSelectedCustomerIdForSale("")
+                setIsNewCustomer(false)
+                setNewCustomerName("")
+                setNewCustomerPhone("")
+                setNewCustomerEmail("")
                 if (!initialState?.projectId) setSelectedProjectIdForSale("")
                 if (!initialState?.unitId) setSelectedUnitIdForSale("")
             }
@@ -106,23 +116,88 @@ export default function NewSaleButton({
                         toast.success(isBroker ? 'Talep oluşturuldu!' : t('createdSuccess'))
                         setIsCreateOpen(false)
                         setSelectedCustomerIdForSale("")
+                        setIsNewCustomer(false)
+                        setNewCustomerName("")
+                        setNewCustomerPhone("")
+                        setNewCustomerEmail("")
                         setSelectedProjectIdForSale("")
                         setSelectedUnitIdForSale("")
                     }
                 }}>
                     <div className="grid gap-4 py-4">
-                        <div className="grid gap-2">
-                            <Label>{t('customer')}</Label>
-                            <Combobox
-                                items={customers?.map((c: any) => ({ value: c.id, label: c.full_name })) || []}
-                                value={selectedCustomerIdForSale}
-                                onChange={setSelectedCustomerIdForSale}
-                                placeholder={t('selectCustomer')}
-                                searchPlaceholder={t('searchCustomer')}
-                                emptyText={t('customerNotFound')}
-                            />
-                            <input type="hidden" name="customer_id" value={selectedCustomerIdForSale} />
+                        {/* Müşteri Seçimi / Yeni Müşteri Kaydı Toggle */}
+                        <div className="flex border rounded-xl overflow-hidden text-xs font-bold bg-slate-50 border-slate-200">
+                            <button
+                                type="button"
+                                className={`flex-1 py-1.5 transition-all text-center ${!isNewCustomer ? 'bg-white shadow-sm text-blue-600 font-bold' : 'text-slate-500 hover:bg-slate-100/50'}`}
+                                onClick={() => setIsNewCustomer(false)}
+                            >
+                                Mevcut Müşteri Seç
+                            </button>
+                            <button
+                                type="button"
+                                className={`flex-1 py-1.5 transition-all text-center ${isNewCustomer ? 'bg-white shadow-sm text-blue-600 font-bold' : 'text-slate-500 hover:bg-slate-100/50'}`}
+                                onClick={() => setIsNewCustomer(true)}
+                            >
+                                Yeni Müşteri Oluştur
+                            </button>
                         </div>
+
+                        {!isNewCustomer ? (
+                            <div className="grid gap-2">
+                                <Label>{t('customer')}</Label>
+                                <Combobox
+                                    items={customers?.map((c: any) => ({ value: c.id, label: c.full_name })) || []}
+                                    value={selectedCustomerIdForSale}
+                                    onChange={setSelectedCustomerIdForSale}
+                                    placeholder={t('selectCustomer')}
+                                    searchPlaceholder={t('searchCustomer')}
+                                    emptyText={t('customerNotFound')}
+                                />
+                                <input type="hidden" name="customer_id" value={selectedCustomerIdForSale} />
+                            </div>
+                        ) : (
+                            <div className="space-y-3 p-3 bg-slate-50/50 rounded-xl border border-slate-200/60">
+                                <span className="text-xs font-bold text-slate-700 block">Yeni Müşteri Bilgileri</span>
+                                <input type="hidden" name="customer_id" value="new" />
+                                <input type="hidden" name="is_new_customer" value="true" />
+                                <div className="grid gap-1">
+                                    <Label className="text-[11px] text-slate-500">Adı Soyadı</Label>
+                                    <Input
+                                        name="new_customer_name"
+                                        placeholder="Ahmet Yılmaz"
+                                        value={newCustomerName}
+                                        onChange={e => setNewCustomerName(e.target.value)}
+                                        className="h-9 text-xs"
+                                        required
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div className="grid gap-1">
+                                        <Label className="text-[11px] text-slate-500">Telefon Numarası</Label>
+                                        <Input
+                                            name="new_customer_phone"
+                                            placeholder="5321110011"
+                                            value={newCustomerPhone}
+                                            onChange={e => setNewCustomerPhone(e.target.value)}
+                                            className="h-9 text-xs"
+                                            required
+                                        />
+                                    </div>
+                                    <div className="grid gap-1">
+                                        <Label className="text-[11px] text-slate-500">E-posta (Opsiyonel)</Label>
+                                        <Input
+                                            name="new_customer_email"
+                                            type="email"
+                                            placeholder="ahmet@example.com"
+                                            value={newCustomerEmail}
+                                            onChange={e => setNewCustomerEmail(e.target.value)}
+                                            className="h-9 text-xs"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         {isBroker ? (
                             <>
@@ -144,13 +219,15 @@ export default function NewSaleButton({
                                         <Label className="text-xs">Kaynak</Label>
                                         <select name="source" className="h-10 px-3 rounded-lg border text-sm bg-white w-full">
                                             <option value="">Belirtilmemiş</option>
+                                            <option value="WhatsApp (Temsilci)">WhatsApp (Temsilci)</option>
+                                            <option value="Telefon (Temsilci)">Telefon (Temsilci)</option>
+                                            <option value="E-posta (Temsilci)">E-posta (Temsilci)</option>
                                             <option value="Referans">Referans</option>
                                             <option value="Web Sitesi">Web Sitesi</option>
                                             <option value="Sahibinden">Sahibinden</option>
                                             <option value="Hepsiemlak">Hepsiemlak</option>
                                             <option value="Sosyal Medya">Sosyal Medya</option>
                                             <option value="Tabela">Tabela</option>
-                                            <option value="Telefon">Telefon</option>
                                             <option value="Yürüyüş">Yürüyüş (Walk-in)</option>
                                         </select>
                                     </div>
@@ -174,18 +251,33 @@ export default function NewSaleButton({
                                     <input type="hidden" name="project_id" value={selectedProjectIdForSale} />
                                 </div>
 
-                                <div className="grid gap-2">
-                                    <Label>{t('unit')}</Label>
-                                    <Combobox
-                                        items={filteredUnits}
-                                        value={selectedUnitIdForSale}
-                                        onChange={setSelectedUnitIdForSale}
-                                        placeholder={selectedProjectIdForSale ? t('selectUnit') : t('selectProjectFirst')}
-                                        searchPlaceholder={t('searchUnit')}
-                                        emptyText={t('unitNotFound')}
-                                        disabled={!selectedProjectIdForSale}
-                                    />
-                                    <input type="hidden" name="unit_id" value={selectedUnitIdForSale} />
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="grid gap-2">
+                                        <Label>{t('unit')}</Label>
+                                        <Combobox
+                                            items={filteredUnits}
+                                            value={selectedUnitIdForSale}
+                                            onChange={setSelectedUnitIdForSale}
+                                            placeholder={selectedProjectIdForSale ? t('selectUnit') : t('selectProjectFirst')}
+                                            searchPlaceholder={t('searchUnit')}
+                                            emptyText={t('unitNotFound')}
+                                            disabled={!selectedProjectIdForSale}
+                                        />
+                                        <input type="hidden" name="unit_id" value={selectedUnitIdForSale} />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label>Lead Kaynağı</Label>
+                                        <select name="source" className="h-10 px-3 rounded-lg border text-sm bg-white w-full">
+                                            <option value="">Belirtilmemiş</option>
+                                            <option value="WhatsApp (Temsilci)">WhatsApp (Temsilci)</option>
+                                            <option value="Telefon (Temsilci)">Telefon (Temsilci)</option>
+                                            <option value="E-posta (Temsilci)">E-posta (Temsilci)</option>
+                                            <option value="Web">Web Sitesi</option>
+                                            <option value="Sosyal Medya">Sosyal Medya</option>
+                                            <option value="Referans">Referans</option>
+                                            <option value="Diğer">Diğer</option>
+                                        </select>
+                                    </div>
                                 </div>
 
                                 {selectedUnitIdForSale && (
@@ -214,7 +306,7 @@ export default function NewSaleButton({
                         </label>
                         <Button
                             type="submit"
-                            disabled={!selectedCustomerIdForSale || (!isBroker && !selectedUnitIdForSale && !selectedProjectIdForSale)}
+                            disabled={(!isNewCustomer && !selectedCustomerIdForSale) || (isNewCustomer && (!newCustomerName || !newCustomerPhone)) || (!isBroker && !selectedUnitIdForSale && !selectedProjectIdForSale)}
                         >
                             {isBroker ? 'Talep Oluştur' : t('create')}
                         </Button>

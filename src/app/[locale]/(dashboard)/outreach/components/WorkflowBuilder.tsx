@@ -13,7 +13,7 @@ import {
     Phone, MessageSquare, Mail, Clock, Settings2, Zap, Plus,
     ArrowLeft, ArrowDown, Trash2, GripVertical, Save, Target, Bot, Bell, Sparkles, Split
 } from 'lucide-react'
-import { createWorkflow, updateWorkflow, addStep as addStepAction, updateStep, deleteStep, previewSegment } from '../actions'
+import { createWorkflow, updateWorkflow, addStep as addStepAction, updateStep, deleteStep, previewSegment, saveWorkflowAll } from '../actions'
 import { getWhatsAppTemplates } from '../actions'
 import { toast } from 'sonner'
 
@@ -137,37 +137,11 @@ export function WorkflowBuilder({ segments, scripts, projects, profiles, tenantI
                 // segment_id: sadece değer varsa ekle
                 if (segmentId) updatePayload.segment_id = segmentId
 
-                const wfResult = await updateWorkflow(editingWorkflow.id, updatePayload)
-                if (wfResult.error) {
-                    toast.error('Kayıt hatası: ' + wfResult.error)
+                const result = await saveWorkflowAll(editingWorkflow.id, updatePayload, steps, deletedStepIds)
+                if (result.error) {
+                    toast.error('Kayıt hatası: ' + result.error)
                     setSaving(false)
                     return
-                }
-
-                // Silinen adımları DB'den kaldır
-                for (const deletedId of deletedStepIds) {
-                    await deleteStep(deletedId)
-                }
-
-                // Adımları güncelle / yeni adım ekle
-                for (const s of steps) {
-                    if (s.id.startsWith('temp-')) {
-                        const r = await addStepAction(editingWorkflow.id, {
-                            step_order: s.step_order, name: s.name, action_type: s.action_type,
-                            config: s.config, on_success: s.on_success, on_failure: s.on_failure,
-                            next_step_id_on_success: s.next_step_id_on_success,
-                            next_step_id_on_failure: s.next_step_id_on_failure,
-                        })
-                        if (r?.error) toast.error('Adım eklenemedi: ' + r.error)
-                    } else {
-                        const r = await updateStep(s.id, {
-                            step_order: s.step_order, name: s.name, config: s.config,
-                            on_success: s.on_success, on_failure: s.on_failure,
-                            next_step_id_on_success: s.next_step_id_on_success,
-                            next_step_id_on_failure: s.next_step_id_on_failure,
-                        })
-                        if (r?.error) toast.error('Adım güncellenemedi: ' + r.error)
-                    }
                 }
                 toast.success('✅ Workflow güncellendi')
                 onClose()
