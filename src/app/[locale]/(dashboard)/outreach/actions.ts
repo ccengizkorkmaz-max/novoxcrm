@@ -843,13 +843,20 @@ export async function getWhatsAppTemplates() {
         ACCESS_TOKEN = ACCESS_TOKEN.replace(/[\r\n"\s]+/g, '')
     }
 
-    // 1. WABA_ID ve ACCESS_TOKEN varsa Meta API'den çek
+    // 1. WABA_ID ve ACCESS_TOKEN varsa Meta API'den çek (maksimum 2.5 saniye bekle)
     if (WABA_ID && ACCESS_TOKEN) {
         try {
+            const controller = new AbortController()
+            const timeoutId = setTimeout(() => controller.abort(), 2500)
+
             const res = await fetch(
                 `https://graph.facebook.com/v21.0/${WABA_ID}/message_templates?fields=name,status,components&limit=100&access_token=${ACCESS_TOKEN}`,
-                { next: { revalidate: 60 } }
+                { 
+                    next: { revalidate: 60 },
+                    signal: controller.signal
+                }
             )
+            clearTimeout(timeoutId)
             const data = await res.json()
             if (data.data && Array.isArray(data.data) && data.data.length > 0) {
                 return data.data
@@ -861,8 +868,8 @@ export async function getWhatsAppTemplates() {
                     })
                     .sort((a: any, b: any) => a.name.localeCompare(b.name))
             }
-        } catch (err) {
-            console.error('[getWhatsAppTemplates] Meta API error:', err)
+        } catch (err: any) {
+            console.error('[getWhatsAppTemplates] Meta API error or timeout:', err.message)
         }
     }
 
