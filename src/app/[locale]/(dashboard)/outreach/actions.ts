@@ -638,15 +638,6 @@ export async function launchWorkflow(workflowId: string) {
     const allLeadIds = await resolveSegment(workflow.segment_id)
     if (!allLeadIds.length && resumed === 0) return { error: 'No matching leads found for this segment' }
 
-    // Zaten işlenmiş olanları çıkar (completed, converted, active, waiting, stopped)
-    const isLqSource = allLeadIds.length > 0 && allLeadIds[0].startsWith('lq:')
-    const isLeadsSource = allLeadIds.length > 0 && allLeadIds[0].startsWith('lead:')
-    const matchIds = isLqSource 
-        ? allLeadIds.map(id => id.replace('lq:', ''))
-        : isLeadsSource
-        ? allLeadIds.map(id => id.replace('lead:', ''))
-        : allLeadIds
-
     const chunkArray2 = <T>(arr: T[], size: number): T[][] => {
         const chunks: T[][] = [];
         for (let i = 0; i < arr.length; i += size) {
@@ -655,10 +646,11 @@ export async function launchWorkflow(workflowId: string) {
         return chunks;
     };
 
-    // If it's sales source, we must map sale_id to customer_id for proper customer-level deduplication
+    // Partition IDs by type to fetch sales mapping if needed
+    const saleItemIds = allLeadIds.filter(id => !id.startsWith('lq:') && !id.startsWith('lead:'))
     let salesMap: Record<string, string> = {}
-    if (!isLqSource && !isLeadsSource && matchIds.length > 0) {
-        const chunks = chunkArray2(matchIds, 150)
+    if (saleItemIds.length > 0) {
+        const chunks = chunkArray2(saleItemIds, 150)
         const promises = chunks.map(chunk =>
             adminDb
                 .from('sales')
@@ -672,41 +664,62 @@ export async function launchWorkflow(workflowId: string) {
         })
     }
 
-    const targetField = isLeadsSource ? 'lead_id' : 'customer_id'
-    const checkIds = isLeadsSource 
-        ? matchIds 
-        : isLqSource 
-        ? matchIds 
-        : matchIds.map(id => salesMap[id]).filter(Boolean)
+    // Helper to get normalized target ID & type for deduplication
+    const getNormalizedId = (id: string): { type: 'customer' | 'lead'; targetId: string } | null => {
+        if (id.startsWith('lead:')) return { type: 'lead', targetId: id.replace('lead:', '') }
+        if (id.startsWith('lq:')) return { type: 'customer', targetId: id.replace('lq:', '') }
+        const cid = salesMap[id]
+        return cid ? { type: 'customer', targetId: cid } : null
+    }
 
-    const chunks = chunkArray2(checkIds, 150);
-    const existingPromises = chunks.map(chunk => 
-        adminDb
-            .from('outreach_executions')
-            .select('customer_id, lead_id')
-            .eq('workflow_id', workflowId)
-            .in('status', ['active', 'waiting', 'completed', 'converted', 'stopped'])
-            .in(targetField, chunk)
-    );
-    const results = await Promise.all(existingPromises);
-    const existing = results.flatMap(r => r.data || []);
+    // Check existing executions for customer_ids and lead_ids
+    const checkCustomerIds = [...new Set(allLeadIds.map(id => getNormalizedId(id)).filter(x => x?.type === 'customer').map(x => x!.targetId))]
+    const checkLeadIds = [...new Set(allLeadIds.map(id => getNormalizedId(id)).filter(x => x?.type === 'lead').map(x => x!.targetId))]
 
-    const processedIds = new Set(
-        existing.map(e => isLeadsSource ? e.lead_id : e.customer_id).filter(Boolean)
-    )
+    const processedCustomerIds = new Set<string>()
+    const processedLeadIds = new Set<string>()
 
-    // Also track seen IDs in this run to avoid duplicates within the remaining segment list itself
+    if (checkCustomerIds.length > 0) {
+        const chunks = chunkArray2(checkCustomerIds, 150)
+        const promises = chunks.map(chunk =>
+            adminDb
+                .from('outreach_executions')
+                .select('customer_id')
+                .eq('workflow_id', workflowId)
+                .in('status', ['active', 'waiting', 'completed', 'converted', 'stopped'])
+                .in('customer_id', chunk)
+        )
+        const results = await Promise.all(promises)
+        results.flatMap(r => r.data || []).forEach(e => {
+            if (e.customer_id) processedCustomerIds.add(e.customer_id)
+        })
+    }
+
+    if (checkLeadIds.length > 0) {
+        const chunks = chunkArray2(checkLeadIds, 150)
+        const promises = chunks.map(chunk =>
+            adminDb
+                .from('outreach_executions')
+                .select('lead_id')
+                .eq('workflow_id', workflowId)
+                .in('status', ['active', 'waiting', 'completed', 'converted', 'stopped'])
+                .in('lead_id', chunk)
+        )
+        const results = await Promise.all(promises)
+        results.flatMap(r => r.data || []).forEach(e => {
+            if (e.lead_id) processedLeadIds.add(e.lead_id)
+        })
+    }
+
+    // Filter remaining IDs
     const seenIds = new Set<string>()
     const remainingIds = allLeadIds.filter(id => {
-        const matchId = isLqSource 
-            ? id.replace('lq:', '') 
-            : isLeadsSource 
-            ? id.replace('lead:', '') 
-            : salesMap[id]
-        
-        if (!matchId || processedIds.has(matchId)) return false
-        if (seenIds.has(matchId)) return false
-        seenIds.add(matchId)
+        const norm = getNormalizedId(id)
+        if (!norm) return false
+        if (norm.type === 'customer' && processedCustomerIds.has(norm.targetId)) return false
+        if (norm.type === 'lead' && processedLeadIds.has(norm.targetId)) return false
+        if (seenIds.has(norm.targetId)) return false
+        seenIds.add(norm.targetId)
         return true
     })
 

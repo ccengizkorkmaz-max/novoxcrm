@@ -2558,16 +2558,34 @@ export async function resolveSegment(segmentId: string): Promise<string[]> {
     if (filters.customer_ids && Array.isArray(filters.customer_ids) && filters.customer_ids.length > 0) {
         if (filters.source === 'leads') {
             return filters.customer_ids.map((id: string) => `lead:${id}`)
-        } else if (filters.source === 'lead_qualifications' || filters.source === 'lead_qualification') {
-            return filters.customer_ids.map((id: string) => `lq:${id}`)
-        } else {
-            const { data: sales } = await supabase
-                .from('sales')
-                .select('id')
-                .in('customer_id', filters.customer_ids)
-                .neq('status', 'Inbox')
-            return (sales || []).map((s: any) => s.id)
         }
+
+        // Chunk customer_ids into batches of 150 to avoid Supabase PostgREST URL length limits (HTTP 414)
+        const chunkArray = <T>(arr: T[], size: number): T[][] => {
+            const chunks: T[][] = []
+            for (let i = 0; i < arr.length; i += size) {
+                chunks.push(arr.slice(i, i + size))
+            }
+            return chunks
+        }
+
+        const chunks = chunkArray(filters.customer_ids, 150)
+        const promises = chunks.map(chunk =>
+            supabase
+                .from('sales')
+                .select('id, customer_id')
+                .in('customer_id', chunk)
+                .neq('status', 'Inbox')
+        )
+        const results = await Promise.all(promises)
+        const matchedSales = results.flatMap(r => r.data || [])
+        const matchedCustomerIds = new Set(matchedSales.map(s => s.customer_id))
+
+        const saleIds = matchedSales.map(s => s.id)
+        const remainingCustomerIds = filters.customer_ids.filter((cid: string) => !matchedCustomerIds.has(cid))
+        const lqIds = remainingCustomerIds.map((cid: string) => `lq:${cid}`)
+
+        return [...saleIds, ...lqIds]
     }
 
     // Leads source (Advance CRM mode) → returns lead_id list prefixed with lead:
@@ -2748,15 +2766,15 @@ export async function startWorkflowForLeads(workflowId: string, leadIds: string[
         return chunks;
     };
 
-    // Determine source
-    const isLqSource = leadIds.length > 0 && leadIds[0].startsWith('lq:')
-    const isLeadsSource = leadIds.length > 0 && leadIds[0].startsWith('lead:')
+    // Partition leadIds by prefix if mixed
+    const leadsPrefixed = leadIds.filter(id => id.startsWith('lead:'))
+    const lqPrefixed = leadIds.filter(id => id.startsWith('lq:'))
+    const salesIds = leadIds.filter(id => !id.startsWith('lead:') && !id.startsWith('lq:'))
 
     let leads: { id: string; customer_id: string | null; lead_id: string | null }[] = []
 
-    if (isLeadsSource) {
-        // Leads source — IDs are leads(id) prefixed with 'lead:'
-        const rawLeadIds = leadIds.map(id => id.replace('lead:', ''))
+    if (leadsPrefixed.length > 0) {
+        const rawLeadIds = leadsPrefixed.map(id => id.replace('lead:', ''))
         const chunks = chunkArray(rawLeadIds, 150)
         const promises = chunks.map(chunk =>
             supabase
@@ -2766,10 +2784,11 @@ export async function startWorkflowForLeads(workflowId: string, leadIds: string[
         )
         const results = await Promise.all(promises)
         const dbLeads = results.flatMap(r => r.data || [])
-        leads = dbLeads.map(l => ({ id: l.id, customer_id: null, lead_id: l.id }))
-    } else if (isLqSource) {
-        // Lead qualifications source — IDs are customer_ids
-        const customerIds = leadIds.map(id => id.replace('lq:', ''))
+        dbLeads.forEach(l => leads.push({ id: l.id, customer_id: null, lead_id: l.id }))
+    }
+
+    if (lqPrefixed.length > 0) {
+        const customerIds = lqPrefixed.map(id => id.replace('lq:', ''))
         const chunks = chunkArray(customerIds, 150)
         const promises = chunks.map(chunk =>
             supabase
@@ -2779,10 +2798,11 @@ export async function startWorkflowForLeads(workflowId: string, leadIds: string[
         )
         const results = await Promise.all(promises)
         const customers = results.flatMap(r => r.data || [])
-        leads = customers.map(c => ({ id: c.id, customer_id: c.id, lead_id: null }))
-    } else {
-        // Sales source — IDs are sale_ids
-        const chunks = chunkArray(leadIds, 150)
+        customers.forEach(c => leads.push({ id: c.id, customer_id: c.id, lead_id: null }))
+    }
+
+    if (salesIds.length > 0) {
+        const chunks = chunkArray(salesIds, 150)
         const promises = chunks.map(chunk =>
             supabase
                 .from('sales')
@@ -2791,29 +2811,57 @@ export async function startWorkflowForLeads(workflowId: string, leadIds: string[
         )
         const results = await Promise.all(promises)
         const sales = results.flatMap(r => r.data || [])
-        leads = sales.map(s => ({ id: s.id, customer_id: s.customer_id, lead_id: null }))
+        sales.forEach(s => leads.push({ id: s.id, customer_id: s.customer_id, lead_id: null }))
     }
 
     if (!leads.length) return { started: 0 }
 
-    // Check for existing executions
-    const targetKey = isLeadsSource ? 'lead_id' : 'customer_id'
-    const leadIdList = leads.map(l => isLeadsSource ? l.lead_id : l.customer_id).filter(Boolean) as string[]
-    const leadIdChunks = chunkArray(leadIdList, 150)
+    // Check for existing executions (customer_id vs lead_id)
+    const custLeads = leads.filter(l => l.customer_id)
+    const rawLeads = leads.filter(l => l.lead_id)
 
-    const existingPromises = leadIdChunks.map(chunk =>
-        supabase
-            .from('outreach_executions')
-            .select(targetKey)
-            .eq('workflow_id', workflowId)
-            .in('status', ['active', 'waiting', 'completed', 'converted', 'stopped'])
-            .in(targetKey, chunk)
-    )
-    const existingResults = await Promise.all(existingPromises)
-    const existing = existingResults.flatMap(r => r.data || [])
+    const existingCustIds = new Set<string>()
+    const existingLeadIds = new Set<string>()
 
-    const existingIds = new Set(existing?.map((e: any) => isLeadsSource ? e.lead_id : e.customer_id) || [])
-    const newLeadsFiltered = leads.filter(l => !existingIds.has(isLeadsSource ? l.lead_id : l.customer_id))
+    if (custLeads.length > 0) {
+        const custIdList = [...new Set(custLeads.map(l => l.customer_id!))]
+        const chunks = chunkArray(custIdList, 150)
+        const promises = chunks.map(chunk =>
+            supabase
+                .from('outreach_executions')
+                .select('customer_id')
+                .eq('workflow_id', workflowId)
+                .in('status', ['active', 'waiting', 'completed', 'converted', 'stopped'])
+                .in('customer_id', chunk)
+        )
+        const results = await Promise.all(promises)
+        results.flatMap(r => r.data || []).forEach((e: any) => {
+            if (e.customer_id) existingCustIds.add(e.customer_id)
+        })
+    }
+
+    if (rawLeads.length > 0) {
+        const leadIdList = [...new Set(rawLeads.map(l => l.lead_id!))]
+        const chunks = chunkArray(leadIdList, 150)
+        const promises = chunks.map(chunk =>
+            supabase
+                .from('outreach_executions')
+                .select('lead_id')
+                .eq('workflow_id', workflowId)
+                .in('status', ['active', 'waiting', 'completed', 'converted', 'stopped'])
+                .in('lead_id', chunk)
+        )
+        const results = await Promise.all(promises)
+        results.flatMap(r => r.data || []).forEach((e: any) => {
+            if (e.lead_id) existingLeadIds.add(e.lead_id)
+        })
+    }
+
+    const newLeadsFiltered = leads.filter(l => {
+        if (l.customer_id && existingCustIds.has(l.customer_id)) return false
+        if (l.lead_id && existingLeadIds.has(l.lead_id)) return false
+        return true
+    })
 
     // In-batch deduplication: Collapse duplicate customer/lead IDs within this batch
     const seenIds = new Set<string>()
