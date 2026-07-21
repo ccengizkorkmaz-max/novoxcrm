@@ -388,20 +388,20 @@ export async function launchSuggestedCampaign(payload: {
 
     // 2. Register WhatsApp Template or get fallback template
     let waTemplateName = 'novo_kampanya_genel_v2'
-    let waTemplateParams = ['{customer_name}', '{project_name}']
+    let waTemplateParams = ['{customer_name}']
 
     if (payload.suggestionType === 'silent_leads') {
         const text = 'Merhaba {{1}}, projemizle ilgili güncel detayları ve size özel ödeme planlarını paylaşmak isteriz. Uygun olduğunuzda görüşebilir miyiz?'
         waTemplateName = await registerWhatsAppTemplateIfPossible(tenantId, 'ai_silent_leads', text)
-        waTemplateParams = waTemplateName === 'novo_kampanya_genel_v2' ? ['{customer_name}', '{project_name}'] : ['{customer_name}']
+        waTemplateParams = ['{customer_name}']
     } else if (payload.suggestionType === 'retry_unanswered') {
         const text = 'Merhabalar {{1}}, size telefonla ulaşamadık. İlgilendiğiniz proje hakkında bilgi almak veya randevu oluşturmak isterseniz buradan yardımcı olabiliriz.'
         waTemplateName = await registerWhatsAppTemplateIfPossible(tenantId, 'ai_retry_unanswered', text)
-        waTemplateParams = waTemplateName === 'novo_kampanya_genel_v2' ? ['{customer_name}', '{project_name}'] : ['{customer_name}']
+        waTemplateParams = ['{customer_name}']
     } else if (payload.suggestionType === 'aging_leads') {
         const text = 'Merhabalar {{1}}, ilgilendiğiniz proje için özel fiyat indirimleri ve ödeme kolaylıkları tanımlandı. Detaylar için görüşmek isteriz.'
         waTemplateName = await registerWhatsAppTemplateIfPossible(tenantId, 'ai_aging_leads', text)
-        waTemplateParams = waTemplateName === 'novo_kampanya_genel_v2' ? ['{customer_name}', '{project_name}'] : ['{customer_name}']
+        waTemplateParams = ['{customer_name}']
     }
 
     // 3. Create the segment

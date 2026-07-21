@@ -1304,10 +1304,10 @@ async function executeWhatsApp(execution: any, step: any, config: StepConfig, ph
                 .replace('{project_name}', isOikosTenant ? 'Oikos Green Valley' : (execution.metadata?.project_name || 'Novo Gayrimenkul'))
         )
 
-        // Ensure we have correct parameter counts for the fallback template
-        if (isOikosTenant && !isOikosMockCall && params.length < 2) {
-            params[0] = customer?.full_name || 'Değerli Müşterimiz'
-            params[1] = 'Oikos Green Valley'
+        // Ensure we have correct parameter count for the fallback template (1 param: customer_name)
+        if (isOikosTenant && !isOikosMockCall && params.length !== 1) {
+            params.length = 0
+            params.push(customer?.full_name || 'Değerli Müşterimiz')
         }
 
         if (isOikosMockCall) {
