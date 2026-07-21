@@ -701,13 +701,15 @@ export async function createSale(formData: FormData) {
     const { data: customer } = await supabase.from('customers').select('id, full_name, phone, source').eq('id', customer_id).single()
     const lead_origin = mapSourceToCategory(source || customer?.source || null)
 
+    const assigned_to = formData.get('assigned_to') as string || null
+
     // Build insert payload
     const salePayload: any = {
         tenant_id: profile?.tenant_id,
         customer_id,
         unit_id: unit_id || null,
         project_id: project_id || null,
-        assigned_to: null,
+        assigned_to: assigned_to || null,
         status: unit_id ? 'Prospect' : 'Lead',
         lead_origin,
     }

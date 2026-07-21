@@ -22,6 +22,7 @@ interface NewSaleButtonProps {
     availableUnits: any[]
     initialState?: { openNewSale: boolean, unitId?: string, projectId?: string }
     tenantType?: string
+    profiles?: any[]
 }
 
 import { useTranslations } from 'next-intl'
@@ -30,7 +31,8 @@ export default function NewSaleButton({
     customers,
     availableUnits,
     initialState,
-    tenantType = 'developer'
+    tenantType = 'developer',
+    profiles = []
 }: NewSaleButtonProps) {
     const t = useTranslations('CRM.newSale')
     const isBroker = tenantType === 'broker'
@@ -198,6 +200,17 @@ export default function NewSaleButton({
                                 </div>
                             </div>
                         )}
+
+                        {/* Satış Temsilcisi Seçimi */}
+                        <div className="grid gap-2">
+                            <Label>Satış Temsilcisi (Atama)</Label>
+                            <select name="assigned_to" className="h-10 px-3 rounded-lg border text-sm bg-white w-full">
+                                <option value="">Temsilci Atama (Boş Bırak veya Seç)</option>
+                                {profiles?.map((p: any) => (
+                                    <option key={p.id} value={p.id}>{p.full_name}</option>
+                                ))}
+                            </select>
+                        </div>
 
                         {isBroker ? (
                             <>

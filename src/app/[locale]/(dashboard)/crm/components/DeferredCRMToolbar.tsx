@@ -23,7 +23,8 @@ export default async function DeferredCRMToolbar({
     const [
         projectsRes,
         customersRes,
-        availableUnitsRes
+        availableUnitsRes,
+        profilesRes
     ] = await Promise.all([
         supabase.from('projects').select('id, name').order('name'),
         supabase.from('customers')
@@ -34,23 +35,30 @@ export default async function DeferredCRMToolbar({
         supabase.from('units')
             .select('id, unit_number, projects(id, name)')
             .in('status', ['For Sale', 'Stock'])
-            .limit(1000)
+            .limit(1000),
+        supabase.from('profiles')
+            .select('id, full_name')
+            .eq('tenant_id', userTenantId)
+            .eq('is_active', true)
+            .order('full_name')
     ])
 
     const projectsData = projectsRes.data || []
     const customers = customersRes.data || []
     const availableUnits = availableUnitsRes.data || []
+    const profiles = profilesRes.data || []
 
     return (
         <>
             <CRMFilterSheet
                 projects={isBroker ? [] : projectsData}
-                profiles={[]} 
+                profiles={profiles} 
                 customers={customers}
             />
             <NewSaleButton
                 customers={customers}
                 availableUnits={availableUnits}
+                profiles={profiles}
                 initialState={{
                     openNewSale: params.newSale === 'true',
                     unitId: params.unitId as string,
