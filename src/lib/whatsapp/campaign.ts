@@ -14,6 +14,9 @@ import { sendWhatsAppTemplate } from '@/lib/whatsapp';
 export function isCampaignReply(msgNormalized: string): boolean {
     return msgNormalized === 'evet arayin' ||
            msgNormalized === 'evet, arayin' ||
+           msgNormalized === 'bilgi istiyorum, beni arayin.' ||
+           msgNormalized === 'bilgi istiyorum beni arayin' ||
+           msgNormalized === 'beni arayin' ||
            msgNormalized === 'hayir tesekkurler' ||
            msgNormalized === 'hayir, tesekkurler';
 }
@@ -40,7 +43,8 @@ export async function handleCampaignReply(
             .single();
 
         if (customer) {
-            if (msgNormalized.startsWith('evet')) {
+            const isPositiveReply = msgNormalized.startsWith('evet') || msgNormalized.includes('beni arayin') || msgNormalized.startsWith('bilgi');
+            if (isPositiveReply) {
                 // "Evet arayin" → call_requested olarak işaretle
                 await supabase.from('lead_qualifications')
                     .update({ status: 'call_requested', interest_level: 'call_requested', updated_at: new Date().toISOString() })
