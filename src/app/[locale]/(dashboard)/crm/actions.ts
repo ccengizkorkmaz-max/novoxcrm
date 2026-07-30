@@ -10,6 +10,7 @@ import { createNotification } from '@/lib/notifications/create'
 import { logSystemAction } from '@/lib/actions/system-logs'
 import { sendWhatsAppTemplate } from '@/lib/whatsapp'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getLocale } from 'next-intl/server'
 
 export async function getCustomerFullProfile(customerId: string) {
     const supabase = await createClient()
@@ -644,6 +645,7 @@ export async function createSale(formData: FormData) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user?.id).single()
+    const locale = await getLocale()
 
     let customer_id = formData.get('customer_id') as string
     const unit_id = formData.get('unit_id') as string
@@ -659,7 +661,11 @@ export async function createSale(formData: FormData) {
         const newEmail = (formData.get('new_customer_email') as string)?.trim() || null
 
         if (!newName || !newPhone) {
-            return { error: 'Yeni müşteri bilgileri eksik (İsim ve Telefon alanları zorunludur).' }
+            return {
+                error: locale === 'tr'
+                    ? 'Yeni müşteri bilgileri eksik (İsim ve Telefon alanları zorunludur).'
+                    : 'New customer information is missing (Name and Phone fields are required).'
+            }
         }
 
         // Check if a customer with the same phone already exists in this tenant
@@ -690,13 +696,53 @@ export async function createSale(formData: FormData) {
 
             if (custErr || !newCust) {
                 console.error('Inline Customer Creation Error:', custErr)
-                return { error: 'Yeni müşteri kaydı oluşturulamadı: ' + (custErr?.message || 'Bilinmeyen hata') }
+                return {
+                    error: locale === 'tr'
+                        ? 'Yeni müşteri kaydı oluşturulamadı: ' + (custErr?.message || 'Bilinmeyen hata')
+                        : 'Failed to create new customer: ' + (custErr?.message || 'Unknown error')
+                }
             }
             customer_id = newCust.id
         }
     }
 
-    if (!customer_id) return { error: 'Missing customer' }
+    if (!customer_id) {
+        return {
+            error: locale === 'tr' ? 'Müşteri bilgisi eksik.' : 'Missing customer.'
+        }
+    }
+
+    // Validate unit availability if unit_id is provided
+    if (unit_id) {
+        const { data: unit } = await supabase
+            .from('units')
+            .select('status, unit_number')
+            .eq('id', unit_id)
+            .single()
+
+        if (unit && unit.status !== 'For Sale') {
+            return {
+                error: locale === 'tr'
+                    ? `Seçilen ${unit.unit_number} numaralı ünite satışa uygun değildir (zaten satılmış veya rezerve edilmiş olabilir).`
+                    : `The selected unit ${unit.unit_number} is not available for sale (it may already be sold or reserved).`
+            }
+        }
+    } else if (project_id) {
+        // Validate if there are any units available for sale in this project
+        const { count, error: countErr } = await supabase
+            .from('units')
+            .select('*', { count: 'exact', head: true })
+            .eq('project_id', project_id)
+            .eq('status', 'For Sale')
+
+        if (!countErr && count === 0) {
+            return {
+                error: locale === 'tr'
+                    ? 'Bu projede satışa uygun (boşta) ünite bulunmamaktadır.'
+                    : 'There are no units available for sale in this project.'
+            }
+        }
+    }
 
     const { data: customer } = await supabase.from('customers').select('id, full_name, phone, source').eq('id', customer_id).single()
     const lead_origin = mapSourceToCategory(source || customer?.source || null)
@@ -714,19 +760,27 @@ export async function createSale(formData: FormData) {
         lead_origin,
     }
 
-    // Broker-specific: add description and source
+    // Broker-specific: add description
     if (description) salePayload.description = description
-    if (source) salePayload.source = source
 
     const { data: newSaleData, error } = await supabase.from('sales').insert(salePayload).select().single()
 
     if (error) {
         console.error('Create Sale Error:', error)
-        return { error: 'Failed to start sale: ' + error.message }
+        return {
+            error: locale === 'tr'
+                ? 'Satış süreci başlatılamadı. Lütfen bilgileri kontrol edip tekrar deneyin.'
+                : 'Failed to start sale. Please check the details and try again.'
+        }
     }
 
     if (newSaleData) {
         await syncBrokerLeadFromSale(newSaleData.id, unit_id ? 'Prospect' : 'Lead')
+
+        // If a representative is assigned, notify them!
+        if (newSaleData.assigned_to && profile?.tenant_id) {
+            await notifyRepOfAssignment(newSaleData.id, newSaleData.assigned_to, profile.tenant_id)
+        }
 
         // Sync with Opportunities in Advance CRM Mode
         const { data: tenant } = await supabase
@@ -1332,6 +1386,88 @@ export async function updateSaleStatus(
     return { success: true }
 }
 
+async function notifyRepOfAssignment(saleId: string, userId: string, tenantId: string) {
+    try {
+        const adminSupabase = createAdminClient()
+        const { data: sale } = await adminSupabase
+            .from('sales')
+            .select('customers(full_name, phone, lead_qualifications(interest_level))')
+            .eq('id', saleId)
+            .single()
+
+        if (!sale) return
+
+        const customerName = (sale as any)?.customers?.full_name || 'Müşteri'
+        const customerPhone = (sale as any)?.customers?.phone || ''
+        const interestLevel = (sale as any)?.customers?.lead_qualifications?.[0]?.interest_level || ''
+
+        // Check user preferences for 'lead_assigned'
+        const { data: pref } = await adminSupabase
+            .from('user_notification_preferences')
+            .select('*')
+            .eq('tenant_id', tenantId)
+            .eq('user_id', userId)
+            .eq('notification_type', 'lead_assigned')
+            .maybeSingle()
+
+        const isEnabled = pref ? pref.is_enabled : true
+        const inAppEnabled = pref ? pref.channel_in_app : true
+        const whatsappEnabled = pref ? pref.channel_whatsapp : true
+
+        if (!isEnabled) {
+            console.log(`⏭️ Lead assignment notification disabled for user ${userId}`)
+            return
+        }
+
+        // App Notification
+        if (inAppEnabled) {
+            createNotification({
+                tenant_id: tenantId,
+                user_id: userId,
+                type: 'Info',
+                category: 'CRM',
+                title: '🎯 Yeni LEAD Atandı',
+                message: `${customerName} isimli lead takibinize atandı.`,
+                link: '/crm'
+            }).catch(console.error)
+        }
+
+        // WhatsApp ile temsilciye bildirim gönder (arka planda)
+        if (whatsappEnabled) {
+            ;(async () => {
+                try {
+                    const { data: repProfile } = await adminSupabase.from('profiles').select('phone, full_name').eq('id', userId).single()
+                    if (!repProfile?.phone) return
+
+                    const { data: tenantSettings } = await adminSupabase.from('tenants').select('wa_phone_number_id, wa_access_token').eq('id', tenantId).single()
+                    if (!tenantSettings?.wa_phone_number_id || !tenantSettings?.wa_access_token) return
+
+                    const scoreLabel: Record<string, string> = {
+                        hot: 'HOT', warm: 'WARM', cold: 'COLD',
+                        call_requested: 'ARAMA', disqualified: 'DQ'
+                    }
+                    const scoreText = scoreLabel[interestLevel] || '—'
+
+                    // Meta onaylı template ile gönder (24h pencere gerekmez)
+                    await sendWhatsAppTemplate(
+                        repProfile.phone,
+                        'lead_assignment_alert',
+                        [customerName, customerPhone, scoreText],
+                        'tr',
+                        tenantSettings.wa_phone_number_id,
+                        tenantSettings.wa_access_token
+                    )
+                    console.log(`✅ Lead atama WA template gönderildi: ${repProfile.full_name}`)
+                } catch (err) {
+                    console.error('Lead atama WA bildirimi hatası:', err)
+                }
+            })()
+        }
+    } catch (err) {
+        console.error('notifyRepOfAssignment error:', err)
+    }
+}
+
 export async function assignSale(saleId: string, userId: string | null) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -1363,51 +1499,7 @@ export async function assignSale(saleId: string, userId: string | null) {
 
     // Notification: lead assigned
     if (userId && profile?.tenant_id) {
-        const { data: sale } = await supabase.from('sales').select('customers(full_name, phone, lead_qualifications(interest_level))').eq('id', saleId).single()
-        const customerName = (sale as any)?.customers?.full_name || 'Müşteri'
-        const customerPhone = (sale as any)?.customers?.phone || ''
-        const interestLevel = (sale as any)?.customers?.lead_qualifications?.[0]?.interest_level || ''
-
-        createNotification({
-            tenant_id: profile.tenant_id,
-            user_id: userId,
-            type: 'Info',
-            category: 'CRM',
-            title: '🎯 Yeni LEAD Atandı',
-            message: `${customerName} isimli lead takibinize atandı.`,
-            link: '/crm'
-        }).catch(console.error)
-
-        // WhatsApp ile temsilciye bildirim gönder (arka planda)
-        ;(async () => {
-            try {
-                const adminSupabase = createAdminClient()
-                const { data: repProfile } = await adminSupabase.from('profiles').select('phone, full_name').eq('id', userId).single()
-                if (!repProfile?.phone) return
-
-                const { data: tenantSettings } = await adminSupabase.from('tenants').select('wa_phone_number_id, wa_access_token').eq('id', profile.tenant_id).single()
-                if (!tenantSettings?.wa_phone_number_id || !tenantSettings?.wa_access_token) return
-
-                const scoreLabel: Record<string, string> = {
-                    hot: 'HOT', warm: 'WARM', cold: 'COLD',
-                    call_requested: 'ARAMA', disqualified: 'DQ'
-                }
-                const scoreText = scoreLabel[interestLevel] || '—'
-
-                // Meta onaylı template ile gönder (24h pencere gerekmez)
-                await sendWhatsAppTemplate(
-                    repProfile.phone,
-                    'lead_assignment_alert',
-                    [customerName, customerPhone, scoreText],
-                    'tr',
-                    tenantSettings.wa_phone_number_id,
-                    tenantSettings.wa_access_token
-                )
-                console.log(`✅ Lead atama WA template gönderildi: ${repProfile.full_name}`)
-            } catch (err) {
-                console.error('Lead atama WA bildirimi hatası:', err)
-            }
-        })()
+        await notifyRepOfAssignment(saleId, userId, profile.tenant_id)
     }
 
     revalidatePath('/crm')
@@ -2765,6 +2857,10 @@ export async function autoAssignLead(saleId: string) {
         .eq('id', saleId)
 
     if (updateError) return { error: 'Atama yapılamadı: ' + updateError.message }
+
+    if (bestMemberId && sale.tenant_id) {
+        await notifyRepOfAssignment(saleId, bestMemberId, sale.tenant_id)
+    }
 
     revalidatePath('/crm')
     return { success: true, assignedToId: bestMemberId }

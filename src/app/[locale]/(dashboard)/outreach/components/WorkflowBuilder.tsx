@@ -72,6 +72,19 @@ export function WorkflowBuilder({ segments, scripts, projects, profiles, tenantI
     const [deletedStepIds, setDeletedStepIds] = useState<string[]>([])
     const [segmentCount, setSegmentCount] = useState<number | null>(null)
 
+    // WhatsApp şablonlarını WorkflowBuilder seviyesinde bir kez çek, her adım için ayrı çekme
+    const [waTemplates, setWaTemplates] = useState<any[]>([])
+    const [waTemplatesLoading, setWaTemplatesLoading] = useState(true)
+
+    useEffect(() => {
+        getWhatsAppTemplates()
+            .then(res => {
+                if (Array.isArray(res)) setWaTemplates(res)
+            })
+            .catch(err => console.error('Failed to load WA templates:', err))
+            .finally(() => setWaTemplatesLoading(false))
+    }, [])
+
     // Segment seçildiğinde eleman sayısını çek
     useEffect(() => {
         if (!segmentId) { setSegmentCount(null); return }
@@ -360,6 +373,7 @@ export function WorkflowBuilder({ segments, scripts, projects, profiles, tenantI
                                                     </div>
                                                     {/* Config based on type */}
                                                     <StepConfigEditor step={step} scripts={scripts}
+                                                        waTemplates={waTemplates} waTemplatesLoading={waTemplatesLoading}
                                                         onConfigChange={(k, v) => updateStepConfig(step.id, k, v)}
                                                         onFieldChange={(f, v) => updateStepField(step.id, f, v)} />
 
@@ -432,8 +446,8 @@ export function WorkflowBuilder({ segments, scripts, projects, profiles, tenantI
     )
 }
 
-function StepConfigEditor({ step, scripts, onConfigChange, onFieldChange }: {
-    step: Step; scripts: any[];
+function StepConfigEditor({ step, scripts, waTemplates, waTemplatesLoading, onConfigChange, onFieldChange }: {
+    step: Step; scripts: any[]; waTemplates: any[]; waTemplatesLoading: boolean;
     onConfigChange: (key: string, value: any) => void;
     onFieldChange: (field: string, value: string) => void
 }) {
@@ -554,7 +568,7 @@ function StepConfigEditor({ step, scripts, onConfigChange, onFieldChange }: {
                 </div>
             )
         case 'whatsapp':
-            return <WhatsAppStepConfig c={c} onConfigChange={onConfigChange} />
+            return <WhatsAppStepConfig c={c} onConfigChange={onConfigChange} templates={waTemplates} loading={waTemplatesLoading} />
         case 'sms':
             return (
                 <div className="space-y-2">
@@ -651,33 +665,29 @@ function StepConfigEditor({ step, scripts, onConfigChange, onFieldChange }: {
                     <p className="text-[9px] text-muted-foreground mt-1">Bu adımda AI mesajı hazırlar, bir sonraki WhatsApp/SMS adımında {`{{personalized_message}}`} olarak kullanılır.</p>
                 </div>
             )
+        case 'auto_channel':
+            return (
+                <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-[11px] text-purple-400 mb-1">
+                        <Zap className="h-3 w-3" /> AI Otomatik Kanal Seçimi
+                    </div>
+                    <p className="text-[9px] text-muted-foreground">AI, müşterinin geçmiş etkileşimlerine göre en uygun kanalı (WhatsApp, SMS veya AI Arama) otomatik seçer.</p>
+                </div>
+            )
         default:
             return null
     }
 }
 
-function WhatsAppStepConfig({ c, onConfigChange }: {
+function WhatsAppStepConfig({ c, onConfigChange, templates, loading }: {
     c: any
     onConfigChange: (key: string, value: any) => void
+    templates: any[]
+    loading: boolean
 }) {
-    const [templates, setTemplates] = useState<any[]>([])
-    const [loading, setLoading] = useState(true)
-
-    useEffect(() => {
-        getWhatsAppTemplates()
-            .then(res => {
-                if (Array.isArray(res)) {
-                    setTemplates(res)
-                }
-                setLoading(false)
-            })
-            .catch(err => {
-                console.error('Failed to load WA templates:', err)
-                setLoading(false)
-            })
-    }, [])
-
     const selected = templates.find(t => t.name === c.template_name)
+    // AI tarafından oluşturulan template listede yoksa, mevcut adı göster
+    const currentTemplateInList = c.template_name && templates.some(t => t.name === c.template_name)
 
     return (
         <div className="space-y-2">
@@ -688,21 +698,40 @@ function WhatsAppStepConfig({ c, onConfigChange }: {
                         <SelectValue placeholder={loading ? 'Şablonlar yükleniyor...' : 'Şablon seç...'} />
                     </SelectTrigger>
                     <SelectContent position="popper" className="max-h-60 z-[9999]">
-                        {templates.length === 0 ? (
+                        {loading ? (
+                            <SelectItem value="_loading" disabled>
+                                Şablonlar yükleniyor...
+                            </SelectItem>
+                        ) : templates.length === 0 && !c.template_name ? (
                             <SelectItem value="_empty" disabled>
-                                {loading ? 'Şablonlar yükleniyor...' : 'Şablon bulunamadı'}
+                                Şablon bulunamadı
                             </SelectItem>
                         ) : (
-                            templates.map(t => (
-                                <SelectItem key={t.name} value={t.name}>
-                                    <span className="font-medium">{t.name}</span>
-                                    {t.status && <span className="ml-2 text-[9px] text-muted-foreground">({t.status})</span>}
-                                </SelectItem>
-                            ))
+                            <>
+                                {/* Mevcut template listede yoksa üstte göster */}
+                                {c.template_name && !currentTemplateInList && (
+                                    <SelectItem key={c.template_name} value={c.template_name}>
+                                        <span className="font-medium">{c.template_name}</span>
+                                        <span className="ml-2 text-[9px] text-muted-foreground">(mevcut)</span>
+                                    </SelectItem>
+                                )}
+                                {templates.map(t => (
+                                    <SelectItem key={t.name} value={t.name}>
+                                        <span className="font-medium">{t.name}</span>
+                                        {t.status && <span className="ml-2 text-[9px] text-muted-foreground">({t.status})</span>}
+                                    </SelectItem>
+                                ))}
+                            </>
                         )}
                     </SelectContent>
                 </Select>
             </div>
+            {/* AI tarafından oluşturulan template bilgisi */}
+            {c.template_name && !currentTemplateInList && !loading && (
+                <div className="p-2 rounded bg-purple-500/10 border border-purple-500/20">
+                    <p className="text-[9px] text-purple-400">🤖 Bu şablon AI kampanyası tarafından otomatik oluşturulmuş: <strong>{c.template_name}</strong></p>
+                </div>
+            )}
             {selected && (
                 <div className="space-y-1.5">
                     <div className="flex items-center justify-between">

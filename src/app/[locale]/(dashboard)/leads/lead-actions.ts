@@ -51,56 +51,85 @@ export async function updateLead(leadId: string, data: {
     // Send assignment notifications if assignee changed and is not empty
     const isAssigneeChanging = data.assigned_to !== undefined && data.assigned_to !== currentLead?.assigned_to && data.assigned_to !== null && data.assigned_to !== ''
     if (isAssigneeChanging && data.assigned_to) {
-        // App-level notification
+        // Get user notification preferences
+        let isEnabled = true
+        let inAppEnabled = true
+        let whatsappEnabled = true
+
         try {
-            const { createNotification } = await import('@/lib/notifications/create')
-            await createNotification({
-                tenant_id: profile.tenant_id,
-                user_id: data.assigned_to,
-                type: 'Info',
-                category: 'CRM',
-                title: '🎯 Yeni Müşteri Adayı Atandı',
-                message: `${currentLead?.full_name || 'Aday'} isimli müşteri adayı takibinize atandı.`,
-                link: '/leads'
-            })
-        } catch (notifErr) {
-            console.error('Lead assignment notification error:', notifErr)
+            const { data: pref } = await supabase
+                .from('user_notification_preferences')
+                .select('*')
+                .eq('tenant_id', profile.tenant_id)
+                .eq('user_id', data.assigned_to)
+                .eq('notification_type', 'lead_assigned')
+                .maybeSingle()
+
+            if (pref) {
+                isEnabled = pref.is_enabled
+                inAppEnabled = pref.channel_in_app
+                whatsappEnabled = pref.channel_whatsapp
+            }
+        } catch (prefErr) {
+            console.error('Error fetching notification preferences:', prefErr)
         }
 
-        // WhatsApp notification (conditional based on tenant setting)
-        try {
-            const { data: tenant } = await supabase
-                .from('tenants')
-                .select('wa_lead_assignment_notification_enabled, wa_phone_number_id, wa_access_token')
-                .eq('id', profile.tenant_id)
-                .single()
-
-            if (tenant?.wa_lead_assignment_notification_enabled && tenant.wa_phone_number_id && tenant.wa_access_token) {
-                const { data: repProfile } = await supabase
-                    .from('profiles')
-                    .select('phone, full_name')
-                    .eq('id', data.assigned_to)
-                    .single()
-
-                if (repProfile?.phone) {
-                    const { sendWhatsAppTemplate } = await import('@/lib/whatsapp')
-                    await sendWhatsAppTemplate(
-                        repProfile.phone,
-                        'lead_assignment_alert',
-                        [
-                            currentLead?.full_name || 'Aday Müşteri', 
-                            currentLead?.phone || '', 
-                            'ADAY (LEADS)'
-                        ],
-                        'tr',
-                        tenant.wa_phone_number_id,
-                        tenant.wa_access_token
-                    )
-                    console.log(`✅ Lead atama WA template gönderildi (Leads): ${repProfile.full_name}`)
+        if (isEnabled) {
+            // App-level notification
+            if (inAppEnabled) {
+                try {
+                    const { createNotification } = await import('@/lib/notifications/create')
+                    await createNotification({
+                        tenant_id: profile.tenant_id,
+                        user_id: data.assigned_to,
+                        type: 'Info',
+                        category: 'CRM',
+                        title: '🎯 Yeni Müşteri Adayı Atandı',
+                        message: `${currentLead?.full_name || 'Aday'} isimli müşteri adayı takibinize atandı.`,
+                        link: '/leads'
+                    })
+                } catch (notifErr) {
+                    console.error('Lead assignment notification error:', notifErr)
                 }
             }
-        } catch (waErr) {
-            console.error('Lead assignment WA notification error:', waErr)
+
+            // WhatsApp notification
+            if (whatsappEnabled) {
+                try {
+                    const { data: tenant } = await supabase
+                        .from('tenants')
+                        .select('wa_phone_number_id, wa_access_token')
+                        .eq('id', profile.tenant_id)
+                        .single()
+
+                    if (tenant?.wa_phone_number_id && tenant.wa_access_token) {
+                        const { data: repProfile } = await supabase
+                            .from('profiles')
+                            .select('phone, full_name')
+                            .eq('id', data.assigned_to)
+                            .single()
+
+                        if (repProfile?.phone) {
+                            const { sendWhatsAppTemplate } = await import('@/lib/whatsapp')
+                            await sendWhatsAppTemplate(
+                                repProfile.phone,
+                                'lead_assignment_alert',
+                                [
+                                    currentLead?.full_name || 'Aday Müşteri', 
+                                    currentLead?.phone || '', 
+                                    'ADAY (LEADS)'
+                                ],
+                                'tr',
+                                tenant.wa_phone_number_id,
+                                tenant.wa_access_token
+                            )
+                            console.log(`✅ Lead atama WA template gönderildi (Leads): ${repProfile.full_name}`)
+                        }
+                    }
+                } catch (waErr) {
+                    console.error('Lead assignment WA notification error:', waErr)
+                }
+            }
         }
     }
 
@@ -365,19 +394,84 @@ export async function createLead(data: {
 
     // Temsilciye atama bildirimi gönder
     if (data.assigned_to) {
+        let isEnabled = true
+        let inAppEnabled = true
+        let whatsappEnabled = true
+
         try {
-            const { createNotification } = await import('@/lib/notifications/create')
-            await createNotification({
-                tenant_id: profile.tenant_id,
-                user_id: data.assigned_to,
-                type: 'Info',
-                category: 'CRM',
-                title: '🎯 Yeni Müşteri Adayı Atandı',
-                message: `${data.full_name || 'Aday'} isimli yeni müşteri adayı takibinize atandı.`,
-                link: '/leads'
-            })
-        } catch (notifErr) {
-            console.error('Lead assignment notification error:', notifErr)
+            const { data: pref } = await supabase
+                .from('user_notification_preferences')
+                .select('*')
+                .eq('tenant_id', profile.tenant_id)
+                .eq('user_id', data.assigned_to)
+                .eq('notification_type', 'lead_assigned')
+                .maybeSingle()
+
+            if (pref) {
+                isEnabled = pref.is_enabled
+                inAppEnabled = pref.channel_in_app
+                whatsappEnabled = pref.channel_whatsapp
+            }
+        } catch (prefErr) {
+            console.error('Error fetching notification preferences:', prefErr)
+        }
+
+        if (isEnabled) {
+            // App-level notification
+            if (inAppEnabled) {
+                try {
+                    const { createNotification } = await import('@/lib/notifications/create')
+                    await createNotification({
+                        tenant_id: profile.tenant_id,
+                        user_id: data.assigned_to,
+                        type: 'Info',
+                        category: 'CRM',
+                        title: '🎯 Yeni Müşteri Adayı Atandı',
+                        message: `${data.full_name || 'Aday'} isimli yeni müşteri adayı takibinize atandı.`,
+                        link: '/leads'
+                    })
+                } catch (notifErr) {
+                    console.error('Lead assignment notification error:', notifErr)
+                }
+            }
+
+            // WhatsApp notification
+            if (whatsappEnabled) {
+                try {
+                    const { data: tenant } = await supabase
+                        .from('tenants')
+                        .select('wa_phone_number_id, wa_access_token')
+                        .eq('id', profile.tenant_id)
+                        .single()
+
+                    if (tenant?.wa_phone_number_id && tenant.wa_access_token) {
+                        const { data: repProfile } = await supabase
+                            .from('profiles')
+                            .select('phone, full_name')
+                            .eq('id', data.assigned_to)
+                            .single()
+
+                        if (repProfile?.phone) {
+                            const { sendWhatsAppTemplate } = await import('@/lib/whatsapp')
+                            await sendWhatsAppTemplate(
+                                repProfile.phone,
+                                'lead_assignment_alert',
+                                [
+                                    data.full_name || 'Aday Müşteri', 
+                                    data.phone || '', 
+                                    'ADAY (LEADS)'
+                                ],
+                                'tr',
+                                tenant.wa_phone_number_id,
+                                tenant.wa_access_token
+                            )
+                            console.log(`✅ Lead atama WA template gönderildi (Leads): ${repProfile.full_name}`)
+                        }
+                    }
+                } catch (waErr) {
+                    console.error('Lead assignment WA notification error:', waErr)
+                }
+            }
         }
     }
 

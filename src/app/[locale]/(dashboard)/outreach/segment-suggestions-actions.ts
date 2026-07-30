@@ -22,6 +22,19 @@ export async function generateSegmentSuggestions(tenantId: string): Promise<Segm
     const suggestions: SegmentSuggestion[] = []
     const now = new Date()
 
+    // ─── Aktif outreach'i olan müşterileri hariç tut ───────────
+    // Bu müşterilere zaten kampanya gidiyor, tekrar öneri çıkmasın
+    const activeStatuses = ['active', 'waiting', 'pending', 'completed', 'converted']
+    const { data: activeExecs } = await supabase
+        .from('outreach_executions')
+        .select('customer_id')
+        .eq('tenant_id', tenantId)
+        .in('status', activeStatuses)
+    
+    const alreadyInOutreach = new Set(
+        (activeExecs || []).map(e => e.customer_id).filter(Boolean)
+    )
+
     // 1. Sessiz Lead'ler — 2 haftadır hiç etkileşim yok
     const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000)
 
@@ -70,7 +83,7 @@ export async function generateSegmentSuggestions(tenantId: string): Promise<Segm
         const outreachedCustomerIds = new Set((recentOutreach || []).map(o => o.customer_id))
 
         const silentLeads = customerIds.filter(id =>
-            !activeCustomerIds.has(id) && !outreachedCustomerIds.has(id)
+            !activeCustomerIds.has(id) && !outreachedCustomerIds.has(id) && !alreadyInOutreach.has(id)
         )
 
         if (silentLeads.length >= 5) {
@@ -115,7 +128,7 @@ export async function generateSegmentSuggestions(tenantId: string): Promise<Segm
             const recentCalls = callResults.flatMap(r => r.data || [])
 
             const calledIds = new Set((recentCalls || []).map(c => c.customer_id))
-            const uncalledHighScore = highScoreCustomers.filter(c => !calledIds.has(c.id))
+            const uncalledHighScore = highScoreCustomers.filter(c => !calledIds.has(c.id) && !alreadyInOutreach.has(c.id))
 
             if (uncalledHighScore.length >= 3) {
                 suggestions.push({
@@ -172,7 +185,7 @@ export async function generateSegmentSuggestions(tenantId: string): Promise<Segm
         const answeredLater = answeredResults.flatMap(r => r.data || [])
 
         const answeredSet = new Set((answeredLater || []).map(a => a.customer_id))
-        const stillUnanswered = unansweredIds.filter(id => !answeredSet.has(id))
+        const stillUnanswered = unansweredIds.filter(id => !answeredSet.has(id) && !alreadyInOutreach.has(id))
 
         if (stillUnanswered.length >= 5) {
             suggestions.push({
@@ -202,22 +215,24 @@ export async function generateSegmentSuggestions(tenantId: string): Promise<Segm
         .gte('executed_at', oneWeekAgo.toISOString())
 
     if (waResponded && waResponded.length >= 3) {
-        const respondedIds = [...new Set(waResponded.map(r => r.customer_id).filter(Boolean))]
+        const respondedIds = [...new Set(waResponded.map(r => r.customer_id).filter(Boolean))].filter(id => !alreadyInOutreach.has(id))
 
-        suggestions.push({
-            id: 'wa-hot-leads',
-            title: `💬 ${respondedIds.length} WA Cevap Veren Lead`,
-            description: `${respondedIds.length} kişi WhatsApp mesajına cevap verdi. Bunlar sıcak lead — hemen aranmalı.`,
-            customerCount: respondedIds.length,
-            priority: 'high',
-            suggestedAction: 'Acil AI telefon araması',
-            estimatedImpact: `${Math.round(respondedIds.length * 0.35)} potansiyel randevu`,
-            icon: '💬',
-            segmentFilter: {
-                type: 'wa_responded',
-                conditions: { customer_ids: respondedIds }
-            }
-        })
+        if (respondedIds.length >= 3) {
+            suggestions.push({
+                id: 'wa-hot-leads',
+                title: `💬 ${respondedIds.length} WA Cevap Veren Lead`,
+                description: `${respondedIds.length} kişi WhatsApp mesajına cevap verdi. Bunlar sıcak lead — hemen aranmalı.`,
+                customerCount: respondedIds.length,
+                priority: 'high',
+                suggestedAction: 'Acil AI telefon araması',
+                estimatedImpact: `${Math.round(respondedIds.length * 0.35)} potansiyel randevu`,
+                icon: '💬',
+                segmentFilter: {
+                    type: 'wa_responded',
+                    conditions: { customer_ids: respondedIds }
+                }
+            })
+        }
     }
 
     // 5. Eski lead'ler — 30+ gün önce oluşturulmuş ama dönüşmemiş
@@ -232,22 +247,24 @@ export async function generateSegmentSuggestions(tenantId: string): Promise<Segm
         .limit(10000)
 
     if (oldLeads && oldLeads.length >= 10) {
-        const oldIds = [...new Set(oldLeads.map(l => l.customer_id).filter(Boolean))]
+        const oldIds = [...new Set(oldLeads.map(l => l.customer_id).filter(Boolean))].filter(id => !alreadyInOutreach.has(id))
 
-        suggestions.push({
-            id: 'aging-leads',
-            title: `⏰ ${oldIds.length} Yaşlanmış Lead`,
-            description: `30+ gündür pipeline'da bekleyen ${oldIds.length} lead var. Özel teklif veya kampanya ile canlandırılabilir.`,
-            customerCount: oldIds.length,
-            priority: 'medium',
-            suggestedAction: 'Özel teklif kampanyası (WhatsApp + SMS)',
-            estimatedImpact: `${Math.round(oldIds.length * 0.1)} yeni dönüşüm`,
-            icon: '⏰',
-            segmentFilter: {
-                type: 'aging_leads',
-                conditions: { min_age_days: 30, customer_ids: oldIds }
-            }
-        })
+        if (oldIds.length >= 10) {
+            suggestions.push({
+                id: 'aging-leads',
+                title: `⏰ ${oldIds.length} Yaşlanmış Lead`,
+                description: `30+ gündür pipeline'da bekleyen ${oldIds.length} lead var. Özel teklif veya kampanya ile canlandırılabilir.`,
+                customerCount: oldIds.length,
+                priority: 'medium',
+                suggestedAction: 'Özel teklif kampanyası (WhatsApp + SMS)',
+                estimatedImpact: `${Math.round(oldIds.length * 0.1)} yeni dönüşüm`,
+                icon: '⏰',
+                segmentFilter: {
+                    type: 'aging_leads',
+                    conditions: { min_age_days: 30, customer_ids: oldIds }
+                }
+            })
+        }
     }
 
     // Sort by priority

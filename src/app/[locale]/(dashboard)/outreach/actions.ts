@@ -903,16 +903,16 @@ export async function getWhatsAppTemplates() {
         ACCESS_TOKEN = ACCESS_TOKEN.replace(/[\r\n"\s]+/g, '')
     }
 
-    // 1. WABA_ID ve ACCESS_TOKEN varsa Meta API'den çek (maksimum 2.5 saniye bekle)
+    // 1. WABA_ID ve ACCESS_TOKEN varsa Meta API'den çek (maksimum 5 saniye bekle)
     if (WABA_ID && ACCESS_TOKEN) {
         try {
             const controller = new AbortController()
-            const timeoutId = setTimeout(() => controller.abort(), 2500)
+            const timeoutId = setTimeout(() => controller.abort(), 5000)
 
             const res = await fetch(
                 `https://graph.facebook.com/v21.0/${WABA_ID}/message_templates?fields=name,status,components&limit=100&access_token=${ACCESS_TOKEN}`,
                 { 
-                    next: { revalidate: 60 },
+                    cache: 'no-store',
                     signal: controller.signal
                 }
             )

@@ -38,6 +38,39 @@ export function resolveAiProvider(tenant: any): ResolvedAiProvider | null {
 }
 
 /**
+ * AI tarafından üretilen yanıttan dahili düşünme (THOUGHT / Reasoning / Thinking) bloklarını temizler.
+ */
+export function cleanAiResponse(text: string | null): string | null {
+    if (!text) return text;
+
+    let cleaned = text.trim();
+
+    // 1. <thought>...</thought> veya <thinking>...</thinking> etiketlerini temizle
+    cleaned = cleaned.replace(/<(thought|thinking)>[\s\S]*?<\/\1>/gi, '').trim();
+
+    // 2. "THOUGHT" bloğunu tespit et ve temizle
+    if (/^\s*THOUGHT/i.test(cleaned)) {
+        // Çift yeni satır ile ayrılmış yanıtları kontrol et
+        const splitParts = cleaned.split(/\n\s*\n/);
+        if (splitParts.length > 1) {
+            const nonThoughtParts = splitParts.filter(part => !/^\s*THOUGHT/i.test(part.trim()));
+            if (nonThoughtParts.length > 0) {
+                cleaned = nonThoughtParts.join('\n\n').trim();
+            }
+        }
+        
+        // Eğer hala THOUGHT ile başlıyorsa satır bazlı veya regex ile temizle
+        cleaned = cleaned.replace(/^\s*THOUGHT[:\s]*[\s\S]*?(?=\n\n[A-ZÇĞİÖŞÜa-zçğıöşü]|\[LEAD_|$)/i, '').trim();
+        cleaned = cleaned.replace(/^\s*THOUGHT[:\s]*/i, '').trim();
+    }
+
+    // 3. "Thinking:", "Düşünce:", "Reasoning:" başlıklarını temizle
+    cleaned = cleaned.replace(/^\s*(Thinking|Düşünce|Reasoning)[:\s]*/i, '').trim();
+
+    return cleaned || null;
+}
+
+/**
  * AI sağlayıcısına göre yanıt üretir (Gemini veya OpenAI)
  */
 export async function generateAIReply(
@@ -48,10 +81,13 @@ export async function generateAIReply(
     modelName?: string
 ): Promise<string | null> {
     try {
+        let reply: string | null = null;
         if (provider === 'openai') {
-            return await callOpenAI(apiKey, systemPrompt, chatHistory, modelName || 'gpt-4o-mini');
+            reply = await callOpenAI(apiKey, systemPrompt, chatHistory, modelName || 'gpt-4o-mini');
+        } else {
+            reply = await callGemini(apiKey, systemPrompt, chatHistory, modelName || 'gemini-2.5-flash');
         }
-        return await callGemini(apiKey, systemPrompt, chatHistory, modelName || 'gemini-2.5-flash');
+        return cleanAiResponse(reply);
     } catch (error) {
         console.error(`${provider} API Error:`, error);
         return null;
