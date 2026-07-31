@@ -45,27 +45,38 @@ export function cleanAiResponse(text: string | null): string | null {
 
     let cleaned = text.trim();
 
-    // 1. <thought>...</thought> veya <thinking>...</thinking> etiketlerini temizle
-    cleaned = cleaned.replace(/<(thought|thinking)>[\s\S]*?<\/\1>/gi, '').trim();
+    // 1. <thought>...</thought>, <thinking>...</thinking>, <reasoning>...</reasoning> etiketlerini temizle
+    cleaned = cleaned.replace(/<(thought|thinking|reasoning)>[\s\S]*?<\/\1>/gi, '').trim();
 
-    // 2. "THOUGHT" bloğunu tespit et ve temizle
-    if (/^\s*THOUGHT/i.test(cleaned)) {
-        // Çift yeni satır ile ayrılmış yanıtları kontrol et
+    // 2. "THOUGHT", "Thinking:", "Düşünce:", "Reasoning:" bloklarını temizle
+    if (/^\s*(THOUGHT|Thinking|Düşünce|Reasoning)/i.test(cleaned)) {
         const splitParts = cleaned.split(/\n\s*\n/);
         if (splitParts.length > 1) {
-            const nonThoughtParts = splitParts.filter(part => !/^\s*THOUGHT/i.test(part.trim()));
+            const nonThoughtParts = splitParts.filter(part => !/^\s*(THOUGHT|Thinking|Düşünce|Reasoning)/i.test(part.trim()));
             if (nonThoughtParts.length > 0) {
                 cleaned = nonThoughtParts.join('\n\n').trim();
             }
         }
-        
-        // Eğer hala THOUGHT ile başlıyorsa satır bazlı veya regex ile temizle
-        cleaned = cleaned.replace(/^\s*THOUGHT[:\s]*[\s\S]*?(?=\n\n[A-ZÇĞİÖŞÜa-zçğıöşü]|\[LEAD_|$)/i, '').trim();
-        cleaned = cleaned.replace(/^\s*THOUGHT[:\s]*/i, '').trim();
+        cleaned = cleaned.replace(/^\s*(THOUGHT|Thinking|Düşünce|Reasoning)[:\s]*[\s\S]*?(?=\n\n[A-ZÇĞİÖŞÜa-zçğıöşü]|\[LEAD_|$)/i, '').trim();
+        cleaned = cleaned.replace(/^\s*(THOUGHT|Thinking|Düşünce|Reasoning)[:\s]*/i, '').trim();
     }
 
-    // 3. "Thinking:", "Düşünce:", "Reasoning:" başlıklarını temizle
-    cleaned = cleaned.replace(/^\s*(Thinking|Düşünce|Reasoning)[:\s]*/i, '').trim();
+    // 3. Etiket taşımayan ama İngilizce/Sistem Düşünce/Analiz cümlelerini temizle
+    if (/^(Knowledge Base entry|I should|I need to|I must|The general rules|According to|In this scenario|The user asks)/i.test(cleaned)) {
+        const paragraphs = cleaned.split('\n').map(p => p.trim()).filter(Boolean);
+        const turkishParagraphs = paragraphs.filter(p => {
+            const isEnglishReasoning = /^(Knowledge Base entry|I should|I need to|I must|The general rules|The rules state|I also need|I must not use|Knowledge Base)/i.test(p) ||
+                /["'](MAKSİMUM 1-2 CÜMLE|CEVAP SONRASI|PAS KURALI|GİZLİ|DÜŞÜNME)/i.test(p);
+            return !isEnglishReasoning;
+        });
+
+        if (turkishParagraphs.length > 0) {
+            cleaned = turkishParagraphs.join('\n').trim();
+        }
+    }
+
+    // 4. Kendi kendine "I must not use THOUGHT..." deyip Türkçe yanıta yapışan önekleri temizle
+    cleaned = cleaned.replace(/^(?:Knowledge Base entry for[^\n\.]*[\n\.]?|I should [^\n\.]*[\n\.]?|The general rules state[^\n\.]*[\n\.]?|I also need to [^\n\.]*[\n\.]?|I must not use [^\n\.]*[\n\.]?)+/gi, '').trim();
 
     return cleaned || null;
 }

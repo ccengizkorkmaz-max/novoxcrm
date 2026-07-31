@@ -1011,6 +1011,10 @@
             "self-learning": {
                 "title": "Self-Learning Script",
                 "description": "AI analyzes successful call patterns and suggests prompt improvements automatically."
+            },
+            "crm-statistics": {
+                "title": "CRM Statistics",
+                "description": "Customer and lead demographics, source analysis, project breakdown, lead scoring, and monthly trends."
             }
         }
     },
