@@ -2473,6 +2473,29 @@ export async function getPeriodComparison() {
 }
 
 // ─── CRM MÜŞTERİ & LEAD İSTATİSTİKLERİ ──────────────────────────────
+
+/** Supabase 1000 kayıt limitini aşmak için sayfalı veri çekme */
+async function fetchAll<T = any>(
+    supabase: any,
+    table: string,
+    select: string,
+    filters: { column: string; value: any }[],
+    pageSize = 1000
+): Promise<T[]> {
+    const all: T[] = []
+    let from = 0
+    let hasMore = true
+    while (hasMore) {
+        let query = supabase.from(table).select(select).range(from, from + pageSize - 1)
+        for (const f of filters) { query = query.eq(f.column, f.value) }
+        const { data, error } = await query
+        if (error || !data || data.length === 0) { hasMore = false; break }
+        all.push(...data)
+        if (data.length < pageSize) { hasMore = false } else { from += pageSize }
+    }
+    return all
+}
+
 export async function getCrmStatistics() {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -2482,18 +2505,17 @@ export async function getCrmStatistics() {
     if (!profile?.tenant_id) return { error: 'No tenant' }
 
     const tenantId = profile.tenant_id
+    const tenantFilter = [{ column: 'tenant_id', value: tenantId }]
 
-    // ── 1. Müşteri verilerini çek ──
-    const { data: customers } = await supabase
-        .from('customers')
-        .select('id, full_name, source, city, district, country, gender, heard_from, customer_type, created_at')
-        .eq('tenant_id', tenantId)
+    // ── 1. Müşteri verilerini çek (sayfalı — 1000+ kayıt desteği) ──
+    const customers = await fetchAll(supabase, 'customers',
+        'id, full_name, source, city, district, country, gender, heard_from, customer_type, created_at',
+        tenantFilter)
 
-    // ── 2. Lead verilerini çek ──
-    const { data: leads } = await supabase
-        .from('leads')
-        .select('id, full_name, status, sub_status, source, lead_score, project_id, assigned_to, utm_source, utm_medium, utm_campaign, created_at, converted_at')
-        .eq('tenant_id', tenantId)
+    // ── 2. Lead verilerini çek (sayfalı) ──
+    const leads = await fetchAll(supabase, 'leads',
+        'id, full_name, status, sub_status, source, lead_score, project_id, assigned_to, utm_source, utm_medium, utm_campaign, created_at, converted_at',
+        tenantFilter)
 
     // ── 3. Projeler (lead → proje adı eşleştirmesi için) ──
     const { data: projects } = await supabase
