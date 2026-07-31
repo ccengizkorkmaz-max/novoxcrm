@@ -6,32 +6,18 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { BackButton } from "@/components/back-button"
 import {
     RefreshCw, Users, UserPlus, TrendingUp, Clock, Target, ArrowUpRight,
-    BarChart3, MapPin, Building2, Megaphone, Filter, Flame, UserCheck
+    BarChart3, Building2, Flame
 } from 'lucide-react'
 import {
-    BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell,
-    PieChart, Pie, AreaChart, Area, Legend
+    BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
+    AreaChart, Area, Legend
 } from 'recharts'
 
-const COLORS = [
-    '#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899',
-    '#f43f5e', '#ef4444', '#f97316', '#eab308', '#22c55e',
-    '#14b8a6', '#06b6d4', '#3b82f6', '#2563eb', '#7c3aed'
-]
-
-const LEAD_STATUS_COLORS: Record<string, string> = {
-    'Yeni': '#3b82f6',
-    'İletişime Geçildi': '#f59e0b',
-    'Nitelikli': '#8b5cf6',
-    'Dönüştürüldü': '#10b981',
-    'Kaybedildi': '#ef4444'
-}
-
-const LEAD_SCORE_COLORS: Record<string, string> = {
-    '🔥 Sıcak (Hot)': '#ef4444',
-    '🌤️ Ilık (Warm)': '#f59e0b',
-    '❄️ Soğuk (Cold)': '#3b82f6',
-    '🚫 Elendi': '#6b7280'
+/** Türk rakam formatı: 1.234, 12.345 */
+function fmtNum(n: number | string): string {
+    const num = typeof n === 'string' ? parseInt(n, 10) : n
+    if (isNaN(num)) return '0'
+    return num.toLocaleString('tr-TR')
 }
 
 function KpiCard({ icon: Icon, label, value, sub, color, bgColor }: {
@@ -69,59 +55,6 @@ function SectionTitle({ icon: Icon, title, description, color }: { icon: any, ti
     )
 }
 
-function MiniPieChart({ data, colors }: { data: any[], colors?: Record<string, string> }) {
-    if (!data || data.length === 0) return <p className="text-sm text-slate-400 italic p-4">Veri bulunamadı</p>
-    return (
-        <div className="flex items-center gap-4">
-            <ResponsiveContainer width={180} height={180}>
-                <PieChart>
-                    <Pie data={data} cx="50%" cy="50%" innerRadius={45} outerRadius={75} paddingAngle={3} dataKey="value" nameKey="name">
-                        {data.map((entry, i) => (
-                            <Cell key={i} fill={colors?.[entry.name] || COLORS[i % COLORS.length]} />
-                        ))}
-                    </Pie>
-                    <Tooltip formatter={(value: any) => [`${value} Adet`, '']} />
-                </PieChart>
-            </ResponsiveContainer>
-            <div className="flex-1 space-y-1.5 min-w-0">
-                {data.map((item, i) => (
-                    <div key={item.name} className="flex items-center gap-2 text-xs">
-                        <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: colors?.[item.name] || COLORS[i % COLORS.length] }} />
-                        <span className="text-slate-600 truncate">{item.name}</span>
-                        <span className="ml-auto font-bold text-slate-800 shrink-0">{item.value}</span>
-                    </div>
-                ))}
-            </div>
-        </div>
-    )
-}
-
-function HorizontalBarList({ data, colorField }: { data: any[], colorField?: Record<string, string> }) {
-    if (!data || data.length === 0) return <p className="text-sm text-slate-400 italic p-4">Veri bulunamadı</p>
-    const maxVal = Math.max(...data.map(d => d.value), 1)
-    return (
-        <div className="space-y-2">
-            {data.map((item, i) => (
-                <div key={item.name} className="flex items-center gap-3">
-                    <span className="text-xs text-slate-600 w-28 truncate text-right shrink-0" title={item.name}>{item.name}</span>
-                    <div className="flex-1 relative h-7">
-                        <div
-                            className="h-full rounded-md flex items-center px-2 transition-all"
-                            style={{
-                                width: `${Math.max((item.value / maxVal) * 100, 5)}%`,
-                                backgroundColor: colorField?.[item.name] || COLORS[i % COLORS.length],
-                                minWidth: '32px'
-                            }}
-                        >
-                            <span className="text-white text-xs font-bold">{item.value}</span>
-                        </div>
-                    </div>
-                </div>
-            ))}
-        </div>
-    )
-}
-
 export default function CrmStatisticsPage() {
     const [data, setData] = useState<any>(null)
     const [loading, setLoading] = useState(true)
@@ -150,7 +83,7 @@ export default function CrmStatisticsPage() {
         return <div className="text-center text-red-500 mt-12">Hata: {data.error}</div>
     }
 
-    const { kpis, demographics, sources, projectLeadDist, leadStats, monthlyTrend, utm } = data
+    const { kpis, projectLeadDist, monthlyTrend, utm } = data
 
     return (
         <div className="flex flex-col gap-8 p-1 md:p-6 pb-10 max-w-[1600px] mx-auto animate-in fade-in duration-700">
@@ -163,7 +96,7 @@ export default function CrmStatisticsPage() {
                             <BarChart3 className="h-8 w-8 text-indigo-600" />
                             CRM Müşteri & Lead İstatistikleri
                         </h1>
-                        <p className="text-slate-500 mt-1 text-sm font-medium">Tüm müşteri ve lead verilerinizin kapsamlı demografik ve istatistiksel analizi.</p>
+                        <p className="text-slate-500 mt-1 text-sm font-medium">Tüm müşteri ve lead verilerinizin kapsamlı istatistiksel analizi.</p>
                     </div>
                 </div>
                 <button
@@ -178,63 +111,17 @@ export default function CrmStatisticsPage() {
             {/* 1. KPI KARTLARI */}
             {/* ══════════════════════════════════════════ */}
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
-                <KpiCard icon={Users} label="Toplam Müşteri" value={kpis.totalCustomers} color="text-indigo-600" bgColor="bg-indigo-100" />
-                <KpiCard icon={Target} label="Toplam Lead" value={kpis.totalLeads} color="text-purple-600" bgColor="bg-purple-100" />
-                <KpiCard icon={TrendingUp} label="Dönüşüm Oranı" value={`%${kpis.conversionRate}`} sub={`${kpis.convertedLeads} dönüştürüldü`} color="text-emerald-600" bgColor="bg-emerald-100" />
-                <KpiCard icon={UserPlus} label="Bu Ay Müşteri" value={kpis.newCustomersThisMonth} sub="Son 30 gün" color="text-blue-600" bgColor="bg-blue-100" />
-                <KpiCard icon={Flame} label="Bu Ay Lead" value={kpis.newLeadsThisMonth} sub="Son 30 gün" color="text-rose-600" bgColor="bg-rose-100" />
-                <KpiCard icon={Clock} label="Ort. Dönüşüm" value={`${kpis.avgConversionDays} gün`} sub="Lead → Müşteri" color="text-amber-600" bgColor="bg-amber-100" />
-                <KpiCard icon={ArrowUpRight} label="Dönüştürülen" value={kpis.convertedLeads} color="text-teal-600" bgColor="bg-teal-100" />
+                <KpiCard icon={Users} label="Toplam Müşteri" value={fmtNum(kpis.totalCustomers)} color="text-indigo-600" bgColor="bg-indigo-100" />
+                <KpiCard icon={Target} label="Toplam Lead" value={fmtNum(kpis.totalLeads)} color="text-purple-600" bgColor="bg-purple-100" />
+                <KpiCard icon={TrendingUp} label="Dönüşüm Oranı" value={`%${kpis.conversionRate}`} sub={`${fmtNum(kpis.convertedLeads)} dönüştürüldü`} color="text-emerald-600" bgColor="bg-emerald-100" />
+                <KpiCard icon={UserPlus} label="Bu Ay Müşteri" value={fmtNum(kpis.newCustomersThisMonth)} sub="Son 30 gün" color="text-blue-600" bgColor="bg-blue-100" />
+                <KpiCard icon={Flame} label="Bu Ay Lead" value={fmtNum(kpis.newLeadsThisMonth)} sub="Son 30 gün" color="text-rose-600" bgColor="bg-rose-100" />
+                <KpiCard icon={Clock} label="Ort. Dönüşüm" value={`${fmtNum(kpis.avgConversionDays)} gün`} sub="Lead → Müşteri" color="text-amber-600" bgColor="bg-amber-100" />
+                <KpiCard icon={ArrowUpRight} label="Dönüştürülen" value={fmtNum(kpis.convertedLeads)} color="text-teal-600" bgColor="bg-teal-100" />
             </div>
 
             {/* ══════════════════════════════════════════ */}
-            {/* 2. MÜŞTERİ DEMOGRAFİK ANALİZİ */}
-            {/* ══════════════════════════════════════════ */}
-            <div>
-                <SectionTitle icon={Users} title="Müşteri Demografik Analizi" description="Cinsiyet, şehir, ilçe ve müşteri tipi dağılımları" color="bg-indigo-600" />
-                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <Card className="rounded-2xl shadow-md">
-                        <CardHeader className="pb-1"><CardTitle className="text-sm font-bold text-slate-700">Cinsiyet Dağılımı</CardTitle></CardHeader>
-                        <CardContent><MiniPieChart data={demographics.genderDist} /></CardContent>
-                    </Card>
-                    <Card className="rounded-2xl shadow-md">
-                        <CardHeader className="pb-1"><CardTitle className="text-sm font-bold text-slate-700">Müşteri Tipi</CardTitle></CardHeader>
-                        <CardContent><MiniPieChart data={demographics.customerTypeDist} /></CardContent>
-                    </Card>
-                    <Card className="rounded-2xl shadow-md">
-                        <CardHeader className="pb-1"><CardTitle className="text-sm font-bold text-slate-700">Şehir (Top 15)</CardTitle></CardHeader>
-                        <CardContent className="max-h-72 overflow-y-auto"><HorizontalBarList data={demographics.cityDist} /></CardContent>
-                    </Card>
-                    <Card className="rounded-2xl shadow-md">
-                        <CardHeader className="pb-1"><CardTitle className="text-sm font-bold text-slate-700">İlçe (Top 15)</CardTitle></CardHeader>
-                        <CardContent className="max-h-72 overflow-y-auto"><HorizontalBarList data={demographics.districtDist} /></CardContent>
-                    </Card>
-                </div>
-            </div>
-
-            {/* ══════════════════════════════════════════ */}
-            {/* 3. KAYNAK ANALİZİ */}
-            {/* ══════════════════════════════════════════ */}
-            <div>
-                <SectionTitle icon={Megaphone} title="Kaynak Analizi" description="Müşterilerin ve lead'lerin nereden geldiği" color="bg-pink-600" />
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <Card className="rounded-2xl shadow-md">
-                        <CardHeader className="pb-1"><CardTitle className="text-sm font-bold text-slate-700">Müşteri Kaynağı</CardTitle></CardHeader>
-                        <CardContent className="max-h-80 overflow-y-auto"><HorizontalBarList data={sources.customerSourceDist} /></CardContent>
-                    </Card>
-                    <Card className="rounded-2xl shadow-md">
-                        <CardHeader className="pb-1"><CardTitle className="text-sm font-bold text-slate-700">Lead Kaynağı</CardTitle></CardHeader>
-                        <CardContent className="max-h-80 overflow-y-auto"><HorizontalBarList data={sources.leadSourceDist} /></CardContent>
-                    </Card>
-                    <Card className="rounded-2xl shadow-md">
-                        <CardHeader className="pb-1"><CardTitle className="text-sm font-bold text-slate-700">Nereden Duydunuz?</CardTitle></CardHeader>
-                        <CardContent><MiniPieChart data={sources.heardFromDist} /></CardContent>
-                    </Card>
-                </div>
-            </div>
-
-            {/* ══════════════════════════════════════════ */}
-            {/* 4. PROJE BAZLI LEAD İSTATİSTİKLERİ */}
+            {/* 2. PROJE BAZLI LEAD İSTATİSTİKLERİ */}
             {/* ══════════════════════════════════════════ */}
             {projectLeadDist && projectLeadDist.length > 0 && (
                 <div>
@@ -244,9 +131,9 @@ export default function CrmStatisticsPage() {
                             <ResponsiveContainer width="100%" height={Math.max(projectLeadDist.length * 50, 200)}>
                                 <BarChart data={projectLeadDist} layout="vertical" margin={{ left: 20, right: 20 }}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                                    <XAxis type="number" tick={{ fontSize: 11 }} />
+                                    <XAxis type="number" tick={{ fontSize: 11 }} tickFormatter={(v: number) => fmtNum(v)} />
                                     <YAxis type="category" dataKey="name" width={160} tick={{ fontSize: 11 }} />
-                                    <Tooltip />
+                                    <Tooltip formatter={(value: any) => [fmtNum(value), '']} />
                                     <Legend />
                                     <Bar dataKey="new" name="Yeni" stackId="a" fill="#3b82f6" radius={[0, 0, 0, 0]} />
                                     <Bar dataKey="contacted" name="İletişim" stackId="a" fill="#f59e0b" />
@@ -261,32 +148,7 @@ export default function CrmStatisticsPage() {
             )}
 
             {/* ══════════════════════════════════════════ */}
-            {/* 5. LEAD İSTATİSTİKLERİ */}
-            {/* ══════════════════════════════════════════ */}
-            <div>
-                <SectionTitle icon={Filter} title="Lead İstatistikleri" description="Durum, sıcaklık skoru, alt durum ve temsilci bazlı dağılımlar" color="bg-purple-600" />
-                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <Card className="rounded-2xl shadow-md">
-                        <CardHeader className="pb-1"><CardTitle className="text-sm font-bold text-slate-700">Durum Dağılımı</CardTitle></CardHeader>
-                        <CardContent><MiniPieChart data={leadStats.leadStatusDist} colors={LEAD_STATUS_COLORS} /></CardContent>
-                    </Card>
-                    <Card className="rounded-2xl shadow-md">
-                        <CardHeader className="pb-1"><CardTitle className="text-sm font-bold text-slate-700">Sıcaklık Skoru</CardTitle></CardHeader>
-                        <CardContent><MiniPieChart data={leadStats.leadScoreDist} colors={LEAD_SCORE_COLORS} /></CardContent>
-                    </Card>
-                    <Card className="rounded-2xl shadow-md">
-                        <CardHeader className="pb-1"><CardTitle className="text-sm font-bold text-slate-700">Alt Durum</CardTitle></CardHeader>
-                        <CardContent><HorizontalBarList data={leadStats.leadSubStatusDist} /></CardContent>
-                    </Card>
-                    <Card className="rounded-2xl shadow-md">
-                        <CardHeader className="pb-1"><CardTitle className="text-sm font-bold text-slate-700">Temsilci Dağılımı</CardTitle></CardHeader>
-                        <CardContent className="max-h-72 overflow-y-auto"><HorizontalBarList data={leadStats.repLeadDist} /></CardContent>
-                    </Card>
-                </div>
-            </div>
-
-            {/* ══════════════════════════════════════════ */}
-            {/* 6. ZAMAN BAZLI TRENDLER */}
+            {/* 3. ZAMAN BAZLI TRENDLER */}
             {/* ══════════════════════════════════════════ */}
             <div>
                 <SectionTitle icon={TrendingUp} title="Aylık Trendler (Son 12 Ay)" description="Müşteri, lead ve dönüşüm sayılarının aylık değişimi" color="bg-blue-600" />
@@ -310,8 +172,8 @@ export default function CrmStatisticsPage() {
                                 </defs>
                                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                                 <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                                <YAxis tick={{ fontSize: 11 }} />
-                                <Tooltip />
+                                <YAxis tick={{ fontSize: 11 }} tickFormatter={(v: number) => fmtNum(v)} />
+                                <Tooltip formatter={(value: any) => [fmtNum(value), '']} />
                                 <Legend />
                                 <Area type="monotone" dataKey="customers" name="Müşteri" stroke="#6366f1" strokeWidth={2} fillOpacity={1} fill="url(#colorCustomers)" />
                                 <Area type="monotone" dataKey="leads" name="Lead" stroke="#ec4899" strokeWidth={2} fillOpacity={1} fill="url(#colorLeads)" />
@@ -323,24 +185,57 @@ export default function CrmStatisticsPage() {
             </div>
 
             {/* ══════════════════════════════════════════ */}
-            {/* 7. UTM / REKLAM ANALİZİ */}
+            {/* 4. UTM / REKLAM ANALİZİ */}
             {/* ══════════════════════════════════════════ */}
             {(utm.utmSourceDist.length > 0 || utm.utmCampaignDist.length > 0) && (
                 <div>
                     <SectionTitle icon={Target} title="Reklam (UTM) Analizi" description="Reklam kaynağı, kampanya ve medium bazlı lead dağılımları" color="bg-amber-600" />
                     <div className="grid md:grid-cols-3 gap-6">
-                        <Card className="rounded-2xl shadow-md">
-                            <CardHeader className="pb-1"><CardTitle className="text-sm font-bold text-slate-700">UTM Kaynak</CardTitle></CardHeader>
-                            <CardContent className="max-h-72 overflow-y-auto"><HorizontalBarList data={utm.utmSourceDist} /></CardContent>
-                        </Card>
-                        <Card className="rounded-2xl shadow-md">
-                            <CardHeader className="pb-1"><CardTitle className="text-sm font-bold text-slate-700">UTM Kampanya</CardTitle></CardHeader>
-                            <CardContent className="max-h-72 overflow-y-auto"><HorizontalBarList data={utm.utmCampaignDist} /></CardContent>
-                        </Card>
-                        <Card className="rounded-2xl shadow-md">
-                            <CardHeader className="pb-1"><CardTitle className="text-sm font-bold text-slate-700">UTM Medium</CardTitle></CardHeader>
-                            <CardContent className="max-h-72 overflow-y-auto"><HorizontalBarList data={utm.utmMediumDist} /></CardContent>
-                        </Card>
+                        {utm.utmSourceDist.length > 0 && (
+                            <Card className="rounded-2xl shadow-md">
+                                <CardHeader className="pb-1"><CardTitle className="text-sm font-bold text-slate-700">UTM Kaynak</CardTitle></CardHeader>
+                                <CardContent className="max-h-72 overflow-y-auto">
+                                    <div className="space-y-2">
+                                        {utm.utmSourceDist.map((item: any, i: number) => (
+                                            <div key={item.name} className="flex items-center justify-between text-sm border-b border-slate-100 pb-1">
+                                                <span className="text-slate-600 truncate">{item.name}</span>
+                                                <span className="font-bold text-slate-800">{fmtNum(item.value)}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
+                        {utm.utmCampaignDist.length > 0 && (
+                            <Card className="rounded-2xl shadow-md">
+                                <CardHeader className="pb-1"><CardTitle className="text-sm font-bold text-slate-700">UTM Kampanya</CardTitle></CardHeader>
+                                <CardContent className="max-h-72 overflow-y-auto">
+                                    <div className="space-y-2">
+                                        {utm.utmCampaignDist.map((item: any, i: number) => (
+                                            <div key={item.name} className="flex items-center justify-between text-sm border-b border-slate-100 pb-1">
+                                                <span className="text-slate-600 truncate">{item.name}</span>
+                                                <span className="font-bold text-slate-800">{fmtNum(item.value)}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
+                        {utm.utmMediumDist.length > 0 && (
+                            <Card className="rounded-2xl shadow-md">
+                                <CardHeader className="pb-1"><CardTitle className="text-sm font-bold text-slate-700">UTM Medium</CardTitle></CardHeader>
+                                <CardContent className="max-h-72 overflow-y-auto">
+                                    <div className="space-y-2">
+                                        {utm.utmMediumDist.map((item: any, i: number) => (
+                                            <div key={item.name} className="flex items-center justify-between text-sm border-b border-slate-100 pb-1">
+                                                <span className="text-slate-600 truncate">{item.name}</span>
+                                                <span className="font-bold text-slate-800">{fmtNum(item.value)}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
                     </div>
                 </div>
             )}
