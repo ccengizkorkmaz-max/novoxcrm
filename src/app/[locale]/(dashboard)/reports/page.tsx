@@ -205,13 +205,6 @@ const reportCards = [
         icon: Brain,
         color: "text-purple-600",
         bgColor: "bg-purple-50"
-    },
-    {
-        id: "crm-statistics",
-        href: "/reports/crm-statistics",
-        icon: Users,
-        color: "text-indigo-600",
-        bgColor: "bg-indigo-50"
     }
 ]
 
