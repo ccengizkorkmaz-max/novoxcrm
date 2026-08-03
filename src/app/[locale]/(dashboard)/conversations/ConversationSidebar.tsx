@@ -2,9 +2,9 @@
 
 import { useState } from 'react'
 import { Link } from '@/i18n/routing'
-import { formatDistanceToNow, isAfter, subDays, startOfDay } from 'date-fns'
+import { formatDistanceToNow } from 'date-fns'
 import { tr } from 'date-fns/locale'
-import { MessageSquare, User, Clock, Search, X, Calendar } from 'lucide-react'
+import { MessageSquare, User, Clock, Search, X } from 'lucide-react'
 import { Badge } from "@/components/ui/badge"
 import { usePathname } from 'next/navigation'
 import { cn } from "@/lib/utils"
@@ -18,7 +18,7 @@ export default function ConversationSidebar({ sessions }: ConversationSidebarPro
     const pathname = usePathname()
     const [search, setSearch] = useState('')
     const [scoreFilter, setScoreFilter] = useState('all')
-    const [dateFilter, setDateFilter] = useState('all')
+    const [selectedDate, setSelectedDate] = useState('')
 
     useSupabaseRealtime({ table: 'whatsapp_conversations' })
 
@@ -37,16 +37,16 @@ export default function ConversationSidebar({ sessions }: ConversationSidebarPro
         }
 
         // Date filter
-        if (dateFilter !== 'all' && s.last_message_at) {
+        if (selectedDate && s.last_message_at) {
             const lastMsgDate = new Date(s.last_message_at)
-            const now = new Date()
+            const filterDate = new Date(selectedDate)
             
-            if (dateFilter === 'today') {
-                if (!isAfter(lastMsgDate, startOfDay(now))) return false
-            } else if (dateFilter === 'last7') {
-                if (!isAfter(lastMsgDate, subDays(now, 7))) return false
-            } else if (dateFilter === 'last30') {
-                if (!isAfter(lastMsgDate, subDays(now, 30))) return false
+            if (
+                lastMsgDate.getFullYear() !== filterDate.getFullYear() ||
+                lastMsgDate.getMonth() !== filterDate.getMonth() ||
+                lastMsgDate.getDate() !== filterDate.getDate()
+            ) {
+                return false
             }
         }
         
@@ -114,31 +114,13 @@ export default function ConversationSidebar({ sessions }: ConversationSidebarPro
                     </button>
                 </div>
 
-                <div className="flex gap-2 mt-2 overflow-x-auto pb-1 custom-scrollbar">
-                    <button
-                        onClick={() => setDateFilter('all')}
-                        className={cn("text-xs font-medium px-3 py-1.5 rounded-full border whitespace-nowrap transition-colors flex items-center gap-1", dateFilter === 'all' ? "bg-indigo-500 text-white border-indigo-500" : "bg-white text-slate-600 border-slate-200 hover:bg-indigo-50")}
-                    >
-                        <Calendar className="h-3.5 w-3.5" /> Tüm Zamanlar
-                    </button>
-                    <button
-                        onClick={() => setDateFilter('today')}
-                        className={cn("text-xs font-medium px-3 py-1.5 rounded-full border whitespace-nowrap transition-colors", dateFilter === 'today' ? "bg-indigo-500 text-white border-indigo-500" : "bg-white text-slate-600 border-slate-200 hover:bg-indigo-50")}
-                    >
-                        Bugün
-                    </button>
-                    <button
-                        onClick={() => setDateFilter('last7')}
-                        className={cn("text-xs font-medium px-3 py-1.5 rounded-full border whitespace-nowrap transition-colors", dateFilter === 'last7' ? "bg-indigo-500 text-white border-indigo-500" : "bg-white text-slate-600 border-slate-200 hover:bg-indigo-50")}
-                    >
-                        Son 7 Gün
-                    </button>
-                    <button
-                        onClick={() => setDateFilter('last30')}
-                        className={cn("text-xs font-medium px-3 py-1.5 rounded-full border whitespace-nowrap transition-colors", dateFilter === 'last30' ? "bg-indigo-500 text-white border-indigo-500" : "bg-white text-slate-600 border-slate-200 hover:bg-indigo-50")}
-                    >
-                        Son 30 Gün
-                    </button>
+                <div className="mt-2">
+                    <input
+                        type="date"
+                        value={selectedDate}
+                        onChange={(e) => setSelectedDate(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all cursor-pointer"
+                    />
                 </div>
             </div>
 
