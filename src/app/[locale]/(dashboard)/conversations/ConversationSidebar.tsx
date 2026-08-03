@@ -18,7 +18,8 @@ export default function ConversationSidebar({ sessions }: ConversationSidebarPro
     const pathname = usePathname()
     const [search, setSearch] = useState('')
     const [scoreFilter, setScoreFilter] = useState('all')
-    const [selectedDate, setSelectedDate] = useState('')
+    const [startDate, setStartDate] = useState('')
+    const [endDate, setEndDate] = useState('')
 
     useSupabaseRealtime({ table: 'whatsapp_conversations' })
 
@@ -36,17 +37,20 @@ export default function ConversationSidebar({ sessions }: ConversationSidebarPro
             if (s.lead_score !== scoreFilter) return false
         }
 
-        // Date filter
-        if (selectedDate && s.last_message_at) {
+        // Date range filter
+        if ((startDate || endDate) && s.last_message_at) {
             const lastMsgDate = new Date(s.last_message_at)
-            const filterDate = new Date(selectedDate)
+            const msgDateOnly = new Date(lastMsgDate.getFullYear(), lastMsgDate.getMonth(), lastMsgDate.getDate())
             
-            if (
-                lastMsgDate.getFullYear() !== filterDate.getFullYear() ||
-                lastMsgDate.getMonth() !== filterDate.getMonth() ||
-                lastMsgDate.getDate() !== filterDate.getDate()
-            ) {
-                return false
+            if (startDate) {
+                const sDate = new Date(startDate)
+                const startOnly = new Date(sDate.getFullYear(), sDate.getMonth(), sDate.getDate())
+                if (msgDateOnly < startOnly) return false
+            }
+            if (endDate) {
+                const eDate = new Date(endDate)
+                const endOnly = new Date(eDate.getFullYear(), eDate.getMonth(), eDate.getDate())
+                if (msgDateOnly > endOnly) return false
             }
         }
         
@@ -114,12 +118,21 @@ export default function ConversationSidebar({ sessions }: ConversationSidebarPro
                     </button>
                 </div>
 
-                <div className="mt-2">
+                <div className="flex items-center gap-2 mt-2">
                     <input
                         type="date"
-                        value={selectedDate}
-                        onChange={(e) => setSelectedDate(e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all cursor-pointer"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-2 text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all cursor-pointer"
+                        title="Başlangıç Tarihi"
+                    />
+                    <span className="text-slate-400 text-xs font-bold">-</span>
+                    <input
+                        type="date"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-2 text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all cursor-pointer"
+                        title="Bitiş Tarihi"
                     />
                 </div>
             </div>
