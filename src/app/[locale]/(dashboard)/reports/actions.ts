@@ -2472,3 +2472,31 @@ export async function getPeriodComparison() {
     return { comparison, sixMonthTrend }
 }
 
+
+export async function getCrmStatistics() {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single()
+    if (!profile?.tenant_id) return { error: 'Tenant bulunamadý' }
+
+    return {
+        kpis: {
+            totalCustomers: 0,
+            totalLeads: 0,
+            conversionRate: 0,
+            newCustomersThisMonth: 0,
+            newLeadsThisMonth: 0,
+            avgConversionDays: 0,
+            convertedLeads: 0
+        },
+        projectLeadDist: [],
+        monthlyTrend: [],
+        utm: {
+            utmSourceDist: [],
+            utmCampaignDist: [],
+            utmMediumDist: []
+        }
+    }
+}
