@@ -552,7 +552,7 @@ export async function getAdSourceAnalytics() {
     if (!user) return { error: 'Unauthorized' }
 
     const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single()
-    if (!profile?.tenant_id) return { error: 'Tenant bulunamadı' }
+    if (!profile?.tenant_id) return { error: 'Tenant bulunamadıı' }
 
     const tenantId = profile.tenant_id
     
@@ -2479,7 +2479,7 @@ export async function getCrmStatistics() {
     if (!user) return { error: 'Unauthorized' }
 
     const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single()
-    if (!profile?.tenant_id) return { error: 'Tenant bulunamad�' }
+    if (!profile?.tenant_id) return { error: 'Tenant bulunamadı�' }
 
     return {
         kpis: {
