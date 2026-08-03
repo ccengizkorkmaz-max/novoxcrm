@@ -17,17 +17,26 @@ interface ConversationSidebarProps {
 export default function ConversationSidebar({ sessions }: ConversationSidebarProps) {
     const pathname = usePathname()
     const [search, setSearch] = useState('')
+    const [scoreFilter, setScoreFilter] = useState('all')
 
     useSupabaseRealtime({ table: 'whatsapp_conversations' })
 
-    const filteredSessions = search.trim()
-        ? sessions.filter((s) => {
+    const filteredSessions = sessions.filter((s) => {
+        // Text search
+        if (search.trim()) {
             const q = search.toLowerCase()
             const name = (s.customers?.full_name || '').toLowerCase()
             const phone = (s.phone_number || '').toLowerCase()
-            return name.includes(q) || phone.includes(q)
-        })
-        : sessions
+            if (!name.includes(q) && !phone.includes(q)) return false
+        }
+        
+        // Score filter
+        if (scoreFilter !== 'all') {
+            if (s.lead_score !== scoreFilter) return false
+        }
+        
+        return true
+    })
 
     return (
         <div className="flex flex-col h-full bg-white border-r border-slate-200 w-full lg:w-96 shrink-0 shadow-sm overflow-hidden">
@@ -62,6 +71,32 @@ export default function ConversationSidebar({ sessions }: ConversationSidebarPro
                             <X className="h-4 w-4" />
                         </button>
                     )}
+                </div>
+                <div className="flex gap-2 mt-3 overflow-x-auto pb-1 custom-scrollbar">
+                    <button
+                        onClick={() => setScoreFilter('all')}
+                        className={cn("text-xs font-medium px-3 py-1.5 rounded-full border whitespace-nowrap transition-colors", scoreFilter === 'all' ? "bg-slate-800 text-white border-slate-800" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50")}
+                    >
+                        Tümü
+                    </button>
+                    <button
+                        onClick={() => setScoreFilter('hot')}
+                        className={cn("text-xs font-medium px-3 py-1.5 rounded-full border whitespace-nowrap transition-colors flex items-center gap-1", scoreFilter === 'hot' ? "bg-red-500 text-white border-red-500" : "bg-white text-slate-600 border-slate-200 hover:bg-red-50")}
+                    >
+                        🔥 Sıcak
+                    </button>
+                    <button
+                        onClick={() => setScoreFilter('warm')}
+                        className={cn("text-xs font-medium px-3 py-1.5 rounded-full border whitespace-nowrap transition-colors flex items-center gap-1", scoreFilter === 'warm' ? "bg-orange-500 text-white border-orange-500" : "bg-white text-slate-600 border-slate-200 hover:bg-orange-50")}
+                    >
+                        🟠 Ilık
+                    </button>
+                    <button
+                        onClick={() => setScoreFilter('cold')}
+                        className={cn("text-xs font-medium px-3 py-1.5 rounded-full border whitespace-nowrap transition-colors flex items-center gap-1", scoreFilter === 'cold' ? "bg-sky-500 text-white border-sky-500" : "bg-white text-slate-600 border-slate-200 hover:bg-sky-50")}
+                    >
+                        🔵 Soğuk
+                    </button>
                 </div>
             </div>
 
