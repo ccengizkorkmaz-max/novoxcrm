@@ -58,7 +58,7 @@ export default function ConversationSidebar({ sessions }: ConversationSidebarPro
     })
 
     return (
-        <div className="flex flex-col h-full bg-white border-r border-slate-200 w-full lg:w-96 shrink-0 shadow-sm overflow-hidden">
+        <div className="flex flex-col h-full w-full bg-white relative overflow-hidden">
             <div className="p-6 border-b border-slate-200 bg-white sticky top-0 z-20">
                 <div className="flex items-center justify-between mb-4">
                     <h2 className="text-xl font-semibold text-slate-900 flex items-center gap-2">
@@ -137,7 +137,7 @@ export default function ConversationSidebar({ sessions }: ConversationSidebarPro
                 </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-2 bg-slate-50/10">
+            <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-slate-50/10 border-r border-slate-100">
                 {filteredSessions.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
                         <div className="h-16 w-16 rounded-3xl bg-slate-50 flex items-center justify-center text-slate-200 mb-4 border border-slate-100 shadow-inner rotate-12">
