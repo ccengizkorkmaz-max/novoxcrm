@@ -47,8 +47,10 @@ export function ActivitiesView({ initialActivities, customers, profiles, project
     ]
 
     const ACTIVITY_STATUSES = [
+        { id: 'Overdue', label: t('status.Overdue') },
         { id: 'Planned', label: t('status.Planned') },
         { id: 'In Progress', label: t('status.In Progress') },
+        { id: 'Pending', label: t('status.Pending') },
         { id: 'Completed', label: t('status.Completed') },
         { id: 'Cancelled', label: t('status.Cancelled') },
     ]
@@ -92,7 +94,25 @@ export function ActivitiesView({ initialActivities, customers, profiles, project
 
         // Status Filter
         if (selectedStatuses.length > 0) {
-            if (!selectedStatuses.includes(a.status)) return false
+            const now = new Date()
+            const isActOverdue = a.status === 'Overdue' || (
+                a.status !== 'Completed' &&
+                a.status !== 'Cancelled' &&
+                a.due_date &&
+                new Date(a.due_date) < now
+            )
+
+            const matchesStatus = selectedStatuses.some(statusKey => {
+                if (statusKey === 'Overdue') return isActOverdue
+                if (statusKey === 'Planned') return a.status === 'Planned' || a.status === 'Pending'
+                if (statusKey === 'Pending') return a.status === 'Pending'
+                if (statusKey === 'In Progress') return a.status === 'In Progress'
+                if (statusKey === 'Completed') return a.status === 'Completed'
+                if (statusKey === 'Cancelled') return a.status === 'Cancelled'
+                return a.status === statusKey
+            })
+
+            if (!matchesStatus) return false
         }
 
         // Lead Status Filter
@@ -256,11 +276,107 @@ export function ActivitiesView({ initialActivities, customers, profiles, project
                                     <Button
                                         variant={dateFilter === 'today' ? 'secondary' : 'outline'}
                                         size="sm"
-                                        onClick={() => setDateFilter('today')}
+                                        onClick={() => setDateFilter(prev => prev === 'today' ? 'all' : 'today')}
                                         className="h-9"
                                     >
                                         {t('filters.today')}
                                     </Button>
+
+                                    {/* Quick Status Pill Filters */}
+                                    {(() => {
+                                        const overdueCount = initialActivities.filter(a =>
+                                            a.status === 'Overdue' || (a.status !== 'Completed' && a.status !== 'Cancelled' && a.due_date && new Date(a.due_date) < new Date())
+                                        ).length
+                                        const plannedCount = initialActivities.filter(a =>
+                                            a.status === 'Planned' || a.status === 'Pending'
+                                        ).length
+                                        const completedCount = initialActivities.filter(a =>
+                                            a.status === 'Completed'
+                                        ).length
+
+                                        const isOverdueSelected = selectedStatuses.includes('Overdue')
+                                        const isPlannedSelected = selectedStatuses.includes('Planned')
+                                        const isCompletedSelected = selectedStatuses.includes('Completed')
+
+                                        return (
+                                            <>
+                                                <Button
+                                                    variant={isOverdueSelected ? 'secondary' : 'outline'}
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        setSelectedStatuses(prev =>
+                                                            prev.includes('Overdue') ? prev.filter(s => s !== 'Overdue') : [...prev, 'Overdue']
+                                                        )
+                                                    }}
+                                                    className={cn(
+                                                        "h-9 text-xs gap-1.5 font-medium transition-all",
+                                                        isOverdueSelected
+                                                            ? "bg-red-600 hover:bg-red-700 text-white font-bold border-red-600 shadow-sm"
+                                                            : "border-red-200 text-red-700 hover:bg-red-50 hover:border-red-300"
+                                                    )}
+                                                >
+                                                    <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
+                                                    {t('status.Overdue')}
+                                                    <span className={cn(
+                                                        "inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold",
+                                                        isOverdueSelected ? "bg-white/20 text-white" : "bg-red-100 text-red-800"
+                                                    )}>
+                                                        {overdueCount}
+                                                    </span>
+                                                </Button>
+
+                                                <Button
+                                                    variant={isPlannedSelected ? 'secondary' : 'outline'}
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        setSelectedStatuses(prev =>
+                                                            prev.includes('Planned') ? prev.filter(s => s !== 'Planned') : [...prev, 'Planned']
+                                                        )
+                                                    }}
+                                                    className={cn(
+                                                        "h-9 text-xs gap-1.5 font-medium transition-all",
+                                                        isPlannedSelected
+                                                            ? "bg-amber-600 hover:bg-amber-700 text-white font-bold border-amber-600 shadow-sm"
+                                                            : "border-amber-200 text-amber-700 hover:bg-amber-50 hover:border-amber-300"
+                                                    )}
+                                                >
+                                                    <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                                                    {t('status.Planned')}
+                                                    <span className={cn(
+                                                        "inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold",
+                                                        isPlannedSelected ? "bg-white/20 text-white" : "bg-amber-100 text-amber-800"
+                                                    )}>
+                                                        {plannedCount}
+                                                    </span>
+                                                </Button>
+
+                                                <Button
+                                                    variant={isCompletedSelected ? 'secondary' : 'outline'}
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        setSelectedStatuses(prev =>
+                                                            prev.includes('Completed') ? prev.filter(s => s !== 'Completed') : [...prev, 'Completed']
+                                                        )
+                                                    }}
+                                                    className={cn(
+                                                        "h-9 text-xs gap-1.5 font-medium transition-all",
+                                                        isCompletedSelected
+                                                            ? "bg-emerald-600 hover:bg-emerald-700 text-white font-bold border-emerald-600 shadow-sm"
+                                                            : "border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-300"
+                                                    )}
+                                                >
+                                                    <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                                                    {t('status.Completed')}
+                                                    <span className={cn(
+                                                        "inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold",
+                                                        isCompletedSelected ? "bg-white/20 text-white" : "bg-emerald-100 text-emerald-800"
+                                                    )}>
+                                                        {completedCount}
+                                                    </span>
+                                                </Button>
+                                            </>
+                                        )
+                                    })()}
                                     {hasFilters && (
                                         <Button
                                             variant="ghost"

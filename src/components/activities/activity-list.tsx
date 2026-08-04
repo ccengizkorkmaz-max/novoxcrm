@@ -25,9 +25,11 @@ interface ActivityListProps {
 }
 
 const statusColors: Record<string, string> = {
+    'Planned': 'bg-amber-100 text-amber-800 border-amber-200',
     'Pending': 'bg-yellow-100 text-yellow-800 border-yellow-200',
     'In Progress': 'bg-blue-100 text-blue-800 border-blue-200',
     'Completed': 'bg-green-100 text-green-800 border-green-200',
+    'Overdue': 'bg-red-100 text-red-800 border-red-200',
     'Cancelled': 'bg-gray-100 text-gray-800 border-gray-200',
 }
 
@@ -130,9 +132,15 @@ function ActivityRow({ activity, customers, profiles, projects }: { activity: Ac
                 </div>
             </TableCell>
             <TableCell>
-                <Badge variant="outline" className={cn('text-[10px] px-1.5 py-0 h-4 font-bold border-0 bg-transparent', statusColors[activity.status])}>
-                    {t(`status.${activity.status}`)}
-                </Badge>
+                {(() => {
+                    const isOverdue = activity.due_date && new Date(activity.due_date) < new Date() && activity.status !== 'Completed' && activity.status !== 'Cancelled'
+                    const statusKey = isOverdue ? 'Overdue' : (activity.status || 'Planned')
+                    return (
+                        <Badge variant="outline" className={cn('text-[10px] px-1.5 py-0.5 font-bold border-0', statusColors[statusKey] || statusColors['Planned'])}>
+                            {t(`status.${statusKey}`)}
+                        </Badge>
+                    )
+                })()}
             </TableCell>
             <TableCell>
                 <div className="flex flex-col max-w-full">
