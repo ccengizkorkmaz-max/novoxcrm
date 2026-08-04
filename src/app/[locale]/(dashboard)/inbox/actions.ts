@@ -64,6 +64,28 @@ function extractPhoneFromMessage(message: string): string | null {
     return null
 }
 
+export function extractName(message: string): string | null {
+    if (!message) return null
+    let text = message
+    try {
+        const parsed = JSON.parse(message)
+        text = parsed.message || parsed.text || message
+    } catch { /* ignore */ }
+    const nameMatch = text.match(/(?:Ad Soyad|İsim|Name):\s*(.+?)(?=\s*(?:Telefon|E-posta|Konu|Proje|Mesaj|Not|Phone|Email|Subject|$)|[\r\n])/i)
+    return nameMatch ? nameMatch[1].trim() : null
+}
+
+export function extractEmail(message: string): string | null {
+    if (!message) return null
+    let text = message
+    try {
+        const parsed = JSON.parse(message)
+        text = parsed.message || parsed.text || message
+    } catch { /* ignore */ }
+    const emailMatch = text.match(/(?:E-posta Adresi|E-posta|Email|E-mail):\s*([^\s]+@[^\s]+\.[^\s]+)/i)
+    return emailMatch ? emailMatch[1].trim() : null
+}
+
 /**
  * Upsert into Contacts table (Kontak Listesi)
  */
@@ -596,7 +618,7 @@ export async function rejectInboxItem(inboxItemId: string) {
             
         if (inboxItem) {
             const name = extractName(inboxItem.message)
-            const phone = extractPhone(inboxItem.message)
+            const phone = extractPhoneFromMessage(inboxItem.message)
             const email = extractEmail(inboxItem.message)
             if (name || phone || email) {
                 await upsertContact(supabase, inboxItem.tenant_id, name, phone, email, inboxItemId)
