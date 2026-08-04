@@ -9,6 +9,7 @@ import AiToggle from './AiToggle'
 import RealtimeMessages from './RealtimeMessages'
 import RepresentativeAssignor from './RepresentativeAssignor'
 import { cn } from "@/lib/utils"
+import QuickActivityButton from './QuickActivityButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -194,13 +195,11 @@ export default async function ConversationDetailPage(props: { params: Promise<{ 
                             <Activity className="h-3.5 w-3.5" />
                             CRM'de Ara
                         </Link>
-                        <Link
-                            href={`/activities?source=conversation&ref=${id}`}
-                            className="flex items-center gap-2 p-2.5 rounded-lg bg-slate-50 hover:bg-slate-100 transition-all text-[11px] font-semibold text-slate-600"
-                        >
-                            <CalendarCheck className="h-3.5 w-3.5" />
-                            Aktivite Oluştur
-                        </Link>
+                        <QuickActivityButton 
+                            customerId={session.customer_id} 
+                            customerName={session.customers?.full_name} 
+                            profiles={salesReps || []} 
+                        />
                     </div>
                 </div>
             </div>
