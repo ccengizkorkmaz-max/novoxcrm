@@ -71,10 +71,10 @@ export default async function ConversationDetailPage(props: { params: Promise<{ 
             <div className="flex-1 flex overflow-hidden lg:max-h-[calc(100vh-140px)]">
                 {/* Chat Area */}
                 <div className="flex-1 flex flex-col min-w-0 bg-white">
-                    <RealtimeMessages 
-                        initialMessages={messages} 
-                        conversationId={id} 
-                        customerName={session.customers?.full_name || ''} 
+                    <RealtimeMessages
+                        initialMessages={messages}
+                        conversationId={id}
+                        customerName={session.customers?.full_name || ''}
                         tenantId={session.tenant_id}
                     />
 

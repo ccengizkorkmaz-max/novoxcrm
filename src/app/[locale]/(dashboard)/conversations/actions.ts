@@ -302,15 +302,41 @@ export async function assignRepresentativeToConversation(params: {
                 .eq('id', conversationId)
         }
 
-        // 5. Get assigned representative name
+        // 5. Get assigned representative name & send WhatsApp alert
         let assigneeName = 'Atanmamış'
         if (assignedTo) {
             const { data: rep } = await supabase
                 .from('profiles')
-                .select('full_name')
+                .select('full_name, phone')
                 .eq('id', assignedTo)
                 .maybeSingle()
+
             if (rep?.full_name) assigneeName = rep.full_name
+
+            // Send explicit WhatsApp notification to the assigned representative
+            try {
+                const { data: tenant } = await supabase
+                    .from('tenants')
+                    .select('wa_phone_number_id, wa_access_token')
+                    .eq('id', userProfile.tenant_id)
+                    .single()
+
+                if (tenant?.wa_phone_number_id && tenant.wa_access_token && rep?.phone) {
+                    const { sendWhatsAppTemplate } = await import('@/lib/whatsapp')
+                    const custName = conv?.phone_number || 'Aday Müşteri'
+                    await sendWhatsAppTemplate(
+                        rep.phone,
+                        'lead_assignment_alert',
+                        [custName, conv?.phone_number || '', 'MESAJLAŞMA (WHATSAPP)'],
+                        'tr',
+                        tenant.wa_phone_number_id,
+                        tenant.wa_access_token
+                    )
+                    console.log(`✅ WhatsApp atama bildirimi temsilciye gönderildi: ${rep.full_name} (${rep.phone})`)
+                }
+            } catch (waErr) {
+                console.error('Temsilciye WA bildirim gönderme hatası:', waErr)
+            }
         }
 
         return {
