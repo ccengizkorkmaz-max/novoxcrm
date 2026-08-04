@@ -35,7 +35,8 @@ function isPublicPath(pathWithoutLocale: string): boolean {
         pathWithoutLocale.startsWith('/privacy-policy') ||
         pathWithoutLocale.startsWith('/hakkimizda') ||
         pathWithoutLocale.startsWith('/industry-reports') ||
-        pathWithoutLocale.startsWith('/teklif/')
+        pathWithoutLocale.startsWith('/teklif/') ||
+        pathWithoutLocale.startsWith('/bunyamin')
     )
 }
 
