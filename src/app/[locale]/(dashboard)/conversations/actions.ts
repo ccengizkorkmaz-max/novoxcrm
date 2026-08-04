@@ -247,7 +247,7 @@ export async function assignRepresentativeToConversation(params: {
         // 1. Fetch conversation details if customerId/leadId missing
         const { data: conv } = await supabase
             .from('whatsapp_conversations')
-            .select('customer_id, lead_id, phone_number')
+            .select('customer_id, lead_id, phone_number, lead_score')
             .eq('id', conversationId)
             .single()
 
@@ -345,22 +345,30 @@ export async function assignRepresentativeToConversation(params: {
                     if (!custName) custName = conv?.phone_number || 'Aday Müşteri'
 
                     let scoreText = 'MESAJLAŞMA (WHATSAPP)'
-                    if (effectiveLeadId) {
-                        const { data: lq } = await supabase
-                            .from('lead_qualifications')
-                            .select('interest_level')
-                            .eq('lead_id', effectiveLeadId)
-                            .order('created_at', { ascending: false })
-                            .limit(1)
-                            .maybeSingle()
-                        
-                        if (lq?.interest_level) {
-                            const scoreLabel: Record<string, string> = {
-                                hot: 'HOT', warm: 'WARM', cold: 'COLD',
-                                call_requested: 'ARAMA', disqualified: 'DQ'
+                    let foundLevel = conv?.lead_score
+
+                    if (!foundLevel || foundLevel === 'unknown') {
+                        if (effectiveLeadId) {
+                            const { data: lq } = await supabase
+                                .from('lead_qualifications')
+                                .select('interest_level')
+                                .eq('lead_id', effectiveLeadId)
+                                .order('created_at', { ascending: false })
+                                .limit(1)
+                                .maybeSingle()
+                            
+                            if (lq?.interest_level) {
+                                foundLevel = lq.interest_level
                             }
-                            scoreText = scoreLabel[lq.interest_level] || lq.interest_level.toUpperCase()
                         }
+                    }
+
+                    if (foundLevel && foundLevel !== 'unknown') {
+                        const scoreLabel: Record<string, string> = {
+                            hot: 'HOT', warm: 'WARM', cold: 'COLD',
+                            call_requested: 'ARAMA', disqualified: 'DQ'
+                        }
+                        scoreText = scoreLabel[foundLevel] || foundLevel.toUpperCase()
                     }
 
                     await sendWhatsAppTemplate(
