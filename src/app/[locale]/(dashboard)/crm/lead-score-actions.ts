@@ -29,7 +29,7 @@ export async function updateLeadScoreOverride(params: {
         return { success: false, error: 'Kullanıcı profili bulunamadı' }
     }
 
-    const allowedRoles = ['admin', 'owner', 'crm_manager', 'manager']
+    const allowedRoles = ['admin', 'owner', 'crm_manager', 'manager', 'sales', 'broker', 'sales_rep', 'agent', 'user']
     if (!allowedRoles.includes(profile.role)) {
         return { success: false, error: 'Bu işlem için yetkiniz bulunmamaktadır.' }
     }

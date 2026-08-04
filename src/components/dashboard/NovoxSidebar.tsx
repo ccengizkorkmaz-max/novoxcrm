@@ -153,7 +153,7 @@ export function NovoxSidebar({
                     Gelen Aramalar
                 </NavItem>
             )}
-            {!isBroker && !isAdvanceMode && (
+            {!isBroker && (
                 <NavItem href="/lead-qualification" icon={Target} onClick={onElementClick} isCollapsed={isCollapsed}>
                     Ön Değerlendirme
                 </NavItem>

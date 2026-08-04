@@ -40,7 +40,7 @@ export function LeadScoreBadge({
     const [reason, setReason] = useState('')
     const [loading, setLoading] = useState(false)
 
-    const canEdit = ['admin', 'owner', 'crm_manager', 'manager'].includes(userRole)
+    const canEdit = ['admin', 'owner', 'crm_manager', 'manager', 'sales', 'broker', 'sales_rep', 'agent', 'user'].includes(userRole)
     const scoreSource = source || 'ai'
 
     const getScoreDetails = (s: string | null | undefined) => {
