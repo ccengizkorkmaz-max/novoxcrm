@@ -55,9 +55,40 @@ function isCacheableMarketingPath(pathname: string): boolean {
     return false
 }
 
+const ALLOWED_AGENT_SLUGS = new Set([
+    'bunyamin', 'bunyamin-sarac', 
+    'serkan', 'serkan-genc', 
+    'burak', 'burak-aydin', 
+    'elif', 'elif-kaya', 
+    'emre', 'emre-yildirim', 
+    'sevgi', 'sevgi-simsek', 
+    'zeynep', 'zeynep-celik', 
+    'selin', 'selin-korkmaz', 
+    'ahmet', 'ahmet-yilmaz', 
+    'cihan', 'cihan-ekmen', 
+    'halim', 'halim-peker', 
+    'nurcan', 'nurcan-findikgil'
+])
+
 export async function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl
-
+    const pathSegments = pathname.split('/').filter(Boolean)
+    const firstSegment = pathSegments[0]?.toLowerCase()
+    
+    // Dynamic Agent Slug Rewrite
+    if (firstSegment && ALLOWED_AGENT_SLUGS.has(firstSegment)) {
+        const redirectUrl = request.nextUrl.clone()
+        redirectUrl.pathname = `/tr/temsilci/${firstSegment}`
+        return NextResponse.rewrite(redirectUrl)
+    }
+    if (pathSegments.length >= 2 && ['tr', 'en'].includes(firstSegment)) {
+        const secondSegment = pathSegments[1]?.toLowerCase()
+        if (secondSegment && ALLOWED_AGENT_SLUGS.has(secondSegment)) {
+            const redirectUrl = request.nextUrl.clone()
+            redirectUrl.pathname = `/${firstSegment}/temsilci/${secondSegment}`
+            return NextResponse.rewrite(redirectUrl)
+        }
+    }
     // 1. Permanent redirect for /broker/apply to Turkish localized form /broker/basvuru
     if (pathname === '/broker/apply' || pathname === '/tr/broker/apply') {
         const redirectUrl = request.nextUrl.clone()
