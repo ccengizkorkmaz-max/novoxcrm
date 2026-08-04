@@ -103,12 +103,12 @@ export function ActivitiesView({ initialActivities, customers, profiles, project
 
             const matchesStatus = selectedStatuses.some(statusKey => {
                 if (statusKey === 'Overdue') return isActOverdue
-                if (statusKey === 'Planned') return a.status === 'Planned' || a.status === 'Pending'
-                if (statusKey === 'Pending') return a.status === 'Pending'
-                if (statusKey === 'In Progress') return a.status === 'In Progress'
+                if (statusKey === 'Planned') return (a.status === 'Planned' || a.status === 'Pending') && !isActOverdue
+                if (statusKey === 'Pending') return a.status === 'Pending' && !isActOverdue
+                if (statusKey === 'In Progress') return a.status === 'In Progress' && !isActOverdue
                 if (statusKey === 'Completed') return a.status === 'Completed'
                 if (statusKey === 'Cancelled') return a.status === 'Cancelled'
-                return a.status === statusKey
+                return a.status === statusKey && !isActOverdue
             })
 
             if (!matchesStatus) return false
@@ -283,12 +283,14 @@ export function ActivitiesView({ initialActivities, customers, profiles, project
 
                                     {/* Quick Status Pill Filters */}
                                     {(() => {
+                                        const now = new Date()
                                         const overdueCount = initialActivities.filter(a =>
-                                            a.status === 'Overdue' || (a.status !== 'Completed' && a.status !== 'Cancelled' && a.due_date && new Date(a.due_date) < new Date())
+                                            a.status === 'Overdue' || (a.status !== 'Completed' && a.status !== 'Cancelled' && a.due_date && new Date(a.due_date) < now)
                                         ).length
-                                        const plannedCount = initialActivities.filter(a =>
-                                            a.status === 'Planned' || a.status === 'Pending'
-                                        ).length
+                                        const plannedCount = initialActivities.filter(a => {
+                                            const isActOverdue = a.status === 'Overdue' || (a.status !== 'Completed' && a.status !== 'Cancelled' && a.due_date && new Date(a.due_date) < now)
+                                            return (a.status === 'Planned' || a.status === 'Pending') && !isActOverdue
+                                        }).length
                                         const completedCount = initialActivities.filter(a =>
                                             a.status === 'Completed'
                                         ).length
