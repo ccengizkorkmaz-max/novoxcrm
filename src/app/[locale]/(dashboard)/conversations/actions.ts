@@ -344,10 +344,29 @@ export async function assignRepresentativeToConversation(params: {
                     }
                     if (!custName) custName = conv?.phone_number || 'Aday Müşteri'
 
+                    let scoreText = 'MESAJLAŞMA (WHATSAPP)'
+                    if (effectiveLeadId) {
+                        const { data: lq } = await supabase
+                            .from('lead_qualifications')
+                            .select('interest_level')
+                            .eq('lead_id', effectiveLeadId)
+                            .order('created_at', { ascending: false })
+                            .limit(1)
+                            .maybeSingle()
+                        
+                        if (lq?.interest_level) {
+                            const scoreLabel: Record<string, string> = {
+                                hot: 'HOT', warm: 'WARM', cold: 'COLD',
+                                call_requested: 'ARAMA', disqualified: 'DQ'
+                            }
+                            scoreText = scoreLabel[lq.interest_level] || lq.interest_level.toUpperCase()
+                        }
+                    }
+
                     await sendWhatsAppTemplate(
                         rep.phone,
                         'lead_assignment_alert',
-                        [custName, conv?.phone_number || '', 'MESAJLAŞMA (WHATSAPP)'],
+                        [custName, conv?.phone_number || '', scoreText],
                         'tr',
                         tenant.wa_phone_number_id,
                         tenant.wa_access_token
