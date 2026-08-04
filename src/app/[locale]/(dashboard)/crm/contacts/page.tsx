@@ -4,7 +4,8 @@ import { ContactsClient } from './ContactsClient'
 
 export const dynamic = 'force-dynamic'
 
-export default async function ContactsPage({ params: { locale } }: { params: { locale: string } }) {
+export default async function ContactsPage({ params }: { params: Promise<{ locale: string }> }) {
+    const { locale } = await params;
     const supabase = await createClient()
 
     const { data: { user } } = await supabase.auth.getUser()
