@@ -64,7 +64,7 @@ function extractPhoneFromMessage(message: string): string | null {
     return null
 }
 
-export function extractName(message: string): string | null {
+function extractName(message: string): string | null {
     if (!message) return null
     let text = message
     try {
@@ -75,7 +75,7 @@ export function extractName(message: string): string | null {
     return nameMatch ? nameMatch[1].trim() : null
 }
 
-export function extractEmail(message: string): string | null {
+function extractEmail(message: string): string | null {
     if (!message) return null
     let text = message
     try {
