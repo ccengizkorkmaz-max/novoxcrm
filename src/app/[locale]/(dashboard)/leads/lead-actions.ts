@@ -138,6 +138,7 @@ export async function updateLead(leadId: string, data: {
                                 'tr',
                                 tenant.wa_phone_number_id,
                                 tenant.wa_access_token
+                            )
                             console.log(`✅ Lead atama WA template gönderildi (Leads): ${repProfile.full_name}`)
 
                             // Hot Lead Manager'lara da bildir (Atanan temsilci hariç)

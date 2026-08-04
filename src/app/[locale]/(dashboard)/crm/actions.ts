@@ -1456,6 +1456,7 @@ async function notifyRepOfAssignment(saleId: string, userId: string, tenantId: s
                         'tr',
                         tenantSettings.wa_phone_number_id,
                         tenantSettings.wa_access_token
+                    )
                     console.log(`✅ Lead atama WA template gönderildi: ${repProfile.full_name}`)
 
                     // Hot Lead Manager'lara da bildir (Atanan temsilci hariç)
