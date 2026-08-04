@@ -63,6 +63,8 @@ export async function getMessagingSessions() {
     }
 }
 
+import { updateLead } from '../leads/lead-actions'
+
 /**
  * Fetches a single WhatsApp session with customer data
  */
@@ -73,7 +75,7 @@ export async function getMessagingSession(id: string) {
             .from('whatsapp_conversations')
             .select(`
                 *,
-                customers(full_name, phone)
+                customers(id, full_name, phone, assigned_to)
             `)
             .eq('id', id)
             .single()
@@ -89,7 +91,7 @@ export async function getMessagingSession(id: string) {
             if (last10.length >= 10) {
                 const { data: matches } = await supabase
                     .from('customers')
-                    .select('full_name, phone')
+                    .select('id, full_name, phone, assigned_to')
                     .ilike('phone', `%${last10}%`)
                     .limit(10)
 
@@ -103,11 +105,73 @@ export async function getMessagingSession(id: string) {
                     const bestName = Object.entries(nameCounts)
                         .sort((a, b) => b[1] - a[1])[0]?.[0]
                     if (bestName) {
-                        session.customers = { full_name: bestName, phone: session.phone_number }
+                        const matchedCust = matches.find(m => m.full_name === bestName) || matches[0]
+                        session.customers = {
+                            id: matchedCust.id,
+                            full_name: matchedCust.full_name,
+                            phone: session.phone_number,
+                            assigned_to: matchedCust.assigned_to
+                        }
+                        if (matchedCust.id) session.customer_id = matchedCust.id
                     }
                 }
             }
         }
+
+        // Temsilci ve Lead Eşleştirme Bilgilerini Çözümle
+        let assignedToId: string | null = session.customers?.assigned_to || null
+        let assignedToName: string | null = null
+        let leadId: string | null = session.lead_id || null
+
+        // Müşteri veya telefon ile lead eşleştir
+        if (!leadId && session.customer_id) {
+            const { data: leadMatch } = await supabase
+                .from('leads')
+                .select('id, assigned_to')
+                .or(`converted_customer_id.eq.${session.customer_id},id.eq.${session.customer_id}`)
+                .limit(1)
+                .maybeSingle()
+            if (leadMatch) {
+                leadId = leadMatch.id
+                if (!assignedToId && leadMatch.assigned_to) {
+                    assignedToId = leadMatch.assigned_to
+                }
+            }
+        }
+
+        if (!leadId && session.phone_number) {
+            const last10 = session.phone_number.replace(/\D/g, '').slice(-10)
+            if (last10.length >= 10) {
+                const { data: leadMatch } = await supabase
+                    .from('leads')
+                    .select('id, assigned_to')
+                    .ilike('phone', `%${last10}%`)
+                    .limit(1)
+                    .maybeSingle()
+                if (leadMatch) {
+                    leadId = leadMatch.id
+                    if (!assignedToId && leadMatch.assigned_to) {
+                        assignedToId = leadMatch.assigned_to
+                    }
+                }
+            }
+        }
+
+        // Temsilci adını bul
+        if (assignedToId) {
+            const { data: rep } = await supabase
+                .from('profiles')
+                .select('full_name')
+                .eq('id', assignedToId)
+                .maybeSingle()
+            if (rep?.full_name) {
+                assignedToName = rep.full_name
+            }
+        }
+
+        session.assigned_to = assignedToId
+        session.assigned_to_name = assignedToName
+        session.resolved_lead_id = leadId
 
         // Okunmamış mesajları sıfırla
         if (session && session.unread_count > 0) {
@@ -118,6 +182,147 @@ export async function getMessagingSession(id: string) {
     } catch (error) {
         console.error('Server error fetching session:', error)
         return null
+    }
+}
+
+/**
+ * Fetches all sales representatives (profiles) for current tenant
+ */
+export async function getSalesRepresentatives() {
+    try {
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return []
+
+        const { data: userProfile } = await supabase
+            .from('profiles')
+            .select('tenant_id')
+            .eq('id', user.id)
+            .single()
+
+        if (!userProfile?.tenant_id) return []
+
+        const { data: profiles, error } = await supabase
+            .from('profiles')
+            .select('id, full_name, role')
+            .eq('tenant_id', userProfile.tenant_id)
+            .order('full_name', { ascending: true })
+
+        if (error) {
+            console.error('Error fetching sales reps:', error)
+            return []
+        }
+
+        return profiles || []
+    } catch (error) {
+        console.error('Server error fetching sales reps:', error)
+        return []
+    }
+}
+
+/**
+ * Assigns a sales representative to the active customer's lead & customer record
+ */
+export async function assignRepresentativeToConversation(params: {
+    conversationId: string
+    customerId?: string | null
+    leadId?: string | null
+    assignedTo: string | null
+}) {
+    try {
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return { success: false, error: 'Oturum bulunamadı' }
+
+        const { data: userProfile } = await supabase
+            .from('profiles')
+            .select('tenant_id')
+            .eq('id', user.id)
+            .single()
+
+        if (!userProfile?.tenant_id) return { success: false, error: 'Tenant bulunamadı' }
+
+        const { conversationId, customerId, leadId, assignedTo } = params
+
+        // 1. Fetch conversation details if customerId/leadId missing
+        const { data: conv } = await supabase
+            .from('whatsapp_conversations')
+            .select('customer_id, lead_id, phone_number')
+            .eq('id', conversationId)
+            .single()
+
+        const effectiveCustomerId = customerId || conv?.customer_id
+        let effectiveLeadId = leadId || conv?.lead_id
+
+        // Match lead if missing
+        if (!effectiveLeadId) {
+            if (effectiveCustomerId) {
+                const { data: leadMatch } = await supabase
+                    .from('leads')
+                    .select('id')
+                    .or(`converted_customer_id.eq.${effectiveCustomerId},id.eq.${effectiveCustomerId}`)
+                    .limit(1)
+                    .maybeSingle()
+                if (leadMatch) effectiveLeadId = leadMatch.id
+            }
+
+            if (!effectiveLeadId && conv?.phone_number) {
+                const last10 = conv.phone_number.replace(/\D/g, '').slice(-10)
+                if (last10.length >= 10) {
+                    const { data: leadMatch } = await supabase
+                        .from('leads')
+                        .select('id')
+                        .ilike('phone', `%${last10}%`)
+                        .limit(1)
+                        .maybeSingle()
+                    if (leadMatch) effectiveLeadId = leadMatch.id
+                }
+            }
+        }
+
+        // 2. Update Lead if leadId exists (updates assigned_to & sends notification)
+        if (effectiveLeadId) {
+            await updateLead(effectiveLeadId, { assigned_to: assignedTo })
+        }
+
+        // 3. Update Customer if customerId exists
+        if (effectiveCustomerId) {
+            await supabase
+                .from('customers')
+                .update({ assigned_to: assignedTo, updated_at: new Date().toISOString() })
+                .eq('id', effectiveCustomerId)
+                .eq('tenant_id', userProfile.tenant_id)
+        }
+
+        // 4. Update Conversation link if lead_id was missing
+        if (effectiveLeadId && !conv?.lead_id) {
+            await supabase
+                .from('whatsapp_conversations')
+                .update({ lead_id: effectiveLeadId })
+                .eq('id', conversationId)
+        }
+
+        // 5. Get assigned representative name
+        let assigneeName = 'Atanmamış'
+        if (assignedTo) {
+            const { data: rep } = await supabase
+                .from('profiles')
+                .select('full_name')
+                .eq('id', assignedTo)
+                .maybeSingle()
+            if (rep?.full_name) assigneeName = rep.full_name
+        }
+
+        return {
+            success: true,
+            assignedTo,
+            assigneeName,
+            leadId: effectiveLeadId,
+            customerId: effectiveCustomerId
+        }
+    } catch (error: any) {
+        console.error('Error assigning representative:', error)
+        return { success: false, error: error?.message || 'Temsilci atanırken bir hata oluştu' }
     }
 }
 

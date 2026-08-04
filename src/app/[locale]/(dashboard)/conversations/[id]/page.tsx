@@ -1,4 +1,4 @@
-import { getSessionMessages, getMessagingSession } from '../actions'
+import { getSessionMessages, getMessagingSession, getSalesRepresentatives } from '../actions'
 import { Badge } from "@/components/ui/badge"
 import { MessageSquare, User, Bot, Sparkles, Activity, CalendarCheck, ArrowLeft } from 'lucide-react'
 import { Link } from '@/i18n/routing'
@@ -7,6 +7,7 @@ import { tr } from 'date-fns/locale'
 import ConversationReply from './ConversationReply'
 import AiToggle from './AiToggle'
 import RealtimeMessages from './RealtimeMessages'
+import RepresentativeAssignor from './RepresentativeAssignor'
 import { cn } from "@/lib/utils"
 
 export const dynamic = 'force-dynamic'
@@ -20,9 +21,10 @@ interface Message {
 
 export default async function ConversationDetailPage(props: { params: Promise<{ id: string }> }) {
     const { id } = await props.params
-    const [messagesData, session] = await Promise.all([
+    const [messagesData, session, salesReps] = await Promise.all([
         getSessionMessages(id),
-        getMessagingSession(id)
+        getMessagingSession(id),
+        getSalesRepresentatives()
     ])
 
     const messages = messagesData as Message[]
@@ -82,7 +84,7 @@ export default async function ConversationDetailPage(props: { params: Promise<{ 
                 </div>
 
                 {/* Info Sidebar */}
-                <div className="hidden xl:block w-52 border-l border-slate-200 bg-white overflow-y-auto custom-scrollbar p-3 space-y-4">
+                <div className="hidden xl:block w-64 border-l border-slate-200 bg-white overflow-y-auto custom-scrollbar p-3 space-y-4">
                     {/* Customer Card */}
                     {session.customers ? (
                         <Link
@@ -108,6 +110,16 @@ export default async function ConversationDetailPage(props: { params: Promise<{ 
                             </Link>
                         </div>
                     )}
+
+                    {/* Satış Danışmanı Atama */}
+                    <RepresentativeAssignor
+                        conversationId={id}
+                        customerId={session.customer_id}
+                        leadId={session.resolved_lead_id || session.lead_id}
+                        initialAssignedTo={session.assigned_to}
+                        initialAssigneeName={session.assigned_to_name}
+                        salesRepresentatives={salesReps}
+                    />
 
                     {/* Lead Sıcaklık */}
                     {session.lead_score && session.lead_score !== 'unknown' && (
