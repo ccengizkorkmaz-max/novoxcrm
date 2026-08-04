@@ -1456,8 +1456,30 @@ async function notifyRepOfAssignment(saleId: string, userId: string, tenantId: s
                         'tr',
                         tenantSettings.wa_phone_number_id,
                         tenantSettings.wa_access_token
-                    )
                     console.log(`✅ Lead atama WA template gönderildi: ${repProfile.full_name}`)
+
+                    // Hot Lead Manager'lara da bildir (Atanan temsilci hariç)
+                    const { data: hotLeadManagers } = await adminSupabase
+                        .from('profiles')
+                        .select('phone, full_name, id')
+                        .eq('tenant_id', tenantId)
+                        .eq('is_hot_lead_manager', true)
+                    
+                    if (hotLeadManagers && hotLeadManagers.length > 0) {
+                        for (const manager of hotLeadManagers) {
+                            if (manager.phone && manager.id !== userId) {
+                                await sendWhatsAppTemplate(
+                                    manager.phone,
+                                    'lead_assignment_alert',
+                                    [customerName, customerPhone, `${scoreText} - Atanan: ${repProfile.full_name}`],
+                                    'tr',
+                                    tenantSettings.wa_phone_number_id,
+                                    tenantSettings.wa_access_token
+                                )
+                                console.log(`✅ Lead atama WA bildirimi hot lead manager'a gönderildi: ${manager.full_name}`)
+                            }
+                        }
+                    }
                 } catch (err) {
                     console.error('Lead atama WA bildirimi hatası:', err)
                 }

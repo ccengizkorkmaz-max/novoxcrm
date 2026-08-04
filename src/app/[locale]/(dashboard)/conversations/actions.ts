@@ -380,6 +380,29 @@ export async function assignRepresentativeToConversation(params: {
                         tenant.wa_access_token
                     )
                     console.log(`✅ WhatsApp atama bildirimi temsilciye gönderildi: ${rep.full_name} (${rep.phone})`)
+
+                    // Hot Lead Manager'lara da bildir (Atanan temsilci hariç)
+                    const { data: hotLeadManagers } = await supabase
+                        .from('profiles')
+                        .select('phone, full_name, id')
+                        .eq('tenant_id', userProfile.tenant_id)
+                        .eq('is_hot_lead_manager', true)
+                    
+                    if (hotLeadManagers && hotLeadManagers.length > 0) {
+                        for (const manager of hotLeadManagers) {
+                            if (manager.phone && manager.id !== assignedTo) {
+                                await sendWhatsAppTemplate(
+                                    manager.phone,
+                                    'lead_assignment_alert',
+                                    [custName, conv?.phone_number || '', `${scoreText} - Atanan: ${rep.full_name}`],
+                                    'tr',
+                                    tenant.wa_phone_number_id,
+                                    tenant.wa_access_token
+                                )
+                                console.log(`✅ WhatsApp atama bildirimi hot lead manager'a gönderildi: ${manager.full_name}`)
+                            }
+                        }
+                    }
                 }
             } catch (waErr) {
                 console.error('Temsilciye WA bildirim gönderme hatası:', waErr)

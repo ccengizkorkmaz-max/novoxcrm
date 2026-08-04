@@ -138,8 +138,30 @@ export async function updateLead(leadId: string, data: {
                                 'tr',
                                 tenant.wa_phone_number_id,
                                 tenant.wa_access_token
-                            )
                             console.log(`✅ Lead atama WA template gönderildi (Leads): ${repProfile.full_name}`)
+
+                            // Hot Lead Manager'lara da bildir (Atanan temsilci hariç)
+                            const { data: hotLeadManagers } = await supabase
+                                .from('profiles')
+                                .select('phone, full_name, id')
+                                .eq('tenant_id', profile.tenant_id)
+                                .eq('is_hot_lead_manager', true)
+                            
+                            if (hotLeadManagers && hotLeadManagers.length > 0) {
+                                for (const manager of hotLeadManagers) {
+                                    if (manager.phone && manager.id !== assignedTo) {
+                                        await sendWhatsAppTemplate(
+                                            manager.phone,
+                                            'lead_assignment_alert',
+                                            [resolvedName, resolvedPhone, `${scoreText} - Atanan: ${repProfile.full_name}`],
+                                            'tr',
+                                            tenant.wa_phone_number_id,
+                                            tenant.wa_access_token
+                                        )
+                                        console.log(`✅ Lead atama WA bildirimi hot lead manager'a gönderildi: ${manager.full_name}`)
+                                    }
+                                }
+                            }
                         }
                     }
                 } catch (waErr) {
