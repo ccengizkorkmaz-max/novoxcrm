@@ -152,7 +152,7 @@ export default function AgentClient({
                                 </select>
                             </div>
                             
-                            {lead.notes && (
+                            {lead.notes && !lead.notes.includes('🤖 AI Skor:') && (
                                 <p className="text-xs text-slate-600 bg-slate-50 p-2 rounded-lg line-clamp-2 leading-relaxed">
                                     {lead.notes}
                                 </p>
