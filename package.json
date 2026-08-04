@@ -45,7 +45,7 @@
     "next-intl": "^4.8.0",
     "nodemailer": "^9.0.1",
     "openai": "^6.21.0",
-    "pg": "^8.17.2",
+    "pg": "^8.22.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-email-editor": "^1.8.0",

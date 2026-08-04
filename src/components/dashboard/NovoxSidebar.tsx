@@ -249,9 +249,14 @@ export function NovoxSidebar({
                             </NavItem>
                         </>
                     ) : (
-                        <NavItem href="/customers" icon={Users} onClick={onElementClick} isCollapsed={isCollapsed} isSubItem>
-                            {labels.customers || 'Customers'}
-                        </NavItem>
+                        <>
+                            <NavItem href="/crm/contacts" icon={Users} onClick={onElementClick} isCollapsed={isCollapsed} isSubItem>
+                                Kontaklar
+                            </NavItem>
+                            <NavItem href="/customers" icon={Users} onClick={onElementClick} isCollapsed={isCollapsed} isSubItem>
+                                {labels.customers || 'Customers'}
+                            </NavItem>
+                        </>
                     )}
 
                     {isManager && (
@@ -329,6 +334,10 @@ export function NovoxSidebar({
                                             </NavItem>
                                         </>
                                     )}
+
+                                    <NavItem href="/crm/contacts" icon={Users} onClick={onElementClick} isSubItem>
+                                        Kontaklar
+                                    </NavItem>
 
                                     <NavItem href="/customers" icon={Users} onClick={onElementClick} isSubItem>
                                         {labels.customers || 'Customers'}

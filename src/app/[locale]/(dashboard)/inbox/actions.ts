@@ -65,6 +65,50 @@ function extractPhoneFromMessage(message: string): string | null {
 }
 
 /**
+ * Upsert into Contacts table (Kontak Listesi)
+ */
+async function upsertContact(supabase: any, tenantId: string, name: string | null, phone: string | null, email: string | null, sourceId: string) {
+    if (!name && !phone && !email) return
+
+    // If phone exists, try to update by phone, else by email. 
+    // Since we don't have a strict unique constraint yet, we'll try to find an existing contact.
+    let match = null
+
+    if (phone) {
+        const cleanPhone = phone.replace(/[^\d\+]/g, '')
+        if (cleanPhone) {
+            const { data } = await supabase.from('contacts').select('id').eq('tenant_id', tenantId).eq('phone', phone).maybeSingle()
+            match = data
+        }
+    }
+
+    if (!match && email) {
+        const { data } = await supabase.from('contacts').select('id').eq('tenant_id', tenantId).eq('email', email).maybeSingle()
+        match = data
+    }
+
+    if (match) {
+        // Update existing
+        await supabase.from('contacts').update({
+            full_name: name || undefined,
+            source: 'Inbox',
+            source_id: sourceId,
+            updated_at: new Date().toISOString()
+        }).eq('id', match.id)
+    } else {
+        // Insert new
+        await supabase.from('contacts').insert({
+            tenant_id: tenantId,
+            full_name: name || 'İsimsiz Kontak',
+            phone: phone || null,
+            email: email || null,
+            source: 'Inbox',
+            source_id: sourceId
+        })
+    }
+}
+
+/**
  * Find matching project by name (fuzzy match)
  */
 async function findProjectByName(supabase: any, tenantId: string, projectName: string): Promise<string | null> {
@@ -296,6 +340,9 @@ export async function approveInboxItem(
                 }
             }
 
+            // --- Add to Contacts (Kontaklar) ---
+            await upsertContact(supabase, inboxItem.tenant_id, finalName, finalPhone, finalEmail, inboxItemId)
+
             revalidatePath('/[locale]/(dashboard)/inbox')
             revalidatePath('/[locale]/(dashboard)/leads')
 
@@ -463,6 +510,9 @@ export async function approveInboxItem(
             }
         }
 
+        // --- Add to Contacts (Kontaklar) ---
+        await upsertContact(supabase, inboxItem.tenant_id, finalName, finalPhone, finalEmail, inboxItemId)
+
         revalidatePath('/[locale]/(dashboard)/inbox')
         revalidatePath('/[locale]/(dashboard)/crm')
         revalidatePath('/[locale]/(dashboard)/customers')
@@ -535,6 +585,22 @@ export async function rejectInboxItem(inboxItemId: string) {
         if (error) {
             console.error('Error rejecting inbox item:', error)
             return { success: false, error: error.message }
+        }
+
+        // --- Add to Contacts (Kontaklar) ---
+        const { data: inboxItem } = await supabase
+            .from('inbox_items')
+            .select('tenant_id, message')
+            .eq('id', inboxItemId)
+            .single()
+            
+        if (inboxItem) {
+            const name = extractName(inboxItem.message)
+            const phone = extractPhone(inboxItem.message)
+            const email = extractEmail(inboxItem.message)
+            if (name || phone || email) {
+                await upsertContact(supabase, inboxItem.tenant_id, name, phone, email, inboxItemId)
+            }
         }
 
         revalidatePath('/[locale]/(dashboard)/inbox')
