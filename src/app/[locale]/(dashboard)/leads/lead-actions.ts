@@ -32,7 +32,13 @@ export async function updateLead(leadId: string, data: {
     // Fetch the lead's current state first
     const { data: currentLead } = await supabase
         .from('leads')
-        .select('assigned_to, full_name, phone')
+        .select(`
+            assigned_to, 
+            full_name, 
+            phone,
+            converted_customer_id,
+            customers:converted_customer_id(full_name, phone, lead_qualifications(interest_level))
+        `)
         .eq('id', leadId)
         .eq('tenant_id', profile.tenant_id)
         .single()
@@ -111,13 +117,23 @@ export async function updateLead(leadId: string, data: {
 
                         if (repProfile?.phone) {
                             const { sendWhatsAppTemplate } = await import('@/lib/whatsapp')
+
+                            const resolvedName = currentLead?.full_name || (currentLead as any)?.customers?.full_name || 'Aday Müşteri'
+                            const resolvedPhone = currentLead?.phone || (currentLead as any)?.customers?.phone || ''
+                            const rawInterest = (currentLead as any)?.customers?.lead_qualifications?.[0]?.interest_level
+                            const scoreLabel: Record<string, string> = {
+                                hot: 'HOT', warm: 'WARM', cold: 'COLD',
+                                call_requested: 'ARAMA', disqualified: 'DQ'
+                            }
+                            const scoreText = rawInterest ? scoreLabel[rawInterest] || '—' : 'ADAY (LEADS)'
+
                             await sendWhatsAppTemplate(
                                 repProfile.phone,
                                 'lead_assignment_alert',
                                 [
-                                    currentLead?.full_name || 'Aday Müşteri', 
-                                    currentLead?.phone || '', 
-                                    'ADAY (LEADS)'
+                                    resolvedName,
+                                    resolvedPhone,
+                                    scoreText
                                 ],
                                 'tr',
                                 tenant.wa_phone_number_id,
