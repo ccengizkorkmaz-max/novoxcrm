@@ -170,3 +170,30 @@ export async function getAgentLeads(slug: string) {
         return { success: false, error: err.message || 'Veri çekilemedi' }
     }
 }
+
+export async function updateAgentLeadScore(slug: string, leadId: string | null, qualificationId: string | null, newScore: string) {
+    try {
+        const isAuthed = await checkAuth(slug)
+        if (!isAuthed) return { success: false, error: 'Unauthorized' }
+
+        if (qualificationId) {
+            const { error } = await supabase
+                .from('lead_qualifications')
+                .update({ interest_level: newScore, interest_level_source: 'manual' })
+                .eq('id', qualificationId)
+            if (error) throw error
+        }
+        if (leadId) {
+            const { error } = await supabase
+                .from('leads')
+                .update({ lead_score: newScore, lead_score_source: 'manual' })
+                .eq('id', leadId)
+            if (error) throw error
+        }
+        
+        return { success: true }
+    } catch (err: any) {
+        console.error('updateAgentLeadScore error:', err)
+        return { success: false, error: err.message || 'Güncelleme başarısız' }
+    }
+}

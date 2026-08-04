@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { PhoneCall, UserCheck, Lock, RefreshCw, LogOut } from 'lucide-react'
-import { authenticate, logout, getAgentLeads } from './actions'
+import { authenticate, logout, getAgentLeads, updateAgentLeadScore } from './actions'
 
 export default function AgentClient({ 
     initialAuthed, 
@@ -35,6 +35,19 @@ export default function AgentClient({
             else alert(res.error)
         }
         setFetchLoading(false)
+    }
+
+    const handleScoreChange = async (lead: any, newScore: string) => {
+        const originalLeads = [...leads]
+        
+        // Optimistic update
+        setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, lead_score: newScore } : l))
+        
+        const res = await updateAgentLeadScore(slug, lead.leadId || null, lead.qualificationId || null, newScore)
+        if (!res.success) {
+            alert(res.error || 'Skor güncellenemedi.')
+            setLeads(originalLeads) // Revert
+        }
     }
 
     const handleLogin = async (e: React.FormEvent) => {
@@ -126,9 +139,17 @@ export default function AgentClient({
                                     <h3 className="font-bold text-slate-900 text-base">{lead.full_name}</h3>
                                     <p className="text-xs text-slate-500 font-medium">{new Date(lead.updated_at).toLocaleDateString('tr-TR')} • {lead.projects?.name || 'Proje Belirtilmemiş'}</p>
                                 </div>
-                                <div className="px-2 py-1 bg-slate-100 rounded-md text-[10px] font-bold text-slate-600 border border-slate-200">
-                                    {lead.lead_score?.toUpperCase() || 'YENI'}
-                                </div>
+                                <select 
+                                    value={lead.lead_score?.toLowerCase() || 'new'} 
+                                    onChange={(e) => handleScoreChange(lead, e.target.value)}
+                                    className="px-2 py-1 bg-slate-100 rounded-md text-[10px] font-bold text-slate-600 border border-slate-200 outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 cursor-pointer appearance-none text-center min-w-[70px]"
+                                >
+                                    <option value="hot">HOT</option>
+                                    <option value="warm">WARM</option>
+                                    <option value="cold">COLD</option>
+                                    <option value="disqualified">DISQUALIFIED</option>
+                                    <option value="new">YENI</option>
+                                </select>
                             </div>
                             
                             {lead.notes && (
