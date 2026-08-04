@@ -323,7 +323,27 @@ export async function assignRepresentativeToConversation(params: {
 
                 if (tenant?.wa_phone_number_id && tenant.wa_access_token && rep?.phone) {
                     const { sendWhatsAppTemplate } = await import('@/lib/whatsapp')
-                    const custName = conv?.phone_number || 'Aday Müşteri'
+                    
+                    // Fetch actual customer/lead name
+                    let custName = ''
+                    if (effectiveCustomerId) {
+                        const { data: cust } = await supabase
+                            .from('customers')
+                            .select('full_name')
+                            .eq('id', effectiveCustomerId)
+                            .maybeSingle()
+                        if (cust?.full_name) custName = cust.full_name
+                    }
+                    if (!custName && effectiveLeadId) {
+                        const { data: lead } = await supabase
+                            .from('leads')
+                            .select('full_name')
+                            .eq('id', effectiveLeadId)
+                            .maybeSingle()
+                        if (lead?.full_name) custName = lead.full_name
+                    }
+                    if (!custName) custName = conv?.phone_number || 'Aday Müşteri'
+
                     await sendWhatsAppTemplate(
                         rep.phone,
                         'lead_assignment_alert',
