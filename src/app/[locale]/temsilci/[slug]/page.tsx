@@ -7,14 +7,15 @@ export const metadata = {
     robots: 'noindex, nofollow'
 }
 
-export default async function AgentPage({ params }: { params: { slug: string } }) {
-    const profile = await getProfileBySlug(params.slug)
+export default async function AgentPage({ params }: { params: Promise<{ slug: string }> }) {
+    const resolvedParams = await params
+    const profile = await getProfileBySlug(resolvedParams.slug)
     
     if (!profile) {
         notFound()
     }
 
-    const isAuthed = await checkAuth(params.slug)
+    const isAuthed = await checkAuth(resolvedParams.slug)
 
-    return <Client initialAuthed={isAuthed} slug={params.slug} agentName={profile.full_name} />
+    return <Client initialAuthed={isAuthed} slug={resolvedParams.slug} agentName={profile.full_name} />
 }
