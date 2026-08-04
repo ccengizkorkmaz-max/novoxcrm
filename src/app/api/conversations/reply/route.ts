@@ -113,20 +113,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Message sent but failed to log in CRM' }, { status: 500 });
         }
 
-        // 4.1 Log to Activities (Timeline)
-        if (session.customer_id) {
-            await supabase.from('activities').insert({
-                tenant_id: session.tenant_id,
-                customer_id: session.customer_id,
-                type: 'Whatsapp',
-                topic: 'Sales',
-                summary: `💬 WhatsApp Mesajı Gönderildi (Manuel)`,
-                description: message,
-                status: 'Completed',
-                due_date: new Date().toISOString(),
-                priority: 'Medium'
-            });
-        }
+        // 4.1 Otomatik aktivite kaydı kaldırıldı — sistem sessizce işini yapıyor
 
         // 5. Update session timestamp, last message, and turn off AI
         await supabase.from('whatsapp_conversations')

@@ -539,18 +539,8 @@ Gelen aramaları karşıla, bilgi bankasındaki proje bilgilerini paylaş, rande
                                     }
                                 }
                                 
-                                await adminSupabase.from('activities').insert({
-                                    tenant_id: metadata.tenant_id,
-                                    customer_id: metadata.customer_id,
-                                    owner_id: ownerId,
-                                    type: 'Meeting',
-                                    topic: 'Sales',
-                                    summary: `📅 AI aramasında randevu talebi — ${functionParams.date || 'Tarih belirtilmedi'}`,
-                                    description: `AI arama sırasında müşteri randevu istedi. Tercih: ${functionParams.date || '-'} ${functionParams.time || '-'}. Not: ${functionParams.notes || '-'}. Vapi Call ID: ${parsed.callId}`,
-                                    status: 'Pending',
-                                    project_id: metadata.project_id,
-                                })
-                                console.log(`[Vapi Webhook] Randevu kaydı oluşturuldu: ${metadata.customer_id}`)
+                                // Otomatik aktivite kaydı kaldırıldı
+                                console.log(`[Vapi Webhook] Randevu talebi alındı: ${metadata.customer_id}`)
                                 resultMessage = "Randevu başarıyla kaydedildi. Müşteriye randevusunun alındığını söyle ve görüşmeyi sonlandır."
                             } catch (fnErr: any) {
                                 console.error(`[Vapi Webhook] Randevu kayıt hatası:`, fnErr.message)

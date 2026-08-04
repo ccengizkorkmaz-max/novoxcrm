@@ -461,13 +461,7 @@ export async function POST(req: Request) {
                                         wa_first_message_at: new Date().toISOString()
                                     }).eq('id', newSale.id);
 
-                                    await supabase.from('activities').insert({
-                                        tenant_id: tenant_id, customer_id: customerId, project_id: projectId,
-                                        type: 'Whatsapp', topic: 'Sales',
-                                        summary: `💬 WhatsApp Mesajı Gönderildi (${templateName})`,
-                                        description: `Sistem tarafından otomatik şablon mesajı gönderildi.`,
-                                        status: 'Completed', due_date: new Date().toISOString(), priority: 'Medium'
-                                    });
+                                    // Otomatik aktivite kaydı kaldırıldı — sistem sessizce işini yapıyor
 
                                     // Conversation log
                                     try {
@@ -547,14 +541,7 @@ ${knowledgeBase || 'Proje detayları için satış danışmanına yönlendir.'}
 
                             if (callResult.success) {
                                 console.log(`📞 AI Arama başlatıldı: ${callResult.callId} → ${phone}`);
-                                // Aktivite kaydet
-                                await supabase.from('activities').insert({
-                                    tenant_id: tenant_id, customer_id: customerId, project_id: projectId,
-                                    type: 'Call', topic: 'Sales',
-                                    summary: `📞 AI Arama Başlatıldı (${projectName})`,
-                                    description: `Yeni lead geldiği için otomatik AI arama başlatıldı.\n\n[Call ID: ${callResult.callId}]`,
-                                    status: 'In Progress', due_date: new Date().toISOString(), priority: 'High'
-                                });
+                                // Otomatik aktivite kaydı kaldırıldı — sistem sessizce işini yapıyor
                             } else {
                                 console.warn('⚠️ AI Arama başlatılamadı:', callResult.error);
                             }
@@ -845,13 +832,7 @@ ${knowledgeBase || 'Proje detayları için satış danışmanına yönlendir.'}
                                     wa_first_message_sent: true, wa_first_message_at: new Date().toISOString()
                                 }).eq('id', saleId)
 
-                                await supabase.from('activities').insert({
-                                    tenant_id, customer_id: customerId, project_id: projectId,
-                                    type: 'Whatsapp', topic: 'Sales',
-                                    summary: `💬 WhatsApp Mesajı Gönderildi (${templateName})`,
-                                    description: `Web form sonrası otomatik şablon mesajı gönderildi.`,
-                                    status: 'Completed', due_date: new Date().toISOString(), priority: 'Medium'
-                                })
+                                // Otomatik aktivite kaydı kaldırıldı — sistem sessizce işini yapıyor
 
                                 try {
                                     let { data: existingConv } = await supabase
@@ -928,13 +909,7 @@ ${knowledgeBase || 'Proje detayları için satış danışmanına yönlendir.'}
 
                         if (callResult.success) {
                             console.log(`📞 AI Arama başlatıldı (Web Form): ${callResult.callId} → ${phone}`)
-                            await supabase.from('activities').insert({
-                                tenant_id, customer_id: customerId, project_id: projectId,
-                                type: 'Call', topic: 'Sales',
-                                summary: `📞 AI Arama Başlatıldı (${projectName})`,
-                                description: `Web form sonrası otomatik AI arama başlatıldı.\n\n[Call ID: ${callResult.callId}]`,
-                                status: 'In Progress', due_date: new Date().toISOString(), priority: 'High'
-                            })
+                            // Otomatik aktivite kaydı kaldırıldı — sistem sessizce işini yapıyor
                         } else {
                             console.warn('⚠️ AI Arama başlatılamadı (Web Form):', callResult.error)
                         }
