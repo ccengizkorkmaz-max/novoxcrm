@@ -72,8 +72,10 @@ export function ActivitiesView({ initialActivities, customers, profiles, project
     const [selectedLeadStatuses, setSelectedLeadStatuses] = useState<string[]>([])
     const [selectedPriorities, setSelectedPriorities] = useState<string[]>([])
     const [selectedOwners, setSelectedOwners] = useState<string[]>([])
-    const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'week' | 'month'>('all')
+    const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'week' | 'month' | 'custom'>('all')
     const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest')
+    const [dateRangeStart, setDateRangeStart] = useState<string>('')
+    const [dateRangeEnd, setDateRangeEnd] = useState<string>('')
 
     // Clientside Filtering
     const filteredActivities = initialActivities.filter(a => {
@@ -149,6 +151,17 @@ export function ActivitiesView({ initialActivities, customers, profiles, project
                 const monthAgo = new Date(today)
                 monthAgo.setMonth(monthAgo.getMonth() - 1)
                 if (activityDate < monthAgo) return false
+            } else if (dateFilter === 'custom') {
+                if (dateRangeStart) {
+                    const start = new Date(dateRangeStart)
+                    start.setHours(0, 0, 0, 0)
+                    if (activityDate < start) return false
+                }
+                if (dateRangeEnd) {
+                    const end = new Date(dateRangeEnd)
+                    end.setHours(23, 59, 59, 999)
+                    if (activityDate > end) return false
+                }
             }
         }
 
@@ -250,6 +263,8 @@ export function ActivitiesView({ initialActivities, customers, profiles, project
                         setSelectedPriorities([])
                         setSelectedOwners([])
                         setDateFilter('all')
+                        setDateRangeStart('')
+                        setDateRangeEnd('')
                         setSortOrder('newest')
                     }
 
@@ -275,11 +290,43 @@ export function ActivitiesView({ initialActivities, customers, profiles, project
                                     <Button
                                         variant={dateFilter === 'today' ? 'secondary' : 'outline'}
                                         size="sm"
-                                        onClick={() => setDateFilter(prev => prev === 'today' ? 'all' : 'today')}
+                                        onClick={() => {
+                                            setDateFilter(prev => prev === 'today' ? 'all' : 'today')
+                                            setDateRangeStart('')
+                                            setDateRangeEnd('')
+                                        }}
                                         className="h-9"
                                     >
                                         {t('filters.today')}
                                     </Button>
+
+                                    {/* Date Range Picker */}
+                                    <div className="flex items-center gap-1.5">
+                                        <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
+                                        <input
+                                            type="date"
+                                            value={dateRangeStart}
+                                            onChange={(e) => {
+                                                setDateRangeStart(e.target.value)
+                                                if (e.target.value || dateRangeEnd) setDateFilter('custom')
+                                                else if (!dateRangeEnd) setDateFilter('all')
+                                            }}
+                                            className="h-9 px-2 text-xs border border-dashed border-slate-300 rounded-md bg-white hover:border-blue-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none transition-colors w-[130px]"
+                                            placeholder="Başlangıç"
+                                        />
+                                        <span className="text-muted-foreground text-xs">—</span>
+                                        <input
+                                            type="date"
+                                            value={dateRangeEnd}
+                                            onChange={(e) => {
+                                                setDateRangeEnd(e.target.value)
+                                                if (e.target.value || dateRangeStart) setDateFilter('custom')
+                                                else if (!dateRangeStart) setDateFilter('all')
+                                            }}
+                                            className="h-9 px-2 text-xs border border-dashed border-slate-300 rounded-md bg-white hover:border-blue-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none transition-colors w-[130px]"
+                                            placeholder="Bitiş"
+                                        />
+                                    </div>
 
                                     {/* Quick Status Pill Filters */}
                                     {(() => {
