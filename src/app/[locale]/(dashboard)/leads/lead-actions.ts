@@ -150,7 +150,7 @@ export async function updateLead(leadId: string, data: {
                             
                             if (hotLeadManagers && hotLeadManagers.length > 0) {
                                 for (const manager of hotLeadManagers) {
-                                    if (manager.phone && manager.id !== assignedTo) {
+                                    if (manager.phone && manager.id !== data.assigned_to) {
                                         await sendWhatsAppTemplate(
                                             manager.phone,
                                             'lead_assignment_alert',
