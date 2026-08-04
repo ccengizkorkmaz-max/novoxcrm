@@ -29,7 +29,7 @@ export default function AgentClient({
         setFetchLoading(true)
         const res = await getAgentLeads(slug)
         if (res.success) {
-            setLeads(res.leads)
+            setLeads(res.leads || [])
         } else {
             if (res.error === 'Unauthorized') setIsAuthed(false)
             else alert(res.error)
