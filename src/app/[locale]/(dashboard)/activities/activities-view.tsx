@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { KanbanBoard } from '@/components/activities/kanban-board'
 import { Activity } from '@/components/activities/activity-card'
 import { Button } from '@/components/ui/button'
 import { Plus, Filter, ChevronUp, ChevronDown, Check, X, Calendar, ArrowUpDown } from 'lucide-react'
@@ -605,7 +604,6 @@ export function ActivitiesView({ initialActivities, customers, profiles, project
                 <div className="flex items-center px-1">
                     <TabsList>
                         <TabsTrigger value="calendar">{t('tabs.calendar')}</TabsTrigger>
-                        <TabsTrigger value="kanban">{t('tabs.kanban')}</TabsTrigger>
                         <TabsTrigger value="list">{t('tabs.list')}</TabsTrigger>
                     </TabsList>
                 </div>
@@ -613,12 +611,6 @@ export function ActivitiesView({ initialActivities, customers, profiles, project
                 <TabsContent value="calendar" className="mt-0 flex-1 min-h-0 overflow-hidden">
                     <div className="h-full overflow-y-auto rounded-lg border bg-card">
                         <ActivityCalendar activities={activities} customers={customers} profiles={profiles} projects={projects} />
-                    </div>
-                </TabsContent>
-
-                <TabsContent value="kanban" className="mt-0 flex-1 min-h-0 overflow-hidden">
-                    <div className="h-full overflow-y-auto pr-2">
-                        <KanbanBoard activities={activities} customers={customers} profiles={profiles} projects={projects} />
                     </div>
                 </TabsContent>
 
