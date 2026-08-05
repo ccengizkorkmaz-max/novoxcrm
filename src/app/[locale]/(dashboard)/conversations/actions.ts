@@ -321,7 +321,11 @@ export async function assignRepresentativeToConversation(params: {
                     .eq('id', userProfile.tenant_id)
                     .single()
 
-                if (tenant?.wa_phone_number_id && tenant.wa_access_token && rep?.phone) {
+                // Tenant DB alanları veya .env fallback
+                const waPhoneId = tenant?.wa_phone_number_id || process.env.WHATSAPP_PHONE_NUMBER_ID
+                const waToken = tenant?.wa_access_token || process.env.WHATSAPP_ACCESS_TOKEN
+
+                if (waPhoneId && waToken && rep?.phone) {
                     const { sendWhatsAppTemplate } = await import('@/lib/whatsapp')
                     
                     // Fetch actual customer/lead name
@@ -376,8 +380,8 @@ export async function assignRepresentativeToConversation(params: {
                         'lead_assignment_alert',
                         [custName, conv?.phone_number || '', scoreText],
                         'tr',
-                        tenant.wa_phone_number_id,
-                        tenant.wa_access_token
+                        waPhoneId,
+                        waToken
                     )
                     console.log(`✅ WhatsApp atama bildirimi temsilciye gönderildi: ${rep.full_name} (${rep.phone})`)
 
@@ -396,13 +400,16 @@ export async function assignRepresentativeToConversation(params: {
                                     'lead_assignment_alert',
                                     [custName, conv?.phone_number || '', `${scoreText} - Atanan: ${rep.full_name}`],
                                     'tr',
-                                    tenant.wa_phone_number_id,
-                                    tenant.wa_access_token
+                                    waPhoneId,
+                                    waToken
                                 )
                                 console.log(`✅ WhatsApp atama bildirimi hot lead manager'a gönderildi: ${manager.full_name}`)
                             }
                         }
                     }
+                } else {
+                    if (!rep?.phone) console.warn(`⚠️ [Conv Assign] Temsilci phone BOŞ`)
+                    if (!waPhoneId || !waToken) console.warn(`⚠️ [Conv Assign] WA yapılandırması ne DB'de ne de ENV'de mevcut`)
                 }
             } catch (waErr) {
                 console.error('Temsilciye WA bildirim gönderme hatası:', waErr)

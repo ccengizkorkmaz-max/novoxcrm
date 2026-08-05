@@ -2280,7 +2280,11 @@ export async function handleVapiCallResult(callData: {
                     .eq('id', execution.tenant_id)
                     .single()
 
-                if (tenant?.wa_phone_number_id && tenant?.wa_access_token && customer) {
+                // Tenant DB alanları veya .env fallback
+                const waPhoneId = tenant?.wa_phone_number_id || process.env.WHATSAPP_PHONE_NUMBER_ID
+                const waToken = tenant?.wa_access_token || process.env.WHATSAPP_ACCESS_TOKEN
+
+                if (waPhoneId && waToken && customer) {
                     const { sendWhatsAppTemplate } = await import('@/lib/whatsapp')
                     const leadLabel = structuredData.lead_score === 'warm' ? '[ILIK LEAD - Outreach] ' : '[SICAK LEAD - Outreach] '
                     const params = [
@@ -2304,8 +2308,8 @@ export async function handleVapiCallResult(callData: {
                                 'crm_operasyonel_durum_bildirimi',
                                 params,
                                 'tr',
-                                tenant.wa_phone_number_id,
-                                tenant.wa_access_token
+                                waPhoneId,
+                                waToken
                             )
                             console.log(`[Outreach] 🔥 ${structuredData.lead_score.toUpperCase()} lead bildirim → atanmış danışman: ${rep.full_name}`)
                         }
@@ -2329,8 +2333,8 @@ export async function handleVapiCallResult(callData: {
                                         'crm_operasyonel_durum_bildirimi',
                                         params,
                                         'tr',
-                                        tenant.wa_phone_number_id,
-                                        tenant.wa_access_token
+                                        waPhoneId,
+                                        waToken
                                     )
                                     console.log(`[Outreach] 🔥 Hot Lead Manager bildirimi gönderildi: ${manager.full_name} (${manager.phone})`)
                                 } catch (sendErr: any) {
