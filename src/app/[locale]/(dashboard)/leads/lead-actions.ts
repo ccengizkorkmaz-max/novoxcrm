@@ -56,7 +56,6 @@ export async function updateLead(leadId: string, data: {
 
     // Send assignment notifications if assignee changed and is not empty
     const isAssigneeChanging = data.assigned_to !== undefined && data.assigned_to !== currentLead?.assigned_to && data.assigned_to !== null && data.assigned_to !== ''
-    console.log(`[Lead Assign Debug] assigned_to=${data.assigned_to}, currentAssigned=${currentLead?.assigned_to}, isChanging=${isAssigneeChanging}`)
     if (isAssigneeChanging && data.assigned_to) {
         // Get user notification preferences
         let isEnabled = true
@@ -77,7 +76,6 @@ export async function updateLead(leadId: string, data: {
                 inAppEnabled = pref.channel_in_app
                 whatsappEnabled = pref.channel_whatsapp
             }
-            console.log(`[Lead Assign Debug] Notification prefs → isEnabled=${isEnabled}, inApp=${inAppEnabled}, whatsapp=${whatsappEnabled}, prefFound=${!!pref}`)
         } catch (prefErr) {
             console.error('Error fetching notification preferences:', prefErr)
         }
@@ -110,20 +108,12 @@ export async function updateLead(leadId: string, data: {
                         .eq('id', profile.tenant_id)
                         .single()
 
-                    // Tenant DB alanları veya .env fallback
-                    const waPhoneId = tenant?.wa_phone_number_id || process.env.WHATSAPP_PHONE_NUMBER_ID
-                    const waToken = tenant?.wa_access_token || process.env.WHATSAPP_ACCESS_TOKEN
-
-                    console.log(`[Lead Assign Debug] Tenant WA config → phoneId=${waPhoneId ? 'SET' : 'MISSING'}, token=${waToken ? 'SET' : 'MISSING'}, source=${tenant?.wa_phone_number_id ? 'DB' : 'ENV'}`)
-
-                    if (waPhoneId && waToken) {
-                        const { data: repProfile, error: repError } = await supabase
+                    if (tenant?.wa_phone_number_id && tenant.wa_access_token) {
+                        const { data: repProfile } = await supabase
                             .from('profiles')
                             .select('phone, full_name')
                             .eq('id', data.assigned_to)
                             .single()
-
-                        console.log(`[Lead Assign Debug] Rep profile → name=${repProfile?.full_name}, phone=${repProfile?.phone || 'BOŞ/YOK'}, error=${repError?.message || 'none'}`)
 
                         if (repProfile?.phone) {
                             const { sendWhatsAppTemplate } = await import('@/lib/whatsapp')
@@ -137,7 +127,7 @@ export async function updateLead(leadId: string, data: {
                             }
                             const scoreText = rawInterest ? scoreLabel[rawInterest] || '—' : 'ADAY (LEADS)'
 
-                            const waResult = await sendWhatsAppTemplate(
+                            await sendWhatsAppTemplate(
                                 repProfile.phone,
                                 'lead_assignment_alert',
                                 [
@@ -146,10 +136,10 @@ export async function updateLead(leadId: string, data: {
                                     scoreText
                                 ],
                                 'tr',
-                                waPhoneId,
-                                waToken
+                                tenant.wa_phone_number_id,
+                                tenant.wa_access_token
                             )
-                            console.log(`✅ Lead atama WA template gönderildi (Leads): ${repProfile.full_name}, result=${JSON.stringify(waResult)}`)
+                            console.log(`✅ Lead atama WA template gönderildi (Leads): ${repProfile.full_name}`)
 
                             // Hot Lead Manager'lara da bildir (Atanan temsilci hariç)
                             const { data: hotLeadManagers } = await supabase
@@ -166,27 +156,19 @@ export async function updateLead(leadId: string, data: {
                                             'lead_assignment_alert',
                                             [resolvedName, resolvedPhone, `${scoreText} - Atanan: ${repProfile.full_name}`],
                                             'tr',
-                                            waPhoneId,
-                                            waToken
+                                            tenant.wa_phone_number_id,
+                                            tenant.wa_access_token
                                         )
                                         console.log(`✅ Lead atama WA bildirimi hot lead manager'a gönderildi: ${manager.full_name}`)
                                     }
                                 }
                             }
-                        } else {
-                            console.warn(`⚠️ [Lead Assign] Temsilcinin phone alanı BOŞ → WA bildirimi gönderilemedi. userId=${data.assigned_to}, name=${repProfile?.full_name || 'PROFIL BULUNAMADI'}`)
                         }
-                    } else {
-                        console.warn(`⚠️ [Lead Assign] WA yapılandırması ne DB'de ne de ENV'de mevcut → WA bildirimi gönderilemedi`)
                     }
                 } catch (waErr) {
                     console.error('Lead assignment WA notification error:', waErr)
                 }
-            } else {
-                console.log(`⏭️ [Lead Assign] WhatsApp kanalı kullanıcı tercihleriyle devre dışı → userId=${data.assigned_to}`)
             }
-        } else {
-            console.log(`⏭️ [Lead Assign] Bildirimler tamamen devre dışı → userId=${data.assigned_to}`)
         }
     }
 
@@ -501,11 +483,7 @@ export async function createLead(data: {
                         .eq('id', profile.tenant_id)
                         .single()
 
-                    // Tenant DB alanları veya .env fallback
-                    const waPhoneId = tenant?.wa_phone_number_id || process.env.WHATSAPP_PHONE_NUMBER_ID
-                    const waToken = tenant?.wa_access_token || process.env.WHATSAPP_ACCESS_TOKEN
-
-                    if (waPhoneId && waToken) {
+                    if (tenant?.wa_phone_number_id && tenant.wa_access_token) {
                         const { data: repProfile } = await supabase
                             .from('profiles')
                             .select('phone, full_name')
@@ -523,15 +501,11 @@ export async function createLead(data: {
                                     'ADAY (LEADS)'
                                 ],
                                 'tr',
-                                waPhoneId,
-                                waToken
+                                tenant.wa_phone_number_id,
+                                tenant.wa_access_token
                             )
                             console.log(`✅ Lead atama WA template gönderildi (Leads): ${repProfile.full_name}`)
-                        } else {
-                            console.warn(`⚠️ [Lead Create] Temsilci phone alanı BOŞ → userId=${data.assigned_to}`)
                         }
-                    } else {
-                        console.warn(`⚠️ [Lead Create] WA yapılandırması ne DB'de ne de ENV'de mevcut`)
                     }
                 } catch (waErr) {
                     console.error('Lead assignment WA notification error:', waErr)

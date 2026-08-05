@@ -213,22 +213,14 @@ export async function sendLeadAssignmentNotifications(
         })
         console.log(`[Outreach] Zil bildirimi gönderildi → Temsilci: ${assignedTo}`)
 
-        // 2. WhatsApp bildirimi gönder
-        const { data: tenant, error: tenantErr } = await supabase
+        // 2. WhatsApp bildirimi gönder (eğer aktifse)
+        const { data: tenant } = await supabase
             .from('tenants')
-            .select('wa_phone_number_id, wa_access_token')
+            .select('wa_lead_assignment_notification_enabled, wa_phone_number_id, wa_access_token')
             .eq('id', tenantId)
             .single()
 
-        if (tenantErr) {
-            console.warn(`[CRM Mode] Tenant sorgusu hata verdi: ${tenantErr.message}`)
-        }
-
-        // Tenant DB alanları veya .env fallback
-        const waPhoneId = tenant?.wa_phone_number_id || process.env.WHATSAPP_PHONE_NUMBER_ID
-        const waToken = tenant?.wa_access_token || process.env.WHATSAPP_ACCESS_TOKEN
-
-        if (waPhoneId && waToken) {
+        if (tenant?.wa_lead_assignment_notification_enabled && tenant.wa_phone_number_id && tenant.wa_access_token) {
             const { data: repProfile } = await supabase
                 .from('profiles')
                 .select('phone, full_name')
@@ -246,15 +238,11 @@ export async function sendLeadAssignmentNotifications(
                         'ADAY (LEADS)'
                     ],
                     'tr',
-                    waPhoneId,
-                    waToken
+                    tenant.wa_phone_number_id,
+                    tenant.wa_access_token
                 )
                 console.log(`[Outreach] WhatsApp atama bildirimi gönderildi → Temsilci: ${repProfile.full_name}`)
-            } else {
-                console.warn(`[Outreach] Temsilci phone alanı BOŞ → userId=${assignedTo}`)
             }
-        } else {
-            console.warn(`[Outreach] WA yapılandırması ne DB'de ne de ENV'de mevcut`)
         }
     } catch (err: any) {
         console.error('[CRM Mode] Atama bildirimleri gönderilirken hata oluştu:', err.message)

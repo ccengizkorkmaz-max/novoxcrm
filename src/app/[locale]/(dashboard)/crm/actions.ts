@@ -1437,21 +1437,10 @@ async function notifyRepOfAssignment(saleId: string, userId: string, tenantId: s
             ;(async () => {
                 try {
                     const { data: repProfile } = await adminSupabase.from('profiles').select('phone, full_name').eq('id', userId).single()
-                    if (!repProfile?.phone) {
-                        console.warn(`⚠️ [CRM Assign] Temsilci phone alanı BOŞ → userId=${userId}`)
-                        return
-                    }
+                    if (!repProfile?.phone) return
 
                     const { data: tenantSettings } = await adminSupabase.from('tenants').select('wa_phone_number_id, wa_access_token').eq('id', tenantId).single()
-                    
-                    // Tenant DB alanları veya .env fallback
-                    const waPhoneId = tenantSettings?.wa_phone_number_id || process.env.WHATSAPP_PHONE_NUMBER_ID
-                    const waToken = tenantSettings?.wa_access_token || process.env.WHATSAPP_ACCESS_TOKEN
-                    
-                    if (!waPhoneId || !waToken) {
-                        console.warn(`⚠️ [CRM Assign] WA yapılandırması ne DB'de ne de ENV'de mevcut`)
-                        return
-                    }
+                    if (!tenantSettings?.wa_phone_number_id || !tenantSettings?.wa_access_token) return
 
                     const scoreLabel: Record<string, string> = {
                         hot: 'HOT', warm: 'WARM', cold: 'COLD',
@@ -1465,8 +1454,8 @@ async function notifyRepOfAssignment(saleId: string, userId: string, tenantId: s
                         'lead_assignment_alert',
                         [customerName, customerPhone, scoreText],
                         'tr',
-                        waPhoneId,
-                        waToken
+                        tenantSettings.wa_phone_number_id,
+                        tenantSettings.wa_access_token
                     )
                     console.log(`✅ Lead atama WA template gönderildi: ${repProfile.full_name}`)
 
@@ -1485,8 +1474,8 @@ async function notifyRepOfAssignment(saleId: string, userId: string, tenantId: s
                                     'lead_assignment_alert',
                                     [customerName, customerPhone, `${scoreText} - Atanan: ${repProfile.full_name}`],
                                     'tr',
-                                    waPhoneId,
-                                    waToken
+                                    tenantSettings.wa_phone_number_id,
+                                    tenantSettings.wa_access_token
                                 )
                                 console.log(`✅ Lead atama WA bildirimi hot lead manager'a gönderildi: ${manager.full_name}`)
                             }
