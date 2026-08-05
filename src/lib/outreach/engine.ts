@@ -2510,7 +2510,7 @@ export async function handleVapiCallResult(callData: {
                         description: [
                             `Müşteri katalog/broşür/fiyat listesi talep etti.`,
                             projectName ? `🏗️ İlgilendiği Proje: ${projectName}` : null,
-                            projectUrl ? `🔗 Proje Linki: ${projectUrl}` : '⚠️ Proje web sitesi bulunamadı — lütfen manuel gönderin.',
+                            docFileUrl ? `📄 Doküman Dosyası: ${docFileUrl}` : '⚠️ CRM\'de proje doküman dosyası bulunamadı — lütfen manuel iletişime geçin.',
                             !customerPhone ? '⚠️ Müşteri telefon numarası eksik!' : null,
                             structuredData.notes ? `📝 Notlar: ${structuredData.notes}` : null,
                         ].filter(Boolean).join('\n'),
