@@ -320,7 +320,7 @@ Gelen aramaları karşıla, bilgi bankasındaki proje bilgilerini paylaş, rande
                                     type: 'function',
                                     function: {
                                         name: 'sendWhatsAppLink',
-                                        description: 'Sends the project brochure/catalog web link to the customer via WhatsApp message. Do not read the URL link verbally, just tell the customer that you have sent it.',
+                                        description: 'Sends the uploaded CRM project document file (as file attachment) to the customer via WhatsApp. NEVER send web links or URLs. If no document file is uploaded in CRM, tell the customer: "Talebinizi müşteri danışmanınıza aktarıyorum gerekli bilgileri size ulaştıracaktır."',
                                         parameters: {
                                             type: 'object',
                                             properties: {
@@ -578,7 +578,6 @@ Gelen aramaları karşıla, bilgi bankasındaki proje bilgilerini paylaş, rande
                                 const metadata = parsed.metadata || {};
                                 let resolvedProjectId = functionParams.project_id;
                                  
-                                // Check if project_id is a valid UUID, if not query projects table by name
                                 const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
                                 if (resolvedProjectId && !uuidRegex.test(resolvedProjectId)) {
                                     const { data: matchedProj } = await adminSupabase
@@ -594,70 +593,70 @@ Gelen aramaları karşıla, bilgi bankasındaki proje bilgilerini paylaş, rande
 
                                 const tenantId = metadata.tenant_id;
                                 
-                                console.log(`[Vapi Tool] sendWhatsAppLink triggered: customer=${metadata.customer_id}, project_id=${resolvedProjectId}, phone=${metadata.caller_phone}`);
+                                console.log(`[Vapi Tool] sendWhatsAppDocument triggered: customer=${metadata.customer_id}, project_id=${resolvedProjectId}, phone=${metadata.caller_phone}`);
                                 
                                 const { data: tenantData } = await adminSupabase
                                     .from('tenants')
-                                    .select('wa_phone_number_id, wa_access_token, custom_domain')
+                                    .select('wa_phone_number_id, wa_access_token')
                                     .eq('id', tenantId)
                                     .single();
 
-                                // Find public documents for this project
+                                // Find public document files with file_url for this project
                                 const { data: docs } = await adminSupabase
                                     .from('project_documents')
-                                    .select('id, document_name, category')
+                                    .select('id, document_name, file_url, category')
                                     .eq('project_id', resolvedProjectId)
                                     .eq('permissions', 'public');
                                 
                                 const { data: libDocs } = await adminSupabase
                                     .from('document_library')
-                                    .select('id, name, category')
+                                    .select('id, name, file_url, category')
                                     .eq('project_id', resolvedProjectId)
                                     .eq('permissions', 'public');
 
-                                const allDocs = [...(docs || []), ...(libDocs || [])];
-                                // Prioritize brochures and catalogs first, fall back to any other public document
-                                const bestDoc = allDocs.find(d => d.category === 'brochure' || d.category === 'catalog') || allDocs[0];
-                                const docId = bestDoc?.id;
-                                
-                                const baseUrl = tenantData?.custom_domain
-                                    ? `https://${tenantData.custom_domain}`
-                                    : (process.env.NEXT_PUBLIC_APP_URL || 'https://www.novoxcrm.com');
+                                const normalizedProjectDocs = (docs || []).map((d: any) => ({
+                                    id: d.id,
+                                    name: d.document_name,
+                                    file_url: d.file_url,
+                                    category: d.category
+                                }));
+
+                                const allDocs = [...normalizedProjectDocs, ...(libDocs || [])];
+                                const bestDoc = allDocs.find((d: any) => (d.category === 'brochure' || d.category === 'catalog') && d.file_url) || allDocs.find((d: any) => d.file_url);
 
                                 const { data: project } = await adminSupabase
                                     .from('projects')
-                                    .select('name, website_url')
+                                    .select('name')
                                     .eq('id', resolvedProjectId)
                                     .maybeSingle();
 
-                                const projectWebsite = project?.website_url;
-                                const projectName = project?.name || 'proje';
+                                const projectName = project?.name || 'Proje';
 
-                                let messageText = '';
-                                if (docId && projectWebsite) {
-                                    const { encodeUuid } = await import('@/lib/utils');
-                                    const shortUrl = `${baseUrl}/d/${encodeUuid(docId)}`;
-                                    messageText = `Merhaba, talep ettiğiniz ${projectName} bilgileri ve broşür linki aşağıdadır:\n\n📄 Broşür: ${shortUrl}\n🔗 Web Sitesi: ${projectWebsite}\n\nİyi günler dileriz.`;
-                                } else if (docId) {
-                                    const { encodeUuid } = await import('@/lib/utils');
-                                    const shortUrl = `${baseUrl}/d/${encodeUuid(docId)}`;
-                                    messageText = `Merhaba, talep ettiğiniz ${projectName} bilgileri ve broşür linki aşağıdadır:\n\n📄 Broşür: ${shortUrl}\n\nİyi günler dileriz.`;
+                                if (bestDoc?.file_url && tenantData?.wa_phone_number_id && tenantData?.wa_access_token && metadata.caller_phone) {
+                                    const { sendWhatsAppMedia } = await import('@/lib/whatsapp');
+                                    // Send actual file attachment via WhatsApp (NO URL in text)
+                                    const mediaResult = await sendWhatsAppMedia(
+                                        metadata.caller_phone,
+                                        'document',
+                                        bestDoc.file_url,
+                                        `${projectName} Dokümanı`,
+                                        tenantData.wa_phone_number_id,
+                                        tenantData.wa_access_token
+                                    );
+                                    if (mediaResult.success) {
+                                        console.log(`[Vapi Tool] Document file sent successfully to ${metadata.caller_phone}`);
+                                        resultMessage = "Doküman dosyası WhatsApp üzerinden müşteriye dosya eklentisi olarak gönderildi. Müşteriye dokümanı ilettiğini söyle ve KESİNLİKLE web linki/URL okuma.";
+                                    } else {
+                                        console.error(`[Vapi Tool] Media send error:`, mediaResult.error);
+                                        resultMessage = "CRM'deki doküman dosyası ek olarak gönderilemedi. Müşteriye HARFİYEN ŞUNU SÖYLE: 'Talebinizi müşteri danışmanınıza aktarıyorum gerekli bilgileri size ulaştıracaktır.'";
+                                    }
                                 } else {
-                                    const fallbackUrl = projectWebsite || 'https://www.novosirketlergrubu.com/novo-yapi-insaat/';
-                                    messageText = `Merhaba, talep ettiğiniz ${projectName} bilgileri ve detaylı web sitesi aşağıdadır:\n\n🔗 Web Sitesi: ${fallbackUrl}\n\nİyi günler dileriz.`;
-                                }
-
-                                if (tenantData?.wa_phone_number_id && tenantData?.wa_access_token && metadata.caller_phone) {
-                                    const { sendWhatsAppMessage } = await import('@/lib/whatsapp');
-                                    await sendWhatsAppMessage(metadata.caller_phone, messageText, tenantData.wa_phone_number_id, tenantData.wa_access_token);
-                                    console.log(`[Vapi Tool] sendWhatsAppLink sent successfully to ${metadata.caller_phone}`);
-                                    resultMessage = "WhatsApp mesajı başarıyla gönderildi. Müşteriye linki WhatsApp'tan ilettiğini söyle ve sesli olarak kesinlikle link okuma.";
-                                } else {
-                                    resultMessage = "WhatsApp mesajı gönderilemedi (WhatsApp entegrasyonu yapılandırılmamış veya numara eksik).";
+                                    console.log(`[Vapi Tool] No document file_url found in CRM for project: ${resolvedProjectId}`);
+                                    resultMessage = "CRM'de bu projeye ait yüklü doküman dosyası bulunamadı. Müşteriye HARFİYEN VE BİREBİR ŞUNU SÖYLE: 'Talebinizi müşteri danışmanınıza aktarıyorum gerekli bilgileri size ulaştıracaktır.' KESİNLİKLE link veya URL uydurma ve link göndermeye çalışma.";
                                 }
                             } catch (fnErr: any) {
                                 console.error(`[Vapi Webhook] sendWhatsAppLink tool error:`, fnErr.message);
-                                resultMessage = "WhatsApp mesajı gönderilirken sistemsel bir hata oluştu.";
+                                resultMessage = "Doküman gönderilirken sistemsel bir aksaklık oluştu. Müşteriye HARFİYEN ŞUNU SÖYLE: 'Talebinizi müşteri danışmanınıza aktarıyorum gerekli bilgileri size ulaştıracaktır.'";
                             }
                         } else {
                             console.log(`[Vapi Webhook] Unknown function: ${functionName}`)

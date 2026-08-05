@@ -78,6 +78,14 @@ export function cleanAiResponse(text: string | null): string | null {
     // 4. Kendi kendine "I must not use THOUGHT..." deyip Türkçe yanıta yapışan önekleri temizle
     cleaned = cleaned.replace(/^(?:Knowledge Base entry for[^\n\.]*[\n\.]?|I should [^\n\.]*[\n\.]?|The general rules state[^\n\.]*[\n\.]?|I also need to [^\n\.]*[\n\.]?|I must not use [^\n\.]*[\n\.]?)+/gi, '').trim();
 
+    // 5. Ham fonksiyon/tool sızıntılarını (sendWhatsAppLink(...) vb.) temizle
+    cleaned = cleaned.replace(/sendWhatsAppLink\s*\([^\)]*\)/gi, '').trim();
+    cleaned = cleaned.replace(/sendWhatsAppDocument\s*\([^\)]*\)/gi, '').trim();
+
+    // 6. WhatsApp konuşmalarında "sizi Novo İnşaat'tan arıyorum" ifadesini "Size Novo İnşaat'tan ulaşıyorum" olarak düzelt
+    cleaned = cleaned.replace(/sizi\s+novo\s+inşaat['’]?ta?n\s+arıyorum/gi, "Size Novo İnşaat'tan ulaşıyorum");
+    cleaned = cleaned.replace(/sizi\s+novo['’]?da?n\s+arıyorum/gi, "Size Novo İnşaat'tan ulaşıyorum");
+
     return cleaned || null;
 }
 
