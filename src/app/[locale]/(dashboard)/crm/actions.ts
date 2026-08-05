@@ -1506,6 +1506,7 @@ export async function assignSale(saleId: string, userId: string | null) {
     // Check Role
     const { data: profile } = await supabase.from('profiles').select('role, tenant_id').eq('id', user.id).single()
     const isAdmin = profile?.role === 'admin' || profile?.role === 'owner'
+    console.log(`[ASSIGN-DEBUG] user=${user.id}, role=${profile?.role}, tenant=${profile?.tenant_id}, isAdmin=${isAdmin}, target=${userId}, sale=${saleId}`)
 
     // If not admin, only allow assigning to self IF currently unassigned
     if (!isAdmin) {
@@ -1522,13 +1523,18 @@ export async function assignSale(saleId: string, userId: string | null) {
         .eq('id', saleId)
 
     if (error) {
-        console.error('Assign Sale Error:', error)
+        console.error('[ASSIGN-DEBUG] ❌ Update error:', error)
         return { error: 'Atama işlemi başarısız: ' + error.message }
     }
+
+    console.log(`[ASSIGN-DEBUG] ✅ DB updated, calling notifyRepOfAssignment...`)
 
     // Notification: lead assigned
     if (userId && profile?.tenant_id) {
         await notifyRepOfAssignment(saleId, userId, profile.tenant_id)
+        console.log(`[ASSIGN-DEBUG] ✅ notifyRepOfAssignment completed`)
+    } else {
+        console.warn(`[ASSIGN-DEBUG] ❌ SKIP notify: userId=${userId}, tenant=${profile?.tenant_id}`)
     }
 
     revalidatePath('/crm')
