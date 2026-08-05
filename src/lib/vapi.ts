@@ -53,14 +53,13 @@ export const TURKISH_VOICE_RULES = `
 13. Görüşme Sonlandırma: Görüşmeyi bitirirken her zaman nezaketle, kurumsal bir dille (hoşçakal demeden) ve duruma uygun vedalaşarak telefonu kapat.
 === DİL KURALLARI SONU ===
 
-=== PDF / KATALOG / DÖKÜMAN VE WHATSAPP TALEPLERİ (KRİTİK TALİMAT) ===
-1. KESİNLİKLE URL, WEB LİNKİ, İNTERNET ADRESİ VEYA KOD/FONKSİYON METNİ ("sendWhatsAppLink(...)", "http://..." vb.) GÖNDERME, METİN OLARAK YAZMA VEYA SESLİ OKUMA!
-2. Müşteri sizden telefon görüşmesinde veya WhatsApp'ta PDF, katalog, broşür, fiyat listesi veya proje dokümanı talep ettiğinde:
-   - EĞER CRM'de projeye yüklenmiş proje dokümanları varsa, bu doküman WhatsApp üzerinden doğrudan DOSYA EKLENTİSİ (FILE ATTACHMENT) olarak iletilecektir.
-   - EĞER dosyayı bu şekilde CRM'den alıp dosya ekleyerek göndermek mümkün DEĞİLSE (CRM'de yüklenmiş dosya yoksa vb.), KESİNLİKLE LİNK VEYA WEB ADRESİ GÖNDERMEYE ÇALIŞMAYIN! BUNU DA YAPMAYIN.
-   - Bunun yerine HARFİYEN VE BİREBİR şu cümleyi söyleyin:
-     "Talebinizi müşteri danışmanınıza aktarıyorum gerekli bilgileri size ulaştıracaktır."
-3. WHATSAPP MESAJLAŞMA HİTAP KURALI: WhatsApp mesajlaşmalarında KESİNLİKLE "sizi Novo İnşaat'tan arıyorum" DENİLMEYECEKTİR! Bunun yerine HARFİYEN "Size Novo İnşaat'tan ulaşıyorum" denilecektir.
+=== PDF / KATALOG / DÖKÜMAN VE WHATSAPP TALEPLERİ (KRİTİK) ===
+Müşteri sizden telefon görüşmesinde WhatsApp veya SMS üzerinden PDF, katalog, broşür, fiyat listesi veya yazılı bilgi/link paylaşmanızı isterse:
+→ KESİNLİKLE "bunu yapamam", "gönderemem", "yetkim yok" gibi olumsuz, reddedici veya yetersizlik belirten ifadeler kullanmayın.
+→ Şöyle cevap verin (HARFİYEN):
+   "Tabii ki, sizinle proje bilgilerini ve web sitesi adresimizi WhatsApp üzerinden paylaşacağım."
+→ Ardından, HEMEN "sendWhatsAppLink" fonksiyonunu/aracını (tool) çalıştırın. Aracı çalıştırmak için müşterinin ilgilendiği projenin ID değerini (PROJE ID) belirtmelisiniz.
+→ Sesli konuşmada KESİNLİKLE web sitesi linkini/URL'yi ("h-t-t-p-s-slash-slash-w-w-w..." gibi) müşteriye sesli olarak okumayın, hecelemeyin. Sadece WhatsApp üzerinden gönderdiğinizi belirtin.
 === PDF / KATALOG / DÖKÜMAN VE WHATSAPP TALEPLERİ SONU ===
 
 === YAPAY ZEKA KİMLİĞİ İTİRAZ YÖNETİMİ (KRİTİK) ===
@@ -332,7 +331,7 @@ export async function makeOutboundCall(options: VapiCallOptions): Promise<VapiCa
                             type: 'function',
                             function: {
                                 name: 'sendWhatsAppLink',
-                                description: 'Sends the uploaded CRM project document file (as file attachment) to the customer via WhatsApp. NEVER send web links or URLs. If no document file is uploaded in CRM, tell the customer: "Talebinizi müşteri danışmanınıza aktarıyorum gerekli bilgileri size ulaştıracaktır."',
+                                description: 'Sends the project brochure/catalog web link to the customer via WhatsApp message. Do not read the URL link verbally, just tell the customer that you have sent it.',
                                 parameters: {
                                     type: 'object',
                                     properties: {

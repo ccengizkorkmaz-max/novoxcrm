@@ -2433,12 +2433,12 @@ export async function handleVapiCallResult(callData: {
                 const projectName = structuredData.project_interested || ''
                 const customerPhone = customer?.phone
 
-                // Try to find project document file with file_url from DB
-                let docFileUrl: string | null = null
+                // Try to find project website_url from DB
+                let projectUrl: string | null = null
                 if (projectName) {
                     const { data: projects } = await supabase
                         .from('projects')
-                        .select('id, name')
+                        .select('name, website_url')
                         .eq('tenant_id', execution.tenant_id)
 
                     if (projects) {
@@ -2447,21 +2447,7 @@ export async function handleVapiCallResult(callData: {
                             const normalizedName = p.name.toLowerCase().replace(/[^a-zçğıöşü0-9]/gi, '')
                             return normalizedName.includes(normalizedSearch) || normalizedSearch.includes(normalizedName)
                         })
-                        if (match) {
-                            const { data: pDocs } = await supabase
-                                .from('project_documents')
-                                .select('file_url, category')
-                                .eq('project_id', match.id)
-                                .eq('permissions', 'public')
-                            const { data: lDocs } = await supabase
-                                .from('document_library')
-                                .select('file_url, category')
-                                .eq('project_id', match.id)
-                                .eq('permissions', 'public')
-                            const all = [...(pDocs || []), ...(lDocs || [])]
-                            const best = all.find(d => (d.category === 'brochure' || d.category === 'catalog') && d.file_url) || all.find(d => d.file_url)
-                            docFileUrl = best?.file_url || null
-                        }
+                        projectUrl = match?.website_url || null
                     }
                 }
 
@@ -2474,31 +2460,23 @@ export async function handleVapiCallResult(callData: {
 
                 const hasWa = tenant?.wa_phone_number_id && tenant?.wa_access_token && customerPhone
 
-                if (hasWa && docFileUrl) {
-                    // ✅ Send project document file attachment via WhatsApp (NO URL in text)
-                    const { sendWhatsAppMedia } = await import('@/lib/whatsapp')
-                    await sendWhatsAppMedia(
-                        customerPhone,
-                        'document',
-                        docFileUrl,
-                        `${projectName || 'Proje'} Dokümanı`,
-                        tenant.wa_phone_number_id,
-                        tenant.wa_access_token
-                    )
-                    console.log(`[Outreach] 📄 WhatsApp catalog document file sent to ${customerName} (${customerPhone})`)
-                } else if (hasWa) {
-                    // ⚠️ No file_url -> Send exact fallback phrase, NO URL
+                if (hasWa && projectUrl) {
+                    // ✅ Send project website link via WhatsApp
                     const { sendWhatsAppMessage } = await import('@/lib/whatsapp')
-                    const fallbackMessage = `Talebinizi müşteri danışmanınıza aktarıyorum gerekli bilgileri size ulaştıracaktır.`
+                    const message = `Merhaba ${customerName} 👋\n\n` +
+                        `${projectName ? `*${projectName}* projemize` : 'Projelerimize'} gösterdiğiniz ilgi için teşekkür ederiz.\n\n` +
+                        `📋 Detaylı bilgi ve katalog için: ${projectUrl}\n\n` +
+                        `Sorularınız için bize ulaşabilirsiniz.`
+
                     await sendWhatsAppMessage(
                         customerPhone,
-                        fallbackMessage,
+                        message,
                         tenant.wa_phone_number_id,
                         tenant.wa_access_token
                     )
-                    console.log(`[Outreach] ℹ️ WhatsApp fallback message sent to ${customerName}`)
+                    console.log(`[Outreach] 📄 WhatsApp catalog link sent to ${customerName} (${customerPhone}) → ${projectUrl}`)
                 } else {
-                    // ❌ No WA credentials → Create task for Aybike
+                    // ❌ No WA or no URL → Create task for Aybike
                     await supabase.from('activities').insert({
                         tenant_id: execution.tenant_id,
                         customer_id: execution.customer_id,
