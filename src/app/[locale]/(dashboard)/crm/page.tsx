@@ -108,8 +108,10 @@ export default async function CRMPage(props: {
     // Managers/Admins: sort by creation date
     const orderColumn = (!isManager && user) ? 'assigned_at' : 'created_at'
 
-    // Fetch ONLY the sales list + profiles for the list (fast queries)
-    const [salesListRes, profilesRes, projectsRes, templatesRes] = await Promise.all([
+    const showTrackingTab = !isAdvanceMode && !isBroker && isAdmin
+
+    // Fetch sales list + profiles + tracking data (all in parallel)
+    const [salesListRes, profilesRes, projectsRes, templatesRes, trackingSalesRes] = await Promise.all([
         baseQuery.order(orderColumn, { ascending: false, nullsFirst: false }).order('created_at', { ascending: false }).range(from, to),
         supabase.from('profiles')
             .select('id, full_name, is_external, role')
@@ -121,7 +123,16 @@ export default async function CRMPage(props: {
             .in('role', ['admin', 'owner', 'manager', 'sales', 'broker'])
             .order('full_name'),
         supabase.from('projects').select('id, name').order('name'),
-        supabase.from('payment_plan_templates').select('*, project_id').order('name', { ascending: true })
+        supabase.from('payment_plan_templates').select('*, project_id').order('name', { ascending: true }),
+        // Tracking: same table, no pagination, all non-Inbox sales
+        showTrackingTab
+            ? supabase.from('sales')
+                .select('*, customers!inner(id, full_name, email, phone, customer_number), units(unit_number, projects(id, name)), projects(id, name), profiles(full_name, is_external)')
+                .neq('status', 'Inbox')
+                .order('updated_at', { ascending: false, nullsFirst: false })
+                .order('created_at', { ascending: false })
+                .limit(2000)
+            : Promise.resolve({ data: [] as any[], error: null })
     ])
 
     const profilesData = profilesRes.data || []
@@ -129,6 +140,7 @@ export default async function CRMPage(props: {
     const templates = templatesRes.data || []
     const sales = salesListRes.data || []
     const totalSalesCount = salesListRes.count || 0
+    const trackingSales = trackingSalesRes.data || []
 
     // ============================================================
     // RENDER: Sales list renders IMMEDIATELY, stats/toolbar stream in
@@ -167,23 +179,7 @@ export default async function CRMPage(props: {
         </>
     )
 
-    // For tracking tab: ALWAYS fetch for basic CRM admins (data is needed regardless)
-    let trackingSales: any[] = []
-    const showTrackingTab = !isAdvanceMode && !isBroker && isAdmin
-    if (showTrackingTab) {
-        const { data: allSales, error: trackingError } = await supabase
-            .from('sales')
-            .select('*, customers!inner(id, full_name, email, phone, customer_number), units(unit_number, projects(id, name)), projects(id, name), profiles(full_name, is_external)')
-            .neq('status', 'Inbox')
-            .order('updated_at', { ascending: false, nullsFirst: false })
-            .order('created_at', { ascending: false })
-            .limit(2000)
-        if (trackingError) {
-            console.error('[RepTracking] Query error:', JSON.stringify(trackingError))
-        }
-        trackingSales = allSales || []
-        console.log('[RepTracking] activeTab:', activeTab, 'fetched:', trackingSales.length, 'error:', trackingError?.message || 'none')
-    }
+
 
     // Sales List — renders IMMEDIATELY with first 50 records
     return (
