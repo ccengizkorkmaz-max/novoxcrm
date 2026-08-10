@@ -167,9 +167,10 @@ export default async function CRMPage(props: {
         </>
     )
 
-    // For tracking tab: fetch ALL sales (no pagination) — same select as main query
+    // For tracking tab: ALWAYS fetch for basic CRM admins (data is needed regardless)
     let trackingSales: any[] = []
-    if (activeTab === 'tracking' && !isAdvanceMode && isAdmin) {
+    const showTrackingTab = !isAdvanceMode && !isBroker && isAdmin
+    if (showTrackingTab) {
         const { data: allSales, error: trackingError } = await supabase
             .from('sales')
             .select('*, customers!inner(id, full_name, email, phone, customer_number), units(unit_number, projects(id, name)), projects(id, name), profiles(full_name, is_external)')
@@ -181,10 +182,8 @@ export default async function CRMPage(props: {
             console.error('[RepTracking] Query error:', JSON.stringify(trackingError))
         }
         trackingSales = allSales || []
-        console.log('[RepTracking] Fetched', trackingSales.length, 'sales, error:', trackingError?.message || 'none')
+        console.log('[RepTracking] activeTab:', activeTab, 'fetched:', trackingSales.length, 'error:', trackingError?.message || 'none')
     }
-
-    const showTrackingTab = !isAdvanceMode && !isBroker && isAdmin
 
     // Sales List — renders IMMEDIATELY with first 50 records
     return (
