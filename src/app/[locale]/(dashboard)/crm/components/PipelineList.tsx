@@ -21,7 +21,7 @@ import { CollapsibleSection } from '@/components/ui/collapsible-section'
 import ColumnVisibilityPicker from '@/components/ui/column-visibility-picker'
 import ColumnFilterRow from '@/components/ui/column-filter-row'
 import { AiSignalBadge } from '@/components/ui/ai-signal-badge'
-import { updateSaleStatus, autoAssignLead, assignSale, addSaleQuickNote, updateFirstContact } from '../actions'
+import { updateSaleStatus, autoAssignLead, assignSale, addSaleQuickNote, updateFirstContact, updateProcessNote } from '../actions'
 import {
     Command,
     CommandEmpty,
@@ -62,16 +62,16 @@ import { LeadScoreBadge } from '@/components/customers/LeadScoreBadge'
 import { useTranslations, useLocale } from 'next-intl'
 import { useSupabaseRealtime } from '@/hooks/useSupabaseRealtime'
 
-type PipelineColId = 'customer' | 'project' | 'unit' | 'status' | 'first_contact' | 'lead_score' | 'date' | 'amount' | 'rep' | 'remaining' | 'actions' | 'quickicons'
-const DEFAULT_PIPELINE_COL_ORDER: PipelineColId[] = ['customer', 'project', 'unit', 'status', 'first_contact', 'lead_score', 'date', 'amount', 'rep', 'remaining', 'actions', 'quickicons']
-const PIPELINE_COL_ORDER_KEY = 'pipeline_list_column_order_v3'
-const PIPELINE_COL_WIDTHS_KEY = 'pipeline_list_column_widths_v3'
-const PIPELINE_HIDDEN_COLS_KEY = 'pipeline_list_hidden_cols_v3'
+type PipelineColId = 'customer' | 'project' | 'unit' | 'status' | 'first_contact' | 'process_note' | 'lead_score' | 'date' | 'amount' | 'rep' | 'remaining' | 'actions' | 'quickicons'
+const DEFAULT_PIPELINE_COL_ORDER: PipelineColId[] = ['customer', 'project', 'unit', 'status', 'first_contact', 'process_note', 'lead_score', 'date', 'amount', 'rep', 'remaining', 'actions', 'quickicons']
+const PIPELINE_COL_ORDER_KEY = 'pipeline_list_column_order_v4'
+const PIPELINE_COL_WIDTHS_KEY = 'pipeline_list_column_widths_v4'
+const PIPELINE_HIDDEN_COLS_KEY = 'pipeline_list_hidden_cols_v4'
 const DEFAULT_PIPELINE_WIDTHS: Record<PipelineColId, number> = {
-    customer: 240, project: 200, unit: 100, status: 160, first_contact: 140, lead_score: 100, date: 140, amount: 160, rep: 180, remaining: 110, actions: 180, quickicons: 130
+    customer: 240, project: 200, unit: 100, status: 160, first_contact: 140, process_note: 180, lead_score: 100, date: 140, amount: 160, rep: 180, remaining: 110, actions: 180, quickicons: 130
 }
 const PIPELINE_COL_LABELS: Record<PipelineColId, string> = {
-    customer: 'Müşteri', project: 'Proje', unit: 'Birim', status: 'Durum', first_contact: 'İlk Temas', lead_score: 'Lead Skor', date: 'Tarih', amount: 'Tutar', rep: 'Temsilci', remaining: 'Kalan Süre', actions: 'İşlemler', quickicons: 'Kısayollar'
+    customer: 'Müşteri', project: 'Proje', unit: 'Birim', status: 'Durum', first_contact: 'İlk Temas', process_note: 'Süreç Notu', lead_score: 'Lead Skor', date: 'Tarih', amount: 'Tutar', rep: 'Temsilci', remaining: 'Kalan Süre', actions: 'İşlemler', quickicons: 'Kısayollar'
 }
 
 export default function PipelineList({
@@ -866,6 +866,7 @@ export default function PipelineList({
                                                 {colId === 'unit' && t('table.unit')}
                                                 {colId === 'status' && (isBroker ? 'Aşama' : t('table.status'))}
                                                 {colId === 'first_contact' && 'İlk Temas'}
+                                                {colId === 'process_note' && 'Süreç Notu'}
                                                 {colId === 'lead_score' && 'Lead Skor'}
                                                 {colId === 'date' && t('table.date')}
                                                 {colId === 'amount' && t('table.amount')}
@@ -1128,6 +1129,55 @@ export default function PipelineList({
                                                                     <SelectItem value="Ulaşamadım">📵 Ulaşamadım</SelectItem>
                                                                 </SelectContent>
                                                             </Select>
+                                                        </TableCell>
+                                                    )
+                                                }
+                                                if (colId === 'process_note') {
+                                                    return (
+                                                        <TableCell key="process_note" className={cellCls}>
+                                                            <Popover>
+                                                                <PopoverTrigger asChild>
+                                                                    <button
+                                                                        className={cn(
+                                                                            "w-full text-left text-[11px] px-1.5 py-1 rounded border transition-colors min-h-[28px] max-h-[42px] overflow-hidden",
+                                                                            sale.process_note
+                                                                                ? "border-slate-200 bg-slate-50 text-slate-700 hover:bg-blue-50 hover:border-blue-200"
+                                                                                : "border-dashed border-slate-200 text-slate-400 hover:bg-slate-50 hover:text-slate-500"
+                                                                        )}
+                                                                        title={sale.process_note || 'Not ekle'}
+                                                                    >
+                                                                        {sale.process_note ? (
+                                                                            <span className="line-clamp-2 whitespace-pre-wrap break-words">{sale.process_note}</span>
+                                                                        ) : (
+                                                                            <span className="flex items-center gap-1">
+                                                                                <StickyNote className="w-3 h-3" /> Not ekle
+                                                                            </span>
+                                                                        )}
+                                                                    </button>
+                                                                </PopoverTrigger>
+                                                                <PopoverContent className="w-72 p-3" align="start">
+                                                                    <div className="space-y-2">
+                                                                        <label className="text-xs font-bold text-slate-600">📝 Süreç Notu</label>
+                                                                        <textarea
+                                                                            className="w-full min-h-[100px] text-xs border rounded-md p-2 resize-y focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+                                                                            defaultValue={sale.process_note || ''}
+                                                                            placeholder="Müşteri ile ilgili notlarınızı buraya yazın..."
+                                                                            onBlur={async (e) => {
+                                                                                const val = e.target.value.trim()
+                                                                                if (val !== (sale.process_note || '')) {
+                                                                                    const res = await updateProcessNote(sale.id, val)
+                                                                                    if (res?.error) toast.error(res.error)
+                                                                                    else {
+                                                                                        toast.success('Süreç notu kaydedildi')
+                                                                                        router.refresh()
+                                                                                    }
+                                                                                }
+                                                                            }}
+                                                                        />
+                                                                        <p className="text-[10px] text-slate-400">Alandan çıkınca otomatik kaydedilir</p>
+                                                                    </div>
+                                                                </PopoverContent>
+                                                            </Popover>
                                                         </TableCell>
                                                     )
                                                 }

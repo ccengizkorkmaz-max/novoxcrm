@@ -3809,6 +3809,22 @@ export async function updateFirstContact(saleId: string, value: string | null) {
     return { error: null }
 }
 
+export async function updateProcessNote(saleId: string, note: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Not authenticated' }
+
+    const { error } = await supabase
+        .from('sales')
+        .update({ process_note: note || null })
+        .eq('id', saleId)
+
+    if (error) return { error: error.message }
+
+    revalidatePath('/[locale]/(dashboard)/crm', 'page')
+    return { error: null }
+}
+
 export async function toggleCommunication(customerId: string, enabled: boolean) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
