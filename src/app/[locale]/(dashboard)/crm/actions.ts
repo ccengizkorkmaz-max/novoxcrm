@@ -4078,7 +4078,7 @@ export async function fetchTrackingSales() {
         .eq('id', user.id)
         .single()
 
-    if (!userProfile || (userProfile.role !== 'admin' && userProfile.role !== 'owner')) {
+    if (!userProfile || !['admin', 'owner', 'manager'].includes(userProfile.role)) {
         return { sales: [], error: 'Not authorized' }
     }
 

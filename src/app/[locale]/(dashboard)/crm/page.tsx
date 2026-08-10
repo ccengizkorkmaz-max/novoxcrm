@@ -108,7 +108,7 @@ export default async function CRMPage(props: {
     // Managers/Admins: sort by creation date
     const orderColumn = (!isManager && user) ? 'assigned_at' : 'created_at'
 
-    const showTrackingTab = !isAdvanceMode && !isBroker && isAdmin
+    const showTrackingTab = !isAdvanceMode && !isBroker && isManager
 
     // Fetch sales list + profiles + tracking data (all in parallel)
     const [salesListRes, profilesRes, projectsRes, templatesRes, trackingSalesRes] = await Promise.all([
