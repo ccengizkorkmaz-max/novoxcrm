@@ -156,6 +156,72 @@ export default function RepTrackingTab({
                             )}
                         </div>
 
+                        {/* Mini Performance Dashboard */}
+                        {(() => {
+                            const now = new Date()
+                            const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+                            const yesterdayStart = new Date(todayStart.getTime() - 86400000)
+                            const weekStart = new Date(todayStart)
+                            weekStart.setDate(todayStart.getDate() - todayStart.getDay() + 1) // Monday
+                            if (todayStart.getDay() === 0) weekStart.setDate(weekStart.getDate() - 7) // Sunday fix
+                            const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+
+                            const periods = [
+                                { label: 'Genel', icon: '📊', filter: () => true },
+                                { label: 'Bu Ay', icon: '📅', filter: (s: any) => new Date(s.assigned_at || s.created_at) >= monthStart },
+                                { label: 'Bu Hafta', icon: '📆', filter: (s: any) => new Date(s.assigned_at || s.created_at) >= weekStart },
+                                { label: 'Dün', icon: '⏪', filter: (s: any) => { const d = new Date(s.assigned_at || s.created_at); return d >= yesterdayStart && d < todayStart } },
+                                { label: 'Bugün', icon: '🔥', filter: (s: any) => new Date(s.assigned_at || s.created_at) >= todayStart },
+                            ]
+
+                            return (
+                                <div className="px-3 py-2.5 bg-gradient-to-r from-slate-50 to-white border-b flex gap-2 overflow-x-auto">
+                                    {periods.map(period => {
+                                        const periodSales = repSales.filter(period.filter)
+                                        const total = periodSales.length
+                                        const processed = periodSales.filter((s: any) => s.first_contact).length
+                                        const olumlu = periodSales.filter((s: any) => s.first_contact === 'Aradım, Olumlu').length
+                                        const olumsuz = periodSales.filter((s: any) => s.first_contact === 'Aradım, Olumsuz').length
+                                        const ulasam = periodSales.filter((s: any) => s.first_contact === 'Ulaşamadım').length
+                                        const pending = total - processed
+                                        const pct = total > 0 ? Math.round((processed / total) * 100) : 0
+
+                                        return (
+                                            <div key={period.label} className="flex-shrink-0 min-w-[130px] rounded-lg border bg-white p-2 shadow-sm">
+                                                <div className="flex items-center gap-1 mb-1.5">
+                                                    <span className="text-sm">{period.icon}</span>
+                                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{period.label}</span>
+                                                </div>
+                                                <div className="text-lg font-black text-slate-800 leading-none">{total}</div>
+                                                <div className="text-[9px] text-slate-400 mb-1.5">toplam lead</div>
+                                                
+                                                {/* Progress bar */}
+                                                <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden mb-1.5">
+                                                    <div
+                                                        className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-emerald-500 transition-all"
+                                                        style={{ width: `${pct}%` }}
+                                                    />
+                                                </div>
+
+                                                <div className="space-y-0.5 text-[9px]">
+                                                    <div className="flex justify-between">
+                                                        <span className="text-emerald-600 font-bold">🟢 {olumlu}</span>
+                                                        <span className="text-red-500 font-bold">🔴 {olumsuz}</span>
+                                                        <span className="text-amber-600 font-bold">📵 {ulasam}</span>
+                                                    </div>
+                                                    {pending > 0 && (
+                                                        <div className="text-slate-400 font-semibold text-center">
+                                                            ⏳ {pending} bekliyor
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            )
+                        })()}
+
                         <table className="w-full text-xs border-collapse">
                             <thead className="sticky top-[42px] z-[9]">
                                 <tr className="bg-slate-100 border-b">
