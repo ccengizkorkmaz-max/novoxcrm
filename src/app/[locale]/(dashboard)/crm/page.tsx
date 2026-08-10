@@ -170,13 +170,16 @@ export default async function CRMPage(props: {
     // For tracking tab: fetch ALL sales assigned to reps (no pagination)
     let trackingSales: any[] = []
     if (activeTab === 'tracking' && !isAdvanceMode && isAdmin) {
-        const { data: allSales } = await supabase
+        const { data: allSales, error: trackingError } = await supabase
             .from('sales')
-            .select('*, customers!inner(id, full_name, phone, customer_number), units(projects(name)), projects(name), profiles(full_name, is_external)')
+            .select('*, customers(id, full_name, phone, customer_number), units(projects(name)), projects(name), profiles(full_name, is_external)')
             .neq('status', 'Inbox')
             .order('updated_at', { ascending: false, nullsFirst: false })
             .order('created_at', { ascending: false })
             .limit(2000)
+        if (trackingError) {
+            console.error('Tracking sales query error:', trackingError)
+        }
         trackingSales = allSales || []
     }
 
