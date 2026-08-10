@@ -500,7 +500,7 @@ function TrackingTable({
                         >
                             <span className="cursor-grab active:cursor-grabbing">{COL_LABELS[id] || id}</span>
                             <div
-                                className="absolute top-0 right-0 w-[5px] h-full cursor-col-resize opacity-0 group-hover:opacity-100 bg-blue-400/50 hover:bg-blue-400 transition-opacity"
+                                className="absolute top-0 right-0 w-[3px] h-full cursor-col-resize bg-slate-500/30 hover:bg-blue-400 hover:w-[5px] transition-all"
                                 onMouseDown={(e) => onResizeStart(id, e)}
                             />
                         </th>
