@@ -266,6 +266,7 @@ export default function RepTrackingTab({
                             <th className="px-3 py-2 text-left font-bold text-white uppercase tracking-wider text-[10px] w-[200px]">Proje</th>
                             <th className="px-3 py-2 text-center font-bold text-white uppercase tracking-wider text-[10px] w-[140px]">İlk Temas</th>
                             <th className="px-3 py-2 text-left font-bold text-white uppercase tracking-wider text-[10px] w-[200px]">Süreç Notu</th>
+                            <th className="px-3 py-2 text-left font-bold text-white uppercase tracking-wider text-[10px] w-[145px]">Güncelleme</th>
                         </tr>
                         {/* Filter Row */}
                         <tr className="bg-slate-50 border-b">
@@ -319,6 +320,9 @@ export default function RepTrackingTab({
                                     onChange={(e) => setFilterNote(e.target.value)}
                                     className="h-7 text-[11px] bg-white"
                                 />
+                            </td>
+                            <td className="px-2 py-1.5">
+                                <span className="text-[10px] text-slate-400">—</span>
                             </td>
                         </tr>
                     </thead>
@@ -420,11 +424,15 @@ export default function RepTrackingTab({
                                         </PopoverContent>
                                     </Popover>
                                 </td>
+                                {/* Güncelleme */}
+                                <td className="px-3 py-2 text-slate-400 text-[10px] whitespace-nowrap" suppressHydrationWarning>
+                                    {sale.updated_at ? formatDate(sale.updated_at) : '-'}
+                                </td>
                             </tr>
                         ))}
                         {loading && (
                             <tr>
-                                <td colSpan={5} className="px-4 py-8 text-center text-slate-400">
+                                <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
                                     <div className="flex items-center justify-center gap-2">
                                         <Loader2 className="w-4 h-4 animate-spin" />
                                         Veriler yükleniyor...
@@ -434,14 +442,14 @@ export default function RepTrackingTab({
                         )}
                         {!loading && fetchError && (
                             <tr>
-                                <td colSpan={5} className="px-4 py-8 text-center text-red-500">
+                                <td colSpan={6} className="px-4 py-8 text-center text-red-500">
                                     Hata: {fetchError}
                                 </td>
                             </tr>
                         )}
                         {!loading && !fetchError && filteredSales.length === 0 && (
                             <tr>
-                                <td colSpan={5} className="px-4 py-8 text-center text-slate-400">
+                                <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
                                     Kayıt bulunamadı ({sales.length} toplam kayıt yüklendi)
                                 </td>
                             </tr>

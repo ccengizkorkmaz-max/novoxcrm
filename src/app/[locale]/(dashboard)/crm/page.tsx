@@ -129,7 +129,7 @@ export default async function CRMPage(props: {
             ? supabase.from('sales')
                 .select('*, customers!inner(id, full_name, email, phone, customer_number), units(unit_number, projects(id, name)), projects(id, name), profiles(full_name, is_external)')
                 .neq('status', 'Inbox')
-                .order('assigned_at', { ascending: false, nullsFirst: false })
+                .order('updated_at', { ascending: false, nullsFirst: false })
                 .order('created_at', { ascending: false })
                 .limit(2000)
             : Promise.resolve({ data: [] as any[], error: null })
