@@ -28,14 +28,16 @@ export async function getSalesForExport(filters: {
         .from('sales')
         .select('*, customers!inner(id, full_name, email, phone, customer_number), units(unit_number, price, currency, projects(id, name)), projects(id, name), profiles(full_name)')
         .neq('status', 'Inbox') // Exclude inbox items
-        .order('updated_at', { ascending: false, nullsFirst: false })
-        .order('created_at', { ascending: false })
-
-    // Role-based filtering
+    // Role-based filtering and ordering
     if (!isManager) {
         baseQuery = baseQuery.eq('assigned_to', user.id)
-    } else if (filters.rep) {
-        baseQuery = baseQuery.eq('assigned_to', filters.rep)
+            .order('updated_at', { ascending: false, nullsFirst: false })
+            .order('created_at', { ascending: false })
+    } else {
+        if (filters.rep) {
+            baseQuery = baseQuery.eq('assigned_to', filters.rep)
+        }
+        baseQuery = baseQuery.order('created_at', { ascending: false })
     }
 
     if (filters.project) baseQuery = baseQuery.eq('project_id', filters.project)
