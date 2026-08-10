@@ -261,16 +261,16 @@ export default function RepTrackingTab({
                         </div>
                     )
                 })()}
-                <table className="w-full text-xs border-collapse">
+                <table className="w-full text-xs border-collapse table-fixed">
                     {/* Header */}
                     <thead className="sticky top-0 z-10">
                         <tr className="bg-slate-800">
-                            <th className="px-3 py-2 text-left font-bold text-white uppercase tracking-wider text-[10px] w-[155px]">Tarih</th>
-                            <th className="px-3 py-2 text-left font-bold text-white uppercase tracking-wider text-[10px] min-w-[110px]">Müşteri</th>
-                            <th className="px-3 py-2 text-left font-bold text-white uppercase tracking-wider text-[10px] w-[200px]">Proje</th>
-                            <th className="px-3 py-2 text-center font-bold text-white uppercase tracking-wider text-[10px] w-[140px]">İlk Temas</th>
-                            <th className="px-3 py-2 text-left font-bold text-white uppercase tracking-wider text-[10px] w-[300px]">Süreç Notu</th>
-                            <th className="px-3 py-2 text-left font-bold text-white uppercase tracking-wider text-[10px] w-[145px]">Güncelleme</th>
+                            <th className="px-3 py-2 text-left font-bold text-white uppercase tracking-wider text-[10px] w-[130px]">Tarih</th>
+                            <th className="px-3 py-2 text-left font-bold text-white uppercase tracking-wider text-[10px] w-[140px]">Müşteri</th>
+                            <th className="px-3 py-2 text-left font-bold text-white uppercase tracking-wider text-[10px] w-[160px]">Proje</th>
+                            <th className="px-3 py-2 text-center font-bold text-white uppercase tracking-wider text-[10px] w-[110px]">İlk Temas</th>
+                            <th className="px-3 py-2 text-left font-bold text-white uppercase tracking-wider text-[10px]">Süreç Notu</th>
+                            <th className="px-3 py-2 text-left font-bold text-white uppercase tracking-wider text-[10px] w-[130px]">Güncelleme</th>
                         </tr>
                         {/* Filter Row */}
                         <tr className="bg-slate-50 border-b">
