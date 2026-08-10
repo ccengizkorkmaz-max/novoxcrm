@@ -266,7 +266,7 @@ export default function RepTrackingTab({
                     <thead className="sticky top-0 z-10">
                         <tr className="bg-slate-800">
                             <th className="px-3 py-2 text-left font-bold text-white uppercase tracking-wider text-[10px] w-[130px]">Tarih</th>
-                            <th className="px-3 py-2 text-left font-bold text-white uppercase tracking-wider text-[10px] w-[60px]">Müşteri</th>
+                            <th className="px-3 py-2 text-left font-bold text-white uppercase tracking-wider text-[10px] w-[100px]">Müşteri</th>
                             <th className="px-3 py-2 text-left font-bold text-white uppercase tracking-wider text-[10px] w-[160px]">Proje</th>
                             <th className="px-3 py-2 text-center font-bold text-white uppercase tracking-wider text-[10px] w-[110px]">İlk Temas</th>
                             <th className="px-3 py-2 text-left font-bold text-white uppercase tracking-wider text-[10px]">Süreç Notu</th>
