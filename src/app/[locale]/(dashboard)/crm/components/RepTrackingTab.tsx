@@ -288,7 +288,7 @@ import React, { useCallback, useRef } from 'react'
 const STORAGE_KEY = 'rep-tracking-col-config'
 const DEFAULT_COL_ORDER = ['tarih', 'musteri', 'proje', 'ilk_temas', 'surec_notu', 'guncelleme']
 const DEFAULT_COL_WIDTHS: Record<string, number> = {
-    tarih: 130, musteri: 140, proje: 160, ilk_temas: 120, surec_notu: 0, guncelleme: 130
+    tarih: 120, musteri: 210, proje: 150, ilk_temas: 85, surec_notu: 0, guncelleme: 130
 }
 const COL_LABELS: Record<string, string> = {
     tarih: 'Tarih', musteri: 'Müşteri', proje: 'Proje', ilk_temas: 'İlk Temas', surec_notu: 'Süreç Notu', guncelleme: 'Güncelleme'
