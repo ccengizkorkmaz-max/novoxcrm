@@ -246,15 +246,17 @@ export async function POST(req: NextRequest) {
                         };
 
                         if (isLeadOlumlu) {
-                            await supabase.from('sales').update({ status: 'Prospect' }).eq('id', recentSale.id);
+                            await supabase.from('sales').update({ status: 'Prospect', first_contact: 'Aradım, Olumlu' }).eq('id', recentSale.id);
                             await updateLQ({ interest_level: 'hot', status: 'contacted', call_notes: new Date().toLocaleString('tr-TR') + ' — Olumlu' });
                             // Otomatik aktivite kaydı kaldırıldı
                             await sendWhatsAppMessage(normalizedPhone, '✅ *' + custName + '* → Firsat (Prospect) olarak guncellendi. Lead skoru olumlu.', tenantData.wa_phone_number_id, tenantData.wa_access_token);
                         } else if (isLeadEle) {
+                            await supabase.from('sales').update({ status: 'Lost', first_contact: 'Aradım, Olumsuz' }).eq('id', recentSale.id);
                             await updateLQ({ interest_level: 'disqualified', status: 'disqualified', call_notes: new Date().toLocaleString('tr-TR') + ' — Elendi' });
                             // Otomatik aktivite kaydı kaldırıldı
-                            await sendWhatsAppMessage(normalizedPhone, '⛔ *' + custName + '* → Lead skoru Disqualified olarak isaretlendi.', tenantData.wa_phone_number_id, tenantData.wa_access_token);
+                            await sendWhatsAppMessage(normalizedPhone, '⛔ *' + custName + '* → Elendi (Lost) olarak isaretlendi.', tenantData.wa_phone_number_id, tenantData.wa_access_token);
                         } else if (isLeadUlasamadim) {
+                            await supabase.from('sales').update({ first_contact: 'Ulaşamadım' }).eq('id', recentSale.id);
                             await updateLQ({ interest_level: 'warm', status: 'contacted', call_notes: new Date().toLocaleString('tr-TR') + ' — Ulasilamadi' });
                             // Otomatik aktivite kaydı kaldırıldı
                             await sendWhatsAppMessage(normalizedPhone, '📵 *' + custName + '* → Ulasilamadi. Lead skoru Warm olarak guncellendi.', tenantData.wa_phone_number_id, tenantData.wa_access_token);

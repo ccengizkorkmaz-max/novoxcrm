@@ -41,6 +41,7 @@ export default async function CRMPage(props: {
     const filterCustomer = params.c as string
     const filterDateFrom = params.df as string
     const filterDateTo = params.dt as string
+    const filterFirstContact = params.fc as string
 
     const page = Number(searchParams.page) || 1
     const itemsPerPage = 50
@@ -91,6 +92,13 @@ export default async function CRMPage(props: {
     if (filterDateTo) baseQuery = baseQuery.lte('created_at', filterDateTo + 'T23:59:59')
     if (filterSearch) {
         baseQuery = baseQuery.or(`full_name.ilike.%${filterSearch}%,phone.ilike.%${filterSearch}%,email.ilike.%${filterSearch}%`, { foreignTable: 'customers' })
+    }
+    if (filterFirstContact) {
+        if (filterFirstContact === 'none') {
+            baseQuery = baseQuery.is('first_contact', null)
+        } else {
+            baseQuery = baseQuery.eq('first_contact', filterFirstContact)
+        }
     }
 
     // Sales reps: sort by most recently assigned first

@@ -3786,6 +3786,29 @@ export async function addSaleQuickNote(saleId: string, customerId: string, noteT
     return { error: null }
 }
 
+export async function updateFirstContact(saleId: string, value: string | null) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Not authenticated' }
+
+    const updatePayload: Record<string, any> = { first_contact: value }
+
+    // Olumsuz → Lost
+    if (value === 'Aradım, Olumsuz') {
+        updatePayload.status = 'Lost'
+    }
+
+    const { error } = await supabase
+        .from('sales')
+        .update(updatePayload)
+        .eq('id', saleId)
+
+    if (error) return { error: error.message }
+
+    revalidatePath('/[locale]/(dashboard)/crm', 'page')
+    return { error: null }
+}
+
 export async function toggleCommunication(customerId: string, enabled: boolean) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()

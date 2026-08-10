@@ -21,7 +21,7 @@ import { CollapsibleSection } from '@/components/ui/collapsible-section'
 import ColumnVisibilityPicker from '@/components/ui/column-visibility-picker'
 import ColumnFilterRow from '@/components/ui/column-filter-row'
 import { AiSignalBadge } from '@/components/ui/ai-signal-badge'
-import { updateSaleStatus, autoAssignLead, assignSale, addSaleQuickNote } from '../actions'
+import { updateSaleStatus, autoAssignLead, assignSale, addSaleQuickNote, updateFirstContact } from '../actions'
 import {
     Command,
     CommandEmpty,
@@ -62,16 +62,16 @@ import { LeadScoreBadge } from '@/components/customers/LeadScoreBadge'
 import { useTranslations, useLocale } from 'next-intl'
 import { useSupabaseRealtime } from '@/hooks/useSupabaseRealtime'
 
-type PipelineColId = 'customer' | 'project' | 'unit' | 'status' | 'lead_score' | 'date' | 'amount' | 'rep' | 'remaining' | 'actions' | 'quickicons'
-const DEFAULT_PIPELINE_COL_ORDER: PipelineColId[] = ['customer', 'project', 'unit', 'status', 'lead_score', 'date', 'amount', 'rep', 'remaining', 'actions', 'quickicons']
-const PIPELINE_COL_ORDER_KEY = 'pipeline_list_column_order_v2'
-const PIPELINE_COL_WIDTHS_KEY = 'pipeline_list_column_widths_v2'
-const PIPELINE_HIDDEN_COLS_KEY = 'pipeline_list_hidden_cols_v2'
+type PipelineColId = 'customer' | 'project' | 'unit' | 'status' | 'first_contact' | 'lead_score' | 'date' | 'amount' | 'rep' | 'remaining' | 'actions' | 'quickicons'
+const DEFAULT_PIPELINE_COL_ORDER: PipelineColId[] = ['customer', 'project', 'unit', 'status', 'first_contact', 'lead_score', 'date', 'amount', 'rep', 'remaining', 'actions', 'quickicons']
+const PIPELINE_COL_ORDER_KEY = 'pipeline_list_column_order_v3'
+const PIPELINE_COL_WIDTHS_KEY = 'pipeline_list_column_widths_v3'
+const PIPELINE_HIDDEN_COLS_KEY = 'pipeline_list_hidden_cols_v3'
 const DEFAULT_PIPELINE_WIDTHS: Record<PipelineColId, number> = {
-    customer: 240, project: 200, unit: 100, status: 160, lead_score: 100, date: 140, amount: 160, rep: 180, remaining: 110, actions: 180, quickicons: 130
+    customer: 240, project: 200, unit: 100, status: 160, first_contact: 140, lead_score: 100, date: 140, amount: 160, rep: 180, remaining: 110, actions: 180, quickicons: 130
 }
 const PIPELINE_COL_LABELS: Record<PipelineColId, string> = {
-    customer: 'Müşteri', project: 'Proje', unit: 'Birim', status: 'Durum', lead_score: 'Lead Skor', date: 'Tarih', amount: 'Tutar', rep: 'Temsilci', remaining: 'Kalan Süre', actions: 'İşlemler', quickicons: 'Kısayollar'
+    customer: 'Müşteri', project: 'Proje', unit: 'Birim', status: 'Durum', first_contact: 'İlk Temas', lead_score: 'Lead Skor', date: 'Tarih', amount: 'Tutar', rep: 'Temsilci', remaining: 'Kalan Süre', actions: 'İşlemler', quickicons: 'Kısayollar'
 }
 
 export default function PipelineList({
@@ -601,6 +601,7 @@ export default function PipelineList({
             if (colId === 'date') return { id: colId, label: 'Tarih', type: 'date' as const }
             if (colId === 'amount') return { id: colId, label: 'Tutar', type: 'text' as const }
             if (colId === 'lead_score') return { id: colId, label: 'Lead Skor', type: 'multiselect' as const, options: ['hot', 'warm', 'cold', 'call_requested', 'disqualified'], optionLabels: { hot: '🔥 Hot', warm: '🌡️ Warm', cold: '❄️ Cold', call_requested: '📞 Arama', disqualified: '⛔ DQ' } }
+            if (colId === 'first_contact') return { id: colId, label: 'İlk Temas', type: 'select' as const, options: ['Aradım, Olumlu', 'Aradım, Olumsuz', 'Ulaşamadım'] }
             if (colId === 'actions' || colId === 'quickicons' || colId === 'remaining') return { id: colId, label: colId, type: 'none' as const }
             return { id: colId, label: colId, type: 'text' as const }
         })
@@ -640,6 +641,9 @@ export default function PipelineList({
                 const selectedScores = filterVal.split(',')
                 const interestLevel = sale.customers?.lead_qualifications?.[0]?.interest_level || ''
                 if (!selectedScores.includes(interestLevel)) return false
+            } else if (colId === 'first_contact') {
+                const fc = sale.first_contact || ''
+                if (fc !== filterVal) return false
             }
         }
         return true
@@ -728,6 +732,113 @@ export default function PipelineList({
                     </div>
                 )}
 
+                {/* Quick Rep Filter */}
+                {isAdmin && profiles.length > 0 && (
+                    <div className="mb-2 flex items-center gap-2">
+                        <Select
+                            value={searchParams.get('r') || '__all__'}
+                            onValueChange={(val) => {
+                                const params = new URLSearchParams(searchParams.toString())
+                                if (val === '__all__') {
+                                    params.delete('r')
+                                } else {
+                                    params.set('r', val)
+                                }
+                                params.set('page', '1')
+                                router.push(`?${params.toString()}`)
+                            }}
+                        >
+                            <SelectTrigger className="h-8 w-[220px] text-xs font-semibold border-slate-200 bg-white shadow-sm">
+                                <User className="w-3.5 h-3.5 mr-1.5 text-slate-400" />
+                                <SelectValue placeholder="Tüm Temsilciler" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="__all__">👥 Tüm Temsilciler</SelectItem>
+                                <SelectItem value="unassigned">⚠️ Atanmamış</SelectItem>
+                                {(() => {
+                                    // Sort reps: most recently active (by last assigned sale) first
+                                    const repActivity = profiles.map((p: any) => {
+                                        const lastSale = sales
+                                            .filter((s: any) => s.profiles?.full_name === p.full_name)
+                                            .sort((a: any, b: any) => {
+                                                const dateA = a.first_contact ? new Date(a.updated_at || a.created_at).getTime() : 0
+                                                const dateB = b.first_contact ? new Date(b.updated_at || b.created_at).getTime() : 0
+                                                return dateB - dateA
+                                            })[0]
+                                        return {
+                                            ...p,
+                                            lastActivity: lastSale ? new Date(lastSale.assigned_at || lastSale.created_at).getTime() : 0
+                                        }
+                                    }).sort((a: any, b: any) => b.lastActivity - a.lastActivity)
+
+                                    return repActivity.map((profile: any) => (
+                                        <SelectItem key={profile.id} value={profile.id}>
+                                            {profile.full_name}
+                                        </SelectItem>
+                                    ))
+                                })()}
+                            </SelectContent>
+                        </Select>
+                        {searchParams.get('r') && (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 px-2 text-xs text-slate-500 hover:text-red-600"
+                                onClick={() => {
+                                    const params = new URLSearchParams(searchParams.toString())
+                                    params.delete('r')
+                                    params.set('page', '1')
+                                    router.push(`?${params.toString()}`)
+                                }}
+                            >
+                                <X className="w-3.5 h-3.5 mr-1" /> Temsilci
+                            </Button>
+                        )}
+
+                        {/* Quick First Contact Filter */}
+                        <Select
+                            value={searchParams.get('fc') || '__all__'}
+                            onValueChange={(val) => {
+                                const params = new URLSearchParams(searchParams.toString())
+                                if (val === '__all__') {
+                                    params.delete('fc')
+                                } else {
+                                    params.set('fc', val)
+                                }
+                                params.set('page', '1')
+                                router.push(`?${params.toString()}`)
+                            }}
+                        >
+                            <SelectTrigger className="h-8 w-[190px] text-xs font-semibold border-slate-200 bg-white shadow-sm">
+                                <Phone className="w-3.5 h-3.5 mr-1.5 text-slate-400" />
+                                <SelectValue placeholder="Tüm Temas Durumları" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="__all__">📋 Tümü</SelectItem>
+                                <SelectItem value="none">⏳ Henüz Aranmadı</SelectItem>
+                                <SelectItem value="Aradım, Olumlu">🟢 Aradım, Olumlu</SelectItem>
+                                <SelectItem value="Aradım, Olumsuz">🔴 Aradım, Olumsuz</SelectItem>
+                                <SelectItem value="Ulaşamadım">📵 Ulaşamadım</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        {searchParams.get('fc') && (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 px-2 text-xs text-slate-500 hover:text-red-600"
+                                onClick={() => {
+                                    const params = new URLSearchParams(searchParams.toString())
+                                    params.delete('fc')
+                                    params.set('page', '1')
+                                    router.push(`?${params.toString()}`)
+                                }}
+                            >
+                                <X className="w-3.5 h-3.5 mr-1" /> Temas
+                            </Button>
+                        )}
+                    </div>
+                )}
+
                 <div className="rounded-xl border bg-card shadow-sm relative w-full overflow-auto lg:max-h-[calc(100vh-185px)] max-w-[calc(100vw-1rem)] lg:max-w-full print:max-h-none print:overflow-visible">
                     <table className="min-w-[1000px] w-full caption-bottom text-sm border-collapse">
                         <TableHeader className="sticky top-0 z-10 font-sans">
@@ -754,6 +865,7 @@ export default function PipelineList({
                                                 {colId === 'project' && t('table.project')}
                                                 {colId === 'unit' && t('table.unit')}
                                                 {colId === 'status' && (isBroker ? 'Aşama' : t('table.status'))}
+                                                {colId === 'first_contact' && 'İlk Temas'}
                                                 {colId === 'lead_score' && 'Lead Skor'}
                                                 {colId === 'date' && t('table.date')}
                                                 {colId === 'amount' && t('table.amount')}
@@ -979,6 +1091,43 @@ export default function PipelineList({
                                                                     </SelectContent>
                                                                 </Select>
                                                             )}
+                                                        </TableCell>
+                                                    )
+                                                }
+                                                if (colId === 'first_contact') {
+                                                    const fcValue = sale.first_contact || null
+                                                    const fcColor = fcValue === 'Aradım, Olumlu' ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
+                                                        : fcValue === 'Aradım, Olumsuz' ? 'bg-red-100 text-red-700 border-red-200'
+                                                        : fcValue === 'Ulaşamadım' ? 'bg-amber-100 text-amber-700 border-amber-200'
+                                                        : 'bg-slate-50 text-slate-400 border-slate-200'
+                                                    const fcLabel = fcValue === 'Aradım, Olumlu' ? '🟢 Olumlu'
+                                                        : fcValue === 'Aradım, Olumsuz' ? '🔴 Olumsuz'
+                                                        : fcValue === 'Ulaşamadım' ? '📵 Ulaşamadım'
+                                                        : '—'
+                                                    return (
+                                                        <TableCell key="first_contact" className={cellCls}>
+                                                            <Select
+                                                                value={fcValue || '__empty__'}
+                                                                onValueChange={async (val) => {
+                                                                    const newVal = val === '__empty__' ? null : val
+                                                                    const res = await updateFirstContact(sale.id, newVal)
+                                                                    if (res?.error) toast.error(res.error)
+                                                                    else {
+                                                                        toast.success('İlk temas güncellendi')
+                                                                        router.refresh()
+                                                                    }
+                                                                }}
+                                                            >
+                                                                <SelectTrigger className={cn("h-7 text-[11px] font-semibold border rounded-md px-2 gap-1 w-full", fcColor)}>
+                                                                    <SelectValue>{fcLabel}</SelectValue>
+                                                                </SelectTrigger>
+                                                                <SelectContent>
+                                                                    <SelectItem value="__empty__">— Seçiniz</SelectItem>
+                                                                    <SelectItem value="Aradım, Olumlu">🟢 Aradım, Olumlu</SelectItem>
+                                                                    <SelectItem value="Aradım, Olumsuz">🔴 Aradım, Olumsuz</SelectItem>
+                                                                    <SelectItem value="Ulaşamadım">📵 Ulaşamadım</SelectItem>
+                                                                </SelectContent>
+                                                            </Select>
                                                         </TableCell>
                                                     )
                                                 }
