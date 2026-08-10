@@ -112,7 +112,7 @@ export default async function CRMPage(props: {
     const [salesListRes, profilesRes, projectsRes, templatesRes] = await Promise.all([
         baseQuery.order(orderColumn, { ascending: false, nullsFirst: false }).order('created_at', { ascending: false }).range(from, to),
         supabase.from('profiles')
-            .select('id, full_name, is_external')
+            .select('id, full_name, is_external, role')
             .eq('tenant_id', userTenantId)
             .not('full_name', 'is', null)
             .neq('full_name', '')
@@ -172,7 +172,7 @@ export default async function CRMPage(props: {
     if (activeTab === 'tracking' && !isAdvanceMode && isAdmin) {
         const { data: allSales, error: trackingError } = await supabase
             .from('sales')
-            .select('*, customers(id, full_name, phone, customer_number), units(projects(name)), projects(name), profiles(full_name, is_external)')
+            .select('id, status, assigned_to, assigned_at, created_at, updated_at, first_contact, process_note, project_id, customer_id, customers!inner(id, full_name, phone, customer_number), units(projects(name)), projects(name), profiles(full_name, is_external)')
             .neq('status', 'Inbox')
             .order('updated_at', { ascending: false, nullsFirst: false })
             .order('created_at', { ascending: false })

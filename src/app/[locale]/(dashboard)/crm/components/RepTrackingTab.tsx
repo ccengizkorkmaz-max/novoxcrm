@@ -39,8 +39,8 @@ export default function RepTrackingTab({
     const [filterFc, setFilterFc] = useState('')
     const [filterNote, setFilterNote] = useState('')
 
-    // Filter out external brokers
-    const internalProfiles = profiles.filter((p: any) => !p.is_external)
+    // Filter out only external brokers (role=broker + is_external=true)
+    const internalProfiles = profiles.filter((p: any) => !(p.role === 'broker' && p.is_external === true))
 
     // Get unique project names from sales
     const uniqueProjects = useMemo(() => {
