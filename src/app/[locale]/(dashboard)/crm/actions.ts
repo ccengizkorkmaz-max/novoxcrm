@@ -4091,7 +4091,6 @@ export async function fetchTrackingSales() {
             assigned_to,
             assigned_at,
             created_at,
-            updated_at,
             first_contact,
             process_note,
             project_id,
@@ -4110,7 +4109,8 @@ export async function fetchTrackingSales() {
             )
         `)
         .neq('status', 'Inbox')
-        .order('updated_at', { ascending: false, nullsFirst: false })
+        .order('assigned_at', { ascending: false, nullsFirst: false })
+        .order('created_at', { ascending: false })
         .limit(2000)
 
     if (error) {
