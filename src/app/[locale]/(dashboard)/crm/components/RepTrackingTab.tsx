@@ -261,206 +261,275 @@ export default function RepTrackingTab({
                         </div>
                     )
                 })()}
-                <table className="w-full text-xs border-collapse table-fixed">
-                    {/* Header */}
-                    <thead className="sticky top-0 z-10">
-                        <tr className="bg-slate-800">
-                            <th className="px-3 py-2 text-left font-bold text-white uppercase tracking-wider text-[10px] w-[130px]">Tarih</th>
-                            <th className="px-3 py-2 text-left font-bold text-white uppercase tracking-wider text-[10px] w-[100px]">Müşteri</th>
-                            <th className="px-3 py-2 text-left font-bold text-white uppercase tracking-wider text-[10px] w-[160px]">Proje</th>
-                            <th className="px-3 py-2 text-center font-bold text-white uppercase tracking-wider text-[10px] w-[110px]">İlk Temas</th>
-                            <th className="px-3 py-2 text-left font-bold text-white uppercase tracking-wider text-[10px]">Süreç Notu</th>
-                            <th className="px-3 py-2 text-left font-bold text-white uppercase tracking-wider text-[10px] w-[130px]">Güncelleme</th>
-                        </tr>
-                        {/* Filter Row */}
-                        <tr className="bg-slate-50 border-b">
-                            <td className="px-2 py-1.5">
-                                <Input
-                                    type="date"
-                                    value={filterDate}
-                                    onChange={(e) => setFilterDate(e.target.value)}
-                                    className="h-7 text-[11px] bg-white"
-                                />
-                            </td>
-                            <td className="px-2 py-1.5">
-                                <Input
-                                    placeholder="Filtre..."
-                                    value={filterCustomer}
-                                    onChange={(e) => setFilterCustomer(e.target.value)}
-                                    className="h-7 text-[11px] bg-white"
-                                />
-                            </td>
-                            <td className="px-2 py-1.5">
-                                <Select value={filterProject || '__all__'} onValueChange={(v) => setFilterProject(v === '__all__' ? '' : v)}>
-                                    <SelectTrigger className="h-7 text-[11px] bg-white">
-                                        <SelectValue placeholder="Tümü" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="__all__">Tümü</SelectItem>
-                                        {uniqueProjects.map(p => (
-                                            <SelectItem key={p} value={p}>{p}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </td>
-                            <td className="px-2 py-1.5">
-                                <Select value={filterFc || '__all__'} onValueChange={(v) => setFilterFc(v === '__all__' ? '' : v)}>
-                                    <SelectTrigger className="h-7 text-[11px] bg-white">
-                                        <SelectValue placeholder="Tümü" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="__all__">Tümü</SelectItem>
-                                        <SelectItem value="none">⏳ Aranmadı</SelectItem>
-                                        <SelectItem value="Aradım, Olumlu">🟢 Olumlu</SelectItem>
-                                        <SelectItem value="Aradım, Olumsuz">🔴 Olumsuz</SelectItem>
-                                        <SelectItem value="Ulaşamadım">📵 Ulaşamadım</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </td>
-                            <td className="px-2 py-1.5">
-                                <Input
-                                    placeholder="Filtre..."
-                                    value={filterNote}
-                                    onChange={(e) => setFilterNote(e.target.value)}
-                                    className="h-7 text-[11px] bg-white"
-                                />
-                            </td>
-                            <td className="px-2 py-1.5">
-                                <span className="text-[10px] text-slate-400">—</span>
-                            </td>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                        {filteredSales.map((sale: any) => (
-                            <tr key={sale.id} className="hover:bg-slate-50/80 transition-colors">
-                                {/* Tarih */}
-                                <td className="px-3 py-2 text-slate-500 font-medium whitespace-nowrap" suppressHydrationWarning>
-                                    {formatDate(sale.assigned_at || sale.created_at)}
-                                </td>
-                                {/* Müşteri */}
-                                <td className="px-3 py-2">
-                                    <div className="font-bold text-slate-800">{sale.customers?.full_name || '-'}</div>
-                                    <div className="flex items-center gap-1.5 mt-0.5">
-                                        {sale.customers?.customer_number && (
-                                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-purple-100 text-purple-700">
-                                                {sale.customers.customer_number}
-                                            </span>
-                                        )}
-                                        {sale.customers?.phone && (
-                                            <span className="text-[10px] text-slate-400 flex items-center gap-0.5">
-                                                <PhoneIcon className="w-2.5 h-2.5" />{sale.customers.phone}
-                                            </span>
-                                        )}
-                                    </div>
-                                </td>
-                                {/* Proje */}
-                                <td className="px-3 py-2 font-semibold text-slate-700">
-                                    {sale.units?.projects?.name || sale.projects?.name || '-'}
-                                </td>
-                                {/* İlk Temas */}
-                                <td className="px-3 py-2">
-                                    <Select
-                                        value={sale.first_contact || '__empty__'}
-                                        onValueChange={async (val) => {
-                                            const newVal = val === '__empty__' ? null : val
-                                            const res = await updateFirstContact(sale.id, newVal)
-                                            if (res?.error) toast.error(res.error)
-                                            else {
-                                                toast.success('İlk temas güncellendi')
-                                                router.refresh()
-                                            }
-                                        }}
-                                    >
-                                        <SelectTrigger className={cn("h-7 text-[11px] font-semibold border rounded-md px-2 gap-1 w-full", getFcColor(sale.first_contact))}>
-                                            <SelectValue>{getFcLabel(sale.first_contact)}</SelectValue>
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="__empty__">— Seçiniz</SelectItem>
-                                            <SelectItem value="Aradım, Olumlu">🟢 Aradım, Olumlu</SelectItem>
-                                            <SelectItem value="Aradım, Olumsuz">🔴 Aradım, Olumsuz</SelectItem>
-                                            <SelectItem value="Ulaşamadım">📵 Ulaşamadım</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </td>
-                                {/* Süreç Notu */}
-                                <td className="px-3 py-2">
-                                    <Popover>
-                                        <PopoverTrigger asChild>
-                                            <button
-                                                className={cn(
-                                                    "w-full text-left text-[11px] px-1.5 py-1 rounded border transition-colors min-h-[28px] max-h-[36px] overflow-hidden",
-                                                    sale.process_note
-                                                        ? "border-slate-200 bg-slate-50 text-slate-700 hover:bg-blue-50 hover:border-blue-200"
-                                                        : "border-dashed border-slate-200 text-slate-400 hover:bg-slate-50"
-                                                )}
-                                                title={sale.process_note || 'Not ekle'}
-                                            >
-                                                {sale.process_note ? (
-                                                    <span className="line-clamp-2 whitespace-pre-wrap break-words">{sale.process_note}</span>
-                                                ) : (
-                                                    <span className="flex items-center gap-1">
-                                                        <StickyNote className="w-3 h-3" /> Not ekle
-                                                    </span>
-                                                )}
-                                            </button>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-72 p-3" align="start">
-                                            <div className="space-y-2">
-                                                <label className="text-xs font-bold text-slate-600">📝 Süreç Notu</label>
-                                                <textarea
-                                                    className="w-full min-h-[100px] text-xs border rounded-md p-2 resize-y focus:outline-none focus:ring-2 focus:ring-blue-400"
-                                                    defaultValue={sale.process_note || ''}
-                                                    placeholder="Notlarınızı buraya yazın..."
-                                                    onBlur={async (e) => {
-                                                        const val = e.target.value.trim()
-                                                        if (val !== (sale.process_note || '')) {
-                                                            const res = await updateProcessNote(sale.id, val)
-                                                            if (res?.error) toast.error(res.error)
-                                                            else {
-                                                                toast.success('Süreç notu kaydedildi')
-                                                                router.refresh()
-                                                            }
-                                                        }
-                                                    }}
-                                                />
-                                                <p className="text-[10px] text-slate-400">Alandan çıkınca otomatik kaydedilir</p>
-                                            </div>
-                                        </PopoverContent>
-                                    </Popover>
-                                </td>
-                                {/* Güncelleme */}
-                                <td className="px-3 py-2 text-slate-400 text-[10px] whitespace-nowrap" suppressHydrationWarning>
-                                    {sale.updated_at ? formatDate(sale.updated_at) : '-'}
-                                </td>
-                            </tr>
-                        ))}
-                        {loading && (
-                            <tr>
-                                <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
-                                    <div className="flex items-center justify-center gap-2">
-                                        <Loader2 className="w-4 h-4 animate-spin" />
-                                        Veriler yükleniyor...
-                                    </div>
-                                </td>
-                            </tr>
-                        )}
-                        {!loading && fetchError && (
-                            <tr>
-                                <td colSpan={6} className="px-4 py-8 text-center text-red-500">
-                                    Hata: {fetchError}
-                                </td>
-                            </tr>
-                        )}
-                        {!loading && !fetchError && filteredSales.length === 0 && (
-                            <tr>
-                                <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
-                                    Kayıt bulunamadı ({sales.length} toplam kayıt yüklendi)
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
+                <TrackingTable
+                    filteredSales={filteredSales}
+                    sales={sales}
+                    loading={loading}
+                    fetchError={fetchError}
+                    uniqueProjects={uniqueProjects}
+                    filterDate={filterDate} setFilterDate={setFilterDate}
+                    filterCustomer={filterCustomer} setFilterCustomer={setFilterCustomer}
+                    filterProject={filterProject} setFilterProject={setFilterProject}
+                    filterFc={filterFc} setFilterFc={setFilterFc}
+                    filterNote={filterNote} setFilterNote={setFilterNote}
+                    formatDate={formatDate}
+                    getFcColor={getFcColor}
+                    getFcLabel={getFcLabel}
+                    router={router}
+                />
             </div>
         </div>
+    )
+}
+
+// ─── Resizable + Reorderable Table ─────────────────────────────────────────
+import React, { useCallback, useRef } from 'react'
+
+const STORAGE_KEY = 'rep-tracking-col-config'
+const DEFAULT_COL_ORDER = ['tarih', 'musteri', 'proje', 'ilk_temas', 'surec_notu', 'guncelleme']
+const DEFAULT_COL_WIDTHS: Record<string, number> = {
+    tarih: 130, musteri: 140, proje: 160, ilk_temas: 120, surec_notu: 0, guncelleme: 130
+}
+const COL_LABELS: Record<string, string> = {
+    tarih: 'Tarih', musteri: 'Müşteri', proje: 'Proje', ilk_temas: 'İlk Temas', surec_notu: 'Süreç Notu', guncelleme: 'Güncelleme'
+}
+
+function loadColConfig() {
+    if (typeof window === 'undefined') return { order: DEFAULT_COL_ORDER, widths: DEFAULT_COL_WIDTHS }
+    try {
+        const saved = localStorage.getItem(STORAGE_KEY)
+        if (saved) {
+            const p = JSON.parse(saved)
+            return {
+                order: Array.isArray(p.order) ? p.order : DEFAULT_COL_ORDER,
+                widths: p.widths && typeof p.widths === 'object' ? { ...DEFAULT_COL_WIDTHS, ...p.widths } : DEFAULT_COL_WIDTHS,
+            }
+        }
+    } catch {}
+    return { order: DEFAULT_COL_ORDER, widths: DEFAULT_COL_WIDTHS }
+}
+
+function TrackingTable({
+    filteredSales, sales, loading, fetchError, uniqueProjects,
+    filterDate, setFilterDate, filterCustomer, setFilterCustomer,
+    filterProject, setFilterProject, filterFc, setFilterFc,
+    filterNote, setFilterNote, formatDate, getFcColor, getFcLabel, router,
+}: any) {
+    const [colOrder, setColOrder] = useState<string[]>(() => loadColConfig().order)
+    const [colWidths, setColWidths] = useState<Record<string, number>>(() => loadColConfig().widths)
+    const [dragCol, setDragCol] = useState<string | null>(null)
+    const [dragOverCol, setDragOverCol] = useState<string | null>(null)
+    const resizingRef = useRef<{ col: string; startX: number; startW: number } | null>(null)
+
+    // Save to localStorage on change
+    useEffect(() => {
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ order: colOrder, widths: colWidths })) } catch {}
+    }, [colOrder, colWidths])
+
+    // Resize via mouse
+    const onResizeStart = useCallback((col: string, e: React.MouseEvent) => {
+        e.preventDefault()
+        e.stopPropagation()
+        const startX = e.clientX
+        const startW = colWidths[col] || 120
+        resizingRef.current = { col, startX, startW }
+
+        const onMove = (ev: MouseEvent) => {
+            if (!resizingRef.current) return
+            const delta = ev.clientX - resizingRef.current.startX
+            const newW = Math.max(50, resizingRef.current.startW + delta)
+            setColWidths(prev => ({ ...prev, [resizingRef.current!.col]: newW }))
+        }
+        const onUp = () => {
+            resizingRef.current = null
+            document.removeEventListener('mousemove', onMove)
+            document.removeEventListener('mouseup', onUp)
+            document.body.style.cursor = ''
+            document.body.style.userSelect = ''
+        }
+        document.body.style.cursor = 'col-resize'
+        document.body.style.userSelect = 'none'
+        document.addEventListener('mousemove', onMove)
+        document.addEventListener('mouseup', onUp)
+    }, [colWidths])
+
+    // Drag & drop reorder
+    const handleDrop = (targetId: string) => {
+        if (!dragCol || dragCol === targetId) return
+        setColOrder(prev => {
+            const arr = [...prev]
+            const from = arr.indexOf(dragCol)
+            const to = arr.indexOf(targetId)
+            if (from < 0 || to < 0) return prev
+            arr.splice(from, 1)
+            arr.splice(to, 0, dragCol)
+            return arr
+        })
+        setDragCol(null)
+        setDragOverCol(null)
+    }
+
+    // Render filter for column
+    const renderFilter = (colId: string) => {
+        switch (colId) {
+            case 'tarih': return <Input type="date" value={filterDate} onChange={(e: any) => setFilterDate(e.target.value)} className="h-7 text-[11px] bg-white" />
+            case 'musteri': return <Input placeholder="Filtre..." value={filterCustomer} onChange={(e: any) => setFilterCustomer(e.target.value)} className="h-7 text-[11px] bg-white" />
+            case 'proje': return (
+                <Select value={filterProject || '__all__'} onValueChange={(v: string) => setFilterProject(v === '__all__' ? '' : v)}>
+                    <SelectTrigger className="h-7 text-[11px] bg-white"><SelectValue placeholder="Tümü" /></SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="__all__">Tümü</SelectItem>
+                        {uniqueProjects.map((p: string) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                    </SelectContent>
+                </Select>
+            )
+            case 'ilk_temas': return (
+                <Select value={filterFc || '__all__'} onValueChange={(v: string) => setFilterFc(v === '__all__' ? '' : v)}>
+                    <SelectTrigger className="h-7 text-[11px] bg-white"><SelectValue placeholder="Tümü" /></SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="__all__">Tümü</SelectItem>
+                        <SelectItem value="none">⏳ Aranmadı</SelectItem>
+                        <SelectItem value="Aradım, Olumlu">🟢 Olumlu</SelectItem>
+                        <SelectItem value="Aradım, Olumsuz">🔴 Olumsuz</SelectItem>
+                        <SelectItem value="Ulaşamadım">📵 Ulaşamadım</SelectItem>
+                    </SelectContent>
+                </Select>
+            )
+            case 'surec_notu': return <Input placeholder="Filtre..." value={filterNote} onChange={(e: any) => setFilterNote(e.target.value)} className="h-7 text-[11px] bg-white" />
+            default: return <span className="text-[10px] text-slate-400">—</span>
+        }
+    }
+
+    // Render cell for column
+    const renderCell = (colId: string, sale: any) => {
+        switch (colId) {
+            case 'tarih':
+                return <td key={colId} className="px-3 py-2 text-slate-500 font-medium whitespace-nowrap text-[11px]" suppressHydrationWarning>{formatDate(sale.assigned_at || sale.created_at)}</td>
+            case 'musteri':
+                return (
+                    <td key={colId} className="px-3 py-2">
+                        <div className="font-bold text-slate-800 truncate">{sale.customers?.full_name || '-'}</div>
+                        <div className="flex items-center gap-1 mt-0.5 overflow-hidden">
+                            {sale.customers?.customer_number && <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-purple-100 text-purple-700 shrink-0">{sale.customers.customer_number}</span>}
+                            {sale.customers?.phone && <span className="text-[9px] text-slate-400 truncate"><PhoneIcon className="w-2.5 h-2.5 inline mr-0.5" />{sale.customers.phone}</span>}
+                        </div>
+                    </td>
+                )
+            case 'proje':
+                return <td key={colId} className="px-3 py-2 font-semibold text-slate-700 truncate text-[11px]">{sale.units?.projects?.name || sale.projects?.name || '-'}</td>
+            case 'ilk_temas':
+                return (
+                    <td key={colId} className="px-3 py-2">
+                        <Select value={sale.first_contact || '__empty__'} onValueChange={async (val: string) => {
+                            const newVal = val === '__empty__' ? null : val
+                            const res = await updateFirstContact(sale.id, newVal)
+                            if (res?.error) toast.error(res.error)
+                            else { toast.success('İlk temas güncellendi'); router.refresh() }
+                        }}>
+                            <SelectTrigger className={cn("h-7 text-[11px] font-semibold border rounded-md px-2 gap-1 w-full", getFcColor(sale.first_contact))}>
+                                <SelectValue>{getFcLabel(sale.first_contact)}</SelectValue>
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="__empty__">— Seçiniz</SelectItem>
+                                <SelectItem value="Aradım, Olumlu">🟢 Aradım, Olumlu</SelectItem>
+                                <SelectItem value="Aradım, Olumsuz">🔴 Aradım, Olumsuz</SelectItem>
+                                <SelectItem value="Ulaşamadım">📵 Ulaşamadım</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </td>
+                )
+            case 'surec_notu':
+                return (
+                    <td key={colId} className="px-3 py-2">
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <button className={cn("w-full text-left text-[11px] px-1.5 py-1 rounded border transition-colors min-h-[28px] max-h-[36px] overflow-hidden", sale.process_note ? "border-slate-200 bg-slate-50 text-slate-700 hover:bg-blue-50 hover:border-blue-200" : "border-dashed border-slate-200 text-slate-400 hover:bg-slate-50")} title={sale.process_note || 'Not ekle'}>
+                                    {sale.process_note ? <span className="line-clamp-2 whitespace-pre-wrap break-words">{sale.process_note}</span> : <span className="flex items-center gap-1"><StickyNote className="w-3 h-3" /> Not ekle</span>}
+                                </button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-72 p-3" align="start">
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-600">📝 Süreç Notu</label>
+                                    <textarea className="w-full min-h-[100px] text-xs border rounded-md p-2 resize-y focus:outline-none focus:ring-2 focus:ring-blue-400" defaultValue={sale.process_note || ''} placeholder="Notlarınızı buraya yazın..." onBlur={async (e: any) => {
+                                        const val = e.target.value.trim()
+                                        if (val !== (sale.process_note || '')) {
+                                            const res = await updateProcessNote(sale.id, val)
+                                            if (res?.error) toast.error(res.error)
+                                            else { toast.success('Süreç notu kaydedildi'); router.refresh() }
+                                        }
+                                    }} />
+                                    <p className="text-[10px] text-slate-400">Alandan çıkınca otomatik kaydedilir</p>
+                                </div>
+                            </PopoverContent>
+                        </Popover>
+                    </td>
+                )
+            case 'guncelleme':
+                return <td key={colId} className="px-3 py-2 text-slate-400 text-[10px] whitespace-nowrap" suppressHydrationWarning>{sale.updated_at ? formatDate(sale.updated_at) : '-'}</td>
+            default:
+                return <td key={colId} className="px-3 py-2">-</td>
+        }
+    }
+
+    const colCount = colOrder.length
+
+    return (
+        <table className="w-full text-xs border-collapse table-fixed">
+            <colgroup>
+                {colOrder.map(id => (
+                    <col key={id} style={colWidths[id] > 0 ? { width: `${colWidths[id]}px` } : undefined} />
+                ))}
+            </colgroup>
+            <thead className="sticky top-0 z-10">
+                <tr className="bg-slate-800">
+                    {colOrder.map(id => (
+                        <th
+                            key={id}
+                            className={cn(
+                                "py-2 font-bold text-white uppercase tracking-wider text-[10px] relative select-none group",
+                                id === 'ilk_temas' ? 'text-center' : 'text-left',
+                                dragOverCol === id && dragCol !== id ? 'bg-blue-600' : '',
+                            )}
+                            style={{ paddingLeft: 12, paddingRight: 16 }}
+                            draggable
+                            onDragStart={() => setDragCol(id)}
+                            onDragOver={(e) => { e.preventDefault(); setDragOverCol(id) }}
+                            onDragLeave={() => setDragOverCol(null)}
+                            onDrop={(e) => { e.preventDefault(); handleDrop(id) }}
+                            onDragEnd={() => { setDragCol(null); setDragOverCol(null) }}
+                        >
+                            <span className="cursor-grab active:cursor-grabbing">{COL_LABELS[id] || id}</span>
+                            <div
+                                className="absolute top-0 right-0 w-[5px] h-full cursor-col-resize opacity-0 group-hover:opacity-100 bg-blue-400/50 hover:bg-blue-400 transition-opacity"
+                                onMouseDown={(e) => onResizeStart(id, e)}
+                            />
+                        </th>
+                    ))}
+                </tr>
+                <tr className="bg-slate-50 border-b">
+                    {colOrder.map(id => (
+                        <td key={id} className="px-2 py-1.5">{renderFilter(id)}</td>
+                    ))}
+                </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+                {filteredSales.map((sale: any) => (
+                    <tr key={sale.id} className="hover:bg-slate-50/80 transition-colors">
+                        {colOrder.map(id => renderCell(id, sale))}
+                    </tr>
+                ))}
+                {loading && (
+                    <tr><td colSpan={colCount} className="px-4 py-8 text-center text-slate-400">
+                        <div className="flex items-center justify-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Veriler yükleniyor...</div>
+                    </td></tr>
+                )}
+                {!loading && fetchError && (
+                    <tr><td colSpan={colCount} className="px-4 py-8 text-center text-red-500">Hata: {fetchError}</td></tr>
+                )}
+                {!loading && !fetchError && filteredSales.length === 0 && (
+                    <tr><td colSpan={colCount} className="px-4 py-8 text-center text-slate-400">Kayıt bulunamadı ({sales.length} toplam kayıt yüklendi)</td></tr>
+                )}
+            </tbody>
+        </table>
     )
 }
