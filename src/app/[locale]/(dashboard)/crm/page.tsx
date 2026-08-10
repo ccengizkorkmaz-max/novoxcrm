@@ -76,17 +76,12 @@ export default async function CRMPage(props: {
 
     if (!isManager && user) {
         baseQuery = baseQuery.eq('assigned_to', user.id)
-            .order('updated_at', { ascending: false, nullsFirst: false })
-            .order('created_at', { ascending: false })
-    } else {
-        if (filterReps.length > 0) {
-            if (filterReps.includes('unassigned')) {
-                baseQuery = baseQuery.is('assigned_to', null)
-            } else {
-                baseQuery = baseQuery.in('assigned_to', filterReps)
-            }
+    } else if (filterReps.length > 0) {
+        if (filterReps.includes('unassigned')) {
+            baseQuery = baseQuery.is('assigned_to', null)
+        } else {
+            baseQuery = baseQuery.in('assigned_to', filterReps)
         }
-        baseQuery = baseQuery.order('created_at', { ascending: false })
     }
 
     if (filterProject) baseQuery = baseQuery.eq('project_id', filterProject)
@@ -100,7 +95,7 @@ export default async function CRMPage(props: {
 
     // Fetch ONLY the sales list + profiles for the list (fast queries)
     const [salesListRes, profilesRes, projectsRes, templatesRes] = await Promise.all([
-        baseQuery.range(from, to),
+        baseQuery.order('created_at', { ascending: false }).range(from, to),
         supabase.from('profiles')
             .select('id, full_name, is_external')
             .eq('tenant_id', userTenantId)
