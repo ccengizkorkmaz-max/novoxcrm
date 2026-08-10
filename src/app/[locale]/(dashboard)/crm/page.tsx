@@ -93,9 +93,13 @@ export default async function CRMPage(props: {
         baseQuery = baseQuery.or(`full_name.ilike.%${filterSearch}%,phone.ilike.%${filterSearch}%,email.ilike.%${filterSearch}%`, { foreignTable: 'customers' })
     }
 
+    // Sales reps: sort by most recently assigned first
+    // Managers/Admins: sort by creation date
+    const orderColumn = (!isManager && user) ? 'assigned_at' : 'created_at'
+
     // Fetch ONLY the sales list + profiles for the list (fast queries)
     const [salesListRes, profilesRes, projectsRes, templatesRes] = await Promise.all([
-        baseQuery.order('created_at', { ascending: false }).range(from, to),
+        baseQuery.order(orderColumn, { ascending: false, nullsFirst: false }).order('created_at', { ascending: false }).range(from, to),
         supabase.from('profiles')
             .select('id, full_name, is_external')
             .eq('tenant_id', userTenantId)

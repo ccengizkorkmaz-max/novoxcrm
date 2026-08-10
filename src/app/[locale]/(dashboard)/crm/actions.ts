@@ -248,6 +248,7 @@ export async function createCustomer(formData: FormData) {
                         tenant_id: profile?.tenant_id,
                         customer_id: data.id,
                         assigned_to: user.id, // Assign to creator by default
+                        assigned_at: new Date().toISOString(),
                         status: 'Lead',
                         unit_id: null,
                         lead_origin: mapSourceToCategory(source)
@@ -756,6 +757,7 @@ export async function createSale(formData: FormData) {
         unit_id: unit_id || null,
         project_id: project_id || null,
         assigned_to: assigned_to || null,
+        assigned_at: assigned_to ? new Date().toISOString() : null,
         status: unit_id ? 'Prospect' : 'Lead',
         lead_origin,
     }
@@ -933,6 +935,7 @@ export async function restartSale(saleId: string) {
         customer_id: oldSale.customer_id,
         unit_id: targetUnitId,
         assigned_to: user.id,
+        assigned_at: new Date().toISOString(),
         status: targetUnitId ? 'Prospect' : 'Lead'
     })
 
@@ -1515,7 +1518,7 @@ export async function assignSale(saleId: string, userId: string | null) {
 
     const { error } = await supabase
         .from('sales')
-        .update({ assigned_to: userId })
+        .update({ assigned_to: userId, assigned_at: new Date().toISOString() })
         .eq('id', saleId)
 
     if (error) {
@@ -2879,7 +2882,7 @@ export async function autoAssignLead(saleId: string) {
     // 6. Assign
     const { error: updateError } = await supabase
         .from('sales')
-        .update({ assigned_to: bestMemberId })
+        .update({ assigned_to: bestMemberId, assigned_at: new Date().toISOString() })
         .eq('id', saleId)
 
     if (updateError) return { error: 'Atama yapılamadı: ' + updateError.message }
