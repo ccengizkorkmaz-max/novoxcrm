@@ -171,6 +171,66 @@ export default function RepTrackingTab({
 
             {/* Right: Data Table */}
             <div className="flex-1 overflow-auto">
+                {/* Mini Performance Dashboard — only for specific rep */}
+                {selectedRepId !== '__all__' && selectedRepId !== '__unassigned__' && (() => {
+                    const repName = internalProfiles.find((p: any) => p.id === selectedRepId)?.full_name
+                    const repAllSales = sales.filter((s: any) => s.assigned_to === selectedRepId)
+                    const now = new Date()
+                    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+                    const yesterdayStart = new Date(todayStart.getTime() - 86400000)
+                    const weekStart = new Date(todayStart)
+                    weekStart.setDate(todayStart.getDate() - todayStart.getDay() + 1)
+                    if (todayStart.getDay() === 0) weekStart.setDate(weekStart.getDate() - 7)
+                    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+
+                    const periods = [
+                        { label: 'Genel', icon: '📊', filter: () => true },
+                        { label: 'Bu Ay', icon: '📅', filter: (s: any) => new Date(s.assigned_at || s.created_at) >= monthStart },
+                        { label: 'Bu Hafta', icon: '📆', filter: (s: any) => new Date(s.assigned_at || s.created_at) >= weekStart },
+                        { label: 'Dün', icon: '⏪', filter: (s: any) => { const d = new Date(s.assigned_at || s.created_at); return d >= yesterdayStart && d < todayStart } },
+                        { label: 'Bugün', icon: '🔥', filter: (s: any) => new Date(s.assigned_at || s.created_at) >= todayStart },
+                    ]
+
+                    return (
+                        <div className="px-3 py-2.5 bg-gradient-to-r from-slate-50 to-white border-b flex gap-2 overflow-x-auto">
+                            <div className="flex items-center mr-2 shrink-0">
+                                <span className="text-xs font-bold text-slate-700">{repName}</span>
+                            </div>
+                            {periods.map(period => {
+                                const periodSales = repAllSales.filter(period.filter)
+                                const total = periodSales.length
+                                const processed = periodSales.filter((s: any) => s.first_contact).length
+                                const olumlu = periodSales.filter((s: any) => s.first_contact === 'Aradım, Olumlu').length
+                                const olumsuz = periodSales.filter((s: any) => s.first_contact === 'Aradım, Olumsuz').length
+                                const ulasam = periodSales.filter((s: any) => s.first_contact === 'Ulaşamadım').length
+                                const pending = total - processed
+                                const pct = total > 0 ? Math.round((processed / total) * 100) : 0
+
+                                return (
+                                    <div key={period.label} className="flex-shrink-0 min-w-[120px] rounded-lg border bg-white p-2 shadow-sm">
+                                        <div className="flex items-center gap-1 mb-1">
+                                            <span className="text-sm">{period.icon}</span>
+                                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{period.label}</span>
+                                        </div>
+                                        <div className="text-lg font-black text-slate-800 leading-none">{total}</div>
+                                        <div className="text-[9px] text-slate-400 mb-1">toplam lead</div>
+                                        <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden mb-1">
+                                            <div className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-emerald-500 transition-all" style={{ width: `${pct}%` }} />
+                                        </div>
+                                        <div className="flex justify-between text-[9px]">
+                                            <span className="text-emerald-600 font-bold">🟢{olumlu}</span>
+                                            <span className="text-red-500 font-bold">🔴{olumsuz}</span>
+                                            <span className="text-amber-600 font-bold">📵{ulasam}</span>
+                                        </div>
+                                        {pending > 0 && (
+                                            <div className="text-[9px] text-slate-400 font-semibold text-center mt-0.5">⏳ {pending} bekliyor</div>
+                                        )}
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    )
+                })()}
                 <table className="w-full text-xs border-collapse">
                     {/* Header */}
                     <thead className="sticky top-0 z-10">
