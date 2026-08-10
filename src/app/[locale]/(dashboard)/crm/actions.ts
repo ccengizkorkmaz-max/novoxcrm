@@ -4066,3 +4066,58 @@ export async function createQuickProposal(params: {
         return { error: 'Hızlı teklif oluşturulurken hata: ' + err.message }
     }
 }
+
+export async function fetchTrackingSales() {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { sales: [], error: 'Not authenticated' }
+
+    const { data: userProfile } = await supabase
+        .from('profiles')
+        .select('role, tenant_id')
+        .eq('id', user.id)
+        .single()
+
+    if (!userProfile || (userProfile.role !== 'admin' && userProfile.role !== 'owner')) {
+        return { sales: [], error: 'Not authorized' }
+    }
+
+    // Simple query: get all non-Inbox sales
+    const { data: sales, error } = await supabase
+        .from('sales')
+        .select(`
+            id,
+            status,
+            assigned_to,
+            assigned_at,
+            created_at,
+            updated_at,
+            first_contact,
+            process_note,
+            project_id,
+            customer_id,
+            customers (
+                id,
+                full_name,
+                phone,
+                customer_number
+            ),
+            projects (
+                name
+            ),
+            profiles (
+                full_name
+            )
+        `)
+        .neq('status', 'Inbox')
+        .order('updated_at', { ascending: false, nullsFirst: false })
+        .limit(2000)
+
+    if (error) {
+        console.error('[fetchTrackingSales] Error:', error.message, error.details, error.hint)
+        return { sales: [], error: error.message }
+    }
+
+    console.log('[fetchTrackingSales] Success, count:', sales?.length || 0)
+    return { sales: sales || [], error: null }
+}

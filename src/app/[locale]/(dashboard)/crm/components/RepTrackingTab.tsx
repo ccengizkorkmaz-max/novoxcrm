@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { cn } from '@/lib/utils'
-import { Users, AlertTriangle, Check, StickyNote, Phone as PhoneIcon } from 'lucide-react'
+import { Users, AlertTriangle, Check, StickyNote, Phone as PhoneIcon, Loader2 } from 'lucide-react'
 import {
     Select,
     SelectContent,
@@ -18,10 +18,10 @@ import {
 import { Input } from "@/components/ui/input"
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
-import { updateFirstContact, updateProcessNote } from '../actions'
+import { updateFirstContact, updateProcessNote, fetchTrackingSales } from '../actions'
 
 export default function RepTrackingTab({
-    sales,
+    sales: initialSales,
     profiles,
     projects,
 }: {
@@ -31,6 +31,32 @@ export default function RepTrackingTab({
 }) {
     const router = useRouter()
     const [selectedRepId, setSelectedRepId] = useState<string>('__all__')
+    const [sales, setSales] = useState<any[]>(initialSales || [])
+    const [loading, setLoading] = useState(true)
+    const [fetchError, setFetchError] = useState<string | null>(null)
+
+    // Fetch data via server action on mount
+    useEffect(() => {
+        async function loadData() {
+            setLoading(true)
+            try {
+                const result = await fetchTrackingSales()
+                if (result.error) {
+                    setFetchError(result.error)
+                    console.error('[RepTrackingTab] Server action error:', result.error)
+                } else {
+                    setSales(result.sales)
+                    setFetchError(null)
+                }
+            } catch (err: any) {
+                setFetchError(err.message)
+                console.error('[RepTrackingTab] Fetch error:', err)
+            } finally {
+                setLoading(false)
+            }
+        }
+        loadData()
+    }, [])
 
     // Filters
     const [filterDate, setFilterDate] = useState('')
@@ -396,10 +422,27 @@ export default function RepTrackingTab({
                                 </td>
                             </tr>
                         ))}
-                        {filteredSales.length === 0 && (
+                        {loading && (
                             <tr>
                                 <td colSpan={5} className="px-4 py-8 text-center text-slate-400">
-                                    Kayıt bulunamadı
+                                    <div className="flex items-center justify-center gap-2">
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        Veriler yükleniyor...
+                                    </div>
+                                </td>
+                            </tr>
+                        )}
+                        {!loading && fetchError && (
+                            <tr>
+                                <td colSpan={5} className="px-4 py-8 text-center text-red-500">
+                                    Hata: {fetchError}
+                                </td>
+                            </tr>
+                        )}
+                        {!loading && !fetchError && filteredSales.length === 0 && (
+                            <tr>
+                                <td colSpan={5} className="px-4 py-8 text-center text-slate-400">
+                                    Kayıt bulunamadı ({sales.length} toplam kayıt yüklendi)
                                 </td>
                             </tr>
                         )}
