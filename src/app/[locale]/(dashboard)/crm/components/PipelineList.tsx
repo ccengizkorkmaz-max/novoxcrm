@@ -1011,7 +1011,7 @@ export default function PipelineList({
                                                 if (colId === 'date') return (
                                                     <TableCell key="date" className="px-2.5 py-1 align-middle text-muted-foreground font-medium text-xs border-r border-border/50">
                                                         <span suppressHydrationWarning>
-                                                            {new Date(sale.created_at).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                                            {new Date(sale.created_at).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                                         </span>
                                                     </TableCell>
                                                 )
@@ -1410,7 +1410,7 @@ export default function PipelineList({
 
                                 <div className="pt-3 border-t flex items-center justify-between">
                                     <span className="text-[10px] text-muted-foreground">
-                                        {new Date(sale.created_at).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US')}
+                                        {new Date(sale.created_at).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                     </span>
                                     <div className="flex gap-2">
                                         <div className="flex gap-1">

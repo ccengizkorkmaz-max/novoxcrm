@@ -1515,7 +1515,10 @@ export async function assignSale(saleId: string, userId: string | null) {
 
     const { error } = await supabase
         .from('sales')
-        .update({ assigned_to: userId })
+        .update({ 
+            assigned_to: userId,
+            updated_at: new Date().toISOString()
+        })
         .eq('id', saleId)
 
     if (error) {
@@ -2879,7 +2882,10 @@ export async function autoAssignLead(saleId: string) {
     // 6. Assign
     const { error: updateError } = await supabase
         .from('sales')
-        .update({ assigned_to: bestMemberId })
+        .update({ 
+            assigned_to: bestMemberId,
+            updated_at: new Date().toISOString()
+        })
         .eq('id', saleId)
 
     if (updateError) return { error: 'Atama yapılamadı: ' + updateError.message }

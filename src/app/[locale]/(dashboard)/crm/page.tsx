@@ -95,7 +95,7 @@ export default async function CRMPage(props: {
 
     // Fetch ONLY the sales list + profiles for the list (fast queries)
     const [salesListRes, profilesRes, projectsRes, templatesRes] = await Promise.all([
-        baseQuery.order('created_at', { ascending: false }).range(from, to),
+        baseQuery.order('updated_at', { ascending: false, nullsFirst: false }).order('created_at', { ascending: false }).range(from, to),
         supabase.from('profiles')
             .select('id, full_name, is_external')
             .eq('tenant_id', userTenantId)

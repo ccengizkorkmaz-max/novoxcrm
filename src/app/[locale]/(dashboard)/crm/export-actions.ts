@@ -28,6 +28,7 @@ export async function getSalesForExport(filters: {
         .from('sales')
         .select('*, customers!inner(id, full_name, email, phone, customer_number), units(unit_number, price, currency, projects(id, name)), projects(id, name), profiles(full_name)')
         .neq('status', 'Inbox') // Exclude inbox items
+        .order('updated_at', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false })
 
     // Role-based filtering
