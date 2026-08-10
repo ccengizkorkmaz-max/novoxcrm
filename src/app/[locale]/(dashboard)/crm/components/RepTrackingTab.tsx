@@ -65,8 +65,12 @@ export default function RepTrackingTab({
     const [filterFc, setFilterFc] = useState('')
     const [filterNote, setFilterNote] = useState('')
 
-    // Filter out only external brokers (role=broker + is_external=true)
-    const internalProfiles = profiles.filter((p: any) => !(p.role === 'broker' && p.is_external === true))
+    // Filter out external brokers and Maya
+    const internalProfiles = profiles.filter((p: any) => {
+        if (p.is_external === true) return false
+        if ((p.full_name || '').toUpperCase() === 'MAYA') return false
+        return true
+    })
 
     // Get unique project names from sales
     const uniqueProjects = useMemo(() => {
@@ -262,10 +266,10 @@ export default function RepTrackingTab({
                     <thead className="sticky top-0 z-10">
                         <tr className="bg-slate-800">
                             <th className="px-3 py-2 text-left font-bold text-white uppercase tracking-wider text-[10px] w-[155px]">Tarih</th>
-                            <th className="px-3 py-2 text-left font-bold text-white uppercase tracking-wider text-[10px] min-w-[220px]">Müşteri</th>
+                            <th className="px-3 py-2 text-left font-bold text-white uppercase tracking-wider text-[10px] min-w-[110px]">Müşteri</th>
                             <th className="px-3 py-2 text-left font-bold text-white uppercase tracking-wider text-[10px] w-[200px]">Proje</th>
                             <th className="px-3 py-2 text-center font-bold text-white uppercase tracking-wider text-[10px] w-[140px]">İlk Temas</th>
-                            <th className="px-3 py-2 text-left font-bold text-white uppercase tracking-wider text-[10px] w-[200px]">Süreç Notu</th>
+                            <th className="px-3 py-2 text-left font-bold text-white uppercase tracking-wider text-[10px] w-[300px]">Süreç Notu</th>
                             <th className="px-3 py-2 text-left font-bold text-white uppercase tracking-wider text-[10px] w-[145px]">Güncelleme</th>
                         </tr>
                         {/* Filter Row */}
