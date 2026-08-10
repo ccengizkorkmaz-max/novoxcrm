@@ -20,6 +20,8 @@ import { CollapsibleSection } from '@/components/ui/collapsible-section'
 import DeferredCRMToolbar from './components/DeferredCRMToolbar'
 import CRMHeaderToggles from './components/CRMHeaderToggles'
 import { CRMStatsCollapse } from './components/CRMStatsCollapse'
+import RepTrackingTab from './components/RepTrackingTab'
+import CRMTabs from './components/CRMTabs'
 import React, { Suspense } from 'react'
 
 export default async function CRMPage(props: {
@@ -42,6 +44,7 @@ export default async function CRMPage(props: {
     const filterDateFrom = params.df as string
     const filterDateTo = params.dt as string
     const filterFirstContact = params.fc as string
+    const activeTab = (params.tab as string) || 'pipeline'
 
     const page = Number(searchParams.page) || 1
     const itemsPerPage = 50
@@ -164,98 +167,120 @@ export default async function CRMPage(props: {
         </>
     )
 
-    const showTrackingLink = !isAdvanceMode && !isBroker && isAdmin
+    // For tracking tab: fetch ALL sales assigned to reps (no pagination)
+    let trackingSales: any[] = []
+    if (activeTab === 'tracking' && !isAdvanceMode && isAdmin) {
+        const { data: allSales } = await supabase
+            .from('sales')
+            .select('*, customers!inner(id, full_name, phone, customer_number), units(projects(name)), projects(name), profiles(full_name, is_external)')
+            .neq('status', 'Inbox')
+            .order('updated_at', { ascending: false, nullsFirst: false })
+            .order('created_at', { ascending: false })
+            .limit(2000)
+        trackingSales = allSales || []
+    }
+
+    const showTrackingTab = !isAdvanceMode && !isBroker && isAdmin
 
     // Sales List — renders IMMEDIATELY with first 50 records
     return (
         <div className="flex flex-col gap-2">
             <div className="sticky top-0 z-30 bg-background/95 backdrop-blur pb-1 pt-0.5 border-b mb-1">
-                {/* 1. Row: Title */}
+                {/* 1. Row: Title + Tabs */}
                 <div className="flex items-center px-1 mb-2 gap-4">
                     <h1 className="text-xl font-bold tracking-tight whitespace-nowrap">{isBroker ? 'İşlem Yönetimi' : t('title')}</h1>
-                    {showTrackingLink && (
-                        <a
-                            href={`/${locale}/crm/rep-tracking`}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-blue-50 hover:text-blue-700 transition-all"
-                        >
-                            📊 Temsilci Takip
-                        </a>
+                    {showTrackingTab && (
+                        <CRMTabs activeTab={activeTab} />
                     )}
                 </div>
 
-                {/* 2. Row: Actions */}
-                <div className="flex items-center gap-2 px-1 mb-1 flex-wrap">
-                    {/* Filter + NewSale */}
-                    <Suspense fallback={toolbarSkeleton}>
-                        <DeferredCRMToolbar
-                            userTenantId={userTenantId || ''}
-                            isBroker={isBroker}
-                            tenantType={tenantType}
-                            params={params}
-                        />
-                    </Suspense>
+                {/* 2. Row: Actions (hide when tracking tab) */}
+                {activeTab !== 'tracking' && (
+                    <div className="flex items-center gap-2 px-1 mb-1 flex-wrap">
+                        {/* Filter + NewSale */}
+                        <Suspense fallback={toolbarSkeleton}>
+                            <DeferredCRMToolbar
+                                userTenantId={userTenantId || ''}
+                                isBroker={isBroker}
+                                tenantType={tenantType}
+                                params={params}
+                            />
+                        </Suspense>
 
-                    {/* Search + Export + AutoAssign */}
-                    <div className="flex items-center gap-1.5 shrink-0 ml-1 flex-wrap">
-                        <CRMHeaderToggles />
-                        <div className="w-72 lg:w-96">
-                            <Suspense fallback={<div className="h-9 w-full bg-muted animate-pulse rounded" />}>
-                                <CRMSearch />
-                            </Suspense>
+                        {/* Search + Export + AutoAssign */}
+                        <div className="flex items-center gap-1.5 shrink-0 ml-1 flex-wrap">
+                            <CRMHeaderToggles />
+                            <div className="w-72 lg:w-96">
+                                <Suspense fallback={<div className="h-9 w-full bg-muted animate-pulse rounded" />}>
+                                    <CRMSearch />
+                                </Suspense>
+                            </div>
+                            <SalesExportButton 
+                                filters={{
+                                    project: filterProject,
+                                    rep: filterRep,
+                                    status: filterStatus,
+                                    search: filterSearch,
+                                    customer: filterCustomer,
+                                    dateFrom: filterDateFrom,
+                                    dateTo: filterDateTo
+                                }}
+                            />
+                            {!isBroker && isAdmin && (
+                                <>
+                                    <BulkAutoAssignButton />
+                                    <BulkRevertDqButton />
+                                </>
+                            )}
                         </div>
-                        <SalesExportButton 
-                            filters={{
-                                project: filterProject,
-                                rep: filterRep,
-                                status: filterStatus,
-                                search: filterSearch,
-                                customer: filterCustomer,
-                                dateFrom: filterDateFrom,
-                                dateTo: filterDateTo
-                            }}
-                        />
-                        {!isBroker && isAdmin && (
-                            <>
-                                <BulkAutoAssignButton />
-                                <BulkRevertDqButton />
-                            </>
-                        )}
                     </div>
-                </div>
+                )}
 
                 {/* Pipeline Stats */}
-                <div className="hidden lg:block">
+                {activeTab !== 'tracking' && (
+                    <div className="hidden lg:block">
+                        <CRMStatsCollapse>
+                            <Suspense fallback={statsSkeleton}>
+                                <DeferredPipelineStats {...statsFilterProps} />
+                            </Suspense>
+                        </CRMStatsCollapse>
+                    </div>
+                )}
+            </div>
+
+            {activeTab !== 'tracking' && (
+                <div className="lg:hidden px-1">
                     <CRMStatsCollapse>
                         <Suspense fallback={statsSkeleton}>
                             <DeferredPipelineStats {...statsFilterProps} />
                         </Suspense>
                     </CRMStatsCollapse>
                 </div>
-            </div>
+            )}
 
-            <div className="lg:hidden px-1">
-                <CRMStatsCollapse>
-                    <Suspense fallback={statsSkeleton}>
-                        <DeferredPipelineStats {...statsFilterProps} />
-                    </Suspense>
-                </CRMStatsCollapse>
-            </div>
-
-            {/* Sales List */}
-            <PipelineList
-                sales={sales || []}
-                customers={[]}
-                templates={templates || []}
-                profiles={profilesData || []}
-                projects={projectsData || []}
-                totalSalesCount={totalSalesCount}
-                initialPage={page}
-                isAdmin={isAdmin}
-                tenantType={tenantType}
-                leadOwnershipDays={leadOwnershipDays}
-                isAdvanceMode={isAdvanceMode}
-                userRole={userProfile?.role || 'sales'}
-            />
+            {/* Tab Content */}
+            {activeTab === 'tracking' && showTrackingTab ? (
+                <RepTrackingTab
+                    sales={trackingSales}
+                    profiles={profilesData || []}
+                    projects={projectsData || []}
+                />
+            ) : (
+                <PipelineList
+                    sales={sales || []}
+                    customers={[]}
+                    templates={templates || []}
+                    profiles={profilesData || []}
+                    projects={projectsData || []}
+                    totalSalesCount={totalSalesCount}
+                    initialPage={page}
+                    isAdmin={isAdmin}
+                    tenantType={tenantType}
+                    leadOwnershipDays={leadOwnershipDays}
+                    isAdvanceMode={isAdvanceMode}
+                    userRole={userProfile?.role || 'sales'}
+                />
+            )}
         </div>
     )
 }
