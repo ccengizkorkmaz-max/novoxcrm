@@ -13,7 +13,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
-    Target, Search, Filter, ArrowRight, Phone, Mail, Calendar,
+    Target, Search, Filter, ArrowRight, Phone, Mail, Calendar, X,
     User, Pencil, Trash2, ArrowUpRight, Trophy, Loader2, CheckCircle2, Building2, PhoneCall,
     SlidersHorizontal, BarChart3, ChevronUp, ChevronDown, Info,
     Plus, Upload, Download, Volume2, Headphones, StickyNote, Activity, Sparkles, Send
@@ -170,13 +170,23 @@ export default function LeadsPageClient({ leads, teamMembers, projects, userRole
 
     // Filtered & Sorted Leads
     const filtered = useMemo(() => {
+        const cleanSearch = search.trim().toLowerCase()
+        const cleanSearchDigits = search.replace(/\D/g, '')
+
         let result = leads.filter(lead => {
-            const matchesSearch = !search ||
-                lead.full_name.toLowerCase().includes(search.toLowerCase()) ||
-                lead.phone?.includes(search) ||
-                lead.email?.toLowerCase().includes(search.toLowerCase())
+            let matchesSearch = true
+            if (cleanSearch) {
+                const nameMatch = lead.full_name?.toLowerCase().includes(cleanSearch)
+                const emailMatch = lead.email?.toLowerCase().includes(cleanSearch)
+                const phoneDigits = (lead.phone || '').replace(/\D/g, '')
+                const phoneMatch = (lead.phone || '').toLowerCase().includes(cleanSearch) || 
+                    (cleanSearchDigits.length >= 3 && phoneDigits.includes(cleanSearchDigits))
+                matchesSearch = Boolean(nameMatch || emailMatch || phoneMatch)
+            }
+
+            // Arama yapıldığında tüm durumlar (dönüştürüldü/kaybedildi dahil) aranır
             const matchesStatus =
-                statusFilter === 'all'
+                statusFilter === 'all' || (cleanSearch && statusFilter === 'active')
                     ? true
                     : statusFilter === 'active'
                         ? (lead.status !== 'converted' && lead.status !== 'lost')
@@ -676,8 +686,17 @@ export default function LeadsPageClient({ leads, teamMembers, projects, userRole
                             placeholder="İsim, telefon veya e-posta ile ara..."
                             value={search}
                             onChange={e => setSearch(e.target.value)}
-                            className="pl-9 border-slate-200 focus-visible:ring-indigo-500"
+                            className="pl-9 pr-8 border-slate-200 focus-visible:ring-indigo-500"
                         />
+                        {search && (
+                            <button
+                                onClick={() => setSearch('')}
+                                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-0.5"
+                                title="Aramayı Temizle"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        )}
                     </div>
                     <div className="flex flex-wrap gap-2">
                         <Select value={statusFilter} onValueChange={setStatusFilter}>

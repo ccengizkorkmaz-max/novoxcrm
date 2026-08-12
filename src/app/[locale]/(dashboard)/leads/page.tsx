@@ -29,14 +29,14 @@ export default async function LeadsPage() {
         redirect('/crm') // Basic moddaysa CRM'e yönlendir
     }
 
-    // Leads verisi
+    // Leads verisi (tüm aktif/geçmiş kayıtları kapsamak için yüksek limit)
     const { data: leads } = await supabase
         .from('leads')
         .select('*, profiles!leads_assigned_to_fkey(full_name), projects(name)')
         .eq('tenant_id', profile.tenant_id)
         .order('updated_at', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false })
-        .limit(200)
+        .limit(5000)
 
     // Takım üyeleri (atama için)
     const { data: teamMembers } = await supabase
