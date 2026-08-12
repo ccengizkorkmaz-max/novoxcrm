@@ -483,16 +483,22 @@ export default function PipelineList({
 
     // Column filters
     const [colFilters, setColFilters] = useState<Record<string, string>>({})
+    const isInternalFilterRef = useRef(false)
     const [showFilters, setShowFilters] = useState(() => {
         if (typeof window !== 'undefined') {
             const params = new URLSearchParams(window.location.search)
-            return params.has('q') || params.has('p') || params.has('s') || params.has('r') || params.has('df') || params.has('dt') || params.has('ls')
+            return params.has('q') || params.has('p') || params.has('s') || params.has('r') || params.has('df') || params.has('dt') || params.has('ls') || params.has('fc') || params.has('u') || params.has('a')
         }
         return false
     })
 
-    // Sync column filters with URL search params on mount & searchParams changes
+    // Sync column filters with URL search params on mount & external searchParams changes
     useEffect(() => {
+        if (isInternalFilterRef.current) {
+            isInternalFilterRef.current = false
+            return
+        }
+
         const filters: Record<string, string> = {}
         const q = searchParams.get('q')
         const p = searchParams.get('p')
@@ -500,11 +506,17 @@ export default function PipelineList({
         const r = searchParams.get('r')
         const df = searchParams.get('df')
         const ls = searchParams.get('ls')
+        const fc = searchParams.get('fc')
+        const u = searchParams.get('u')
+        const a = searchParams.get('a')
         
         if (q) filters['customer'] = q
         if (s) filters['status'] = s
         if (df) filters['date'] = df
         if (ls) filters['lead_score'] = ls
+        if (fc) filters['first_contact'] = fc
+        if (u) filters['unit'] = u
+        if (a) filters['amount'] = a
         
         if (p) {
             const proj = projects.find(proj => proj.id === p)
@@ -515,10 +527,14 @@ export default function PipelineList({
             filters['rep'] = profile ? profile.full_name : r
         }
         
-        setColFilters(filters)
+        setColFilters(prev => {
+            // Keep any active client-side filters while updating URL-bound filters
+            return { ...prev, ...filters }
+        })
     }, [searchParams, projects, profiles])
 
     const handleColFilter = (colId: string, value: string) => {
+        isInternalFilterRef.current = true
         setColFilters(prev => {
             const next = { ...prev }
             if (value) next[colId] = value
@@ -563,12 +579,22 @@ export default function PipelineList({
         } else if (colId === 'lead_score') {
             if (value) params.set('ls', value)
             else params.delete('ls')
+        } else if (colId === 'first_contact') {
+            if (value) params.set('fc', value)
+            else params.delete('fc')
+        } else if (colId === 'unit') {
+            if (value) params.set('u', value)
+            else params.delete('u')
+        } else if (colId === 'amount') {
+            if (value) params.set('a', value)
+            else params.delete('a')
         }
 
         router.push(`?${params.toString()}`)
     }
 
     const clearAllFilters = () => {
+        isInternalFilterRef.current = false
         setColFilters({})
         const params = new URLSearchParams(searchParams.toString())
         params.delete('q')
@@ -578,6 +604,9 @@ export default function PipelineList({
         params.delete('df')
         params.delete('dt')
         params.delete('ls')
+        params.delete('fc')
+        params.delete('u')
+        params.delete('a')
         params.set('page', '1')
         router.push(`?${params.toString()}`)
     }
