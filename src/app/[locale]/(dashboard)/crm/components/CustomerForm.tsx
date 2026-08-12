@@ -115,7 +115,7 @@ export default function CustomerForm({ customer, activities, contracts = [], sal
 
     // Unified view states & logic
     const isUnifiedView = !!activities || !!sales || !!contracts
-    const hasSidebarContent = (crmMode === 'advance') || (sales && sales.length > 0) || (contracts && contracts.length > 0)
+    const hasSidebarContent = (crmMode === 'advance') || (sales && sales.length > 0) || (contracts && contracts.length > 0) || (activities !== undefined)
 
     const [isFiltersOpen, setIsFiltersOpen] = useState(false)
     const [selectedTypes, setSelectedTypes] = useState<string[]>([])
@@ -714,7 +714,7 @@ export default function CustomerForm({ customer, activities, contracts = [], sal
             )}
 
             {/* Zaman Tüneli */}
-            {crmMode === 'advance' && customer && <ActivityTimeline activities={filteredActivities} customer={customer} profiles={profiles} />}
+            {customer && <ActivityTimeline activities={filteredActivities} customer={customer} profiles={profiles} />}
         </div>
     )
 

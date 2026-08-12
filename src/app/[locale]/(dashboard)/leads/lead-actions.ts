@@ -674,3 +674,102 @@ export async function deleteLead(leadId: string) {
     return { success: true }
 }
 
+/**
+ * Müşteri adayı için ilişkili müşteri kartını getir veya otomatik oluştur
+ */
+export async function getOrCreateCustomerForLead(leadId: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: 'Oturum bulunamadı' }
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', user.id)
+        .single()
+
+    if (!profile?.tenant_id) return { success: false, error: 'Tenant bulunamadı' }
+
+    // 1. Lead verisini getir
+    const { data: lead, error: leadErr } = await supabase
+        .from('leads')
+        .select('*')
+        .eq('id', leadId)
+        .eq('tenant_id', profile.tenant_id)
+        .single()
+
+    if (leadErr || !lead) return { success: false, error: 'Müşteri adayı bulunamadı' }
+
+    // 2. Eğer zaten converted_customer_id tanımlıysa direkt dön
+    if (lead.converted_customer_id) {
+        return { success: true, customerId: lead.converted_customer_id }
+    }
+
+    // 3. Telefon veya e-posta ile mevcut müşteri var mı kontrol et
+    let existingCustomer: any = null
+    if (lead.phone) {
+        const { data: custByPhone } = await supabase
+            .from('customers')
+            .select('id')
+            .eq('tenant_id', profile.tenant_id)
+            .eq('phone', lead.phone)
+            .maybeSingle()
+        existingCustomer = custByPhone
+    }
+
+    if (!existingCustomer && lead.email) {
+        const { data: custByEmail } = await supabase
+            .from('customers')
+            .select('id')
+            .eq('tenant_id', profile.tenant_id)
+            .eq('email', lead.email)
+            .maybeSingle()
+        existingCustomer = custByEmail
+    }
+
+    if (existingCustomer) {
+        // Mevcut müşteri ile ilişkilendir
+        await supabase
+            .from('leads')
+            .update({ converted_customer_id: existingCustomer.id, updated_at: new Date().toISOString() })
+            .eq('id', leadId)
+
+        return { success: true, customerId: existingCustomer.id }
+    }
+
+    // 4. Yeni müşteri kaydı oluştur
+    const { data: newCustomer, error: custErr } = await supabase
+        .from('customers')
+        .insert({
+            tenant_id: profile.tenant_id,
+            full_name: lead.full_name,
+            phone: lead.phone || '',
+            email: lead.email || '',
+            source: lead.source || 'Lead',
+            created_by: user.id
+        })
+        .select('id')
+        .single()
+
+    if (custErr || !newCustomer) {
+        return { success: false, error: `Müşteri kartı oluşturulamadı: ${custErr?.message}` }
+    }
+
+    // Lead kaydını güncelle ve lead aktivitelerini müşteriye taşı
+    await supabase
+        .from('leads')
+        .update({
+            converted_customer_id: newCustomer.id,
+            updated_at: new Date().toISOString()
+        })
+        .eq('id', leadId)
+
+    await supabase
+        .from('activities')
+        .update({ customer_id: newCustomer.id })
+        .eq('lead_id', leadId)
+
+    revalidatePath('/(dashboard)/leads')
+    return { success: true, customerId: newCustomer.id }
+}
+

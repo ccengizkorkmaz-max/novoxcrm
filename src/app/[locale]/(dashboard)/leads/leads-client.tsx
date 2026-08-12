@@ -853,9 +853,9 @@ export default function LeadsPageClient({ leads, teamMembers, projects, userRole
                                             >
                                                 {!hiddenCols.includes('customer') && (
                                                     <TableCell className="align-middle">
-                                                        <div className="font-semibold text-slate-800 hover:text-indigo-600 hover:underline transition-colors">{lead.full_name}</div>
+                                                        <span className="font-bold text-slate-900 dark:text-slate-100">{lead.full_name}</span>
                                                         {lead.form_name && (
-                                                            <div className="text-[10px] bg-slate-100 text-slate-500 inline-block px-1.5 py-0.5 rounded font-medium mt-1">
+                                                            <div className="text-[10px] bg-slate-100 text-slate-500 inline-block px-1.5 py-0.5 rounded font-medium mt-1 block w-fit">
                                                                 Form: {lead.form_name}
                                                             </div>
                                                         )}
@@ -1541,6 +1541,8 @@ export default function LeadsPageClient({ leads, teamMembers, projects, userRole
                                         <p className="text-xs text-slate-600 dark:text-slate-400 bg-slate-50/50 dark:bg-slate-900/30 p-2 rounded border border-slate-100/50 dark:border-slate-900/50 leading-relaxed whitespace-pre-line">{selectedDetailLead.notes}</p>
                                     </div>
                                 )}
+
+
                             </div>
                         )}
 

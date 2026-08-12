@@ -30,15 +30,59 @@ export default async function EditCustomerPage(props: {
         redirect(`/${locale}/customers/${id}`)
     }
 
-    const { data: customer, error } = await supabase
-        .from('customers')
-        .select('*, customer_demands(*), addresses:customer_addresses(*)')
-        .eq('id', id)
-        .single()
+    const [
+        customerRes,
+        activitiesRes,
+        contractsRes,
+        salesRes,
+        profilesRes
+    ] = await Promise.all([
+        supabase
+            .from('customers')
+            .select('*, customer_demands(*), company:companies(id, name), addresses:customer_addresses(*)')
+            .eq('id', id)
+            .single(),
+        supabase
+            .from('activities')
+            .select('*')
+            .eq('customer_id', id)
+            .neq('type', 'Transcript')
+            .order('due_date', { ascending: false }),
+        supabase
+            .from('contracts')
+            .select(`
+                *,
+                unit: units(unit_number, block),
+                project: projects(name),
+                contract_customers!inner(customer_id)
+            `)
+            .eq('contract_customers.customer_id', id)
+            .order('created_at', { ascending: false }),
+        supabase
+            .from('sales')
+            .select(`
+                *,
+                unit: units(unit_number, block),
+                project: projects(name),
+                profiles(full_name)
+            `)
+            .eq('customer_id', id)
+            .order('created_at', { ascending: false }),
+        supabase
+            .from('profiles')
+            .select('id, full_name')
+            .order('full_name')
+    ])
 
-    if (error || !customer) {
+    const customer = customerRes.data
+    if (customerRes.error || !customer) {
         notFound()
     }
+
+    const activities = activitiesRes.data || []
+    const contracts = contractsRes.data || []
+    const sales = salesRes.data || []
+    const profiles = profilesRes.data || []
 
     return (
         <div className="p-4 sm:p-6 space-y-4">
@@ -49,7 +93,14 @@ export default async function EditCustomerPage(props: {
                 initialData={customer.ai_purchase_score_data ?? null}
                 lastUpdated={customer.ai_purchase_score_updated_at ?? null}
             />
-            <CustomerForm customer={customer} crmMode={tenant?.crm_mode || 'basic'} />
+            <CustomerForm
+                customer={customer}
+                activities={activities}
+                contracts={contracts}
+                sales={sales}
+                profiles={profiles}
+                crmMode={tenant?.crm_mode || 'basic'}
+            />
         </div>
     )
 }
