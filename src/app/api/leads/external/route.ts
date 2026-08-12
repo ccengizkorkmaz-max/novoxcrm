@@ -155,19 +155,21 @@ export async function POST(req: Request) {
             form_name = parsedProject
         }
 
-        // Filter out known form sender addresses — these are NOT real customers
-        const FORM_SENDER_EMAILS = ['web@novosirketlergrubu.com']
-        const FORM_SENDER_NAMES = ['novo']
-        if (email && FORM_SENDER_EMAILS.includes(email.toLowerCase())) email = null
-        if (name && FORM_SENDER_NAMES.includes(name.toLowerCase()) && email === null) name = null
+        // Extract phone first from any possible key
+        if (!phone) {
+            phone = body.phone || body.phone_number || body['Phone number'] || body['phone_number']
+                || body.Phone || body.telefon || body['Telefon Numarası'] || body['Telefon No']
+                || body['Telefon'] || body.Tel || body.tel || body.mobile || null
+        }
 
-        // Final fallback for missing fields - capture from any possible top-level keys
+        // Extract email
+        if (!email) {
+            email = body.email || body.Email || body['Email'] || body.eposta
+                || body['E-posta'] || body['E-posta Adresi'] || body.sender_email || null
+        }
+
+        // Extract name
         if (!name) {
-            // Try common Facebook Ads field combinations
-            // Facebook Lead Ads forms use different field names depending on form config:
-            // Standard: full_name, first_name/last_name
-            // Turkish custom: adi_soyadi, ad_soyad, Ad, Soyad
-            // Make.com might send these as top-level body fields
             const firstName = body.first_name || body.firstName || body.ad || body.Ad || body.İsim || body.isim || ''
             const lastName = body.last_name || body.lastName || body.soyad || body.Soyad || body.soyadi || ''
             if (firstName || lastName) {
@@ -175,23 +177,44 @@ export async function POST(req: Request) {
             } else {
                 name = body.full_name || body.fullName || body['Full name'] || body['full name']
                     || body.adi_soyadi || body['adi_soyadi'] || body['Ad Soyad'] || body['ad_soyad']
-                    || body.Ad || body.sender_name || body.customer_name
+                    || body.name || body.Name || body.sender_name || body.customer_name
                     || subject || email || null
             }
+        }
 
-            // If still no name but we have a phone, use phone as identifier instead of generic fallback
-            if (!name && phone) {
+        // Check if phone, name or email is inside field_data array (Meta Ads Webhook format)
+        if (Array.isArray(body.field_data)) {
+            for (const item of body.field_data) {
+                const fname = String(item.name || item.type || '').toLowerCase()
+                const val = Array.isArray(item.values) ? item.values[0] : item.value || ''
+                if (!val) continue
+                if (!phone && (fname.includes('phone') || fname.includes('telefon') || fname.includes('tel'))) {
+                    phone = String(val).trim()
+                }
+                if (!name && (fname.includes('name') || fname.includes('isim') || fname.includes('ad'))) {
+                    name = String(val).trim()
+                }
+                if (!email && (fname.includes('email') || fname.includes('eposta'))) {
+                    email = String(val).trim()
+                }
+            }
+        }
+
+        // Filter out known form sender addresses — these are NOT real customers
+        const FORM_SENDER_EMAILS = ['web@novosirketlergrubu.com']
+        const FORM_SENDER_NAMES = ['novo']
+        if (email && FORM_SENDER_EMAILS.includes(email.toLowerCase())) email = null
+        if (name && FORM_SENDER_NAMES.includes(name.toLowerCase()) && email === null) name = null
+
+        // Final fallback for missing name
+        if (!name) {
+            if (phone) {
                 name = `FB Lead ${phone}`
-                console.warn('⚠️ Facebook Ads lead geldi ama isim alanı boş! Phone:', phone, '| Body keys:', Object.keys(body).join(', '))
-            } else if (!name) {
+            } else {
                 name = 'Yeni Dış Kaynak Adayı'
                 console.warn('⚠️ Lead geldi ama ne isim ne telefon var! Body:', JSON.stringify(body).substring(0, 300))
             }
         }
-        if (!email) email = body.Email || body.eposta || body.sender_email || null
-        if (!phone) phone = body.Phone || body.telefon || null
-        // Filter form senders again after fallback
-        if (email && FORM_SENDER_EMAILS.includes(email.toLowerCase())) email = null
 
         // Tenant Protection: Ensure we have a tenant_id and load its auto-approval preference
         let autoApproveWebLeads = true;
@@ -270,9 +293,16 @@ export async function POST(req: Request) {
         // Facebook Ads leads are created automatically (idempotent / duplicate-safe)
         // WEB Form leads go to inbox for manual approval
         const isFacebookAds =
-            source?.toLowerCase().includes('facebook') ||
-            source?.toLowerCase().includes('fb ads') ||
-            source?.toLowerCase() === 'facebook ads'
+            !source ||
+            source.toLowerCase().includes('facebook') ||
+            source.toLowerCase().includes('fb') ||
+            source.toLowerCase().includes('meta') ||
+            source.toLowerCase().includes('make') ||
+            source.toLowerCase().includes('ortak') ||
+            source.toLowerCase().includes('instagram') ||
+            source.toLowerCase() === 'external' ||
+            source.toLowerCase() === 'web form' ||
+            source.toLowerCase() === 'api'
 
         if (isFacebookAds) {
             console.log('Automating Facebook Ads lead processing...')
