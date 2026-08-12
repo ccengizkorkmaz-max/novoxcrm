@@ -978,6 +978,8 @@ export default function PipelineList({
                                                                                     customerId={sale.customers.id}
                                                                                     customerName={sale.customers.full_name || 'Müşteri'}
                                                                                     saleId={sale.id}
+                                                                                    disabled={!sale.assigned_to}
+                                                                                    disabledTooltip="Önce bu leade bir satış temsilcisi atamalısınız!"
                                                                                     onCreated={(newAct) => {
                                                                                         setActivitiesState(prev => [...prev, newAct])
                                                                                     }}

@@ -4232,12 +4232,14 @@ export async function createQuickAppointment(params: {
             const customerPhone = customer?.phone || '-'
             const location = params.location || 'Satış Ofisi'
 
-            const headerText = '📅 RANDEVU BİLGİLENDİRMESİ'
-            const bodyText = `Sayın ${repProfile.full_name},\n\nSizlere atanan yeni bir randevu oluşturulmuştur:\n\n👤 Müşteri: ${customerName} (${customerPhone})\n🗓️ Tarih/Saat: ${formattedDate}\n📍 Yer: ${location}\n📝 Konu: ${fullSummary}\n\nLütfen randevu gerçekleştikten sonra aşağıdaki düğmelerden birine tıklayarak sonucu bildiriniz:`
+            const headerText = 'Randevunuz Oluşturuldu.'
+            const bodyText = `Merhaba, ${repProfile.full_name} ,\n\nYeni bir müşteri randevunuz var .\n\n👤 Müşteri: ${customerName} (${customerPhone})\n🗓️ Tarih/Saat: ${formattedDate}\n📍 Yer: ${location}\n📝 Konu: ${fullSummary}`
+            const footerText = 'Novo CRM'
 
             const buttons = [
-                { id: `randevu_completed_${newAct.id}`, title: 'Tamamlandı' },
-                { id: `randevu_cancelled_${newAct.id}`, title: 'İptal Oldu' }
+                { id: `randevu_completed_${newAct.id}`, title: 'Tamamlandı.' },
+                { id: `randevu_cancelled_${newAct.id}`, title: 'İptal oldu.' },
+                { id: `randevu_postponed_${newAct.id}`, title: 'Ertelendi.' }
             ]
 
             const { sendWhatsAppInteractiveButtons, sendWhatsAppMessage } = await import('@/lib/whatsapp')
@@ -4247,7 +4249,7 @@ export async function createQuickAppointment(params: {
                 headerText,
                 bodyText,
                 buttons,
-                'Novo CRM Randevu Takibi',
+                footerText,
                 tenantWa?.wa_phone_number_id,
                 tenantWa?.wa_access_token
             )

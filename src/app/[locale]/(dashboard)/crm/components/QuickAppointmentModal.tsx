@@ -24,6 +24,8 @@ interface QuickAppointmentModalProps {
     customerId: string
     customerName: string
     saleId?: string
+    disabled?: boolean
+    disabledTooltip?: string
     trigger?: React.ReactNode
     onCreated?: (newAppointment: any) => void
 }
@@ -32,12 +34,30 @@ export default function QuickAppointmentModal({
     customerId,
     customerName,
     saleId,
+    disabled = false,
+    disabledTooltip = 'Önce bir satış temsilcisi atamalısınız!',
     trigger,
     onCreated
 }: QuickAppointmentModalProps) {
     const router = useRouter()
     const [open, setOpen] = useState(false)
     const [isPending, startTransition] = useTransition()
+
+    if (disabled) {
+        return (
+            <span title={disabledTooltip} className="inline-block cursor-not-allowed">
+                <Button
+                    variant="outline"
+                    size="sm"
+                    disabled
+                    className="h-5 px-1.5 py-0 text-[10px] font-semibold text-slate-400 border-slate-200 opacity-60 gap-0.5 pointer-events-none"
+                >
+                    <CalendarPlus className="h-2.5 w-2.5" />
+                    Randevu
+                </Button>
+            </span>
+        )
+    }
 
     // Default due date: Tomorrow 10:00
     const getDefaultDateTime = () => {
