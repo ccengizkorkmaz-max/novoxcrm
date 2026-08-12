@@ -6,7 +6,9 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Search, Phone, Mail, User } from 'lucide-react'
 
-export function ContactsClient({ contacts, locale }: { contacts: any[], locale: string }) {
+import NewContactModal from '@/app/[locale]/(dashboard)/crm/components/NewContactModal'
+
+export function ContactsClient({ contacts, profiles = [], locale }: { contacts: any[], profiles?: any[], locale: string }) {
     const [search, setSearch] = useState('')
 
     const filteredContacts = contacts.filter(c => {
@@ -19,7 +21,10 @@ export function ContactsClient({ contacts, locale }: { contacts: any[], locale: 
     return (
         <Card className="shadow-sm border-slate-200">
             <CardHeader className="flex flex-col md:flex-row md:items-center justify-between pb-4 gap-4">
-                <CardTitle className="text-xl">Rehber</CardTitle>
+                <div className="flex items-center gap-3">
+                    <CardTitle className="text-xl">Rehber</CardTitle>
+                    <NewContactModal profiles={profiles} triggerText="Yeni Kontak Ekle" />
+                </div>
                 <div className="relative w-full md:w-72">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input

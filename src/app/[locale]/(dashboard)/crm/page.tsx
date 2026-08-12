@@ -110,8 +110,8 @@ export default async function CRMPage(props: {
 
     const showTrackingTab = !isAdvanceMode && !isBroker && isManager
 
-    // Fetch sales list + profiles + tracking data (all in parallel)
-    const [salesListRes, profilesRes, projectsRes, templatesRes, trackingSalesRes] = await Promise.all([
+    // Fetch sales list + profiles + tracking data + active activities (all in parallel)
+    const [salesListRes, profilesRes, projectsRes, templatesRes, trackingSalesRes, activitiesRes] = await Promise.all([
         baseQuery.order(orderColumn, { ascending: false, nullsFirst: false }).order('updated_at', { ascending: false, nullsFirst: false }).order('created_at', { ascending: false }).range(from, to),
         supabase.from('profiles')
             .select('id, full_name, is_external, role')
@@ -133,7 +133,13 @@ export default async function CRMPage(props: {
                 .order('updated_at', { ascending: false, nullsFirst: false })
                 .order('created_at', { ascending: false })
                 .limit(2000)
-            : Promise.resolve({ data: [] as any[], error: null })
+            : Promise.resolve({ data: [] as any[], error: null }),
+        // Active/Planned Randevu activities
+        supabase.from('activities')
+            .select('id, customer_id, type, topic, summary, notes, description, due_date, status, created_at')
+            .eq('tenant_id', userTenantId)
+            .in('status', ['Planned', 'Pending'])
+            .order('due_date', { ascending: true })
     ])
 
     const profilesData = profilesRes.data || []
@@ -142,6 +148,7 @@ export default async function CRMPage(props: {
     const sales = salesListRes.data || []
     const totalSalesCount = salesListRes.count || 0
     const trackingSales = trackingSalesRes.data || []
+    const initialActivities = activitiesRes.data || []
 
     // ============================================================
     // RENDER: Sales list renders IMMEDIATELY, stats/toolbar stream in
@@ -272,6 +279,7 @@ export default async function CRMPage(props: {
                     templates={templates || []}
                     profiles={profilesData || []}
                     projects={projectsData || []}
+                    initialActivities={initialActivities}
                     totalSalesCount={totalSalesCount}
                     initialPage={page}
                     isAdmin={isAdmin}

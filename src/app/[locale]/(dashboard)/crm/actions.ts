@@ -4125,3 +4125,80 @@ export async function fetchTrackingSales() {
     console.log('[fetchTrackingSales] Success, count:', sales?.length || 0)
     return { sales: sales || [], error: null }
 }
+
+export async function createQuickAppointment(params: {
+    customerId: string
+    saleId?: string
+    dueDate: string
+    location?: string
+    summary?: string
+    notes?: string
+}) {
+    const supabase = await createClient()
+    const { createAdminClient } = await import('@/lib/supabase/admin')
+    const adminSupabase = createAdminClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) redirect('/login')
+
+    const { data: profile } = await supabase.from('profiles').select('tenant_id, full_name').eq('id', user.id).single()
+
+    const fullSummary = params.summary || 'Randevu'
+    const fullNotes = [
+        params.location ? `Konum: ${params.location}` : null,
+        params.notes ? `Not: ${params.notes}` : null
+    ].filter(Boolean).join('\n')
+
+    const { data: newAct, error } = await adminSupabase
+        .from('activities')
+        .insert({
+            tenant_id: profile?.tenant_id,
+            customer_id: params.customerId,
+            user_id: user.id,
+            owner_id: user.id,
+            type: 'Meeting',
+            topic: 'Randevu',
+            summary: fullSummary,
+            notes: fullNotes,
+            description: params.location ? `Yer: ${params.location}` : fullSummary,
+            due_date: new Date(params.dueDate).toISOString(),
+            status: 'Planned',
+            priority: 'High'
+        })
+        .select()
+        .single()
+
+    if (error) {
+        console.error('createQuickAppointment error:', error)
+        return { error: error.message }
+    }
+
+    revalidatePath('/crm')
+    return { success: true, activity: newAct }
+}
+
+export async function completeQuickAppointment(activityId: string) {
+    const supabase = await createClient()
+    const { createAdminClient } = await import('@/lib/supabase/admin')
+    const adminSupabase = createAdminClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) redirect('/login')
+
+    const { error } = await adminSupabase
+        .from('activities')
+        .update({
+            status: 'Completed',
+            outcome: 'Success',
+            updated_at: new Date().toISOString()
+        })
+        .eq('id', activityId)
+
+    if (error) {
+        console.error('completeQuickAppointment error:', error)
+        return { error: error.message }
+    }
+
+    revalidatePath('/crm')
+    return { success: true }
+}

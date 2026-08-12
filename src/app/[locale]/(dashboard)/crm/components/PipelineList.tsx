@@ -16,12 +16,13 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Calculator, Sparkles, User, Info, Mail, Phone, MessageSquareText, CalendarPlus, Trash, AlertTriangle, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, Filter, X, Undo2, StickyNote, PhoneOff, Send, XCircle } from 'lucide-react'
+import { Calculator, Sparkles, User, Info, Mail, Phone, MessageSquareText, CalendarPlus, CalendarCheck, CheckCircle2, Trash, AlertTriangle, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, Filter, X, Undo2, StickyNote, PhoneOff, Send, XCircle } from 'lucide-react'
 import { CollapsibleSection } from '@/components/ui/collapsible-section'
 import ColumnVisibilityPicker from '@/components/ui/column-visibility-picker'
 import ColumnFilterRow from '@/components/ui/column-filter-row'
 import { AiSignalBadge } from '@/components/ui/ai-signal-badge'
-import { updateSaleStatus, autoAssignLead, assignSale, addSaleQuickNote, updateFirstContact, updateProcessNote } from '../actions'
+import { updateSaleStatus, autoAssignLead, assignSale, addSaleQuickNote, updateFirstContact, updateProcessNote, completeQuickAppointment } from '../actions'
+import QuickAppointmentModal from './QuickAppointmentModal'
 import {
     Command,
     CommandEmpty,
@@ -83,6 +84,7 @@ export default function PipelineList({
     isAdmin = false,
     profiles = [],
     projects = [],
+    initialActivities = [],
     tenantType = 'developer',
     leadOwnershipDays = 90,
     isAdvanceMode = false,
@@ -96,6 +98,7 @@ export default function PipelineList({
     isAdmin?: boolean,
     profiles?: any[],
     projects?: any[],
+    initialActivities?: any[],
     tenantType?: string,
     leadOwnershipDays?: number,
     isAdvanceMode?: boolean,
@@ -104,6 +107,27 @@ export default function PipelineList({
     const t = useTranslations('CRM')
     const locale = useLocale()
     const isBroker = tenantType === 'broker'
+
+    const [activitiesState, setActivitiesState] = useState<any[]>(initialActivities)
+
+    useEffect(() => {
+        setActivitiesState(initialActivities)
+    }, [initialActivities])
+
+    const handleCompleteAppointment = async (activityId: string, customerName: string) => {
+        try {
+            const res = await completeQuickAppointment(activityId)
+            if (res?.error) {
+                toast.error(res.error)
+            } else {
+                toast.success(`${customerName} için randevu tamamlandı olarak işaretlendi!`)
+                setActivitiesState(prev => prev.filter(a => a.id !== activityId))
+            }
+        } catch (err) {
+            console.error(err)
+            toast.error('Randevu tamamlanırken hata oluştu.')
+        }
+    }
 
     const [viewsOpen, setViewsOpen] = useState(false)
 
@@ -864,10 +888,16 @@ export default function PipelineList({
                                         }
                                     }
 
+                                    const activeAppointment = activitiesState.find(a => a.customer_id === sale.customer_id && (a.status === 'Planned' || a.status === 'Pending'))
+
                                     return (
                                         <TableRow
                                             key={sale.id}
-                                            className={`transition-colors border-b hover:bg-muted/30 ${isCompleted ? 'bg-emerald-50/30' : ''} ${isLost ? 'bg-red-50/20' : ''}`}
+                                            className={`transition-all border-b ${
+                                                activeAppointment
+                                                    ? 'bg-emerald-50/80 dark:bg-emerald-950/40 hover:bg-emerald-100/90 border-l-4 border-l-emerald-500 font-medium'
+                                                    : isCompleted ? 'bg-emerald-50/30 hover:bg-emerald-50/50' : isLost ? 'bg-red-50/20 hover:bg-red-50/40' : 'hover:bg-slate-50/80'
+                                            }`}
                                         >
                                             {colOrder.filter(colId => !(isBroker && (colId === 'project' || colId === 'unit')) && !hiddenCols.includes(colId)).map(colId => {
                                                 const cellCls = "px-2.5 py-1 align-middle border-r border-border/50 text-xs"
@@ -920,6 +950,41 @@ export default function PipelineList({
                                                                             <Sparkles className="h-2.5 w-2.5 animate-pulse" />
                                                                             AI Ara
                                                                         </Button>
+
+                                                                        {/* Hızlı Randevu / Aktif Randevu İkoncuğu */}
+                                                                        {activeAppointment ? (
+                                                                            <div className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded px-1.5 py-0.5 text-[10px] font-bold flex-shrink-0" title={`Randevu: ${new Date(activeAppointment.due_date).toLocaleString('tr-TR')} - ${activeAppointment.summary || ''}`}>
+                                                                                <CalendarCheck className="h-3 w-3 text-emerald-600 shrink-0" />
+                                                                                <span>
+                                                                                    {new Date(activeAppointment.due_date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })} {new Date(activeAppointment.due_date).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+                                                                                </span>
+                                                                                <Button
+                                                                                    variant="ghost"
+                                                                                    size="sm"
+                                                                                    className="h-4 px-1 text-[9px] font-black bg-emerald-600 text-white hover:bg-emerald-700 rounded ml-0.5 gap-0.5"
+                                                                                    onClick={async (e) => {
+                                                                                        e.stopPropagation()
+                                                                                        await handleCompleteAppointment(activeAppointment.id, sale.customers?.full_name || 'Müşteri')
+                                                                                    }}
+                                                                                    title="Aktiviteyi / Randevuyu Tamamlandı Olarak İşaretle"
+                                                                                >
+                                                                                    <CheckCircle2 className="h-2.5 w-2.5" />
+                                                                                    Tamamla
+                                                                                </Button>
+                                                                            </div>
+                                                                        ) : (
+                                                                            sale.customers?.id && (
+                                                                                <QuickAppointmentModal
+                                                                                    customerId={sale.customers.id}
+                                                                                    customerName={sale.customers.full_name || 'Müşteri'}
+                                                                                    saleId={sale.id}
+                                                                                    onCreated={(newAct) => {
+                                                                                        setActivitiesState(prev => [...prev, newAct])
+                                                                                    }}
+                                                                                />
+                                                                            )
+                                                                        )}
+
                                                                         {sale.customers?.lead_qualifications?.[0] && (
                                                                             <AiSignalBadge 
                                                                                 lastCallAt={sale.customers.lead_qualifications[0].last_call_at} 
