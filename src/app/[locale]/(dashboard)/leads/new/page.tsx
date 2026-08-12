@@ -40,6 +40,7 @@ export default async function NewLeadPage({ params }: PageProps) {
         .select('id, full_name, role')
         .eq('tenant_id', profile.tenant_id)
         .eq('is_active', true)
+        .or('is_external.is.null,is_external.eq.false')
         .order('full_name')
 
     // Fetch Projects

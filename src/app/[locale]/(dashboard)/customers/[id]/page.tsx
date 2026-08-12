@@ -92,6 +92,8 @@ export default async function CustomerPage({ params }: CustomerPageProps) {
     let profilesQuery = supabase
         .from('profiles')
         .select('id, full_name')
+        .eq('is_active', true)
+        .or('is_external.is.null,is_external.eq.false')
         .order('full_name')
 
     if (!isAdmin) {

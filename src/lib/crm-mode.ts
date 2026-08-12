@@ -147,6 +147,7 @@ export async function assignLeadRoundRobin(tenantId: string): Promise<string | n
         .eq('tenant_id', tenantId)
         .eq('role', 'sales')
         .eq('is_active', true)
+        .or('is_external.is.null,is_external.eq.false')
         .order('created_at', { ascending: true })
 
     if (!reps || reps.length === 0) {
@@ -157,6 +158,7 @@ export async function assignLeadRoundRobin(tenantId: string): Promise<string | n
             .eq('tenant_id', tenantId)
             .in('role', ['crm_manager', 'admin', 'owner'])
             .eq('is_active', true)
+            .or('is_external.is.null,is_external.eq.false')
             .order('created_at', { ascending: true })
 
         if (!managers || managers.length === 0) {

@@ -43,7 +43,8 @@ export default async function RepTrackingPage(props: {
             .neq('full_name', '')
             .neq('full_name', '1')
             .eq('is_active', true)
-            .in('role', ['admin', 'owner', 'manager', 'sales', 'broker'])
+            .or('is_external.is.null,is_external.eq.false')
+            .in('role', ['admin', 'owner', 'manager', 'sales'])
             .order('full_name'),
         supabase.from('sales')
             .select('*, customers!inner(id, full_name, phone, customer_number), units(projects(name)), projects(name), profiles(full_name, is_external)')

@@ -43,6 +43,7 @@ export default async function LeadsPage() {
         .select('id, full_name, role')
         .eq('tenant_id', profile.tenant_id)
         .eq('is_active', true)
+        .or('is_external.is.null,is_external.eq.false')
 
     // Projeler
     const { data: projects } = await supabase

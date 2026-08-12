@@ -230,6 +230,8 @@ export default async function LeadQualificationPage(props: {
             .from('profiles')
             .select('id, full_name')
             .eq('tenant_id', profile.tenant_id)
+            .eq('is_active', true)
+            .or('is_external.is.null,is_external.eq.false')
             .order('full_name')
         if (profData) tenantProfiles = profData
     }

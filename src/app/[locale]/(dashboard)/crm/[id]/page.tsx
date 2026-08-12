@@ -71,6 +71,8 @@ export default async function EditCustomerPage(props: {
         supabase
             .from('profiles')
             .select('id, full_name')
+            .eq('is_active', true)
+            .or('is_external.is.null,is_external.eq.false')
             .order('full_name')
     ])
 

@@ -60,6 +60,7 @@ export async function getAvailableAgents() {
         .eq('tenant_id', profile.tenant_id)
         .in('role', ['sales', 'manager', 'admin', 'owner'])
         .eq('is_active', true)
+        .or('is_external.is.null,is_external.eq.false')
         .order('full_name')
     
     if (error) {
@@ -69,6 +70,7 @@ export async function getAvailableAgents() {
             .select('id, full_name, role')
             .eq('tenant_id', profile.tenant_id)
             .in('role', ['sales', 'manager', 'admin', 'owner'])
+            .or('is_external.is.null,is_external.eq.false')
             .order('full_name')
         return fallback || []
     }

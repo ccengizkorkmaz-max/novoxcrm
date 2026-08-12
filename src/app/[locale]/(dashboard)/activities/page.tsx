@@ -27,6 +27,8 @@ export default async function ActivitiesPage(props: {
         .from('profiles')
         .select('id, full_name, role')
         .neq('role', 'broker')
+        .eq('is_active', true)
+        .or('is_external.is.null,is_external.eq.false')
         .not('full_name', 'is', null)
         .neq('full_name', '')
         .order('full_name')
