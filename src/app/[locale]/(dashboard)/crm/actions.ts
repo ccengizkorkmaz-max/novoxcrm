@@ -4149,13 +4149,37 @@ export async function createQuickAppointment(params: {
         params.notes ? `Not: ${params.notes}` : null
     ].filter(Boolean).join('\n')
 
+    // Find who the sale or customer is assigned to so activity is owned by the assigned rep
+    let assignedOwnerId = user.id
+    if (params.saleId) {
+        const { data: saleData } = await adminSupabase
+            .from('sales')
+            .select('assigned_to')
+            .eq('id', params.saleId)
+            .single()
+        if (saleData?.assigned_to) {
+            assignedOwnerId = saleData.assigned_to
+        }
+    }
+
+    if (assignedOwnerId === user.id && params.customerId) {
+        const { data: customerData } = await adminSupabase
+            .from('customers')
+            .select('assigned_to')
+            .eq('id', params.customerId)
+            .single()
+        if (customerData?.assigned_to) {
+            assignedOwnerId = customerData.assigned_to
+        }
+    }
+
     const { data: newAct, error } = await adminSupabase
         .from('activities')
         .insert({
             tenant_id: profile?.tenant_id,
             customer_id: params.customerId,
-            user_id: user.id,
-            owner_id: user.id,
+            user_id: user.id, // Olusturan (Admin/Yonetici/Temsilci)
+            owner_id: assignedOwnerId, // Atanan Satıs Temsilcisi
             type: 'Meeting',
             topic: 'General',
             summary: fullSummary,
