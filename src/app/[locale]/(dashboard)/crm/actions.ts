@@ -4199,7 +4199,7 @@ export async function createQuickAppointment(params: {
         return { error: error.message }
     }
 
-    // Send WhatsApp notification to assigned sales representative
+    // Send WhatsApp notification using approved Meta template 'randevu_hatrlatma'
     try {
         const { data: repProfile } = await adminSupabase
             .from('profiles')
@@ -4232,8 +4232,21 @@ export async function createQuickAppointment(params: {
             const customerPhone = customer?.phone || '-'
             const location = params.location || 'Satış Ofisi'
 
+            const { sendWhatsAppTemplate, sendWhatsAppInteractiveButtons } = await import('@/lib/whatsapp')
+
+            // 1. Send approved Meta template 'randevu_hatrlatma'
+            const templateResult = await sendWhatsAppTemplate(
+                repProfile.phone,
+                'randevu_hatrlatma',
+                [repProfile.full_name],
+                'tr',
+                tenantWa?.wa_phone_number_id,
+                tenantWa?.wa_access_token
+            )
+
+            // 2. Also send interactive buttons for quick reporting
             const headerText = 'Randevunuz Oluşturuldu.'
-            const bodyText = `Merhaba, ${repProfile.full_name} ,\n\nYeni bir müşteri randevunuz var .\n\n👤 Müşteri: ${customerName} (${customerPhone})\n🗓️ Tarih/Saat: ${formattedDate}\n📍 Yer: ${location}\n📝 Konu: ${fullSummary}`
+            const bodyText = `Yeni bir müşteri randevunuz var.\n\n👤 Müşteri: ${customerName} (${customerPhone})\n🗓️ Tarih/Saat: ${formattedDate}\n📍 Yer: ${location}\n📝 Konu: ${fullSummary}`
             const footerText = 'Novo CRM'
 
             const buttons = [
@@ -4242,9 +4255,7 @@ export async function createQuickAppointment(params: {
                 { id: `randevu_postponed_${newAct.id}`, title: 'Ertelendi.' }
             ]
 
-            const { sendWhatsAppInteractiveButtons, sendWhatsAppMessage } = await import('@/lib/whatsapp')
-
-            const waResult = await sendWhatsAppInteractiveButtons(
+            await sendWhatsAppInteractiveButtons(
                 repProfile.phone,
                 headerText,
                 bodyText,
@@ -4253,16 +4264,6 @@ export async function createQuickAppointment(params: {
                 tenantWa?.wa_phone_number_id,
                 tenantWa?.wa_access_token
             )
-
-            if (!waResult.success) {
-                const fallbackText = `📅 YENİ RANDEVU BİLGİLENDİRMESİ\n\nSayın ${repProfile.full_name},\n\n👤 Müşteri: ${customerName} (${customerPhone})\n🗓️ Tarih/Saat: ${formattedDate}\n📍 Yer: ${location}\n📝 Konu: ${fullSummary}\n\nRandevu tamamlandığında 'Tamamlandı' veya 'İptal Oldu' mesajı yanıtlayabilirsiniz.`
-                await sendWhatsAppMessage(
-                    repProfile.phone,
-                    fallbackText,
-                    tenantWa?.wa_phone_number_id,
-                    tenantWa?.wa_access_token
-                )
-            }
         }
     } catch (waErr) {
         console.error('Randevu WhatsApp bildirimi gönderilirken hata:', waErr)
