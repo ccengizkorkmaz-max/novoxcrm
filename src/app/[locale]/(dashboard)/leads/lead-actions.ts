@@ -229,11 +229,14 @@ export async function convertLeadToCustomer(leadId: string, options?: {
     if (leadErr || !lead) return { success: false, error: 'Lead bulunamadı' }
     if (lead.status === 'converted') return { success: false, error: 'Bu lead zaten dönüştürülmüş' }
 
+    const { createAdminClient } = await import('@/lib/supabase/admin')
+    const db = createAdminClient()
+
     // 2. Opsiyonel: Firma oluştur
     let newCompanyId: string | null = null
     const companyName = options?.companyData?.companyName?.trim()
     if (companyName && options?.companyData) {
-        const { data: newCompany, error: compErr } = await supabase
+        const { data: newCompany, error: compErr } = await db
             .from('companies')
             .insert({
                 tenant_id: profile.tenant_id,
@@ -261,7 +264,7 @@ export async function convertLeadToCustomer(leadId: string, options?: {
     const email = options?.customerData?.email !== undefined ? options.customerData.email : lead.email
     const source = options?.customerData?.source !== undefined ? options.customerData.source : lead.source
 
-    const { data: newCustomer, error: custErr } = await supabase
+    const { data: newCustomer, error: custErr } = await db
         .from('customers')
         .insert({
             tenant_id: profile.tenant_id,
@@ -285,7 +288,7 @@ export async function convertLeadToCustomer(leadId: string, options?: {
 
     // 4. CRM Satış Pipeline kaydı oluştur (Fırsat = Sales)
     // Bu adım lead'i converted yapmadan ÖNCE yapılmalı — eğer başarısız olursa lead tekrar dönüştürülebilir
-    const { data: newSale, error: saleErr } = await supabase.from('sales').insert({
+    const { data: newSale, error: saleErr } = await db.from('sales').insert({
         tenant_id: profile.tenant_id,
         customer_id: newCustomer.id,
         status: 'Lead',
@@ -305,7 +308,7 @@ export async function convertLeadToCustomer(leadId: string, options?: {
     }
 
     // 5. Sales başarılı — artık lead'i converted olarak güncelle
-    await supabase
+    await db
         .from('leads')
         .update({
             status: 'converted',
@@ -322,7 +325,7 @@ export async function convertLeadToCustomer(leadId: string, options?: {
 
     // 5.5 Move lead activities to the customer and clear lead_id
     // Clearing lead_id prevents the "Müşteri Adayı" badge from showing on the customer card
-    const { error: actMoveErr } = await supabase
+    const { error: actMoveErr } = await db
         .from('activities')
         .update({ customer_id: newCustomer.id, lead_id: null })
         .eq('lead_id', leadId)
@@ -335,7 +338,7 @@ export async function convertLeadToCustomer(leadId: string, options?: {
     let opportunityId: string | null = null
     if (options?.createOpportunity) {
         const oppTitle = options.opportunityTitle || (newCompanyId ? `${companyName} - Fırsat` : `${lead.full_name} - Fırsat`)
-        const { data: opp, error: oppErr } = await supabase
+        const { data: opp, error: oppErr } = await db
             .from('opportunities')
             .insert({
                 tenant_id: profile.tenant_id,
@@ -373,6 +376,7 @@ export async function convertLeadToCustomer(leadId: string, options?: {
     revalidatePath('/(dashboard)/leads')
     revalidatePath('/(dashboard)/opportunities')
     revalidatePath('/(dashboard)/crm')
+    revalidatePath('/(dashboard)/customers')
     if (newCompanyId) {
         revalidatePath('/(dashboard)/companies')
     }
@@ -415,7 +419,10 @@ export async function createLead(data: {
 
     if (!profile?.tenant_id) return { success: false, error: 'Tenant bulunamadı' }
 
-    const { error, data: newLead } = await supabase
+    const { createAdminClient } = await import('@/lib/supabase/admin')
+    const db = createAdminClient()
+
+    const { error, data: newLead } = await db
         .from('leads')
         .insert({
             tenant_id: profile.tenant_id,
