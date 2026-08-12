@@ -484,13 +484,7 @@ export default function PipelineList({
     // Column filters
     const [colFilters, setColFilters] = useState<Record<string, string>>({})
     const isInternalFilterRef = useRef(false)
-    const [showFilters, setShowFilters] = useState(() => {
-        if (typeof window !== 'undefined') {
-            const params = new URLSearchParams(window.location.search)
-            return params.has('q') || params.has('p') || params.has('s') || params.has('r') || params.has('df') || params.has('dt') || params.has('ls') || params.has('fc') || params.has('u') || params.has('a')
-        }
-        return false
-    })
+    const [showFilters, setShowFilters] = useState(true)
 
     // Sync column filters with URL search params on mount & external searchParams changes
     useEffect(() => {
