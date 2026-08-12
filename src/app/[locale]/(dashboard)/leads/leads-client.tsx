@@ -194,7 +194,11 @@ export default function LeadsPageClient({ leads, teamMembers, projects, userRole
                 let valA = a[sortField as keyof Lead] ?? ''
                 let valB = b[sortField as keyof Lead] ?? ''
                 
-                if (sortField === 'customer') {
+                if (sortField === 'date') {
+                    const dateA = new Date((a as any).updated_at || (a as any).created_at || 0).getTime()
+                    const dateB = new Date((b as any).updated_at || (b as any).created_at || 0).getTime()
+                    return sortOrder === 'asc' ? dateA - dateB : dateB - dateA
+                } else if (sortField === 'customer') {
                     valA = a.full_name || ''
                     valB = b.full_name || ''
                 } else if (sortField === 'project') {

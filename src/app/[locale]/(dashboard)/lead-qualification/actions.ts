@@ -25,6 +25,7 @@ export async function getQualifications(tenantId: string) {
             )
         `)
         .eq('tenant_id', tenantId)
+        .order('updated_at', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false })
 
     if (error) {

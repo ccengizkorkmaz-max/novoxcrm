@@ -112,7 +112,7 @@ export default async function CRMPage(props: {
 
     // Fetch sales list + profiles + tracking data (all in parallel)
     const [salesListRes, profilesRes, projectsRes, templatesRes, trackingSalesRes] = await Promise.all([
-        baseQuery.order(orderColumn, { ascending: false, nullsFirst: false }).order('created_at', { ascending: false }).range(from, to),
+        baseQuery.order(orderColumn, { ascending: false, nullsFirst: false }).order('updated_at', { ascending: false, nullsFirst: false }).order('created_at', { ascending: false }).range(from, to),
         supabase.from('profiles')
             .select('id, full_name, is_external, role')
             .eq('tenant_id', userTenantId)

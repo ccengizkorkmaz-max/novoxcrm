@@ -139,6 +139,7 @@ export default async function LeadQualificationPage(props: {
                 profiles!lead_qualifications_assigned_to_fkey ( id, full_name )
             `)
             .eq('tenant_id', profile.tenant_id)
+            .order('updated_at', { ascending: false, nullsFirst: false })
             .order('created_at', { ascending: false })
             .range(from, to)
 

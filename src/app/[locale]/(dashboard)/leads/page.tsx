@@ -34,6 +34,7 @@ export default async function LeadsPage() {
         .from('leads')
         .select('*, profiles!leads_assigned_to_fkey(full_name), projects(name)')
         .eq('tenant_id', profile.tenant_id)
+        .order('updated_at', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false })
         .limit(200)
 
