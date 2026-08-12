@@ -601,7 +601,7 @@ export default function PipelineList({
             if (colId === 'date') return { id: colId, label: 'Tarih', type: 'date' as const }
             if (colId === 'amount') return { id: colId, label: 'Tutar', type: 'text' as const }
             if (colId === 'lead_score') return { id: colId, label: 'Lead Skor', type: 'multiselect' as const, options: ['hot', 'warm', 'cold', 'call_requested', 'disqualified'], optionLabels: { hot: '🔥 Hot', warm: '🌡️ Warm', cold: '❄️ Cold', call_requested: '📞 Arama', disqualified: '⛔ DQ' } }
-            if (colId === 'first_contact') return { id: colId, label: 'İlk Temas', type: 'select' as const, options: ['Aradım, Olumlu', 'Aradım, Olumsuz', 'Ulaşamadım'] }
+            if (colId === 'first_contact') return { id: colId, label: 'İlk Temas', type: 'select' as const, options: ['Aradım, Olumlu', 'Aradım, Olumsuz', 'Tekrar Aranacak', 'Değerlendiriyor', 'Ulaşamadım'] }
             if (colId === 'actions' || colId === 'quickicons' || colId === 'remaining') return { id: colId, label: colId, type: 'none' as const }
             return { id: colId, label: colId, type: 'text' as const }
         })
@@ -1099,10 +1099,14 @@ export default function PipelineList({
                                                     const fcValue = sale.first_contact || null
                                                     const fcColor = fcValue === 'Aradım, Olumlu' ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
                                                         : fcValue === 'Aradım, Olumsuz' ? 'bg-red-100 text-red-700 border-red-200'
+                                                        : fcValue === 'Tekrar Aranacak' ? 'bg-blue-100 text-blue-700 border-blue-200'
+                                                        : fcValue === 'Değerlendiriyor' ? 'bg-purple-100 text-purple-700 border-purple-200'
                                                         : fcValue === 'Ulaşamadım' ? 'bg-amber-100 text-amber-700 border-amber-200'
                                                         : 'bg-slate-50 text-slate-400 border-slate-200'
                                                     const fcLabel = fcValue === 'Aradım, Olumlu' ? '🟢 Olumlu'
                                                         : fcValue === 'Aradım, Olumsuz' ? '🔴 Olumsuz'
+                                                        : fcValue === 'Tekrar Aranacak' ? '🔄 Tekrar Aranacak'
+                                                        : fcValue === 'Değerlendiriyor' ? '🤔 Değerlendiriyor'
                                                         : fcValue === 'Ulaşamadım' ? '📵 Ulaşamadım'
                                                         : '—'
                                                     return (
@@ -1126,6 +1130,8 @@ export default function PipelineList({
                                                                     <SelectItem value="__empty__">— Seçiniz</SelectItem>
                                                                     <SelectItem value="Aradım, Olumlu">🟢 Aradım, Olumlu</SelectItem>
                                                                     <SelectItem value="Aradım, Olumsuz">🔴 Aradım, Olumsuz</SelectItem>
+                                                                    <SelectItem value="Tekrar Aranacak">🔄 Tekrar Aranacak</SelectItem>
+                                                                    <SelectItem value="Değerlendiriyor">🤔 Değerlendiriyor</SelectItem>
                                                                     <SelectItem value="Ulaşamadım">📵 Ulaşamadım</SelectItem>
                                                                 </SelectContent>
                                                             </Select>

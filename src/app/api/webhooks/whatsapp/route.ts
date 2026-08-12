@@ -75,12 +75,14 @@ export async function POST(req: NextRequest) {
         // ── 2.5. Lead Atama Buton Yanıtları (Template Quick Reply) ────
         // Bu kontrol konuşma oluşturulmadan ÖNCE yapılır → AI devreye girmez
         const leadBtnNorm = normalizeTurkish(payload.message);
-        // Genişletilmiş buton yanıt kontrolü (Görüştüm Olumlu / Aradım Olumsuz / Aradım Ulaşamadım vb.)
+        // 4 Temel Buton Yanıtı: Aradım Olumlu / Aradım Olumsuz / Tekrar Aranacak / Değerlendiriyor
         const isLeadOlumlu = leadBtnNorm === 'aradim olumlu' || leadBtnNorm === 'gorustum olumlu' || leadBtnNorm === 'olumlu';
-        const isLeadEle = leadBtnNorm === 'aradim ele' || leadBtnNorm === 'aradim olumsuz' || leadBtnNorm === 'olumsuz' || leadBtnNorm === 'elendi' || leadBtnNorm === 'aradim, olumsuz';
+        const isLeadOlumsuz = leadBtnNorm === 'aradim olumsuz' || leadBtnNorm === 'aradim ele' || leadBtnNorm === 'olumsuz' || leadBtnNorm === 'elendi' || leadBtnNorm === 'aradim, olumsuz';
+        const isLeadTekrarAranacak = leadBtnNorm === 'tekrar aranacak' || leadBtnNorm === 'tekrar ara' || leadBtnNorm === 'arancak';
+        const isLeadDegerlendiriyor = leadBtnNorm === 'degerlendiriyor' || leadBtnNorm === 'degerlendirmede' || leadBtnNorm === 'dusunuyor';
         const isLeadUlasamadim = leadBtnNorm === 'ulasamadim' || leadBtnNorm === 'aradim ulasamadim' || leadBtnNorm === 'ulasilamadi';
 
-        if (isLeadOlumlu || isLeadEle || isLeadUlasamadim) {
+        if (isLeadOlumlu || isLeadOlumsuz || isLeadTekrarAranacak || isLeadDegerlendiriyor || isLeadUlasamadim) {
             console.log(`🎯 Lead buton tespit edildi: "${payload.message}" → norm: "${leadBtnNorm}" | phone: ${normalizedPhone}`);
             try {
                 const phone10 = normalizedPhone.slice(-10);
@@ -121,7 +123,7 @@ export async function POST(req: NextRequest) {
                                         email: recentLead.email,
                                         source: recentLead.source || 'WhatsApp Button',
                                         contact_type: 'buyer',
-                                        notes: `Lead'den dönüştürüldü (WhatsApp Buton). Orijinal lead: ${recentLead.id}${recentLead.notes ? '\n' + recentLead.notes : ''}`
+                                        notes: `Lead'den dönüştürüldü (WhatsApp Buton: Aradım Olumlu). Orijinal lead: ${recentLead.id}${recentLead.notes ? '\n' + recentLead.notes : ''}`
                                     })
                                     .select('id')
                                     .single();
@@ -154,7 +156,7 @@ export async function POST(req: NextRequest) {
                                             currency: 'TRY',
                                             assigned_to: repProfile.id,
                                             project_id: recentLead.project_id || null,
-                                            notes: `Lead #${recentLead.id} dönüşümünden oluşturuldu (WhatsApp Buton).`,
+                                            notes: `Lead #${recentLead.id} dönüşümünden oluşturuldu (WhatsApp Buton: Aradım Olumlu).`,
                                             lead_id: recentLead.id
                                         });
 
@@ -163,33 +165,49 @@ export async function POST(req: NextRequest) {
                                         tenant_id: tenantId,
                                         customer_id: newCustomer.id,
                                         status: 'Prospect',
+                                        first_contact: 'Aradım, Olumlu',
                                         project_id: recentLead.project_id || null,
-                                        description: `Lead dönüşümü (WhatsApp Buton): ${recentLead.source || 'Bilinmeyen kaynak'}`,
+                                        description: `Lead dönüşümü (WhatsApp Buton: Aradım Olumlu): ${recentLead.source || 'Bilinmeyen kaynak'}`,
                                         assigned_to: repProfile.id
                                     });
-
-                                    // Otomatik aktivite kaydı kaldırıldı
 
                                     // Temsilciye onay mesajı
                                     await sendWhatsAppMessage(normalizedPhone, `✅ *${leadName}* → Nitelikli olarak tanımlandı ve Fırsat (Prospect) olarak Satış Yönetimine aktarıldı.`, tenantData.wa_phone_number_id, tenantData.wa_access_token);
                                 }
-                            } else if (isLeadEle) {
-                                // 1. Lead durumunu lost (elendi) yap
+                            } else if (isLeadOlumsuz) {
                                 await supabase
                                     .from('leads')
                                     .update({
                                         status: 'lost',
-                                        sub_status: 'elendi',
+                                        sub_status: 'Aradım Olumsuz',
                                         updated_at: new Date().toISOString()
                                     })
                                     .eq('id', recentLead.id);
 
-                                // Otomatik aktivite kaydı kaldırıldı
+                                await sendWhatsAppMessage(normalizedPhone, `⛔ *${leadName}* → Durum 'Aradım Olumsuz' olarak işaretlendi.`, tenantData.wa_phone_number_id, tenantData.wa_access_token);
+                            } else if (isLeadTekrarAranacak) {
+                                await supabase
+                                    .from('leads')
+                                    .update({
+                                        status: 'contacted',
+                                        sub_status: 'Tekrar Aranacak',
+                                        updated_at: new Date().toISOString()
+                                    })
+                                    .eq('id', recentLead.id);
 
-                                // Temsilciye onay mesajı
-                                await sendWhatsAppMessage(normalizedPhone, `⛔ *${leadName}* → Aday elendi olarak işaretlendi.`, tenantData.wa_phone_number_id, tenantData.wa_access_token);
+                                await sendWhatsAppMessage(normalizedPhone, `🔄 *${leadName}* → Durum 'Tekrar Aranacak' olarak güncellendi.`, tenantData.wa_phone_number_id, tenantData.wa_access_token);
+                            } else if (isLeadDegerlendiriyor) {
+                                await supabase
+                                    .from('leads')
+                                    .update({
+                                        status: 'contacted',
+                                        sub_status: 'Değerlendiriyor',
+                                        updated_at: new Date().toISOString()
+                                    })
+                                    .eq('id', recentLead.id);
+
+                                await sendWhatsAppMessage(normalizedPhone, `🤔 *${leadName}* → Durum 'Değerlendiriyor' olarak güncellendi.`, tenantData.wa_phone_number_id, tenantData.wa_access_token);
                             } else if (isLeadUlasamadim) {
-                                // 1. Lead durumunu contacted (Arandı, İletişim kurulamadı) yap
                                 await supabase
                                     .from('leads')
                                     .update({
@@ -199,9 +217,6 @@ export async function POST(req: NextRequest) {
                                     })
                                     .eq('id', recentLead.id);
 
-                                // Otomatik aktivite kaydı kaldırıldı
-
-                                // Temsilciye onay mesajı
                                 await sendWhatsAppMessage(normalizedPhone, `📵 *${leadName}* → Durum 'Arandı, İletişim kurulamadı' olarak güncellendi.`, tenantData.wa_phone_number_id, tenantData.wa_access_token);
                             }
                             return NextResponse.json({ status: 'lead_button_processed' }, { status: 200 });
@@ -223,7 +238,6 @@ export async function POST(req: NextRequest) {
                         const custName = (recentSale as any).customers?.full_name || 'Müşteri';
 
                         // Helper: lead_qualifications check+insert/update
-                        // (customer_id'de UNIQUE constraint yok, upsert çalışmaz)
                         const updateLQ = async (fields: Record<string, any>) => {
                             const { data: existing } = await supabase
                                 .from('lead_qualifications')
@@ -247,19 +261,24 @@ export async function POST(req: NextRequest) {
 
                         if (isLeadOlumlu) {
                             await supabase.from('sales').update({ status: 'Prospect', first_contact: 'Aradım, Olumlu' }).eq('id', recentSale.id);
-                            await updateLQ({ interest_level: 'hot', status: 'contacted', call_notes: new Date().toLocaleString('tr-TR') + ' — Olumlu' });
-                            // Otomatik aktivite kaydı kaldırıldı
-                            await sendWhatsAppMessage(normalizedPhone, '✅ *' + custName + '* → Firsat (Prospect) olarak guncellendi. Lead skoru olumlu.', tenantData.wa_phone_number_id, tenantData.wa_access_token);
-                        } else if (isLeadEle) {
+                            await updateLQ({ interest_level: 'hot', status: 'contacted', call_notes: new Date().toLocaleString('tr-TR') + ' — Aradım Olumlu' });
+                            await sendWhatsAppMessage(normalizedPhone, '✅ *' + custName + '* → Fırsat (Prospect) olarak güncellendi (Aradım Olumlu).', tenantData.wa_phone_number_id, tenantData.wa_access_token);
+                        } else if (isLeadOlumsuz) {
                             await supabase.from('sales').update({ status: 'Lost', first_contact: 'Aradım, Olumsuz' }).eq('id', recentSale.id);
-                            await updateLQ({ interest_level: 'disqualified', status: 'disqualified', call_notes: new Date().toLocaleString('tr-TR') + ' — Elendi' });
-                            // Otomatik aktivite kaydı kaldırıldı
-                            await sendWhatsAppMessage(normalizedPhone, '⛔ *' + custName + '* → Elendi (Lost) olarak isaretlendi.', tenantData.wa_phone_number_id, tenantData.wa_access_token);
+                            await updateLQ({ interest_level: 'disqualified', status: 'disqualified', call_notes: new Date().toLocaleString('tr-TR') + ' — Aradım Olumsuz' });
+                            await sendWhatsAppMessage(normalizedPhone, '⛔ *' + custName + '* → Aradım Olumsuz (Lost) olarak işaretlendi.', tenantData.wa_phone_number_id, tenantData.wa_access_token);
+                        } else if (isLeadTekrarAranacak) {
+                            await supabase.from('sales').update({ first_contact: 'Tekrar Aranacak' }).eq('id', recentSale.id);
+                            await updateLQ({ interest_level: 'warm', status: 'contacted', call_notes: new Date().toLocaleString('tr-TR') + ' — Tekrar Aranacak' });
+                            await sendWhatsAppMessage(normalizedPhone, '🔄 *' + custName + '* → Durum \'Tekrar Aranacak\' olarak güncellendi.', tenantData.wa_phone_number_id, tenantData.wa_access_token);
+                        } else if (isLeadDegerlendiriyor) {
+                            await supabase.from('sales').update({ first_contact: 'Değerlendiriyor' }).eq('id', recentSale.id);
+                            await updateLQ({ interest_level: 'warm', status: 'contacted', call_notes: new Date().toLocaleString('tr-TR') + ' — Değerlendiriyor' });
+                            await sendWhatsAppMessage(normalizedPhone, '🤔 *' + custName + '* → Durum \'Değerlendiriyor\' olarak güncellendi.', tenantData.wa_phone_number_id, tenantData.wa_access_token);
                         } else if (isLeadUlasamadim) {
                             await supabase.from('sales').update({ first_contact: 'Ulaşamadım' }).eq('id', recentSale.id);
-                            await updateLQ({ interest_level: 'warm', status: 'contacted', call_notes: new Date().toLocaleString('tr-TR') + ' — Ulasilamadi' });
-                            // Otomatik aktivite kaydı kaldırıldı
-                            await sendWhatsAppMessage(normalizedPhone, '📵 *' + custName + '* → Ulasilamadi. Lead skoru Warm olarak guncellendi.', tenantData.wa_phone_number_id, tenantData.wa_access_token);
+                            await updateLQ({ interest_level: 'warm', status: 'contacted', call_notes: new Date().toLocaleString('tr-TR') + ' — Ulaşılamadı' });
+                            await sendWhatsAppMessage(normalizedPhone, '📵 *' + custName + '* → Durum \'Ulaşamadım\' olarak güncellendi.', tenantData.wa_phone_number_id, tenantData.wa_access_token);
                         }
                         return NextResponse.json({ status: 'lead_button_processed' }, { status: 200 });
                     }

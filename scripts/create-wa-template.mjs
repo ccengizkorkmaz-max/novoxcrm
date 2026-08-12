@@ -90,11 +90,19 @@ async function main() {
                         buttons: [
                             {
                                 type: 'QUICK_REPLY',
-                                text: '✅ Aradım Olumlu'
+                                text: 'Aradım Olumlu'
                             },
                             {
                                 type: 'QUICK_REPLY',
-                                text: '❌ Aradım Olumsuz'
+                                text: 'Aradım Olumsuz'
+                            },
+                            {
+                                type: 'QUICK_REPLY',
+                                text: 'Tekrar Aranacak'
+                            },
+                            {
+                                type: 'QUICK_REPLY',
+                                text: 'Değerlendiriyor'
                             }
                         ]
                     }

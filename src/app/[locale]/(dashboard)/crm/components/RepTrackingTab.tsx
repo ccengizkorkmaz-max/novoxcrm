@@ -139,6 +139,8 @@ export default function RepTrackingTab({
     const getFcColor = (value: string | null) => {
         if (value === 'Aradım, Olumlu') return 'bg-emerald-100 text-emerald-700 border-emerald-200'
         if (value === 'Aradım, Olumsuz') return 'bg-red-100 text-red-700 border-red-200'
+        if (value === 'Tekrar Aranacak') return 'bg-blue-100 text-blue-700 border-blue-200'
+        if (value === 'Değerlendiriyor') return 'bg-purple-100 text-purple-700 border-purple-200'
         if (value === 'Ulaşamadım') return 'bg-amber-100 text-amber-700 border-amber-200'
         return 'bg-slate-50 text-slate-400 border-slate-200'
     }
@@ -146,6 +148,8 @@ export default function RepTrackingTab({
     const getFcLabel = (value: string | null) => {
         if (value === 'Aradım, Olumlu') return '🟢 Olumlu'
         if (value === 'Aradım, Olumsuz') return '🔴 Olumsuz'
+        if (value === 'Tekrar Aranacak') return '🔄 Tekrar Aranacak'
+        if (value === 'Değerlendiriyor') return '🤔 Değerlendiriyor'
         if (value === 'Ulaşamadım') return '📵 Ulaşamadım'
         return '—'
     }
@@ -391,6 +395,8 @@ function TrackingTable({
                         <SelectItem value="none">⏳ Aranmadı</SelectItem>
                         <SelectItem value="Aradım, Olumlu">🟢 Olumlu</SelectItem>
                         <SelectItem value="Aradım, Olumsuz">🔴 Olumsuz</SelectItem>
+                        <SelectItem value="Tekrar Aranacak">🔄 Tekrar Aranacak</SelectItem>
+                        <SelectItem value="Değerlendiriyor">🤔 Değerlendiriyor</SelectItem>
                         <SelectItem value="Ulaşamadım">📵 Ulaşamadım</SelectItem>
                     </SelectContent>
                 </Select>
@@ -433,6 +439,8 @@ function TrackingTable({
                                 <SelectItem value="__empty__">— Seçiniz</SelectItem>
                                 <SelectItem value="Aradım, Olumlu">🟢 Aradım, Olumlu</SelectItem>
                                 <SelectItem value="Aradım, Olumsuz">🔴 Aradım, Olumsuz</SelectItem>
+                                <SelectItem value="Tekrar Aranacak">🔄 Tekrar Aranacak</SelectItem>
+                                <SelectItem value="Değerlendiriyor">🤔 Değerlendiriyor</SelectItem>
                                 <SelectItem value="Ulaşamadım">📵 Ulaşamadım</SelectItem>
                             </SelectContent>
                         </Select>
