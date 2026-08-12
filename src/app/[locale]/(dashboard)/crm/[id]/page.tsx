@@ -64,7 +64,7 @@ export default async function EditCustomerPage(props: {
                 *,
                 unit: units(unit_number, block),
                 project: projects(name),
-                profiles(full_name)
+                profiles:assigned_to(full_name)
             `)
             .eq('customer_id', id)
             .order('created_at', { ascending: false }),

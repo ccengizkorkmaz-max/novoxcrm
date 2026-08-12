@@ -502,7 +502,7 @@ export function CustomerView({ customer, activities, contracts = [], profiles = 
                                                     {(sale.project?.name || sale.unit?.block) ? `${sale.project?.name || ''} - ${sale.unit?.block || ''} / ${sale.unit?.unit_number || ''}` : 'Belirsiz / Genel Talep'}
                                                 </div>
                                                 <p className="text-xs text-muted-foreground mt-1">
-                                                    Satış Temsilcisi: {sale.profiles?.full_name || 'Atanmamış'}
+                                                    Satış Temsilcisi: {sale.profiles?.full_name || (sale.assigned_to && Array.isArray(profiles) ? profiles.find((p: any) => p.id === sale.assigned_to)?.full_name : null) || 'Atanmamış'}
                                                 </p>
                                             </div>
                                             <div className="text-right">
