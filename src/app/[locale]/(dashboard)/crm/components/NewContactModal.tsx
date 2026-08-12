@@ -94,7 +94,7 @@ export default function NewContactModal({
         if (taxOffice.trim()) formData.append('tax_office', taxOffice.trim())
         if (taxNumber.trim()) formData.append('tax_number', taxNumber.trim())
         if (source.trim()) formData.append('source', source.trim())
-        if (assignedTo) formData.append('assigned_to', assignedTo)
+        if (assignedTo && assignedTo !== 'unassigned') formData.append('assigned_to', assignedTo)
         if (gender) formData.append('gender', gender)
         if (city.trim()) formData.append('city', city.trim())
         if (district.trim()) formData.append('district', district.trim())
@@ -285,7 +285,7 @@ export default function NewContactModal({
                                             <SelectValue placeholder="Temsilci Seçin (Opsiyonel)" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="">Atanmamış</SelectItem>
+                                            <SelectItem value="unassigned">Atanmamış</SelectItem>
                                             {profiles.map(p => (
                                                 <SelectItem key={p.id} value={p.id}>
                                                     {p.full_name}

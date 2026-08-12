@@ -4157,7 +4157,7 @@ export async function createQuickAppointment(params: {
             user_id: user.id,
             owner_id: user.id,
             type: 'Meeting',
-            topic: 'Randevu',
+            topic: 'General',
             summary: fullSummary,
             notes: fullNotes,
             description: params.location ? `Yer: ${params.location}` : fullSummary,
