@@ -319,6 +319,8 @@ export async function createCustomer(formData: FormData) {
     }
 
     revalidatePath('/crm')
+    revalidatePath('/crm/contacts')
+    revalidatePath('/customers')
     return { success: true }
 }
 

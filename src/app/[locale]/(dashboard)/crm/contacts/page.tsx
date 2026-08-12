@@ -27,7 +27,7 @@ export default async function ContactsPage({ params }: { params: Promise<{ local
 
     const [rawContactsRes, customersRes, profilesRes] = await Promise.all([
         supabase.from('contacts').select('*').eq('tenant_id', profile.tenant_id).order('created_at', { ascending: false }),
-        supabase.from('customers').select('id, phone, email').eq('tenant_id', profile.tenant_id),
+        supabase.from('customers').select('id, full_name, phone, email, source, created_at').eq('tenant_id', profile.tenant_id).order('created_at', { ascending: false }),
         supabase.from('profiles').select('id, full_name').eq('tenant_id', profile.tenant_id).eq('is_active', true).order('full_name')
     ])
 
@@ -35,20 +35,44 @@ export default async function ContactsPage({ params }: { params: Promise<{ local
     const customers = customersRes.data || []
     const profiles = profilesRes.data || []
 
-    // Map customers
-    const customerPhoneSet = new Set(customers.filter(c => c.phone).map(c => c.phone.replace(/[^\d]/g, '')))
-    const customerEmailSet = new Set(customers.filter(c => c.email).map(c => c.email.toLowerCase().trim()))
+    // Build unique contact list combining both contacts and customers
+    const allItems: any[] = []
 
-    const processedContacts = rawContacts.map(contact => {
-        let isCustomer = false;
-        if (contact.phone && customerPhoneSet.has(contact.phone.replace(/[^\d]/g, ''))) isCustomer = true;
-        if (contact.email && customerEmailSet.has(contact.email.toLowerCase().trim())) isCustomer = true;
-        
-        return {
-            ...contact,
-            isCustomer
+    // First add all raw contacts
+    for (const c of rawContacts) {
+        allItems.push({ ...c, isCustomer: false })
+    }
+
+    // Then add all customers (and mark matching contacts as isCustomer)
+    for (const cust of customers) {
+        const cleanPhone = cust.phone ? cust.phone.replace(/\D/g, '') : ''
+        const cleanEmail = cust.email ? cust.email.toLowerCase().trim() : ''
+
+        let foundMatch = false
+        for (const item of allItems) {
+            const itemPhone = item.phone ? item.phone.replace(/\D/g, '') : ''
+            const itemEmail = item.email ? item.email.toLowerCase().trim() : ''
+            if ((cleanPhone && itemPhone && itemPhone === cleanPhone) || (cleanEmail && itemEmail && itemEmail === cleanEmail)) {
+                item.isCustomer = true
+                foundMatch = true
+            }
         }
-    })
+
+        if (!foundMatch) {
+            allItems.push({
+                id: cust.id,
+                full_name: cust.full_name,
+                phone: cust.phone,
+                email: cust.email,
+                source: cust.source || 'Müşteri Kaydı',
+                isCustomer: true,
+                created_at: cust.created_at
+            })
+        }
+    }
+
+    // Sort combined contacts by created_at descending
+    allItems.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
 
     return (
         <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -57,7 +81,7 @@ export default async function ContactsPage({ params }: { params: Promise<{ local
                 <NewContactModal profiles={profiles} triggerText="Yeni Kontak Ekle" />
             </div>
             
-            <ContactsClient contacts={processedContacts} profiles={profiles} locale={locale} />
+            <ContactsClient contacts={allItems} profiles={profiles} locale={locale} />
         </div>
     )
 }

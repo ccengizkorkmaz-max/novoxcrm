@@ -54,6 +54,9 @@ export default async function CRMPage(props: {
     // ============================================================
     // CRITICAL PATH: Auth + Sales List (50 records) — loads FIRST
     // ============================================================
+    const { createAdminClient } = await import('@/lib/supabase/admin')
+    const adminSupabase = createAdminClient()
+
     const { data: { user } } = await supabase.auth.getUser()
     
     const { data: userProfile } = user 
@@ -134,8 +137,8 @@ export default async function CRMPage(props: {
                 .order('created_at', { ascending: false })
                 .limit(2000)
             : Promise.resolve({ data: [] as any[], error: null }),
-        // Active/Planned Randevu activities
-        supabase.from('activities')
+        // Active/Planned Randevu activities (using admin client to prevent RLS filtering)
+        adminSupabase.from('activities')
             .select('id, customer_id, type, topic, summary, notes, description, due_date, status, created_at')
             .eq('tenant_id', userTenantId)
             .in('status', ['Planned', 'Pending'])
