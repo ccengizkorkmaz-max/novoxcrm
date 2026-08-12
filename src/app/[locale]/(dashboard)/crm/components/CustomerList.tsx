@@ -27,6 +27,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { updateCustomer, deleteCustomer } from '../actions'
 import CustomerDemands from './CustomerDemands'
 import { CustomerImportDialog } from '@/components/customers/customer-import-dialog'
+import NewContactModal from './NewContactModal'
 import type { Customer } from './CustomerForm'
 import { MergeDuplicatesDialog } from './MergeDuplicatesDialog'
 import { ActivityForm } from '@/components/activities/activity-form'
@@ -438,11 +439,12 @@ export default function CustomerList({
                         <Users className="mr-2 h-5 w-5" /> Mükerrerleri Birleştir
                     </Button>
 
-                    <Link href="/crm/new">
-                        <Button variant="default" className="shadow-lg shadow-blue-100 bg-blue-600 hover:bg-blue-700 h-11 px-6 rounded-xl font-bold transition-all active:scale-95 whitespace-nowrap">
-                            <UserPlus className="mr-2 h-5 w-5" /> {t('addCustomer')}
-                        </Button>
-                    </Link>
+                    <NewContactModal
+                        profiles={profiles}
+                        buttonSize="lg"
+                        buttonClassName="shadow-lg shadow-emerald-100 bg-emerald-600 hover:bg-emerald-700 h-11 px-6 rounded-xl font-bold transition-all active:scale-95 whitespace-nowrap"
+                        triggerText={t('addCustomer') || 'Yeni Kontak Ekle'}
+                    />
                 </div>
 
 

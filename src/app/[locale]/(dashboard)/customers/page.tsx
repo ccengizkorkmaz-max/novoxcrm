@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import CustomerList from '@/app/[locale]/(dashboard)/crm/components/CustomerList'
+import NewContactModal from '@/app/[locale]/(dashboard)/crm/components/NewContactModal'
 import { getTranslations } from 'next-intl/server'
 import React from 'react'
 
@@ -73,6 +74,7 @@ export default async function CustomersPage(props: {
         <div className="flex flex-col gap-6">
             <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
+                <NewContactModal profiles={profiles || []} />
             </div>
 
             <div className="rounded-md border bg-card p-6">
