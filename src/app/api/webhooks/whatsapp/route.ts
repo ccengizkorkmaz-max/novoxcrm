@@ -75,11 +75,17 @@ export async function POST(req: NextRequest) {
         // ── 2.4. Randevu Sonuç Buton Yanıtları (Interactive / Text Reply) ────
         const btnReplyId = payload.button_reply_id || '';
         const msgNorm = normalizeTurkish(payload.message);
-        const isRandevuBtn = btnReplyId.startsWith('randevu_completed_') || btnReplyId.startsWith('randevu_cancelled_');
-        const isRandevuTextCompleted = msgNorm === 'randevu tamamlandi' || msgNorm === 'tamamlandi' || msgNorm === 'randevu yapildi' || msgNorm === 'randevu olumlu' || msgNorm === 'randevu tamam';
-        const isRandevuTextCancelled = msgNorm === 'randevu iptal' || msgNorm === 'iptal oldu' || msgNorm === 'randevu iptal oldu' || msgNorm === 'randevu olumsuz';
 
-        if (isRandevuBtn || isRandevuTextCompleted || isRandevuTextCancelled) {
+        const isRandevuBtnCompleted = btnReplyId.startsWith('randevu_completed_');
+        const isRandevuBtnCancelled = btnReplyId.startsWith('randevu_cancelled_');
+        const isRandevuBtnPostponed = btnReplyId.startsWith('randevu_postponed_');
+        const isRandevuBtn = isRandevuBtnCompleted || isRandevuBtnCancelled || isRandevuBtnPostponed;
+
+        const isRandevuTextCompleted = msgNorm === 'randevu tamamlandi' || msgNorm === 'tamamlandi' || msgNorm === 'tamamlandi.';
+        const isRandevuTextCancelled = msgNorm === 'randevu iptal' || msgNorm === 'iptal oldu' || msgNorm === 'iptal oldu.';
+        const isRandevuTextPostponed = msgNorm === 'ertelendi' || msgNorm === 'ertelendi.' || msgNorm === 'randevu ertelendi';
+
+        if (isRandevuBtn || (payload.message && payload.message.trim().length > 3 && (isRandevuTextCompleted || isRandevuTextCancelled || isRandevuTextPostponed))) {
             console.log(`📅 Randevu yanıtı tespit edildi: btnId="${btnReplyId}", msg="${payload.message}" | phone: ${normalizedPhone}`);
             try {
                 const phone10 = normalizedPhone.slice(-10);
@@ -92,10 +98,12 @@ export async function POST(req: NextRequest) {
 
                 if (repProfile) {
                     let targetActivityId = '';
-                    if (btnReplyId.startsWith('randevu_completed_')) {
+                    if (isRandevuBtnCompleted) {
                         targetActivityId = btnReplyId.replace('randevu_completed_', '');
-                    } else if (btnReplyId.startsWith('randevu_cancelled_')) {
+                    } else if (isRandevuBtnCancelled) {
                         targetActivityId = btnReplyId.replace('randevu_cancelled_', '');
+                    } else if (isRandevuBtnPostponed) {
+                        targetActivityId = btnReplyId.replace('randevu_postponed_', '');
                     }
 
                     let activityToUpdate: any = null;
@@ -105,9 +113,9 @@ export async function POST(req: NextRequest) {
                             .from('activities')
                             .select('id, customer_id, summary, customers(full_name)')
                             .eq('id', targetActivityId)
-                            .single();
+                            .maybeSingle();
                         activityToUpdate = act;
-                    } else {
+                    } else if (isRandevuTextCompleted || isRandevuTextCancelled || isRandevuTextPostponed) {
                         const { data: recentAct } = await supabase
                             .from('activities')
                             .select('id, customer_id, summary, customers(full_name)')
@@ -120,25 +128,33 @@ export async function POST(req: NextRequest) {
                     }
 
                     if (activityToUpdate) {
-                        const isComplete = btnReplyId.startsWith('randevu_completed_') || isRandevuTextCompleted;
-                        const newStatus = 'Completed';
-                        const newOutcome = isComplete ? 'Success' : 'Cancelled';
-                        const outcomeText = isComplete ? 'Tamamlandı' : 'İptal Oldu';
+                        const isCompleted = isRandevuBtnCompleted || isRandevuTextCompleted;
+                        const isCancelled = isRandevuBtnCancelled || isRandevuTextCancelled;
+                        const isPostponed = isRandevuBtnPostponed || isRandevuTextPostponed;
+
+                        let newOutcome = 'Success';
+                        let outcomeText = 'Tamamlandı';
+                        let confirmMsg = `✅ ${(activityToUpdate as any).customers?.full_name || 'Müşteri'} ile olan randevu sonucu "TAMAMLANDI" olarak sisteme kaydedildi. Teşekkürler!`;
+
+                        if (isCancelled) {
+                            newOutcome = 'Cancelled';
+                            outcomeText = 'İptal Oldu';
+                            confirmMsg = `🔴 ${(activityToUpdate as any).customers?.full_name || 'Müşteri'} ile olan randevu sonucu "İPTAL OLDU" olarak sisteme kaydedildi.`;
+                        } else if (isPostponed) {
+                            newOutcome = 'Postponed';
+                            outcomeText = 'Ertelendi';
+                            confirmMsg = `⏳ ${(activityToUpdate as any).customers?.full_name || 'Müşteri'} ile olan randevu sonucu "ERTELENDİ" olarak sisteme kaydedildi.`;
+                        }
 
                         await supabase
                             .from('activities')
                             .update({
-                                status: newStatus,
+                                status: 'Completed',
                                 outcome: newOutcome,
                                 notes: `WhatsApp üzerinden temsilci (${repProfile.full_name}) tarafından randevu sonucu '${outcomeText}' olarak bildirildi.`,
                                 updated_at: new Date().toISOString()
                             })
                             .eq('id', activityToUpdate.id);
-
-                        const custName = (activityToUpdate as any).customers?.full_name || 'Müşteri';
-                        const confirmMsg = isComplete
-                            ? `✅ ${custName} ile olan randevu sonucu "TAMAMLANDI" olarak sisteme kaydedildi. Teşekkürler!`
-                            : `🔴 ${custName} ile olan randevu sonucu "İPTAL OLDU" olarak sisteme kaydedildi.`;
 
                         await sendWhatsAppMessage(
                             normalizedPhone,
