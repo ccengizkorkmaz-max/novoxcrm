@@ -72,6 +72,89 @@ export async function POST(req: NextRequest) {
         console.log('✅ Tenant eşleşti: ' + tenantId);
         const normalizedPhone = payload.phone.replace(/\D/g, '');
 
+        // ── 2.4. Randevu Sonuç Buton Yanıtları (Interactive / Text Reply) ────
+        const btnReplyId = payload.button_reply_id || '';
+        const msgNorm = normalizeTurkish(payload.message);
+        const isRandevuBtn = btnReplyId.startsWith('randevu_completed_') || btnReplyId.startsWith('randevu_cancelled_');
+        const isRandevuTextCompleted = msgNorm === 'randevu tamamlandi' || msgNorm === 'tamamlandi' || msgNorm === 'randevu yapildi' || msgNorm === 'randevu olumlu' || msgNorm === 'randevu tamam';
+        const isRandevuTextCancelled = msgNorm === 'randevu iptal' || msgNorm === 'iptal oldu' || msgNorm === 'randevu iptal oldu' || msgNorm === 'randevu olumsuz';
+
+        if (isRandevuBtn || isRandevuTextCompleted || isRandevuTextCancelled) {
+            console.log(`📅 Randevu yanıtı tespit edildi: btnId="${btnReplyId}", msg="${payload.message}" | phone: ${normalizedPhone}`);
+            try {
+                const phone10 = normalizedPhone.slice(-10);
+                const { data: allProfiles } = await supabase.from('profiles').select('id, full_name, phone').eq('tenant_id', tenantId);
+                const repProfile = allProfiles?.find(p => {
+                    if (!p.phone) return false;
+                    const clean = p.phone.replace(/\D/g, '');
+                    return clean.endsWith(phone10) || clean.includes(phone10);
+                }) || null;
+
+                if (repProfile) {
+                    let targetActivityId = '';
+                    if (btnReplyId.startsWith('randevu_completed_')) {
+                        targetActivityId = btnReplyId.replace('randevu_completed_', '');
+                    } else if (btnReplyId.startsWith('randevu_cancelled_')) {
+                        targetActivityId = btnReplyId.replace('randevu_cancelled_', '');
+                    }
+
+                    let activityToUpdate: any = null;
+
+                    if (targetActivityId) {
+                        const { data: act } = await supabase
+                            .from('activities')
+                            .select('id, customer_id, summary, customers(full_name)')
+                            .eq('id', targetActivityId)
+                            .single();
+                        activityToUpdate = act;
+                    } else {
+                        const { data: recentAct } = await supabase
+                            .from('activities')
+                            .select('id, customer_id, summary, customers(full_name)')
+                            .eq('owner_id', repProfile.id)
+                            .in('status', ['Planned', 'Pending'])
+                            .order('due_date', { ascending: true })
+                            .limit(1)
+                            .maybeSingle();
+                        activityToUpdate = recentAct;
+                    }
+
+                    if (activityToUpdate) {
+                        const isComplete = btnReplyId.startsWith('randevu_completed_') || isRandevuTextCompleted;
+                        const newStatus = 'Completed';
+                        const newOutcome = isComplete ? 'Success' : 'Cancelled';
+                        const outcomeText = isComplete ? 'Tamamlandı' : 'İptal Oldu';
+
+                        await supabase
+                            .from('activities')
+                            .update({
+                                status: newStatus,
+                                outcome: newOutcome,
+                                notes: `WhatsApp üzerinden temsilci (${repProfile.full_name}) tarafından randevu sonucu '${outcomeText}' olarak bildirildi.`,
+                                updated_at: new Date().toISOString()
+                            })
+                            .eq('id', activityToUpdate.id);
+
+                        const custName = (activityToUpdate as any).customers?.full_name || 'Müşteri';
+                        const confirmMsg = isComplete
+                            ? `✅ ${custName} ile olan randevu sonucu "TAMAMLANDI" olarak sisteme kaydedildi. Teşekkürler!`
+                            : `🔴 ${custName} ile olan randevu sonucu "İPTAL OLDU" olarak sisteme kaydedildi.`;
+
+                        await sendWhatsAppMessage(
+                            normalizedPhone,
+                            confirmMsg,
+                            tenantData.wa_phone_number_id,
+                            tenantData.wa_access_token
+                        );
+
+                        return NextResponse.json({ status: 'randevu_status_updated' }, { status: 200 });
+                    }
+                }
+            } catch (err) {
+                console.error('Randevu webhook update error:', err);
+            }
+        }
+
         // ── 2.5. Lead Atama Buton Yanıtları (Template Quick Reply) ────
         // Bu kontrol konuşma oluşturulmadan ÖNCE yapılır → AI devreye girmez
         const leadBtnNorm = normalizeTurkish(payload.message);

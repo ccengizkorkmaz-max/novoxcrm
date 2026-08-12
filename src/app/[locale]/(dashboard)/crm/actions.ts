@@ -4197,6 +4197,73 @@ export async function createQuickAppointment(params: {
         return { error: error.message }
     }
 
+    // Send WhatsApp notification to assigned sales representative
+    try {
+        const { data: repProfile } = await adminSupabase
+            .from('profiles')
+            .select('id, full_name, phone')
+            .eq('id', assignedOwnerId)
+            .single()
+
+        if (repProfile?.phone && profile?.tenant_id) {
+            const { data: tenantWa } = await adminSupabase
+                .from('tenants')
+                .select('wa_phone_number_id, wa_access_token')
+                .eq('id', profile.tenant_id)
+                .single()
+
+            const { data: customer } = await adminSupabase
+                .from('customers')
+                .select('full_name, phone')
+                .eq('id', params.customerId)
+                .single()
+
+            const formattedDate = new Date(params.dueDate).toLocaleString('tr-TR', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            })
+
+            const customerName = customer?.full_name || 'Müşteri'
+            const customerPhone = customer?.phone || '-'
+            const location = params.location || 'Satış Ofisi'
+
+            const headerText = '📅 RANDEVU BİLGİLENDİRMESİ'
+            const bodyText = `Sayın ${repProfile.full_name},\n\nSizlere atanan yeni bir randevu oluşturulmuştur:\n\n👤 Müşteri: ${customerName} (${customerPhone})\n🗓️ Tarih/Saat: ${formattedDate}\n📍 Yer: ${location}\n📝 Konu: ${fullSummary}\n\nLütfen randevu gerçekleştikten sonra aşağıdaki düğmelerden birine tıklayarak sonucu bildiriniz:`
+
+            const buttons = [
+                { id: `randevu_completed_${newAct.id}`, title: 'Tamamlandı' },
+                { id: `randevu_cancelled_${newAct.id}`, title: 'İptal Oldu' }
+            ]
+
+            const { sendWhatsAppInteractiveButtons, sendWhatsAppMessage } = await import('@/lib/whatsapp')
+
+            const waResult = await sendWhatsAppInteractiveButtons(
+                repProfile.phone,
+                headerText,
+                bodyText,
+                buttons,
+                'Novo CRM Randevu Takibi',
+                tenantWa?.wa_phone_number_id,
+                tenantWa?.wa_access_token
+            )
+
+            if (!waResult.success) {
+                const fallbackText = `📅 YENİ RANDEVU BİLGİLENDİRMESİ\n\nSayın ${repProfile.full_name},\n\n👤 Müşteri: ${customerName} (${customerPhone})\n🗓️ Tarih/Saat: ${formattedDate}\n📍 Yer: ${location}\n📝 Konu: ${fullSummary}\n\nRandevu tamamlandığında 'Tamamlandı' veya 'İptal Oldu' mesajı yanıtlayabilirsiniz.`
+                await sendWhatsAppMessage(
+                    repProfile.phone,
+                    fallbackText,
+                    tenantWa?.wa_phone_number_id,
+                    tenantWa?.wa_access_token
+                )
+            }
+        }
+    } catch (waErr) {
+        console.error('Randevu WhatsApp bildirimi gönderilirken hata:', waErr)
+    }
+
     revalidatePath('/crm')
     return { success: true, activity: newAct }
 }
