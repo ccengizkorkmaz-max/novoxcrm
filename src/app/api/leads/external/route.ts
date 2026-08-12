@@ -20,7 +20,17 @@ export async function POST(req: Request) {
         let body: any = {}
 
         if (contentType.includes('application/json')) {
-            body = await req.json()
+            try {
+                body = await req.json()
+            } catch (e) {
+                console.warn('Malformed JSON received in request body:', e)
+                try {
+                    const rawText = await req.text()
+                    body = { message: rawText, raw: rawText }
+                } catch (err) {
+                    body = {}
+                }
+            }
         } else if (contentType.includes('multipart/form-data') || contentType.includes('application/x-www-form-urlencoded')) {
             const formData = await req.formData()
             formData.forEach((value, key) => {
@@ -65,7 +75,7 @@ export async function POST(req: Request) {
             email,
             phone,
             source = body.source || 'External',
-            message: bodyMessage,
+            message: bodyMessage = body.message || body.notes,
             tenant_id = body.tenant_id,
             subject,
             campaign,
