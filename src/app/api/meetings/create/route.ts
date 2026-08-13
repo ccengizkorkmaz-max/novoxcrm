@@ -107,47 +107,81 @@ export async function POST(request: NextRequest) {
         }
         console.log('[API] Meeting inserted:', meetingId)
 
-        // WhatsApp template (non-blocking)
-        if (input.send_whatsapp && customer.phone) {
-            try {
-                const guestUrl = buildGuestMeetingUrl(room.name)
-                const d = new Date(input.scheduled_at)
-                const dateStr = d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })
-                const timeStr = d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
+        // Notifications to Customer & Host/Organizer (non-blocking)
+        try {
+            const guestUrl = buildGuestMeetingUrl(room.name)
+            const d = new Date(input.scheduled_at)
+            const dateStr = d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })
+            const timeStr = d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
 
-                let projectName = 'online görüşmemiz'
-                if (input.project_id) {
-                    const { data: proj } = await admin.from('projects').select('name').eq('id', input.project_id).single()
-                    if (proj) projectName = proj.name
-                }
-
-                const { data: tenant } = await admin
-                    .from('tenants')
-                    .select('wa_phone_number_id, wa_access_token')
-                    .eq('id', profile.tenant_id)
-                    .single()
-
-                if (tenant?.wa_phone_number_id) {
-                    await sendWhatsAppTemplate(
-                        customer.phone,
-                        'meeting_invite',
-                        [
-                            customer.full_name || 'Değerli Müşterimiz',
-                            `${dateStr} saat ${timeStr}`,
-                            projectName,
-                            guestUrl,
-                        ],
-                        'tr',
-                        tenant.wa_phone_number_id,
-                        tenant.wa_access_token
-                    )
-                    console.log('[API] WhatsApp template sent')
-                } else {
-                    console.log('[API] No WA config found for tenant')
-                }
-            } catch (waErr: any) {
-                console.error('[API] WhatsApp error (non-blocking):', waErr.message)
+            let projectName = 'online görüşmemiz'
+            if (input.project_id) {
+                const { data: proj } = await admin.from('projects').select('name').eq('id', input.project_id).single()
+                if (proj) projectName = proj.name
             }
+
+            const { data: tenant } = await admin
+                .from('tenants')
+                .select('wa_phone_number_id, wa_access_token')
+                .eq('id', profile.tenant_id)
+                .single()
+
+            const waPhoneId = tenant?.wa_phone_number_id || process.env.WHATSAPP_PHONE_NUMBER_ID
+            const waToken = tenant?.wa_access_token || process.env.WHATSAPP_ACCESS_TOKEN
+
+            // 1. Send WhatsApp Invite to Customer
+            if (input.send_whatsapp && customer.phone && waPhoneId && waToken) {
+                sendWhatsAppTemplate(
+                    customer.phone,
+                    'meeting_invite',
+                    [
+                        customer.full_name || 'Değerli Müşterimiz',
+                        `${dateStr} saat ${timeStr}`,
+                        projectName,
+                        guestUrl,
+                    ],
+                    'tr',
+                    waPhoneId,
+                    waToken
+                ).then(res => console.log('[API] Customer WA template result:', res)).catch(console.error)
+            }
+
+            // 2. Send WhatsApp & CRM Notification to Organizer / Host User
+            const { data: hostProfile } = await admin
+                .from('profiles')
+                .select('id, full_name, phone')
+                .eq('id', hostUserId)
+                .single()
+
+            if (hostProfile?.phone && waPhoneId && waToken) {
+                sendWhatsAppTemplate(
+                    hostProfile.phone,
+                    'lead_assignment_alert',
+                    [
+                        customer.full_name || 'Müşteri',
+                        customer.phone || '-',
+                        `📹 ONLINE TOPLANTI: ${dateStr} saat ${timeStr} | Proje: ${projectName}`
+                    ],
+                    'tr',
+                    waPhoneId,
+                    waToken
+                ).then(res => console.log('[API] Host WA notification result:', res)).catch(console.error)
+            }
+
+            // 3. In-App CRM Notification to Host User
+            const { createNotification } = await import('@/lib/notifications/create')
+            createNotification({
+                tenant_id: profile.tenant_id,
+                user_id: hostUserId,
+                type: 'Info',
+                category: 'CRM',
+                title: '📹 Yeni Online Toplantı',
+                message: `${customer.full_name || 'Müşteri'} ile ${dateStr} saat ${timeStr} için online toplantı planlandı.`,
+                link: '/meetings'
+            }).catch(console.error)
+
+        } catch (waErr: any) {
+            console.error('[API] Notification error (non-blocking):', waErr.message)
         }
 
         // Activity log (non-blocking)
