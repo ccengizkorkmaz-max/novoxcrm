@@ -11,7 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import {
     Video, Plus, Calendar, Clock, User, Phone, MapPin,
     Building2, Search, Trash2, X, ExternalLink, Send,
-    CheckCircle, XCircle, AlertCircle, Play, Loader2
+    CheckCircle, XCircle, AlertCircle, Play, Loader2,
+    Copy, Check, Link
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cancelMeeting, deleteMeeting } from '../actions'
@@ -61,6 +62,7 @@ export function MeetingsDashboard({ meetings: initialMeetings, profiles, project
     const [saving, setSaving] = useState(false)
     const [meetingToCancel, setMeetingToCancel] = useState<string | null>(null)
     const [meetingToDelete, setMeetingToDelete] = useState<string | null>(null)
+    const [copiedId, setCopiedId] = useState<string | null>(null)
 
     // Create form state
     const [title, setTitle] = useState('')
@@ -510,6 +512,46 @@ export function MeetingsDashboard({ meetings: initialMeetings, profiles, project
                                                     </Badge>
                                                 )}
                                             </div>
+
+                                            {/* Meeting Link & Copy Button */}
+                                            {(() => {
+                                                const localePrefix = locale === 'tr' ? '' : `/${locale}`
+                                                const origin = typeof window !== 'undefined' ? window.location.origin : 'https://www.novoxcrm.com'
+                                                const meetingUrl = `${origin}${localePrefix}/meetings/${meeting.id}`
+
+                                                return (
+                                                    <div className="flex items-center gap-1.5 mt-2 bg-slate-100 dark:bg-slate-800/80 px-2.5 py-1 rounded-md border border-slate-200 dark:border-slate-700 text-[11px] font-mono text-slate-700 dark:text-slate-200 w-fit max-w-full">
+                                                        <Link className="h-3 w-3 text-slate-400 shrink-0" />
+                                                        <span className="truncate max-w-[220px] sm:max-w-[340px] select-all">{meetingUrl}</span>
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="h-5 px-1.5 ml-1 text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-700 shrink-0 gap-1 text-[10px] font-sans font-semibold"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation()
+                                                                navigator.clipboard.writeText(meetingUrl)
+                                                                setCopiedId(meeting.id)
+                                                                toast.success('Toplantı bağlantısı kopyalandı! E-posta veya WhatsApp ile paylaşabilirsiniz.')
+                                                                setTimeout(() => setCopiedId(null), 2500)
+                                                            }}
+                                                            title="Toplantı Linkini Kopyala"
+                                                        >
+                                                            {copiedId === meeting.id ? (
+                                                                <>
+                                                                    <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+                                                                    <span className="text-emerald-600 dark:text-emerald-400">Kopyalandı</span>
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <Copy className="h-3 w-3 text-violet-600 dark:text-violet-400" />
+                                                                    <span>Kopyala</span>
+                                                                </>
+                                                            )}
+                                                        </Button>
+                                                    </div>
+                                                )
+                                            })()}
                                         </div>
 
                                         {/* Actions */}
