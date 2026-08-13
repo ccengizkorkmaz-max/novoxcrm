@@ -4266,15 +4266,19 @@ export async function createQuickAppointment(params: {
             )
             console.log(`📅 Randevu WA bildirim template sonucu (${repProfile.full_name}):`, alertResult)
 
-            // 2. Send approved Meta template 'randevu_hatrlatma'
-            await sendWhatsAppTemplate(
+            // 2. Send approved Meta template 'randevu_hatrlatma' (Meta template requires 2 parameters: {{1}} Rep Name, {{2}} Appointment Details)
+            const randevuTemplateResult = await sendWhatsAppTemplate(
                 repProfile.phone,
                 'randevu_hatrlatma',
-                [repProfile.full_name],
+                [
+                    repProfile.full_name,
+                    `${customerName} (${customerPhone}) - Tarih: ${formattedDate} | Yer: ${location}`
+                ],
                 'tr',
                 waPhoneId,
                 waToken
             )
+            console.log(`📅 randevu_hatrlatma template sonucu (${repProfile.full_name}):`, randevuTemplateResult)
 
             // 3. Also send interactive buttons for quick reporting (Tamamlandı / İptal / Ertelendi)
             const headerText = 'Randevunuz Oluşturuldu.'
