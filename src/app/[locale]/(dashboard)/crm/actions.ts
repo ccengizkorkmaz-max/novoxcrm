@@ -83,7 +83,7 @@ export async function createCustomer(formData: FormData) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) redirect('/login')
 
-    const { data: profile } = await supabase.from('profiles').select('tenant_id, full_name').eq('id', user.id).single()
+    const { data: profile } = await adminSupabase.from('profiles').select('tenant_id, full_name').eq('id', user.id).single()
     // Assuming tenant_id exists or we handle it. For MVP, we trust profile.
 
     const full_name = formData.get('full_name') as string
@@ -152,23 +152,7 @@ export async function createCustomer(formData: FormData) {
 
     if (error) {
         console.error('Create Customer Error:', error)
-        
-        // Log Error
-        await logSystemAction({
-            action_type: 'CREATE',
-            entity_type: 'Customer',
-            status: 'Error',
-            message: `Müşteri eklenirken hata oluştu: ${full_name}`,
-            details: {
-                girilen_isim: full_name,
-                telefon: phone,
-                email: email,
-                kaynak: source,
-                hata_detayi: error.message
-            }
-        })
-
-        return { error: `Müşteri oluşturulamadı: ${error.message}` }
+        return { error: 'Müşteri kaydı oluşturulamadı: ' + error.message }
     }
 
     // Log Success
@@ -646,8 +630,13 @@ export async function deleteCustomer(formData: FormData) {
 
 export async function createSale(formData: FormData) {
     const supabase = await createClient()
+    const { createAdminClient } = await import('@/lib/supabase/admin')
+    const adminSupabase = createAdminClient()
+
     const { data: { user } } = await supabase.auth.getUser()
-    const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user?.id).single()
+    if (!user) redirect('/login')
+
+    const { data: profile } = await adminSupabase.from('profiles').select('tenant_id').eq('id', user.id).single()
     const locale = await getLocale()
 
     let customer_id = formData.get('customer_id') as string
@@ -673,7 +662,7 @@ export async function createSale(formData: FormData) {
 
         // Check if a customer with the same phone already exists in this tenant
         const cleanPhone = newPhone.replace(/\D/g, '')
-        const { data: existing } = await supabase
+        const { data: existing } = await adminSupabase
             .from('customers')
             .select('id')
             .eq('tenant_id', profile?.tenant_id)
@@ -684,7 +673,7 @@ export async function createSale(formData: FormData) {
             customer_id = existing.id
         } else {
             // Create new customer
-            const { data: newCust, error: custErr } = await supabase
+            const { data: newCust, error: custErr } = await adminSupabase
                 .from('customers')
                 .insert({
                     tenant_id: profile?.tenant_id,
@@ -692,7 +681,8 @@ export async function createSale(formData: FormData) {
                     phone: newPhone,
                     email: newEmail,
                     source: source || 'Manuel Giriş',
-                    contact_type: 'buyer'
+                    contact_type: 'buyer',
+                    created_by: user.id
                 })
                 .select('id')
                 .single()

@@ -124,7 +124,7 @@ export default async function CRMPage(props: {
             .neq('full_name', '1')
             .eq('is_active', true)
             .or('is_external.is.null,is_external.eq.false')
-            .in('role', ['admin', 'owner', 'manager', 'sales'])
+            .in('role', ['admin', 'owner', 'manager', 'sales', 'sales_rep', 'agent', 'crm_manager', 'user'])
             .order('full_name'),
         supabase.from('projects').select('id, name').order('name'),
         supabase.from('payment_plan_templates').select('*, project_id').order('name', { ascending: true }),
