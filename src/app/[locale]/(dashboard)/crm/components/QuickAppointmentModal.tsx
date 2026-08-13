@@ -43,6 +43,22 @@ export default function QuickAppointmentModal({
     const [open, setOpen] = useState(false)
     const [isPending, startTransition] = useTransition()
 
+    // Default due date: Tomorrow 10:00
+    const getDefaultDateTime = () => {
+        const tomorrow = new Date()
+        tomorrow.setDate(tomorrow.getDate() + 1)
+        tomorrow.setHours(10, 0, 0, 0)
+        // Format to YYYY-MM-DDTHH:mm for datetime-local input
+        const pad = (n: number) => n.toString().padStart(2, '0')
+        return `${tomorrow.getFullYear()}-${pad(tomorrow.getMonth() + 1)}-${pad(tomorrow.getDate())}T${pad(tomorrow.getHours())}:${pad(tomorrow.getMinutes())}`
+    }
+
+    // ALL hooks must be called before any conditional returns (React Rules of Hooks)
+    const [dateTime, setDateTime] = useState(getDefaultDateTime())
+    const [location, setLocation] = useState('Satış Ofisi')
+    const [summary, setSummary] = useState('Proje Sunumu ve Görüşme')
+    const [notes, setNotes] = useState('')
+
     if (disabled) {
         return (
             <span title={disabledTooltip} className="inline-block cursor-not-allowed">
@@ -58,21 +74,6 @@ export default function QuickAppointmentModal({
             </span>
         )
     }
-
-    // Default due date: Tomorrow 10:00
-    const getDefaultDateTime = () => {
-        const tomorrow = new Date()
-        tomorrow.setDate(tomorrow.getDate() + 1)
-        tomorrow.setHours(10, 0, 0, 0)
-        // Format to YYYY-MM-DDTHH:mm for datetime-local input
-        const pad = (n: number) => n.toString().padStart(2, '0')
-        return `${tomorrow.getFullYear()}-${pad(tomorrow.getMonth() + 1)}-${pad(tomorrow.getDate())}T${pad(tomorrow.getHours())}:${pad(tomorrow.getMinutes())}`
-    }
-
-    const [dateTime, setDateTime] = useState(getDefaultDateTime())
-    const [location, setLocation] = useState('Satış Ofisi')
-    const [summary, setSummary] = useState('Proje Sunumu ve Görüşme')
-    const [notes, setNotes] = useState('')
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
