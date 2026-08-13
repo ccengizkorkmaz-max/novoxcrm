@@ -4248,17 +4248,35 @@ export async function createQuickAppointment(params: {
 
             const { sendWhatsAppTemplate, sendWhatsAppInteractiveButtons } = await import('@/lib/whatsapp')
 
-            // 1. Send approved Meta template 'randevu_hatrlatma'
-            const templateResult = await sendWhatsAppTemplate(
+            const waPhoneId = tenantWa?.wa_phone_number_id || process.env.WHATSAPP_PHONE_NUMBER_ID
+            const waToken = tenantWa?.wa_access_token || process.env.WHATSAPP_ACCESS_TOKEN
+
+            // 1. Send approved Meta template 'lead_assignment_alert' with full appointment details (bypasses 24h window)
+            const alertResult = await sendWhatsAppTemplate(
+                repProfile.phone,
+                'lead_assignment_alert',
+                [
+                    customerName,
+                    customerPhone,
+                    `📅 RANDEVU: ${formattedDate} | Yer: ${location} | ${fullSummary}`
+                ],
+                'tr',
+                waPhoneId,
+                waToken
+            )
+            console.log(`📅 Randevu WA bildirim template sonucu (${repProfile.full_name}):`, alertResult)
+
+            // 2. Send approved Meta template 'randevu_hatrlatma'
+            await sendWhatsAppTemplate(
                 repProfile.phone,
                 'randevu_hatrlatma',
                 [repProfile.full_name],
                 'tr',
-                tenantWa?.wa_phone_number_id,
-                tenantWa?.wa_access_token
+                waPhoneId,
+                waToken
             )
 
-            // 2. Also send interactive buttons for quick reporting
+            // 3. Also send interactive buttons for quick reporting (Tamamlandı / İptal / Ertelendi)
             const headerText = 'Randevunuz Oluşturuldu.'
             const bodyText = `Yeni bir müşteri randevunuz var.\n\n👤 Müşteri: ${customerName} (${customerPhone})\n🗓️ Tarih/Saat: ${formattedDate}\n📍 Yer: ${location}\n📝 Konu: ${fullSummary}`
             const footerText = 'Novo CRM'
@@ -4275,8 +4293,8 @@ export async function createQuickAppointment(params: {
                 bodyText,
                 buttons,
                 footerText,
-                tenantWa?.wa_phone_number_id,
-                tenantWa?.wa_access_token
+                waPhoneId,
+                waToken
             )
         }
     } catch (waErr) {
