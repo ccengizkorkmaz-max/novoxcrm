@@ -757,9 +757,6 @@ export async function createSale(formData: FormData) {
     // Broker-specific: add description
     if (description) salePayload.description = description
 
-    const { createAdminClient } = await import('@/lib/supabase/admin')
-    const adminSupabase = createAdminClient()
-
     const { data: newSaleData, error } = await adminSupabase.from('sales').insert(salePayload).select().single()
 
     if (error) {
