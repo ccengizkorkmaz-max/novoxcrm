@@ -1409,7 +1409,7 @@ async function notifyRepOfAssignment(saleId: string, userId: string, tenantId: s
         }
 
         const customerName = (sale as any)?.customers?.full_name || 'Müşteri'
-        const customerPhone = (sale as any)?.customers?.phone || ''
+        const customerPhone = (sale as any)?.customers?.phone || '-'
         const interestLevel = (sale as any)?.customers?.lead_qualifications?.[0]?.interest_level || ''
 
         console.log(`📋 notifyRepOfAssignment: saleId=${saleId}, customer=${customerName}, phone=${customerPhone}, interest=${interestLevel}`)

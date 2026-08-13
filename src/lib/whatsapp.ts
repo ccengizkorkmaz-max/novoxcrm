@@ -161,8 +161,8 @@ export async function sendWhatsAppTemplate(
     phoneId?: string,
     accessToken?: string
 ) {
-    const PHONE_ID = phoneId || process.env.WHATSAPP_PHONE_NUMBER_ID;
-    let ACCESS_TOKEN = accessToken || process.env.WHATSAPP_ACCESS_TOKEN;
+    const PHONE_ID = (phoneId && phoneId.trim()) || process.env.WHATSAPP_PHONE_NUMBER_ID;
+    let ACCESS_TOKEN = (accessToken && accessToken.trim()) || process.env.WHATSAPP_ACCESS_TOKEN;
 
     if (!PHONE_ID || !ACCESS_TOKEN) {
         return { success: false, error: 'WhatsApp API credentials missing' };
@@ -170,16 +170,16 @@ export async function sendWhatsAppTemplate(
 
     const cleanPhone = normalizePhone(to);
 
-    // Build template components with parameters
+    // Build template components with parameters (Meta API requires non-empty strings)
     const components: any[] = [];
     
     if (Array.isArray(parameters) && parameters.length > 0) {
-        // Legacy positional parameters: ['Cengiz Bey', '50000']
+        // Positional parameters: ['Cengiz Bey', '50000']
         components.push({
             type: 'body',
             parameters: parameters.map(p => ({
                 type: 'text',
-                text: p,
+                text: (p && p.toString().trim()) ? p.toString().trim() : '-',
             })),
         });
     } else if (typeof parameters === 'object' && !Array.isArray(parameters) && Object.keys(parameters).length > 0) {
@@ -189,7 +189,7 @@ export async function sendWhatsAppTemplate(
             parameters: Object.entries(parameters).map(([name, value]) => ({
                 type: 'text',
                 parameter_name: name,
-                text: value,
+                text: (value && value.toString().trim()) ? value.toString().trim() : '-',
             })),
         });
     }
