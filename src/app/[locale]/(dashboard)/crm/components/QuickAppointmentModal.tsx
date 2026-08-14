@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useEffect, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import {
     Dialog,
@@ -30,6 +30,14 @@ interface QuickAppointmentModalProps {
     onCreated?: (newAppointment: any) => void
 }
 
+const DEFAULT_LOCATIONS = [
+    { value: 'Satış Ofisi', label: '🏢 Satış Ofisi' },
+    { value: 'Saha / Proje Alanı', label: '🏗️ Saha / Proje Alanı' },
+    { value: 'Müşteri Adresi', label: '🏠 Müşteri Adresi' },
+    { value: 'Online (Zoom / Google Meet)', label: '💻 Online (Zoom / Google Meet)' },
+    { value: 'Dış Mekan / Kafe', label: '☕ Dış Mekan / Kafe' },
+]
+
 export default function QuickAppointmentModal({
     customerId,
     customerName,
@@ -58,6 +66,59 @@ export default function QuickAppointmentModal({
     const [location, setLocation] = useState('Satış Ofisi')
     const [summary, setSummary] = useState('Proje Sunumu ve Görüşme')
     const [notes, setNotes] = useState('')
+    const [customLocations, setCustomLocations] = useState<{ value: string; label: string }[]>([])
+    const [isAddingLocation, setIsAddingLocation] = useState(false)
+    const [newLocationInput, setNewLocationInput] = useState('')
+
+    // Load custom locations from localStorage
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            try {
+                const saved = localStorage.getItem('quick_appointment_locations')
+                if (saved) {
+                    const parsed = JSON.parse(saved)
+                    if (Array.isArray(parsed)) {
+                        setCustomLocations(parsed)
+                    }
+                }
+            } catch (err) {
+                console.error('Failed to load custom locations', err)
+            }
+        }
+    }, [])
+
+    const allLocations = [...DEFAULT_LOCATIONS, ...customLocations]
+
+    const handleAddLocation = (e?: React.FormEvent) => {
+        if (e) e.preventDefault()
+        const trimmed = newLocationInput.trim()
+        if (!trimmed) return
+
+        // Check if already exists
+        const exists = allLocations.some(l => l.value.toLowerCase() === trimmed.toLowerCase())
+        if (exists) {
+            setLocation(trimmed)
+            setIsAddingLocation(false)
+            setNewLocationInput('')
+            return
+        }
+
+        const newLocObj = { value: trimmed, label: `📍 ${trimmed}` }
+        const updated = [...customLocations, newLocObj]
+        setCustomLocations(updated)
+        setLocation(trimmed)
+        setIsAddingLocation(false)
+        setNewLocationInput('')
+
+        if (typeof window !== 'undefined') {
+            try {
+                localStorage.setItem('quick_appointment_locations', JSON.stringify(updated))
+            } catch (err) {
+                console.error(err)
+            }
+        }
+        toast.success(`"${trimmed}" konumu eklendi ve seçildi.`)
+    }
 
     if (disabled) {
         return (
@@ -151,21 +212,95 @@ export default function QuickAppointmentModal({
                         />
                     </div>
 
-                    <div className="space-y-1">
-                        <Label className="text-xs font-bold text-slate-700 flex items-center gap-1">
-                            <MapPin className="w-3.5 h-3.5 text-red-500" />
-                            Randevu Yeri / Konumu
-                        </Label>
+                    <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                            <Label className="text-xs font-bold text-slate-700 flex items-center gap-1">
+                                <MapPin className="w-3.5 h-3.5 text-red-500" />
+                                Randevu Yeri / Konumu
+                            </Label>
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                    setIsAddingLocation(!isAddingLocation)
+                                    setNewLocationInput('')
+                                }}
+                                className="h-5 px-1.5 text-[11px] font-semibold text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 gap-0.5"
+                                title="Yeni Randevu Yeri Ekle"
+                            >
+                                <Plus className="w-3 h-3" />
+                                <span>Yeni Konum Ekle</span>
+                            </Button>
+                        </div>
+
+                        {isAddingLocation && (
+                            <div className="p-2 bg-emerald-50/60 border border-emerald-200 rounded-lg space-y-1.5 animate-in fade-in slide-in-from-top-1">
+                                <Label className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">
+                                    Yeni Konum Adı
+                                </Label>
+                                <div className="flex items-center gap-1.5">
+                                    <Input
+                                        placeholder="Örn: Merkez Ofis, Starbucks vb."
+                                        value={newLocationInput}
+                                        onChange={e => setNewLocationInput(e.target.value)}
+                                        onKeyDown={e => {
+                                            if (e.key === 'Enter') {
+                                                e.preventDefault()
+                                                handleAddLocation()
+                                            }
+                                        }}
+                                        autoFocus
+                                        className="h-8 text-xs bg-white border-emerald-300 focus-visible:ring-emerald-500"
+                                    />
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        onClick={handleAddLocation}
+                                        className="h-8 px-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shrink-0"
+                                    >
+                                        Ekle
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => {
+                                            setIsAddingLocation(false)
+                                            setNewLocationInput('')
+                                        }}
+                                        className="h-8 px-2 text-xs text-slate-500 shrink-0"
+                                    >
+                                        İptal
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
+
                         <Select value={location} onValueChange={setLocation}>
-                            <SelectTrigger className="text-xs font-medium">
+                            <SelectTrigger className="text-xs font-medium bg-white">
                                 <SelectValue placeholder="Konum Seçiniz" />
                             </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="Satış Ofisi">🏢 Satış Ofisi</SelectItem>
-                                <SelectItem value="Saha / Proje Alanı">🏗️ Saha / Proje Alanı</SelectItem>
-                                <SelectItem value="Müşteri Adresi">🏠 Müşteri Adresi</SelectItem>
-                                <SelectItem value="Online / Zoom / Meet">💻 Online (Zoom / Google Meet)</SelectItem>
-                                <SelectItem value="Dış Mekan / Kafe">☕ Dış Mekan / Kafe</SelectItem>
+                            <SelectContent className="max-h-60">
+                                {allLocations.map((loc) => (
+                                    <SelectItem key={loc.value} value={loc.value} className="text-xs">
+                                        {loc.label}
+                                    </SelectItem>
+                                ))}
+                                <div className="p-1 border-t mt-1">
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.preventDefault()
+                                            e.stopPropagation()
+                                            setIsAddingLocation(true)
+                                        }}
+                                        className="flex items-center gap-1.5 w-full text-left text-xs text-emerald-600 font-semibold px-2 py-1.5 rounded hover:bg-emerald-50 transition-colors"
+                                    >
+                                        <Plus className="w-3.5 h-3.5" />
+                                        <span>+ Yeni Konum Ekle...</span>
+                                    </button>
+                                </div>
                             </SelectContent>
                         </Select>
                     </div>
