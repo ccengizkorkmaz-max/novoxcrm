@@ -28,7 +28,7 @@ export default async function ContactsPage({ params }: { params: Promise<{ local
     const [rawContactsRes, customersRes, profilesRes] = await Promise.all([
         supabase.from('contacts').select('*').eq('tenant_id', profile.tenant_id).order('created_at', { ascending: false }),
         supabase.from('customers').select('id, full_name, phone, email, source, created_at').eq('tenant_id', profile.tenant_id).order('created_at', { ascending: false }),
-        supabase.from('profiles').select('id, full_name').eq('tenant_id', profile.tenant_id).eq('is_active', true).order('full_name')
+        supabase.from('profiles').select('id, full_name, role, is_external').eq('tenant_id', profile.tenant_id).eq('is_active', true).neq('role', 'broker').or('is_external.is.null,is_external.eq.false').order('full_name')
     ])
 
     const rawContacts = rawContactsRes.data || []

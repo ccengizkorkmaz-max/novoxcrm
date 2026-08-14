@@ -229,9 +229,10 @@ export default async function LeadQualificationPage(props: {
 
         const { data: profData } = await supabase
             .from('profiles')
-            .select('id, full_name')
+            .select('id, full_name, role, is_external')
             .eq('tenant_id', profile.tenant_id)
             .eq('is_active', true)
+            .neq('role', 'broker')
             .or('is_external.is.null,is_external.eq.false')
             .order('full_name')
         if (profData) tenantProfiles = profData

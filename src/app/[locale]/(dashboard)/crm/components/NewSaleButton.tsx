@@ -206,7 +206,7 @@ export default function NewSaleButton({
                             <Label>Satış Temsilcisi (Atama)</Label>
                             <select name="assigned_to" className="h-10 px-3 rounded-lg border text-sm bg-white w-full">
                                 <option value="">Temsilci Atama (Boş Bırak veya Seç)</option>
-                                {profiles?.map((p: any) => (
+                                {profiles?.filter((p: any) => !p.is_external && p.role !== 'broker').map((p: any) => (
                                     <option key={p.id} value={p.id}>{p.full_name}</option>
                                 ))}
                             </select>

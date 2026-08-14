@@ -33,9 +33,10 @@ export default async function DeferredCRMToolbar({
             .in('status', ['For Sale', 'Stock'])
             .limit(1000),
         supabase.from('profiles')
-            .select('id, full_name')
+            .select('id, full_name, role, is_external')
             .eq('tenant_id', userTenantId)
             .eq('is_active', true)
+            .neq('role', 'broker')
             .or('is_external.is.null,is_external.eq.false')
             .order('full_name')
     ])

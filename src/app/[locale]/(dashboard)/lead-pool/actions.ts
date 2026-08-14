@@ -56,9 +56,10 @@ export async function getAvailableAgents() {
     
     const { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name, role')
+        .select('id, full_name, role, is_external')
         .eq('tenant_id', profile.tenant_id)
         .in('role', ['sales', 'manager', 'admin', 'owner'])
+        .neq('role', 'broker')
         .eq('is_active', true)
         .or('is_external.is.null,is_external.eq.false')
         .order('full_name')
@@ -67,9 +68,10 @@ export async function getAvailableAgents() {
         // Fallback without is_active filter
         const { data: fallback } = await supabase
             .from('profiles')
-            .select('id, full_name, role')
+            .select('id, full_name, role, is_external')
             .eq('tenant_id', profile.tenant_id)
             .in('role', ['sales', 'manager', 'admin', 'owner'])
+            .neq('role', 'broker')
             .or('is_external.is.null,is_external.eq.false')
             .order('full_name')
         return fallback || []

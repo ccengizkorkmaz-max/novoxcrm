@@ -434,7 +434,7 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
                                         disabled={isReadOnly}
                                     >
                                         <option value="">{t('form.selectOwner') || 'Ata...'}</option>
-                                        {profiles?.map((p: any) => (
+                                        {profiles?.filter((p: any) => !p.is_external && p.role !== 'broker').map((p: any) => (
                                             <option key={p.id} value={p.id}>{p.full_name}</option>
                                         ))}
                                     </select>

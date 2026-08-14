@@ -70,8 +70,9 @@ export default async function EditCustomerPage(props: {
             .order('created_at', { ascending: false }),
         supabase
             .from('profiles')
-            .select('id, full_name')
+            .select('id, full_name, role, is_external')
             .eq('is_active', true)
+            .neq('role', 'broker')
             .or('is_external.is.null,is_external.eq.false')
             .order('full_name')
     ])

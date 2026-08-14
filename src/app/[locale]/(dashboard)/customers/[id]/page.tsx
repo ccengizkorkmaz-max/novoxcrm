@@ -91,8 +91,9 @@ export default async function CustomerPage({ params }: CustomerPageProps) {
 
     let profilesQuery = supabase
         .from('profiles')
-        .select('id, full_name')
+        .select('id, full_name, role, is_external')
         .eq('is_active', true)
+        .neq('role', 'broker')
         .or('is_external.is.null,is_external.eq.false')
         .order('full_name')
 
@@ -106,7 +107,9 @@ export default async function CustomerPage({ params }: CustomerPageProps) {
     if (!profiles || profiles.length === 0) {
         profiles = [{
             id: user.id,
-            full_name: currentUserProfile?.full_name || user.email?.split('@')[0] || 'Mevcut Kullanıcı'
+            full_name: currentUserProfile?.full_name || user.email?.split('@')[0] || 'Mevcut Kullanıcı',
+            role: currentUserProfile?.role || 'sales',
+            is_external: false
         }]
     }
 

@@ -286,7 +286,7 @@ export default function NewContactModal({
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="unassigned">Atanmamış</SelectItem>
-                                            {profiles.map(p => (
+                                            {profiles.filter((p: any) => !p.is_external && p.role !== 'broker').map(p => (
                                                 <SelectItem key={p.id} value={p.id}>
                                                     {p.full_name}
                                                 </SelectItem>

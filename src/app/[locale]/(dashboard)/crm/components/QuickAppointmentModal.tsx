@@ -75,19 +75,20 @@ export default function QuickAppointmentModal({
     const [reps, setReps] = useState<{ id: string; full_name: string; phone?: string }[]>([])
     const [selectedRepId, setSelectedRepId] = useState<string>(initialRepresentativeId || '')
 
-    // Load representatives and customer's assigned rep
+    // Load representatives and customer's assigned rep (exclude external brokers)
     useEffect(() => {
         if (open) {
             const supabase = createClient()
             supabase
                 .from('profiles')
-                .select('id, full_name, phone, role')
+                .select('id, full_name, phone, role, is_external')
                 .eq('is_active', true)
                 .neq('role', 'broker')
+                .or('is_external.is.null,is_external.eq.false')
                 .order('full_name')
                 .then(({ data }) => {
                     if (data) {
-                        setReps(data)
+                        setReps(data.filter(p => !p.is_external && p.role !== 'broker'))
                     }
                 })
 
