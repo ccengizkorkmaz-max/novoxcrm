@@ -144,76 +144,95 @@ export async function createActivity(formData: FormData) {
     return { success: true }
 }
 
+function safeDateISO(val: unknown): string | null {
+    if (!val || typeof val !== 'string' || val.trim() === '') return null
+    const d = new Date(val)
+    return isNaN(d.getTime()) ? null : d.toISOString()
+}
+
 export async function updateActivity(formData: FormData) {
     const supabase = await createClient()
     const id = formData.get('id') as string
 
+    if (!id) {
+        return { error: 'Aktivite ID bulunamadı.' }
+    }
+
     const { data: existingAct } = await supabase
         .from('activities')
-        .select('status')
+        .select('id, status, completed_at, done_at')
         .eq('id', id)
         .single()
 
-    if (existingAct && (existingAct.status === 'Completed' || existingAct.status === 'Cancelled')) {
-        return { error: 'Tamamlanmış veya İptal edilmiş aktiviteler güncellenemez.' }
+    if (!existingAct) {
+        return { error: 'Aktivite bulunamadı.' }
     }
 
     const status = formData.get('status') as string
+    const isNowCompleted = status === 'Completed'
+
+    const updatePayload: Record<string, any> = {
+        summary: formData.get('summary') as string,
+        description: formData.get('description') as string,
+        due_date: safeDateISO(formData.get('due_date')),
+        type: formData.get('type') as string,
+        topic: formData.get('topic') as string,
+        notes: formData.get('notes') as string,
+        owner_id: (formData.get('owner_id') as string)?.trim() !== '' ? formData.get('owner_id') as string : null,
+        project_id: (formData.get('project_id') as string)?.trim() !== '' ? formData.get('project_id') as string : null,
+        priority: formData.get('priority') as string,
+        status: status || undefined,
+        reminder_at: safeDateISO(formData.get('reminder_at')),
+        outcome: formData.get('outcome') as string || null,
+        next_action_type: formData.get('next_action_type') as string || null,
+        next_action_date: safeDateISO(formData.get('next_action_date')),
+    }
+
+    if (isNowCompleted) {
+        updatePayload.completed_at = existingAct.completed_at || new Date().toISOString()
+        updatePayload.done_at = existingAct.done_at || new Date().toISOString()
+    } else if (status && status !== 'Completed') {
+        updatePayload.completed_at = null
+        updatePayload.done_at = null
+    }
 
     const { error } = await supabase
         .from('activities')
-        .update({
-            summary: formData.get('summary') as string,
-            description: formData.get('description') as string,
-            due_date: formData.get('due_date') ? new Date(formData.get('due_date') as string).toISOString() : null,
-            type: formData.get('type') as string,
-            topic: formData.get('topic') as string,
-            notes: formData.get('notes') as string,
-            owner_id: (formData.get('owner_id') as string)?.trim() !== '' ? formData.get('owner_id') as string : null,
-            project_id: (formData.get('project_id') as string)?.trim() !== '' ? formData.get('project_id') as string : null,
-            priority: formData.get('priority') as string,
-            status: status || undefined,
-            completed_at: status === 'Completed' ? new Date().toISOString() : undefined,
-            done_at: status === 'Completed' ? new Date().toISOString() : undefined,
-            reminder_at: formData.get('reminder_at') && (formData.get('reminder_at') as string).trim() !== ''
-                ? new Date(formData.get('reminder_at') as string).toISOString()
-                : null,
-            outcome: formData.get('outcome') as string || null,
-            next_action_type: formData.get('next_action_type') as string || null,
-            next_action_date: formData.get('next_action_date') && (formData.get('next_action_date') as string).trim() !== ''
-                ? new Date(formData.get('next_action_date') as string).toISOString()
-                : null,
-        })
+        .update(updatePayload)
         .eq('id', id)
 
-    if (!error) {
-        // Fetch original to check for owner change or just notify current owner
-        const { data: currentAct } = await supabase.from('activities').select('owner_id, summary, creator:profiles!user_id(full_name), tenant_id').eq('id', id).single()
+    if (error) {
+        console.error('Update Activity Error:', error)
+        return { error: `Güncelleme başarısız: ${error.message}` }
+    }
+
+    // Bildirim gönderme (hata fırlatırsa işlemi bozmamalı)
+    try {
+        const { data: currentAct } = await supabase.from('activities').select('owner_id, summary, tenant_id').eq('id', id).single()
         const { data: currentUser } = await supabase.auth.getUser()
 
-        if (currentAct && currentUser.user) {
+        if (currentAct && currentUser.user && currentAct.owner_id) {
             const isSelf = currentAct.owner_id === currentUser.user.id
             createNotification({
                 tenant_id: currentAct.tenant_id,
                 user_id: currentAct.owner_id,
                 type: 'Info',
                 category: 'CRM',
-                title: isSelf ? '📝 Görev Güncellendi' : '📝 Görev Güncellendi',
+                title: '📝 Görev Güncellendi',
                 message: isSelf
                     ? `"${currentAct.summary}" görevinizdeki değişiklikler kaydedildi.`
-                    : `Size atanan "${currentAct.summary}" görevi ${(currentAct.creator as any)?.full_name || (Array.isArray(currentAct.creator) && (currentAct.creator as any)[0]?.full_name) || 'bir yönetici'} tarafından güncellendi.`,
+                    : `Size atanan "${currentAct.summary}" görevi güncellendi.`,
                 link: '/activities'
             }).catch(console.error)
         }
-    }
-
-    if (error) {
-        console.error('Update Activity Error:', error)
-        return { error: `Güncelleme başarısız: ${error.message} (Kod: ${error.code})` }
+    } catch (notifErr) {
+        console.error('Notification error on updateActivity:', notifErr)
     }
 
     revalidatePath('/activities')
     revalidatePath('/crm')
+    revalidatePath('/customers')
+    revalidatePath('/customers/[id]', 'page')
     return { success: true }
 }
 
@@ -224,14 +243,8 @@ export async function outcomeActivity(formData: FormData) {
 
     const id = formData.get('id') as string
 
-    const { data: existingAct } = await supabase
-        .from('activities')
-        .select('status')
-        .eq('id', id)
-        .single()
-
-    if (existingAct && (existingAct.status === 'Completed' || existingAct.status === 'Cancelled')) {
-        return { error: 'Tamamlanmış veya İptal edilmiş aktiviteler güncellenemez.' }
+    if (!id) {
+        return { error: 'Aktivite ID bulunamadı.' }
     }
 
     const outcome = formData.get('outcome') as string
@@ -256,30 +269,33 @@ export async function outcomeActivity(formData: FormData) {
         done_at: new Date().toISOString(),
         notes: notes,
         next_action_type: next_action_type || null,
-        next_action_date: next_action_date && next_action_date.trim() !== '' ? new Date(next_action_date).toISOString() : null
+        next_action_date: safeDateISO(next_action_date)
     }
 
     if (summary !== null && summary !== undefined) updatePayload.summary = summary
     if (description !== null && description !== undefined) updatePayload.description = description
-    if (due_date && due_date.trim() !== '') updatePayload.due_date = new Date(due_date).toISOString()
+    if (due_date && due_date.trim() !== '') updatePayload.due_date = safeDateISO(due_date)
     if (type) updatePayload.type = type
     if (topic) updatePayload.topic = topic
     if (owner_id && owner_id.trim() !== '') updatePayload.owner_id = owner_id
     if (project_id && project_id.trim() !== '') updatePayload.project_id = project_id
     if (priority) updatePayload.priority = priority
     if (reminder_at && reminder_at.trim() !== '') {
-        updatePayload.reminder_at = new Date(reminder_at).toISOString()
+        updatePayload.reminder_at = safeDateISO(reminder_at)
     } else if (reminder_at === '') {
         updatePayload.reminder_at = null
     }
 
-    // Complete the current activity
+    // Complete / Update the current activity
     const { error: updateError } = await supabase
         .from('activities')
         .update(updatePayload)
         .eq('id', id)
 
-    if (updateError) return { error: 'Failed to complete activity' }
+    if (updateError) {
+        console.error('outcomeActivity error:', updateError)
+        return { error: `Aktivite güncellenemedi: ${updateError.message}` }
+    }
 
     // Check for next action
     const next_action_summary = formData.get('next_action_summary') as string
@@ -298,7 +314,7 @@ export async function outcomeActivity(formData: FormData) {
                 assigned_by_id: user?.id,
                 type: next_action_type,
                 summary: next_action_summary || `Follow up: ${next_action_type}`,
-                due_date: new Date(next_action_date).toISOString(),
+                due_date: safeDateISO(next_action_date),
                 project_id: original.project_id,
                 unit_id: original.unit_id,
                 previous_activity_id: id, // Link to original
@@ -309,6 +325,8 @@ export async function outcomeActivity(formData: FormData) {
 
     revalidatePath('/activities')
     revalidatePath('/crm')
+    revalidatePath('/customers')
+    revalidatePath('/customers/[id]', 'page')
     return { success: true }
 }
 
@@ -316,34 +334,29 @@ export async function deleteActivity(id: string) {
     const supabase = await createClient()
     const { error } = await supabase.from('activities').delete().eq('id', id)
 
-    if (error) return { error: 'Failed to delete' }
+    if (error) return { error: `Silinemedi: ${error.message}` }
 
     revalidatePath('/activities')
     revalidatePath('/crm')
+    revalidatePath('/customers')
+    revalidatePath('/customers/[id]', 'page')
     return { success: true }
 }
 
 export async function cancelActivity(id: string) {
     const supabase = await createClient()
-    const { data: existingAct } = await supabase
-        .from('activities')
-        .select('status')
-        .eq('id', id)
-        .single()
-
-    if (existingAct && (existingAct.status === 'Completed' || existingAct.status === 'Cancelled')) {
-        return { error: 'Tamamlanmış veya İptal edilmiş aktiviteler güncellenemez.' }
-    }
 
     const { error } = await supabase
         .from('activities')
         .update({ status: 'Cancelled' })
         .eq('id', id)
 
-    if (error) return { error: 'Failed to cancel activity' }
+    if (error) return { error: `İptal edilemedi: ${error.message}` }
 
     revalidatePath('/activities')
     revalidatePath('/crm')
+    revalidatePath('/customers')
+    revalidatePath('/customers/[id]', 'page')
     return { success: true }
 }
 
@@ -351,16 +364,6 @@ export async function completeActivity(formData: FormData) {
     // Backward compatibility wrapper or simple completion
     const supabase = await createClient()
     const id = formData.get('id') as string
-
-    const { data: existingAct } = await supabase
-        .from('activities')
-        .select('status')
-        .eq('id', id)
-        .single()
-
-    if (existingAct && (existingAct.status === 'Completed' || existingAct.status === 'Cancelled')) {
-        return { error: 'Tamamlanmış veya İptal edilmiş aktiviteler güncellenemez.' }
-    }
 
     const { error } = await supabase
         .from('activities')
@@ -372,8 +375,11 @@ export async function completeActivity(formData: FormData) {
         })
         .eq('id', id)
 
-    if (error) return { error: 'Failed to complete activity' }
+    if (error) return { error: `Tamamlanamadı: ${error.message}` }
     revalidatePath('/crm')
     revalidatePath('/activities')
+    revalidatePath('/customers')
+    revalidatePath('/customers/[id]', 'page')
     return { success: true }
 }
+

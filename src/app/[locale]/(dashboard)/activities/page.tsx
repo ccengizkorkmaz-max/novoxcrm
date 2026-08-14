@@ -37,8 +37,30 @@ export default async function ActivitiesPage(props: {
         profilesQuery = profilesQuery.eq('id', user.id)
     }
 
-    // Run all queries in parallel — NO MORE fetchAll while-loops!
-    // Limit activities and customers to reasonable amounts instead of fetching ALL records
+    // Build queries for activities
+    let incompleteQuery = supabase
+        .from('activities')
+        .select('*, customers(full_name, customer_type, company_name, company:companies(name)), leads(full_name), owner:profiles!activities_owner_id_fkey(full_name)')
+        .in('type', ['Call', 'Meeting', 'Task', 'OfficeMeeting', 'OnlineMeeting', 'Site Visit', 'Whatsapp', 'Email'])
+        .not('status', 'in', '("Completed","Cancelled")')
+        .order('due_date', { ascending: true })
+        .limit(1000)
+
+    let completedQuery = supabase
+        .from('activities')
+        .select('*, customers(full_name, customer_type, company_name, company:companies(name)), leads(full_name), owner:profiles!activities_owner_id_fkey(full_name)')
+        .in('type', ['Call', 'Meeting', 'Task', 'OfficeMeeting', 'OnlineMeeting', 'Site Visit', 'Whatsapp', 'Email'])
+        .in('status', ['Completed', 'Cancelled'])
+        .order('created_at', { ascending: false })
+        .limit(300)
+
+    // Satış temsilcileri (admin veya owner olmayanlar) yalnızca kendilerine atanan ya da kendilerinin yarattığı aktiviteleri görür
+    if (!isAdmin) {
+        incompleteQuery = incompleteQuery.or(`owner_id.eq.${user.id},user_id.eq.${user.id}`)
+        completedQuery = completedQuery.or(`owner_id.eq.${user.id},user_id.eq.${user.id}`)
+    }
+
+    // Run all queries in parallel
     const [customers, activities, profilesResult, t, projects] = await Promise.all([
         // Customers — include customer_type and company info for proper combobox display
         supabase
@@ -48,31 +70,10 @@ export default async function ActivitiesPage(props: {
             .limit(3000)
             .then(r => r.data || []),
 
-        // Activities — limit to 500 to avoid statement timeout
-        // NOTE: Do NOT add projects(name) join here — it causes timeout with many rows
-        // Project names are mapped client-side from the projects list
-        // Fetch up to 2000 activities to ensure we get older incomplete/overdue ones, 
-        // prioritizing incomplete over completed by sorting status but supabase doesn't easily sort by status semantics.
-        // We will fetch two queries or just fetch incomplete and limit 1000, and fetch completed limit 200 and merge.
-        // But for simplicity in Promise.all, we fetch 2000 ordered by created_at.
-        // Wait, a better approach is to fetch activities not completed.
+        // Activities
         Promise.all([
-            supabase
-                .from('activities')
-                .select('*, customers(full_name, customer_type, company_name, company:companies(name)), leads(full_name), owner:profiles!activities_owner_id_fkey(full_name)')
-                .in('type', ['Call', 'Meeting', 'Task', 'OfficeMeeting', 'OnlineMeeting', 'Site Visit', 'Whatsapp', 'Email'])
-                .not('status', 'in', '("Completed","Cancelled")')
-                .order('due_date', { ascending: true })
-                .limit(1000)
-                .then(r => r.data || []),
-            supabase
-                .from('activities')
-                .select('*, customers(full_name, customer_type, company_name, company:companies(name)), leads(full_name), owner:profiles!activities_owner_id_fkey(full_name)')
-                .in('type', ['Call', 'Meeting', 'Task', 'OfficeMeeting', 'OnlineMeeting', 'Site Visit', 'Whatsapp', 'Email'])
-                .in('status', ['Completed', 'Cancelled'])
-                .order('created_at', { ascending: false })
-                .limit(300)
-                .then(r => r.data || [])
+            incompleteQuery.then(r => r.data || []),
+            completedQuery.then(r => r.data || [])
         ]).then(([incomplete, completed]) => [...incomplete, ...completed]),
 
         // Profiles for filter dropdown

@@ -80,7 +80,7 @@ export function ActivitiesView({ initialActivities, customers, profiles, project
     // Clientside Filtering
     const filteredActivities = initialActivities.filter(a => {
         // Owner Filter
-        if (onlyMyActivities && a.owner_id !== user.id) return false
+        if (onlyMyActivities && a.owner_id !== user.id && a.user_id !== user.id) return false
 
         // Type Filter
         if (selectedTypes.length > 0) {

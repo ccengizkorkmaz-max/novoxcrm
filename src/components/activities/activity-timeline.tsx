@@ -83,7 +83,7 @@ export function ActivityTimeline({ activities, customer, profiles = [], projects
                                 </div>
                             )}
 
-                            <ActivityCard activity={activity} profiles={profiles} projects={projects} />
+                            <ActivityCard activity={activity} customers={customer ? [customer] : []} profiles={profiles} projects={projects} />
                         </div>
                     )
                 })}

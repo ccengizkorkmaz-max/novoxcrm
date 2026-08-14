@@ -177,20 +177,22 @@ export function ActivityCard({ activity, customers, profiles, projects, onComple
                             </div>
                         </div>
 
-                        {!isReadOnly && (
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                    <Button variant="ghost" size="icon" className="h-5 w-5 -mr-1 text-slate-400 hover:text-slate-600">
-                                        <MoreHorizontal className="h-3 w-3" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                <Button variant="ghost" size="icon" className="h-5 w-5 -mr-1 text-slate-400 hover:text-slate-600">
+                                    <MoreHorizontal className="h-3 w-3" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                {!isReadOnly && (
                                     <DropdownMenuItem onSelect={(e) => { e.stopPropagation(); setShowComplete(true); }}>
                                         {t('actions.complete')}
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem onSelect={(e) => { e.stopPropagation(); setShowEdit(true); }}>
-                                        {t('actions.edit')}
-                                    </DropdownMenuItem>
+                                )}
+                                <DropdownMenuItem onSelect={(e) => { e.stopPropagation(); setShowEdit(true); }}>
+                                    {t('actions.edit')}
+                                </DropdownMenuItem>
+                                {!isCancelled && (
                                     <DropdownMenuItem onSelect={async (e) => {
                                         e.stopPropagation();
                                         if (confirm('Bu aktiviteyi iptal etmek istediğinize emin misiniz?')) {
@@ -201,19 +203,19 @@ export function ActivityCard({ activity, customers, profiles, projects, onComple
                                     }}>
                                         İptal Et
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem className="text-red-600 focus:text-red-700" onSelect={async (e) => {
-                                        e.stopPropagation();
-                                        if (confirm('Bu aktiviteyi kalıcı olarak silmek istediğinize emin misiniz?')) {
-                                            const result = await deleteActivity(activity.id);
-                                            if (result?.error) toast.error(result.error);
-                                            else { toast.success('Aktivite silindi'); router.refresh(); }
-                                        }
-                                    }}>
-                                        Sil
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        )}
+                                )}
+                                <DropdownMenuItem className="text-red-600 focus:text-red-700" onSelect={async (e) => {
+                                    e.stopPropagation();
+                                    if (confirm('Bu aktiviteyi kalıcı olarak silmek istediğinize emin misiniz?')) {
+                                        const result = await deleteActivity(activity.id);
+                                        if (result?.error) toast.error(result.error);
+                                        else { toast.success('Aktivite silindi'); router.refresh(); }
+                                    }
+                                }}>
+                                    Sil
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </div>
 
                     {/* Body: Summary, Description & Customer */}
@@ -314,10 +316,22 @@ export function ActivityCard({ activity, customers, profiles, projects, onComple
             <Dialog open={showDetail} onOpenChange={setShowDetail}>
                 <DialogContent className="sm:max-w-[550px]">
                     <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            {isCompleted && <CheckCircle2 className="h-5 w-5 text-green-500" />}
-                            Aktivite Detayı
-                        </DialogTitle>
+                        <div className="flex items-center justify-between pr-6">
+                            <DialogTitle className="flex items-center gap-2">
+                                {isCompleted && <CheckCircle2 className="h-5 w-5 text-green-500" />}
+                                Aktivite Detayı
+                            </DialogTitle>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                    setShowDetail(false)
+                                    setShowEdit(true)
+                                }}
+                            >
+                                {t('actions.edit')}
+                            </Button>
+                        </div>
                     </DialogHeader>
                     <div className="space-y-4 py-2 max-h-[70vh] overflow-y-auto">
                         <div className="flex items-center gap-2">
@@ -333,7 +347,7 @@ export function ActivityCard({ activity, customers, profiles, projects, onComple
                                 </span>
                                 <span className={cn("ml-2 text-xs font-semibold px-2 py-0.5 rounded-full",
                                     isCompleted ? "bg-green-100 text-green-700" : "bg-slate-200 text-slate-600"
-                                )}>
+                                    )}>
                                     {isCompleted ? 'Tamamlandı' : 'İptal Edildi'}
                                 </span>
                             </div>
@@ -439,29 +453,25 @@ export function ActivityCard({ activity, customers, profiles, projects, onComple
                 </DialogContent>
             </Dialog>
 
-            {/* Edit form — only for non-completed activities */}
-            {!isReadOnly && (
-                <>
-                    <ActivityForm
-                        open={showEdit}
-                        onOpenChange={setShowEdit}
-                        mode="edit"
-                        activity={activity}
-                        customers={customers}
-                        profiles={profiles}
-                        projects={projects}
-                    />
-                    <ActivityForm
-                        open={showComplete}
-                        onOpenChange={setShowComplete}
-                        mode="complete"
-                        activity={activity}
-                        customers={customers}
-                        profiles={profiles}
-                        projects={projects}
-                    />
-                </>
-            )}
+            {/* Edit form */}
+            <ActivityForm
+                open={showEdit}
+                onOpenChange={setShowEdit}
+                mode="edit"
+                activity={activity}
+                customers={customers}
+                profiles={profiles}
+                projects={projects}
+            />
+            <ActivityForm
+                open={showComplete}
+                onOpenChange={setShowComplete}
+                mode="complete"
+                activity={activity}
+                customers={customers}
+                profiles={profiles}
+                projects={projects}
+            />
         </>
     )
 }

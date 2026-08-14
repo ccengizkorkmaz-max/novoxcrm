@@ -204,20 +204,18 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
         return items
     }, [customers, selectedCustomerId, activity])
 
-    // Derived State
-    const isReadOnly = mode === 'edit' && (activity?.status === 'Completed' || activity?.status === 'Cancelled')
+    const isReadOnly = false
     const isCompleteMode = mode === 'complete' || status === 'Completed'
+    const [isSubmitting, setIsSubmitting] = useState(false)
 
     const handleVoiceData = (text: string, data?: any) => {
         // If we have structured data from the AI, use it to fill the whole form
         if (data) {
             if (isCompleteMode) {
                 if (data.description) setNotes((prev: string) => prev ? prev + "\n" + data.description : data.description)
-                // We could also auto-select outcome if we find a way to set the ref or form value
             } else {
                 if (data.summary) setSummary(data.summary)
                 if (data.description) setDescription(data.description)
-                // Other fields could be filled here too if needed
             }
             return
         }
@@ -241,47 +239,67 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
     }
 
     async function handleSubmit(formData: FormData) {
-        let result;
+        setIsSubmitting(true)
+        try {
+            let result: any;
 
-        // Helper: convert datetime-local string to UTC ISO string
-        const toUTC = (key: string) => {
-            const val = formData.get(key) as string
-            if (val && val.trim() !== '') {
-                formData.set(key, new Date(val).toISOString())
+            // Form state'lerinden eksik kalabilecek alanları formData'ya garanti olarak yaz
+            if (summary) formData.set('summary', summary)
+            if (description) formData.set('description', description)
+            if (notes) formData.set('notes', notes)
+            if (status) formData.set('status', status)
+            if (selectedCustomerId) formData.set('customer_id', selectedCustomerId)
+            if (selectedProjectId) formData.set('project_id', selectedProjectId)
+
+            // Helper: convert datetime-local string to UTC ISO string
+            const toUTC = (key: string) => {
+                const val = formData.get(key) as string
+                if (val && val.trim() !== '') {
+                    const d = new Date(val)
+                    if (!isNaN(d.getTime())) {
+                        formData.set(key, d.toISOString())
+                    }
+                }
             }
-        }
 
-        if (mode === 'create') {
-            toUTC('due_date')
-            toUTC('reminder_at')
-            toUTC('next_action_date')
-            result = await createActivity(formData)
-        } else if (mode === 'edit' && status === 'Completed') {
-            // When completing via edit mode, use outcomeActivity to ensure next action is created
-            toUTC('next_action_date')
-            formData.append('id', activity.id)
-            result = await outcomeActivity(formData)
-        } else if (mode === 'edit') {
-            toUTC('due_date')
-            toUTC('reminder_at')
-            toUTC('next_action_date')
-            formData.append('id', activity.id)
-            result = await updateActivity(formData)
-        } else if (isCompleteMode) {
-            toUTC('next_action_date')
-            formData.append('id', activity.id)
-            result = await outcomeActivity(formData)
-        }
+            if (mode === 'create') {
+                toUTC('due_date')
+                toUTC('reminder_at')
+                toUTC('next_action_date')
+                result = await createActivity(formData)
+            } else if (mode === 'edit' && status === 'Completed') {
+                toUTC('due_date')
+                toUTC('reminder_at')
+                toUTC('next_action_date')
+                formData.set('id', activity?.id)
+                result = await updateActivity(formData)
+            } else if (mode === 'edit') {
+                toUTC('due_date')
+                toUTC('reminder_at')
+                toUTC('next_action_date')
+                formData.set('id', activity?.id)
+                result = await updateActivity(formData)
+            } else if (isCompleteMode) {
+                toUTC('next_action_date')
+                formData.set('id', activity?.id)
+                result = await outcomeActivity(formData)
+            }
 
-        if (result?.error) {
-            toast.error(result.error)
-        } else {
-            toast.success(
-                mode === 'create' ? t('form.success.created') :
-                    mode === 'edit' ? t('form.success.updated') : t('form.success.completed')
-            )
-            onOpenChange(false)
-            router.refresh()
+            if (result?.error) {
+                toast.error(result.error)
+            } else {
+                toast.success(
+                    mode === 'create' ? t('form.success.created') :
+                        mode === 'edit' ? t('form.success.updated') : t('form.success.completed')
+                )
+                onOpenChange(false)
+                router.refresh()
+            }
+        } catch (err: any) {
+            console.error('Activity Form Submit Error:', err)
+            toast.error(err?.message || 'Aktivite kaydedilirken bir hata oluştu.')
+        } finally {
+            setIsSubmitting(false)
         }
     }
 
@@ -506,8 +524,8 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
                                         rows={3}
                                         disabled={isReadOnly}
                                     />
-                                    {/* Additional hidden notes field just in case */}
-                                    <input type="hidden" name="notes" value={notes} />
+                                    {/* Additional hidden notes field only when not in complete mode */}
+                                    {!isCompleteMode && <input type="hidden" name="notes" value={notes} />}
                                 </div>
                             </>
                         )}
@@ -614,20 +632,28 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
                                         type="button"
                                         variant="destructive"
                                         onClick={handleDelete}
-                                        disabled={isDeleting}
+                                        disabled={isDeleting || isSubmitting}
                                     >
                                         {isDeleting ? 'Siliniyor...' : 'Sil'}
                                     </Button>
                                 )}
                                 <Button 
                                     type="submit" 
+                                    disabled={isSubmitting || isDeleting}
                                     className={cn(
                                         isCompleteMode && mode !== 'edit' && "bg-green-600 hover:bg-green-700 w-full",
                                         isCompleteMode && mode === 'edit' && "bg-green-600 hover:bg-green-700",
                                         mode === 'edit' && "ml-auto"
                                     )}
                                 >
-                                    {isCompleteMode ? t('form.completeAndSave') : t('form.save')}
+                                    {isSubmitting ? (
+                                        <>
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            Kaydediliyor...
+                                        </>
+                                    ) : (
+                                        isCompleteMode ? t('form.completeAndSave') : t('form.save')
+                                    )}
                                 </Button>
                             </>
                         )}
