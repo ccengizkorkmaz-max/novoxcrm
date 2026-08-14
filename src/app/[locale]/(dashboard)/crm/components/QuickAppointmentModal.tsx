@@ -18,7 +18,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { createQuickAppointment } from '../actions'
 import { toast } from 'sonner'
-import { CalendarPlus, Calendar, Clock, MapPin, FileText, Plus, Loader2 } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
+import { CalendarPlus, Calendar, Clock, MapPin, FileText, Plus, Loader2, UserCheck } from 'lucide-react'
 
 interface QuickAppointmentModalProps {
     customerId: string
@@ -28,6 +29,7 @@ interface QuickAppointmentModalProps {
     disabledTooltip?: string
     trigger?: React.ReactNode
     onCreated?: (newAppointment: any) => void
+    initialRepresentativeId?: string
 }
 
 const DEFAULT_LOCATIONS = [
@@ -45,7 +47,8 @@ export default function QuickAppointmentModal({
     disabled = false,
     disabledTooltip = 'Önce bir satış temsilcisi atamalısınız!',
     trigger,
-    onCreated
+    onCreated,
+    initialRepresentativeId
 }: QuickAppointmentModalProps) {
     const router = useRouter()
     const [open, setOpen] = useState(false)
@@ -69,6 +72,39 @@ export default function QuickAppointmentModal({
     const [customLocations, setCustomLocations] = useState<{ value: string; label: string }[]>([])
     const [isAddingLocation, setIsAddingLocation] = useState(false)
     const [newLocationInput, setNewLocationInput] = useState('')
+    const [reps, setReps] = useState<{ id: string; full_name: string; phone?: string }[]>([])
+    const [selectedRepId, setSelectedRepId] = useState<string>(initialRepresentativeId || '')
+
+    // Load representatives and customer's assigned rep
+    useEffect(() => {
+        if (open) {
+            const supabase = createClient()
+            supabase
+                .from('profiles')
+                .select('id, full_name, phone, role')
+                .eq('is_active', true)
+                .neq('role', 'broker')
+                .order('full_name')
+                .then(({ data }) => {
+                    if (data) {
+                        setReps(data)
+                    }
+                })
+
+            if (customerId && !selectedRepId) {
+                supabase
+                    .from('customers')
+                    .select('assigned_to')
+                    .eq('id', customerId)
+                    .single()
+                    .then(({ data }) => {
+                        if (data?.assigned_to) {
+                            setSelectedRepId(data.assigned_to)
+                        }
+                    })
+            }
+        }
+    }, [open, customerId])
 
     // Load custom locations from localStorage
     useEffect(() => {
@@ -151,7 +187,8 @@ export default function QuickAppointmentModal({
                     dueDate: dateTime,
                     location,
                     summary: summary.trim() || 'Müşteri Randevusu',
-                    notes: notes.trim()
+                    notes: notes.trim(),
+                    representativeId: selectedRepId || undefined
                 })
 
                 if (res?.error) {
@@ -301,6 +338,25 @@ export default function QuickAppointmentModal({
                                         <span>+ Yeni Konum Ekle...</span>
                                     </button>
                                 </div>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="space-y-1">
+                        <Label className="text-xs font-bold text-slate-700 flex items-center gap-1">
+                            <UserCheck className="w-3.5 h-3.5 text-indigo-500" />
+                            Temsilci Ekle
+                        </Label>
+                        <Select value={selectedRepId} onValueChange={setSelectedRepId}>
+                            <SelectTrigger className="text-xs font-medium bg-white">
+                                <SelectValue placeholder="Temsilci Seçiniz (Atanmış Temsilci)" />
+                            </SelectTrigger>
+                            <SelectContent className="max-h-60">
+                                {reps.map((rep) => (
+                                    <SelectItem key={rep.id} value={rep.id} className="text-xs">
+                                        👤 {rep.full_name} {rep.phone ? `(${rep.phone})` : ''}
+                                    </SelectItem>
+                                ))}
                             </SelectContent>
                         </Select>
                     </div>

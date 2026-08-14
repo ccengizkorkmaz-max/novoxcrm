@@ -4146,6 +4146,7 @@ export async function createQuickAppointment(params: {
     location?: string
     summary?: string
     notes?: string
+    representativeId?: string
 }) {
     const supabase = await createClient()
     const { createAdminClient } = await import('@/lib/supabase/admin')
@@ -4163,8 +4164,8 @@ export async function createQuickAppointment(params: {
     ].filter(Boolean).join('\n')
 
     // Find who the sale or customer is assigned to so activity is owned by the assigned rep
-    let assignedOwnerId = user.id
-    if (params.saleId) {
+    let assignedOwnerId = params.representativeId || user.id
+    if (!params.representativeId && params.saleId) {
         const { data: saleData } = await adminSupabase
             .from('sales')
             .select('assigned_to')
@@ -4175,7 +4176,7 @@ export async function createQuickAppointment(params: {
         }
     }
 
-    if (assignedOwnerId === user.id && params.customerId) {
+    if (!params.representativeId && assignedOwnerId === user.id && params.customerId) {
         const { data: customerData } = await adminSupabase
             .from('customers')
             .select('assigned_to')
