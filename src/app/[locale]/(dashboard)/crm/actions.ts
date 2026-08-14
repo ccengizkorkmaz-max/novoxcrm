@@ -4297,6 +4297,28 @@ export async function createQuickAppointment(params: {
                 waPhoneId,
                 waToken
             )
+
+            // 4. Müşteriye Randevu WhatsApp Mesajı Gönder (Meta Template: randevu_musteri)
+            if (customer?.phone) {
+                const repInfo = repProfile?.full_name 
+                    ? `${repProfile.full_name}${repProfile.phone ? ` (${repProfile.phone})` : ''}` 
+                    : 'Satış Danışmanınız'
+
+                const customerWaResult = await sendWhatsAppTemplate(
+                    customer.phone,
+                    'randevu_musteri',
+                    [
+                        customerName,      // {{1}} Müşteri Adı
+                        formattedDate,     // {{2}} Tarih ve Saat
+                        location,          // {{3}} Randevu Yeri
+                        repInfo            // {{4}} Satış Temsilcisi
+                    ],
+                    'tr',
+                    waPhoneId,
+                    waToken
+                )
+                console.log(`📅 Müşteriye randevu_musteri bildirim sonucu (${customerName} - ${customer.phone}):`, customerWaResult)
+            }
         }
     } catch (waErr) {
         console.error('Randevu WhatsApp bildirimi gönderilirken hata:', waErr)
