@@ -4235,6 +4235,7 @@ export async function createQuickAppointment(params: {
                 day: 'numeric',
                 month: 'long',
                 year: 'numeric',
+                weekday: 'long',
                 hour: '2-digit',
                 minute: '2-digit'
             })
@@ -4248,57 +4249,60 @@ export async function createQuickAppointment(params: {
             const waPhoneId = tenantWa?.wa_phone_number_id || process.env.WHATSAPP_PHONE_NUMBER_ID
             const waToken = tenantWa?.wa_access_token || process.env.WHATSAPP_ACCESS_TOKEN
 
-            // 1. Send approved Meta template 'lead_assignment_alert' with full appointment details (bypasses 24h window)
-            const alertResult = await sendWhatsAppTemplate(
+            // Randevu detay metni (Satış temsilcisine gidecek metin)
+            const appointmentDetailText = `👤 Müşteri: ${customerName} (${customerPhone})\n📅 Tarih: ${formattedDate}\n📍 Yer: ${location}\n📝 Konu: ${fullSummary}${params.notes ? `\n📌 Not: ${params.notes}` : ''}`
+
+            // 1. Satış Temsilcisine Meta Template Bildirimi (randevu_hatirlatma)
+            let randevuTemplateResult = await sendWhatsAppTemplate(
                 repProfile.phone,
-                'lead_assignment_alert',
+                'randevu_hatirlatma',
                 [
-                    customerName,
-                    customerPhone,
-                    `📅 RANDEVU: ${formattedDate} | Yer: ${location} | ${fullSummary}`
+                    repProfile.full_name || 'Satış Temsilcisi',
+                    appointmentDetailText
                 ],
                 'tr',
                 waPhoneId,
                 waToken
             )
-            console.log(`📅 Randevu WA bildirim template sonucu (${repProfile.full_name}):`, alertResult)
 
-            // 2. Send approved Meta template 'randevu_hatrlatma' (Meta template requires 2 parameters: {{1}} Rep Name, {{2}} Appointment Details)
-            const randevuTemplateResult = await sendWhatsAppTemplate(
-                repProfile.phone,
-                'randevu_hatrlatma',
-                [
-                    repProfile.full_name,
-                    `${customerName} (${customerPhone}) - Tarih: ${formattedDate} | Yer: ${location}`
-                ],
-                'tr',
-                waPhoneId,
-                waToken
-            )
-            console.log(`📅 randevu_hatrlatma template sonucu (${repProfile.full_name}):`, randevuTemplateResult)
+            // Fallback: Eğer Türkçe karakterli isimle kayıtlıysa (randevu_hatırlatma)
+            if (!randevuTemplateResult?.success) {
+                console.log(`⚠️ randevu_hatirlatma bulunamadı, randevu_hatırlatma deneniyor...`)
+                const fallbackRes = await sendWhatsAppTemplate(
+                    repProfile.phone,
+                    'randevu_hatırlatma',
+                    [
+                        repProfile.full_name || 'Satış Temsilcisi',
+                        appointmentDetailText
+                    ],
+                    'tr',
+                    waPhoneId,
+                    waToken
+                )
+                if (fallbackRes?.success) {
+                    randevuTemplateResult = fallbackRes
+                }
+            }
 
-            // 3. Also send interactive buttons for quick reporting (Tamamlandı / İptal / Ertelendi)
-            const headerText = 'Randevunuz Oluşturuldu.'
-            const bodyText = `Yeni bir müşteri randevunuz var.\n\n👤 Müşteri: ${customerName} (${customerPhone})\n🗓️ Tarih/Saat: ${formattedDate}\n📍 Yer: ${location}\n📝 Konu: ${fullSummary}`
-            const footerText = 'Novo CRM'
+            console.log(`📅 Temsilciye (${repProfile.full_name} - ${repProfile.phone}) randevu_hatirlatma sonucu:`, randevuTemplateResult)
 
-            const buttons = [
-                { id: `randevu_completed_${newAct.id}`, title: 'Tamamlandı.' },
-                { id: `randevu_cancelled_${newAct.id}`, title: 'İptal oldu.' },
-                { id: `randevu_postponed_${newAct.id}`, title: 'Ertelendi.' }
-            ]
+            // 2. Yedek bildirim: lead_assignment_alert (Meta onaylı genel şablon)
+            if (!randevuTemplateResult?.success) {
+                await sendWhatsAppTemplate(
+                    repProfile.phone,
+                    'lead_assignment_alert',
+                    [
+                        customerName,
+                        customerPhone,
+                        `📅 RANDEVU: ${formattedDate} | Yer: ${location} | ${fullSummary}`
+                    ],
+                    'tr',
+                    waPhoneId,
+                    waToken
+                ).catch(console.error)
+            }
 
-            await sendWhatsAppInteractiveButtons(
-                repProfile.phone,
-                headerText,
-                bodyText,
-                buttons,
-                footerText,
-                waPhoneId,
-                waToken
-            )
-
-            // 4. Müşteriye Randevu WhatsApp Mesajı Gönder (Meta Template: randevu_musteri)
+            // 3. Müşteriye Randevu WhatsApp Mesajı Gönder (Meta Template: randevu_musteri)
             if (customer?.phone) {
                 const repInfo = repProfile?.full_name 
                     ? `${repProfile.full_name}${repProfile.phone ? ` (${repProfile.phone})` : ''}` 
