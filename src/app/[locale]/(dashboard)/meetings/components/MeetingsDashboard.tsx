@@ -114,10 +114,14 @@ export function MeetingsDashboard({ meetings: initialMeetings, profiles, project
     const filteredMeetings = meetings.filter(m => {
         const d = new Date(m.scheduled_at)
         switch (filter) {
-            case 'today': return d >= todayStart && d < todayEnd
-            case 'upcoming': return d >= now && m.status !== 'cancelled' && m.status !== 'completed'
-            case 'past': return d < now || m.status === 'completed' || m.status === 'cancelled'
-            default: return true
+            case 'today':
+                return d >= todayStart && d < todayEnd
+            case 'upcoming':
+                return (d >= todayStart || m.status === 'scheduled' || m.status === 'in_progress') && m.status !== 'cancelled' && m.status !== 'completed'
+            case 'past':
+                return m.status === 'completed' || m.status === 'cancelled' || (d < todayStart && m.status !== 'scheduled' && m.status !== 'in_progress')
+            default:
+                return true
         }
     })
 
@@ -126,7 +130,11 @@ export function MeetingsDashboard({ meetings: initialMeetings, profiles, project
         return d >= todayStart && d < todayEnd && m.status !== 'cancelled'
     })
 
-    const upcomingCount = meetings.filter(m => new Date(m.scheduled_at) >= now && m.status === 'scheduled').length
+    const upcomingCount = meetings.filter(m => 
+        (new Date(m.scheduled_at) >= todayStart || m.status === 'scheduled' || m.status === 'in_progress') && 
+        m.status !== 'cancelled' && 
+        m.status !== 'completed'
+    ).length
     const completedCount = meetings.filter(m => m.status === 'completed').length
 
     // Reset form
