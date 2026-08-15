@@ -51,24 +51,24 @@ export async function POST(request: NextRequest) {
         const meetingId = crypto.randomUUID()
         const room = await createRoom({
             meetingId,
-            expiryMinutes: 180,
+            scheduledAt: input.scheduled_at,
             enableRecording: false,
         })
         console.log('[API] Room created:', room.name)
 
-        // Tokens
+        // Tokens with 7 days expiry from scheduled_at
         const hostToken = await createMeetingToken({
             roomName: room.name,
             isOwner: true,
             userName: hostName,
-            expiryMinutes: 180,
+            scheduledAt: input.scheduled_at,
         })
 
         const guestToken = await createMeetingToken({
             roomName: room.name,
             isOwner: false,
             userName: customer.full_name || 'Müşteri',
-            expiryMinutes: 180,
+            scheduledAt: input.scheduled_at,
         })
         console.log('[API] Tokens created')
 

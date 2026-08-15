@@ -67,6 +67,19 @@ export default async function MeetingRoomPage({ params }: MeetingRoomPageProps) 
         .eq('id', user.id)
         .single()
 
+    // Ensure Daily room and host token are active
+    if (meeting.status !== 'cancelled' && meeting.status !== 'completed') {
+        const { ensureDailyMeetingReady } = await import('@/lib/daily')
+        try {
+            const ready = await ensureDailyMeetingReady(meeting)
+            meeting.host_token = ready.hostToken
+            meeting.daily_room_url = ready.roomUrl
+            meeting.daily_room_name = ready.roomName
+        } catch (err) {
+            console.error('[MeetingRoomPage] Error ensuring Daily room ready:', err)
+        }
+    }
+
     return (
         <MeetingRoom
             meeting={meeting}

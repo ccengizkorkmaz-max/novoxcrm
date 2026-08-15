@@ -133,27 +133,27 @@ export async function createMeeting(input: CreateMeetingInput) {
     if (!customer) return { data: null, error: 'Müşteri bulunamadı' }
 
     try {
-        // 1. Create Daily.co room
+        // 1. Create Daily.co room with expiry based on scheduled_at (+7 days)
         const meetingId = crypto.randomUUID()
         const room = await createRoom({
             meetingId,
-            expiryMinutes: 180,
+            scheduledAt: input.scheduled_at,
             enableRecording: false, // Free plan uyumlu
         })
 
-        // 2. Generate tokens
+        // 2. Generate tokens with expiry based on scheduled_at (+7 days)
         const hostToken = await createMeetingToken({
             roomName: room.name,
             isOwner: true,
             userName: hostName,
-            expiryMinutes: 180,
+            scheduledAt: input.scheduled_at,
         })
 
         const guestToken = await createMeetingToken({
             roomName: room.name,
             isOwner: false,
             userName: customer.full_name || 'Müşteri',
-            expiryMinutes: 180,
+            scheduledAt: input.scheduled_at,
         })
 
         // 3. Save to database (admin client to bypass RLS insert issues)

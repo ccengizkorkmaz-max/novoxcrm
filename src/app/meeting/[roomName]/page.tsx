@@ -1,6 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { notFound } from 'next/navigation'
 import { GuestMeetingRoom } from './GuestMeetingRoom'
+import { ensureDailyMeetingReady } from '@/lib/daily'
 
 interface GuestMeetingPageProps {
     params: Promise<{ roomName: string }>
@@ -30,6 +31,18 @@ export default async function GuestMeetingPage({ params }: GuestMeetingPageProps
         customer: Array.isArray(raw.customer) ? raw.customer[0] || null : raw.customer,
         project: Array.isArray(raw.project) ? raw.project[0] || null : raw.project,
         host: Array.isArray(raw.host) ? raw.host[0] || null : raw.host,
+    }
+
+    // If meeting is still active (scheduled or in_progress), ensure room and token are ready
+    if (meeting.status !== 'cancelled' && meeting.status !== 'completed') {
+        try {
+            const ready = await ensureDailyMeetingReady(meeting)
+            meeting.guest_token = ready.guestToken
+            meeting.daily_room_url = ready.roomUrl
+            meeting.daily_room_name = ready.roomName
+        } catch (err) {
+            console.error('[GuestMeetingPage] Error ensuring Daily room ready:', err)
+        }
     }
 
     return <GuestMeetingRoom meeting={meeting} />

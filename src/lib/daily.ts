@@ -43,25 +43,43 @@ export interface DailyRoom {
 }
 
 /**
- * Yeni toplantı odası oluştur
+ * Toplantı ve token için geçerlilik süresi (exp) hesapla (varsayılan: planlanan tarihten itibaren 7 gün)
+ */
+export function calculateMeetingExpiry(scheduledAt?: string | Date | null, expiryDays = 7): number {
+    let baseTime = Date.now()
+    if (scheduledAt) {
+        const parsed = new Date(scheduledAt).getTime()
+        if (!isNaN(parsed) && parsed > baseTime) {
+            baseTime = parsed
+        }
+    }
+    return Math.floor(baseTime / 1000) + (expiryDays * 24 * 60 * 60)
+}
+
+/**
+ * Yeni toplantı odası oluştur (veya var olan isimle)
  */
 export async function createRoom(options: {
     meetingId: string
-    expiryMinutes?: number
+    customRoomName?: string
+    scheduledAt?: string | Date | null
+    expiryTimestamp?: number
     enableRecording?: boolean
     enableChat?: boolean
     maxParticipants?: number
 }): Promise<DailyRoom> {
     const {
         meetingId,
-        expiryMinutes = 120,
-        enableRecording = true,
+        customRoomName,
+        scheduledAt,
+        expiryTimestamp,
+        enableRecording = false,
         enableChat = true,
         maxParticipants = 10,
     } = options
 
-    const expiryTime = Math.floor(Date.now() / 1000) + (expiryMinutes * 60)
-    const roomName = `novocrm-${meetingId.substring(0, 8)}-${Date.now()}`
+    const expiryTime = expiryTimestamp || calculateMeetingExpiry(scheduledAt, 7)
+    const roomName = customRoomName || `novocrm-${meetingId.substring(0, 8)}-${Date.now()}`
 
     const room = await dailyFetch('/rooms', {
         method: 'POST',
@@ -86,7 +104,7 @@ export async function createRoom(options: {
         }),
     })
 
-    console.log(`[Daily.co] ✅ Room created: ${room.name} (${room.url})`)
+    console.log(`[Daily.co] ✅ Room created: ${room.name} (${room.url}) [exp: ${new Date(expiryTime * 1000).toISOString()}]`)
     return room
 }
 
@@ -97,16 +115,18 @@ export async function createMeetingToken(options: {
     roomName: string
     isOwner?: boolean
     userName?: string
-    expiryMinutes?: number
+    scheduledAt?: string | Date | null
+    expiryTimestamp?: number
 }): Promise<string> {
     const {
         roomName,
         isOwner = false,
         userName = 'Katılımcı',
-        expiryMinutes = 120,
+        scheduledAt,
+        expiryTimestamp,
     } = options
 
-    const expiryTime = Math.floor(Date.now() / 1000) + (expiryMinutes * 60)
+    const expiryTime = expiryTimestamp || calculateMeetingExpiry(scheduledAt, 7)
 
     const data = await dailyFetch('/meeting-tokens', {
         method: 'POST',
@@ -178,6 +198,91 @@ export async function startRecording(roomName: string): Promise<boolean> {
         return true
     } catch {
         return false
+    }
+}
+
+// ─── Helper: Ensure Daily Meeting is Ready & Active ─────────
+
+/**
+ * Toplantı odasının ve token'larının aktif olduğundan emin olur.
+ * Eğer oda Daily.co üzerinde süresi dolduğu için silinmişse, odayı otomatik olarak yeniden oluşturur
+ * ve taze token'lar üreterek veritabanını günceller.
+ */
+export async function ensureDailyMeetingReady(meeting: {
+    id: string
+    daily_room_name?: string | null
+    scheduled_at?: string | null
+    host_token?: string | null
+    guest_token?: string | null
+    customer?: { full_name?: string } | null
+    host?: { full_name?: string } | null
+    status?: string
+}): Promise<{
+    roomName: string
+    roomUrl: string
+    hostToken: string
+    guestToken: string
+}> {
+    const { createAdminClient } = await import('@/lib/supabase/admin')
+    const adminDb = createAdminClient()
+
+    let roomName = meeting.daily_room_name
+    let roomDetails: DailyRoom | null = null
+
+    if (roomName) {
+        roomDetails = await getRoomDetails(roomName)
+    }
+
+    // If room doesn't exist on Daily.co (or expired), create a new/fresh room
+    if (!roomDetails) {
+        console.log(`[Daily.co] ⚠️ Room ${roomName || meeting.id} not found or expired. Re-creating room...`)
+        const newRoom = await createRoom({
+            meetingId: meeting.id,
+            customRoomName: roomName || undefined,
+            scheduledAt: meeting.scheduled_at,
+            enableRecording: false,
+        })
+        roomName = newRoom.name
+        roomDetails = newRoom
+    }
+
+    const safeRoomName = roomName || roomDetails.name
+
+    // Always ensure fresh valid tokens
+    const hostName = meeting.host?.full_name || 'Danışman'
+    const customerName = meeting.customer?.full_name || 'Müşteri'
+
+    const hostToken = await createMeetingToken({
+        roomName: safeRoomName,
+        isOwner: true,
+        userName: hostName,
+        scheduledAt: meeting.scheduled_at,
+    })
+
+    const guestToken = await createMeetingToken({
+        roomName: safeRoomName,
+        isOwner: false,
+        userName: customerName,
+        scheduledAt: meeting.scheduled_at,
+    })
+
+    // Update DB with active room url and fresh tokens
+    await adminDb
+        .from('meetings')
+        .update({
+            daily_room_name: safeRoomName,
+            daily_room_url: roomDetails.url,
+            host_token: hostToken,
+            guest_token: guestToken,
+            updated_at: new Date().toISOString(),
+        })
+        .eq('id', meeting.id)
+
+    return {
+        roomName: safeRoomName,
+        roomUrl: roomDetails.url,
+        hostToken,
+        guestToken,
     }
 }
 
