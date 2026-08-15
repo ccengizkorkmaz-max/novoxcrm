@@ -600,14 +600,16 @@ export function MeetingsDashboard({ meetings: initialMeetings, profiles, project
 
                                             {/* Meeting Link & Copy Button */}
                                             {(() => {
-                                                const localePrefix = locale === 'tr' ? '' : `/${locale}`
                                                 const origin = typeof window !== 'undefined' ? window.location.origin : 'https://www.novoxcrm.com'
-                                                const meetingUrl = `${origin}${localePrefix}/meetings/${meeting.id}`
+                                                const guestUrl = meeting.daily_room_name
+                                                    ? `${origin}/meeting/${meeting.daily_room_name}`
+                                                    : `${origin}/meetings/${meeting.id}`
 
                                                 return (
                                                     <div className="flex items-center gap-1.5 mt-2 bg-slate-100 dark:bg-slate-800/80 px-2.5 py-1 rounded-md border border-slate-200 dark:border-slate-700 text-[11px] font-mono text-slate-700 dark:text-slate-200 w-fit max-w-full">
                                                         <Link className="h-3 w-3 text-slate-400 shrink-0" />
-                                                        <span className="truncate max-w-[220px] sm:max-w-[340px] select-all">{meetingUrl}</span>
+                                                        <span className="text-[10px] font-sans font-medium text-slate-500 mr-1">Müşteri Linki:</span>
+                                                        <span className="truncate max-w-[200px] sm:max-w-[320px] select-all font-semibold text-violet-600 dark:text-violet-400">{guestUrl}</span>
                                                         <Button
                                                             type="button"
                                                             variant="ghost"
@@ -615,12 +617,12 @@ export function MeetingsDashboard({ meetings: initialMeetings, profiles, project
                                                             className="h-5 px-1.5 ml-1 text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-700 shrink-0 gap-1 text-[10px] font-sans font-semibold"
                                                             onClick={(e) => {
                                                                 e.stopPropagation()
-                                                                navigator.clipboard.writeText(meetingUrl)
+                                                                navigator.clipboard.writeText(guestUrl)
                                                                 setCopiedId(meeting.id)
-                                                                toast.success('Toplantı bağlantısı kopyalandı! E-posta veya WhatsApp ile paylaşabilirsiniz.')
+                                                                toast.success('Müşteri katılım bağlantısı kopyalandı! WhatsApp veya SMS ile gönderebilirsiniz.')
                                                                 setTimeout(() => setCopiedId(null), 2500)
                                                             }}
-                                                            title="Toplantı Linkini Kopyala"
+                                                            title="Müşteri Katılım Linkini Kopyala"
                                                         >
                                                             {copiedId === meeting.id ? (
                                                                 <>
