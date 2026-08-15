@@ -598,44 +598,82 @@ export function MeetingsDashboard({ meetings: initialMeetings, profiles, project
                                                 )}
                                             </div>
 
-                                            {/* Meeting Link & Copy Button */}
+                                            {/* Meeting Links & Copy Buttons */}
                                             {(() => {
                                                 const origin = typeof window !== 'undefined' ? window.location.origin : 'https://www.novoxcrm.com'
+                                                const localePrefix = locale === 'tr' ? '' : `/${locale}`
                                                 const guestUrl = meeting.daily_room_name
                                                     ? `${origin}/meeting/${meeting.daily_room_name}`
-                                                    : `${origin}/meetings/${meeting.id}`
+                                                    : `${origin}/meeting/${meeting.id}`
+                                                const hostUrl = `${origin}${localePrefix}/meetings/${meeting.id}`
 
                                                 return (
-                                                    <div className="flex items-center gap-1.5 mt-2 bg-slate-100 dark:bg-slate-800/80 px-2.5 py-1 rounded-md border border-slate-200 dark:border-slate-700 text-[11px] font-mono text-slate-700 dark:text-slate-200 w-fit max-w-full">
-                                                        <Link className="h-3 w-3 text-slate-400 shrink-0" />
-                                                        <span className="text-[10px] font-sans font-medium text-slate-500 mr-1">Müşteri Linki:</span>
-                                                        <span className="truncate max-w-[200px] sm:max-w-[320px] select-all font-semibold text-violet-600 dark:text-violet-400">{guestUrl}</span>
-                                                        <Button
-                                                            type="button"
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            className="h-5 px-1.5 ml-1 text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-700 shrink-0 gap-1 text-[10px] font-sans font-semibold"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation()
-                                                                navigator.clipboard.writeText(guestUrl)
-                                                                setCopiedId(meeting.id)
-                                                                toast.success('Müşteri katılım bağlantısı kopyalandı! WhatsApp veya SMS ile gönderebilirsiniz.')
-                                                                setTimeout(() => setCopiedId(null), 2500)
-                                                            }}
-                                                            title="Müşteri Katılım Linkini Kopyala"
-                                                        >
-                                                            {copiedId === meeting.id ? (
-                                                                <>
-                                                                    <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
-                                                                    <span className="text-emerald-600 dark:text-emerald-400">Kopyalandı</span>
-                                                                </>
-                                                            ) : (
-                                                                <>
-                                                                    <Copy className="h-3 w-3 text-violet-600 dark:text-violet-400" />
-                                                                    <span>Kopyala</span>
-                                                                </>
-                                                            )}
-                                                        </Button>
+                                                    <div className="flex flex-col sm:flex-row flex-wrap gap-2 mt-2.5">
+                                                        {/* Müşteri Katılım Linki */}
+                                                        <div className="flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/30 px-2.5 py-1 rounded-md border border-emerald-200 dark:border-emerald-800/40 text-[11px] font-mono text-emerald-900 dark:text-emerald-200 w-fit max-w-full">
+                                                            <Link className="h-3 w-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                                            <span className="text-[10px] font-sans font-semibold text-emerald-700 dark:text-emerald-300 mr-1">📱 Müşteri Katılım Linki:</span>
+                                                            <span className="truncate max-w-[180px] sm:max-w-[260px] select-all font-semibold text-emerald-800 dark:text-emerald-300">{guestUrl}</span>
+                                                            <Button
+                                                                type="button"
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                className="h-5 px-1.5 ml-1 text-emerald-700 hover:text-emerald-950 dark:text-emerald-300 dark:hover:text-white hover:bg-emerald-200/60 dark:hover:bg-emerald-900/60 shrink-0 gap-1 text-[10px] font-sans font-semibold"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation()
+                                                                    navigator.clipboard.writeText(guestUrl)
+                                                                    setCopiedId(meeting.id + '-guest')
+                                                                    toast.success('Müşteri katılım bağlantısı kopyalandı! (WhatsApp ile giden link)')
+                                                                    setTimeout(() => setCopiedId(null), 2500)
+                                                                }}
+                                                                title="Müşteri Katılım Linkini Kopyala"
+                                                            >
+                                                                {copiedId === meeting.id + '-guest' ? (
+                                                                    <>
+                                                                        <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+                                                                        <span className="text-emerald-600 dark:text-emerald-400">Kopyalandı</span>
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <Copy className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+                                                                        <span>Kopyala</span>
+                                                                    </>
+                                                                )}
+                                                            </Button>
+                                                        </div>
+
+                                                        {/* Danışman Giriş Linki */}
+                                                        <div className="flex items-center gap-1.5 bg-violet-50 dark:bg-violet-950/30 px-2.5 py-1 rounded-md border border-violet-200 dark:border-violet-800/40 text-[11px] font-mono text-violet-900 dark:text-violet-200 w-fit max-w-full">
+                                                            <User className="h-3 w-3 text-violet-600 dark:text-violet-400 shrink-0" />
+                                                            <span className="text-[10px] font-sans font-semibold text-violet-700 dark:text-violet-300 mr-1">🧑‍💼 Danışman (Host) Linki:</span>
+                                                            <span className="truncate max-w-[180px] sm:max-w-[260px] select-all font-semibold text-violet-800 dark:text-violet-300">{hostUrl}</span>
+                                                            <Button
+                                                                type="button"
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                className="h-5 px-1.5 ml-1 text-violet-700 hover:text-violet-950 dark:text-violet-300 dark:hover:text-white hover:bg-violet-200/60 dark:hover:bg-violet-900/60 shrink-0 gap-1 text-[10px] font-sans font-semibold"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation()
+                                                                    navigator.clipboard.writeText(hostUrl)
+                                                                    setCopiedId(meeting.id + '-host')
+                                                                    toast.success('Danışman toplantı bağlantısı kopyalandı!')
+                                                                    setTimeout(() => setCopiedId(null), 2500)
+                                                                }}
+                                                                title="Danışman Giriş Linkini Kopyala"
+                                                            >
+                                                                {copiedId === meeting.id + '-host' ? (
+                                                                    <>
+                                                                        <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+                                                                        <span className="text-emerald-600 dark:text-emerald-400">Kopyalandı</span>
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <Copy className="h-3 w-3 text-violet-600 dark:text-violet-400" />
+                                                                        <span>Kopyala</span>
+                                                                    </>
+                                                                )}
+                                                            </Button>
+                                                        </div>
                                                     </div>
                                                 )
                                             })()}
