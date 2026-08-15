@@ -453,7 +453,7 @@ export function MeetingsDashboard({ meetings: initialMeetings, profiles, project
                                 Video Konferans Aylık Kota Durumu
                             </h3>
                             <Badge variant="outline" className="text-[10px] bg-violet-500/10 text-violet-300 border-violet-500/30">
-                                Daily.co Free Plan
+                                NovoCRM Ücretsiz Plan
                             </Badge>
                         </div>
                         <p className="text-xs text-slate-400">
