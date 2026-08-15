@@ -12,7 +12,7 @@ import {
     Video, Plus, Calendar, Clock, User, Phone, MapPin,
     Building2, Search, Trash2, X, ExternalLink, Send,
     CheckCircle, XCircle, AlertCircle, Play, Loader2,
-    Copy, Check, Link
+    Copy, Check, Link, Sparkles, Info
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cancelMeeting, deleteMeeting } from '../actions'
@@ -136,6 +136,22 @@ export function MeetingsDashboard({ meetings: initialMeetings, profiles, project
         m.status !== 'completed'
     ).length
     const completedCount = meetings.filter(m => m.status === 'completed').length
+
+    // Monthly Video Minutes Quota & Usage (Daily.co Free Plan: 10,000 participant-minutes/month)
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+    const thisMonthMeetings = meetings.filter(m => {
+        const d = new Date(m.ended_at || m.scheduled_at)
+        return d >= monthStart && (m.status === 'completed' || m.duration_seconds)
+    })
+
+    const thisMonthMeetingMinutes = thisMonthMeetings.reduce((acc, m) => acc + Math.ceil((m.duration_seconds || 0) / 60), 0)
+    const thisMonthParticipantMinutes = thisMonthMeetingMinutes * 2 // avg 2 participants (host + customer)
+    const TOTAL_QUOTA_PARTICIPANT_MINUTES = 10000
+    const remainingParticipantMinutes = Math.max(0, TOTAL_QUOTA_PARTICIPANT_MINUTES - thisMonthParticipantMinutes)
+    const usagePercent = Math.min(100, Math.max(0, (thisMonthParticipantMinutes / TOTAL_QUOTA_PARTICIPANT_MINUTES) * 100))
+
+    const nextMonthDate = new Date(now.getFullYear(), now.getMonth() + 1, 1)
+    const resetDateStr = nextMonthDate.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })
 
     // Reset form
     const resetForm = () => {
@@ -425,6 +441,67 @@ export function MeetingsDashboard({ meetings: initialMeetings, profiles, project
                     <p className="text-xs text-muted-foreground">Toplam</p>
                 </Card>
             </div>
+
+            {/* Daily.co Minute Quota Bar */}
+            <Card className="p-4 bg-gradient-to-r from-slate-900/90 via-violet-950/20 to-slate-900/90 border-violet-500/25 relative overflow-hidden">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                            <h3 className="text-sm font-semibold text-white flex items-center gap-1.5">
+                                <Sparkles className="h-3.5 w-3.5 text-violet-400" />
+                                Video Konferans Aylık Kota Durumu
+                            </h3>
+                            <Badge variant="outline" className="text-[10px] bg-violet-500/10 text-violet-300 border-violet-500/30">
+                                Daily.co Free Plan
+                            </Badge>
+                        </div>
+                        <p className="text-xs text-slate-400">
+                            Aylık 10.000 katılımcı dakikası (~5.000 dk net 1&apos;e 1 görüşme). Kota her ayın 1&apos;inde ({resetDateStr}) sıfırlanır.
+                        </p>
+                    </div>
+
+                    <div className="flex items-center gap-4 text-xs shrink-0">
+                        <div className="text-right">
+                            <p className="text-muted-foreground text-[11px]">Kullanılan</p>
+                            <p className="font-mono font-bold text-white text-sm">
+                                {thisMonthParticipantMinutes.toLocaleString('tr-TR')} <span className="text-xs text-slate-400 font-normal">/ 10.000 dk</span>
+                            </p>
+                            <p className="text-[10px] text-slate-400">({thisMonthMeetingMinutes} dk net görüşme)</p>
+                        </div>
+                        <div className="h-8 w-[1px] bg-white/10 hidden md:block" />
+                        <div className="text-right">
+                            <p className="text-muted-foreground text-[11px]">Kalan Süre</p>
+                            <p className="font-mono font-bold text-emerald-400 text-sm">
+                                {remainingParticipantMinutes.toLocaleString('tr-TR')} <span className="text-xs text-emerald-300/70 font-normal">dk</span>
+                            </p>
+                            <p className="text-[10px] text-slate-400">~{Math.floor(remainingParticipantMinutes / 2).toLocaleString('tr-TR')} dk 1&apos;e 1</p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Progress Bar */}
+                <div className="mt-3 pt-3 border-t border-white/5">
+                    <div className="flex items-center justify-between text-[11px] text-slate-400 mb-1.5">
+                        <span>Aylık Kullanım Oranı: <strong className="text-white">%{usagePercent.toFixed(1)}</strong></span>
+                        <span className="text-emerald-400 font-medium">
+                            {usagePercent < 80 ? '🟢 Kota Durumu Çok İyi' : usagePercent < 95 ? '🟡 Kota %80 Üzerinde' : '🔴 Kota Dolmak Üzere'}
+                        </span>
+                    </div>
+                    <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                        <div
+                            className={`h-full transition-all duration-500 rounded-full ${
+                                usagePercent < 80
+                                    ? 'bg-gradient-to-r from-emerald-500 to-teal-400'
+                                    : usagePercent < 95
+                                    ? 'bg-gradient-to-r from-amber-500 to-yellow-400'
+                                    : 'bg-gradient-to-r from-red-500 to-rose-400'
+                            }`}
+                            style={{ width: `${Math.max(usagePercent, 0.5)}%` }}
+                        />
+                    </div>
+                </div>
+            </Card>
 
             {/* Filters */}
             <div className="flex gap-2">
