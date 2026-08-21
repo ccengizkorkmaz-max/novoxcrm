@@ -465,8 +465,6 @@ export async function updateCustomer(formData: FormData) {
         district,
         city,
         country,
-        portal_username,
-        portal_password,
         gender,
         heard_from,
         referral_name,
@@ -474,6 +472,11 @@ export async function updateCustomer(formData: FormData) {
         updated_by: user.id,
         ...(validCreatedAt ? { created_at: validCreatedAt } : {})
     };
+
+    // Only include portal credentials in payload if explicitly provided with non-empty values
+    // This avoids unique constraint violations on portal_username when it's left empty
+    if (portal_username) updatePayload.portal_username = portal_username;
+    if (portal_password) updatePayload.portal_password = portal_password;
 
     if (sms_consent) updatePayload.sms_consent = sms_consent;
     if (email_consent) updatePayload.email_consent = email_consent;
@@ -499,7 +502,18 @@ export async function updateCustomer(formData: FormData) {
                 hata_detayi: error.message
             }
         })
-        return { error: `Güncelleme başarısız: ${error.message}` }
+
+        // Map technical errors to user-friendly messages
+        let userMessage = `Güncelleme başarısız: ${error.message}`
+        if (error.message?.includes('customers_portal_username_key')) {
+            userMessage = 'Bu portal kullanıcı adı başka bir müşteride zaten kullanılıyor.'
+        } else if (error.message?.includes('customers_phone_key') || error.message?.includes('unique') && error.message?.includes('phone')) {
+            userMessage = 'Bu telefon numarası başka bir müşteride zaten kayıtlı.'
+        } else if (error.message?.includes('unique') || error.message?.includes('duplicate')) {
+            userMessage = 'Girilen bilgilerden biri başka bir kayıtta zaten mevcut. Lütfen kontrol edin.'
+        }
+
+        return { error: userMessage }
     }
 
     if (validCreatedAt) {
