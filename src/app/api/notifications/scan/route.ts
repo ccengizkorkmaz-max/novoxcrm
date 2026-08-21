@@ -343,7 +343,7 @@ export async function GET(request: Request) {
             // 7. Activity Reminders
             const { data: dueActivities } = await supabase
                 .from('activities')
-                .select('id, topic, summary, type, reminder_at, owner_id, user_id, description, status')
+                .select('id, topic, summary, type, reminder_at, owner_id, user_id, description, status, customer_id, lead_id, due_date, priority, notes, customers(full_name, company_name), leads(full_name)')
                 .eq('tenant_id', tenantId)
                 .eq('status', 'Planned')
                 .eq('reminder_sent', false)
@@ -351,6 +351,14 @@ export async function GET(request: Request) {
 
             for (const activity of dueActivities || []) {
                 const activityTitle = activity.summary || activity.topic || 'Aktivite'
+                const customerName = (activity as any).customers?.full_name || ''
+                const customerCompany = (activity as any).customers?.company_name || ''
+                const leadName = (activity as any).leads?.full_name || ''
+                const relatedName = customerName || leadName || ''
+                const relatedLabel = customerName
+                    ? (customerCompany ? `${customerName} (${customerCompany})` : customerName)
+                    : (leadName || '')
+
                 try {
                     // Update reminder_sent to true first (to avoid double processing if something crashes)
                     const { error: updateErr } = await supabase
@@ -380,6 +388,19 @@ export async function GET(request: Request) {
                         }
                     }
 
+                    // Format due date for display
+                    const dueDateFormatted = activity.due_date
+                        ? new Date(activity.due_date).toLocaleString('tr-TR', { dateStyle: 'long', timeStyle: 'short' })
+                        : ''
+
+                    // Map priority to Turkish labels
+                    const priorityMap: Record<string, { label: string; color: string }> = {
+                        'High': { label: '🔴 Yüksek', color: '#dc2626' },
+                        'Medium': { label: '🟡 Orta', color: '#d97706' },
+                        'Low': { label: '🟢 Düşük', color: '#16a34a' },
+                    }
+                    const priorityInfo = activity.priority ? priorityMap[activity.priority] || { label: activity.priority, color: '#6b7280' } : null
+
                     // 1. Create Internal Notification
                     await createNotification({
                         tenant_id: tenantId,
@@ -387,7 +408,7 @@ export async function GET(request: Request) {
                         type: 'Warning',
                         category: 'CRM',
                         title: '⏰ Aktivite Hatırlatıcı',
-                        message: `Hatırlatma: "${activityTitle}" aktivitesi zamanı geldi.`,
+                        message: `Hatırlatma: "${activityTitle}" aktivitesi zamanı geldi.${relatedName ? ` (${relatedName})` : ''}`,
                         link: '/activities'
                     })
 
@@ -396,26 +417,50 @@ export async function GET(request: Request) {
                         await sendSystemEmail({
                             tenantId,
                             to: ownerEmail,
-                            subject: `⏰ Aktivite Hatırlatıcı: ${activityTitle}`,
+                            subject: `⏰ Aktivite Hatırlatıcı: ${activityTitle}${relatedName ? ` - ${relatedName}` : ''}`,
                             fromName: 'Novo CRM Hatırlatıcı',
                             html: `
                                 <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px;">
                                     <h2 style="color: #1e3a8a; margin-top: 0;">Aktivite Hatırlatıcı ⏰</h2>
                                     <p>Merhaba ${ownerName || 'Kullanıcı'},</p>
                                     <p>Planlanmış olan aşağıdaki aktivitenizin hatırlatma zamanı gelmiştir:</p>
+                                    ${relatedLabel ? `
+                                    <div style="background-color: #eff6ff; border-left: 4px solid #2563eb; padding: 12px 16px; margin: 16px 0; border-radius: 4px;">
+                                        <strong style="color: #1e3a8a;">👤 Müşteri / İlgili Kişi:</strong>
+                                        <span style="color: #1e40af; font-size: 16px; margin-left: 8px;">${relatedLabel}</span>
+                                    </div>
+                                    ` : ''}
                                     <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
-                                        <tr>
-                                            <td style="padding: 8px 0; font-weight: bold; width: 120px;">Aktivite:</td>
-                                            <td style="padding: 8px 0;">${activityTitle}</td>
+                                        <tr style="border-bottom: 1px solid #f3f4f6;">
+                                            <td style="padding: 10px 0; font-weight: bold; width: 130px; color: #374151;">Aktivite:</td>
+                                            <td style="padding: 10px 0; color: #111827;">${activityTitle}</td>
                                         </tr>
-                                        <tr>
-                                            <td style="padding: 8px 0; font-weight: bold;">Tür:</td>
-                                            <td style="padding: 8px 0;">${activity.type || 'Belirtilmemiş'}</td>
+                                        <tr style="border-bottom: 1px solid #f3f4f6;">
+                                            <td style="padding: 10px 0; font-weight: bold; color: #374151;">Tür:</td>
+                                            <td style="padding: 10px 0; color: #111827;">${activity.type || 'Belirtilmemiş'}</td>
                                         </tr>
+                                        ${dueDateFormatted ? `
+                                        <tr style="border-bottom: 1px solid #f3f4f6;">
+                                            <td style="padding: 10px 0; font-weight: bold; color: #374151;">📅 Tarih:</td>
+                                            <td style="padding: 10px 0; color: #111827;">${dueDateFormatted}</td>
+                                        </tr>
+                                        ` : ''}
+                                        ${priorityInfo ? `
+                                        <tr style="border-bottom: 1px solid #f3f4f6;">
+                                            <td style="padding: 10px 0; font-weight: bold; color: #374151;">Öncelik:</td>
+                                            <td style="padding: 10px 0; color: ${priorityInfo.color}; font-weight: 600;">${priorityInfo.label}</td>
+                                        </tr>
+                                        ` : ''}
                                         ${activity.description ? `
+                                        <tr style="border-bottom: 1px solid #f3f4f6;">
+                                            <td style="padding: 10px 0; font-weight: bold; vertical-align: top; color: #374151;">Açıklama:</td>
+                                            <td style="padding: 10px 0; white-space: pre-wrap; color: #111827;">${activity.description}</td>
+                                        </tr>
+                                        ` : ''}
+                                        ${activity.notes ? `
                                         <tr>
-                                            <td style="padding: 8px 0; font-weight: bold; vertical-align: top;">Açıklama:</td>
-                                            <td style="padding: 8px 0; white-space: pre-wrap;">${activity.description}</td>
+                                            <td style="padding: 10px 0; font-weight: bold; vertical-align: top; color: #374151;">📝 Notlar:</td>
+                                            <td style="padding: 10px 0; white-space: pre-wrap; color: #4b5563; font-style: italic;">${activity.notes}</td>
                                         </tr>
                                         ` : ''}
                                     </table>
