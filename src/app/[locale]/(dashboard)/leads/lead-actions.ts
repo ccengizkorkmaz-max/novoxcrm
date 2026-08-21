@@ -54,125 +54,31 @@ export async function updateLead(leadId: string, data: {
 
     if (error) return { success: false, error: error.message }
 
-    // Send assignment notifications if assignee changed and is not empty
-    const isAssigneeChanging = data.assigned_to !== undefined && data.assigned_to !== currentLead?.assigned_to && data.assigned_to !== null && data.assigned_to !== ''
+    // Send assignment notifications if assignee is set/changed
+    const isAssigneeChanging = data.assigned_to !== undefined && data.assigned_to !== null && data.assigned_to !== ''
     if (isAssigneeChanging && data.assigned_to) {
-        // Get user notification preferences
-        let isEnabled = true
-        let inAppEnabled = true
-        let whatsappEnabled = true
-
         try {
-            const { data: pref } = await supabase
-                .from('user_notification_preferences')
-                .select('*')
-                .eq('tenant_id', profile.tenant_id)
-                .eq('user_id', data.assigned_to)
-                .eq('notification_type', 'lead_assigned')
-                .maybeSingle()
-
-            if (pref) {
-                isEnabled = pref.is_enabled
-                inAppEnabled = pref.channel_in_app
-                whatsappEnabled = pref.channel_whatsapp
+            const { sendLeadAssignmentAlert } = await import('@/lib/notifications/lead-assignment')
+            const resolvedName = data.full_name || currentLead?.full_name || (currentLead as any)?.customers?.full_name || 'Aday Müşteri'
+            const resolvedPhone = data.phone || currentLead?.phone || (currentLead as any)?.customers?.phone || ''
+            const rawInterest = (currentLead as any)?.customers?.lead_qualifications?.[0]?.interest_level
+            const scoreLabel: Record<string, string> = {
+                hot: 'HOT', warm: 'WARM', cold: 'COLD',
+                call_requested: 'ARAMA', disqualified: 'DQ'
             }
-        } catch (prefErr) {
-            console.error('Error fetching notification preferences:', prefErr)
-        }
+            const scoreText = rawInterest ? scoreLabel[rawInterest] || '—' : 'ADAY (LEADS)'
 
-        if (isEnabled) {
-            // App-level notification
-            if (inAppEnabled) {
-                try {
-                    const { createNotification } = await import('@/lib/notifications/create')
-                    await createNotification({
-                        tenant_id: profile.tenant_id,
-                        user_id: data.assigned_to,
-                        type: 'Info',
-                        category: 'CRM',
-                        title: '🎯 Yeni Müşteri Adayı Atandı',
-                        message: `${currentLead?.full_name || 'Aday'} isimli müşteri adayı takibinize atandı.`,
-                        link: '/leads'
-                    })
-                } catch (notifErr) {
-                    console.error('Lead assignment notification error:', notifErr)
-                }
-            }
-
-            // WhatsApp notification
-            if (whatsappEnabled) {
-                try {
-                    const { data: tenant } = await supabase
-                        .from('tenants')
-                        .select('wa_phone_number_id, wa_access_token')
-                        .eq('id', profile.tenant_id)
-                        .single()
-
-                    // Tenant DB alanları veya .env fallback
-                    const waPhoneId = tenant?.wa_phone_number_id || process.env.WHATSAPP_PHONE_NUMBER_ID
-                    const waToken = tenant?.wa_access_token || process.env.WHATSAPP_ACCESS_TOKEN
-
-                    if (waPhoneId && waToken) {
-                        const { data: repProfile } = await supabase
-                            .from('profiles')
-                            .select('phone, full_name')
-                            .eq('id', data.assigned_to)
-                            .single()
-
-                        if (repProfile?.phone) {
-                            const { sendWhatsAppTemplate } = await import('@/lib/whatsapp')
-
-                            const resolvedName = currentLead?.full_name || (currentLead as any)?.customers?.full_name || 'Aday Müşteri'
-                            const resolvedPhone = currentLead?.phone || (currentLead as any)?.customers?.phone || ''
-                            const rawInterest = (currentLead as any)?.customers?.lead_qualifications?.[0]?.interest_level
-                            const scoreLabel: Record<string, string> = {
-                                hot: 'HOT', warm: 'WARM', cold: 'COLD',
-                                call_requested: 'ARAMA', disqualified: 'DQ'
-                            }
-                            const scoreText = rawInterest ? scoreLabel[rawInterest] || '—' : 'ADAY (LEADS)'
-
-                            await sendWhatsAppTemplate(
-                                repProfile.phone,
-                                'lead_assignment_alert',
-                                [
-                                    resolvedName,
-                                    resolvedPhone,
-                                    scoreText
-                                ],
-                                'tr',
-                                waPhoneId,
-                                waToken
-                            )
-                            console.log(`✅ Lead atama WA template gönderildi (Leads): ${repProfile.full_name}`)
-
-                            // Hot Lead Manager'lara da bildir (Atanan temsilci hariç)
-                            const { data: hotLeadManagers } = await supabase
-                                .from('profiles')
-                                .select('phone, full_name, id')
-                                .eq('tenant_id', profile.tenant_id)
-                                .eq('is_hot_lead_manager', true)
-                            
-                            if (hotLeadManagers && hotLeadManagers.length > 0) {
-                                for (const manager of hotLeadManagers) {
-                                    if (manager.phone && manager.id !== data.assigned_to) {
-                                        await sendWhatsAppTemplate(
-                                            manager.phone,
-                                            'lead_assignment_alert',
-                                            [resolvedName, resolvedPhone, `${scoreText} - Atanan: ${repProfile.full_name}`],
-                                            'tr',
-                                            waPhoneId,
-                                            waToken
-                                        )
-                                        console.log(`✅ Lead atama WA bildirimi hot lead manager'a gönderildi: ${manager.full_name}`)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                } catch (waErr) {
-                    console.error('Lead assignment WA notification error:', waErr)
-                }
-            }
+            await sendLeadAssignmentAlert({
+                tenantId: profile.tenant_id,
+                assignedToUserId: data.assigned_to,
+                leadName: resolvedName,
+                leadPhone: resolvedPhone,
+                scoreText,
+                source: 'Leads Paneli',
+                leadId
+            })
+        } catch (err) {
+            console.error('Lead assignment notification error:', err)
         }
     }
 
@@ -442,86 +348,21 @@ export async function createLead(data: {
 
     if (error) return { success: false, error: error.message }
 
-    // Temsilciye atama bildirimi gönder
+    // Atama yapıldıysa temsilciye bildirim gönder
     if (data.assigned_to) {
-        let isEnabled = true
-        let inAppEnabled = true
-        let whatsappEnabled = true
-
         try {
-            const { data: pref } = await supabase
-                .from('user_notification_preferences')
-                .select('*')
-                .eq('tenant_id', profile.tenant_id)
-                .eq('user_id', data.assigned_to)
-                .eq('notification_type', 'lead_assigned')
-                .maybeSingle()
-
-            if (pref) {
-                isEnabled = pref.is_enabled
-                inAppEnabled = pref.channel_in_app
-                whatsappEnabled = pref.channel_whatsapp
-            }
-        } catch (prefErr) {
-            console.error('Error fetching notification preferences:', prefErr)
-        }
-
-        if (isEnabled) {
-            // App-level notification
-            if (inAppEnabled) {
-                try {
-                    const { createNotification } = await import('@/lib/notifications/create')
-                    await createNotification({
-                        tenant_id: profile.tenant_id,
-                        user_id: data.assigned_to,
-                        type: 'Info',
-                        category: 'CRM',
-                        title: '🎯 Yeni Müşteri Adayı Atandı',
-                        message: `${data.full_name || 'Aday'} isimli yeni müşteri adayı takibinize atandı.`,
-                        link: '/leads'
-                    })
-                } catch (notifErr) {
-                    console.error('Lead assignment notification error:', notifErr)
-                }
-            }
-
-            // WhatsApp notification
-            if (whatsappEnabled) {
-                try {
-                    const { data: tenant } = await supabase
-                        .from('tenants')
-                        .select('wa_phone_number_id, wa_access_token')
-                        .eq('id', profile.tenant_id)
-                        .single()
-
-                    if (tenant?.wa_phone_number_id && tenant.wa_access_token) {
-                        const { data: repProfile } = await supabase
-                            .from('profiles')
-                            .select('phone, full_name')
-                            .eq('id', data.assigned_to)
-                            .single()
-
-                        if (repProfile?.phone) {
-                            const { sendWhatsAppTemplate } = await import('@/lib/whatsapp')
-                            await sendWhatsAppTemplate(
-                                repProfile.phone,
-                                'lead_assignment_alert',
-                                [
-                                    data.full_name || 'Aday Müşteri', 
-                                    data.phone || '', 
-                                    'ADAY (LEADS)'
-                                ],
-                                'tr',
-                                tenant.wa_phone_number_id,
-                                tenant.wa_access_token
-                            )
-                            console.log(`✅ Lead atama WA template gönderildi (Leads): ${repProfile.full_name}`)
-                        }
-                    }
-                } catch (waErr) {
-                    console.error('Lead assignment WA notification error:', waErr)
-                }
-            }
+            const { sendLeadAssignmentAlert } = await import('@/lib/notifications/lead-assignment')
+            await sendLeadAssignmentAlert({
+                tenantId: profile.tenant_id,
+                assignedToUserId: data.assigned_to,
+                leadName: data.full_name || 'Aday Müşteri',
+                leadPhone: data.phone || '',
+                scoreText: 'ADAY (LEADS)',
+                source: 'Yeni Lead Kaydı',
+                leadId: newLead?.id
+            })
+        } catch (notifErr) {
+            console.error('Lead assignment notification error:', notifErr)
         }
     }
 

@@ -83,12 +83,40 @@ export async function getAvailableAgents() {
 export async function assignLeadToAgent(leadId: string, agentId: string) {
     const supabase = await createClient()
     
+    const { data: customer, error: fetchErr } = await supabase
+        .from('customers')
+        .select('full_name, phone, tenant_id')
+        .eq('id', leadId)
+        .single()
+
     const { error } = await supabase
         .from('customers')
         .update({ assigned_to: agentId })
         .eq('id', leadId)
     
     if (error) throw error
+
+    // Also update any open sales record for this customer
+    await supabase
+        .from('sales')
+        .update({ assigned_to: agentId, assigned_at: new Date().toISOString() })
+        .eq('customer_id', leadId)
+
+    if (customer?.tenant_id && agentId) {
+        try {
+            const { sendLeadAssignmentAlert } = await import('@/lib/notifications/lead-assignment')
+            await sendLeadAssignmentAlert({
+                tenantId: customer.tenant_id,
+                assignedToUserId: agentId,
+                leadName: customer.full_name || 'Aday Müşteri',
+                leadPhone: customer.phone || '',
+                scoreText: 'ADAY (HAVUZ)',
+                source: 'Lead Havuzu'
+            })
+        } catch (notifErr) {
+            console.error('Lead pool assignment notification error:', notifErr)
+        }
+    }
     
     revalidatePath('/lead-pool')
     return { success: true }

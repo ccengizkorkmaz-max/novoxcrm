@@ -199,53 +199,17 @@ export async function sendLeadAssignmentNotifications(
     leadPhone: string | null, 
     assignedTo: string
 ) {
-    const supabase = createAdminClient()
-
     try {
-        // 1. Uygulama içi bildirim (zil bildirimi) oluştur
-        const { createNotification } = await import('@/lib/notifications/create')
-        await createNotification({
-            tenant_id: tenantId,
-            user_id: assignedTo,
-            type: 'Info',
-            category: 'CRM',
-            title: '🎯 Yeni Müşteri Adayı Atandı',
-            message: `"${leadName}" isimli aday size atandı.`,
-            link: `/leads?leadId=${leadId}`,
+        const { sendLeadAssignmentAlert } = await import('@/lib/notifications/lead-assignment')
+        await sendLeadAssignmentAlert({
+            tenantId,
+            assignedToUserId: assignedTo,
+            leadName,
+            leadPhone,
+            scoreText: 'ADAY (LEADS)',
+            source: 'Otomatik Lead Dağıtımı',
+            leadId
         })
-        console.log(`[Outreach] Zil bildirimi gönderildi → Temsilci: ${assignedTo}`)
-
-        // 2. WhatsApp bildirimi gönder (eğer aktifse)
-        const { data: tenant } = await supabase
-            .from('tenants')
-            .select('wa_lead_assignment_notification_enabled, wa_phone_number_id, wa_access_token')
-            .eq('id', tenantId)
-            .single()
-
-        if (tenant?.wa_lead_assignment_notification_enabled && tenant.wa_phone_number_id && tenant.wa_access_token) {
-            const { data: repProfile } = await supabase
-                .from('profiles')
-                .select('phone, full_name')
-                .eq('id', assignedTo)
-                .single()
-
-            if (repProfile?.phone) {
-                const { sendWhatsAppTemplate } = await import('@/lib/whatsapp')
-                await sendWhatsAppTemplate(
-                    repProfile.phone,
-                    'lead_assignment_alert',
-                    [
-                        leadName || 'Aday Müşteri',
-                        leadPhone || '',
-                        'ADAY (LEADS)'
-                    ],
-                    'tr',
-                    tenant.wa_phone_number_id,
-                    tenant.wa_access_token
-                )
-                console.log(`[Outreach] WhatsApp atama bildirimi gönderildi → Temsilci: ${repProfile.full_name}`)
-            }
-        }
     } catch (err: any) {
         console.error('[CRM Mode] Atama bildirimleri gönderilirken hata oluştu:', err.message)
     }

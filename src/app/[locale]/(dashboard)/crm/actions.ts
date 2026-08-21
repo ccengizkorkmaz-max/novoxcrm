@@ -1398,115 +1398,21 @@ async function notifyRepOfAssignment(saleId: string, userId: string, tenantId: s
         const customerName = (sale as any)?.customers?.full_name || 'Müşteri'
         const customerPhone = (sale as any)?.customers?.phone || '-'
         const interestLevel = (sale as any)?.customers?.lead_qualifications?.[0]?.interest_level || ''
-
-        console.log(`📋 notifyRepOfAssignment: saleId=${saleId}, customer=${customerName}, phone=${customerPhone}, interest=${interestLevel}`)
-
-        // Check user preferences for 'lead_assigned'
-        const { data: pref } = await adminSupabase
-            .from('user_notification_preferences')
-            .select('*')
-            .eq('tenant_id', tenantId)
-            .eq('user_id', userId)
-            .eq('notification_type', 'lead_assigned')
-            .maybeSingle()
-
-        const isEnabled = pref ? pref.is_enabled : true
-        const inAppEnabled = pref ? pref.channel_in_app : true
-        const whatsappEnabled = pref ? pref.channel_whatsapp : true
-
-        console.log(`🔔 Notification prefs: enabled=${isEnabled}, inApp=${inAppEnabled}, whatsapp=${whatsappEnabled}, prefFound=${!!pref}`)
-
-        if (!isEnabled) {
-            console.log(`⏭️ Lead assignment notification disabled for user ${userId}`)
-            return
+        const scoreLabel: Record<string, string> = {
+            hot: 'HOT', warm: 'WARM', cold: 'COLD',
+            call_requested: 'ARAMA', disqualified: 'DQ'
         }
+        const scoreText = scoreLabel[interestLevel] || '—'
 
-        // App Notification
-        if (inAppEnabled) {
-            createNotification({
-                tenant_id: tenantId,
-                user_id: userId,
-                type: 'Info',
-                category: 'CRM',
-                title: '🎯 Yeni LEAD Atandı',
-                message: `${customerName} isimli lead takibinize atandı.`,
-                link: '/crm'
-            }).catch(console.error)
-        }
-
-        // WhatsApp ile temsilciye bildirim gönder
-        if (whatsappEnabled) {
-            try {
-                const { data: repProfile } = await adminSupabase.from('profiles').select('phone, full_name').eq('id', userId).single()
-                console.log(`👤 Rep profile: name=${repProfile?.full_name}, phone=${repProfile?.phone || 'YOK'}`)
-                
-                if (repProfile?.phone) {
-                    const { data: tenantSettings } = await adminSupabase.from('tenants').select('wa_phone_number_id, wa_access_token').eq('id', tenantId).single()
-                    const waPhoneId = tenantSettings?.wa_phone_number_id || process.env.WHATSAPP_PHONE_NUMBER_ID
-                    const waToken = tenantSettings?.wa_access_token || process.env.WHATSAPP_ACCESS_TOKEN
-
-                    console.log(`🔑 WA credentials: phoneId=${waPhoneId ? 'VAR' : 'YOK'}, token=${waToken ? `VAR (${waToken.substring(0, 10)}...)` : 'YOK'}, source=${tenantSettings?.wa_phone_number_id ? 'tenant' : 'env'}`)
-
-                    if (waPhoneId && waToken) {
-                        const scoreLabel: Record<string, string> = {
-                            hot: 'HOT', warm: 'WARM', cold: 'COLD',
-                            call_requested: 'ARAMA', disqualified: 'DQ'
-                        }
-                        const scoreText = scoreLabel[interestLevel] || '—'
-
-                        // Meta onaylı template ile gönder (24h pencere gerekmez)
-                        const waResult = await sendWhatsAppTemplate(
-                            repProfile.phone,
-                            'lead_assignment_alert',
-                            [customerName, customerPhone, scoreText],
-                            'tr',
-                            waPhoneId,
-                            waToken
-                        )
-                        
-                        if (waResult.success) {
-                            console.log(`✅ Lead atama WA template gönderildi: ${repProfile.full_name}`)
-                        } else {
-                            console.error(`❌ Lead atama WA template BAŞARISIZ: ${repProfile.full_name}`, waResult.error, JSON.stringify(waResult.data || {}))
-                        }
-
-                        // Hot Lead Manager'lara da bildir (Atanan temsilci hariç)
-                        const { data: hotLeadManagers } = await adminSupabase
-                            .from('profiles')
-                            .select('phone, full_name, id')
-                            .eq('tenant_id', tenantId)
-                            .eq('is_hot_lead_manager', true)
-                        
-
-                        if (hotLeadManagers && hotLeadManagers.length > 0) {
-                            for (const manager of hotLeadManagers) {
-                                if (manager.phone && manager.id !== userId) {
-                                    const mgrResult = await sendWhatsAppTemplate(
-                                        manager.phone,
-                                        'lead_assignment_alert',
-                                        [customerName, customerPhone, `${scoreText} - Atanan: ${repProfile.full_name}`],
-                                        'tr',
-                                        waPhoneId,
-                                        waToken
-                                    )
-                                    if (mgrResult.success) {
-                                        console.log(`✅ Lead atama WA bildirimi hot lead manager'a gönderildi: ${manager.full_name}`)
-                                    } else {
-                                        console.error(`❌ Lead atama WA bildirimi hot lead manager'a BAŞARISIZ: ${manager.full_name}`, mgrResult.error)
-                                    }
-                                }
-                            }
-                        }
-                    } else {
-                        console.warn('⚠️ WA credentials missing — bildirim gönderilemedi')
-                    }
-                } else {
-                    console.warn(`⚠️ Rep ${userId} has no phone number — WA bildirim atlandı`)
-                }
-            } catch (err) {
-                console.error('Lead atama WA bildirimi hatası:', err)
-            }
-        }
+        const { sendLeadAssignmentAlert } = await import('@/lib/notifications/lead-assignment')
+        await sendLeadAssignmentAlert({
+            tenantId,
+            assignedToUserId: userId,
+            leadName: customerName,
+            leadPhone: customerPhone,
+            scoreText,
+            source: 'CRM Satış Takip'
+        })
     } catch (err) {
         console.error('notifyRepOfAssignment error:', err)
     }
