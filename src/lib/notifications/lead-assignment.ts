@@ -108,12 +108,18 @@ export async function sendLeadAssignmentAlert(params: LeadAssignmentAlertParams)
                     return { success: false, reason: 'no_phone' }
                 }
 
-                console.log(`📤 [sendLeadAssignmentAlert] WA atama bildirimi gönderiliyor: ${repProfile.full_name} (${repProfile.phone}) - Lead: ${cleanLeadName}`)
+                // UTILITY template kullanıyoruz (crm_operasyonel_durum_bildirimi)
+                // MARKETING kategorisindeki lead_assignment_alert Meta frekans limitine takılıyordu
+                // UTILITY şablonları her zaman teslim edilir
+                const now = new Date().toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+                const statusDesc = `${cleanScore} — ${source} üzerinden atandı`
+
+                console.log(`📤 [sendLeadAssignmentAlert] WA atama bildirimi gönderiliyor (UTILITY): ${repProfile.full_name} (${repProfile.phone}) - Lead: ${cleanLeadName}`)
 
                 const waResult = await sendWhatsAppTemplate(
                     repProfile.phone,
-                    'lead_assignment_alert',
-                    [cleanLeadName, cleanLeadPhone, cleanScore],
+                    'crm_operasyonel_durum_bildirimi',
+                    [cleanLeadName, cleanLeadPhone, now, statusDesc],
                     'tr',
                     waPhoneId,
                     waToken
@@ -136,10 +142,11 @@ export async function sendLeadAssignmentAlert(params: LeadAssignmentAlertParams)
                     if (hotLeadManagers && hotLeadManagers.length > 0) {
                         for (const manager of hotLeadManagers) {
                             if (manager.phone && manager.id !== assignedToUserId) {
+                                const mgrStatusDesc = `${cleanScore} — Atanan: ${repProfile.full_name} (${source})`
                                 const mgrResult = await sendWhatsAppTemplate(
                                     manager.phone,
-                                    'lead_assignment_alert',
-                                    [cleanLeadName, cleanLeadPhone, `${cleanScore} - Atanan: ${repProfile.full_name}`],
+                                    'crm_operasyonel_durum_bildirimi',
+                                    [cleanLeadName, cleanLeadPhone, now, mgrStatusDesc],
                                     'tr',
                                     waPhoneId,
                                     waToken
