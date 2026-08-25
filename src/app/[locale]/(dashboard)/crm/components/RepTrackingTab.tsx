@@ -2,7 +2,8 @@
 
 import { useState, useMemo, useEffect } from 'react'
 import { cn } from '@/lib/utils'
-import { Users, AlertTriangle, Check, StickyNote, Phone as PhoneIcon, Loader2 } from 'lucide-react'
+import { Users, AlertTriangle, Check, StickyNote, Phone as PhoneIcon, Loader2, Headphones } from 'lucide-react'
+import CallRecordingModal from './CallRecordingModal'
 import {
     Select,
     SelectContent,
@@ -319,6 +320,10 @@ function TrackingTable({
     filterProject, setFilterProject, filterFc, setFilterFc,
     filterNote, setFilterNote, formatDate, getFcColor, getFcLabel, router,
 }: any) {
+    // Call recording modal state
+    const [recordingModalOpen, setRecordingModalOpen] = useState(false)
+    const [recordingPhone, setRecordingPhone] = useState('')
+    const [recordingCustomerName, setRecordingCustomerName] = useState('')
     const [colOrder, setColOrder] = useState<string[]>(() => loadColConfig().order)
     const [colWidths, setColWidths] = useState<Record<string, number>>(() => loadColConfig().widths)
     const [dragCol, setDragCol] = useState<string | null>(null)
@@ -417,7 +422,23 @@ function TrackingTable({
                         <div className="font-bold text-slate-800 truncate">{sale.customers?.full_name || '-'}</div>
                         <div className="flex items-center gap-1 mt-0.5 overflow-hidden">
                             {sale.customers?.customer_number && <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-purple-100 text-purple-700 shrink-0">{sale.customers.customer_number}</span>}
-                            {sale.customers?.phone && <span className="text-[9px] text-slate-400 truncate"><PhoneIcon className="w-2.5 h-2.5 inline mr-0.5" />{sale.customers.phone}</span>}
+                            {sale.customers?.phone && (
+                                <>
+                                    <span className="text-[9px] text-slate-400 truncate"><PhoneIcon className="w-2.5 h-2.5 inline mr-0.5" />{sale.customers.phone}</span>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation()
+                                            setRecordingPhone(sale.customers.phone)
+                                            setRecordingCustomerName(sale.customers.full_name || 'Müşteri')
+                                            setRecordingModalOpen(true)
+                                        }}
+                                        className="shrink-0 p-0.5 rounded hover:bg-indigo-100 text-indigo-400 hover:text-indigo-600 transition-colors"
+                                        title="Arama kayıtlarını dinle"
+                                    >
+                                        <Headphones className="w-3 h-3" />
+                                    </button>
+                                </>
+                            )}
                         </div>
                     </td>
                 )
@@ -482,6 +503,7 @@ function TrackingTable({
     const colCount = colOrder.length
 
     return (
+        <>
         <table className="w-full text-xs border-collapse table-fixed">
             <colgroup>
                 {colOrder.map(id => (
@@ -539,5 +561,15 @@ function TrackingTable({
                 )}
             </tbody>
         </table>
+
+        {/* Call Recording Modal */}
+        <CallRecordingModal
+            open={recordingModalOpen}
+            onOpenChange={setRecordingModalOpen}
+            phone={recordingPhone}
+            customerName={recordingCustomerName}
+        />
+
+        </>
     )
 }
