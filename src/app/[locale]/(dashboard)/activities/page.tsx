@@ -38,13 +38,19 @@ export default async function ActivitiesPage(props: {
     }
 
     // Build queries for activities
+    // Only fetch activities from the last 90 days to avoid loading thousands of stale overdue records
+    const ninetyDaysAgo = new Date()
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
+    const ninetyDaysAgoISO = ninetyDaysAgo.toISOString()
+
     let incompleteQuery = supabase
         .from('activities')
         .select('*, customers(full_name, customer_type, company_name, company:companies(name)), leads(full_name), owner:profiles!activities_owner_id_fkey(full_name)')
         .in('type', ['Call', 'Meeting', 'Task', 'OfficeMeeting', 'OnlineMeeting', 'Site Visit', 'Whatsapp', 'Email'])
         .not('status', 'in', '("Completed","Cancelled")')
-        .order('due_date', { ascending: true })
-        .limit(1000)
+        .gte('due_date', ninetyDaysAgoISO)
+        .order('due_date', { ascending: false })
+        .limit(3000)
 
     let completedQuery = supabase
         .from('activities')
@@ -52,7 +58,7 @@ export default async function ActivitiesPage(props: {
         .in('type', ['Call', 'Meeting', 'Task', 'OfficeMeeting', 'OnlineMeeting', 'Site Visit', 'Whatsapp', 'Email'])
         .in('status', ['Completed', 'Cancelled'])
         .order('created_at', { ascending: false })
-        .limit(300)
+        .limit(500)
 
     // Satış temsilcileri (admin veya owner olmayanlar) yalnızca kendilerine atanan ya da kendilerinin yarattığı aktiviteleri görür
     if (!isAdmin) {
