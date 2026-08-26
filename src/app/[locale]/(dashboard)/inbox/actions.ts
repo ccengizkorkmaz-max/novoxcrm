@@ -473,20 +473,7 @@ export async function approveInboxItem(
             saleId = newSale.id
         }
 
-        // Create automatic activity for new web lead 
-        await supabase.from('activities').insert({
-            tenant_id: inboxItem.tenant_id,
-            customer_id: customerId,
-            user_id: user.id,
-            owner_id: user.id,
-            type: 'Call',
-            topic: 'Sales',
-            summary: `Web Form Takibi: ${finalName}`,
-            description: `İnbox üzerinden onaylanan yeni talep: ${inboxItem.message || '-'}`,
-            due_date: new Date(Date.now() + 1 * 60 * 60 * 1000).toISOString(), // 1 hour later
-            status: 'Planned',
-            priority: 'High'
-        })
+        // Otomatik aktivite oluşturma kaldırıldı — lead listesinde gereksiz randevu çıkıyordu
 
         // Update inbox item status
         const { error: updateError } = await supabase
