@@ -129,6 +129,9 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ error: 'Geçersiz telefon numarası' }, { status: 400 })
         }
 
+        // NetGSM CDR API expects phone with leading 0 (e.g., 05301197400)
+        const cdrPhone = normalizedPhone.startsWith('0') ? normalizedPhone : '0' + normalizedPhone
+
         // NetGSM CDR API has a 24-hour limit per request
         // We'll query day-by-day for the last N days
         const allRecords: CDRRecord[] = []
@@ -157,7 +160,7 @@ export async function GET(req: NextRequest) {
                     `&startdate=${startStr}` +
                     `&stopdate=${stopStr}` +
                     `&querytype=2` +
-                    `&no=${encodeURIComponent(normalizedPhone)}` +
+                    `&no=${encodeURIComponent(cdrPhone)}` +
                     `&output=json`
 
                 const outRes = await fetch(outgoingUrl, {
@@ -199,7 +202,7 @@ export async function GET(req: NextRequest) {
                     `&startdate=${startStr}` +
                     `&stopdate=${stopStr}` +
                     `&querytype=1` +
-                    `&no=${encodeURIComponent(normalizedPhone)}` +
+                    `&no=${encodeURIComponent(cdrPhone)}` +
                     `&output=json`
 
                 const inRes = await fetch(incomingUrl, {
