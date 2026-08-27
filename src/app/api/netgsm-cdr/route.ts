@@ -129,8 +129,8 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ error: 'Geçersiz telefon numarası' }, { status: 400 })
         }
 
-        // NetGSM CDR API expects phone with leading 0 (e.g., 05301197400)
-        const cdrPhone = normalizedPhone.startsWith('0') ? normalizedPhone : '0' + normalizedPhone
+        // Normalize phone for matching: strip +90, leading 0 — keep as 10-digit 5xxxxxxxxx
+        const phoneDigits = normalizedPhone.replace(/^\+?90/, '').replace(/^0/, '')
 
         // NetGSM CDR API has a 24-hour limit per request
         // We'll query day-by-day for the last N days
@@ -138,8 +138,19 @@ export async function GET(req: NextRequest) {
         const now = new Date()
         const maxDays = Math.min(days, 30) // Cap at 30 days
 
-        // Query both incoming and outgoing calls
-        // querytype=1: destination (gelen arama), querytype=2: source (giden arama)
+        // Helper: check if a CDR source/destination matches the searched phone
+        const matchesPhone = (value: string): boolean => {
+            if (!value) return false
+            // Strip +90, leading 0, spaces, dashes
+            const cleaned = value.replace(/[\s\-\(\)]/g, '').replace(/^\+?90/, '').replace(/^0/, '')
+            // Also strip extension prefixes like "101-"
+            const withoutExt = cleaned.replace(/^\d{3}-/, '')
+            return cleaned.includes(phoneDigits) || withoutExt.includes(phoneDigits) || phoneDigits.includes(cleaned)
+        }
+
+        // Query both incoming and outgoing calls WITHOUT 'no' filter
+        // NetGSM 'no' param filters by extension, not external phone number
+        // querytype=2: tüm aramalar (gelen+giden)
         for (let dayOffset = 0; dayOffset < maxDays; dayOffset++) {
             const endDate = new Date(now)
             endDate.setDate(now.getDate() - dayOffset)
@@ -152,84 +163,43 @@ export async function GET(req: NextRequest) {
             const startStr = formatNetgsmDate(startDate)
             const stopStr = formatNetgsmDate(endDate)
 
-            // Query outgoing calls (source = this phone)
+            // Query all calls (querytype=2 returns all)
             try {
-                const outgoingUrl = `https://api.netgsm.com.tr/netsantral/report?` +
+                const url = `https://api.netgsm.com.tr/netsantral/report?` +
                     `usercode=${encodeURIComponent(cdrUsercode)}` +
                     `&password=${encodeURIComponent(cdrPassword)}` +
                     `&startdate=${startStr}` +
                     `&stopdate=${stopStr}` +
                     `&querytype=2` +
-                    `&no=${encodeURIComponent(cdrPhone)}` +
                     `&output=json`
 
-                const outRes = await fetch(outgoingUrl, {
+                const res = await fetch(url, {
                     method: 'GET',
                     headers: { 'Accept': 'application/json' },
                 })
 
-                if (outRes.ok) {
-                    const outData = await outRes.json()
-                    if (Array.isArray(outData)) {
-                        for (const group of outData) {
+                if (res.ok) {
+                    const data = await res.json()
+                    if (Array.isArray(data)) {
+                        for (const group of data) {
                             if (group.values && Array.isArray(group.values)) {
                                 for (const val of group.values) {
-                                    const playerUrl = val.recording ? buildPlayerUrl(val.recording) : null
-                                    allRecords.push({
-                                        uniqueid: group.uniqueid,
-                                        date: val.date,
-                                        destination: val.destination,
-                                        source: val.source,
-                                        duration: val.duration,
-                                        direction: val.direction ?? 0,
-                                        recording: val.recording || undefined,
-                                        playerUrl: playerUrl || undefined,
-                                    })
-                                }
-                            }
-                        }
-                    }
-                }
-            } catch (err) {
-                console.error(`[netgsm-cdr] Outgoing query error for day ${dayOffset}:`, err)
-            }
-
-            // Query incoming calls (destination = this phone)
-            try {
-                const incomingUrl = `https://api.netgsm.com.tr/netsantral/report?` +
-                    `usercode=${encodeURIComponent(cdrUsercode)}` +
-                    `&password=${encodeURIComponent(cdrPassword)}` +
-                    `&startdate=${startStr}` +
-                    `&stopdate=${stopStr}` +
-                    `&querytype=1` +
-                    `&no=${encodeURIComponent(cdrPhone)}` +
-                    `&output=json`
-
-                const inRes = await fetch(incomingUrl, {
-                    method: 'GET',
-                    headers: { 'Accept': 'application/json' },
-                })
-
-                if (inRes.ok) {
-                    const inData = await inRes.json()
-                    if (Array.isArray(inData)) {
-                        for (const group of inData) {
-                            if (group.values && Array.isArray(group.values)) {
-                                for (const val of group.values) {
-                                    // Avoid duplicates
-                                    const exists = allRecords.some(r => r.uniqueid === group.uniqueid)
-                                    if (!exists) {
-                                        const playerUrl = val.recording ? buildPlayerUrl(val.recording) : null
-                                        allRecords.push({
-                                            uniqueid: group.uniqueid,
-                                            date: val.date,
-                                            destination: val.destination,
-                                            source: val.source,
-                                            duration: val.duration,
-                                            direction: val.direction ?? 1,
-                                            recording: val.recording || undefined,
-                                            playerUrl: playerUrl || undefined,
-                                        })
+                                    // Filter: match source or destination against searched phone
+                                    if (matchesPhone(val.source) || matchesPhone(val.destination)) {
+                                        const exists = allRecords.some(r => r.uniqueid === group.uniqueid)
+                                        if (!exists) {
+                                            const playerUrl = val.recording ? buildPlayerUrl(val.recording) : null
+                                            allRecords.push({
+                                                uniqueid: group.uniqueid,
+                                                date: val.date,
+                                                destination: val.destination,
+                                                source: val.source,
+                                                duration: val.duration,
+                                                direction: val.direction ?? 0,
+                                                recording: val.recording || undefined,
+                                                playerUrl: playerUrl || undefined,
+                                            })
+                                        }
                                     }
                                 }
                             }
@@ -237,11 +207,10 @@ export async function GET(req: NextRequest) {
                     }
                 }
             } catch (err) {
-                console.error(`[netgsm-cdr] Incoming query error for day ${dayOffset}:`, err)
+                console.error(`[netgsm-cdr] Query error for day ${dayOffset}:`, err)
             }
 
-            // Rate limit: NetGSM allows max 2 requests/minute
-            // Add a small delay between day queries to avoid hitting rate limits
+            // Rate limit: small delay between day queries
             if (dayOffset < maxDays - 1) {
                 await new Promise(resolve => setTimeout(resolve, 600))
             }
