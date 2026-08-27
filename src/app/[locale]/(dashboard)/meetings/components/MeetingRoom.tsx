@@ -101,7 +101,7 @@ export function MeetingRoom({ meeting, activities, sales, userName }: MeetingRoo
 
     // Build Daily.co URL with token
     const dailyUrl = meeting.daily_room_url
-        ? `${meeting.daily_room_url}?t=${meeting.host_token}&showLeaveButton=true&showFullscreenButton=true&lang=tr`
+        ? `${meeting.daily_room_url}?t=${meeting.host_token}&showLeaveButton=true&showFullscreenButton=true&screenShare=true&lang=tr`
         : null
 
     const customer = meeting.customer

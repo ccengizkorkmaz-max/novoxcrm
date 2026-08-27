@@ -29,7 +29,7 @@ export function GuestMeetingRoom({ meeting }: GuestMeetingRoomProps) {
     })
 
     // Daily.co iframe URL with token
-    const iframeSrc = `${meeting.daily_room_url}?t=${meeting.guest_token}`
+    const iframeSrc = `${meeting.daily_room_url}?t=${meeting.guest_token}&screenShare=true&showFullscreenButton=true&lang=tr`
 
     if (joined) {
         return (

@@ -91,6 +91,7 @@ export async function createRoom(options: {
                 max_participants: maxParticipants,
                 enable_chat: enableChat,
                 enable_screenshare: true,
+                owner_only_broadcast: false, // Tüm katılımcılar ekran paylaşabilsin
                 enable_recording: enableRecording ? 'cloud' : undefined,
                 enable_knocking: false,
                 start_video_off: false,

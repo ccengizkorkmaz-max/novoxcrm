@@ -7,7 +7,7 @@ interface GuestMeetingRoomProps {
 }
 
 export function GuestMeetingRoom({ meeting, roomUrl, guestToken }: GuestMeetingRoomProps) {
-    const dailyUrl = `${roomUrl}?t=${guestToken}&showLeaveButton=true&showFullscreenButton=true&lang=tr`
+    const dailyUrl = `${roomUrl}?t=${guestToken}&showLeaveButton=true&showFullscreenButton=true&screenShare=true&lang=tr`
     const tenantName = meeting.tenant?.name || ''
     const projectName = meeting.project?.name || ''
     const hostName = meeting.host?.full_name || 'Danışman'
