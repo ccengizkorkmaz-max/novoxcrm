@@ -190,7 +190,7 @@ export default function SipSettingsTab({ tenant }: SipSettingsTabProps) {
                                         </div>
                                         <p className="text-xs text-slate-500 leading-relaxed">
                                             Giden AI aramaları bu SIP bilgileri üzerinden gerçekleştirilir.
-                                            Gelen aramalar için Netgsm'den inbound SIP forwarding ayarı gerekir.
+                                            Gelen aramalar için Netgsm&apos;den inbound SIP forwarding ayarı gerekir.
                                         </p>
                                     </div>
 

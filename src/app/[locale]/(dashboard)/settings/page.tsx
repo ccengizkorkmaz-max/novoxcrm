@@ -25,6 +25,7 @@ import AiSettingsTab from './components/AiSettingsTab'
 import EmailAccountsTab from './components/EmailAccountsTab'
 import SmsSettingsTab from './components/SmsSettingsTab'
 import SipSettingsTab from './components/SipSettingsTab'
+import CdrSettingsTab from './components/CdrSettingsTab'
 import { FinancialSettingsTab } from './components/FinancialSettingsTab'
 import { SystemLogsTab } from './components/SystemLogsTab'
 import SeoSettingsTab from './components/SeoSettingsTab'
@@ -203,6 +204,10 @@ export default async function SettingsPage() {
                         <Phone className="w-4 h-4 mr-2 shrink-0" />
                         <span className="hidden md:inline truncate">SIP / Telefon</span>
                     </TabsTrigger>
+                    <TabsTrigger value="cdr" className="justify-start w-full py-2 px-3 rounded-lg text-sm data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-sm transition-all">
+                        <Phone className="w-4 h-4 mr-2 shrink-0" />
+                        <span className="hidden md:inline truncate">Arama Kayıtları</span>
+                    </TabsTrigger>
                     <TabsTrigger value="iys" className="justify-start w-full py-2 px-3 rounded-lg text-sm data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-sm transition-all">
                         <ShieldCheck className="w-4 h-4 mr-2 shrink-0" />
                         <span className="hidden md:inline truncate">İYS</span>
@@ -348,6 +353,11 @@ export default async function SettingsPage() {
                 {/* SIP / Telefon Settings Tab */}
                 <TabsContent value="sip" className="space-y-4">
                     <SipSettingsTab tenant={tenant as any} />
+                </TabsContent>
+
+                {/* CDR (Arama Kayıtları) Settings Tab */}
+                <TabsContent value="cdr" className="space-y-4">
+                    <CdrSettingsTab tenant={tenant as any} />
                 </TabsContent>
 
                 {/* IYS Settings Tab */}

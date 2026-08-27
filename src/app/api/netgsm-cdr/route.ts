@@ -98,16 +98,19 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ error: 'Yetkisiz erişim' }, { status: 403 })
         }
 
-        // Get NetGSM credentials from tenant
+        // Get NetGSM credentials from tenant (CDR-specific fields preferred, SIP fields as fallback)
         const { data: tenant } = await supabase
             .from('tenants')
-            .select('netgsm_sip_username, netgsm_sip_password')
+            .select('netgsm_cdr_usercode, netgsm_cdr_password, netgsm_sip_username, netgsm_sip_password')
             .eq('id', profile.tenant_id)
             .single()
 
-        if (!tenant?.netgsm_sip_username || !tenant?.netgsm_sip_password) {
+        const cdrUsercode = tenant?.netgsm_cdr_usercode || tenant?.netgsm_sip_username
+        const cdrPassword = tenant?.netgsm_cdr_password || tenant?.netgsm_sip_password
+
+        if (!cdrUsercode || !cdrPassword) {
             return NextResponse.json(
-                { error: 'NetGSM SIP ayarları yapılandırılmamış. Ayarlar > SIP Trunk bölümünden yapılandırın.' },
+                { error: 'NetGSM CDR ayarları yapılandırılmamış. Ayarlar > Arama Kayıtları bölümünden yapılandırın.' },
                 { status: 400 }
             )
         }
@@ -149,8 +152,8 @@ export async function GET(req: NextRequest) {
             // Query outgoing calls (source = this phone)
             try {
                 const outgoingUrl = `https://api.netgsm.com.tr/netsantral/report?` +
-                    `usercode=${encodeURIComponent(tenant.netgsm_sip_username)}` +
-                    `&password=${encodeURIComponent(tenant.netgsm_sip_password)}` +
+                    `usercode=${encodeURIComponent(cdrUsercode)}` +
+                    `&password=${encodeURIComponent(cdrPassword)}` +
                     `&startdate=${startStr}` +
                     `&stopdate=${stopStr}` +
                     `&querytype=2` +
@@ -191,8 +194,8 @@ export async function GET(req: NextRequest) {
             // Query incoming calls (destination = this phone)
             try {
                 const incomingUrl = `https://api.netgsm.com.tr/netsantral/report?` +
-                    `usercode=${encodeURIComponent(tenant.netgsm_sip_username)}` +
-                    `&password=${encodeURIComponent(tenant.netgsm_sip_password)}` +
+                    `usercode=${encodeURIComponent(cdrUsercode)}` +
+                    `&password=${encodeURIComponent(cdrPassword)}` +
                     `&startdate=${startStr}` +
                     `&stopdate=${stopStr}` +
                     `&querytype=1` +

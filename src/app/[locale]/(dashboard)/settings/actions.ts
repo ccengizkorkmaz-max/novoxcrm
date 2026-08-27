@@ -1384,6 +1384,45 @@ export async function updateSipSettings(formData: FormData) {
     return { success: true }
 }
 
+// ─── CDR (Arama Kayıtları) Settings ───────────────────────────
+
+export async function updateCdrSettings(formData: FormData) {
+    const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Oturum açmanız gerekiyor.' }
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id, role')
+        .eq('id', user.id)
+        .single()
+
+    if (!profile?.tenant_id) return { error: 'Şirket kaydınız bulunamadı.' }
+
+    if (profile.role !== 'owner' && profile.role !== 'admin' && profile.role !== 'crm_manager') {
+        return { error: 'Yalnızca yönetici yetkisi olanlar bu ayarları değiştirebilir.' }
+    }
+
+    const updates = {
+        netgsm_cdr_usercode: (formData.get('netgsm_cdr_usercode') as string)?.trim() || null,
+        netgsm_cdr_password: (formData.get('netgsm_cdr_password') as string)?.trim() || null,
+    }
+
+    const { error } = await supabase
+        .from('tenants')
+        .update(updates)
+        .eq('id', profile.tenant_id)
+
+    if (error) {
+        console.error('Update CDR Settings Error:', error)
+        return { error: 'CDR ayarları güncellenirken bir hata oluştu: ' + error.message }
+    }
+
+    revalidatePath('/settings')
+    return { success: true }
+}
+
 export async function sendTestCatalogEmailAction(emailAddress: string, projectId: string) {
     try {
         const supabase = await createClient()
