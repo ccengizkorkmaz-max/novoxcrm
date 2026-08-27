@@ -188,12 +188,8 @@ export async function GET(req: NextRequest) {
                                     if (matchesPhone(val.source) || matchesPhone(val.destination)) {
                                         const exists = allRecords.some(r => r.uniqueid === group.uniqueid)
                                         if (!exists) {
-                                            // Build recording URL from commonID or recording field
-                                            const recordingUrl = val.recording || 
-                                                (val.commonID ? `https://dosyaindir.netgsm.com.tr/upload.php?tip=1&a=${val.commonID}` : null)
-                                            const playerUrl = val.recording 
-                                                ? buildPlayerUrl(val.recording) 
-                                                : (val.commonID ? `https://dosyaindir.netgsm.com.tr/upload.php?tip=1&a=${val.commonID}&towav` : null)
+                                            // Only use recording URL if explicitly returned by API
+                                            const playerUrl = val.recording ? buildPlayerUrl(val.recording) : null
                                             allRecords.push({
                                                 uniqueid: group.uniqueid,
                                                 date: val.date,
@@ -201,7 +197,7 @@ export async function GET(req: NextRequest) {
                                                 source: val.source,
                                                 duration: val.duration,
                                                 direction: val.direction ?? 0,
-                                                recording: recordingUrl || undefined,
+                                                recording: val.recording || undefined,
                                                 playerUrl: playerUrl || undefined,
                                             })
                                         }
