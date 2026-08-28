@@ -67,14 +67,15 @@ export async function extractAndUpdateLeadScore(
         }
 
         // ─── Skor Yükseltme: Skor asla düşmez ───
-        // Hiyerarşi: disqualified < cold < warm < hot (call_requested = hot seviyesi)
+        // Hiyerarşi: disqualified < cold < warm < hot < call_requested
+        // call_requested en yüksek seviye: müşteri açıkça arama talep etti, AI bunu override edemez
         const SCORE_HIERARCHY: Record<string, number> = {
             'unknown': 0,
             'disqualified': 0,
             'cold': 1,
             'warm': 2,
-            'call_requested': 3,
             'hot': 3,
+            'call_requested': 4,
         };
 
         // Mevcut skoru kontrol et
@@ -88,10 +89,17 @@ export async function extractAndUpdateLeadScore(
         const currentLevel = SCORE_HIERARCHY[currentScore] ?? 0;
         const newLevel = SCORE_HIERARCHY[leadScore] ?? 0;
 
+        // call_requested koruması: müşteri "Beni Arayın" dediyse, sadece disqualified ile override edilebilir
         // disqualified özel durum: her zaman uygulanır (müşteri red etti)
-        const finalScore = leadScore === 'disqualified'
-            ? 'disqualified'
-            : (newLevel >= currentLevel ? leadScore : currentScore);
+        let finalScore: string;
+        if (currentScore === 'call_requested' && leadScore !== 'disqualified') {
+            finalScore = 'call_requested';
+            console.log(`🛡️ call_requested korundu: AI ${leadScore} dedi ama müşteri arama talep etmişti`);
+        } else if (leadScore === 'disqualified') {
+            finalScore = 'disqualified';
+        } else {
+            finalScore = newLevel >= currentLevel ? leadScore : currentScore;
+        }
 
         console.log(`🌡️ Skor kararı: ${currentScore}(${currentLevel}) → ${leadScore}(${newLevel}) = ${finalScore}`);
 
