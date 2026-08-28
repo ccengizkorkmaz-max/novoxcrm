@@ -148,10 +148,100 @@ export default async function CRMPage(props: {
     const profilesData = profilesRes.data || []
     const projectsData = projectsRes.data || []
     const templates = templatesRes.data || []
-    const sales = salesListRes.data || []
+    const rawSales = salesListRes.data || []
     const totalSalesCount = salesListRes.count || 0
     const trackingSales = trackingSalesRes.data || []
     const initialActivities = activitiesRes.data || []
+
+    // Fetch latest campaign touchpoints for the current page sales
+    const customerIds = rawSales.map((s: any) => s.customer_id).filter(Boolean)
+    const campaignMap: Record<string, any> = {}
+
+    if (customerIds.length > 0) {
+        try {
+            // 1. Latest outreach execution per customer
+            const { data: execs } = await adminSupabase
+                .from('outreach_executions')
+                .select('id, status, started_at, customer_id, outreach_workflows(id, name), outreach_steps(action_type)')
+                .in('customer_id', customerIds)
+                .order('started_at', { ascending: false })
+
+            const latestExecByCust: Record<string, any> = {}
+            execs?.forEach((e: any) => {
+                if (e.customer_id && !latestExecByCust[e.customer_id]) {
+                    latestExecByCust[e.customer_id] = e
+                }
+            })
+
+            // 2. Map phone numbers for inbound message matching
+            const phoneToCustId: Record<string, string> = {}
+            rawSales.forEach((s: any) => {
+                const p = (s.customers as any)?.phone || ''
+                const norm = p.replace(/\D/g, '').slice(-10)
+                if (norm && s.customer_id) phoneToCustId[norm] = s.customer_id
+            })
+
+            // 3. Earliest campaign date among these executions
+            const allStarts = Object.values(latestExecByCust).map((e: any) => e.started_at).filter(Boolean)
+            const cutoff = allStarts.length > 0 ? new Date(Math.min(...allStarts.map((d: any) => new Date(d).getTime())) - 60000).toISOString() : null
+
+            const replyByCust: Record<string, any> = {}
+            if (cutoff) {
+                const { data: recentMsgs } = await adminSupabase
+                    .from('whatsapp_messages')
+                    .select('conversation_id, content, created_at')
+                    .eq('direction', 'inbound')
+                    .gte('created_at', cutoff)
+                    .order('created_at', { ascending: false })
+                    .limit(200)
+
+                if (recentMsgs && recentMsgs.length > 0) {
+                    const convIds = [...new Set(recentMsgs.map((m: any) => m.conversation_id))]
+                    const { data: convs } = await adminSupabase
+                        .from('whatsapp_conversations')
+                        .select('id, phone_number')
+                        .in('id', convIds)
+
+                    const convPhoneMap: Record<string, string> = {}
+                    convs?.forEach((c: any) => {
+                        const norm = (c.phone_number || '').replace(/\D/g, '').slice(-10)
+                        if (norm) convPhoneMap[c.id] = norm
+                    })
+
+                    recentMsgs.forEach((m: any) => {
+                        const phoneNorm = convPhoneMap[m.conversation_id]
+                        if (phoneNorm && phoneToCustId[phoneNorm]) {
+                            const cId = phoneToCustId[phoneNorm]
+                            if (!replyByCust[cId]) replyByCust[cId] = m
+                        }
+                    })
+                }
+            }
+
+            customerIds.forEach((cId: string) => {
+                const exec = latestExecByCust[cId]
+                if (exec) {
+                    const reply = replyByCust[cId]
+                    const lq = rawSales.find((s: any) => s.customer_id === cId)?.customers?.lead_qualifications?.[0]
+                    campaignMap[cId] = {
+                        workflowName: exec.outreach_workflows?.name || 'Kampanya',
+                        channel: exec.outreach_steps?.action_type || 'whatsapp',
+                        startedAt: exec.started_at,
+                        buttonText: reply?.content || null,
+                        replyTime: reply?.created_at || null,
+                        responseType: lq?.interest_level || (reply ? 'replied' : 'no_response')
+                    }
+                }
+            })
+        } catch (campErr) {
+            console.error('Error enriching campaign touchpoints:', campErr)
+        }
+    }
+
+    const sales = rawSales.map((s: any) => ({
+        ...s,
+        campaign_info: campaignMap[s.customer_id] || null
+    }))
 
     // ============================================================
     // RENDER: Sales list renders IMMEDIATELY, stats/toolbar stream in

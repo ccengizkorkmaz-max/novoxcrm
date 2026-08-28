@@ -58,21 +58,21 @@ import { CustomerView } from '@/components/customers/customer-view'
 import { getCustomerFullProfile } from '../actions'
 import { revertSaleToQualification } from '@/app/[locale]/(dashboard)/lead-qualification/actions'
 import { LeadScoreBadge } from '@/components/customers/LeadScoreBadge'
-
+import { CampaignTouchpointBadge } from '@/components/customers/CampaignTouchpointBadge'
 
 import { useTranslations, useLocale } from 'next-intl'
 import { useSupabaseRealtime } from '@/hooks/useSupabaseRealtime'
 
-type PipelineColId = 'customer' | 'project' | 'unit' | 'status' | 'first_contact' | 'process_note' | 'lead_score' | 'date' | 'amount' | 'rep' | 'remaining' | 'actions' | 'quickicons'
-const DEFAULT_PIPELINE_COL_ORDER: PipelineColId[] = ['customer', 'project', 'unit', 'status', 'first_contact', 'process_note', 'lead_score', 'date', 'amount', 'rep', 'remaining', 'actions', 'quickicons']
-const PIPELINE_COL_ORDER_KEY = 'pipeline_list_column_order_v4'
-const PIPELINE_COL_WIDTHS_KEY = 'pipeline_list_column_widths_v4'
-const PIPELINE_HIDDEN_COLS_KEY = 'pipeline_list_hidden_cols_v4'
+type PipelineColId = 'customer' | 'project' | 'unit' | 'status' | 'first_contact' | 'process_note' | 'lead_score' | 'campaign' | 'date' | 'amount' | 'rep' | 'remaining' | 'actions' | 'quickicons'
+const DEFAULT_PIPELINE_COL_ORDER: PipelineColId[] = ['customer', 'project', 'unit', 'status', 'first_contact', 'process_note', 'lead_score', 'campaign', 'date', 'amount', 'rep', 'remaining', 'actions', 'quickicons']
+const PIPELINE_COL_ORDER_KEY = 'pipeline_list_column_order_v5'
+const PIPELINE_COL_WIDTHS_KEY = 'pipeline_list_column_widths_v5'
+const PIPELINE_HIDDEN_COLS_KEY = 'pipeline_list_hidden_cols_v5'
 const DEFAULT_PIPELINE_WIDTHS: Record<PipelineColId, number> = {
-    customer: 240, project: 200, unit: 100, status: 160, first_contact: 140, process_note: 180, lead_score: 100, date: 140, amount: 160, rep: 180, remaining: 110, actions: 180, quickicons: 130
+    customer: 240, project: 200, unit: 100, status: 160, first_contact: 140, process_note: 180, lead_score: 100, campaign: 160, date: 140, amount: 160, rep: 180, remaining: 110, actions: 180, quickicons: 130
 }
 const PIPELINE_COL_LABELS: Record<PipelineColId, string> = {
-    customer: 'Müşteri', project: 'Proje', unit: 'Birim', status: 'Durum', first_contact: 'İlk Temas', process_note: 'Süreç Notu', lead_score: 'Lead Skor', date: 'Tarih', amount: 'Tutar', rep: 'Temsilci', remaining: 'Kalan Süre', actions: 'İşlemler', quickicons: 'Kısayollar'
+    customer: 'Müşteri', project: 'Proje', unit: 'Birim', status: 'Durum', first_contact: 'İlk Temas', process_note: 'Süreç Notu', lead_score: 'Lead Skor', campaign: 'Son Kampanya', date: 'Tarih', amount: 'Tutar', rep: 'Temsilci', remaining: 'Kalan Süre', actions: 'İşlemler', quickicons: 'Kısayollar'
 }
 
 export default function PipelineList({
@@ -648,6 +648,7 @@ export default function PipelineList({
             if (colId === 'date') return { id: colId, label: 'Tarih', type: 'date' as const }
             if (colId === 'amount') return { id: colId, label: 'Tutar', type: 'text' as const }
             if (colId === 'lead_score') return { id: colId, label: 'Lead Skor', type: 'multiselect' as const, options: ['hot', 'warm', 'cold', 'call_requested', 'disqualified'], optionLabels: { hot: '🔥 Hot', warm: '🌡️ Warm', cold: '❄️ Cold', call_requested: '📞 Arama', disqualified: '⛔ DQ' } }
+            if (colId === 'campaign') return { id: colId, label: 'Son Kampanya', type: 'text' as const }
             if (colId === 'first_contact') return { id: colId, label: 'İlk Temas', type: 'select' as const, options: ['Aradım, Olumlu', 'Aradım, Olumsuz', 'Tekrar Aranacak', 'Değerlendiriyor', 'Ulaşamadım'] }
             if (colId === 'actions' || colId === 'quickicons' || colId === 'remaining') return { id: colId, label: colId, type: 'none' as const }
             return { id: colId, label: colId, type: 'text' as const }
@@ -688,6 +689,10 @@ export default function PipelineList({
                 const selectedScores = filterVal.split(',')
                 const interestLevel = sale.customers?.lead_qualifications?.[0]?.interest_level || ''
                 if (!selectedScores.includes(interestLevel)) return false
+            } else if (colId === 'campaign') {
+                const wName = (sale.campaign_info?.workflowName || '').toLowerCase()
+                const bText = (sale.campaign_info?.buttonText || '').toLowerCase()
+                if (!wName.includes(q) && !bText.includes(q)) return false
             } else if (colId === 'first_contact') {
                 const fc = sale.first_contact || ''
                 if (fc !== filterVal) return false
@@ -810,6 +815,7 @@ export default function PipelineList({
                                                 {colId === 'first_contact' && 'İlk Temas'}
                                                 {colId === 'process_note' && 'Süreç Notu'}
                                                 {colId === 'lead_score' && 'Lead Skor'}
+                                                {colId === 'campaign' && 'Son Kampanya'}
                                                 {colId === 'date' && t('table.date')}
                                                 {colId === 'amount' && t('table.amount')}
                                                 {colId === 'rep' && (isBroker ? 'Danışman' : t('table.rep'))}
@@ -1195,6 +1201,13 @@ export default function PipelineList({
                                                                     </span>
                                                                 )}
                                                             </div>
+                                                        </TableCell>
+                                                    )
+                                                }
+                                                if (colId === 'campaign') {
+                                                    return (
+                                                        <TableCell key="campaign" className={cellCls}>
+                                                            <CampaignTouchpointBadge info={sale.campaign_info} />
                                                         </TableCell>
                                                     )
                                                 }
