@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { startOfMonth, subMonths, format, isToday, isThisWeek, isThisMonth } from 'date-fns'
 import { tr } from 'date-fns/locale'
 
@@ -728,16 +729,10 @@ export async function getCampaignPerformanceReport(workflowId: string) {
     }
     if (!user) return emptyResult
 
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('tenant_id')
-        .eq('id', user.id)
-        .single()
-
-    if (!profile?.tenant_id) return emptyResult
+    const adminDb = createAdminClient()
 
     // ─── 1. Kampanyanın adımlarını çek ───────────────────────────────────
-    const { data: workflowSteps } = await supabase
+    const { data: workflowSteps } = await adminDb
         .from('outreach_steps')
         .select('id, name, action_type, config, step_order')
         .eq('workflow_id', workflowId)
@@ -798,7 +793,7 @@ export async function getCampaignPerformanceReport(workflowId: string) {
     let page = 0
     const PAGE_SIZE = 1000
     while (true) {
-        const { data: batch, error } = await supabase
+        const { data: batch, error } = await adminDb
             .from('outreach_executions')
             .select(`
                 id, status, started_at, completed_at, customer_id,
@@ -806,7 +801,6 @@ export async function getCampaignPerformanceReport(workflowId: string) {
                 sales(id, status, assigned_to)
             `)
             .eq('workflow_id', workflowId)
-            .eq('tenant_id', profile.tenant_id)
             .order('started_at', { ascending: false })
             .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
 
@@ -825,7 +819,7 @@ export async function getCampaignPerformanceReport(workflowId: string) {
 
     for (let i = 0; i < executionIds.length; i += 50) {
         const chunk = executionIds.slice(i, i + 50)
-        const { data: logs } = await supabase
+        const { data: logs } = await adminDb
             .from('outreach_step_logs')
             .select('execution_id, channel, status, call_outcome, call_duration_seconds, call_summary, template_name, error_message, executed_at')
             .in('execution_id', chunk)
@@ -865,7 +859,7 @@ export async function getCampaignPerformanceReport(workflowId: string) {
         let incomingMsgs: any[] = []
         let msgPage = 0
         while (true) {
-            const { data: batch } = await supabase
+            const { data: batch } = await adminDb
                 .from('whatsapp_messages')
                 .select('id, conversation_id, content, created_at, sender_type, direction')
                 .eq('direction', 'inbound')
@@ -885,7 +879,7 @@ export async function getCampaignPerformanceReport(workflowId: string) {
 
         for (let i = 0; i < msgConvIds.length; i += 100) {
             const chunk = msgConvIds.slice(i, i + 100)
-            const { data: convs } = await supabase
+            const { data: convs } = await adminDb
                 .from('whatsapp_conversations')
                 .select('id, phone_number, customer_id')
                 .in('id', chunk)
@@ -932,7 +926,7 @@ export async function getCampaignPerformanceReport(workflowId: string) {
         const normalizedPhones = [...new Set(customerPhones.map((p: string) => p.replace(/\D/g, '').slice(-10)))]
         for (let i = 0; i < normalizedPhones.length; i += 50) {
             const chunk = normalizedPhones.slice(i, i + 50)
-            const { data: optouts } = await supabase
+            const { data: optouts } = await adminDb
                 .from('outreach_optouts')
                 .select('phone')
                 .in('phone', chunk.map((p: string) => `%${p}`))
@@ -944,7 +938,7 @@ export async function getCampaignPerformanceReport(workflowId: string) {
     const assignedToIds = [...new Set(allExecutions.map(e => (e.sales as any)?.assigned_to).filter(Boolean))]
     const repProfiles: Record<string, string> = {}
     if (assignedToIds.length > 0) {
-        const { data: profiles } = await supabase.from('profiles').select('id, full_name').in('id', assignedToIds)
+        const { data: profiles } = await adminDb.from('profiles').select('id, full_name').in('id', assignedToIds)
         profiles?.forEach(p => { repProfiles[p.id] = p.full_name || 'Bilinmiyor' })
     }
 
