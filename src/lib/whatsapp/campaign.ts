@@ -73,7 +73,7 @@ export async function handleCampaignReply(
                     console.log(`✅ ${customer.full_name} otomatik satış panosuna eklendi (Lead).`);
                 }
 
-                // ── Atanmış Temsilciye WhatsApp Bildirimi ──
+                // ── Atanmış Temsilciye WhatsApp Bildirimi (lead_assignment_alert) ──
                 const assignedToId = existingSale?.assigned_to;
                 if (assignedToId) {
                     try {
@@ -87,15 +87,14 @@ export async function handleCampaignReply(
                             const repParams = [
                                 customer.full_name || payloadName || 'Bilinmiyor',
                                 normalizedPhone,
-                                new Date().toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' }),
-                                `📞 ARAMA TALEBİ — Müşteri kampanya mesajındaki "Beni Arayın" butonuna tıkladı. Lütfen en kısa sürede arayın.`
-                            ].map(p => typeof p === 'string' ? p.replace(/[\r\n\t]+/g, ' ').replace(/\s{2,}/g, ' ').trim() : p);
+                                '📞 ARAMA TALEBİ — Beni Arayın butonuna tıkladı'
+                            ];
 
                             const accessToken = tenantData.wa_access_token;
                             if (accessToken && tenantData.wa_phone_number_id) {
                                 await sendWhatsAppTemplate(
                                     repProfile.phone,
-                                    'crm_operasyonel_durum_bildirimi',
+                                    'lead_assignment_alert',
                                     repParams,
                                     'tr',
                                     tenantData.wa_phone_number_id,
