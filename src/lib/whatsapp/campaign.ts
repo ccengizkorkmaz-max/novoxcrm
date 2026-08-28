@@ -58,7 +58,7 @@ export async function handleCampaignReply(
 
                 // ── Satış Panosuna (Ön Değerlendirme) Otomatik Ekle ──
                 const { data: existingSale } = await supabase.from('sales')
-                    .select('id')
+                    .select('id, assigned_to')
                     .eq('customer_id', customer.id)
                     .in('status', ['Lead', 'Prospect', 'Proposal', 'Reservation', 'Negotiation', 'Contract'])
                     .maybeSingle();
@@ -71,6 +71,42 @@ export async function handleCampaignReply(
                         lead_origin: 'company'
                     });
                     console.log(`✅ ${customer.full_name} otomatik satış panosuna eklendi (Lead).`);
+                }
+
+                // ── Atanmış Temsilciye WhatsApp Bildirimi ──
+                const assignedToId = existingSale?.assigned_to;
+                if (assignedToId) {
+                    try {
+                        const { data: repProfile } = await supabase
+                            .from('profiles')
+                            .select('full_name, phone')
+                            .eq('id', assignedToId)
+                            .single();
+
+                        if (repProfile?.phone) {
+                            const repParams = [
+                                customer.full_name || payloadName || 'Bilinmiyor',
+                                normalizedPhone,
+                                new Date().toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' }),
+                                `📞 ARAMA TALEBİ — Müşteri kampanya mesajındaki "Beni Arayın" butonuna tıkladı. Lütfen en kısa sürede arayın.`
+                            ].map(p => typeof p === 'string' ? p.replace(/[\r\n\t]+/g, ' ').replace(/\s{2,}/g, ' ').trim() : p);
+
+                            const accessToken = tenantData.wa_access_token;
+                            if (accessToken && tenantData.wa_phone_number_id) {
+                                await sendWhatsAppTemplate(
+                                    repProfile.phone,
+                                    'crm_operasyonel_durum_bildirimi',
+                                    repParams,
+                                    'tr',
+                                    tenantData.wa_phone_number_id,
+                                    accessToken
+                                );
+                                console.log(`📱 Atanmış temsilciye arama talebi bildirimi gönderildi: ${repProfile.full_name} (${repProfile.phone})`);
+                            }
+                        }
+                    } catch (repNotifyErr) {
+                        console.error('Atanmış temsilci bildirim hatası:', repNotifyErr);
+                    }
                 }
 
                 // ── Hot Lead Manager WhatsApp Bildirimi Tetikle ──
