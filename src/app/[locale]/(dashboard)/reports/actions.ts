@@ -757,40 +757,54 @@ export async function getCampaignPerformanceReport(workflowId: string) {
 
     if (allExecutions.length === 0) return emptyResult
 
-    // 2. Unique customer_id'leri topla
+    // 2. Unique customer_id'leri + gönderim zamanlarını topla
     const customerIds = [...new Set(allExecutions.map(e => e.customer_id).filter(Boolean))]
     if (customerIds.length === 0) return emptyResult
 
-    // 3. WhatsApp conversation lead_score'larını + conversation_id'leri topla
-    const conversationScores: Record<string, string> = {}
+    // customer_id → en erken gönderim zamanı (kampanya başlangıcı)
+    const customerSentAt: Record<string, string> = {}
+    allExecutions.forEach(e => {
+        if (e.customer_id && e.started_at) {
+            if (!customerSentAt[e.customer_id] || e.started_at < customerSentAt[e.customer_id]) {
+                customerSentAt[e.customer_id] = e.started_at
+            }
+        }
+    })
+
+    // 3. WhatsApp conversation_id'leri topla (mesaj sorgusu için)
     const customerConversationIds: Record<string, string> = {}
     for (let i = 0; i < customerIds.length; i += 50) {
         const chunk = customerIds.slice(i, i + 50)
         const { data: convs } = await supabase
             .from('whatsapp_conversations')
-            .select('id, customer_id, lead_score')
+            .select('id, customer_id')
             .in('customer_id', chunk)
             .eq('tenant_id', profile.tenant_id)
 
         convs?.forEach(c => {
             if (c.customer_id) {
                 customerConversationIds[c.customer_id] = c.id
-                const existing = conversationScores[c.customer_id]
-                const hierarchy: Record<string, number> = { disqualified: 1, unknown: 2, cold: 3, warm: 4, call_requested: 5, hot: 6 }
-                if (!existing || (hierarchy[c.lead_score] || 0) > (hierarchy[existing] || 0)) {
-                    conversationScores[c.customer_id] = c.lead_score
-                }
             }
         })
     }
 
-    // 4. WhatsApp buton yanıtlarını topla (Beni Arayın, Hayır teşekkürler vb.)
-    const buttonReplies: Record<string, { text: string, time: string }> = {}
+    // 4. Kampanya gönderiminden SONRA gelen TÜM inbound mesajları topla
+    // Bu mesajlardan hem buton yanıtını hem yanıt durumunu belirleyeceğiz
     const convIds = Object.values(customerConversationIds).filter(Boolean)
     const convToCustomer: Record<string, string> = {}
     Object.entries(customerConversationIds).forEach(([custId, convId]) => { convToCustomer[convId] = custId })
 
-    const buttonKeywords = ['beni aray', 'evet', 'hayır', 'hayir', 'bilgi istiyorum', 'aradım', 'tekrar', 'değerlendiriyor', 'olumsuz']
+    // Kampanyanın en erken gönderim tarihi (global filtre)
+    const allSentDates = Object.values(customerSentAt).filter(Boolean)
+    const globalCutoff = allSentDates.length > 0
+        ? new Date(Math.min(...allSentDates.map(d => new Date(d).getTime())) - 60000).toISOString() // 1 dk öncesinden
+        : new Date('2020-01-01').toISOString()
+
+    // Müşteri bazlı mesaj yanıtları: { text, time, allMessages }
+    const customerReplies: Record<string, { buttonReply: string | null, buttonTime: string | null, hasReply: boolean, replyContent: string }> = {}
+    const buttonKeywords = ['beni aray', 'bilgi istiyorum']
+    const negativeKeywords = ['hayır', 'hayir', 'istemiyorum', 'ilgilenmiyorum', 'aramayin', 'aramayın']
+
     for (let i = 0; i < convIds.length; i += 50) {
         const chunk = convIds.slice(i, i + 50)
         const { data: msgs } = await supabase
@@ -799,14 +813,33 @@ export async function getCampaignPerformanceReport(workflowId: string) {
             .in('conversation_id', chunk)
             .eq('direction', 'inbound')
             .eq('sender_type', 'customer')
+            .gte('created_at', globalCutoff)
             .order('created_at', { ascending: false })
 
         msgs?.forEach(m => {
             const custId = convToCustomer[m.conversation_id]
-            if (!custId || buttonReplies[custId]) return // sadece son yanıtı al
-            const lower = (m.content || '').toLowerCase()
-            if (buttonKeywords.some(kw => lower.includes(kw))) {
-                buttonReplies[custId] = { text: m.content, time: m.created_at }
+            if (!custId) return
+
+            const sentAt = customerSentAt[custId]
+            if (sentAt && new Date(m.created_at) < new Date(sentAt)) return // kampanyadan önce → atla
+
+            if (!customerReplies[custId]) {
+                customerReplies[custId] = { buttonReply: null, buttonTime: null, hasReply: false, replyContent: '' }
+            }
+
+            customerReplies[custId].hasReply = true
+            if (!customerReplies[custId].replyContent) {
+                customerReplies[custId].replyContent = m.content || ''
+            }
+
+            // Buton yanıtı (ilk eşleşen)
+            if (!customerReplies[custId].buttonReply) {
+                const lower = (m.content || '').toLowerCase()
+                const allBtnKeywords = [...buttonKeywords, 'evet', 'aradım', 'tekrar', 'değerlendiriyor', 'olumsuz', ...negativeKeywords]
+                if (allBtnKeywords.some(kw => lower.includes(kw))) {
+                    customerReplies[custId].buttonReply = m.content
+                    customerReplies[custId].buttonTime = m.created_at
+                }
             }
         })
     }
@@ -841,7 +874,7 @@ export async function getCampaignPerformanceReport(workflowId: string) {
         profiles?.forEach(p => { repProfiles[p.id] = p.full_name || 'Bilinmiyor' })
     }
 
-    // 7. Verileri birleştir
+    // 7. Verileri birleştir — yanıt durumunu SADECE kampanya sonrası mesajlardan belirle
     const seen = new Set<string>()
     const leads = allExecutions
         .filter(e => {
@@ -854,17 +887,31 @@ export async function getCampaignPerformanceReport(workflowId: string) {
             const sale = e.sales as any
             const phone = customer?.phone || ''
             const phoneNorm = phone.replace(/\D/g, '').slice(-10)
-            const leadScore = conversationScores[e.customer_id!] || 'unknown'
             const isOptedOut = optedOutPhones.has(phoneNorm)
             const assignedTo = sale?.assigned_to ? repProfiles[sale.assigned_to] || null : null
-            const btnReply = buttonReplies[e.customer_id!] || null
+            const reply = customerReplies[e.customer_id!]
+            const btnReply = reply?.buttonReply || null
+            const btnReplyTime = reply?.buttonTime || null
 
+            // Yanıt durumunu SADECE kampanya sonrası mesajlardan belirle
             let responseStatus: string
-            if (leadScore === 'call_requested') responseStatus = 'call_requested'
-            else if (isOptedOut || leadScore === 'disqualified') responseStatus = 'opted_out'
-            else if (leadScore === 'hot') responseStatus = 'hot'
-            else if (leadScore === 'warm') responseStatus = 'warm'
-            else responseStatus = 'no_response'
+            if (!reply?.hasReply && !isOptedOut) {
+                responseStatus = 'no_response'
+            } else if (isOptedOut) {
+                responseStatus = 'opted_out'
+            } else {
+                const lower = (reply?.replyContent || '').toLowerCase()
+                const btnLower = (btnReply || '').toLowerCase()
+                if (btnLower.includes('beni aray') || btnLower.includes('bilgi istiyorum') || lower.includes('beni aray')) {
+                    responseStatus = 'call_requested'
+                } else if (negativeKeywords.some(kw => lower.includes(kw)) || negativeKeywords.some(kw => btnLower.includes(kw))) {
+                    responseStatus = 'opted_out'
+                } else if (lower.includes('aradım') || lower.includes('değerlendiriyor') || lower.includes('evet')) {
+                    responseStatus = 'hot'
+                } else {
+                    responseStatus = 'warm'
+                }
+            }
 
             return {
                 id: e.id,
@@ -875,12 +922,12 @@ export async function getCampaignPerformanceReport(workflowId: string) {
                 executionStatus: e.status,
                 startedAt: e.started_at,
                 completedAt: e.completed_at,
-                leadScore,
+                leadScore: responseStatus,
                 responseStatus,
                 assignedTo,
                 saleStatus: sale?.status || null,
-                buttonReply: btnReply?.text || null,
-                buttonReplyTime: btnReply?.time || null,
+                buttonReply: btnReply,
+                buttonReplyTime: btnReplyTime,
             }
         })
 
