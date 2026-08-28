@@ -761,11 +761,11 @@ export async function getCampaignPerformanceReport(workflowId: string) {
     const customerIds = [...new Set(allExecutions.map(e => e.customer_id).filter(Boolean))]
     if (customerIds.length === 0) return emptyResult
 
-    // customer_id → en SON gönderim zamanı (bu kampanyadaki en güncel gönderim)
+    // customer_id → İLK gönderim zamanı (müşterinin bu kampanyadan ilk mesajı aldığı an)
     const customerSentAt: Record<string, string> = {}
     allExecutions.forEach(e => {
         if (e.customer_id && e.started_at) {
-            if (!customerSentAt[e.customer_id] || e.started_at > customerSentAt[e.customer_id]) {
+            if (!customerSentAt[e.customer_id] || e.started_at < customerSentAt[e.customer_id]) {
                 customerSentAt[e.customer_id] = e.started_at
             }
         }
