@@ -108,27 +108,41 @@ export async function sendLeadAssignmentAlert(params: LeadAssignmentAlertParams)
                     return { success: false, reason: 'no_phone' }
                 }
 
-                // UTILITY template kullanıyoruz (crm_operasyonel_durum_bildirimi)
-                // MARKETING kategorisindeki lead_assignment_alert Meta frekans limitine takılıyordu
-                // UTILITY şablonları her zaman teslim edilir
+                // Önce lead_assignment_alert (butonlu, MARKETING) dene
+                // Başarısız olursa crm_operasyonel_durum_bildirimi (butonsuz, UTILITY) fallback
                 const now = new Date().toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-                const statusDesc = `${cleanScore} — ${source} üzerinden atandı`
 
-                console.log(`📤 [sendLeadAssignmentAlert] WA atama bildirimi gönderiliyor (UTILITY): ${repProfile.full_name} (${repProfile.phone}) - Lead: ${cleanLeadName}`)
+                console.log(`📤 [sendLeadAssignmentAlert] WA atama bildirimi gönderiliyor: ${repProfile.full_name} (${repProfile.phone}) - Lead: ${cleanLeadName}`)
 
-                const waResult = await sendWhatsAppTemplate(
+                // 1. Butonlu şablon dene (lead_assignment_alert)
+                let waResult = await sendWhatsAppTemplate(
                     repProfile.phone,
-                    'crm_operasyonel_durum_bildirimi',
-                    [cleanLeadName, cleanLeadPhone, now, statusDesc],
+                    'lead_assignment_alert',
+                    [cleanLeadName, cleanLeadPhone, cleanScore],
                     'tr',
                     waPhoneId,
                     waToken
                 )
 
                 if (waResult.success) {
-                    console.log(`✅ [sendLeadAssignmentAlert] WA atama bildirimi başarıyla iletildi: ${repProfile.full_name}`)
+                    console.log(`✅ [sendLeadAssignmentAlert] Butonlu WA atama bildirimi başarıyla iletildi: ${repProfile.full_name}`)
                 } else {
-                    console.error(`❌ [sendLeadAssignmentAlert] WA atama bildirimi BAŞARISIZ: ${repProfile.full_name}`, waResult.error, JSON.stringify(waResult.data || {}))
+                    // 2. Fallback: UTILITY şablon (her zaman teslim edilir)
+                    console.warn(`⚠️ [sendLeadAssignmentAlert] Butonlu şablon başarısız, UTILITY fallback deneniyor: ${repProfile.full_name}`, waResult.error)
+                    const statusDesc = `${cleanScore} — ${source} üzerinden atandı`
+                    waResult = await sendWhatsAppTemplate(
+                        repProfile.phone,
+                        'crm_operasyonel_durum_bildirimi',
+                        [cleanLeadName, cleanLeadPhone, now, statusDesc],
+                        'tr',
+                        waPhoneId,
+                        waToken
+                    )
+                    if (waResult.success) {
+                        console.log(`✅ [sendLeadAssignmentAlert] UTILITY fallback WA atama bildirimi iletildi: ${repProfile.full_name}`)
+                    } else {
+                        console.error(`❌ [sendLeadAssignmentAlert] WA atama bildirimi BAŞARISIZ (her iki şablon): ${repProfile.full_name}`, waResult.error)
+                    }
                 }
 
                 // 4. Hot Lead Yöneticilerine bildirim gönder (Temsilcinin kendisi hariç)
