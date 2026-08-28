@@ -686,6 +686,174 @@ export async function getSalesComparisonReport() {
     return comparison
 }
 
+// ── Kampanya Bazlı Performans Raporu ──
+
+export async function getOutreachWorkflowsList() {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return []
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', user.id)
+        .single()
+
+    if (!profile?.tenant_id) return []
+
+    const { data, error } = await supabase
+        .from('outreach_workflows')
+        .select('id, name, is_active, created_at, total_executions')
+        .eq('tenant_id', profile.tenant_id)
+        .order('created_at', { ascending: false })
+
+    if (error) {
+        console.error('getOutreachWorkflowsList error:', error)
+        return []
+    }
+    return data || []
+}
+
+export async function getCampaignPerformanceReport(workflowId: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { leads: [], stats: { total: 0, callRequested: 0, optedOut: 0, noResponse: 0, hot: 0, warm: 0 } }
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', user.id)
+        .single()
+
+    if (!profile?.tenant_id) return { leads: [], stats: { total: 0, callRequested: 0, optedOut: 0, noResponse: 0, hot: 0, warm: 0 } }
+
+    // 1. Kampanyanın tüm execution'larını müşteri + satış bilgisiyle çek
+    const { data: executions, error } = await supabase
+        .from('outreach_executions')
+        .select(`
+            id, status, started_at, completed_at, customer_id,
+            customers(id, full_name, phone, source),
+            sales(id, status, assigned_to)
+        `)
+        .eq('workflow_id', workflowId)
+        .eq('tenant_id', profile.tenant_id)
+        .order('started_at', { ascending: false })
+
+    if (error || !executions) {
+        console.error('getCampaignPerformanceReport error:', error)
+        return { leads: [], stats: { total: 0, callRequested: 0, optedOut: 0, noResponse: 0, hot: 0, warm: 0 } }
+    }
+
+    // 2. Unique customer_id'leri topla
+    const customerIds = [...new Set(executions.map(e => e.customer_id).filter(Boolean))]
+    if (customerIds.length === 0) return { leads: [], stats: { total: 0, callRequested: 0, optedOut: 0, noResponse: 0, hot: 0, warm: 0 } }
+
+    // 3. WhatsApp conversation lead_score'larını topla
+    const conversationScores: Record<string, string> = {}
+    for (let i = 0; i < customerIds.length; i += 50) {
+        const chunk = customerIds.slice(i, i + 50)
+        const { data: convs } = await supabase
+            .from('whatsapp_conversations')
+            .select('customer_id, lead_score')
+            .in('customer_id', chunk)
+            .eq('tenant_id', profile.tenant_id)
+
+        convs?.forEach(c => {
+            if (c.customer_id) {
+                const existing = conversationScores[c.customer_id]
+                const hierarchy: Record<string, number> = { disqualified: 1, unknown: 2, cold: 3, warm: 4, call_requested: 5, hot: 6 }
+                if (!existing || (hierarchy[c.lead_score] || 0) > (hierarchy[existing] || 0)) {
+                    conversationScores[c.customer_id] = c.lead_score
+                }
+            }
+        })
+    }
+
+    // 4. Opt-out kayıtlarını kontrol et
+    const customerPhones = executions.map(e => (e.customers as any)?.phone).filter(Boolean)
+    const optedOutPhones = new Set<string>()
+    if (customerPhones.length > 0) {
+        const normalizedPhones = [...new Set(customerPhones.map((p: string) => p.replace(/\D/g, '').slice(-10)))]
+        for (let i = 0; i < normalizedPhones.length; i += 50) {
+            const chunk = normalizedPhones.slice(i, i + 50)
+            const { data: optouts } = await supabase
+                .from('outreach_optouts')
+                .select('phone')
+                .in('phone', chunk.map((p: string) => `%${p}`))
+
+            optouts?.forEach(o => {
+                if (o.phone) optedOutPhones.add(o.phone.replace(/\D/g, '').slice(-10))
+            })
+        }
+    }
+
+    // 5. Atanmış temsilci profillerini topla
+    const assignedToIds = [...new Set(executions.map(e => (e.sales as any)?.assigned_to).filter(Boolean))]
+    const repProfiles: Record<string, string> = {}
+    if (assignedToIds.length > 0) {
+        const { data: profiles } = await supabase
+            .from('profiles')
+            .select('id, full_name')
+            .in('id', assignedToIds)
+
+        profiles?.forEach(p => { repProfiles[p.id] = p.full_name || 'Bilinmiyor' })
+    }
+
+    // 6. Verileri birleştir
+    // Aynı müşteriye birden fazla execution olabilir, sadece en güncelini al
+    const seen = new Set<string>()
+    const leads = executions
+        .filter(e => {
+            if (!e.customer_id || seen.has(e.customer_id)) return false
+            seen.add(e.customer_id)
+            return true
+        })
+        .map(e => {
+            const customer = e.customers as any
+            const sale = e.sales as any
+            const phone = customer?.phone || ''
+            const phoneNorm = phone.replace(/\D/g, '').slice(-10)
+            const leadScore = conversationScores[e.customer_id!] || 'unknown'
+            const isOptedOut = optedOutPhones.has(phoneNorm)
+            const assignedTo = sale?.assigned_to ? repProfiles[sale.assigned_to] || null : null
+
+            // Yanıt durumu belirleme
+            let responseStatus: string
+            if (leadScore === 'call_requested') responseStatus = 'call_requested'
+            else if (isOptedOut || leadScore === 'disqualified') responseStatus = 'opted_out'
+            else if (leadScore === 'hot') responseStatus = 'hot'
+            else if (leadScore === 'warm') responseStatus = 'warm'
+            else responseStatus = 'no_response'
+
+            return {
+                id: e.id,
+                customerId: e.customer_id,
+                customerName: customer?.full_name || 'Bilinmiyor',
+                customerPhone: phone,
+                customerSource: customer?.source || '',
+                executionStatus: e.status,
+                startedAt: e.started_at,
+                completedAt: e.completed_at,
+                leadScore,
+                responseStatus,
+                assignedTo,
+                saleStatus: sale?.status || null,
+            }
+        })
+
+    // 7. İstatistikler
+    const stats = {
+        total: leads.length,
+        callRequested: leads.filter(l => l.responseStatus === 'call_requested').length,
+        optedOut: leads.filter(l => l.responseStatus === 'opted_out').length,
+        noResponse: leads.filter(l => l.responseStatus === 'no_response').length,
+        hot: leads.filter(l => l.responseStatus === 'hot').length,
+        warm: leads.filter(l => l.responseStatus === 'warm').length,
+    }
+
+    return { leads, stats }
+}
+
 export async function getHotLeadsReport() {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
