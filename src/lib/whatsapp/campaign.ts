@@ -83,7 +83,18 @@ export async function handleCampaignReply(
                             .eq('id', assignedToId)
                             .single();
 
-                        if (repProfile?.phone) {
+                        // Temsilci bildirim tercihi kontrolü
+                        const { data: repPref } = await supabase
+                            .from('user_notification_preferences')
+                            .select('is_enabled, channel_whatsapp')
+                            .eq('tenant_id', tenantId)
+                            .eq('user_id', assignedToId)
+                            .in('notification_type', ['lead_assigned', 'call_requested'])
+                            .maybeSingle();
+
+                        const repWaEnabled = repPref ? (repPref.is_enabled && repPref.channel_whatsapp) : true;
+
+                        if (repWaEnabled && repProfile?.phone) {
                             const repParams = [
                                 customer.full_name || payloadName || 'Bilinmiyor',
                                 normalizedPhone,
@@ -102,6 +113,8 @@ export async function handleCampaignReply(
                                 );
                                 console.log(`📱 Atanmış temsilciye arama talebi bildirimi gönderildi: ${repProfile.full_name} (${repProfile.phone})`);
                             }
+                        } else {
+                            console.log(`⏭️ Temsilci WhatsApp bildirimi kapalı: ${repProfile?.full_name}`);
                         }
                     } catch (repNotifyErr) {
                         console.error('Atanmış temsilci bildirim hatası:', repNotifyErr);
@@ -147,7 +160,18 @@ export async function handleCampaignReply(
 
                             const accessToken = tenantData.wa_access_token;
                             for (const manager of hotLeadManagers) {
-                                if (manager.phone && accessToken && tenantData.wa_phone_number_id) {
+                                // Manager bildirim tercihi kontrolü
+                                const { data: mgrPref } = await supabase
+                                    .from('user_notification_preferences')
+                                    .select('is_enabled, channel_whatsapp')
+                                    .eq('tenant_id', tenantId)
+                                    .eq('user_id', manager.id)
+                                    .in('notification_type', ['hot_lead', 'call_requested'])
+                                    .maybeSingle();
+
+                                const mgrWaEnabled = mgrPref ? (mgrPref.is_enabled && mgrPref.channel_whatsapp) : true;
+
+                                if (mgrWaEnabled && manager.phone && accessToken && tenantData.wa_phone_number_id) {
                                     try {
                                         await sendWhatsAppTemplate(
                                             manager.phone,
@@ -161,6 +185,8 @@ export async function handleCampaignReply(
                                     } catch (sendErr) {
                                         console.error(`Hot Lead (Arama Talebi) bildirim hatası (${manager.full_name}):`, sendErr);
                                     }
+                                } else {
+                                    console.log(`⏭️ Manager WhatsApp bildirimi kapalı: ${manager.full_name}`);
                                 }
                             }
                         }

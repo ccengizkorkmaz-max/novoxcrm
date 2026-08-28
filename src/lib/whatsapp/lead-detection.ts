@@ -309,7 +309,17 @@ export async function processHotLeadDetection(
                 ].map(p => typeof p === 'string' ? p.replace(/[\r\n\t]+/g, ' ').replace(/\s{2,}/g, ' ').trim() : p);
 
                 for (const manager of hotLeadManagers) {
-                    if (manager.phone && accessToken && tenantData.wa_phone_number_id) {
+                    const { data: mgrPref } = await supabase
+                        .from('user_notification_preferences')
+                        .select('is_enabled, channel_whatsapp')
+                        .eq('tenant_id', tenantId)
+                        .eq('user_id', manager.id)
+                        .eq('notification_type', 'hot_lead')
+                        .maybeSingle();
+
+                    const mgrWaEnabled = mgrPref ? (mgrPref.is_enabled && mgrPref.channel_whatsapp) : true;
+
+                    if (mgrWaEnabled && manager.phone && accessToken && tenantData.wa_phone_number_id) {
                         try {
                             await sendWhatsAppTemplate(
                                 manager.phone,
@@ -323,6 +333,8 @@ export async function processHotLeadDetection(
                         } catch (sendErr) {
                             console.error(`Hot Lead bildirim hatası (${manager.full_name}):`, sendErr);
                         }
+                    } else {
+                        console.log(`⏭️ Manager WhatsApp bildirimi kapalı: ${manager.full_name}`);
                     }
                 }
             }
