@@ -685,15 +685,49 @@ function WhatsAppStepConfig({ c, onConfigChange, templates, loading }: {
     templates: any[]
     loading: boolean
 }) {
+    const [uploading, setUploading] = useState(false)
     const selected = templates.find(t => t.name === c.template_name)
     // AI tarafından oluşturulan template listede yoksa, mevcut adı göster
     const currentTemplateInList = c.template_name && templates.some(t => t.name === c.template_name)
+    const needsHeaderImage = selected?.headerFormat === 'IMAGE'
+
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+        setUploading(true)
+        try {
+            const formData = new FormData()
+            formData.append('file', file)
+            formData.append('templateName', c.template_name || 'campaign')
+            const res = await fetch('/api/whatsapp/upload-header-image', {
+                method: 'POST',
+                body: formData,
+            })
+            const data = await res.json()
+            if (data.error) throw new Error(data.error)
+            onConfigChange('header_image_url', data.url)
+            onConfigChange('header_media_type', 'image')
+        } catch (err: any) {
+            console.error('Header image upload error:', err)
+            toast.error('Görsel yüklenemedi: ' + (err.message || 'Bilinmeyen hata'))
+        } finally {
+            setUploading(false)
+        }
+    }
 
     return (
         <div className="space-y-2">
             <div>
                 <Label className="text-[10px]">WhatsApp Şablonu (Meta Onaylı)</Label>
-                <Select value={c.template_name || undefined} onValueChange={v => onConfigChange('template_name', v)}>
+                <Select value={c.template_name || undefined} onValueChange={v => {
+                    onConfigChange('template_name', v)
+                    // Şablon değişince önceki header image'ı temizle
+                    const newTemplate = templates.find(t => t.name === v)
+                    if (newTemplate?.headerFormat !== 'IMAGE') {
+                        onConfigChange('header_image_url', undefined)
+                        onConfigChange('header_media_type', undefined)
+                    }
+                }}>
                     <SelectTrigger className="h-7 text-[11px]">
                         <SelectValue placeholder={loading ? 'Şablonlar yükleniyor...' : 'Şablon seç...'} />
                     </SelectTrigger>
@@ -718,6 +752,7 @@ function WhatsAppStepConfig({ c, onConfigChange, templates, loading }: {
                                 {templates.map(t => (
                                     <SelectItem key={t.name} value={t.name}>
                                         <span className="font-medium">{t.name}</span>
+                                        {t.headerFormat === 'IMAGE' && <span className="ml-1 text-[9px]">🖼️</span>}
                                         {t.status && <span className="ml-2 text-[9px] text-muted-foreground">({t.status})</span>}
                                     </SelectItem>
                                 ))}
@@ -730,6 +765,41 @@ function WhatsAppStepConfig({ c, onConfigChange, templates, loading }: {
             {c.template_name && !currentTemplateInList && !loading && (
                 <div className="p-2 rounded bg-purple-500/10 border border-purple-500/20">
                     <p className="text-[9px] text-purple-400">🤖 Bu şablon AI kampanyası tarafından otomatik oluşturulmuş: <strong>{c.template_name}</strong></p>
+                </div>
+            )}
+            {/* Header Image Upload — sadece IMAGE header format varsa göster */}
+            {needsHeaderImage && (
+                <div className="space-y-1.5">
+                    <Label className="text-[10px]">🖼️ Header Görseli <span className="text-red-400">*</span></Label>
+                    {c.header_image_url ? (
+                        <div className="flex items-center gap-2 p-2 rounded bg-emerald-500/10 border border-emerald-500/20">
+                            <img src={c.header_image_url} alt="Header" className="h-12 w-12 rounded object-cover border" />
+                            <div className="flex-1 min-w-0">
+                                <p className="text-[10px] text-emerald-400 truncate">✅ Görsel yüklendi</p>
+                                <p className="text-[8px] text-muted-foreground truncate">{c.header_image_url}</p>
+                            </div>
+                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-red-400 hover:text-red-300 shrink-0"
+                                onClick={() => { onConfigChange('header_image_url', undefined); onConfigChange('header_media_type', undefined) }}>
+                                <Trash2 className="h-3 w-3" />
+                            </Button>
+                        </div>
+                    ) : (
+                        <label className={`flex flex-col items-center justify-center gap-1 p-3 rounded-lg border-2 border-dashed cursor-pointer transition-colors ${uploading ? 'border-amber-500/40 bg-amber-500/5' : 'border-muted-foreground/20 hover:border-emerald-500/40 hover:bg-emerald-500/5'}`}>
+                            {uploading ? (
+                                <>
+                                    <div className="h-4 w-4 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+                                    <span className="text-[10px] text-amber-400">Yükleniyor...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <Plus className="h-4 w-4 text-muted-foreground" />
+                                    <span className="text-[10px] text-muted-foreground">Kampanya görseli yükle</span>
+                                    <span className="text-[8px] text-muted-foreground/60">Bu şablon header'da görsel gerektiriyor</span>
+                                </>
+                            )}
+                            <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={uploading} />
+                        </label>
+                    )}
                 </div>
             )}
             {selected && (

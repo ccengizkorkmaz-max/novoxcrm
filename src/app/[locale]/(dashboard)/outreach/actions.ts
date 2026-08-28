@@ -924,7 +924,9 @@ export async function getWhatsAppTemplates() {
                     .map((t: any) => {
                         const body = t.components?.find((c: any) => c.type === 'BODY')?.text || ''
                         const params = (body.match(/\{\{[^}]+\}\}/g) || []).length
-                        return { name: t.name, status: t.status, body, params }
+                        const header = t.components?.find((c: any) => c.type === 'HEADER')
+                        const headerFormat = header?.format || null // IMAGE, VIDEO, DOCUMENT, TEXT, or null
+                        return { name: t.name, status: t.status, body, params, headerFormat }
                     })
                     .sort((a: any, b: any) => a.name.localeCompare(b.name))
             }
