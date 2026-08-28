@@ -757,6 +757,58 @@ export async function getCampaignPerformanceReport(workflowId: string) {
 
     if (allExecutions.length === 0) return emptyResult
 
+    // 1b. Kampanyanın WhatsApp şablonundaki butonları Meta API'den çek
+    let templateButtonTexts: string[] = []
+    try {
+        // Workflow'un WhatsApp step'inden template_name'i al
+        const { data: steps } = await supabase
+            .from('outreach_steps')
+            .select('config')
+            .eq('workflow_id', workflowId)
+            .eq('action_type', 'whatsapp')
+            .limit(1)
+
+        const templateName = steps?.[0]?.config?.template_name
+        if (templateName) {
+            // Meta API'den şablonun butonlarını çek
+            const WABA_ID = process.env.WHATSAPP_BUSINESS_ACCOUNT_ID
+            let ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN || ''
+            ACCESS_TOKEN = ACCESS_TOKEN.replace(/[\r\n"\s]+/g, '')
+
+            if (WABA_ID && ACCESS_TOKEN) {
+                const controller = new AbortController()
+                const timeoutId = setTimeout(() => controller.abort(), 5000)
+                const res = await fetch(
+                    `https://graph.facebook.com/v21.0/${WABA_ID}/message_templates?fields=name,components&limit=100&access_token=${ACCESS_TOKEN}`,
+                    { cache: 'no-store', signal: controller.signal }
+                )
+                clearTimeout(timeoutId)
+                const apiData = await res.json()
+                const tmpl = apiData.data?.find((t: any) => t.name === templateName)
+                if (tmpl) {
+                    const buttonsComp = tmpl.components?.find((c: any) => c.type === 'BUTTONS')
+                    if (buttonsComp?.buttons) {
+                        templateButtonTexts = buttonsComp.buttons
+                            .filter((b: any) => b.type === 'QUICK_REPLY')
+                            .map((b: any) => b.text)
+                        console.log(`[CampaignReport] Template "${templateName}" butonları:`, templateButtonTexts)
+                    }
+                }
+            }
+        }
+    } catch (err) {
+        console.error('[CampaignReport] Template buton çekme hatası:', err)
+    }
+
+    // Buton text'lerini lowercase keyword'lere çevir
+    const allButtonKeywords = templateButtonTexts.length > 0
+        ? templateButtonTexts.map(t => t.toLowerCase())
+        : ['beni arayın', 'hayır, teşekkürler'] // fallback
+
+    // Pozitif/negatif ayırımı — "hayır" içerenleri negatif, geri kalanı pozitif say
+    const positiveKeywords = allButtonKeywords.filter(kw => !kw.includes('hayır') && !kw.includes('hayir'))
+    const negativeKeywords = allButtonKeywords.filter(kw => kw.includes('hayır') || kw.includes('hayir'))
+
     // 2. Unique customer_id'leri + gönderim zamanlarını topla
     const customerIds = [...new Set(allExecutions.map(e => e.customer_id).filter(Boolean))]
     if (customerIds.length === 0) return emptyResult
@@ -802,9 +854,7 @@ export async function getCampaignPerformanceReport(workflowId: string) {
 
     // Müşteri bazlı mesaj yanıtları
     const customerReplies: Record<string, { buttonReply: string | null, buttonTime: string | null, hasReply: boolean, replyContent: string }> = {}
-    // Sadece kampanya şablonundaki butonlar: "Beni Arayın" ve "Hayır, teşekkürler"
-    const positiveKeywords = ['beni aray']
-    const negativeKeywords = ['hayır', 'hayir']
+    // NOT: positiveKeywords ve negativeKeywords yukarıda Meta API'den dinamik olarak tanımlandı
 
     for (let i = 0; i < convIds.length; i += 50) {
         const chunk = convIds.slice(i, i + 50)
@@ -939,7 +989,7 @@ export async function getCampaignPerformanceReport(workflowId: string) {
         warm: leads.filter(l => l.responseStatus === 'warm').length,
     }
 
-    return { leads, stats }
+    return { leads, stats, templateButtons: templateButtonTexts }
 }
 
 export async function getHotLeadsReport() {
