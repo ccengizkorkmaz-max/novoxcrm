@@ -297,9 +297,13 @@ export default function CustomerList({
     const filteredAndSortedCustomers = searchQuery
         ? customers.filter(c => {
             const query = searchQuery.toLowerCase()
+            // Telefon araması için boşluk, +, -, (, ) karakterlerini temizle
+            const queryDigits = query.replace(/[\s+\-()]/g, '')
+            const phoneDigits = (c.phone || '').replace(/[\s+\-()]/g, '')
             return (
                 c.full_name?.toLowerCase().includes(query) ||
-                c.phone?.includes(query) ||
+                phoneDigits.includes(queryDigits) ||
+                (c.phone || '').includes(query) ||
                 c.email?.toLowerCase().includes(query) ||
                 c.customer_number?.toLowerCase().includes(query)
             )
