@@ -35,6 +35,8 @@ export interface StepConfig {
     template_name?: string
     template_params?: string[]
     template_map?: Record<string, string>
+    header_image_url?: string
+    header_media_type?: 'image' | 'video' | 'document'
     free_text?: string
     // SMS
     sms_template_key?: string
@@ -1310,10 +1312,15 @@ async function executeWhatsApp(execution: any, step: any, config: StepConfig, ph
             params.push(customer?.full_name || 'Değerli Müşterimiz')
         }
 
+        // Build header media if configured (required for templates with IMAGE/VIDEO/DOCUMENT headers)
+        const headerMedia = config.header_image_url
+            ? { type: (config.header_media_type || 'image') as 'image' | 'video' | 'document', url: config.header_image_url }
+            : undefined
+
         if (isOikosMockCall) {
             result = { success: true, data: { messages: [{ id: 'mock_wa_' + Math.random().toString(36).substring(7) }] } }
         } else {
-            result = await sendWhatsAppTemplate(phone, templateName, params)
+            result = await sendWhatsAppTemplate(phone, templateName, params, 'tr', undefined, undefined, headerMedia)
         }
         messageContent = `Template: ${templateName} [${params.join(', ')}]`
     } else if (config.free_text) {

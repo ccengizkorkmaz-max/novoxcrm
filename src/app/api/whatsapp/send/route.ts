@@ -16,7 +16,10 @@ export async function POST(request: NextRequest) {
       if (!templateName) return NextResponse.json({ error: 'Template name is required' }, { status: 400 });
       // Use named params if provided, otherwise fall back to positional
       const params = namedParams || templateParams || [];
-      result = await sendWhatsAppTemplate(phone, templateName, params);
+      const headerMedia = body.headerImageUrl
+        ? { type: (body.headerMediaType || 'image') as 'image' | 'video' | 'document', url: body.headerImageUrl }
+        : undefined;
+      result = await sendWhatsAppTemplate(phone, templateName, params, body.language || 'tr', undefined, undefined, headerMedia);
     } else if (messageType === 'text') {
       if (!content) return NextResponse.json({ error: 'Message content is required' }, { status: 400 });
       result = await sendWhatsAppMessage(phone, content);

@@ -159,7 +159,8 @@ export async function sendWhatsAppTemplate(
     parameters: string[] | Record<string, string>,
     language: string = 'tr',
     phoneId?: string,
-    accessToken?: string
+    accessToken?: string,
+    headerMedia?: { type: 'image' | 'video' | 'document'; url: string }
 ) {
     const PHONE_ID = (phoneId && phoneId.trim()) || process.env.WHATSAPP_PHONE_NUMBER_ID;
     let ACCESS_TOKEN = (accessToken && accessToken.trim()) || process.env.WHATSAPP_ACCESS_TOKEN;
@@ -172,6 +173,16 @@ export async function sendWhatsAppTemplate(
 
     // Build template components with parameters (Meta API requires non-empty strings)
     const components: any[] = [];
+
+    // Header component: required when template has IMAGE/VIDEO/DOCUMENT header
+    if (headerMedia?.url) {
+        const mediaParam: any = { type: headerMedia.type };
+        mediaParam[headerMedia.type] = { link: headerMedia.url };
+        components.push({
+            type: 'header',
+            parameters: [mediaParam],
+        });
+    }
     
     if (Array.isArray(parameters) && parameters.length > 0) {
         // Positional parameters: ['Cengiz Bey', '50000']

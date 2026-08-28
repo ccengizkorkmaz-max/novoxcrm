@@ -75,6 +75,7 @@ export default function AiCallerPage() {
   const [waType, setWaType] = useState<'text' | 'template' | 'video'>('text');
   const [waParams, setWaParams] = useState('');
   const [waMediaUrl, setWaMediaUrl] = useState('');
+  const [waHeaderImageUrl, setWaHeaderImageUrl] = useState('');
   const [waSending, setWaSending] = useState(false);
   const [waResult, setWaResult] = useState<{ success: boolean; message: string } | null>(null);
 
@@ -157,6 +158,7 @@ export default function AiCallerPage() {
           content: waMessage,
           mediaUrl: waType === 'video' ? waMediaUrl : undefined,
           templateName: waType === 'template' ? waMessage : undefined,
+          headerImageUrl: waType === 'template' && waHeaderImageUrl.trim() ? waHeaderImageUrl.trim() : undefined,
           namedParams: waType === 'template' && waParams.trim() ?
             Object.fromEntries(waParams.split(',').map(p => {
               const [key, ...vals] = p.trim().split('=');
@@ -566,6 +568,16 @@ export default function AiCallerPage() {
                     placeholder="Örn: customer_name=Cengiz Bey"
                     className="w-full h-10 px-3 rounded-lg border bg-background text-sm focus:ring-2 focus:ring-green-500 outline-none"
                   />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-slate-700 mb-1.5 block">Header Görsel URL (Opsiyonel)</label>
+                  <input
+                    value={waHeaderImageUrl}
+                    onChange={(e) => setWaHeaderImageUrl(e.target.value)}
+                    placeholder="Şablon IMAGE header içeriyorsa görselin public URL'si"
+                    className="w-full h-10 px-3 rounded-lg border bg-background text-sm focus:ring-2 focus:ring-green-500 outline-none"
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1">Şablonun header bölümünde IMAGE varsa zorunludur.</p>
                 </div>
               </div>
             ) : (
