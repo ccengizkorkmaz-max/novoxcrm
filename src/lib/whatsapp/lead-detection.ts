@@ -109,12 +109,30 @@ export async function extractAndUpdateLeadScore(
         }).eq('id', conversationId);
 
         // Öndeğerlendirme kaydının interest_level'ını da güncelle
+        // Öndeğerlendirme kaydının interest_level'ını da güncelle (yoksa oluştur)
         if (convData?.customer_id) {
-            await supabase.from('lead_qualifications')
-                .update({ interest_level: finalScore, updated_at: new Date().toISOString() })
+            const { data: existingLq } = await supabase
+                .from('lead_qualifications')
+                .select('id')
                 .eq('customer_id', convData.customer_id)
-                .eq('tenant_id', tenantId);
-            console.log(`📊 Lead qualification interest_level güncellendi: ${finalScore} (customer: ${convData.customer_id})`);
+                .maybeSingle();
+
+            if (existingLq) {
+                await supabase.from('lead_qualifications')
+                    .update({ interest_level: finalScore, updated_at: new Date().toISOString() })
+                    .eq('id', existingLq.id);
+            } else {
+                await supabase.from('lead_qualifications').insert({
+                    tenant_id: tenantId,
+                    customer_id: convData.customer_id,
+                    status: 'new',
+                    interest_level: finalScore,
+                    interest_level_source: 'ai',
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                });
+            }
+            console.log(`📊 Lead qualification interest_level güncellendi/oluşturuldu: ${finalScore} (customer: ${convData.customer_id})`);
 
             // --- AUTO CONVERT TO SALE (LEAD) ---
             if (finalScore === 'hot' || finalScore === 'warm' || finalScore === 'call_requested') {

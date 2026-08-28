@@ -37,10 +37,14 @@ export default function HotLeadsReportPage() {
     const [selectedWorkflow, setSelectedWorkflow] = useState<string>('')
     const [leads, setLeads] = useState<any[]>([])
     const [stats, setStats] = useState({ total: 0, callRequested: 0, optedOut: 0, noResponse: 0, hot: 0, warm: 0 })
+    const [templateButtons, setTemplateButtons] = useState<string[]>([])
+    const [buttonStats, setButtonStats] = useState<Record<string, number>>({})
+    const [campaignSteps, setCampaignSteps] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [refreshing, setRefreshing] = useState(false)
     const [searchTerm, setSearchTerm] = useState('')
     const [responseFilter, setResponseFilter] = useState('all')
+    const [selectedButtonFilter, setSelectedButtonFilter] = useState<string | null>(null)
     const [copiedId, setCopiedId] = useState<string | null>(null)
 
     // Load workflows on mount
@@ -51,6 +55,8 @@ export default function HotLeadsReportPage() {
     // Load campaign data when workflow changes
     useEffect(() => {
         if (selectedWorkflow) {
+            setSelectedButtonFilter(null)
+            setResponseFilter('all')
             loadCampaignData()
         }
     }, [selectedWorkflow])
@@ -79,6 +85,9 @@ export default function HotLeadsReportPage() {
             const result = await getCampaignPerformanceReport(selectedWorkflow)
             setLeads(result.leads || [])
             setStats(result.stats)
+            setTemplateButtons(result.templateButtons || [])
+            setButtonStats(result.buttonStats || {})
+            setCampaignSteps(result.campaignSteps || [])
             if (isRefresh) {
                 toast.success('Rapor başarıyla güncellendi!')
             }
@@ -108,8 +117,10 @@ export default function HotLeadsReportPage() {
             lead.assignedTo?.toLowerCase().includes(query)
 
         const matchesResponse = responseFilter === 'all' || lead.responseStatus === responseFilter
+        const matchesButton = !selectedButtonFilter || 
+            (lead.buttonReply && lead.buttonReply.toLowerCase().includes(selectedButtonFilter.toLowerCase()))
 
-        return matchesSearch && matchesResponse
+        return matchesSearch && matchesResponse && matchesButton
     })
 
     const handleExport = () => {
@@ -282,6 +293,44 @@ export default function HotLeadsReportPage() {
                             Cevapsız: {stats.noResponse}
                         </div>
                     </div>
+
+                    {/* Dynamic Template Buttons Breakdown */}
+                    {Object.keys(buttonStats).length > 0 && (
+                        <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center gap-2">
+                            <span className="text-xs font-bold text-slate-400 flex items-center gap-1">
+                                <MousePointerClick className="h-3.5 w-3.5 text-slate-400" />
+                                Buton Tıklamaları:
+                            </span>
+                            {Object.entries(buttonStats).map(([btnName, count]) => {
+                                const isPositive = !btnName.toLowerCase().includes('hayır') && !btnName.toLowerCase().includes('hayir')
+                                const isSelected = selectedButtonFilter === btnName
+                                return (
+                                    <button
+                                        key={btnName}
+                                        onClick={() => setSelectedButtonFilter(isSelected ? null : btnName)}
+                                        className={`px-3 py-1 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border ${
+                                            isSelected 
+                                                ? (isPositive ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm' : 'bg-rose-600 text-white border-rose-600 shadow-sm')
+                                                : (isPositive ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' : 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100')
+                                        }`}
+                                    >
+                                        <span>{btnName}</span>
+                                        <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${isSelected ? 'bg-white/20 text-white' : 'bg-white text-slate-800 shadow-xs'}`}>
+                                            {count}
+                                        </span>
+                                    </button>
+                                )
+                            })}
+                            {selectedButtonFilter && (
+                                <button
+                                    onClick={() => setSelectedButtonFilter(null)}
+                                    className="text-[11px] text-slate-400 hover:text-slate-600 underline ml-2"
+                                >
+                                    Filtreyi Temizle
+                                </button>
+                            )}
+                        </div>
+                    )}
                 </div>
             )}
 

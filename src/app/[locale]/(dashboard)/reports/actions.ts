@@ -717,7 +717,15 @@ export async function getOutreachWorkflowsList() {
 export async function getCampaignPerformanceReport(workflowId: string) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    const emptyResult = { leads: [], stats: { total: 0, callRequested: 0, optedOut: 0, noResponse: 0, hot: 0, warm: 0 } }
+    const emptyResult = {
+        leads: [] as any[],
+        stats: { total: 0, callRequested: 0, optedOut: 0, noResponse: 0, hot: 0, warm: 0 },
+        campaignSteps: [] as { name: string, actionType: string }[],
+        templateButtons: [] as string[],
+        buttonStats: {} as Record<string, number>,
+        callStats: { total: 0, answered: 0, noAnswer: 0, busy: 0, voicemail: 0, failed: 0 },
+        waStats: { sent: 0, failed: 0, skipped: 0 },
+    }
     if (!user) return emptyResult
 
     const { data: profile } = await supabase
@@ -728,49 +736,28 @@ export async function getCampaignPerformanceReport(workflowId: string) {
 
     if (!profile?.tenant_id) return emptyResult
 
-    // 1. Kampanyanın tüm execution'larını sayfalı çek (1000 limit aşımı düzeltmesi)
-    let allExecutions: any[] = []
-    let page = 0
-    const PAGE_SIZE = 1000
-    while (true) {
-        const { data: batch, error } = await supabase
-            .from('outreach_executions')
-            .select(`
-                id, status, started_at, completed_at, customer_id,
-                customers(id, full_name, phone, source),
-                sales(id, status, assigned_to)
-            `)
-            .eq('workflow_id', workflowId)
-            .eq('tenant_id', profile.tenant_id)
-            .order('started_at', { ascending: false })
-            .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
+    // ─── 1. Kampanyanın adımlarını çek ───────────────────────────────────
+    const { data: workflowSteps } = await supabase
+        .from('outreach_steps')
+        .select('id, name, action_type, config, step_order')
+        .eq('workflow_id', workflowId)
+        .order('step_order')
 
-        if (error) {
-            console.error('getCampaignPerformanceReport error:', error)
-            break
-        }
-        if (!batch || batch.length === 0) break
-        allExecutions = allExecutions.concat(batch)
-        if (batch.length < PAGE_SIZE) break
-        page++
-    }
+    const campaignSteps = (workflowSteps || []).map(s => ({
+        name: s.name,
+        actionType: s.action_type,
+    }))
 
-    if (allExecutions.length === 0) return emptyResult
+    const hasWhatsApp = campaignSteps.some(s => s.actionType === 'whatsapp')
+    const hasCall = campaignSteps.some(s => s.actionType === 'ai_call')
+    const hasSms = campaignSteps.some(s => s.actionType === 'sms')
 
-    // 1b. Kampanyanın WhatsApp şablonundaki butonları Meta API'den çek
+    // ─── 2. WhatsApp şablon butonlarını Meta API'den çek ──────────────────
     let templateButtonTexts: string[] = []
-    try {
-        // Workflow'un WhatsApp step'inden template_name'i al
-        const { data: steps } = await supabase
-            .from('outreach_steps')
-            .select('config')
-            .eq('workflow_id', workflowId)
-            .eq('action_type', 'whatsapp')
-            .limit(1)
-
-        const templateName = steps?.[0]?.config?.template_name
-        if (templateName) {
-            // Meta API'den şablonun butonlarını çek
+    const waStep = (workflowSteps || []).find(s => s.action_type === 'whatsapp')
+    const templateName = waStep?.config?.template_name
+    if (templateName) {
+        try {
             const WABA_ID = process.env.WHATSAPP_BUSINESS_ACCOUNT_ID
             let ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN || ''
             ACCESS_TOKEN = ACCESS_TOKEN.replace(/[\r\n"\s]+/g, '')
@@ -791,102 +778,146 @@ export async function getCampaignPerformanceReport(workflowId: string) {
                         templateButtonTexts = buttonsComp.buttons
                             .filter((b: any) => b.type === 'QUICK_REPLY')
                             .map((b: any) => b.text)
-                        console.log(`[CampaignReport] Template "${templateName}" butonları:`, templateButtonTexts)
                     }
                 }
             }
+        } catch (err) {
+            console.error('[CampaignReport] Template buton çekme hatası:', err)
         }
-    } catch (err) {
-        console.error('[CampaignReport] Template buton çekme hatası:', err)
     }
 
-    // Buton text'lerini lowercase keyword'lere çevir
+    // Buton keyword'leri
     const allButtonKeywords = templateButtonTexts.length > 0
         ? templateButtonTexts.map(t => t.toLowerCase())
-        : ['beni arayın', 'hayır, teşekkürler'] // fallback
-
-    // Pozitif/negatif ayırımı — "hayır" içerenleri negatif, geri kalanı pozitif say
+        : ['beni arayın', 'hayır, teşekkürler']
     const positiveKeywords = allButtonKeywords.filter(kw => !kw.includes('hayır') && !kw.includes('hayir'))
     const negativeKeywords = allButtonKeywords.filter(kw => kw.includes('hayır') || kw.includes('hayir'))
 
-    // 2. Unique customer_id'leri + gönderim zamanlarını topla
-    const customerIds = [...new Set(allExecutions.map(e => e.customer_id).filter(Boolean))]
-    if (customerIds.length === 0) return emptyResult
+    // ─── 3. Tüm execution'ları sayfalı çek ──────────────────────────────
+    let allExecutions: any[] = []
+    let page = 0
+    const PAGE_SIZE = 1000
+    while (true) {
+        const { data: batch, error } = await supabase
+            .from('outreach_executions')
+            .select(`
+                id, status, started_at, completed_at, customer_id,
+                customers(id, full_name, phone, source),
+                sales(id, status, assigned_to)
+            `)
+            .eq('workflow_id', workflowId)
+            .eq('tenant_id', profile.tenant_id)
+            .order('started_at', { ascending: false })
+            .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
 
-    // customer_id → İLK gönderim zamanı (müşterinin bu kampanyadan ilk mesajı aldığı an)
+        if (error) { console.error('getCampaignPerformanceReport error:', error); break }
+        if (!batch || batch.length === 0) break
+        allExecutions = allExecutions.concat(batch)
+        if (batch.length < PAGE_SIZE) break
+        page++
+    }
+
+    if (allExecutions.length === 0) return emptyResult
+
+    // ─── 4. Step log'larını çek (her execution için tüm adım sonuçları) ──
+    const executionIds = allExecutions.map(e => e.id)
+    const stepLogsByExecution: Record<string, any[]> = {}
+
+    for (let i = 0; i < executionIds.length; i += 50) {
+        const chunk = executionIds.slice(i, i + 50)
+        const { data: logs } = await supabase
+            .from('outreach_step_logs')
+            .select('execution_id, channel, status, call_outcome, call_duration_seconds, call_summary, template_name, error_message, executed_at')
+            .in('execution_id', chunk)
+            .order('executed_at', { ascending: true })
+
+        logs?.forEach(log => {
+            if (!stepLogsByExecution[log.execution_id]) stepLogsByExecution[log.execution_id] = []
+            stepLogsByExecution[log.execution_id].push(log)
+        })
+    }
+
+    // ─── 5. WhatsApp buton yanıtlarını mesajlardan çek (Telefon bazlı eşleştirme) ──
+    const phoneToCustId: Record<string, string> = {}
     const customerSentAt: Record<string, string> = {}
+
     allExecutions.forEach(e => {
-        if (e.customer_id && e.started_at) {
+        const phone = (e.customers as any)?.phone || ''
+        const norm = phone.replace(/\D/g, '').slice(-10)
+        if (norm && e.customer_id) {
+            phoneToCustId[norm] = e.customer_id
             if (!customerSentAt[e.customer_id] || e.started_at < customerSentAt[e.customer_id]) {
                 customerSentAt[e.customer_id] = e.started_at
             }
         }
     })
 
-    // 3. WhatsApp conversation_id'leri topla (mesaj sorgusu için)
-    const customerConversationIds: Record<string, string> = {}
-    for (let i = 0; i < customerIds.length; i += 50) {
-        const chunk = customerIds.slice(i, i + 50)
-        const { data: convs } = await supabase
-            .from('whatsapp_conversations')
-            .select('id, customer_id')
-            .in('customer_id', chunk)
-            .eq('tenant_id', profile.tenant_id)
-
-        convs?.forEach(c => {
-            if (c.customer_id) {
-                customerConversationIds[c.customer_id] = c.id
-            }
-        })
-    }
-
-    // 4. Kampanya gönderiminden SONRA gelen TÜM inbound mesajları topla
-    // Bu mesajlardan hem buton yanıtını hem yanıt durumunu belirleyeceğiz
-    const convIds = Object.values(customerConversationIds).filter(Boolean)
-    const convToCustomer: Record<string, string> = {}
-    Object.entries(customerConversationIds).forEach(([custId, convId]) => { convToCustomer[convId] = custId })
-
-    // Kampanyanın en SON gönderim tarihi (global filtre — en güncel batch)
-    const allSentDates = Object.values(customerSentAt).filter(Boolean)
-    const globalCutoff = allSentDates.length > 0
-        ? new Date(Math.min(...allSentDates.map(d => new Date(d).getTime())) - 60000).toISOString()
-        : new Date('2020-01-01').toISOString()
-
-    // Müşteri bazlı mesaj yanıtları
     const customerReplies: Record<string, { buttonReply: string | null, buttonTime: string | null, hasReply: boolean, replyContent: string }> = {}
-    // NOT: positiveKeywords ve negativeKeywords yukarıda Meta API'den dinamik olarak tanımlandı
 
-    for (let i = 0; i < convIds.length; i += 50) {
-        const chunk = convIds.slice(i, i + 50)
-        const { data: msgs } = await supabase
-            .from('whatsapp_messages')
-            .select('conversation_id, content, created_at')
-            .in('conversation_id', chunk)
-            .eq('direction', 'inbound')
-            .eq('sender_type', 'customer')
-            .gte('created_at', globalCutoff)
-            .order('created_at', { ascending: false })
+    if (hasWhatsApp) {
+        const allSentDates = Object.values(customerSentAt).filter(Boolean)
+        const earliestSent = allSentDates.length > 0 ? Math.min(...allSentDates.map(d => new Date(d).getTime())) : 0
+        const globalCutoff = earliestSent > 0
+            ? new Date(earliestSent - 60000).toISOString()
+            : new Date('2020-01-01').toISOString()
 
-        msgs?.forEach(m => {
-            const custId = convToCustomer[m.conversation_id]
+        // Kampanya başlangıcından sonra gelen tüm inbound mesajları çek (sayfalı)
+        let incomingMsgs: any[] = []
+        let msgPage = 0
+        while (true) {
+            const { data: batch } = await supabase
+                .from('whatsapp_messages')
+                .select('id, conversation_id, content, created_at, sender_type, direction')
+                .eq('direction', 'inbound')
+                .gte('created_at', globalCutoff)
+                .order('created_at', { ascending: false })
+                .range(msgPage * 1000, (msgPage + 1) * 1000 - 1)
+
+            if (!batch || batch.length === 0) break
+            incomingMsgs = incomingMsgs.concat(batch)
+            if (batch.length < 1000) break
+            msgPage++
+        }
+
+        // Bu mesajların ait olduğu conversation'ların telefon numaralarını çek
+        const msgConvIds = [...new Set(incomingMsgs.map(m => m.conversation_id))]
+        const convPhoneMap: Record<string, string> = {}
+
+        for (let i = 0; i < msgConvIds.length; i += 100) {
+            const chunk = msgConvIds.slice(i, i + 100)
+            const { data: convs } = await supabase
+                .from('whatsapp_conversations')
+                .select('id, phone_number, customer_id')
+                .in('id', chunk)
+
+            convs?.forEach(c => {
+                const norm = (c.phone_number || '').replace(/\D/g, '').slice(-10)
+                if (norm) convPhoneMap[c.id] = norm
+            })
+        }
+
+        // Gelen mesajları kampanya müşterileriyle 10 haneli telefon üzerinden eşleştir
+        incomingMsgs.forEach(m => {
+            const phoneNorm = convPhoneMap[m.conversation_id]
+            if (!phoneNorm) return
+            const custId = phoneToCustId[phoneNorm]
             if (!custId) return
 
             const sentAt = customerSentAt[custId]
-            if (sentAt && new Date(m.created_at) < new Date(sentAt)) return // kampanyadan önce → atla
+            if (sentAt && new Date(m.created_at) < new Date(sentAt)) return
 
             if (!customerReplies[custId]) {
                 customerReplies[custId] = { buttonReply: null, buttonTime: null, hasReply: false, replyContent: '' }
             }
-
             customerReplies[custId].hasReply = true
             if (!customerReplies[custId].replyContent) {
                 customerReplies[custId].replyContent = m.content || ''
             }
 
-            // Buton yanıtı — sadece kampanya butonları: "Beni Arayın" veya "Hayır"
+            // Buton yanıtı eşleşmesi
             if (!customerReplies[custId].buttonReply) {
                 const lower = (m.content || '').toLowerCase()
-                if (positiveKeywords.some(kw => lower.includes(kw)) || negativeKeywords.some(kw => lower.includes(kw))) {
+                if (allButtonKeywords.some(kw => lower.includes(kw))) {
                     customerReplies[custId].buttonReply = m.content
                     customerReplies[custId].buttonTime = m.created_at
                 }
@@ -894,7 +925,7 @@ export async function getCampaignPerformanceReport(workflowId: string) {
         })
     }
 
-    // 5. Opt-out kayıtlarını kontrol et
+    // ─── 6. Opt-out kayıtları ────────────────────────────────────────────
     const customerPhones = allExecutions.map(e => (e.customers as any)?.phone).filter(Boolean)
     const optedOutPhones = new Set<string>()
     if (customerPhones.length > 0) {
@@ -905,26 +936,19 @@ export async function getCampaignPerformanceReport(workflowId: string) {
                 .from('outreach_optouts')
                 .select('phone')
                 .in('phone', chunk.map((p: string) => `%${p}`))
-
-            optouts?.forEach(o => {
-                if (o.phone) optedOutPhones.add(o.phone.replace(/\D/g, '').slice(-10))
-            })
+            optouts?.forEach(o => { if (o.phone) optedOutPhones.add(o.phone.replace(/\D/g, '').slice(-10)) })
         }
     }
 
-    // 6. Atanmış temsilci profillerini topla
+    // ─── 7. Temsilci profilleri ──────────────────────────────────────────
     const assignedToIds = [...new Set(allExecutions.map(e => (e.sales as any)?.assigned_to).filter(Boolean))]
     const repProfiles: Record<string, string> = {}
     if (assignedToIds.length > 0) {
-        const { data: profiles } = await supabase
-            .from('profiles')
-            .select('id, full_name')
-            .in('id', assignedToIds)
-
+        const { data: profiles } = await supabase.from('profiles').select('id, full_name').in('id', assignedToIds)
         profiles?.forEach(p => { repProfiles[p.id] = p.full_name || 'Bilinmiyor' })
     }
 
-    // 7. Verileri birleştir — yanıt durumunu SADECE kampanya sonrası mesajlardan belirle
+    // ─── 8. Verileri birleştir ────────────────────────────────────────────
     const seen = new Set<string>()
     const leads = allExecutions
         .filter(e => {
@@ -943,22 +967,38 @@ export async function getCampaignPerformanceReport(workflowId: string) {
             const btnReply = reply?.buttonReply || null
             const btnReplyTime = reply?.buttonTime || null
 
-            // Yanıt durumunu SADECE kampanya sonrası buton tıklamalarından belirle
+            // Step log'lardan adım sonuçları
+            const logs = stepLogsByExecution[e.id] || []
+            const waLog = logs.find((l: any) => l.channel === 'whatsapp')
+            const callLog = logs.find((l: any) => l.channel === 'ai_call')
+            const smsLog = logs.find((l: any) => l.channel === 'sms')
+
+            // Yanıt durumu (WA butonları veya call outcome'dan)
             let responseStatus: string
             if (isOptedOut) {
                 responseStatus = 'opted_out'
-            } else if (!reply?.hasReply) {
-                responseStatus = 'no_response'
-            } else {
-                const btnLower = (btnReply || '').toLowerCase()
-                if (positiveKeywords.some(kw => btnLower.includes(kw))) {
-                    responseStatus = 'call_requested'
-                } else if (negativeKeywords.some(kw => btnLower.includes(kw))) {
-                    responseStatus = 'opted_out'
+            } else if (hasWhatsApp) {
+                if (!reply?.hasReply) {
+                    responseStatus = 'no_response'
                 } else {
-                    // Bir mesaj gelmiş ama buton tıklaması değil → warm (yanıt vermiş)
-                    responseStatus = 'warm'
+                    const btnLower = (btnReply || '').toLowerCase()
+                    if (positiveKeywords.some(kw => btnLower.includes(kw))) {
+                        responseStatus = 'call_requested'
+                    } else if (negativeKeywords.some(kw => btnLower.includes(kw))) {
+                        responseStatus = 'opted_out'
+                    } else {
+                        responseStatus = 'warm'
+                    }
                 }
+            } else if (hasCall) {
+                const outcome = callLog?.call_outcome
+                if (outcome === 'interested' || outcome === 'appointment_set') responseStatus = 'hot'
+                else if (outcome === 'not_interested') responseStatus = 'opted_out'
+                else if (outcome === 'answered') responseStatus = 'warm'
+                else if (outcome === 'no_answer' || outcome === 'busy' || outcome === 'voicemail') responseStatus = 'no_response'
+                else responseStatus = 'no_response'
+            } else {
+                responseStatus = e.status === 'completed' ? 'warm' : 'no_response'
             }
 
             return {
@@ -970,16 +1010,23 @@ export async function getCampaignPerformanceReport(workflowId: string) {
                 executionStatus: e.status,
                 startedAt: e.started_at,
                 completedAt: e.completed_at,
-                leadScore: responseStatus,
                 responseStatus,
                 assignedTo,
                 saleStatus: sale?.status || null,
+                // WhatsApp verileri
+                waStatus: waLog?.status || null,
                 buttonReply: btnReply,
                 buttonReplyTime: btnReplyTime,
+                // AI Arama verileri
+                callOutcome: callLog?.call_outcome || null,
+                callDuration: callLog?.call_duration_seconds || null,
+                callSummary: callLog?.call_summary || null,
+                // SMS verileri
+                smsStatus: smsLog?.status || null,
             }
         })
 
-    // 8. İstatistikler
+    // ─── 9. İstatistikler ─────────────────────────────────────────────────
     const stats = {
         total: leads.length,
         callRequested: leads.filter(l => l.responseStatus === 'call_requested').length,
@@ -989,7 +1036,49 @@ export async function getCampaignPerformanceReport(workflowId: string) {
         warm: leads.filter(l => l.responseStatus === 'warm').length,
     }
 
-    return { leads, stats, templateButtons: templateButtonTexts }
+    // WhatsApp buton bazlı istatistikler
+    const buttonStats: Record<string, number> = {}
+    if (templateButtonTexts.length > 0) {
+        templateButtonTexts.forEach(btn => { buttonStats[btn] = 0 })
+        leads.forEach(l => {
+            if (l.buttonReply) {
+                const lower = l.buttonReply.toLowerCase()
+                for (const btn of templateButtonTexts) {
+                    if (lower.includes(btn.toLowerCase())) {
+                        buttonStats[btn]++
+                        break
+                    }
+                }
+            }
+        })
+    }
+
+    // WA step istatistikleri
+    const waStats = { sent: 0, failed: 0, skipped: 0 }
+    if (hasWhatsApp) {
+        leads.forEach(l => {
+            if (l.waStatus === 'sent') waStats.sent++
+            else if (l.waStatus === 'failed') waStats.failed++
+            else if (l.waStatus === 'skipped') waStats.skipped++
+        })
+    }
+
+    // Call step istatistikleri
+    const callStats = { total: 0, answered: 0, noAnswer: 0, busy: 0, voicemail: 0, failed: 0 }
+    if (hasCall) {
+        leads.forEach(l => {
+            if (l.callOutcome) {
+                callStats.total++
+                if (['answered', 'interested', 'appointment_set', 'not_interested', 'callback'].includes(l.callOutcome)) callStats.answered++
+                else if (l.callOutcome === 'no_answer') callStats.noAnswer++
+                else if (l.callOutcome === 'busy') callStats.busy++
+                else if (l.callOutcome === 'voicemail') callStats.voicemail++
+                else if (l.callOutcome === 'failed') callStats.failed++
+            }
+        })
+    }
+
+    return { leads, stats, campaignSteps, templateButtons: templateButtonTexts, buttonStats, callStats, waStats }
 }
 
 export async function getHotLeadsReport() {
