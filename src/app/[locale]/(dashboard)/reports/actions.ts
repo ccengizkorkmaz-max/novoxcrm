@@ -717,7 +717,8 @@ export async function getOutreachWorkflowsList() {
 export async function getCampaignPerformanceReport(workflowId: string) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { leads: [], stats: { total: 0, callRequested: 0, optedOut: 0, noResponse: 0, hot: 0, warm: 0 } }
+    const emptyResult = { leads: [], stats: { total: 0, callRequested: 0, optedOut: 0, noResponse: 0, hot: 0, warm: 0 } }
+    if (!user) return emptyResult
 
     const { data: profile } = await supabase
         .from('profiles')
@@ -725,41 +726,55 @@ export async function getCampaignPerformanceReport(workflowId: string) {
         .eq('id', user.id)
         .single()
 
-    if (!profile?.tenant_id) return { leads: [], stats: { total: 0, callRequested: 0, optedOut: 0, noResponse: 0, hot: 0, warm: 0 } }
+    if (!profile?.tenant_id) return emptyResult
 
-    // 1. Kampanyanın tüm execution'larını müşteri + satış bilgisiyle çek
-    const { data: executions, error } = await supabase
-        .from('outreach_executions')
-        .select(`
-            id, status, started_at, completed_at, customer_id,
-            customers(id, full_name, phone, source),
-            sales(id, status, assigned_to)
-        `)
-        .eq('workflow_id', workflowId)
-        .eq('tenant_id', profile.tenant_id)
-        .order('started_at', { ascending: false })
+    // 1. Kampanyanın tüm execution'larını sayfalı çek (1000 limit aşımı düzeltmesi)
+    let allExecutions: any[] = []
+    let page = 0
+    const PAGE_SIZE = 1000
+    while (true) {
+        const { data: batch, error } = await supabase
+            .from('outreach_executions')
+            .select(`
+                id, status, started_at, completed_at, customer_id,
+                customers(id, full_name, phone, source),
+                sales(id, status, assigned_to)
+            `)
+            .eq('workflow_id', workflowId)
+            .eq('tenant_id', profile.tenant_id)
+            .order('started_at', { ascending: false })
+            .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
 
-    if (error || !executions) {
-        console.error('getCampaignPerformanceReport error:', error)
-        return { leads: [], stats: { total: 0, callRequested: 0, optedOut: 0, noResponse: 0, hot: 0, warm: 0 } }
+        if (error) {
+            console.error('getCampaignPerformanceReport error:', error)
+            break
+        }
+        if (!batch || batch.length === 0) break
+        allExecutions = allExecutions.concat(batch)
+        if (batch.length < PAGE_SIZE) break
+        page++
     }
 
-    // 2. Unique customer_id'leri topla
-    const customerIds = [...new Set(executions.map(e => e.customer_id).filter(Boolean))]
-    if (customerIds.length === 0) return { leads: [], stats: { total: 0, callRequested: 0, optedOut: 0, noResponse: 0, hot: 0, warm: 0 } }
+    if (allExecutions.length === 0) return emptyResult
 
-    // 3. WhatsApp conversation lead_score'larını topla
+    // 2. Unique customer_id'leri topla
+    const customerIds = [...new Set(allExecutions.map(e => e.customer_id).filter(Boolean))]
+    if (customerIds.length === 0) return emptyResult
+
+    // 3. WhatsApp conversation lead_score'larını + conversation_id'leri topla
     const conversationScores: Record<string, string> = {}
+    const customerConversationIds: Record<string, string> = {}
     for (let i = 0; i < customerIds.length; i += 50) {
         const chunk = customerIds.slice(i, i + 50)
         const { data: convs } = await supabase
             .from('whatsapp_conversations')
-            .select('customer_id, lead_score')
+            .select('id, customer_id, lead_score')
             .in('customer_id', chunk)
             .eq('tenant_id', profile.tenant_id)
 
         convs?.forEach(c => {
             if (c.customer_id) {
+                customerConversationIds[c.customer_id] = c.id
                 const existing = conversationScores[c.customer_id]
                 const hierarchy: Record<string, number> = { disqualified: 1, unknown: 2, cold: 3, warm: 4, call_requested: 5, hot: 6 }
                 if (!existing || (hierarchy[c.lead_score] || 0) > (hierarchy[existing] || 0)) {
@@ -769,8 +784,35 @@ export async function getCampaignPerformanceReport(workflowId: string) {
         })
     }
 
-    // 4. Opt-out kayıtlarını kontrol et
-    const customerPhones = executions.map(e => (e.customers as any)?.phone).filter(Boolean)
+    // 4. WhatsApp buton yanıtlarını topla (Beni Arayın, Hayır teşekkürler vb.)
+    const buttonReplies: Record<string, { text: string, time: string }> = {}
+    const convIds = Object.values(customerConversationIds).filter(Boolean)
+    const convToCustomer: Record<string, string> = {}
+    Object.entries(customerConversationIds).forEach(([custId, convId]) => { convToCustomer[convId] = custId })
+
+    const buttonKeywords = ['beni aray', 'evet', 'hayır', 'hayir', 'bilgi istiyorum', 'aradım', 'tekrar', 'değerlendiriyor', 'olumsuz']
+    for (let i = 0; i < convIds.length; i += 50) {
+        const chunk = convIds.slice(i, i + 50)
+        const { data: msgs } = await supabase
+            .from('whatsapp_messages')
+            .select('conversation_id, content, created_at')
+            .in('conversation_id', chunk)
+            .eq('direction', 'inbound')
+            .eq('sender_type', 'customer')
+            .order('created_at', { ascending: false })
+
+        msgs?.forEach(m => {
+            const custId = convToCustomer[m.conversation_id]
+            if (!custId || buttonReplies[custId]) return // sadece son yanıtı al
+            const lower = (m.content || '').toLowerCase()
+            if (buttonKeywords.some(kw => lower.includes(kw))) {
+                buttonReplies[custId] = { text: m.content, time: m.created_at }
+            }
+        })
+    }
+
+    // 5. Opt-out kayıtlarını kontrol et
+    const customerPhones = allExecutions.map(e => (e.customers as any)?.phone).filter(Boolean)
     const optedOutPhones = new Set<string>()
     if (customerPhones.length > 0) {
         const normalizedPhones = [...new Set(customerPhones.map((p: string) => p.replace(/\D/g, '').slice(-10)))]
@@ -787,8 +829,8 @@ export async function getCampaignPerformanceReport(workflowId: string) {
         }
     }
 
-    // 5. Atanmış temsilci profillerini topla
-    const assignedToIds = [...new Set(executions.map(e => (e.sales as any)?.assigned_to).filter(Boolean))]
+    // 6. Atanmış temsilci profillerini topla
+    const assignedToIds = [...new Set(allExecutions.map(e => (e.sales as any)?.assigned_to).filter(Boolean))]
     const repProfiles: Record<string, string> = {}
     if (assignedToIds.length > 0) {
         const { data: profiles } = await supabase
@@ -799,10 +841,9 @@ export async function getCampaignPerformanceReport(workflowId: string) {
         profiles?.forEach(p => { repProfiles[p.id] = p.full_name || 'Bilinmiyor' })
     }
 
-    // 6. Verileri birleştir
-    // Aynı müşteriye birden fazla execution olabilir, sadece en güncelini al
+    // 7. Verileri birleştir
     const seen = new Set<string>()
-    const leads = executions
+    const leads = allExecutions
         .filter(e => {
             if (!e.customer_id || seen.has(e.customer_id)) return false
             seen.add(e.customer_id)
@@ -816,8 +857,8 @@ export async function getCampaignPerformanceReport(workflowId: string) {
             const leadScore = conversationScores[e.customer_id!] || 'unknown'
             const isOptedOut = optedOutPhones.has(phoneNorm)
             const assignedTo = sale?.assigned_to ? repProfiles[sale.assigned_to] || null : null
+            const btnReply = buttonReplies[e.customer_id!] || null
 
-            // Yanıt durumu belirleme
             let responseStatus: string
             if (leadScore === 'call_requested') responseStatus = 'call_requested'
             else if (isOptedOut || leadScore === 'disqualified') responseStatus = 'opted_out'
@@ -838,10 +879,12 @@ export async function getCampaignPerformanceReport(workflowId: string) {
                 responseStatus,
                 assignedTo,
                 saleStatus: sale?.status || null,
+                buttonReply: btnReply?.text || null,
+                buttonReplyTime: btnReply?.time || null,
             }
         })
 
-    // 7. İstatistikler
+    // 8. İstatistikler
     const stats = {
         total: leads.length,
         callRequested: leads.filter(l => l.responseStatus === 'call_requested').length,

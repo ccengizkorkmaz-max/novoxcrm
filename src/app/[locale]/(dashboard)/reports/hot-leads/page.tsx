@@ -23,7 +23,8 @@ import {
     Megaphone,
     PhoneOff,
     Clock,
-    UserCheck
+    UserCheck,
+    MousePointerClick
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { tr } from 'date-fns/locale'
@@ -117,6 +118,7 @@ export default function HotLeadsReportPage() {
             'Müşteri Adı': lead.customerName,
             'Telefon': lead.customerPhone,
             'Yanıt Durumu': getResponseLabel(lead.responseStatus),
+            'Buton Yanıtı': lead.buttonReply || '—',
             'Temsilci': lead.assignedTo || '—',
             'Satış Durumu': lead.saleStatus || '—',
             'Gönderim Tarihi': lead.startedAt ? format(new Date(lead.startedAt), 'dd.MM.yyyy HH:mm', { locale: tr }) : '—',
@@ -214,38 +216,38 @@ export default function HotLeadsReportPage() {
                 </CardContent>
             </Card>
 
-            {/* KPI Cards */}
+            {/* KPI Cards — Tıklanabilir */}
             <div className="grid grid-cols-2 md:grid-cols-6 gap-3 md:gap-4">
-                <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-3xl p-3 md:p-6 shadow-md flex flex-col items-center justify-center min-w-0 w-full transition-transform hover:scale-[1.02] duration-300">
+                <button onClick={() => setResponseFilter(responseFilter === 'all' ? 'all' : 'all')} className={`bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-3xl p-3 md:p-6 shadow-md flex flex-col items-center justify-center min-w-0 w-full transition-all hover:scale-[1.02] duration-300 cursor-pointer ${responseFilter === 'all' ? 'ring-2 ring-blue-400' : ''}`}>
                     <MessageSquare className="h-5 w-5 md:h-6 md:w-6 text-blue-400 mb-1 md:mb-2" />
                     <span className="text-2xl md:text-3xl font-black">{stats.total}</span>
                     <span className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 text-center">Gönderildi</span>
-                </div>
-                <div className="bg-white rounded-3xl p-3 md:p-6 border border-purple-100 shadow-md flex flex-col items-center justify-center min-w-0 w-full transition-transform hover:scale-[1.02] duration-300 ring-2 ring-purple-200/50">
+                </button>
+                <button onClick={() => setResponseFilter(responseFilter === 'call_requested' ? 'all' : 'call_requested')} className={`bg-white rounded-3xl p-3 md:p-6 border shadow-md flex flex-col items-center justify-center min-w-0 w-full transition-all hover:scale-[1.02] duration-300 cursor-pointer ${responseFilter === 'call_requested' ? 'ring-2 ring-purple-500 border-purple-300 bg-purple-50' : 'border-purple-100'}`}>
                     <Phone className="h-5 w-5 md:h-6 md:w-6 text-purple-500 mb-1 md:mb-2" />
                     <span className="text-2xl md:text-3xl font-black text-purple-700">{stats.callRequested}</span>
                     <span className="text-[9px] md:text-[10px] font-bold text-purple-400 uppercase tracking-widest mt-1 text-center">Arama Talebi</span>
-                </div>
-                <div className="bg-white rounded-3xl p-3 md:p-6 border border-red-100 shadow-md flex flex-col items-center justify-center min-w-0 w-full transition-transform hover:scale-[1.02] duration-300">
+                </button>
+                <button onClick={() => setResponseFilter(responseFilter === 'hot' ? 'all' : 'hot')} className={`bg-white rounded-3xl p-3 md:p-6 border shadow-md flex flex-col items-center justify-center min-w-0 w-full transition-all hover:scale-[1.02] duration-300 cursor-pointer ${responseFilter === 'hot' ? 'ring-2 ring-red-500 border-red-300 bg-red-50' : 'border-red-100'}`}>
                     <Flame className="h-5 w-5 md:h-6 md:w-6 text-red-500 mb-1 md:mb-2" />
                     <span className="text-2xl md:text-3xl font-black text-slate-900">{stats.hot}</span>
                     <span className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 text-center">Sıcak</span>
-                </div>
-                <div className="bg-white rounded-3xl p-3 md:p-6 border border-orange-100 shadow-md flex flex-col items-center justify-center min-w-0 w-full transition-transform hover:scale-[1.02] duration-300">
+                </button>
+                <button onClick={() => setResponseFilter(responseFilter === 'warm' ? 'all' : 'warm')} className={`bg-white rounded-3xl p-3 md:p-6 border shadow-md flex flex-col items-center justify-center min-w-0 w-full transition-all hover:scale-[1.02] duration-300 cursor-pointer ${responseFilter === 'warm' ? 'ring-2 ring-orange-500 border-orange-300 bg-orange-50' : 'border-orange-100'}`}>
                     <Thermometer className="h-5 w-5 md:h-6 md:w-6 text-orange-500 mb-1 md:mb-2" />
                     <span className="text-2xl md:text-3xl font-black text-slate-900">{stats.warm}</span>
                     <span className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 text-center">Ilık</span>
-                </div>
-                <div className="bg-white rounded-3xl p-3 md:p-6 border border-slate-100 shadow-md flex flex-col items-center justify-center min-w-0 w-full transition-transform hover:scale-[1.02] duration-300">
+                </button>
+                <button onClick={() => setResponseFilter(responseFilter === 'opted_out' ? 'all' : 'opted_out')} className={`bg-white rounded-3xl p-3 md:p-6 border shadow-md flex flex-col items-center justify-center min-w-0 w-full transition-all hover:scale-[1.02] duration-300 cursor-pointer ${responseFilter === 'opted_out' ? 'ring-2 ring-rose-500 border-rose-300 bg-rose-50' : 'border-slate-100'}`}>
                     <PhoneOff className="h-5 w-5 md:h-6 md:w-6 text-rose-400 mb-1 md:mb-2" />
                     <span className="text-2xl md:text-3xl font-black text-slate-900">{stats.optedOut}</span>
                     <span className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 text-center">Reddetti</span>
-                </div>
-                <div className="bg-white rounded-3xl p-3 md:p-6 border border-slate-100 shadow-md flex flex-col items-center justify-center min-w-0 w-full transition-transform hover:scale-[1.02] duration-300">
+                </button>
+                <button onClick={() => setResponseFilter(responseFilter === 'no_response' ? 'all' : 'no_response')} className={`bg-white rounded-3xl p-3 md:p-6 border shadow-md flex flex-col items-center justify-center min-w-0 w-full transition-all hover:scale-[1.02] duration-300 cursor-pointer ${responseFilter === 'no_response' ? 'ring-2 ring-slate-500 border-slate-300 bg-slate-50' : 'border-slate-100'}`}>
                     <Clock className="h-5 w-5 md:h-6 md:w-6 text-slate-400 mb-1 md:mb-2" />
                     <span className="text-2xl md:text-3xl font-black text-slate-900">{stats.noResponse}</span>
                     <span className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 text-center">Cevapsız</span>
-                </div>
+                </button>
             </div>
 
             {/* Response Rate Bar */}
@@ -336,6 +338,7 @@ export default function HotLeadsReportPage() {
                                 <TableRow className="hover:bg-transparent bg-slate-50/30 border-slate-100">
                                     <TableHead className="pl-8 py-5 text-xs font-bold text-slate-400 uppercase tracking-widest">Müşteri</TableHead>
                                     <TableHead className="text-xs font-bold text-slate-400 uppercase tracking-widest text-center">Yanıt Durumu</TableHead>
+                                    <TableHead className="text-xs font-bold text-slate-400 uppercase tracking-widest text-center">Buton Yanıtı</TableHead>
                                     <TableHead className="text-xs font-bold text-slate-400 uppercase tracking-widest text-center">Temsilci</TableHead>
                                     <TableHead className="text-xs font-bold text-slate-400 uppercase tracking-widest text-center">Satış Durumu</TableHead>
                                     <TableHead className="text-xs font-bold text-slate-400 uppercase tracking-widest text-center">Gönderim</TableHead>
@@ -344,7 +347,7 @@ export default function HotLeadsReportPage() {
                             <TableBody>
                                 {loading ? (
                                     <TableRow>
-                                        <TableCell colSpan={5} className="h-64 text-center">
+                                        <TableCell colSpan={6} className="h-64 text-center">
                                             <div className="flex flex-col items-center justify-center gap-3">
                                                 <RefreshCw className="h-8 w-8 text-blue-600 animate-spin" />
                                                 <span className="text-slate-500 font-bold text-sm">Kampanya verileri yükleniyor...</span>
@@ -353,7 +356,7 @@ export default function HotLeadsReportPage() {
                                     </TableRow>
                                 ) : !selectedWorkflow ? (
                                     <TableRow>
-                                        <TableCell colSpan={5} className="h-48 text-center text-slate-400 font-semibold text-sm">
+                                        <TableCell colSpan={6} className="h-48 text-center text-slate-400 font-semibold text-sm">
                                             <Megaphone className="h-12 w-12 text-slate-300 mx-auto mb-3" />
                                             Yukarıdan bir kampanya seçin.
                                         </TableCell>
@@ -413,6 +416,24 @@ export default function HotLeadsReportPage() {
                                                     <Badge className="bg-slate-100 hover:bg-slate-100 text-slate-500 border-slate-200/50 px-3 py-1 rounded-full font-bold text-xs gap-1 border">
                                                         <Clock className="h-3 w-3" />Cevapsız
                                                     </Badge>
+                                                )}
+                                            </TableCell>
+                                            {/* Buton Yanıtı */}
+                                            <TableCell className="text-center">
+                                                {lead.buttonReply ? (
+                                                    <div className="flex flex-col items-center gap-1">
+                                                        <Badge className="bg-emerald-50 hover:bg-emerald-50 text-emerald-700 border-emerald-200/50 px-2.5 py-1 rounded-full font-bold text-xs gap-1 border">
+                                                            <MousePointerClick className="h-3 w-3" />
+                                                            {lead.buttonReply}
+                                                        </Badge>
+                                                        {lead.buttonReplyTime && (
+                                                            <span className="text-[10px] text-slate-400 font-medium">
+                                                                {format(new Date(lead.buttonReplyTime), 'd MMM HH:mm', { locale: tr })}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-slate-400 text-xs font-medium">—</span>
                                                 )}
                                             </TableCell>
                                             <TableCell className="text-center">
@@ -496,6 +517,16 @@ export default function HotLeadsReportPage() {
                                                 </Badge>
                                             )}
                                         </div>
+                                        {/* Buton Yanıtı - Mobile */}
+                                        {lead.buttonReply && (
+                                            <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-100 rounded-lg px-2 py-1.5">
+                                                <MousePointerClick className="h-3 w-3 text-emerald-600 shrink-0" />
+                                                <span className="text-[11px] text-emerald-700 font-bold">{lead.buttonReply}</span>
+                                                {lead.buttonReplyTime && (
+                                                    <span className="text-[9px] text-emerald-400 ml-auto">{format(new Date(lead.buttonReplyTime), 'd MMM HH:mm', { locale: tr })}</span>
+                                                )}
+                                            </div>
+                                        )}
                                         <div className="flex justify-between items-center border-t border-slate-100 pt-2">
                                             <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-bold">
                                                 <Calendar className="h-3.5 w-3.5" />
