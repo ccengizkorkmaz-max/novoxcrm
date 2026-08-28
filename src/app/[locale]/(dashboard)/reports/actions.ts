@@ -761,11 +761,11 @@ export async function getCampaignPerformanceReport(workflowId: string) {
     const customerIds = [...new Set(allExecutions.map(e => e.customer_id).filter(Boolean))]
     if (customerIds.length === 0) return emptyResult
 
-    // customer_id → en erken gönderim zamanı (kampanya başlangıcı)
+    // customer_id → en SON gönderim zamanı (bu kampanyadaki en güncel gönderim)
     const customerSentAt: Record<string, string> = {}
     allExecutions.forEach(e => {
         if (e.customer_id && e.started_at) {
-            if (!customerSentAt[e.customer_id] || e.started_at < customerSentAt[e.customer_id]) {
+            if (!customerSentAt[e.customer_id] || e.started_at > customerSentAt[e.customer_id]) {
                 customerSentAt[e.customer_id] = e.started_at
             }
         }
@@ -794,16 +794,17 @@ export async function getCampaignPerformanceReport(workflowId: string) {
     const convToCustomer: Record<string, string> = {}
     Object.entries(customerConversationIds).forEach(([custId, convId]) => { convToCustomer[convId] = custId })
 
-    // Kampanyanın en erken gönderim tarihi (global filtre)
+    // Kampanyanın en SON gönderim tarihi (global filtre — en güncel batch)
     const allSentDates = Object.values(customerSentAt).filter(Boolean)
     const globalCutoff = allSentDates.length > 0
-        ? new Date(Math.min(...allSentDates.map(d => new Date(d).getTime())) - 60000).toISOString() // 1 dk öncesinden
+        ? new Date(Math.min(...allSentDates.map(d => new Date(d).getTime())) - 60000).toISOString()
         : new Date('2020-01-01').toISOString()
 
-    // Müşteri bazlı mesaj yanıtları: { text, time, allMessages }
+    // Müşteri bazlı mesaj yanıtları
     const customerReplies: Record<string, { buttonReply: string | null, buttonTime: string | null, hasReply: boolean, replyContent: string }> = {}
-    const buttonKeywords = ['beni aray', 'bilgi istiyorum']
-    const negativeKeywords = ['hayır', 'hayir', 'istemiyorum', 'ilgilenmiyorum', 'aramayin', 'aramayın']
+    // Sadece kampanya şablonundaki butonlar: "Beni Arayın" ve "Hayır, teşekkürler"
+    const positiveKeywords = ['beni aray']
+    const negativeKeywords = ['hayır', 'hayir']
 
     for (let i = 0; i < convIds.length; i += 50) {
         const chunk = convIds.slice(i, i + 50)
@@ -832,11 +833,10 @@ export async function getCampaignPerformanceReport(workflowId: string) {
                 customerReplies[custId].replyContent = m.content || ''
             }
 
-            // Buton yanıtı (ilk eşleşen)
+            // Buton yanıtı — sadece kampanya butonları: "Beni Arayın" veya "Hayır"
             if (!customerReplies[custId].buttonReply) {
                 const lower = (m.content || '').toLowerCase()
-                const allBtnKeywords = [...buttonKeywords, 'evet', 'aradım', 'tekrar', 'değerlendiriyor', 'olumsuz', ...negativeKeywords]
-                if (allBtnKeywords.some(kw => lower.includes(kw))) {
+                if (positiveKeywords.some(kw => lower.includes(kw)) || negativeKeywords.some(kw => lower.includes(kw))) {
                     customerReplies[custId].buttonReply = m.content
                     customerReplies[custId].buttonTime = m.created_at
                 }
@@ -893,22 +893,20 @@ export async function getCampaignPerformanceReport(workflowId: string) {
             const btnReply = reply?.buttonReply || null
             const btnReplyTime = reply?.buttonTime || null
 
-            // Yanıt durumunu SADECE kampanya sonrası mesajlardan belirle
+            // Yanıt durumunu SADECE kampanya sonrası buton tıklamalarından belirle
             let responseStatus: string
-            if (!reply?.hasReply && !isOptedOut) {
-                responseStatus = 'no_response'
-            } else if (isOptedOut) {
+            if (isOptedOut) {
                 responseStatus = 'opted_out'
+            } else if (!reply?.hasReply) {
+                responseStatus = 'no_response'
             } else {
-                const lower = (reply?.replyContent || '').toLowerCase()
                 const btnLower = (btnReply || '').toLowerCase()
-                if (btnLower.includes('beni aray') || btnLower.includes('bilgi istiyorum') || lower.includes('beni aray')) {
+                if (positiveKeywords.some(kw => btnLower.includes(kw))) {
                     responseStatus = 'call_requested'
-                } else if (negativeKeywords.some(kw => lower.includes(kw)) || negativeKeywords.some(kw => btnLower.includes(kw))) {
+                } else if (negativeKeywords.some(kw => btnLower.includes(kw))) {
                     responseStatus = 'opted_out'
-                } else if (lower.includes('aradım') || lower.includes('değerlendiriyor') || lower.includes('evet')) {
-                    responseStatus = 'hot'
                 } else {
+                    // Bir mesaj gelmiş ama buton tıklaması değil → warm (yanıt vermiş)
                     responseStatus = 'warm'
                 }
             }
