@@ -34,6 +34,7 @@ import { ActivityForm } from '@/components/activities/activity-form'
 import InlineProfileFields from './InlineProfileFields'
 import { toast } from 'sonner'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { matchCustomerSearch, matchCustomerPhone } from '@/lib/phone-search-utils'
 
 type SortKey = 'full_name' | 'created_at'
 type SortOrder = 'asc' | 'desc'
@@ -295,19 +296,7 @@ export default function CustomerList({
 
     // Data comes pre-sorted from server — just apply local text filter for client-side search
     const filteredAndSortedCustomers = searchQuery
-        ? customers.filter(c => {
-            const query = searchQuery.toLowerCase()
-            // Telefon araması için boşluk, +, -, (, ) karakterlerini temizle
-            const queryDigits = query.replace(/[\s+\-()]/g, '')
-            const phoneDigits = (c.phone || '').replace(/[\s+\-()]/g, '')
-            return (
-                c.full_name?.toLowerCase().includes(query) ||
-                phoneDigits.includes(queryDigits) ||
-                (c.phone || '').includes(query) ||
-                c.email?.toLowerCase().includes(query) ||
-                c.customer_number?.toLowerCase().includes(query)
-            )
-        })
+        ? customers.filter(c => matchCustomerSearch(c, searchQuery))
         : customers
 
     const totalPages = Math.ceil(totalRecords / itemsPerPage)
@@ -354,7 +343,7 @@ export default function CustomerList({
                 const custNum = (c.customer_number || '').toLowerCase()
                 if (!name.includes(q) && !custNum.includes(q)) return false
             } else if (colId === 'phone') {
-                if (!(c.phone || '').toLowerCase().includes(q)) return false
+                if (!matchCustomerPhone(c.phone, filterVal)) return false
             } else if (colId === 'email') {
                 if (!(c.email || '').toLowerCase().includes(q)) return false
             } else if (colId === 'source') {

@@ -35,7 +35,11 @@ export default async function CustomersPage(props: {
         .select('*, customer_demands(*), contract_customers(id)', { count: 'exact' })
 
     if (filterSearch) {
-        query = query.or(`full_name.ilike.%${filterSearch}%,phone.ilike.%${filterSearch}%,email.ilike.%${filterSearch}%`)
+        const { buildCustomerSearchFilter } = await import('@/lib/phone-search-utils')
+        const searchFilter = buildCustomerSearchFilter(filterSearch)
+        if (searchFilter) {
+            query = query.or(searchFilter)
+        }
     }
 
     // Fetch customer list + profiles + user role + source stats in parallel (single roundtrip)

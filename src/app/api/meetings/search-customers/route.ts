@@ -31,11 +31,19 @@ export async function GET(request: NextRequest) {
 
         // Use admin client for fast search
         const admin = createAdminClient()
-        const { data, error } = await admin
+        const { buildCustomerSearchFilter } = await import('@/lib/phone-search-utils')
+        const searchFilter = buildCustomerSearchFilter(query)
+
+        let dbQuery = admin
             .from('customers')
             .select('id, full_name, phone, email')
             .eq('tenant_id', profile.tenant_id)
-            .or(`full_name.ilike.%${query}%,phone.ilike.%${query}%`)
+
+        if (searchFilter) {
+            dbQuery = dbQuery.or(searchFilter)
+        }
+
+        const { data, error } = await dbQuery
             .order('full_name')
             .limit(10)
 

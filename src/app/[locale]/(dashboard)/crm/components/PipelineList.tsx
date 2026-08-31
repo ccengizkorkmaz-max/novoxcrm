@@ -62,6 +62,7 @@ import { CampaignTouchpointBadge } from '@/components/customers/CampaignTouchpoi
 
 import { useTranslations, useLocale } from 'next-intl'
 import { useSupabaseRealtime } from '@/hooks/useSupabaseRealtime'
+import { matchCustomerSearch } from '@/lib/phone-search-utils'
 
 type PipelineColId = 'customer' | 'project' | 'unit' | 'status' | 'first_contact' | 'process_note' | 'lead_score' | 'campaign' | 'date' | 'amount' | 'rep' | 'remaining' | 'actions' | 'quickicons'
 const DEFAULT_PIPELINE_COL_ORDER: PipelineColId[] = ['customer', 'project', 'unit', 'status', 'first_contact', 'process_note', 'lead_score', 'campaign', 'date', 'amount', 'rep', 'remaining', 'actions', 'quickicons']
@@ -660,10 +661,7 @@ export default function PipelineList({
             if (!filterVal) continue
             const q = filterVal.toLowerCase()
             if (colId === 'customer') {
-                const name = (sale.customers?.full_name || '').toLowerCase()
-                const phone = (sale.customers?.phone || '').toLowerCase()
-                const custNum = (sale.customers?.customer_number || '').toLowerCase()
-                if (!name.includes(q) && !phone.includes(q) && !custNum.includes(q)) return false
+                if (!matchCustomerSearch(sale.customers, filterVal)) return false
             } else if (colId === 'project') {
                 const pName = (sale.units?.projects?.name || sale.projects?.name || '').toLowerCase()
                 if (pName !== q.toLowerCase() && !pName.includes(q)) return false

@@ -449,11 +449,19 @@ export async function searchCustomersForMeeting(query: string) {
 
         // Use admin client to bypass RLS for fast search
         const admin = createAdminClient()
-        const { data, error } = await admin
+        const { buildCustomerSearchFilter } = await import('@/lib/phone-search-utils')
+        const searchFilter = buildCustomerSearchFilter(trimmed)
+        
+        let customersQuery = admin
             .from('customers')
             .select('id, full_name, phone, email')
             .eq('tenant_id', profile.tenant_id)
-            .or(`full_name.ilike.%${trimmed}%,phone.ilike.%${trimmed}%`)
+        
+        if (searchFilter) {
+            customersQuery = customersQuery.or(searchFilter)
+        }
+
+        const { data, error } = await customersQuery
             .order('full_name')
             .limit(10)
 

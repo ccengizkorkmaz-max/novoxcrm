@@ -2,6 +2,7 @@ import { getTranslations } from 'next-intl/server'
 import { createClient } from '@/lib/supabase/server'
 import QualificationBoard from './components/QualificationBoard'
 import { NewQualificationModal } from './components/NewQualificationModal'
+import { buildCustomerSearchFilter } from '@/lib/phone-search-utils'
 
 export const dynamic = 'force-dynamic'
 
@@ -54,9 +55,10 @@ export default async function LeadQualificationPage(props: {
             }
         }
 
-        if (searchQuery) {
-            const sq = searchQuery.trim()
-            queryCount = queryCount.or(`full_name.ilike.%${sq}%,phone.ilike.%${sq}%`, { foreignTable: 'customers' })
+        const searchFilter = searchQuery ? buildCustomerSearchFilter(searchQuery) : ''
+
+        if (searchFilter) {
+            queryCount = queryCount.or(searchFilter, { foreignTable: 'customers' })
         }
 
         if (interestFilters.length > 0) {
@@ -90,9 +92,8 @@ export default async function LeadQualificationPage(props: {
                 .eq('tenant_id', profile.tenant_id)
                 .eq('status', status)
 
-            if (searchQuery) {
-                const sq = searchQuery.trim()
-                sQuery = sQuery.or(`full_name.ilike.%${sq}%,phone.ilike.%${sq}%`, { foreignTable: 'customers' })
+            if (searchFilter) {
+                sQuery = sQuery.or(searchFilter, { foreignTable: 'customers' })
             }
             if (interestFilters.length > 0) {
                 sQuery = sQuery.in('interest_level', interestFilters)
@@ -153,9 +154,8 @@ export default async function LeadQualificationPage(props: {
             }
         }
 
-        if (searchQuery) {
-            const sq = searchQuery.trim()
-            queryData = queryData.or(`full_name.ilike.%${sq}%,phone.ilike.%${sq}%`, { foreignTable: 'customers' })
+        if (searchFilter) {
+            queryData = queryData.or(searchFilter, { foreignTable: 'customers' })
         }
 
         if (interestFilters.length > 0) {

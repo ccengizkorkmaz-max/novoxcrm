@@ -1470,9 +1470,12 @@ export async function getWhatsAppResponses(filters: {
     }
 
     if (filters.search) {
-        const cleanSearch = filters.search.trim()
-        query = query.or(`full_name.ilike.%${cleanSearch}%,phone.ilike.%${cleanSearch}%`, { foreignTable: 'customers' })
-        statsQuery = statsQuery.or(`full_name.ilike.%${cleanSearch}%,phone.ilike.%${cleanSearch}%`, { foreignTable: 'customers' })
+        const { buildCustomerSearchFilter } = await import('@/lib/phone-search-utils')
+        const searchFilter = buildCustomerSearchFilter(filters.search)
+        if (searchFilter) {
+            query = query.or(searchFilter, { foreignTable: 'customers' })
+            statsQuery = statsQuery.or(searchFilter, { foreignTable: 'customers' })
+        }
     }
 
     if (filters.interestLevels && filters.interestLevels.length > 0 && !filters.interestLevels.includes('all')) {

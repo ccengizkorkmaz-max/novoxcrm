@@ -97,7 +97,11 @@ export default async function CRMPage(props: {
     if (filterDateFrom) baseQuery = baseQuery.gte('created_at', filterDateFrom)
     if (filterDateTo) baseQuery = baseQuery.lte('created_at', filterDateTo + 'T23:59:59')
     if (filterSearch) {
-        baseQuery = baseQuery.or(`full_name.ilike.%${filterSearch}%,phone.ilike.%${filterSearch}%,email.ilike.%${filterSearch}%`, { foreignTable: 'customers' })
+        const { buildCustomerSearchFilter } = await import('@/lib/phone-search-utils')
+        const searchFilter = buildCustomerSearchFilter(filterSearch)
+        if (searchFilter) {
+            baseQuery = baseQuery.or(searchFilter, { foreignTable: 'customers' })
+        }
     }
     if (filterFirstContact) {
         if (filterFirstContact === 'none') {

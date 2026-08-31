@@ -43,7 +43,11 @@ export async function getSalesForExport(filters: {
     if (filters.dateFrom) baseQuery = baseQuery.gte('created_at', filters.dateFrom)
     if (filters.dateTo) baseQuery = baseQuery.lte('created_at', filters.dateTo + 'T23:59:59')
     if (filters.search) {
-        baseQuery = baseQuery.or(`full_name.ilike.%${filters.search}%,phone.ilike.%${filters.search}%,email.ilike.%${filters.search}%`, { foreignTable: 'customers' })
+        const { buildCustomerSearchFilter } = await import('@/lib/phone-search-utils')
+        const searchFilter = buildCustomerSearchFilter(filters.search)
+        if (searchFilter) {
+            baseQuery = baseQuery.or(searchFilter, { foreignTable: 'customers' })
+        }
     }
 
     const { data, error } = await baseQuery

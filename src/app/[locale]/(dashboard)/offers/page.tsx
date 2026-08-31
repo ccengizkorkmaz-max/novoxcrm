@@ -29,7 +29,7 @@ export default async function OffersPage(props: {
     // Fetch Offers
     let baseQuery = supabase
         .from('offers')
-        .select('*, customers(full_name), units(unit_number, projects(name)), offer_negotiations(*), payment_plan')
+        .select('*, customers(full_name, phone), units(unit_number, projects(name)), offer_negotiations(*), payment_plan')
         .neq('status', 'Closed')
 
     if (!isManager && user) {
@@ -37,7 +37,11 @@ export default async function OffersPage(props: {
     }
 
     if (query) {
-        baseQuery = baseQuery.or(`full_name.ilike.%${query}%`, { foreignTable: 'customers' })
+        const { buildCustomerSearchFilter } = await import('@/lib/phone-search-utils')
+        const searchFilter = buildCustomerSearchFilter(query)
+        if (searchFilter) {
+            baseQuery = baseQuery.or(searchFilter, { foreignTable: 'customers' })
+        }
     }
 
     const { data: offers } = await baseQuery.order('created_at', { ascending: false })

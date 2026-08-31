@@ -45,7 +45,13 @@ export default async function DeferredPipelineStats({
         if (filterCustomer) q = q.eq('customer_id', filterCustomer)
         if (filterDateFrom) q = q.gte('created_at', filterDateFrom)
         if (filterDateTo) q = q.lte('created_at', filterDateTo + 'T23:59:59')
-        if (filterSearch) q = q.or(`full_name.ilike.%${filterSearch}%,phone.ilike.%${filterSearch}%,email.ilike.%${filterSearch}%`, { foreignTable: 'customers' })
+        if (filterSearch) {
+            const { buildCustomerSearchFilter } = require('@/lib/phone-search-utils')
+            const searchFilter = buildCustomerSearchFilter(filterSearch)
+            if (searchFilter) {
+                q = q.or(searchFilter, { foreignTable: 'customers' })
+            }
+        }
 
         if (Array.isArray(status)) {
             return q.in('status', status)
