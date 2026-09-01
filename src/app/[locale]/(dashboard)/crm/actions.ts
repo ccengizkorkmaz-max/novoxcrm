@@ -4447,9 +4447,16 @@ export async function shareProjectDocumentsViaWhatsApp(params: {
                 console.log(`[CRM] 🔄 '${params.templateName}' şablonu Meta'da bulunamadı, onaylı 'novo_talep_alindi' şablonuna geçiliyor...`)
                 
                 // novo_talep_alindi: 2 parametre bekler (1: Müşteri Adı, 2: Proje & Dokümanlar)
+                const { encodeUuid } = await import('@/lib/utils')
+                const origin = process.env.NEXT_PUBLIC_APP_URL || 'https://novoxcrm.com'
+                const docLinksFormatted = params.selectedDocuments.map(d => {
+                    const shortUrl = `${origin}/d/${encodeUuid(d.id)}`
+                    return `${d.document_name}: ${shortUrl}`
+                }).join(' | ')
+
                 const fallbackParams = [
                     params.customerName,
-                    `${params.projectName} — Dokümanlar: ${params.selectedDocuments.map(d => `${d.document_name}: ${d.file_url}`).join(' | ')}`
+                    `${params.projectName} — Dokümanlar: ${docLinksFormatted}`
                 ]
 
                 templateRes = await sendWhatsAppTemplate(
