@@ -24,13 +24,19 @@ import {
     PhoneOff,
     Clock,
     UserCheck,
-    MousePointerClick
+    MousePointerClick,
+    Zap,
+    FileText,
+    CheckCircle2,
+    History
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { tr } from 'date-fns/locale'
 import { exportToExcel } from '@/lib/report-export'
 import { toast } from 'sonner'
 import ShareHotLeadsButton from './ShareHotLeadsButton'
+import QuickCallDialog from './QuickCallDialog'
+import PowerCallingModal from './PowerCallingModal'
 
 export default function HotLeadsReportPage() {
     const [workflows, setWorkflows] = useState<any[]>([])
@@ -44,8 +50,14 @@ export default function HotLeadsReportPage() {
     const [refreshing, setRefreshing] = useState(false)
     const [searchTerm, setSearchTerm] = useState('')
     const [responseFilter, setResponseFilter] = useState('all')
+    const [callStatusFilter, setCallStatusFilter] = useState('all')
     const [selectedButtonFilter, setSelectedButtonFilter] = useState<string | null>(null)
     const [copiedId, setCopiedId] = useState<string | null>(null)
+
+    // Modal states
+    const [selectedLeadForCall, setSelectedLeadForCall] = useState<any | null>(null)
+    const [isQuickCallOpen, setIsQuickCallOpen] = useState(false)
+    const [isPowerCallingOpen, setIsPowerCallingOpen] = useState(false)
 
     // Load workflows on mount
     useEffect(() => {
@@ -57,6 +69,7 @@ export default function HotLeadsReportPage() {
         if (selectedWorkflow) {
             setSelectedButtonFilter(null)
             setResponseFilter('all')
+            setCallStatusFilter('all')
             loadCampaignData()
         }
     }, [selectedWorkflow])
@@ -106,6 +119,23 @@ export default function HotLeadsReportPage() {
         setTimeout(() => setCopiedId(null), 2000)
     }
 
+    const handleLeadUpdated = (updatedLead: any) => {
+        setLeads(prev => prev.map(lead => {
+            if (lead.id === updatedLead.id || (lead.customerId && lead.customerId === updatedLead.customerId)) {
+                return {
+                    ...lead,
+                    ...updatedLead
+                }
+            }
+            return lead
+        }))
+    }
+
+    const openQuickCall = (lead: any) => {
+        setSelectedLeadForCall(lead)
+        setIsQuickCallOpen(true)
+    }
+
     const filteredLeads = leads.filter(lead => {
         const query = searchTerm.toLowerCase()
         const queryDigits = query.replace(/[\s+\-()]/g, '')
@@ -120,8 +150,15 @@ export default function HotLeadsReportPage() {
         const matchesButton = !selectedButtonFilter || 
             (lead.buttonReply && lead.buttonReply.toLowerCase().includes(selectedButtonFilter.toLowerCase()))
 
-        return matchesSearch && matchesResponse && matchesButton
+        const matchesCall = callStatusFilter === 'all' || 
+            (callStatusFilter === 'uncalled' && !lead.isCalled) || 
+            (callStatusFilter === 'called' && lead.isCalled)
+
+        return matchesSearch && matchesResponse && matchesButton && matchesCall
     })
+
+    // Leads specifically for power calling (filtered or call_requested)
+    const powerCallingLeads = filteredLeads.length > 0 ? filteredLeads : leads
 
     const handleExport = () => {
         const selectedWf = workflows.find(w => w.id === selectedWorkflow)
@@ -130,6 +167,8 @@ export default function HotLeadsReportPage() {
             'Telefon': lead.customerPhone,
             'Yanıt Durumu': getResponseLabel(lead.responseStatus),
             'Buton Yanıtı': lead.buttonReply || '—',
+            'Arama Durumu': lead.firstContact || (lead.isCalled ? 'Arandı' : 'Henüz Aranmadı'),
+            'Son Görüşme Notu': lead.lastCallNote || '—',
             'Temsilci': lead.assignedTo || '—',
             'Satış Durumu': lead.saleStatus || '—',
             'Gönderim Tarihi': lead.startedAt ? format(new Date(lead.startedAt), 'dd.MM.yyyy HH:mm', { locale: tr }) : '—',
@@ -154,6 +193,9 @@ export default function HotLeadsReportPage() {
     const respondedCount = stats.callRequested + stats.optedOut + stats.hot + stats.warm
     const responseRate = stats.total > 0 ? Math.round((respondedCount / stats.total) * 100) : 0
 
+    const uncalledCallRequests = leads.filter(l => l.responseStatus === 'call_requested' && !l.isCalled).length
+    const totalUncalled = leads.filter(l => !l.isCalled).length
+
     return (
         <div className="space-y-4 md:space-y-8 p-2 md:p-6 max-w-[1600px] mx-auto animate-in fade-in duration-700 w-full overflow-x-hidden">
             {/* Header */}
@@ -164,11 +206,22 @@ export default function HotLeadsReportPage() {
                         Kampanya Performans Raporu
                     </h1>
                     <p className="text-slate-500 mt-2 font-medium">
-                        Kampanya bazlı müşteri yanıt durumları ve arama talepleri
+                        Kampanya bazlı müşteri yanıt durumları, hızlı arama ve not yönetimi
                     </p>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                    {/* Power Calling Mode Button */}
+                    <Button
+                        size="lg"
+                        onClick={() => setIsPowerCallingOpen(true)}
+                        disabled={loading || powerCallingLeads.length === 0}
+                        className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-black h-11 md:h-12 px-4 md:px-6 rounded-2xl shadow-lg shadow-orange-500/25 gap-2 text-xs md:text-sm animate-pulse hover:animate-none"
+                    >
+                        <Zap className="h-4 w-4 fill-white" />
+                        ⚡ Seri Arama Modu ({uncalledCallRequests > 0 ? `${uncalledCallRequests} Arama` : powerCallingLeads.length})
+                    </Button>
+
                     <ShareHotLeadsButton />
                     <Button 
                         variant="outline" 
@@ -229,14 +282,19 @@ export default function HotLeadsReportPage() {
 
             {/* KPI Cards — Tıklanabilir */}
             <div className="grid grid-cols-2 md:grid-cols-6 gap-3 md:gap-4">
-                <button onClick={() => setResponseFilter(responseFilter === 'all' ? 'all' : 'all')} className={`bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-3xl p-3 md:p-6 shadow-md flex flex-col items-center justify-center min-w-0 w-full transition-all hover:scale-[1.02] duration-300 cursor-pointer ${responseFilter === 'all' ? 'ring-2 ring-blue-400' : ''}`}>
+                <button onClick={() => setResponseFilter('all')} className={`bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-3xl p-3 md:p-6 shadow-md flex flex-col items-center justify-center min-w-0 w-full transition-all hover:scale-[1.02] duration-300 cursor-pointer ${responseFilter === 'all' ? 'ring-2 ring-blue-400' : ''}`}>
                     <MessageSquare className="h-5 w-5 md:h-6 md:w-6 text-blue-400 mb-1 md:mb-2" />
                     <span className="text-2xl md:text-3xl font-black">{stats.total}</span>
                     <span className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 text-center">Gönderildi</span>
                 </button>
                 <button onClick={() => setResponseFilter(responseFilter === 'call_requested' ? 'all' : 'call_requested')} className={`bg-white rounded-3xl p-3 md:p-6 border shadow-md flex flex-col items-center justify-center min-w-0 w-full transition-all hover:scale-[1.02] duration-300 cursor-pointer ${responseFilter === 'call_requested' ? 'ring-2 ring-purple-500 border-purple-300 bg-purple-50' : 'border-purple-100'}`}>
                     <Phone className="h-5 w-5 md:h-6 md:w-6 text-purple-500 mb-1 md:mb-2" />
-                    <span className="text-2xl md:text-3xl font-black text-purple-700">{stats.callRequested}</span>
+                    <div className="flex items-baseline gap-1">
+                        <span className="text-2xl md:text-3xl font-black text-purple-700">{stats.callRequested}</span>
+                        {uncalledCallRequests > 0 && (
+                            <span className="text-xs font-bold text-amber-600">({uncalledCallRequests} bekliyor)</span>
+                        )}
+                    </div>
                     <span className="text-[9px] md:text-[10px] font-bold text-purple-400 uppercase tracking-widest mt-1 text-center">Arama Talebi</span>
                 </button>
                 <button onClick={() => setResponseFilter(responseFilter === 'hot' ? 'all' : 'hot')} className={`bg-white rounded-3xl p-3 md:p-6 border shadow-md flex flex-col items-center justify-center min-w-0 w-full transition-all hover:scale-[1.02] duration-300 cursor-pointer ${responseFilter === 'hot' ? 'ring-2 ring-red-500 border-red-300 bg-red-50' : 'border-red-100'}`}>
@@ -348,18 +406,30 @@ export default function HotLeadsReportPage() {
                                 className="pl-11 h-12 bg-white/50 border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 rounded-2xl w-full text-slate-800 placeholder-slate-400 text-sm font-medium"
                             />
                         </div>
-                        <div className="w-full lg:w-[250px]">
+                        <div className="w-full lg:w-[220px]">
                             <Select value={responseFilter} onValueChange={setResponseFilter}>
                                 <SelectTrigger className="h-12 border-slate-200 rounded-2xl bg-white/50 text-slate-700 font-semibold text-sm">
                                     <SelectValue placeholder="Yanıt Durumu" />
                                 </SelectTrigger>
                                 <SelectContent className="rounded-2xl border-slate-100 shadow-xl">
-                                    <SelectItem value="all">Tüm Durumlar</SelectItem>
+                                    <SelectItem value="all">Tüm Yanıtlar</SelectItem>
                                     <SelectItem value="call_requested">📞 Arama Talebi</SelectItem>
                                     <SelectItem value="hot">🔥 Sıcak</SelectItem>
                                     <SelectItem value="warm">🍊 Ilık</SelectItem>
                                     <SelectItem value="opted_out">🚫 Reddetti</SelectItem>
                                     <SelectItem value="no_response">⏳ Cevapsız</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="w-full lg:w-[220px]">
+                            <Select value={callStatusFilter} onValueChange={setCallStatusFilter}>
+                                <SelectTrigger className="h-12 border-slate-200 rounded-2xl bg-white/50 text-slate-700 font-semibold text-sm">
+                                    <SelectValue placeholder="Arama Durumu" />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-2xl border-slate-100 shadow-xl">
+                                    <SelectItem value="all">Tüm Aramalar</SelectItem>
+                                    <SelectItem value="uncalled">⏳ Henüz Aranmadı ({totalUncalled})</SelectItem>
+                                    <SelectItem value="called">✅ Arandı / Notlandı</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -374,9 +444,16 @@ export default function HotLeadsReportPage() {
                         <div>
                             <CardTitle className="text-xl font-bold text-slate-800">Kampanya Sonuçları</CardTitle>
                             <CardDescription className="text-sm mt-1">
-                                {selectedWf?.name || 'Kampanya seçin'} — {filteredLeads.length} kayıt
+                                {selectedWf?.name || 'Kampanya seçin'} — {filteredLeads.length} kayıt listeleniyor
                             </CardDescription>
                         </div>
+
+                        {uncalledCallRequests > 0 && (
+                            <Badge className="bg-amber-50 text-amber-700 border-amber-200 border text-xs font-bold gap-1 px-3 py-1 rounded-full">
+                                <Clock className="h-3.5 w-3.5 text-amber-600" />
+                                {uncalledCallRequests} arama talebi aranmayı bekliyor
+                            </Badge>
+                        )}
                     </div>
                 </CardHeader>
                 <CardContent className="p-0">
@@ -388,15 +465,16 @@ export default function HotLeadsReportPage() {
                                     <TableHead className="pl-8 py-5 text-xs font-bold text-slate-400 uppercase tracking-widest">Müşteri</TableHead>
                                     <TableHead className="text-xs font-bold text-slate-400 uppercase tracking-widest text-center">Yanıt Durumu</TableHead>
                                     <TableHead className="text-xs font-bold text-slate-400 uppercase tracking-widest text-center">Buton Yanıtı</TableHead>
+                                    <TableHead className="text-xs font-bold text-slate-400 uppercase tracking-widest text-center">Son Görüşme / Not</TableHead>
                                     <TableHead className="text-xs font-bold text-slate-400 uppercase tracking-widest text-center">Temsilci</TableHead>
                                     <TableHead className="text-xs font-bold text-slate-400 uppercase tracking-widest text-center">Satış Durumu</TableHead>
-                                    <TableHead className="text-xs font-bold text-slate-400 uppercase tracking-widest text-center">Gönderim</TableHead>
+                                    <TableHead className="text-xs font-bold text-slate-400 uppercase tracking-widest text-center">İşlem</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {loading ? (
                                     <TableRow>
-                                        <TableCell colSpan={6} className="h-64 text-center">
+                                        <TableCell colSpan={7} className="h-64 text-center">
                                             <div className="flex flex-col items-center justify-center gap-3">
                                                 <RefreshCw className="h-8 w-8 text-blue-600 animate-spin" />
                                                 <span className="text-slate-500 font-bold text-sm">Kampanya verileri yükleniyor...</span>
@@ -405,15 +483,15 @@ export default function HotLeadsReportPage() {
                                     </TableRow>
                                 ) : !selectedWorkflow ? (
                                     <TableRow>
-                                        <TableCell colSpan={6} className="h-48 text-center text-slate-400 font-semibold text-sm">
+                                        <TableCell colSpan={7} className="h-48 text-center text-slate-400 font-semibold text-sm">
                                             <Megaphone className="h-12 w-12 text-slate-300 mx-auto mb-3" />
                                             Yukarıdan bir kampanya seçin.
                                         </TableCell>
                                     </TableRow>
                                 ) : filteredLeads.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={5} className="h-48 text-center text-slate-400 font-semibold text-sm">
-                                            Bu kampanyada henüz kayıt bulunmuyor.
+                                        <TableCell colSpan={7} className="h-48 text-center text-slate-400 font-semibold text-sm">
+                                            Bu filtreye uygun kayıt bulunamadı.
                                         </TableCell>
                                     </TableRow>
                                 ) : (
@@ -467,6 +545,7 @@ export default function HotLeadsReportPage() {
                                                     </Badge>
                                                 )}
                                             </TableCell>
+
                                             {/* Buton Yanıtı */}
                                             <TableCell className="text-center">
                                                 {lead.buttonReply ? (
@@ -485,6 +564,29 @@ export default function HotLeadsReportPage() {
                                                     <span className="text-slate-400 text-xs font-medium">—</span>
                                                 )}
                                             </TableCell>
+
+                                            {/* Son Görüşme / Arama Notu */}
+                                            <TableCell className="text-center max-w-[200px]">
+                                                {lead.isCalled ? (
+                                                    <div className="flex flex-col items-center gap-1">
+                                                        <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[11px] font-bold gap-1 border px-2 py-0.5 rounded-md">
+                                                            <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                                                            {lead.firstContact || 'Arandı'}
+                                                        </Badge>
+                                                        {lead.lastCallNote && (
+                                                            <span className="text-[11px] text-slate-600 font-medium truncate max-w-[190px] block" title={lead.lastCallNote}>
+                                                                &ldquo;{lead.lastCallNote}&rdquo;
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <Badge className="bg-slate-100 text-slate-400 border-dashed border-slate-200 text-[10px] font-semibold">
+                                                        ⏳ Henüz Aranmadı
+                                                    </Badge>
+                                                )}
+                                            </TableCell>
+
+                                            {/* Temsilci */}
                                             <TableCell className="text-center">
                                                 {lead.assignedTo ? (
                                                     <Badge className="bg-blue-50 hover:bg-blue-50 text-blue-700 border-blue-200/50 font-bold text-xs gap-1 border px-2.5 py-1 rounded-full">
@@ -494,6 +596,8 @@ export default function HotLeadsReportPage() {
                                                     <span className="text-slate-400 text-xs font-medium">—</span>
                                                 )}
                                             </TableCell>
+
+                                            {/* Satış Durumu */}
                                             <TableCell className="text-center">
                                                 {lead.saleStatus ? (
                                                     <Badge className="bg-slate-100 text-slate-600 border-none font-bold text-xs">{lead.saleStatus}</Badge>
@@ -501,11 +605,17 @@ export default function HotLeadsReportPage() {
                                                     <span className="text-slate-400 text-xs font-medium">—</span>
                                                 )}
                                             </TableCell>
-                                            <TableCell className="text-center">
-                                                <div className="flex items-center justify-center gap-1.5 text-xs text-slate-500 font-bold">
-                                                    <Calendar className="h-3.5 w-3.5 text-slate-400" />
-                                                    {lead.startedAt ? format(new Date(lead.startedAt), 'd MMM HH:mm', { locale: tr }) : '—'}
-                                                </div>
+
+                                            {/* Aksiyon: Ara & Not Gir */}
+                                            <TableCell className="text-center pr-6">
+                                                <Button
+                                                    size="sm"
+                                                    onClick={() => openQuickCall(lead)}
+                                                    className="bg-blue-50 hover:bg-blue-600 text-blue-700 hover:text-white border border-blue-200 hover:border-blue-600 rounded-xl font-bold text-xs gap-1.5 h-8.5 px-3 transition-all shadow-xs"
+                                                >
+                                                    <Phone className="h-3.5 w-3.5" />
+                                                    Ara & Not Gir
+                                                </Button>
                                             </TableCell>
                                         </TableRow>
                                     ))
@@ -528,12 +638,12 @@ export default function HotLeadsReportPage() {
                             </div>
                         ) : filteredLeads.length === 0 ? (
                             <div className="text-center text-slate-400 font-semibold text-sm py-10">
-                                Bu kampanyada henüz kayıt bulunmuyor.
+                                Bu filtreye uygun kayıt bulunamadı.
                             </div>
                         ) : (
                             filteredLeads.map((lead) => (
                                 <Card key={`mobile-${lead.id}`} className="overflow-hidden border border-slate-200 shadow-sm w-full bg-white">
-                                    <CardContent className="p-3 flex flex-col gap-2.5">
+                                    <CardContent className="p-3.5 flex flex-col gap-3">
                                         <div className="flex justify-between items-center gap-2">
                                             <span className="font-extrabold text-slate-800 text-[14px] flex items-center gap-1.5 min-w-0 flex-1">
                                                 <User className="h-4 w-4 text-slate-400 shrink-0" />
@@ -547,6 +657,7 @@ export default function HotLeadsReportPage() {
                                                 {lead.responseStatus === 'no_response' && <Badge className="bg-slate-100 text-slate-500 border-slate-200 border text-[9px] px-1.5 py-0.5"><Clock className="h-3 w-3 mr-0.5" />Cevapsız</Badge>}
                                             </div>
                                         </div>
+
                                         <div className="flex justify-between items-center gap-2">
                                             <div className="flex items-center gap-1.5 min-w-0">
                                                 <a href={`tel:${lead.customerPhone.replace(/\s+/g, '')}`} className="text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md text-xs font-bold tracking-wide flex items-center gap-1 shadow-sm border border-blue-100">
@@ -566,6 +677,7 @@ export default function HotLeadsReportPage() {
                                                 </Badge>
                                             )}
                                         </div>
+
                                         {/* Buton Yanıtı - Mobile */}
                                         {lead.buttonReply && (
                                             <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-100 rounded-lg px-2 py-1.5">
@@ -576,15 +688,41 @@ export default function HotLeadsReportPage() {
                                                 )}
                                             </div>
                                         )}
-                                        <div className="flex justify-between items-center border-t border-slate-100 pt-2">
-                                            <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-bold">
-                                                <Calendar className="h-3.5 w-3.5" />
-                                                {lead.startedAt ? format(new Date(lead.startedAt), 'd MMM HH:mm', { locale: tr }) : '—'}
+
+                                        {/* Son Görüşme Notu - Mobile */}
+                                        {lead.isCalled ? (
+                                            <div className="bg-slate-50 border border-slate-200 rounded-xl p-2 text-xs flex flex-col gap-0.5">
+                                                <div className="flex items-center justify-between">
+                                                    <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[10px] font-bold">
+                                                        {lead.firstContact || 'Arandı'}
+                                                    </Badge>
+                                                    {lead.lastCallDate && (
+                                                        <span className="text-[10px] text-slate-400">
+                                                            {format(new Date(lead.lastCallDate), 'd MMM HH:mm', { locale: tr })}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                {lead.lastCallNote && (
+                                                    <p className="text-[11px] text-slate-600 mt-1 font-medium italic">
+                                                        &ldquo;{lead.lastCallNote}&rdquo;
+                                                    </p>
+                                                )}
                                             </div>
-                                            {lead.saleStatus && (
-                                                <Badge className="bg-slate-100 text-slate-600 border-none text-[9px]">{lead.saleStatus}</Badge>
-                                            )}
-                                        </div>
+                                        ) : (
+                                            <div className="text-[11px] text-amber-700 bg-amber-50/70 border border-amber-200/50 rounded-lg px-2 py-1 flex items-center gap-1 font-medium">
+                                                <Clock className="h-3 w-3 text-amber-600" />
+                                                Henüz arama veya not girilmedi.
+                                            </div>
+                                        )}
+
+                                        {/* Quick Call Action Button */}
+                                        <Button
+                                            onClick={() => openQuickCall(lead)}
+                                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs h-9 rounded-xl shadow-sm gap-1.5"
+                                        >
+                                            <Phone className="h-3.5 w-3.5" />
+                                            Görüşme Notu Gir & İşle
+                                        </Button>
                                     </CardContent>
                                 </Card>
                             ))
@@ -592,6 +730,25 @@ export default function HotLeadsReportPage() {
                     </div>
                 </CardContent>
             </Card>
+
+            {/* Quick Call Dialog */}
+            <QuickCallDialog
+                lead={selectedLeadForCall}
+                isOpen={isQuickCallOpen}
+                onClose={() => {
+                    setIsQuickCallOpen(false)
+                    setSelectedLeadForCall(null)
+                }}
+                onSuccess={handleLeadUpdated}
+            />
+
+            {/* Power Calling Modal */}
+            <PowerCallingModal
+                leads={powerCallingLeads}
+                isOpen={isPowerCallingOpen}
+                onClose={() => setIsPowerCallingOpen(false)}
+                onLeadUpdated={handleLeadUpdated}
+            />
         </div>
     )
 }

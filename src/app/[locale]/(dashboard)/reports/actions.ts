@@ -798,7 +798,7 @@ export async function getCampaignPerformanceReport(workflowId: string) {
             .select(`
                 id, status, started_at, completed_at, customer_id,
                 customers(id, full_name, phone, source),
-                sales(id, status, assigned_to)
+                sales(id, status, assigned_to, first_contact, description)
             `)
             .eq('workflow_id', workflowId)
             .order('started_at', { ascending: false })
@@ -942,6 +942,31 @@ export async function getCampaignPerformanceReport(workflowId: string) {
         profiles?.forEach(p => { repProfiles[p.id] = p.full_name || 'Bilinmiyor' })
     }
 
+    // ─── 7b. Müşterilerin son arama / not aktivitelerini çek ─────────────
+    const uniqueCustIds = Array.from(new Set(allExecutions.map(e => e.customer_id).filter(Boolean))) as string[]
+    const customerLastActivities: Record<string, { summary: string, description: string, createdAt: string }> = {}
+
+    if (uniqueCustIds.length > 0) {
+        for (let i = 0; i < uniqueCustIds.length; i += 100) {
+            const chunk = uniqueCustIds.slice(i, i + 100)
+            const { data: actData } = await adminDb
+                .from('activities')
+                .select('customer_id, summary, description, created_at')
+                .in('customer_id', chunk)
+                .order('created_at', { ascending: false })
+
+            actData?.forEach(act => {
+                if (act.customer_id && !customerLastActivities[act.customer_id]) {
+                    customerLastActivities[act.customer_id] = {
+                        summary: act.summary || '',
+                        description: act.description || '',
+                        createdAt: act.created_at
+                    }
+                }
+            })
+        }
+    }
+
     // ─── 8. Verileri birleştir ────────────────────────────────────────────
     const seen = new Set<string>()
     const leads = allExecutions
@@ -995,6 +1020,10 @@ export async function getCampaignPerformanceReport(workflowId: string) {
                 responseStatus = e.status === 'completed' ? 'warm' : 'no_response'
             }
 
+            const lastAct = customerLastActivities[e.customer_id!]
+            const hasFirstContact = !!sale?.first_contact
+            const isCalled = hasFirstContact || (lastAct && new Date(lastAct.createdAt) >= new Date(e.started_at))
+
             return {
                 id: e.id,
                 customerId: e.customer_id,
@@ -1006,7 +1035,12 @@ export async function getCampaignPerformanceReport(workflowId: string) {
                 completedAt: e.completed_at,
                 responseStatus,
                 assignedTo,
+                saleId: sale?.id || null,
                 saleStatus: sale?.status || null,
+                firstContact: sale?.first_contact || null,
+                lastCallNote: lastAct?.description || lastAct?.summary || null,
+                lastCallDate: lastAct?.createdAt || null,
+                isCalled: !!isCalled,
                 // WhatsApp verileri
                 waStatus: waLog?.status || null,
                 buttonReply: btnReply,
@@ -2889,3 +2923,133 @@ export async function getCrmStatistics() {
         }
     }
 }
+
+export async function saveCampaignLeadCallNote(params: {
+    customerId: string
+    saleId?: string | null
+    callStatus: 'positive' | 'appointment' | 'callback' | 'unreachable' | 'negative' | 'custom'
+    callStatusLabel: string
+    note: string
+    callbackDate?: string | null
+}) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Oturum açmanız gerekiyor' }
+
+    const adminDb = createAdminClient()
+
+    const { data: profile } = await adminDb
+        .from('profiles')
+        .select('tenant_id, full_name')
+        .eq('id', user.id)
+        .single()
+
+    const tenantId = profile?.tenant_id
+    const author = profile?.full_name || 'Temsilci'
+    const timestamp = new Date().toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+
+    // 1. Activity ekle
+    const { error: actError } = await adminDb.from('activities').insert({
+        tenant_id: tenantId,
+        customer_id: params.customerId,
+        user_id: user.id,
+        owner_id: user.id,
+        type: 'Call',
+        topic: 'Campaign Call',
+        summary: `Kampanya Araması: ${params.callStatusLabel} — ${author}`,
+        description: params.note || params.callStatusLabel,
+        notes: `[${timestamp} - ${author}] ${params.callStatusLabel}: ${params.note || ''}`,
+        due_date: params.callbackDate ? new Date(params.callbackDate).toISOString() : new Date().toISOString(),
+        status: 'Completed',
+        priority: params.callStatus === 'positive' || params.callStatus === 'appointment' ? 'High' : 'Medium'
+    })
+
+    if (actError) console.error('Activity save error:', actError)
+
+    // 2. Satış kartını güncelle
+    let targetSaleId = params.saleId
+    if (!targetSaleId) {
+        // En son açık satışı bul
+        const { data: existingSales } = await adminDb
+            .from('sales')
+            .select('id')
+            .eq('customer_id', params.customerId)
+            .order('created_at', { ascending: false })
+            .limit(1)
+        if (existingSales && existingSales.length > 0) {
+            targetSaleId = existingSales[0].id
+        }
+    }
+
+    // first_contact & lead_score eşleştirmesi
+    let firstContactVal = 'Aradım, Olumlu'
+    let leadScoreVal = 'hot'
+    let saleStatusUpdate: string | null = null
+
+    switch (params.callStatus) {
+        case 'positive':
+            firstContactVal = 'Aradım, Olumlu'
+            leadScoreVal = 'hot'
+            saleStatusUpdate = 'Prospect'
+            break
+        case 'appointment':
+            firstContactVal = 'Randevu Alındı'
+            leadScoreVal = 'hot'
+            saleStatusUpdate = 'Prospect'
+            break
+        case 'callback':
+            firstContactVal = 'Tekrar Aranacak'
+            leadScoreVal = 'warm'
+            break
+        case 'unreachable':
+            firstContactVal = 'Ulaşamadım'
+            leadScoreVal = 'warm'
+            break
+        case 'negative':
+            firstContactVal = 'Aradım, Olumsuz'
+            leadScoreVal = 'disqualified'
+            saleStatusUpdate = 'Lost'
+            break
+        default:
+            firstContactVal = params.callStatusLabel || 'Görüşüldü'
+            break
+    }
+
+    if (targetSaleId) {
+        const { data: currentSale } = await adminDb.from('sales').select('description, status').eq('id', targetSaleId).single()
+        const existingDesc = currentSale?.description || ''
+        const noteLine = `[${timestamp} - ${author} (Arama: ${params.callStatusLabel})] ${params.note || ''}`
+        const newDesc = existingDesc ? `${existingDesc}\n${noteLine}` : noteLine
+
+        const salePayload: Record<string, any> = {
+            first_contact: firstContactVal,
+            description: newDesc,
+            updated_at: new Date().toISOString()
+        }
+        if (saleStatusUpdate) {
+            salePayload.status = saleStatusUpdate
+        }
+
+        await adminDb.from('sales').update(salePayload).eq('id', targetSaleId)
+    }
+
+    // 3. Müşteriyi güncelle (lead_score)
+    if (leadScoreVal) {
+        await adminDb.from('customers').update({
+            lead_score: leadScoreVal,
+            updated_at: new Date().toISOString()
+        }).eq('id', params.customerId)
+    }
+
+    revalidatePath('/[locale]/(dashboard)/reports/hot-leads', 'page')
+    revalidatePath('/[locale]/(dashboard)/crm', 'page')
+
+    return { 
+        success: true, 
+        author,
+        timestamp,
+        firstContact: firstContactVal,
+        lastNote: params.note || params.callStatusLabel
+    }
+}
+
