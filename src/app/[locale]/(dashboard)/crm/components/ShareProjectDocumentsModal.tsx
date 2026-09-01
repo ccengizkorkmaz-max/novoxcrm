@@ -338,18 +338,32 @@ export default function ShareProjectDocumentsModal({
                             <Building2 className="h-3.5 w-3.5 text-blue-600" />
                             Paylaşılacak Projeyi Seçin
                         </Label>
-                        <Select value={selectedProjectId} onValueChange={(val) => { setSelectedProjectId(val); setIsMessageEdited(false) }}>
-                            <SelectTrigger className="h-10 rounded-xl border-slate-200 bg-white font-medium text-xs">
-                                <SelectValue placeholder="Proje Seçin..." />
-                            </SelectTrigger>
-                            <SelectContent className="rounded-xl max-h-64">
-                                {projects.map((proj) => (
-                                    <SelectItem key={proj.id} value={proj.id} className="text-xs font-medium">
-                                        {proj.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        {projects && projects.length > 0 ? (
+                            <Select 
+                                value={selectedProjectId || projects[0]?.id} 
+                                onValueChange={(val) => { 
+                                    if (val) {
+                                        setSelectedProjectId(val); 
+                                        setIsMessageEdited(false);
+                                    }
+                                }}
+                            >
+                                <SelectTrigger className="h-10 rounded-xl border-slate-200 bg-white font-medium text-xs">
+                                    <SelectValue placeholder="Proje Seçin..." />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-xl max-h-64">
+                                    {projects.filter(p => !!p.id).map((proj) => (
+                                        <SelectItem key={proj.id} value={proj.id} className="text-xs font-medium">
+                                            {proj.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        ) : (
+                            <div className="text-xs text-slate-400 p-2 border border-dashed rounded-xl bg-slate-50">
+                                Kayıtlı proje bulunamadı.
+                            </div>
+                        )}
                     </div>
 
                     {/* Proje Dokümanları Listesi */}

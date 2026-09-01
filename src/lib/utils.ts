@@ -25,29 +25,70 @@ export function formatCurrency(amount: number, currency: string = 'TRY') {
 }
 
 export function encodeUuid(uuid: string): string {
-  const hex = uuid.replace(/-/g, '');
-  return Buffer.from(hex, 'hex').toString('base64url');
+  if (!uuid) return '';
+  try {
+    const hex = uuid.replace(/-/g, '');
+    if (typeof Buffer !== 'undefined') {
+      return Buffer.from(hex, 'hex').toString('base64url');
+    }
+    // Browser fallback
+    const match = hex.match(/.{1,2}/g);
+    if (!match) return uuid;
+    const bytes = new Uint8Array(match.map(byte => parseInt(byte, 16)));
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  } catch (e) {
+    return uuid;
+  }
 }
 
 export function decodeUuid(slug: string): string | null {
+  if (!slug) return null;
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (uuidRegex.test(slug)) {
     return slug.toLowerCase();
   }
   if (slug.length === 22) {
     try {
-      const buf = Buffer.from(slug, 'base64url');
-      if (buf.length === 16) {
-        const hex = buf.toString('hex');
-        const uuid = [
-          hex.substring(0, 8),
-          hex.substring(8, 12),
-          hex.substring(12, 16),
-          hex.substring(16, 20),
-          hex.substring(20)
-        ].join('-');
-        if (uuidRegex.test(uuid)) {
-          return uuid.toLowerCase();
+      if (typeof Buffer !== 'undefined') {
+        const buf = Buffer.from(slug, 'base64url');
+        if (buf.length === 16) {
+          const hex = buf.toString('hex');
+          const uuid = [
+            hex.substring(0, 8),
+            hex.substring(8, 12),
+            hex.substring(12, 16),
+            hex.substring(16, 20),
+            hex.substring(20)
+          ].join('-');
+          if (uuidRegex.test(uuid)) {
+            return uuid.toLowerCase();
+          }
+        }
+      } else {
+        // Browser fallback
+        let base64 = slug.replace(/-/g, '+').replace(/_/g, '/');
+        while (base64.length % 4) base64 += '=';
+        const binary = atob(base64);
+        let hex = '';
+        for (let i = 0; i < binary.length; i++) {
+          const h = binary.charCodeAt(i).toString(16).padStart(2, '0');
+          hex += h;
+        }
+        if (hex.length === 32) {
+          const uuid = [
+            hex.substring(0, 8),
+            hex.substring(8, 12),
+            hex.substring(12, 16),
+            hex.substring(16, 20),
+            hex.substring(20)
+          ].join('-');
+          if (uuidRegex.test(uuid)) {
+            return uuid.toLowerCase();
+          }
         }
       }
     } catch (e) {
