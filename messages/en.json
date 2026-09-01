@@ -509,7 +509,7 @@
             "efficiency": "Field & Team Efficiency",
             "publicLinks": "Catalog & Link Tracking",
             "marketing": "Marketing Analytics",
-            "hotLeads": "Hot Lead Analysis",
+            "hotLeads": "Campaign Reports",
             "outreachCeo": "Outreach CEO Report",
             "outreachCost": "Outreach Cost Analysis",
             "metaAutomation": "Advertising Analytics",
@@ -953,8 +953,8 @@
                 "description": "Form and ad sourced lead pipeline performance and conversions."
             },
             "hot-leads": {
-                "title": "Hot Lead Analysis",
-                "description": "WhatsApp interactions, ad forms, and AI scored hot leads with manager notification status."
+                "title": "Campaign Reports",
+                "description": "Campaign-based customer response status, call requests, and quick call notes management."
             },
             "outreach-ceo": {
                 "title": "Outreach CEO Report",

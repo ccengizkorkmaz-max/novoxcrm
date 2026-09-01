@@ -537,7 +537,7 @@
             "efficiency": "Saha & Ekip Verimliliği",
             "publicLinks": "Katalog & Link Takibi",
             "marketing": "Pazarlama Analitiği",
-            "hotLeads": "Sıcak Lead Analizi",
+            "hotLeads": "Kampanya Raporları",
             "outreachCeo": "Outreach CEO Raporu",
             "outreachCost": "Outreach Maliyet Analizi",
             "metaAutomation": "Reklam Analitiği",
@@ -979,8 +979,8 @@
                 "description": "Form ve reklam kaynaklı lead'lerin pipeline içerisindeki performans ve dönüşümleri."
             },
             "hot-leads": {
-                "title": "Sıcak (Hot) Lead Analizi",
-                "description": "WhatsApp, reklam formları ve AI skorlama ile iletilen sıcak lead'ler ve yönetici bildirim durumu."
+                "title": "Kampanya Raporları",
+                "description": "Kampanya bazlı müşteri yanıt durumları, arama talepleri ve hızlı arama / not yönetimi."
             },
             "outreach-ceo": {
                 "title": "Outreach CEO Raporu",

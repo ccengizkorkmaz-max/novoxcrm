@@ -104,9 +104,9 @@ const reportCards = [
     {
         id: "hot-leads",
         href: "/reports/hot-leads",
-        icon: Flame,
-        color: "text-red-500",
-        bgColor: "bg-red-50"
+        icon: Megaphone,
+        color: "text-blue-600",
+        bgColor: "bg-blue-50"
     },
     {
         id: "ai-call-performance",

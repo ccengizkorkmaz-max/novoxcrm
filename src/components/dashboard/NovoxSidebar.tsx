@@ -566,8 +566,8 @@ export function NovoxSidebar({
                         <NavItem href="/reports/marketing" icon={BarChart3} onClick={onElementClick} isCollapsed={isCollapsed} isSubItem>
                             {labels.reports?.marketing || 'Marketing Analytics'}
                         </NavItem>
-                        <NavItem href="/reports/hot-leads" icon={Flame} onClick={onElementClick} isCollapsed={isCollapsed} isSubItem>
-                            {labels.reports?.hotLeads || 'Sıcak Lead Analizi'}
+                        <NavItem href="/reports/hot-leads" icon={Megaphone} onClick={onElementClick} isCollapsed={isCollapsed} isSubItem>
+                            {labels.reports?.hotLeads || 'Kampanya Raporları'}
                         </NavItem>
                         <NavItem href="/reports/outreach-ceo" icon={BarChart3} onClick={onElementClick} isCollapsed={isCollapsed} isSubItem>
                             {labels.reports?.outreachCeo || 'Outreach CEO Raporu'}
@@ -654,8 +654,8 @@ export function NovoxSidebar({
                                 <NavItem href="/reports/marketing" icon={BarChart3} onClick={onElementClick} isSubItem>
                                     {labels.reports?.marketing || 'Marketing Analytics'}
                                 </NavItem>
-                                <NavItem href="/reports/hot-leads" icon={Flame} onClick={onElementClick} isSubItem>
-                                    {labels.reports?.hotLeads || 'Sıcak Lead Analizi'}
+                                <NavItem href="/reports/hot-leads" icon={Megaphone} onClick={onElementClick} isSubItem>
+                                    {labels.reports?.hotLeads || 'Kampanya Raporları'}
                                 </NavItem>
                                 <NavItem href="/reports/outreach-ceo" icon={BarChart3} onClick={onElementClick} isSubItem>
                                     {labels.reports?.outreachCeo || 'Outreach CEO Raporu'}
