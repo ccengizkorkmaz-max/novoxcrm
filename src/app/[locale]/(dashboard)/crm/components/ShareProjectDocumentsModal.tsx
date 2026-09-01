@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
@@ -37,10 +38,12 @@ import {
     User,
     Sparkles,
     Check,
-    AlertCircle
+    AlertCircle,
+    Zap,
+    LayoutTemplate
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { getProjectDocumentsForSharing, shareProjectDocumentsViaWhatsApp } from '../actions'
+import { getProjectDocumentsForSharing, getApprovedWhatsAppTemplates, shareProjectDocumentsViaWhatsApp } from '../actions'
 import { encodeUuid } from '@/lib/utils'
 
 interface ProjectDocument {
@@ -52,6 +55,14 @@ interface ProjectDocument {
     file_size?: number
     description?: string
     created_at?: string
+}
+
+interface WhatsAppTemplateItem {
+    name: string
+    status: string
+    body: string
+    params: number
+    headerFormat?: string | null
 }
 
 interface ShareProjectDocumentsModalProps {
@@ -81,6 +92,14 @@ export default function ShareProjectDocumentsModal({
     const [loadingDocs, setLoadingDocs] = useState(false)
     const [sending, setSending] = useState(false)
     const [copied, setCopied] = useState(false)
+
+    // Meta Templates
+    const [templates, setTemplates] = useState<WhatsAppTemplateItem[]>([])
+    const [loadingTemplates, setLoadingTemplates] = useState(false)
+    const [selectedTemplateName, setSelectedTemplateName] = useState<string>('')
+    const [sendMode, setSendMode] = useState<'template' | 'wame'>('template')
+
+    // Serbest Mesaj
     const [customMessage, setCustomMessage] = useState('')
     const [isMessageEdited, setIsMessageEdited] = useState(false)
 
@@ -89,15 +108,41 @@ export default function ShareProjectDocumentsModal({
         return projects.find(p => p.id === selectedProjectId)
     }, [projects, selectedProjectId])
 
-    // Modal açıldığında initialProjectId'yi ayarla
+    // Modal açıldığında
     useEffect(() => {
         if (isOpen) {
             const projId = initialProjectId || (projects[0]?.id || '')
             setSelectedProjectId(projId)
             setIsMessageEdited(false)
             setCopied(false)
+            fetchTemplates()
         }
     }, [isOpen, initialProjectId, projects])
+
+    // Meta onaylı şablonları çek
+    const fetchTemplates = async () => {
+        setLoadingTemplates(true)
+        try {
+            const res = await getApprovedWhatsAppTemplates()
+            const tList = res.templates || []
+            setTemplates(tList)
+            if (tList.length > 0) {
+                // Öncelikli şablonları bul: 'novo_talep_alindi', 'katalog', 'pazarlama' vb.
+                const preferred = tList.find((t: any) => 
+                    t.name.includes('katalog') || 
+                    t.name.includes('dokuman') || 
+                    t.name.includes('proje') ||
+                    t.name.includes('talep') ||
+                    t.name === 'novo_talep_alindi'
+                )
+                setSelectedTemplateName(preferred ? preferred.name : tList[0].name)
+            }
+        } catch (err) {
+            console.error('Fetch templates error:', err)
+        } finally {
+            setLoadingTemplates(false)
+        }
+    }
 
     // Proje değiştiğinde dokümanları çek
     useEffect(() => {
@@ -120,7 +165,7 @@ export default function ShareProjectDocumentsModal({
             } else {
                 const docs = res.documents || []
                 setDocuments(docs)
-                // Varsayılan olarak tüm dokümanları seç
+                // Varsayılan olarak ilk veya tüm dokümanları seç
                 setSelectedDocIds(docs.map(d => d.id))
             }
         } catch (err) {
@@ -136,9 +181,23 @@ export default function ShareProjectDocumentsModal({
         return documents.filter(doc => selectedDocIds.includes(doc.id))
     }, [documents, selectedDocIds])
 
+    // Seçilen şablon nesnesi
+    const currentTemplate = useMemo(() => {
+        return templates.find(t => t.name === selectedTemplateName)
+    }, [templates, selectedTemplateName])
+
+    // Seçilen dokümanların linkleri
+    const docLinksString = useMemo(() => {
+        const origin = typeof window !== 'undefined' ? window.location.origin : 'https://novoxcrm.com'
+        return selectedDocuments.map(doc => {
+            let shortUrl = `${origin}/d/${encodeUuid(doc.id)}`
+            return `${doc.document_name || doc.file_name}: ${shortUrl}`
+        }).join(' | ')
+    }, [selectedDocuments])
+
     // Otomatik WhatsApp Mesajı Oluşturma
     useEffect(() => {
-        if (isMessageEdited) return // Kullanıcı elle değiştirdiyse otomatik ezme
+        if (isMessageEdited) return
 
         const customerName = customer?.full_name || 'Değerli Müşterimiz'
         const projectName = currentProject?.name || 'Projemiz'
@@ -154,7 +213,6 @@ export default function ShareProjectDocumentsModal({
         }
 
         const docLinksText = selectedDocuments.map(doc => {
-            // Kısa yönlendirme linki: /d/encodedUuid veya doğrudan dosya linki
             let shortUrl = `${origin}/d/${encodeUuid(doc.id)}`
             const icon = doc.file_name?.toLowerCase().endsWith('.pdf') ? '📄' : '🖼️'
             return `${icon} *${doc.document_name || doc.file_name}*:\n${shortUrl}`
@@ -164,7 +222,7 @@ export default function ShareProjectDocumentsModal({
             `Merhaba Sayın *${customerName}*,\n\n` +
             `İlgilenmiş olduğunuz *${projectName}* projemize ait doküman ve materyalleri aşağıda bilgilerinize sunuyoruz:\n\n` +
             `${docLinksText}\n\n` +
-            `Dokümanları linklere tıklayarak doğrudan inceleyebilir ve indirebilirsiniz. Detaylı sorularınız veya randevu talepleriniz için bu hat üzerinden yanıt verebilirsiniz.\n\n` +
+            `Dokümanları linklere tıklayarak doğrudan inceleyebilir ve indirebilirsiniz. Detaylı bilgi veya randevu talepleriniz için bu mesaj üzerinden yanıt verebilirsiniz.\n\n` +
             `İyi günler dileriz.`
 
         setCustomMessage(message)
@@ -188,10 +246,14 @@ export default function ShareProjectDocumentsModal({
         }
     }
 
-    // 1. WhatsApp API ile doğrudan gönderim
-    const handleSendViaApi = async () => {
+    // 1. Meta Onaylı Şablon ile Gönder (24 saat sınırını aşar, anında resmi iletilir)
+    const handleSendTemplate = async () => {
         if (!customer?.phone) {
-            toast.error('Müşterinin geçerli bir telefon numarası bulunamadı!')
+            toast.error('Müşterinin telefon numarası bulunamadı!')
+            return
+        }
+        if (!selectedTemplateName) {
+            toast.error('Lütfen bir WhatsApp şablonu seçin!')
             return
         }
         if (selectedDocuments.length === 0) {
@@ -201,30 +263,50 @@ export default function ShareProjectDocumentsModal({
 
         setSending(true)
         try {
+            const customerName = customer?.full_name?.trim() || 'Değerli Müşterimiz'
+            const projectName = currentProject?.name || 'Proje'
+
+            // Şablon parametreleri (1: Müşteri Adı, 2: Proje/Doküman)
+            const templateParams: string[] = [customerName, `${projectName} (${docLinksString})`]
+
+            // Header Media desteği (Eğer şablonda DOCUMENT/IMAGE varsa ilk dokümanı bağla)
+            let headerMedia: any = undefined
+            if (currentTemplate?.headerFormat && selectedDocuments.length > 0) {
+                const firstDoc = selectedDocuments[0]
+                if (currentTemplate.headerFormat === 'DOCUMENT') {
+                    headerMedia = { type: 'document', url: firstDoc.file_url }
+                } else if (currentTemplate.headerFormat === 'IMAGE') {
+                    headerMedia = { type: 'image', url: firstDoc.file_url }
+                }
+            }
+
             const res = await shareProjectDocumentsViaWhatsApp({
                 customerId: customer.id,
                 customerPhone: customer.phone,
                 customerName: customer.full_name,
                 saleId: saleId,
                 projectId: selectedProjectId,
-                projectName: currentProject?.name || 'Proje',
+                projectName: projectName,
                 selectedDocuments: selectedDocuments.map(d => ({
                     id: d.id,
                     document_name: d.document_name || d.file_name,
                     file_url: d.file_url
                 })),
                 customMessage: customMessage.trim(),
-                sendMethod: 'api'
+                sendMethod: 'template',
+                templateName: selectedTemplateName,
+                templateParams: templateParams,
+                headerMedia: headerMedia
             })
 
             if (res.error) {
-                toast.error(`Gönderim başarısız: ${res.error}`)
+                toast.error(`Şablon gönderimi başarısız: ${res.error}`)
             } else {
-                toast.success('🎉 WhatsApp bilgilendirme mesajı ve doküman linkleri başarıyla iletildi!')
+                toast.success(`🎉 '${selectedTemplateName}' şablonu ile dokümanlar müşteriye başarıyla iletildi!`)
                 onClose()
             }
         } catch (err: any) {
-            console.error('Send error:', err)
+            console.error('Send template error:', err)
             toast.error('Gönderim sırasında bir hata oluştu.')
         } finally {
             setSending(false)
@@ -245,7 +327,6 @@ export default function ShareProjectDocumentsModal({
         const encoded = encodeURIComponent(customMessage.trim())
         const waUrl = `https://wa.me/${cleanPhone}?text=${encoded}`
 
-        // Aktivite logunu arka planda kaydet
         shareProjectDocumentsViaWhatsApp({
             customerId: customer.id,
             customerPhone: customer.phone,
@@ -262,7 +343,6 @@ export default function ShareProjectDocumentsModal({
             sendMethod: 'wame'
         }).catch(e => console.error('Background log error:', e))
 
-        // WhatsApp Web / App'i yeni sekmede aç
         window.open(waUrl, '_blank')
         toast.success('WhatsApp penceresi açıldı ve aktivite CRM\'e kaydedildi.')
         onClose()
@@ -294,9 +374,9 @@ export default function ShareProjectDocumentsModal({
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="sm:max-w-[680px] rounded-3xl p-6 bg-white shadow-2xl border-slate-100 max-h-[92vh] flex flex-col gap-0 overflow-hidden">
+            <DialogContent className="sm:max-w-[700px] rounded-3xl p-6 bg-white shadow-2xl border-slate-100 max-h-[94vh] flex flex-col gap-0 overflow-hidden">
                 {/* Header */}
-                <DialogHeader className="gap-2 border-b border-slate-100 pb-4 shrink-0">
+                <DialogHeader className="gap-2 border-b border-slate-100 pb-3 shrink-0">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                             <div className="h-10 w-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
@@ -307,18 +387,18 @@ export default function ShareProjectDocumentsModal({
                                     WhatsApp ile Proje Dokümanı Paylaş
                                 </DialogTitle>
                                 <DialogDescription className="text-xs text-slate-500">
-                                    Müşteriye seçtiğiniz projeye ait katalog, kat planı ve sunumları tek tıkla iletin.
+                                    Müşteriye seçtiğiniz projeye ait katalog ve kat planlarını iletin.
                                 </DialogDescription>
                             </div>
                         </div>
 
                         <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-xs font-semibold px-2.5 py-1">
-                            Bilgilendirme Mesajı
+                            WhatsApp Business
                         </Badge>
                     </div>
 
                     {/* Müşteri Bilgi Kartı */}
-                    <div className="mt-2 flex flex-wrap items-center justify-between bg-slate-50 border border-slate-100 rounded-2xl p-3 text-xs">
+                    <div className="mt-1 flex flex-wrap items-center justify-between bg-slate-50 border border-slate-100 rounded-2xl p-2.5 text-xs">
                         <div className="flex items-center gap-2 font-bold text-slate-900">
                             <User className="h-4 w-4 text-slate-400" />
                             <span>{customer?.full_name}</span>
@@ -331,7 +411,7 @@ export default function ShareProjectDocumentsModal({
                 </DialogHeader>
 
                 {/* Body - Scrollable */}
-                <div className="space-y-4 py-4 overflow-y-auto px-1 flex-1">
+                <div className="space-y-4 py-3.5 overflow-y-auto px-1 flex-1">
                     {/* Proje Seçimi */}
                     <div className="space-y-1.5">
                         <Label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
@@ -343,8 +423,8 @@ export default function ShareProjectDocumentsModal({
                                 value={selectedProjectId || projects[0]?.id} 
                                 onValueChange={(val) => { 
                                     if (val) {
-                                        setSelectedProjectId(val); 
-                                        setIsMessageEdited(false);
+                                        setSelectedProjectId(val)
+                                        setIsMessageEdited(false)
                                     }
                                 }}
                             >
@@ -371,7 +451,7 @@ export default function ShareProjectDocumentsModal({
                         <div className="flex items-center justify-between">
                             <Label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
                                 <FileText className="h-3.5 w-3.5 text-purple-600" />
-                                Proje Dokümanları ({documents.length})
+                                Paylaşılacak Dokümanlar ({documents.length})
                             </Label>
                             {documents.length > 0 && (
                                 <button
@@ -385,29 +465,29 @@ export default function ShareProjectDocumentsModal({
                         </div>
 
                         {loadingDocs ? (
-                            <div className="flex items-center justify-center p-6 border border-slate-100 rounded-2xl bg-slate-50/50 text-slate-400 text-xs gap-2">
+                            <div className="flex items-center justify-center p-5 border border-slate-100 rounded-2xl bg-slate-50/50 text-slate-400 text-xs gap-2">
                                 <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
                                 Dokümanlar yükleniyor...
                             </div>
                         ) : documents.length === 0 ? (
-                            <div className="flex items-center gap-2 p-4 border border-amber-100 rounded-2xl bg-amber-50/50 text-amber-800 text-xs">
+                            <div className="flex items-center gap-2 p-3.5 border border-amber-100 rounded-2xl bg-amber-50/50 text-amber-800 text-xs">
                                 <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
                                 <div>
-                                    <span className="font-bold">Bu projeye ait doküman bulunamadı.</span>
+                                    <span className="font-bold">Bu projeye ait henüz doküman yüklenmemiş.</span>
                                     <p className="text-[11px] text-amber-700 mt-0.5">
                                         Proje detay sayfasından katalog, kat planı veya sunum yükleyebilirsiniz.
                                     </p>
                                 </div>
                             </div>
                         ) : (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-1">
                                 {documents.map((doc) => {
                                     const isSelected = selectedDocIds.includes(doc.id)
                                     return (
                                         <div
                                             key={doc.id}
                                             onClick={() => handleToggleDoc(doc.id)}
-                                            className={`flex items-start gap-2.5 p-2.5 rounded-2xl border transition-all cursor-pointer ${
+                                            className={`flex items-start gap-2.5 p-2 rounded-2xl border transition-all cursor-pointer ${
                                                 isSelected 
                                                     ? 'bg-purple-50/70 border-purple-300 ring-1 ring-purple-200' 
                                                     : 'bg-white border-slate-200 hover:bg-slate-50'
@@ -425,7 +505,7 @@ export default function ShareProjectDocumentsModal({
                                                         {doc.document_name || doc.file_name}
                                                     </span>
                                                 </div>
-                                                <div className="flex items-center gap-2 mt-1 text-[10px] text-slate-500">
+                                                <div className="flex items-center gap-2 mt-0.5 text-[10px] text-slate-500">
                                                     <span>{formatFileSize(doc.file_size)}</span>
                                                     {doc.description && (
                                                         <span className="truncate max-w-[120px] text-slate-400">
@@ -441,30 +521,94 @@ export default function ShareProjectDocumentsModal({
                         )}
                     </div>
 
-                    {/* WhatsApp Mesaj Metni Önizleme */}
-                    <div className="space-y-1.5">
+                    {/* Gönderim Şekli Seçici */}
+                    <div className="border border-slate-200 rounded-2xl p-3 bg-slate-50/70 space-y-3">
                         <div className="flex items-center justify-between">
-                            <Label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                                <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-                                WhatsApp Bilgilendirme Mesajı
+                            <Label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                                <LayoutTemplate className="h-3.5 w-3.5 text-emerald-600" />
+                                Gönderim Yöntemi
                             </Label>
-                            <span className="text-[10px] text-slate-400">
-                                {isMessageEdited ? '✏️ Özelleştirildi' : 'Otomatik Hazırlandı'}
-                            </span>
+                            <div className="flex items-center gap-1.5 bg-white border border-slate-200 p-0.5 rounded-xl text-[11px] font-bold">
+                                <button
+                                    type="button"
+                                    onClick={() => setSendMode('template')}
+                                    className={`px-2.5 py-1 rounded-lg transition-all ${sendMode === 'template' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                                >
+                                    ✨ Meta Şablonu (Önerilen)
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setSendMode('wame')}
+                                    className={`px-2.5 py-1 rounded-lg transition-all ${sendMode === 'wame' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+                                >
+                                    📱 WhatsApp'ta Aç
+                                </button>
+                            </div>
                         </div>
-                        <Textarea
-                            value={customMessage}
-                            onChange={(e) => {
-                                setCustomMessage(e.target.value)
-                                setIsMessageEdited(true)
-                            }}
-                            rows={6}
-                            className="font-sans text-xs bg-slate-50 border-slate-200 rounded-2xl p-3 leading-relaxed focus:bg-white transition-all"
-                            placeholder="WhatsApp mesaj içeriği..."
-                        />
-                        <p className="text-[11px] text-slate-500 flex items-center gap-1">
-                            💡 <span><strong>WhatsApp'ta Aç</strong> butonu kendi WhatsApp'ınızdan tek tıkla mesajı açar ve %100 her zaman anında teslim edilir.</span>
-                        </p>
+
+                        {/* Meta Şablon Seçimi */}
+                        {sendMode === 'template' && (
+                            <div className="space-y-2 pt-1">
+                                <div className="space-y-1">
+                                    <Label className="text-[11px] font-bold text-slate-600">
+                                        Onaylı WhatsApp Şablonunu Seçin
+                                    </Label>
+                                    {loadingTemplates ? (
+                                        <div className="flex items-center gap-2 text-xs text-slate-400 p-2">
+                                            <Loader2 className="h-3.5 w-3.5 animate-spin" /> Şablonlar yükleniyor...
+                                        </div>
+                                    ) : templates.length > 0 ? (
+                                        <Select value={selectedTemplateName} onValueChange={setSelectedTemplateName}>
+                                            <SelectTrigger className="h-9 rounded-xl border-slate-200 bg-white font-medium text-xs">
+                                                <SelectValue placeholder="Şablon Seçin..." />
+                                            </SelectTrigger>
+                                            <SelectContent className="rounded-xl max-h-56">
+                                                {templates.map(t => (
+                                                    <SelectItem key={t.name} value={t.name} className="text-xs">
+                                                        <span className="font-bold">{t.name}</span>
+                                                        {t.headerFormat && <span className="text-[10px] text-purple-600 ml-1.5">[{t.headerFormat}]</span>}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    ) : (
+                                        <div className="text-xs text-slate-500 p-2 bg-white rounded-xl border">
+                                            Kayıtlı Meta şablonu bulunamadı. Lütfen "WhatsApp'ta Aç" seçeneğini kullanın.
+                                        </div>
+                                    )}
+                                </div>
+
+                                {currentTemplate && (
+                                    <div className="p-2.5 bg-white border border-slate-200 rounded-xl text-xs space-y-1.5">
+                                        <div className="flex items-center justify-between text-[11px] font-bold text-slate-600">
+                                            <span>Şablon İçeriği:</span>
+                                            <Badge variant="outline" className="text-[10px] border-emerald-300 text-emerald-700 bg-emerald-50">
+                                                ✅ Meta Onaylı (24s Kısıt Yok)
+                                            </Badge>
+                                        </div>
+                                        <p className="text-slate-700 font-sans text-xs leading-relaxed whitespace-pre-wrap bg-slate-50 p-2 rounded-lg border border-slate-100">
+                                            {currentTemplate.body}
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* WhatsApp Web / App Serbest Metin */}
+                        {sendMode === 'wame' && (
+                            <div className="space-y-1.5 pt-1">
+                                <Textarea
+                                    value={customMessage}
+                                    onChange={(e) => {
+                                        setCustomMessage(e.target.value)
+                                        setIsMessageEdited(true)
+                                    }}
+                                    rows={5}
+                                    className="font-sans text-xs bg-white border-slate-200 rounded-xl p-2.5 leading-relaxed"
+                                    placeholder="WhatsApp mesaj içeriği..."
+                                />
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -482,41 +626,38 @@ export default function ShareProjectDocumentsModal({
                     </Button>
 
                     <div className="flex items-center gap-2">
-                        {/* WhatsApp Cloud API ile Gönder Butonu */}
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={handleSendViaApi}
-                            disabled={sending || !customer?.phone || selectedDocuments.length === 0}
-                            className="rounded-xl border-slate-200 text-slate-700 hover:bg-slate-100 text-xs font-bold gap-1.5 h-9 px-3"
-                            title="Müşteri son 24 saatte yazdıysa sistemden otomatik iletir"
-                        >
-                            {sending ? (
-                                <>
-                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                    Gönderiliyor...
-                                </>
-                            ) : (
-                                <>
-                                    <Send className="h-3.5 w-3.5 text-blue-600" />
-                                    Sistemden Gönder (API)
-                                </>
-                            )}
-                        </Button>
-
-                        {/* WhatsApp Web / App Butonu - Birincil & En Garantili Yol */}
-                        <Button
-                            type="button"
-                            size="sm"
-                            onClick={handleOpenInWhatsApp}
-                            disabled={!customer?.phone}
-                            className="rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-black gap-2 h-9 px-4 shadow-md shadow-emerald-600/20"
-                            title="Temsilcinin WhatsApp'ından doğrudan ve anında gönderir"
-                        >
-                            <ExternalLink className="h-3.5 w-3.5" />
-                            WhatsApp'ta Aç ve Gönder
-                        </Button>
+                        {sendMode === 'template' ? (
+                            <Button
+                                type="button"
+                                size="sm"
+                                onClick={handleSendTemplate}
+                                disabled={sending || !customer?.phone || !selectedTemplateName || selectedDocuments.length === 0}
+                                className="rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-black gap-2 h-9 px-4 shadow-md shadow-emerald-600/20"
+                            >
+                                {sending ? (
+                                    <>
+                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                        Şablon Gönderiliyor...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Zap className="h-3.5 w-3.5 fill-white" />
+                                        Şablon ile Gönder (Anında Ulaşır)
+                                    </>
+                                )}
+                            </Button>
+                        ) : (
+                            <Button
+                                type="button"
+                                size="sm"
+                                onClick={handleOpenInWhatsApp}
+                                disabled={!customer?.phone}
+                                className="rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-black gap-2 h-9 px-4 shadow-md shadow-emerald-600/20"
+                            >
+                                <ExternalLink className="h-3.5 w-3.5" />
+                                WhatsApp'ta Aç ve Gönder
+                            </Button>
+                        )}
                     </div>
                 </DialogFooter>
             </DialogContent>

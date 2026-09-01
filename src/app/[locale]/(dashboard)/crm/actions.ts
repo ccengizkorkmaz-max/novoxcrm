@@ -4306,6 +4306,17 @@ export async function getProjectDocumentsForSharing(projectId: string) {
     return { documents: documents || [] }
 }
 
+export async function getApprovedWhatsAppTemplates() {
+    const { getWhatsAppTemplates } = await import('@/app/[locale]/(dashboard)/outreach/actions')
+    try {
+        const templates = await getWhatsAppTemplates()
+        return { templates: templates || [] }
+    } catch (e: any) {
+        console.error('getApprovedWhatsAppTemplates error:', e)
+        return { templates: [] }
+    }
+}
+
 export async function shareProjectDocumentsViaWhatsApp(params: {
     customerId: string
     customerPhone: string
@@ -4315,7 +4326,10 @@ export async function shareProjectDocumentsViaWhatsApp(params: {
     projectName: string
     selectedDocuments: { id: string, document_name: string, file_url: string }[]
     customMessage: string
-    sendMethod: 'api' | 'wame'
+    sendMethod: 'template' | 'api' | 'wame'
+    templateName?: string
+    templateParams?: string[]
+    headerMedia?: { type: 'image' | 'video' | 'document', url: string }
 }) {
     const supabase = await createClient()
     const { createAdminClient } = await import('@/lib/supabase/admin')
@@ -4334,17 +4348,35 @@ export async function shareProjectDocumentsViaWhatsApp(params: {
     const timestamp = new Date().toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
     const docNames = params.selectedDocuments.map(d => d.document_name).join(', ')
 
-    // 1. Meta Cloud API ile doğrudan mesaj gönderme (Eğer sendMethod === 'api')
-    let apiSendResult = { success: true }
-    if (params.sendMethod === 'api') {
-        const { sendWhatsAppMessage } = await import('@/lib/whatsapp')
+    // Tenant WA credentials
+    const { data: tenant } = await adminSupabase
+        .from('tenants')
+        .select('wa_phone_number_id, wa_access_token')
+        .eq('id', profile?.tenant_id)
+        .single()
+
+    // 1. Meta Onaylı Şablon ile Gönderim (24 saat kuralını bypass eder ve anında ulaşır!)
+    if (params.sendMethod === 'template' && params.templateName) {
+        const { sendWhatsAppTemplate } = await import('@/lib/whatsapp')
         
-        // Tenant WA credentials
-        const { data: tenant } = await adminSupabase
-            .from('tenants')
-            .select('wa_phone_number_id, wa_access_token')
-            .eq('id', profile?.tenant_id)
-            .single()
+        const templateRes = await sendWhatsAppTemplate(
+            params.customerPhone,
+            params.templateName,
+            params.templateParams || [params.customerName, params.projectName],
+            'tr',
+            tenant?.wa_phone_number_id,
+            tenant?.wa_access_token,
+            params.headerMedia
+        )
+
+        if (!templateRes.success) {
+            console.error('WhatsApp Template share error:', templateRes.error)
+            return { error: templateRes.error || 'Şablon mesajı gönderilemedi.' }
+        }
+    } 
+    // 2. Serbest Metin Mesajı (Cloud API)
+    else if (params.sendMethod === 'api') {
+        const { sendWhatsAppMessage } = await import('@/lib/whatsapp')
 
         const sendRes = await sendWhatsAppMessage(
             params.customerPhone, 
@@ -4358,14 +4390,15 @@ export async function shareProjectDocumentsViaWhatsApp(params: {
             const errStr = String(sendRes.error || '')
             if (errStr.includes('131047') || errStr.toLowerCase().includes('re-engagement') || errStr.toLowerCase().includes('window')) {
                 return { 
-                    error: 'Meta kuralı gereği 24 saatlik müşteri penceresi kapalı. Lütfen "WhatsApp\'ta Aç" butonunu kullanarak doğrudan gönderin.' 
+                    error: 'Meta kuralı gereği 24 saatlik müşteri penceresi kapalı. Lütfen "Şablon ile Gönder" veya "WhatsApp\'ta Aç" seçeneğini kullanın.' 
                 }
             }
             return { error: sendRes.error || 'WhatsApp mesajı gönderilemedi.' }
         }
     }
 
-    // 2. Activities tablosuna log ekleme
+    // 3. Activities tablosuna log ekleme
+    const templateInfo = params.templateName ? ` [Şablon: ${params.templateName}]` : ''
     const { error: actError } = await adminSupabase.from('activities').insert({
         tenant_id: profile?.tenant_id,
         customer_id: params.customerId,
@@ -4373,8 +4406,8 @@ export async function shareProjectDocumentsViaWhatsApp(params: {
         owner_id: user.id,
         type: 'WhatsApp',
         topic: 'Document Share',
-        summary: `WhatsApp Proje Dokümanı Paylaşıldı: ${params.projectName} — ${author}`,
-        description: `Paylaşılan Dokümanlar (${params.projectName}): ${docNames}\n\nMesaj Metni:\n${params.customMessage}`,
+        summary: `WhatsApp Proje Dokümanı Paylaşıldı${templateInfo}: ${params.projectName} — ${author}`,
+        description: `Paylaşılan Dokümanlar (${params.projectName}): ${docNames}\n\nMesaj Metni / Parametreler:\n${params.customMessage || params.templateParams?.join(' | ')}`,
         notes: `[${timestamp} - ${author}] ${params.projectName} dokümanları paylaşıldı: ${docNames}`,
         due_date: new Date().toISOString(),
         status: 'Completed',
@@ -4383,7 +4416,7 @@ export async function shareProjectDocumentsViaWhatsApp(params: {
 
     if (actError) console.error('Activity log error:', actError)
 
-    // 3. Satış kartının açıklama geçmişine ekleme
+    // 4. Satış kartının açıklama geçmişine ekleme
     if (params.saleId) {
         const { data: currentSale } = await adminSupabase
             .from('sales')
@@ -4392,7 +4425,7 @@ export async function shareProjectDocumentsViaWhatsApp(params: {
             .single()
 
         const existingDesc = currentSale?.description || ''
-        const noteLine = `[${timestamp} - ${author} (WhatsApp Doküman Paylaşımı)] ${params.projectName}: ${docNames}`
+        const noteLine = `[${timestamp} - ${author} (WhatsApp Doküman Paylaşımı${templateInfo})] ${params.projectName}: ${docNames}`
         const newDesc = existingDesc ? `${existingDesc}\n${noteLine}` : noteLine
 
         await adminSupabase.from('sales').update({
