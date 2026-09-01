@@ -19,7 +19,7 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { cn } from '@/lib/utils'
-import { UserPlus, Pencil, Trash, Mail, Phone, Tag, CalendarPlus, AlertTriangle, Users, Search, ArrowUpDown, ArrowUp, ArrowDown, PieChart, Target, TrendingUp, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, Filter, X } from 'lucide-react'
+import { UserPlus, Pencil, Trash, Mail, Phone, Tag, CalendarPlus, AlertTriangle, Users, Search, ArrowUpDown, ArrowUp, ArrowDown, PieChart, Target, TrendingUp, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, Filter, X, Share2 } from 'lucide-react'
 import ColumnVisibilityPicker from '@/components/ui/column-visibility-picker'
 import ColumnFilterRow from '@/components/ui/column-filter-row'
 import { Badge } from '@/components/ui/badge'
@@ -31,6 +31,7 @@ import NewContactModal from './NewContactModal'
 import type { Customer } from './CustomerForm'
 import { MergeDuplicatesDialog } from './MergeDuplicatesDialog'
 import { ActivityForm } from '@/components/activities/activity-form'
+import ShareProjectDocumentsModal from './ShareProjectDocumentsModal'
 import InlineProfileFields from './InlineProfileFields'
 import { toast } from 'sonner'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -79,6 +80,7 @@ export default function CustomerList({
     const [isMergeOpen, setIsMergeOpen] = useState(false)
     const [isActivityOpen, setIsActivityOpen] = useState(false)
     const [selectedCustomerForActivity, setSelectedCustomerForActivity] = useState<Customer | null>(null)
+    const [shareDocsModal, setShareDocsModal] = useState<{ isOpen: boolean, customer: any, projectId: string | null }>({ isOpen: false, customer: null, projectId: null })
     const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null)
     const [isPending, setIsPending] = useState(false)
 
@@ -682,6 +684,9 @@ export default function CustomerList({
                                             if (colId === 'actions') return (
                                                 <TableCell key="actions" className="text-right py-2" style={{ width: columnWidths.actions, minWidth: columnWidths.actions }}>
                                                     <div className="flex justify-end gap-1">
+                                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg" onClick={() => setShareDocsModal({ isOpen: true, customer: c, projectId: projects[0]?.id || null })} title="WhatsApp ile Doküman Paylaş">
+                                                            <Share2 className="h-3.5 w-3.5" />
+                                                        </Button>
                                                         <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg" onClick={() => handleCreateActivity(c)} title="Aktivite Ekle">
                                                             <CalendarPlus className="h-3.5 w-3.5" />
                                                         </Button>
@@ -966,6 +971,16 @@ export default function CustomerList({
             </AlertDialog>
 
             <MergeDuplicatesDialog open={isMergeOpen} onClose={() => setIsMergeOpen(false)} />
+            {/* WhatsApp Project Documents Sharing Modal */}
+            {shareDocsModal.isOpen && shareDocsModal.customer && (
+                <ShareProjectDocumentsModal
+                    isOpen={shareDocsModal.isOpen}
+                    onClose={() => setShareDocsModal({ isOpen: false, customer: null, projectId: null })}
+                    customer={shareDocsModal.customer}
+                    initialProjectId={shareDocsModal.projectId}
+                    projects={projects || []}
+                />
+            )}
         </div>
     )
 }

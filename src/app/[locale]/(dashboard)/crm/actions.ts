@@ -4278,3 +4278,111 @@ export async function completeQuickAppointment(activityId: string) {
     revalidatePath('/crm')
     return { success: true }
 }
+
+export async function getProjectDocumentsForSharing(projectId: string) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized', documents: [] }
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', user.id)
+        .single()
+
+    if (!profile?.tenant_id) return { error: 'No tenant found', documents: [] }
+
+    const { data: documents, error } = await supabase
+        .from('project_documents')
+        .select('id, document_name, file_name, file_url, file_type, file_size, description, created_at')
+        .eq('project_id', projectId)
+        .order('created_at', { ascending: false })
+
+    if (error) {
+        console.error('getProjectDocumentsForSharing error:', error)
+        return { error: error.message, documents: [] }
+    }
+
+    return { documents: documents || [] }
+}
+
+export async function shareProjectDocumentsViaWhatsApp(params: {
+    customerId: string
+    customerPhone: string
+    customerName: string
+    saleId?: string | null
+    projectId: string
+    projectName: string
+    selectedDocuments: { id: string, document_name: string, file_url: string }[]
+    customMessage: string
+    sendMethod: 'api' | 'wame'
+}) {
+    const supabase = await createClient()
+    const { createAdminClient } = await import('@/lib/supabase/admin')
+    const adminSupabase = createAdminClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Oturum açmanız gerekiyor' }
+
+    const { data: profile } = await adminSupabase
+        .from('profiles')
+        .select('tenant_id, full_name')
+        .eq('id', user.id)
+        .single()
+
+    const author = profile?.full_name || 'Temsilci'
+    const timestamp = new Date().toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+    const docNames = params.selectedDocuments.map(d => d.document_name).join(', ')
+
+    // 1. Meta Cloud API ile doğrudan mesaj gönderme (Eğer sendMethod === 'api')
+    let apiSendResult = { success: true }
+    if (params.sendMethod === 'api') {
+        const { sendWhatsAppMessage } = await import('@/lib/whatsapp')
+        const sendRes = await sendWhatsAppMessage(params.customerPhone, params.customMessage)
+        if (!sendRes.success) {
+            return { error: sendRes.error || 'WhatsApp mesajı gönderilemedi.' }
+        }
+    }
+
+    // 2. Activities tablosuna log ekleme
+    const { error: actError } = await adminSupabase.from('activities').insert({
+        tenant_id: profile?.tenant_id,
+        customer_id: params.customerId,
+        user_id: user.id,
+        owner_id: user.id,
+        type: 'WhatsApp',
+        topic: 'Document Share',
+        summary: `WhatsApp Proje Dokümanı Paylaşıldı: ${params.projectName} — ${author}`,
+        description: `Paylaşılan Dokümanlar (${params.projectName}): ${docNames}\n\nMesaj Metni:\n${params.customMessage}`,
+        notes: `[${timestamp} - ${author}] ${params.projectName} dokümanları paylaşıldı: ${docNames}`,
+        due_date: new Date().toISOString(),
+        status: 'Completed',
+        priority: 'Medium'
+    })
+
+    if (actError) console.error('Activity log error:', actError)
+
+    // 3. Satış kartının açıklama geçmişine ekleme
+    if (params.saleId) {
+        const { data: currentSale } = await adminSupabase
+            .from('sales')
+            .select('description')
+            .eq('id', params.saleId)
+            .single()
+
+        const existingDesc = currentSale?.description || ''
+        const noteLine = `[${timestamp} - ${author} (WhatsApp Doküman Paylaşımı)] ${params.projectName}: ${docNames}`
+        const newDesc = existingDesc ? `${existingDesc}\n${noteLine}` : noteLine
+
+        await adminSupabase.from('sales').update({
+            description: newDesc,
+            updated_at: new Date().toISOString()
+        }).eq('id', params.saleId)
+    }
+
+    revalidatePath('/[locale]/(dashboard)/crm', 'page')
+    revalidatePath('/crm')
+
+    return { success: true }
+}
+

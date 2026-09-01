@@ -16,7 +16,7 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Calculator, Sparkles, User, Info, Mail, Phone, MessageSquareText, CalendarPlus, CalendarCheck, CheckCircle2, Trash, AlertTriangle, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, Filter, X, Undo2, StickyNote, PhoneOff, Send, XCircle } from 'lucide-react'
+import { Calculator, Sparkles, User, Info, Mail, Phone, MessageSquareText, CalendarPlus, CalendarCheck, CheckCircle2, Trash, AlertTriangle, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, Filter, X, Undo2, StickyNote, PhoneOff, Send, XCircle, Share2 } from 'lucide-react'
 import { CollapsibleSection } from '@/components/ui/collapsible-section'
 import ColumnVisibilityPicker from '@/components/ui/column-visibility-picker'
 import ColumnFilterRow from '@/components/ui/column-filter-row'
@@ -48,6 +48,7 @@ const MatchUnitDialog = dynamic(() => import('./MatchUnitDialog'), { ssr: false 
 const PipelineReservationDialog = dynamic(() => import('./PipelineReservationDialog'), { ssr: false })
 const PipelineProposalDialog = dynamic(() => import('./PipelineProposalDialog'), { ssr: false })
 const QuickProposalDialog = dynamic(() => import('./QuickProposalDialog'), { ssr: false })
+const ShareProjectDocumentsModal = dynamic(() => import('./ShareProjectDocumentsModal'), { ssr: false })
 import SaleProcessIndicator from './SaleProcessIndicator'
 
 const AiMatchDialog = dynamic(() => import('@/components/customers/AiMatchDialog').then(m => m.AiMatchDialog), { ssr: false })
@@ -214,6 +215,7 @@ export default function PipelineList({
     }
     const [currentPage, setCurrentPage] = useState(initialPage)
     const [pageInputValue, setPageInputValue] = useState(initialPage.toString())
+    const [shareDocsModal, setShareDocsModal] = useState<{ isOpen: boolean, customer: any, saleId: string | null, projectId: string | null }>({ isOpen: false, customer: null, saleId: null, projectId: null })
     const itemsPerPage = 50
     const router = useRouter()
     const searchParams = useSearchParams()
@@ -1412,6 +1414,20 @@ export default function PipelineList({
                                                                      <Button variant="outline" size="icon" className="h-6 w-6 text-blue-600 border-blue-100 hover:bg-blue-50" onClick={() => handleCreateActivity(sale.customers)} title="Aktivite Ekle">
                                                                          <CalendarPlus className="h-3 w-3" />
                                                                      </Button>
+                                                                     <Button 
+                                                                         variant="outline" 
+                                                                         size="icon" 
+                                                                         className="h-6 w-6 text-emerald-600 border-emerald-100 hover:bg-emerald-50 hover:border-emerald-200 transition-all active:scale-90" 
+                                                                         onClick={() => setShareDocsModal({
+                                                                             isOpen: true,
+                                                                             customer: sale.customers,
+                                                                             saleId: sale.id,
+                                                                             projectId: sale.project_id || (sale.units as any)?.projects?.id || sale.units?.project_id
+                                                                         })} 
+                                                                         title="WhatsApp ile Proje Dokümanı Paylaş"
+                                                                     >
+                                                                         <Share2 className="h-3 w-3" />
+                                                                     </Button>
                                                                      <Button variant="outline" size="icon" className={`h-6 w-6 transition-all active:scale-90 ${sale.description ? 'text-amber-600 border-amber-200 bg-amber-50 hover:bg-amber-100' : 'text-slate-400 border-slate-200 hover:bg-slate-50'}`} onClick={() => openQuickNote(sale.id, sale.customers?.id, sale.description)} title="Hızlı Not">
                                                                          <StickyNote className="h-3 w-3" />
                                                                      </Button>
@@ -1622,6 +1638,20 @@ export default function PipelineList({
                                                     </Button>
                                                     <Button variant="outline" size="icon" className="h-8 w-8 text-blue-600 border-blue-100" onClick={() => handleCreateActivity(sale.customers)}>
                                                         <CalendarPlus className="h-3.5 w-3.5" />
+                                                    </Button>
+                                                    <Button 
+                                                        variant="outline" 
+                                                        size="icon" 
+                                                        className="h-8 w-8 text-emerald-600 border-emerald-100 hover:bg-emerald-50"
+                                                        onClick={() => setShareDocsModal({
+                                                            isOpen: true,
+                                                            customer: sale.customers,
+                                                            saleId: sale.id,
+                                                            projectId: sale.project_id || (sale.units as any)?.projects?.id || sale.units?.project_id
+                                                        })}
+                                                        title="WhatsApp ile Proje Dokümanı Paylaş"
+                                                    >
+                                                        <Share2 className="h-3.5 w-3.5" />
                                                     </Button>
                                                     {!isBroker && (['Lead', 'Prospect', 'Reservation', 'Reserved', 'Opsiyon - Kapora Bekleniyor'].includes(sale.status)) && (
                                                         <PipelineReservationDialog
@@ -2137,6 +2167,17 @@ export default function PipelineList({
                     </div>
                 </DialogContent>
             </Dialog>
+            {/* WhatsApp Project Documents Sharing Modal */}
+            {shareDocsModal.isOpen && shareDocsModal.customer && (
+                <ShareProjectDocumentsModal
+                    isOpen={shareDocsModal.isOpen}
+                    onClose={() => setShareDocsModal({ isOpen: false, customer: null, saleId: null, projectId: null })}
+                    customer={shareDocsModal.customer}
+                    saleId={shareDocsModal.saleId}
+                    initialProjectId={shareDocsModal.projectId}
+                    projects={projects}
+                />
+            )}
         </div >
     )
 }
