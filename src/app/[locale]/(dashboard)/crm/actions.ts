@@ -4317,6 +4317,77 @@ export async function getApprovedWhatsAppTemplates() {
     }
 }
 
+export async function createCatalogWhatsAppTemplate() {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    let ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN
+    const WABA_ID = process.env.WHATSAPP_BUSINESS_ACCOUNT_ID
+
+    if (!ACCESS_TOKEN || !WABA_ID) {
+        return { error: 'WhatsApp WABA_ID veya ACCESS_TOKEN tanımlı değil' }
+    }
+
+    ACCESS_TOKEN = ACCESS_TOKEN.replace(/[\r\n"\s]+/g, '')
+
+    const payload = {
+        name: 'novo_katalog_paylasimi',
+        category: 'UTILITY',
+        language: 'tr',
+        components: [
+            {
+                type: 'BODY',
+                text: 'Merhaba Sayın {{1}},\n\nİlgilenmiş olduğunuz {{2}} projemize ait doküman ve kat planı detayları aşağıda yer almaktadır:\n\n{{3}}\n\nDokümanları inceleyebilir, detaylı bilgi veya randevu talepleriniz için bu mesaj üzerinden bizimle iletişime geçebilirsiniz.\n\nİyi günler dileriz.',
+                example: {
+                    body_text: [
+                        [
+                            'Ahmet Bey',
+                            'Novo Port',
+                            '📄 Proje Kataloğu: https://novoxcrm.com/d/abc\n📐 Kat Planları: https://novoxcrm.com/d/xyz'
+                        ]
+                    ]
+                }
+            },
+            {
+                type: 'BUTTONS',
+                buttons: [
+                    {
+                        type: 'QUICK_REPLY',
+                        text: '📞 Beni Arayın'
+                    },
+                    {
+                        type: 'QUICK_REPLY',
+                        text: '📅 Randevu Al'
+                    }
+                ]
+            }
+        ]
+    }
+
+    try {
+        const res = await fetch(`https://graph.facebook.com/v21.0/${WABA_ID}/message_templates`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${ACCESS_TOKEN}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload)
+        })
+
+        const data = await res.json()
+        if (!res.ok) {
+            console.error('Create template error:', data)
+            return { error: data.error?.message || 'Şablon oluşturulamadı', details: data }
+        }
+
+        return { success: true, data }
+    } catch (e: any) {
+        console.error('Template creation fetch error:', e)
+        return { error: e.message }
+    }
+}
+
 export async function shareProjectDocumentsViaWhatsApp(params: {
     customerId: string
     customerPhone: string
@@ -4359,7 +4430,7 @@ export async function shareProjectDocumentsViaWhatsApp(params: {
     if (params.sendMethod === 'template' && params.templateName) {
         const { sendWhatsAppTemplate } = await import('@/lib/whatsapp')
         
-        const templateRes = await sendWhatsAppTemplate(
+        let templateRes = await sendWhatsAppTemplate(
             params.customerPhone,
             params.templateName,
             params.templateParams || [params.customerName, params.projectName],
@@ -4368,6 +4439,29 @@ export async function shareProjectDocumentsViaWhatsApp(params: {
             tenant?.wa_access_token,
             params.headerMedia
         )
+
+        // Eğer şablon Meta'da bulunamadıysa otomatik olarak oluşturmayı dene
+        if (!templateRes.success && params.templateName === 'novo_katalog_paylasimi') {
+            const errStr = String(templateRes.error || '').toLowerCase()
+            if (errStr.includes('does not exist') || errStr.includes('not found') || errStr.includes('100') || errStr.includes('template')) {
+                console.log('[CRM] 🛠️ novo_katalog_paylasimi şablonu Meta API üzerinden oluşturuluyor...')
+                const createRes = await createCatalogWhatsAppTemplate()
+                if (createRes.success) {
+                    console.log('[CRM] ✅ novo_katalog_paylasimi şablonu Meta\'da başarıyla oluşturuldu, yeniden gönderim deneniyor...')
+                    // 1 saniye bekle ve tekrar dene
+                    await new Promise(resolve => setTimeout(resolve, 1500))
+                    templateRes = await sendWhatsAppTemplate(
+                        params.customerPhone,
+                        params.templateName,
+                        params.templateParams || [params.customerName, params.projectName],
+                        'tr',
+                        tenant?.wa_phone_number_id,
+                        tenant?.wa_access_token,
+                        params.headerMedia
+                    )
+                }
+            }
+        }
 
         if (!templateRes.success) {
             console.error('WhatsApp Template share error:', templateRes.error)
