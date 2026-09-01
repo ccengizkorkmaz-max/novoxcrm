@@ -199,9 +199,14 @@ export default function PowerCallingModal({ leads, isOpen, onClose, onLeadUpdate
                             </div>
                         </div>
 
-                        <Badge className="bg-slate-900 text-white font-mono text-xs px-3 py-1 rounded-full">
-                            {currentIndex + 1} / {totalCount}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                            <Badge className="bg-purple-100 text-purple-700 border-purple-200 text-xs font-bold px-2.5 py-1">
+                                📞 Arama Talepleri
+                            </Badge>
+                            <Badge className="bg-slate-900 text-white font-mono text-xs px-3 py-1 rounded-full">
+                                {currentIndex + 1} / {totalCount}
+                            </Badge>
+                        </div>
                     </div>
 
                     {/* Progress Bar */}

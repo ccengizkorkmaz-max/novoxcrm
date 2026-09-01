@@ -221,8 +221,13 @@ export default function HotLeadsReportPage() {
         return matchesSearch && matchesResponse && matchesButton && matchesCall
     })
 
-    // Leads specifically for power calling (filtered or call_requested)
-    const powerCallingLeads = filteredLeads.length > 0 ? filteredLeads : leads
+    // Leads specifically for power calling:
+    // If no specific response filter is active, ALWAYS default to call_requested (Beni Arayın diyen 112 kişi)
+    const callRequestedLeads = leads.filter(l => l.responseStatus === 'call_requested')
+    const hotOrWarmLeads = leads.filter(l => l.responseStatus === 'call_requested' || l.responseStatus === 'hot' || l.responseStatus === 'warm')
+    const powerCallingLeads = responseFilter !== 'all'
+        ? filteredLeads
+        : (callRequestedLeads.length > 0 ? callRequestedLeads : (hotOrWarmLeads.length > 0 ? hotOrWarmLeads : filteredLeads))
 
     const handleExport = () => {
         const selectedWf = workflows.find(w => w.id === selectedWorkflow)
