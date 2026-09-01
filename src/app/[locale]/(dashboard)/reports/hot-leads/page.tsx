@@ -91,16 +91,61 @@ export default function HotLeadsReportPage() {
 
     const loadCampaignData = async (isRefresh = false) => {
         if (!selectedWorkflow) return
+
+        const cacheKey = `novocrm_campaign_report_${selectedWorkflow}`
+
+        // 1. If not force refresh, check client cache first for INSTANT 0ms load
+        if (!isRefresh && typeof window !== 'undefined') {
+            try {
+                const cachedRaw = sessionStorage.getItem(cacheKey)
+                if (cachedRaw) {
+                    const cached = JSON.parse(cachedRaw)
+                    if (cached && cached.leads) {
+                        setLeads(cached.leads || [])
+                        setStats(cached.stats || { total: 0, callRequested: 0, optedOut: 0, noResponse: 0, hot: 0, warm: 0 })
+                        setTemplateButtons(cached.templateButtons || [])
+                        setButtonStats(cached.buttonStats || {})
+                        setCampaignSteps(cached.campaignSteps || [])
+                        setLoading(false)
+                        // Background fetch to silently update in background if needed
+                        getCampaignPerformanceReport(selectedWorkflow, false).then(result => {
+                            if (result && result.leads) {
+                                setLeads(result.leads || [])
+                                setStats(result.stats)
+                                setTemplateButtons(result.templateButtons || [])
+                                setButtonStats(result.buttonStats || {})
+                                setCampaignSteps(result.campaignSteps || [])
+                                sessionStorage.setItem(cacheKey, JSON.stringify(result))
+                            }
+                        }).catch(e => console.error('Silent cache refresh error:', e))
+                        return
+                    }
+                }
+            } catch (e) {
+                console.error('SessionStorage read error:', e)
+            }
+        }
+
         if (isRefresh) setRefreshing(true)
         else setLoading(true)
 
         try {
-            const result = await getCampaignPerformanceReport(selectedWorkflow)
+            const result = await getCampaignPerformanceReport(selectedWorkflow, isRefresh)
             setLeads(result.leads || [])
             setStats(result.stats)
             setTemplateButtons(result.templateButtons || [])
             setButtonStats(result.buttonStats || {})
             setCampaignSteps(result.campaignSteps || [])
+
+            // Cache to client storage for next instant load
+            if (typeof window !== 'undefined') {
+                try {
+                    sessionStorage.setItem(cacheKey, JSON.stringify(result))
+                } catch (e) {
+                    console.error('SessionStorage save error:', e)
+                }
+            }
+
             if (isRefresh) {
                 toast.success('Rapor başarıyla güncellendi!')
             }
@@ -120,15 +165,34 @@ export default function HotLeadsReportPage() {
     }
 
     const handleLeadUpdated = (updatedLead: any) => {
-        setLeads(prev => prev.map(lead => {
-            if (lead.id === updatedLead.id || (lead.customerId && lead.customerId === updatedLead.customerId)) {
-                return {
-                    ...lead,
-                    ...updatedLead
+        setLeads(prev => {
+            const updated = prev.map(lead => {
+                if (lead.id === updatedLead.id || (lead.customerId && lead.customerId === updatedLead.customerId)) {
+                    return {
+                        ...lead,
+                        ...updatedLead
+                    }
+                }
+                return lead
+            })
+
+            // Update client cache as well
+            if (typeof window !== 'undefined' && selectedWorkflow) {
+                try {
+                    const cacheKey = `novocrm_campaign_report_${selectedWorkflow}`
+                    const cachedRaw = sessionStorage.getItem(cacheKey)
+                    if (cachedRaw) {
+                        const cached = JSON.parse(cachedRaw)
+                        cached.leads = updated
+                        sessionStorage.setItem(cacheKey, JSON.stringify(cached))
+                    }
+                } catch (e) {
+                    console.error('Error updating cache on lead update:', e)
                 }
             }
-            return lead
-        }))
+
+            return updated
+        })
     }
 
     const openQuickCall = (lead: any) => {

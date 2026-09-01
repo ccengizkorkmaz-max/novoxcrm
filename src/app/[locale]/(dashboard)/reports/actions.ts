@@ -712,11 +712,19 @@ export async function getOutreachWorkflowsList() {
     if (error) {
         console.error('getOutreachWorkflowsList error:', error)
         return []
-    }
-    return data || []
-}
+// In-memory server cache for campaign performance reports (TTL: 1 hour)
+const campaignReportCache = new Map<string, { data: any, cachedAt: number }>()
+const REPORT_CACHE_TTL = 1000 * 60 * 60 // 1 hour
 
-export async function getCampaignPerformanceReport(workflowId: string) {
+export async function getCampaignPerformanceReport(workflowId: string, forceRefresh = false) {
+    // Check server cache first if not force refresh
+    if (!forceRefresh && campaignReportCache.has(workflowId)) {
+        const cached = campaignReportCache.get(workflowId)!
+        if (Date.now() - cached.cachedAt < REPORT_CACHE_TTL) {
+            return cached.data
+        }
+    }
+
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     const emptyResult = {
@@ -1107,7 +1115,9 @@ export async function getCampaignPerformanceReport(workflowId: string) {
         })
     }
 
-    return { leads, stats, campaignSteps, templateButtons: templateButtonTexts, buttonStats, callStats, waStats }
+    const result = { leads, stats, campaignSteps, templateButtons: templateButtonTexts, buttonStats, callStats, waStats }
+    campaignReportCache.set(workflowId, { data: result, cachedAt: Date.now() })
+    return result
 }
 
 export async function getHotLeadsReport() {
