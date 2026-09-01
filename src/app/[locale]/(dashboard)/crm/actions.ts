@@ -4338,8 +4338,29 @@ export async function shareProjectDocumentsViaWhatsApp(params: {
     let apiSendResult = { success: true }
     if (params.sendMethod === 'api') {
         const { sendWhatsAppMessage } = await import('@/lib/whatsapp')
-        const sendRes = await sendWhatsAppMessage(params.customerPhone, params.customMessage)
+        
+        // Tenant WA credentials
+        const { data: tenant } = await adminSupabase
+            .from('tenants')
+            .select('wa_phone_number_id, wa_access_token')
+            .eq('id', profile?.tenant_id)
+            .single()
+
+        const sendRes = await sendWhatsAppMessage(
+            params.customerPhone, 
+            params.customMessage,
+            tenant?.wa_phone_number_id,
+            tenant?.wa_access_token
+        )
+
         if (!sendRes.success) {
+            console.error('WhatsApp API share error:', sendRes.error)
+            const errStr = String(sendRes.error || '')
+            if (errStr.includes('131047') || errStr.toLowerCase().includes('re-engagement') || errStr.toLowerCase().includes('window')) {
+                return { 
+                    error: 'Meta kuralı gereği 24 saatlik müşteri penceresi kapalı. Lütfen "WhatsApp\'ta Aç" butonunu kullanarak doğrudan gönderin.' 
+                }
+            }
             return { error: sendRes.error || 'WhatsApp mesajı gönderilemedi.' }
         }
     }

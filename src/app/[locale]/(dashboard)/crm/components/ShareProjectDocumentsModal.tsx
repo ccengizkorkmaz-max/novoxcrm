@@ -462,6 +462,9 @@ export default function ShareProjectDocumentsModal({
                             className="font-sans text-xs bg-slate-50 border-slate-200 rounded-2xl p-3 leading-relaxed focus:bg-white transition-all"
                             placeholder="WhatsApp mesaj içeriği..."
                         />
+                        <p className="text-[11px] text-slate-500 flex items-center gap-1">
+                            💡 <span><strong>WhatsApp'ta Aç</strong> butonu kendi WhatsApp'ınızdan tek tıkla mesajı açar ve %100 her zaman anında teslim edilir.</span>
+                        </p>
                     </div>
                 </div>
 
@@ -479,27 +482,15 @@ export default function ShareProjectDocumentsModal({
                     </Button>
 
                     <div className="flex items-center gap-2">
-                        {/* WhatsApp Web / App Butonu */}
+                        {/* WhatsApp Cloud API ile Gönder Butonu */}
                         <Button
                             type="button"
                             variant="outline"
                             size="sm"
-                            onClick={handleOpenInWhatsApp}
-                            disabled={!customer?.phone}
-                            className="rounded-xl border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 text-xs font-bold gap-1.5 h-9"
-                            title="Temsilcinin kendi WhatsApp'ından doğrudan gönderir"
-                        >
-                            <ExternalLink className="h-3.5 w-3.5" />
-                            WhatsApp'ta Aç
-                        </Button>
-
-                        {/* WhatsApp Cloud API ile Doğrudan Gönder Butonu */}
-                        <Button
-                            type="button"
-                            size="sm"
                             onClick={handleSendViaApi}
                             disabled={sending || !customer?.phone || selectedDocuments.length === 0}
-                            className="rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-black gap-2 h-9 px-4 shadow-md shadow-emerald-600/20"
+                            className="rounded-xl border-slate-200 text-slate-700 hover:bg-slate-100 text-xs font-bold gap-1.5 h-9 px-3"
+                            title="Müşteri son 24 saatte yazdıysa sistemden otomatik iletir"
                         >
                             {sending ? (
                                 <>
@@ -508,10 +499,23 @@ export default function ShareProjectDocumentsModal({
                                 </>
                             ) : (
                                 <>
-                                    <Send className="h-3.5 w-3.5" />
-                                    Doğrudan Gönder
+                                    <Send className="h-3.5 w-3.5 text-blue-600" />
+                                    Sistemden Gönder (API)
                                 </>
                             )}
+                        </Button>
+
+                        {/* WhatsApp Web / App Butonu - Birincil & En Garantili Yol */}
+                        <Button
+                            type="button"
+                            size="sm"
+                            onClick={handleOpenInWhatsApp}
+                            disabled={!customer?.phone}
+                            className="rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-black gap-2 h-9 px-4 shadow-md shadow-emerald-600/20"
+                            title="Temsilcinin WhatsApp'ından doğrudan ve anında gönderir"
+                        >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                            WhatsApp'ta Aç ve Gönder
                         </Button>
                     </div>
                 </DialogFooter>
