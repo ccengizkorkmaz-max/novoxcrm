@@ -707,11 +707,13 @@ export async function getOutreachWorkflowsList() {
         .from('outreach_workflows')
         .select('id, name, is_active, created_at, total_executions')
         .eq('tenant_id', profile.tenant_id)
-        .order('created_at', { ascending: false })
-
     if (error) {
         console.error('getOutreachWorkflowsList error:', error)
         return []
+    }
+    return data || []
+}
+
 // In-memory server cache for campaign performance reports (TTL: 1 hour)
 const campaignReportCache = new Map<string, { data: any, cachedAt: number }>()
 const REPORT_CACHE_TTL = 1000 * 60 * 60 // 1 hour
