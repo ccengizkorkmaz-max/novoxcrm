@@ -33,6 +33,7 @@ import {
     Phone,
     MessageCircle,
     Flame,
+    Megaphone,
     Brain,
     AlertTriangle,
     ClipboardList,
