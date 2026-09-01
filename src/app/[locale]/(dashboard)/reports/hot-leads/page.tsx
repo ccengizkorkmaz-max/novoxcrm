@@ -292,7 +292,7 @@ export default function HotLeadsReportPage() {
                     <div className="flex items-baseline gap-1">
                         <span className="text-2xl md:text-3xl font-black text-purple-700">{stats.callRequested}</span>
                         {uncalledCallRequests > 0 && (
-                            <span className="text-xs font-bold text-amber-600">({uncalledCallRequests} bekliyor)</span>
+                            <span className="text-[10px] font-bold text-amber-600">({uncalledCallRequests} bekliyor)</span>
                         )}
                     </div>
                     <span className="text-[9px] md:text-[10px] font-bold text-purple-400 uppercase tracking-widest mt-1 text-center">Arama Talebi</span>
@@ -440,7 +440,7 @@ export default function HotLeadsReportPage() {
             {/* Leads Table */}
             <Card className="border-none shadow-2xl shadow-slate-200/50 rounded-3xl overflow-hidden bg-white w-full">
                 <CardHeader className="bg-slate-50/50 border-b border-slate-100 px-4 py-4 md:px-8 md:py-6">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div>
                             <CardTitle className="text-xl font-bold text-slate-800">Kampanya Sonuçları</CardTitle>
                             <CardDescription className="text-sm mt-1">
@@ -448,12 +448,22 @@ export default function HotLeadsReportPage() {
                             </CardDescription>
                         </div>
 
-                        {uncalledCallRequests > 0 && (
-                            <Badge className="bg-amber-50 text-amber-700 border-amber-200 border text-xs font-bold gap-1 px-3 py-1 rounded-full">
-                                <Clock className="h-3.5 w-3.5 text-amber-600" />
-                                {uncalledCallRequests} arama talebi aranmayı bekliyor
-                            </Badge>
-                        )}
+                        <div className="flex flex-wrap items-center gap-2">
+                            {uncalledCallRequests > 0 && (
+                                <Badge className="bg-amber-50 text-amber-700 border-amber-200 border text-xs font-bold gap-1 px-3 py-1.5 rounded-full">
+                                    <Clock className="h-3.5 w-3.5 text-amber-600" />
+                                    {uncalledCallRequests} aranmayı bekliyor
+                                </Badge>
+                            )}
+                            <Button
+                                onClick={() => setIsPowerCallingOpen(true)}
+                                disabled={loading || powerCallingLeads.length === 0}
+                                className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-extrabold text-xs h-10 px-4 rounded-xl shadow-md shadow-orange-500/20 gap-1.5 cursor-pointer"
+                            >
+                                <Zap className="h-4 w-4 fill-white" />
+                                ⚡ Seri Arama Modunu Başlat ({powerCallingLeads.length})
+                            </Button>
+                        </div>
                     </div>
                 </CardHeader>
                 <CardContent className="p-0">
