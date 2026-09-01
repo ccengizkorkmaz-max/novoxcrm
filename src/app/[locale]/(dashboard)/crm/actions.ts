@@ -4440,26 +4440,26 @@ export async function shareProjectDocumentsViaWhatsApp(params: {
             params.headerMedia
         )
 
-        // Eğer şablon Meta'da bulunamadıysa otomatik olarak oluşturmayı dene
-        if (!templateRes.success && params.templateName === 'novo_katalog_paylasimi') {
+        // Eğer şablon Meta'da henüz onaylanmadıysa veya bulunamadıysa (132001) onaylı olan novo_talep_alindi şablonu ile gönder
+        if (!templateRes.success) {
             const errStr = String(templateRes.error || '').toLowerCase()
-            if (errStr.includes('does not exist') || errStr.includes('not found') || errStr.includes('100') || errStr.includes('template')) {
-                console.log('[CRM] 🛠️ novo_katalog_paylasimi şablonu Meta API üzerinden oluşturuluyor...')
-                const createRes = await createCatalogWhatsAppTemplate()
-                if (createRes.success) {
-                    console.log('[CRM] ✅ novo_katalog_paylasimi şablonu Meta\'da başarıyla oluşturuldu, yeniden gönderim deneniyor...')
-                    // 1 saniye bekle ve tekrar dene
-                    await new Promise(resolve => setTimeout(resolve, 1500))
-                    templateRes = await sendWhatsAppTemplate(
-                        params.customerPhone,
-                        params.templateName,
-                        params.templateParams || [params.customerName, params.projectName],
-                        'tr',
-                        tenant?.wa_phone_number_id,
-                        tenant?.wa_access_token,
-                        params.headerMedia
-                    )
-                }
+            if (errStr.includes('132001') || errStr.includes('does not exist') || errStr.includes('not found') || errStr.includes('template')) {
+                console.log(`[CRM] 🔄 '${params.templateName}' şablonu Meta'da bulunamadı, onaylı 'novo_talep_alindi' şablonuna geçiliyor...`)
+                
+                // novo_talep_alindi: 2 parametre bekler (1: Müşteri Adı, 2: Proje & Dokümanlar)
+                const fallbackParams = [
+                    params.customerName,
+                    `${params.projectName} — Dokümanlar: ${params.selectedDocuments.map(d => `${d.document_name}: ${d.file_url}`).join(' | ')}`
+                ]
+
+                templateRes = await sendWhatsAppTemplate(
+                    params.customerPhone,
+                    'novo_talep_alindi',
+                    fallbackParams,
+                    'tr',
+                    tenant?.wa_phone_number_id,
+                    tenant?.wa_access_token
+                )
             }
         }
 
