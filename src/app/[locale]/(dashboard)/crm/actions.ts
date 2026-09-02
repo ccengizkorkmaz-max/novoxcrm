@@ -4338,7 +4338,7 @@ export async function createCatalogWhatsAppTemplate() {
         components: [
             {
                 type: 'BODY',
-                text: 'Merhaba Sayın {{1}},\n\nİlgilenmiş olduğunuz {{2}} projemize ait doküman ve kat planı detayları aşağıda yer almaktadır:\n\n{{3}}\n\nDokümanları inceleyebilir, detaylı bilgi veya randevu talepleriniz için bu mesaj üzerinden bizimle iletişime geçebilirsiniz.\n\nİyi günler dileriz.',
+                text: 'Merhaba Sayın {{1}},\n\nİlgilenmiş olduğunuz {{2}} projemize ait dokümanlar aşağıda yer almaktadır:\n\n{{3}}\n\nDokümanları inceleyebilir, detaylı bilgi veya randevu talepleriniz için bu mesaj üzerinden bizimle iletişime geçebilirsiniz.\n\nİyi günler dileriz.',
                 example: {
                     body_text: [
                         [
@@ -4498,7 +4498,53 @@ export async function shareProjectDocumentsViaWhatsApp(params: {
         }
     }
 
-    // 3. Activities tablosuna log ekleme
+    // 3. Mesajlaşmalar (whatsapp_conversations & whatsapp_messages) tablosuna ekleme
+    try {
+        let cleanPhone = params.customerPhone.replace(/\D/g, '')
+        if (cleanPhone.startsWith('0')) cleanPhone = '90' + cleanPhone.substring(1)
+        else if (cleanPhone.length === 10) cleanPhone = '90' + cleanPhone
+
+        let { data: existingConv } = await adminSupabase
+            .from('whatsapp_conversations')
+            .select('id')
+            .eq('tenant_id', profile?.tenant_id)
+            .eq('phone_number', cleanPhone)
+            .maybeSingle()
+
+        if (!existingConv) {
+            const { data: newConv } = await adminSupabase.from('whatsapp_conversations').insert({
+                tenant_id: profile?.tenant_id,
+                phone_number: cleanPhone,
+                customer_id: params.customerId,
+                channel: 'whatsapp',
+                ai_enabled: true,
+                last_message_preview: params.customMessage || `[Şablon: ${params.templateName || 'novo_katalog_paylasimi'}]`,
+                unread_count: 0
+            }).select('id').single()
+            existingConv = newConv
+        } else {
+            await adminSupabase.from('whatsapp_conversations').update({
+                last_message_preview: params.customMessage || `[Şablon: ${params.templateName || 'novo_katalog_paylasimi'}]`,
+                updated_at: new Date().toISOString()
+            }).eq('id', existingConv.id)
+        }
+
+        if (existingConv) {
+            await adminSupabase.from('whatsapp_messages').insert({
+                conversation_id: existingConv.id,
+                tenant_id: profile?.tenant_id,
+                role: 'assistant',
+                direction: 'outbound',
+                sender_type: 'agent',
+                content: params.customMessage || `[Şablon: ${params.templateName || 'novo_katalog_paylasimi'}]\n${params.templateParams?.join('\n')}`,
+                status: 'delivered',
+            })
+        }
+    } catch (convErr) {
+        console.warn('[CRM] Doküman paylaşımı conversation log hatası (non-blocking):', convErr)
+    }
+
+    // 4. Activities tablosuna log ekleme
     const templateInfo = params.templateName ? ` [Şablon: ${params.templateName}]` : ''
     const { error: actError } = await adminSupabase.from('activities').insert({
         tenant_id: profile?.tenant_id,

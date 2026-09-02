@@ -61,8 +61,8 @@ export async function POST(req: NextRequest) {
         const supabase = createAdminClient();
 
         // ── 2. Tenant Eşleştir ─────────────────────────────────────────
-        console.log(`🔍 Tenant aranıyor: phoneNumberId=${payload.phoneNumberId}, channel=${payload.channel}`);
-        const tenantData = await findTenant(supabase, payload.phoneNumberId, payload.channel);
+        console.log(`🔍 Tenant aranıyor: phoneNumberId=${payload.phoneNumberId}, channel=${payload.channel}, phone=${payload.phone}`);
+        const tenantData = await findTenant(supabase, payload.phoneNumberId, payload.channel, payload.phone);
         if (!tenantData) {
             console.error('❌ Tenant bulunamadı, mesaj atılıyor.');
             return NextResponse.json({ status: 'no_tenant' }, { status: 200 });

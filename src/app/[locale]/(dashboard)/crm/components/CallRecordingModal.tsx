@@ -354,18 +354,39 @@ export default function CallRecordingModal({
                                 {/* Expanded section: Player + Transcript */}
                                 {isExpanded && (
                                     <div className="border-t bg-slate-50/50 px-3 py-3 space-y-3">
-                                        {/* Audio Player (iframe) */}
+                                        {/* Audio Player (HTML5 Audio + iframe Fallback) */}
                                         {isPlaying && activePlayerUrl && (
-                                            <div className="bg-white rounded-lg border p-2">
-                                                <div className="text-[10px] text-slate-400 font-medium mb-1.5 flex items-center gap-1">
-                                                    <Headphones className="w-3 h-3" /> Ses Kaydı Oynatıcı
+                                            <div className="bg-white rounded-lg border p-2.5 space-y-2">
+                                                <div className="text-[10px] text-slate-400 font-medium flex items-center justify-between">
+                                                    <span className="flex items-center gap-1">
+                                                        <Headphones className="w-3 h-3 text-indigo-600" /> Ses Kaydı Oynatıcı
+                                                    </span>
+                                                    <a
+                                                        href={activePlayerUrl}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="text-indigo-600 hover:underline text-[10px]"
+                                                    >
+                                                        Dosyayı İndir
+                                                    </a>
                                                 </div>
-                                                <iframe
-                                                    src={activePlayerUrl}
-                                                    className="w-full h-[60px] border-0 rounded"
-                                                    allow="autoplay"
-                                                    sandbox="allow-scripts allow-same-origin"
-                                                />
+                                                {activePlayerUrl.includes('/player/') ? (
+                                                    <iframe
+                                                        src={activePlayerUrl}
+                                                        className="w-full h-[60px] border-0 rounded"
+                                                        allow="autoplay"
+                                                        sandbox="allow-scripts allow-same-origin"
+                                                    />
+                                                ) : (
+                                                    <audio
+                                                        controls
+                                                        autoPlay
+                                                        src={activePlayerUrl}
+                                                        className="w-full h-9 rounded"
+                                                    >
+                                                        Tarayıcınız ses oynatmayı desteklemiyor.
+                                                    </audio>
+                                                )}
                                             </div>
                                         )}
 

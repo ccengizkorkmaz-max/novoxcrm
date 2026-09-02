@@ -93,36 +93,130 @@ export function parseIncomingPayload(body: any): IncomingPayload | null {
 }
 
 /**
- * Tenant'ı kanal türüne göre eşleştirir.
- * WhatsApp → wa_phone_number_id, Messenger → fb_page_id
+ * Tenant'ı kanal türüne ve müşteri telefonuna göre akıllıca eşleştirir.
+ * Çoklu tenant ortamında aynı test numarası paylaşıldığında doğru müşterinin/aktivitenin tenant'ını bulur.
  */
-export async function findTenant(supabase: any, phoneNumberId: string, channel?: string) {
+export async function findTenant(supabase: any, phoneNumberId: string, channel?: string, customerPhone?: string) {
     const selectFields = 'id, crm_mode, ai_provider, ai_api_key, ai_system_prompt, ai_assistant_instructions, ai_knowledge_base, wa_phone_number_id, wa_access_token, fb_page_id, gemini_api_key, openai_api_key, is_gemini_enabled, is_openai_enabled, gemini_model, openai_model, name';
 
-    // Messenger ise önce fb_page_id ile dene
+    // 1. Müşteri telefonuna göre en son güncel sohbet / aktivite / müşteri / lead kaydından tenant tespit et
+    if (customerPhone) {
+        const cleanPhone = customerPhone.replace(/\D/g, '');
+        const phone10 = cleanPhone.slice(-10);
+
+        // A. whatsapp_conversations tablosunda en son aktif olan sohbetin tenant'ı
+        const { data: recentConv } = await supabase
+            .from('whatsapp_conversations')
+            .select('tenant_id')
+            .ilike('phone_number', `%${phone10}%`)
+            .order('updated_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+        if (recentConv?.tenant_id) {
+            const { data: tenant } = await supabase
+                .from('tenants')
+                .select(selectFields)
+                .eq('id', recentConv.tenant_id)
+                .maybeSingle();
+            if (tenant) {
+                console.log(`🎯 Tenant mevcut sohbetten tespit edildi: ${tenant.name} (${tenant.id})`);
+                return tenant;
+            }
+        }
+
+        // B. Müşteriler tablosunda en son güncellenen müşteri kaydının tenant'ını al
+        const { data: recentCustomer } = await supabase
+            .from('customers')
+            .select('tenant_id')
+            .ilike('phone', `%${phone10}%`)
+            .order('updated_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+        if (recentCustomer?.tenant_id) {
+            const { data: tenant } = await supabase
+                .from('tenants')
+                .select(selectFields)
+                .eq('id', recentCustomer.tenant_id)
+                .maybeSingle();
+            if (tenant) {
+                console.log(`🎯 Tenant müşteri kaydından tespit edildi: ${tenant.name} (${tenant.id})`);
+                return tenant;
+            }
+        }
+
+        // C. Leads tablosunda en son güncellenen lead kaydının tenant'ını al
+        const { data: recentLead } = await supabase
+            .from('leads')
+            .select('tenant_id')
+            .ilike('phone', `%${phone10}%`)
+            .order('updated_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+        if (recentLead?.tenant_id) {
+            const { data: tenant } = await supabase
+                .from('tenants')
+                .select(selectFields)
+                .eq('id', recentLead.tenant_id)
+                .maybeSingle();
+            if (tenant) {
+                console.log(`🎯 Tenant lead kaydından tespit edildi: ${tenant.name} (${tenant.id})`);
+                return tenant;
+            }
+        }
+
+        // D. Son aktivitelerde bu telefonla işlem yapılmış tenant'ı kontrol et
+        const { data: recentAct } = await supabase
+            .from('activities')
+            .select('tenant_id')
+            .or(`description.ilike.%${phone10}%,notes.ilike.%${phone10}%`)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+        if (recentAct?.tenant_id) {
+            const { data: tenant } = await supabase
+                .from('tenants')
+                .select(selectFields)
+                .eq('id', recentAct.tenant_id)
+                .maybeSingle();
+            if (tenant) {
+                console.log(`🎯 Tenant müşteri aktivitesinden tespit edildi: ${tenant.name} (${tenant.id})`);
+                return tenant;
+            }
+        }
+    }
+
+    // 2. Messenger ise fb_page_id ile dene
     if (channel === 'messenger') {
         const { data } = await supabase
             .from('tenants')
             .select(selectFields)
             .eq('fb_page_id', phoneNumberId)
-            .single();
+            .maybeSingle();
         if (data) return data;
     }
 
-    // WhatsApp veya fallback: wa_phone_number_id ile dene
-    const { data } = await supabase
+    // 3. WhatsApp: wa_phone_number_id ile dene (Novo ana tenantı veya eşleşen ilk aktif tenant)
+    const { data: matchedTenants } = await supabase
         .from('tenants')
         .select(selectFields)
-        .eq('wa_phone_number_id', phoneNumberId)
-        .single();
-    if (data) return data;
+        .eq('wa_phone_number_id', phoneNumberId);
+
+    if (matchedTenants && matchedTenants.length > 0) {
+        // Öncelik: Adında "Novo" geçen ana tenant
+        const novoTenant = matchedTenants.find((t: any) => t.name?.toLowerCase().includes('novo'));
+        return novoTenant || matchedTenants[0];
+    }
 
     // Son fallback: ilk tenant'ı al (tek-tenant kurulumlar için)
     const { data: fallback } = await supabase
         .from('tenants')
         .select(selectFields)
         .limit(1)
-        .single();
+        .maybeSingle();
 
     return fallback || null;
 }

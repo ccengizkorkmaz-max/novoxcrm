@@ -43,9 +43,9 @@ function buildPlayerUrl(recordingUrl: string): string | null {
         if (q) {
             return `https://dosyaindir.netgsm.com.tr/player/?tip=${tip}&q=${q}`
         }
-        return null
+        return recordingUrl
     } catch {
-        return null
+        return recordingUrl
     }
 }
 

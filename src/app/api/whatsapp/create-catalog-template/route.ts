@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
         components: [
             {
                 type: 'BODY',
-                text: 'Merhaba Sayın {{1}},\n\nİlgilenmiş olduğunuz {{2}} projemize ait doküman ve kat planı detayları aşağıda yer almaktadır:\n\n{{3}}\n\nDokümanları inceleyebilir, detaylı bilgi veya randevu talepleriniz için bu mesaj üzerinden bizimle iletişime geçebilirsiniz.\n\nİyi günler dileriz.',
+                text: 'Merhaba Sayın {{1}},\n\nİlgilenmiş olduğunuz {{2}} projemize ait dokümanlar aşağıda yer almaktadır:\n\n{{3}}\n\nDokümanları inceleyebilir, detaylı bilgi veya randevu talepleriniz için bu mesaj üzerinden bizimle iletişime geçebilirsiniz.\n\nİyi günler dileriz.',
                 example: {
                     body_text: [
                         [

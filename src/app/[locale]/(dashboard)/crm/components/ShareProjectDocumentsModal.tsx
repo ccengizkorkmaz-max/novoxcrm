@@ -156,7 +156,7 @@ export default function ShareProjectDocumentsModal({
 
         return (
             `Merhaba Sayın ${customerName},\n\n` +
-            `İlgilenmiş olduğunuz ${projectName} projemize ait doküman ve kat planı detayları aşağıda yer almaktadır:\n\n` +
+            `İlgilenmiş olduğunuz ${projectName} projemize ait dokümanlar aşağıda yer almaktadır:\n\n` +
             `${formattedDocsText}\n\n` +
             `Dokümanları inceleyebilir, detaylı bilgi veya randevu talepleriniz için bu mesaj üzerinden bizimle iletişime geçebilirsiniz.\n\n` +
             `İyi günler dileriz.`
