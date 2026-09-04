@@ -193,7 +193,7 @@ export default function CallCenterPerformanceClient({ initialData, profiles }: C
                                 <SelectItem value="__all__">👥 Tüm Temsilciler</SelectItem>
                                 {availableProfiles.map((p: any) => (
                                     <SelectItem key={p.id} value={p.id}>
-                                        {p.full_name || 'İsimsiz'}
+                                        {p.full_name || 'İsimsiz'}{p.phone ? ` • ${p.phone}` : ''}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
@@ -315,6 +315,11 @@ export default function CallCenterPerformanceClient({ initialData, profiles }: C
                                 <div className="text-base sm:text-lg font-black text-white truncate">
                                     {summary.topRep.name}
                                 </div>
+                                {summary.topRep.phone && (
+                                    <div className="text-[11px] text-indigo-200 font-mono">
+                                        {summary.topRep.phone}
+                                    </div>
+                                )}
                                 <div className="text-[11px] text-slate-300 font-medium mt-1">
                                     <span className="text-amber-300 font-bold">{summary.topRep.totalCalls} arama</span> • {summary.topRep.totalMinutes} dk
                                 </div>
@@ -384,11 +389,17 @@ export default function CallCenterPerformanceClient({ initialData, profiles }: C
                                                             )}
                                                         </div>
                                                         <div>
-                                                            <div className="font-bold text-slate-900 text-xs sm:text-sm">
-                                                                {rep.name}
+                                                            <div className="flex items-center gap-1.5 flex-wrap">
+                                                                <span className="font-bold text-slate-900 text-xs sm:text-sm">{rep.name}</span>
+                                                                {rep.phone && (
+                                                                    <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
+                                                                        {rep.phone}
+                                                                    </span>
+                                                                )}
                                                             </div>
-                                                            <div className="text-[10px] text-slate-400">
+                                                            <div className="text-[10px] text-slate-400 mt-0.5">
                                                                 {rep.outboundCalls} giden • {rep.inboundCalls} gelen
+                                                                {rep.recordingsCount ? ` • 🎧 ${rep.recordingsCount} ses kaydı` : ''}
                                                             </div>
                                                         </div>
                                                     </div>

@@ -18,6 +18,7 @@ export interface RepPerformanceItem {
     id: string
     name: string
     avatar?: string
+    phone?: string
     totalCalls: number
     outboundCalls: number
     inboundCalls: number
@@ -184,6 +185,7 @@ export async function getCallCenterPerformanceData(params: CallCenterReportParam
                 id: p.id,
                 name: p.full_name,
                 avatar: p.profile_photo_url || undefined,
+                phone: p.phone || undefined,
                 totalCalls: 0,
                 outboundCalls: 0,
                 inboundCalls: 0,
@@ -576,6 +578,7 @@ export async function getCallCenterPerformanceData(params: CallCenterReportParam
             topRep: topRep ? {
                 id: topRep.id,
                 name: topRep.name,
+                phone: topRep.phone,
                 totalCalls: topRep.totalCalls,
                 totalMinutes: Math.round(topRep.totalDurationSeconds / 60)
             } : null
