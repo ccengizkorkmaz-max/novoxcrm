@@ -4018,12 +4018,18 @@ export async function fetchTrackingSales() {
         return { sales: [], error: 'Not authorized' }
     }
 
-    // Query sales and call activities in parallel
+        // Query sales and call activities with pagination loops to bypass Supabase 1000 limit
     const ninetyDaysAgo = new Date()
     ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
 
-    const [salesRes, activitiesRes] = await Promise.all([
-        supabase
+    const pageSize = 1000
+
+    // 1. Paginate sales
+    const allSales: any[] = []
+    let salesPage = 0
+
+    while (true) {
+        const { data: chunk, error: salesErr } = await supabase
             .from('sales')
             .select(`
                 id,
@@ -4052,23 +4058,44 @@ export async function fetchTrackingSales() {
             .neq('status', 'Inbox')
             .order('updated_at', { ascending: false, nullsFirst: false })
             .order('created_at', { ascending: false })
-            .limit(2000),
+            .range(salesPage * pageSize, (salesPage + 1) * pageSize - 1)
 
-        supabase
+        if (salesErr) {
+            console.error('[fetchTrackingSales] sales error:', salesErr.message)
+            return { sales: allSales, activities: [], error: salesErr.message }
+        }
+        if (!chunk || chunk.length === 0) break
+        allSales.push(...chunk)
+        if (chunk.length < pageSize) break
+        salesPage++
+        if (salesPage >= 25) break // safety ceiling of 25,000
+    }
+
+    // 2. Paginate activities
+    const allActivities: any[] = []
+    let actPage = 0
+
+    while (true) {
+        const { data: chunk, error: actErr } = await supabase
             .from('activities')
             .select('id, type, topic, status, outcome, owner_id, user_id, customer_id, due_date, created_at, completed_at, duration_seconds, notes, call_recording_url')
             .in('type', ['Call', 'Meeting', 'OnlineMeeting', 'Whatsapp'])
             .gte('created_at', ninetyDaysAgo.toISOString())
-            .limit(5000)
-    ])
+            .range(actPage * pageSize, (actPage + 1) * pageSize - 1)
 
-    if (salesRes.error) {
-        console.error('[fetchTrackingSales] Error:', salesRes.error.message, salesRes.error.details, salesRes.error.hint)
-        return { sales: [], activities: [], error: salesRes.error.message }
+        if (actErr) {
+            console.error('[fetchTrackingSales] activities error:', actErr.message)
+            break
+        }
+        if (!chunk || chunk.length === 0) break
+        allActivities.push(...chunk)
+        if (chunk.length < pageSize) break
+        actPage++
+        if (actPage >= 25) break // safety ceiling of 25,000
     }
 
-    console.log('[fetchTrackingSales] Success, sales:', salesRes.data?.length || 0, 'activities:', activitiesRes.data?.length || 0)
-    return { sales: salesRes.data || [], activities: activitiesRes.data || [], error: null }
+    console.log('[fetchTrackingSales] Success, total sales:', allSales.length, 'total activities:', allActivities.length)
+    return { sales: allSales, activities: allActivities, error: null }
 }
 
 export async function createQuickAppointment(params: {
