@@ -25,12 +25,22 @@ import {
     ArrowUpDown,
     Target,
     Clock,
-    Brain
+    Brain,
+    Headphones
 } from "lucide-react"
 import Link from "next/link"
 import { getTranslations } from 'next-intl/server'
 
 const reportCards = [
+    {
+        id: "rep-tracking",
+        href: "/crm/rep-tracking",
+        icon: Headphones,
+        color: "text-blue-600",
+        bgColor: "bg-blue-100",
+        customTitle: "Temsilci Takip & Arama Performansı",
+        customDesc: "Satış temsilcilerinin günlük, haftalık ve aylık arama sayıları, konuşma süreleri ve lead temas durumu."
+    },
     {
         id: "performance-analytics",
         href: "/reports/performance-analytics",

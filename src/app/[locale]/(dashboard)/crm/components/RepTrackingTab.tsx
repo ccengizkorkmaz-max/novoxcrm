@@ -33,6 +33,7 @@ export default function RepTrackingTab({
     const router = useRouter()
     const [selectedRepId, setSelectedRepId] = useState<string>('__all__')
     const [sales, setSales] = useState<any[]>(initialSales || [])
+    const [activities, setActivities] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [fetchError, setFetchError] = useState<string | null>(null)
 
@@ -46,7 +47,8 @@ export default function RepTrackingTab({
                     setFetchError(result.error)
                     console.error('[RepTrackingTab] Server action error:', result.error)
                 } else {
-                    setSales(result.sales)
+                    setSales(result.sales || [])
+                    setActivities(result.activities || [])
                     setFetchError(null)
                 }
             } catch (err: any) {
@@ -206,10 +208,74 @@ export default function RepTrackingTab({
 
             {/* Right: Data Table */}
             <div className="flex-1 overflow-auto">
-                {/* Mini Performance Dashboard — only for specific rep */}
+                {/* Team Overview Dashboard when __all__ is selected */}
+                {selectedRepId === '__all__' && (() => {
+                    const totalSalesCount = sales.length
+                    const totalProcessed = sales.filter((s: any) => s.first_contact).length
+                    const totalOlumlu = sales.filter((s: any) => s.first_contact === 'Aradım, Olumlu').length
+                    const totalUlasam = sales.filter((s: any) => s.first_contact === 'Ulaşamadım').length
+                    const totalPending = totalSalesCount - totalProcessed
+                    const totalCalls = activities.filter((a: any) => a.type === 'Call').length
+                    const totalDurationSec = activities.filter((a: any) => a.type === 'Call').reduce((acc, a) => acc + (a.duration_seconds || 0), 0)
+                    const totalDurationMin = Math.round(totalDurationSec / 60)
+                    const totalMeetings = activities.filter((a: any) => a.type === 'Meeting' || a.type === 'OnlineMeeting').length
+
+                    return (
+                        <div className="p-3 bg-gradient-to-r from-slate-50 via-white to-slate-50 border-b flex flex-wrap items-center justify-between gap-3">
+                            <div className="flex items-center gap-2">
+                                <div className="h-7 w-7 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs">
+                                    👥
+                                </div>
+                                <div>
+                                    <h3 className="text-xs font-black text-slate-800 uppercase tracking-tight">Ekip Genel Arama & Lead Özeti</h3>
+                                    <p className="text-[10px] text-slate-500 font-medium">Tüm temsilcilerin toplam arama, görüşme ve temas performansı</p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <div className="px-2.5 py-1.5 rounded-lg bg-white border border-slate-200/80 shadow-2xs text-center">
+                                    <span className="text-[9px] font-bold text-slate-400 uppercase block">Toplam Lead</span>
+                                    <span className="text-xs font-black text-slate-800">{totalSalesCount}</span>
+                                </div>
+
+                                <div className="px-2.5 py-1.5 rounded-lg bg-blue-50/80 border border-blue-200/80 shadow-2xs text-center">
+                                    <span className="text-[9px] font-bold text-blue-600 uppercase block">📞 Aramalar</span>
+                                    <span className="text-xs font-black text-blue-700">{totalCalls > 0 ? totalCalls : totalProcessed} Adet</span>
+                                </div>
+
+                                {totalDurationMin > 0 && (
+                                    <div className="px-2.5 py-1.5 rounded-lg bg-indigo-50/80 border border-indigo-200/80 shadow-2xs text-center">
+                                        <span className="text-[9px] font-bold text-indigo-600 uppercase block">⏱️ Konuşma</span>
+                                        <span className="text-xs font-black text-indigo-700">{totalDurationMin} Dk</span>
+                                    </div>
+                                )}
+
+                                {totalMeetings > 0 && (
+                                    <div className="px-2.5 py-1.5 rounded-lg bg-violet-50/80 border border-violet-200/80 shadow-2xs text-center">
+                                        <span className="text-[9px] font-bold text-violet-600 uppercase block">🏛️ Toplantı</span>
+                                        <span className="text-xs font-black text-violet-700">{totalMeetings} Adet</span>
+                                    </div>
+                                )}
+
+                                <div className="px-2.5 py-1.5 rounded-lg bg-emerald-50/80 border border-emerald-200/80 shadow-2xs text-center">
+                                    <span className="text-[9px] font-bold text-emerald-600 uppercase block">🟢 Olumlu</span>
+                                    <span className="text-xs font-black text-emerald-700">{totalOlumlu}</span>
+                                </div>
+
+                                <div className="px-2.5 py-1.5 rounded-lg bg-amber-50/80 border border-amber-200/80 shadow-2xs text-center">
+                                    <span className="text-[9px] font-bold text-amber-600 uppercase block">⏳ Bekleyen</span>
+                                    <span className="text-xs font-black text-amber-700">{totalPending}</span>
+                                </div>
+                            </div>
+                        </div>
+                    )
+                })()}
+
+                {/* Mini Performance Dashboard — for specific rep */}
                 {selectedRepId !== '__all__' && selectedRepId !== '__unassigned__' && (() => {
                     const repName = internalProfiles.find((p: any) => p.id === selectedRepId)?.full_name
                     const repAllSales = sales.filter((s: any) => s.assigned_to === selectedRepId)
+                    const repActivities = activities.filter((a: any) => a.owner_id === selectedRepId || a.user_id === selectedRepId)
                     const now = new Date()
                     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
                     const yesterdayStart = new Date(todayStart.getTime() - 86400000)
@@ -219,47 +285,105 @@ export default function RepTrackingTab({
                     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
 
                     const periods = [
-                        { label: 'Genel', icon: '📊', filter: () => true },
-                        { label: 'Bu Ay', icon: '📅', filter: (s: any) => new Date(s.assigned_at || s.created_at) >= monthStart },
-                        { label: 'Bu Hafta', icon: '📆', filter: (s: any) => new Date(s.assigned_at || s.created_at) >= weekStart },
-                        { label: 'Dün', icon: '⏪', filter: (s: any) => { const d = new Date(s.assigned_at || s.created_at); return d >= yesterdayStart && d < todayStart } },
-                        { label: 'Bugün', icon: '🔥', filter: (s: any) => new Date(s.assigned_at || s.created_at) >= todayStart },
+                        {
+                            label: 'Genel',
+                            icon: '📊',
+                            saleFilter: () => true,
+                            actFilter: () => true
+                        },
+                        {
+                            label: 'Bu Ay',
+                            icon: '📅',
+                            saleFilter: (s: any) => new Date(s.assigned_at || s.created_at) >= monthStart,
+                            actFilter: (a: any) => new Date(a.created_at || a.due_date) >= monthStart
+                        },
+                        {
+                            label: 'Bu Hafta',
+                            icon: '📆',
+                            saleFilter: (s: any) => new Date(s.assigned_at || s.created_at) >= weekStart,
+                            actFilter: (a: any) => new Date(a.created_at || a.due_date) >= weekStart
+                        },
+                        {
+                            label: 'Dün',
+                            icon: '⏪',
+                            saleFilter: (s: any) => { const d = new Date(s.assigned_at || s.created_at); return d >= yesterdayStart && d < todayStart },
+                            actFilter: (a: any) => { const d = new Date(a.created_at || a.due_date); return d >= yesterdayStart && d < todayStart }
+                        },
+                        {
+                            label: 'Bugün',
+                            icon: '🔥',
+                            saleFilter: (s: any) => new Date(s.assigned_at || s.created_at) >= todayStart,
+                            actFilter: (a: any) => new Date(a.created_at || a.due_date) >= todayStart
+                        },
                     ]
 
                     return (
-                        <div className="px-3 py-2.5 bg-gradient-to-r from-slate-50 to-white border-b flex gap-2 overflow-x-auto">
-                            <div className="flex items-center mr-2 shrink-0">
-                                <span className="text-xs font-bold text-slate-700">{repName}</span>
+                        <div className="px-3 py-2.5 bg-gradient-to-r from-slate-50 via-white to-slate-50 border-b flex gap-2.5 overflow-x-auto">
+                            <div className="flex flex-col justify-center mr-2 shrink-0">
+                                <span className="text-xs font-black text-slate-800">{repName}</span>
+                                <span className="text-[10px] text-slate-400 font-semibold">Temsilci Performansı</span>
                             </div>
                             {periods.map(period => {
-                                const periodSales = repAllSales.filter(period.filter)
-                                const total = periodSales.length
+                                const periodSales = repAllSales.filter(period.saleFilter)
+                                const periodActs = repActivities.filter(period.actFilter)
+                                
+                                const totalLeads = periodSales.length
                                 const processed = periodSales.filter((s: any) => s.first_contact).length
                                 const olumlu = periodSales.filter((s: any) => s.first_contact === 'Aradım, Olumlu').length
                                 const olumsuz = periodSales.filter((s: any) => s.first_contact === 'Aradım, Olumsuz').length
                                 const ulasam = periodSales.filter((s: any) => s.first_contact === 'Ulaşamadım').length
-                                const pending = total - processed
-                                const pct = total > 0 ? Math.round((processed / total) * 100) : 0
+                                const pending = totalLeads - processed
+                                const pct = totalLeads > 0 ? Math.round((processed / totalLeads) * 100) : 0
+
+                                // Real call counts from activities + first_contact
+                                const actCalls = periodActs.filter(a => a.type === 'Call').length
+                                const totalCalls = actCalls > 0 ? actCalls : processed
+                                const durationSec = periodActs.filter(a => a.type === 'Call').reduce((acc, a) => acc + (a.duration_seconds || 0), 0)
+                                const durationMin = Math.round(durationSec / 60)
 
                                 return (
-                                    <div key={period.label} className="flex-shrink-0 min-w-[120px] rounded-lg border bg-white p-2 shadow-sm">
-                                        <div className="flex items-center gap-1 mb-1">
-                                            <span className="text-sm">{period.icon}</span>
-                                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{period.label}</span>
+                                    <div key={period.label} className="flex-shrink-0 min-w-[145px] rounded-xl border border-slate-200/90 bg-white p-2.5 shadow-2xs hover:shadow-xs transition-shadow">
+                                        <div className="flex items-center justify-between mb-1">
+                                            <div className="flex items-center gap-1">
+                                                <span className="text-xs">{period.icon}</span>
+                                                <span className="text-[10px] font-black text-slate-600 uppercase tracking-tight">{period.label}</span>
+                                            </div>
+                                            {durationMin > 0 && (
+                                                <span className="text-[9px] font-bold text-indigo-700 bg-indigo-50 px-1 py-0.2 rounded border border-indigo-100">
+                                                    ⏱️ {durationMin} dk
+                                                </span>
+                                            )}
                                         </div>
-                                        <div className="text-lg font-black text-slate-800 leading-none">{total}</div>
-                                        <div className="text-[9px] text-slate-400 mb-1">toplam lead</div>
-                                        <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden mb-1">
-                                            <div className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-emerald-500 transition-all" style={{ width: `${pct}%` }} />
+
+                                        {/* Calls & Leads metrics */}
+                                        <div className="flex items-baseline justify-between mt-1">
+                                            <div>
+                                                <span className="text-base font-black text-blue-700 leading-none">{totalCalls}</span>
+                                                <span className="text-[9px] font-bold text-slate-400 ml-1">arama</span>
+                                            </div>
+                                            <div className="text-right">
+                                                <span className="text-xs font-bold text-slate-700 leading-none">{totalLeads}</span>
+                                                <span className="text-[9px] text-slate-400 ml-0.5">lead</span>
+                                            </div>
                                         </div>
-                                        <div className="flex justify-between text-[9px]">
-                                            <span className="text-emerald-600 font-bold">🟢{olumlu}</span>
-                                            <span className="text-red-500 font-bold">🔴{olumsuz}</span>
-                                            <span className="text-amber-600 font-bold">📵{ulasam}</span>
+
+                                        {/* Progress Bar */}
+                                        <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden my-1.5">
+                                            <div
+                                                className="h-full rounded-full bg-gradient-to-r from-blue-500 to-emerald-500 transition-all"
+                                                style={{ width: `${pct}%` }}
+                                            />
                                         </div>
-                                        {pending > 0 && (
-                                            <div className="text-[9px] text-slate-400 font-semibold text-center mt-0.5">⏳ {pending} bekliyor</div>
-                                        )}
+
+                                        {/* Outcome breakdown */}
+                                        <div className="flex justify-between text-[9px] pt-0.5 border-t border-slate-100">
+                                            <span className="text-emerald-600 font-bold" title="Olumlu">🟢 {olumlu}</span>
+                                            <span className="text-red-500 font-bold" title="Olumsuz">🔴 {olumsuz}</span>
+                                            <span className="text-amber-600 font-bold" title="Ulaşamadım">📵 {ulasam}</span>
+                                            {pending > 0 && (
+                                                <span className="text-slate-400 font-semibold" title="Bekleyen">⏳ {pending}</span>
+                                            )}
+                                        </div>
                                     </div>
                                 )
                             })}

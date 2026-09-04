@@ -14,10 +14,10 @@ import {
     addDays,
     eachDayOfInterval,
     parseISO,
-    isEqual
+    isToday
 } from 'date-fns'
 import { tr, enUS } from 'date-fns/locale'
-import { ChevronLeft, ChevronRight, MoreHorizontal, Pencil, CheckCircle2, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, MoreHorizontal, Pencil, CheckCircle2, X, Plus, Calendar as CalendarIcon, Video, Phone, Building2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
     DropdownMenu,
@@ -37,35 +37,51 @@ interface ActivityCalendarProps {
     customers: any[]
     profiles: any[]
     projects?: any[]
+    onSelectDate?: (date: Date) => void
 }
 
-export function ActivityCalendar({ activities, customers, profiles, projects }: ActivityCalendarProps) {
+export function ActivityCalendar({ activities, customers, profiles, projects, onSelectDate }: ActivityCalendarProps) {
     const locale = useLocale()
     const router = useRouter()
     const dateLocale = locale === 'tr' ? tr : enUS
     const [currentMonth, setCurrentMonth] = useState(new Date())
     const [selectedActivity, setSelectedActivity] = useState<any>(null)
     const [showEdit, setShowEdit] = useState(false)
-    const [showComplete, setShowComplete] = useState(false)
+    const [showCreate, setShowCreate] = useState(false)
+    const [createDefaultDate, setCreateDefaultDate] = useState<string>('')
 
     const nextMonth = () => setCurrentMonth(addMonths(currentMonth, 1))
     const prevMonth = () => setCurrentMonth(subMonths(currentMonth, 1))
 
     const renderHeader = () => {
         return (
-            <div className="flex items-center justify-between px-4 py-4 border-b">
-                <h2 className="text-lg font-semibold capitalize">
-                    {format(currentMonth, 'MMMM yyyy', { locale: dateLocale })}
-                </h2>
-                <div className="flex gap-1">
-                    <Button variant="outline" size="icon" onClick={prevMonth}>
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 bg-white border-b">
+                <div className="flex items-center gap-2">
+                    <Button variant="outline" size="icon" onClick={prevMonth} className="h-9 w-9 rounded-lg">
                         <ChevronLeft className="h-4 w-4" />
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => setCurrentMonth(new Date())}>
-                        Bugün
+                    <Button variant="outline" size="sm" onClick={() => setCurrentMonth(new Date())} className="h-9 font-bold text-xs px-3">
+                        Bu Ay
                     </Button>
-                    <Button variant="outline" size="icon" onClick={nextMonth}>
+                    <Button variant="outline" size="icon" onClick={nextMonth} className="h-9 w-9 rounded-lg">
                         <ChevronRight className="h-4 w-4" />
+                    </Button>
+                    <h2 className="ml-2 text-lg sm:text-xl font-black text-slate-900 capitalize tracking-tight">
+                        {format(currentMonth, 'MMMM yyyy', { locale: dateLocale })}
+                    </h2>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <Button
+                        size="sm"
+                        onClick={() => {
+                            setCreateDefaultDate(format(new Date(), "yyyy-MM-dd'T'10:00"))
+                            setShowCreate(true)
+                        }}
+                        className="bg-violet-600 hover:bg-violet-700 text-white font-bold h-9 gap-1.5 shadow-sm rounded-lg"
+                    >
+                        <Plus className="h-4 w-4" />
+                        Aktivite Ekle
                     </Button>
                 </div>
             </div>
@@ -78,13 +94,13 @@ export function ActivityCalendar({ activities, customers, profiles, projects }: 
 
         for (let i = 0; i < 7; i++) {
             days.push(
-                <div key={i} className="py-2 text-center text-xs font-bold text-muted-foreground uppercase tracking-wider border-b">
+                <div key={i} className="py-2.5 text-center text-xs font-black text-slate-500 uppercase tracking-wider border-b bg-slate-50/80">
                     {format(addDays(startDate, i), 'EEEE', { locale: dateLocale })}
                 </div>
             )
         }
 
-        return <div className="grid grid-cols-7 bg-muted/20">{days}</div>
+        return <div className="grid grid-cols-7">{days}</div>
     }
 
     const renderCells = () => {
@@ -103,110 +119,83 @@ export function ActivityCalendar({ activities, customers, profiles, projects }: 
 
         calendarDays.forEach((day, i) => {
             const dayActivities = activities.filter(a => a.due_date && isSameDay(parseISO(a.due_date), day))
+            const isCurDay = isToday(day)
+            const isThisMonth = isSameMonth(day, monthStart)
 
             days.push(
                 <div
                     key={day.toString()}
                     className={cn(
-                        "relative min-h-[120px] border-b border-r p-2 transition-colors hover:bg-muted/30",
-                        !isSameMonth(day, monthStart) && "bg-muted/10 text-muted-foreground",
-                        isSameDay(day, new Date()) && "bg-primary/5"
+                        "relative min-h-[130px] border-b border-r p-2 transition-all flex flex-col group/cell",
+                        !isThisMonth ? "bg-slate-50/50 text-slate-400" : "bg-white hover:bg-slate-50/40",
+                        isCurDay && "bg-violet-50/20"
                     )}
                 >
-                    <span className={cn(
-                        "inline-flex h-7 w-7 items-center justify-center rounded-full text-sm font-medium",
-                        isSameDay(day, new Date()) && "bg-primary text-primary-foreground"
-                    )}>
-                        {format(day, 'd')}
-                    </span>
+                    <div className="flex items-center justify-between">
+                        <span className={cn(
+                            "inline-flex h-7 w-7 items-center justify-center rounded-lg text-xs font-black transition-all",
+                            isCurDay
+                                ? "bg-violet-600 text-white shadow-xs"
+                                : isThisMonth ? "text-slate-800" : "text-slate-400"
+                        )}>
+                            {format(day, 'd')}
+                        </span>
 
-                    <div className="mt-2 space-y-1">
-                        {dayActivities.slice(0, 4).map(activity => (
-                            <div
-                                key={activity.id}
-                                className={cn(
-                                    "group flex items-center gap-1.5 px-2 py-1 text-[10px] sm:text-xs rounded border cursor-pointer truncate shadow-sm transition-all hover:scale-[1.02]",
-                                    activity.status === 'Completed' ? "bg-green-100 text-green-800 border-green-200 line-through opacity-70" :
-                                        activity.priority === 'Urgent' ? "bg-red-100 text-red-800 border-red-200 font-semibold" :
-                                            activity.priority === 'High' ? "bg-orange-100 text-orange-800 border-orange-200" :
-                                                "bg-blue-100 text-blue-800 border-blue-200"
-                                )}
-                                onClick={() => {
-                                    setSelectedActivity(activity)
-                                    setShowEdit(true)
-                                }}
-                                title={`${activity.summary} | ${activity.customers?.full_name || 'Bilinmiyor'} | Sorumlu: ${activity.owner?.full_name || '-'} (${activity.type})`}
-                            >
-                                <span className="w-1.5 h-1.5 rounded-full shrink-0 mt-0.5"
-                                    style={{
-                                        backgroundColor: activity.type === 'Meeting' ? '#8b5cf6' :
-                                            activity.type === 'Call' ? '#3b82f6' :
-                                                activity.type === 'Site Visit' ? '#f59e0b' : '#64748b'
-                                    }}
-                                />
-                                <div className="flex flex-col min-w-0 flex-1">
-                                    <span className="truncate font-medium">{activity.summary}</span>
-                                    {activity.owner?.full_name && (
-                                        <span className="text-[8px] opacity-80 leading-tight font-bold text-muted-foreground mt-0.5">
-                                            {activity.owner.full_name}
-                                        </span>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                                setCreateDefaultDate(format(day, "yyyy-MM-dd'T'10:00"))
+                                setShowCreate(true)
+                            }}
+                            className="h-6 w-6 text-slate-300 hover:text-violet-600 hover:bg-violet-50 rounded opacity-0 group-hover/cell:opacity-100 transition-opacity"
+                            title="Bu güne aktivite ekle"
+                        >
+                            <Plus className="h-3 w-3" />
+                        </Button>
+                    </div>
+
+                    <div className="mt-1.5 space-y-1 flex-1 overflow-hidden">
+                        {dayActivities.slice(0, 3).map(activity => {
+                            const isDone = activity.status === 'Completed'
+                            const isOnline = activity.type === 'OnlineMeeting' || activity.topic === 'Online Toplantı'
+                            const isOverdue = activity.due_date && new Date(activity.due_date) < new Date() && !isDone && activity.status !== 'Cancelled'
+
+                            return (
+                                <div
+                                    key={activity.id}
+                                    className={cn(
+                                        "group flex items-center gap-1.5 px-2 py-1 text-[11px] rounded-md border cursor-pointer truncate shadow-2xs transition-all hover:scale-[1.01]",
+                                        isDone ? "bg-slate-100 text-slate-500 border-slate-200 line-through opacity-70" :
+                                            isOverdue ? "bg-red-50 text-red-700 border-red-200 font-bold" :
+                                                activity.priority === 'Urgent' ? "bg-red-50 text-red-800 border-red-200 font-bold" :
+                                                    isOnline ? "bg-emerald-50 text-emerald-800 border-emerald-200" :
+                                                        "bg-violet-50 text-violet-800 border-violet-200 font-medium"
                                     )}
+                                    onClick={() => {
+                                        setSelectedActivity(activity)
+                                        setShowEdit(true)
+                                    }}
+                                    title={`${activity.summary || activity.customers?.full_name} | ${format(new Date(activity.due_date), 'HH:mm')} | ${activity.owner?.full_name || '-'}`}
+                                >
+                                    <span className="text-[10px] font-bold shrink-0 opacity-75">
+                                        {format(new Date(activity.due_date), 'HH:mm')}
+                                    </span>
+                                    <span className="truncate font-medium flex-1">
+                                        {activity.summary || activity.customers?.full_name || 'Aktivite'}
+                                    </span>
                                 </div>
+                            )
+                        })}
 
-                                {activity.status !== 'Completed' && (
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                            <Button variant="ghost" className="h-4 w-4 p-0 opacity-0 group-hover:opacity-100 transition-opacity ml-auto">
-                                                <MoreHorizontal className="h-3 w-3" />
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end">
-                                            <DropdownMenuItem onClick={(e) => {
-                                                e.stopPropagation();
-                                                setSelectedActivity(activity);
-                                                setShowEdit(true);
-                                            }}>
-                                                <Pencil className="h-3 w-3 mr-2" />
-                                                Düzenle
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem onClick={(e) => {
-                                                e.stopPropagation();
-                                                setSelectedActivity(activity);
-                                                setShowComplete(true);
-                                            }}>
-                                                <CheckCircle2 className="h-3 w-3 mr-2 text-green-600" />
-                                                Tamamla
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem onClick={async (e) => {
-                                                e.stopPropagation();
-                                                if (confirm('Bu aktiviteyi iptal etmek istediğinize emin misiniz?')) {
-                                                    const result = await cancelActivity(activity.id);
-                                                    if (result?.error) toast.error(result.error);
-                                                    else { toast.success('Aktivite iptal edildi'); router.refresh(); }
-                                                }
-                                            }}>
-                                                <X className="h-3 w-3 mr-2 text-red-600" />
-                                                İptal Et
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem className="text-red-600" onClick={async (e) => {
-                                                e.stopPropagation();
-                                                if (confirm('Bu aktiviteyi kalıcı olarak silmek istediğinize emin misiniz?')) {
-                                                    const result = await deleteActivity(activity.id);
-                                                    if (result?.error) toast.error(result.error);
-                                                    else { toast.success('Aktivite silindi'); router.refresh(); }
-                                                }
-                                            }}>
-                                                <X className="h-3 w-3 mr-2" />
-                                                Sil
-                                            </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
-                                )}
-                            </div>
-                        ))}
-                        {dayActivities.length > 4 && (
-                            <div className="text-[10px] text-muted-foreground pl-1">
-                                +{dayActivities.length - 4} daha...
+                        {dayActivities.length > 3 && (
+                            <div
+                                onClick={() => {
+                                    if (onSelectDate) onSelectDate(day)
+                                }}
+                                className="text-[10px] font-bold text-violet-600 hover:underline pl-1 cursor-pointer"
+                            >
+                                +{dayActivities.length - 3} daha...
                             </div>
                         )}
                     </div>
@@ -227,35 +216,36 @@ export function ActivityCalendar({ activities, customers, profiles, projects }: 
     }
 
     return (
-        <div className="flex flex-col h-full bg-card min-w-[800px]">
+        <div className="flex flex-col h-full bg-white rounded-xl border shadow-xs overflow-hidden min-w-[750px]">
             {renderHeader()}
             <div className="flex-1 overflow-auto">
                 {renderDays()}
                 {renderCells()}
             </div>
 
+            {/* Modals */}
+            <ActivityForm
+                open={showCreate}
+                onOpenChange={setShowCreate}
+                mode="create"
+                customers={customers}
+                profiles={profiles}
+                projects={projects}
+                activity={createDefaultDate ? { due_date: createDefaultDate } : undefined}
+            />
+
             {selectedActivity && (
-                <>
-                    <ActivityForm
-                        open={showEdit}
-                        onOpenChange={setShowEdit}
-                        mode="edit"
-                        activity={selectedActivity}
-                        customers={customers}
-                        profiles={profiles}
-                        projects={projects}
-                    />
-                    <ActivityForm
-                        open={showComplete}
-                        onOpenChange={setShowComplete}
-                        mode="complete"
-                        activity={selectedActivity}
-                        customers={customers}
-                        profiles={profiles}
-                        projects={projects}
-                    />
-                </>
+                <ActivityForm
+                    open={showEdit}
+                    onOpenChange={setShowEdit}
+                    mode="edit"
+                    activity={selectedActivity}
+                    customers={customers}
+                    profiles={profiles}
+                    projects={projects}
+                />
             )}
         </div>
     )
 }
+

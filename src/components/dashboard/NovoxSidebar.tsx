@@ -38,7 +38,8 @@ import {
     AlertTriangle,
     ClipboardList,
     Video,
-    PhoneOff
+    PhoneOff,
+    Headphones
 } from 'lucide-react'
 import {
     Accordion,
@@ -284,6 +285,12 @@ export function NovoxSidebar({
                                 {labels.salesManagement || 'Sales Management'}
                             </NavItem>
 
+                            {isManager && (
+                                <NavItem href="/crm/rep-tracking" icon={Headphones} onClick={onElementClick} isCollapsed={isCollapsed} isSubItem>
+                                    Temsilci Takip
+                                </NavItem>
+                            )}
+
 
 
                             {isDeveloper && (
@@ -355,6 +362,12 @@ export function NovoxSidebar({
                                             <NavItem href="/crm" icon={Activity} onClick={onElementClick} isSubItem>
                                                 {labels.salesManagement || 'Sales Management'}
                                             </NavItem>
+
+                                            {isManager && (
+                                                <NavItem href="/crm/rep-tracking" icon={Headphones} onClick={onElementClick} isSubItem>
+                                                    Temsilci Takip
+                                                </NavItem>
+                                            )}
 
                                             {isDeveloper && (
                                                 <>

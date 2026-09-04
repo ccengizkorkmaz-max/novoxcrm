@@ -45,7 +45,7 @@ export default async function ActivitiesPage(props: {
 
     let incompleteQuery = supabase
         .from('activities')
-        .select('*, customers(full_name, customer_type, company_name, company:companies(name)), leads(full_name), owner:profiles!activities_owner_id_fkey(full_name)')
+        .select('*, customers(id, full_name, phone, email, customer_type, company_name, company:companies(name)), leads(id, full_name, phone, email), owner:profiles!activities_owner_id_fkey(id, full_name, phone)')
         .in('type', ['Call', 'Meeting', 'Task', 'OfficeMeeting', 'OnlineMeeting', 'Site Visit', 'Whatsapp', 'Email'])
         .not('status', 'in', '("Completed","Cancelled")')
         .gte('due_date', ninetyDaysAgoISO)
@@ -54,7 +54,7 @@ export default async function ActivitiesPage(props: {
 
     let completedQuery = supabase
         .from('activities')
-        .select('*, customers(full_name, customer_type, company_name, company:companies(name)), leads(full_name), owner:profiles!activities_owner_id_fkey(full_name)')
+        .select('*, customers(id, full_name, phone, email, customer_type, company_name, company:companies(name)), leads(id, full_name, phone, email), owner:profiles!activities_owner_id_fkey(id, full_name, phone)')
         .in('type', ['Call', 'Meeting', 'Task', 'OfficeMeeting', 'OnlineMeeting', 'Site Visit', 'Whatsapp', 'Email'])
         .in('status', ['Completed', 'Cancelled'])
         .order('created_at', { ascending: false })
@@ -67,11 +67,11 @@ export default async function ActivitiesPage(props: {
     }
 
     // Run all queries in parallel
-    const [customers, activities, profilesResult, t, projects] = await Promise.all([
+    const [customers, activities, profilesResult, t, projects, meetingsResult] = await Promise.all([
         // Customers — include customer_type and company info for proper combobox display
         supabase
             .from('customers')
-            .select('id, full_name, customer_type, company_name, company:companies(name)')
+            .select('id, full_name, phone, email, customer_type, company_name, company:companies(name)')
             .order('full_name', { ascending: true })
             .limit(3000)
             .then(r => r.data || []),
@@ -94,6 +94,14 @@ export default async function ActivitiesPage(props: {
             .select('id, name')
             .order('name')
             .then(r => r.data || []),
+
+        // Meetings for live links & room matching
+        supabase
+            .from('meetings')
+            .select('id, title, status, scheduled_at, daily_room_name, customer_id, project_id, host_user_id')
+            .order('scheduled_at', { ascending: false })
+            .limit(500)
+            .then(r => r.data || [], () => [])
     ])
 
     // Filter out suspicious profile names (like "1")
@@ -113,16 +121,14 @@ export default async function ActivitiesPage(props: {
     }
 
     return (
-        <div className="flex flex-col gap-6 h-[calc(100vh-100px)]">
-            <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-bold tracking-tight">{t('title')}</h1>
-            </div>
-            <Suspense fallback={<div>Yükleniyor...</div>}>
+        <div className="flex flex-col gap-4 min-h-screen pb-10">
+            <Suspense fallback={<div className="p-8 text-center text-muted-foreground animate-pulse">Aktiviteler yükleniyor...</div>}>
                 <ActivitiesView
                     initialActivities={activities}
                     customers={customers}
                     profiles={profiles}
                     projects={projects}
+                    meetings={meetingsResult}
                     user={user}
                 />
             </Suspense>

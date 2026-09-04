@@ -938,6 +938,10 @@
         "description": "İşletmenizin performansını detaylı raporlar ile analiz edin.",
         "note": "Not: Raporlar şu an taslak aşamasındadır. Yakında veri tabanınızdaki canlı verilerle grafiksel olarak güncellenecektir.",
         "cards": {
+            "rep-tracking": {
+                "title": "Temsilci Takip & Arama Performansı",
+                "description": "Satış temsilcilerinin günlük, haftalık ve aylık arama sayıları, konuşma süreleri ve lead temas durumu."
+            },
             "performance-analytics": {
                 "title": "Performans & Lead Analitik",
                 "description": "WhatsApp mesajları, telefon aramaları ve Cold/Ilık/Hot lead sayılarını dönemsel olarak analiz edin."

@@ -4018,45 +4018,57 @@ export async function fetchTrackingSales() {
         return { sales: [], error: 'Not authorized' }
     }
 
-    // Simple query: get all non-Inbox sales
-    const { data: sales, error } = await supabase
-        .from('sales')
-        .select(`
-            id,
-            status,
-            assigned_to,
-            assigned_at,
-            created_at,
-            updated_at,
-            first_contact,
-            process_note,
-            project_id,
-            customer_id,
-            customers (
-                id,
-                full_name,
-                phone,
-                customer_number
-            ),
-            projects (
-                name
-            ),
-            profiles (
-                full_name
-            )
-        `)
-        .neq('status', 'Inbox')
-        .order('updated_at', { ascending: false, nullsFirst: false })
-        .order('created_at', { ascending: false })
-        .limit(2000)
+    // Query sales and call activities in parallel
+    const ninetyDaysAgo = new Date()
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
 
-    if (error) {
-        console.error('[fetchTrackingSales] Error:', error.message, error.details, error.hint)
-        return { sales: [], error: error.message }
+    const [salesRes, activitiesRes] = await Promise.all([
+        supabase
+            .from('sales')
+            .select(`
+                id,
+                status,
+                assigned_to,
+                assigned_at,
+                created_at,
+                updated_at,
+                first_contact,
+                process_note,
+                project_id,
+                customer_id,
+                customers (
+                    id,
+                    full_name,
+                    phone,
+                    customer_number
+                ),
+                projects (
+                    name
+                ),
+                profiles (
+                    full_name
+                )
+            `)
+            .neq('status', 'Inbox')
+            .order('updated_at', { ascending: false, nullsFirst: false })
+            .order('created_at', { ascending: false })
+            .limit(2000),
+
+        supabase
+            .from('activities')
+            .select('id, type, topic, status, outcome, owner_id, user_id, customer_id, due_date, created_at, completed_at, duration_seconds, notes, call_recording_url')
+            .in('type', ['Call', 'Meeting', 'OnlineMeeting', 'Whatsapp'])
+            .gte('created_at', ninetyDaysAgo.toISOString())
+            .limit(5000)
+    ])
+
+    if (salesRes.error) {
+        console.error('[fetchTrackingSales] Error:', salesRes.error.message, salesRes.error.details, salesRes.error.hint)
+        return { sales: [], activities: [], error: salesRes.error.message }
     }
 
-    console.log('[fetchTrackingSales] Success, count:', sales?.length || 0)
-    return { sales: sales || [], error: null }
+    console.log('[fetchTrackingSales] Success, sales:', salesRes.data?.length || 0, 'activities:', activitiesRes.data?.length || 0)
+    return { sales: salesRes.data || [], activities: activitiesRes.data || [], error: null }
 }
 
 export async function createQuickAppointment(params: {
