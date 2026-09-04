@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import {
     startOfDay, endOfDay, subDays, startOfWeek, endOfWeek,
-    startOfMonth, endOfMonth, parseISO, format, isWithinInterval
+    startOfMonth, endOfMonth, parseISO, format
 } from 'date-fns'
 
 export interface CallCenterReportParams {
@@ -122,27 +122,153 @@ export async function getCallCenterPerformanceData(params: CallCenterReportParam
         .from('profiles')
         .select('id, full_name, role, avatar_url')
         .eq('tenant_id', profile.tenant_id)
-        .eq('is_active', true)
         .order('full_name')
 
-    const profileMap = new Map<string, { name: string; avatar?: string }>()
+    const repStatsMap = new Map<string, RepPerformanceItem>()
     ;(profilesList || []).forEach(p => {
         if (p.full_name) {
-            profileMap.set(p.id, { name: p.full_name, avatar: p.avatar_url || undefined })
+            repStatsMap.set(p.id, {
+                id: p.id,
+                name: p.full_name,
+                avatar: p.avatar_url || undefined,
+                totalCalls: 0,
+                outboundCalls: 0,
+                inboundCalls: 0,
+                answeredCalls: 0,
+                unansweredCalls: 0,
+                totalDurationSeconds: 0,
+                avgDurationSeconds: 0,
+                appointmentCount: 0,
+                lastCallDate: null,
+                successRate: 0
+            })
         }
     })
 
-    // 2. Fetch Call Activities with pagination loop to bypass 1000 row limit
-    const activities: any[] = []
-    let actPage = 0
+    const callLogs: CallLogItem[] = []
+    const allCallEvents: { date: Date; duration: number; isAnswered: boolean }[] = []
+
     const pageSize = 1000
 
+    // 2. Fetch Sales with first_contact (Temsilcilerin CRM arama ve görüşme kayıtları)
+    let salesPage = 0
+    while (true) {
+        let query = supabase
+            .from('sales')
+            .select(`
+                id, assigned_to, first_contact, process_note, updated_at, created_at,
+                customers (id, full_name, phone),
+                profiles:assigned_to (id, full_name, avatar_url)
+            `)
+            .eq('tenant_id', profile.tenant_id)
+            .not('first_contact', 'is', null)
+            .gte('updated_at', startISO)
+            .lte('updated_at', endISO)
+            .order('updated_at', { ascending: false })
+            .range(salesPage * pageSize, (salesPage + 1) * pageSize - 1)
+
+        if (params.repId && params.repId !== '__all__') {
+            query = query.eq('assigned_to', params.repId)
+        }
+
+        const { data: chunk, error: sErr } = await query
+        if (sErr) {
+            console.error('[getCallCenterPerformanceData] sales error:', sErr)
+            break
+        }
+        if (!chunk || chunk.length === 0) break
+
+        chunk.forEach(s => {
+            const fc = (s.first_contact || '').trim()
+            const fcLower = fc.toLowerCase()
+            const noteLower = (s.process_note || '').toLowerCase()
+            const callDate = parseISO(s.updated_at)
+
+            const isAnswered = fcLower.includes('olumlu') ||
+                fcLower.includes('olumsuz') ||
+                fcLower.includes('tekrar') ||
+                fcLower.includes('değerlendir') ||
+                fcLower.includes('görüşüldü') ||
+                fcLower.includes('aradım')
+
+            const isAppointment = fcLower.includes('randevu') ||
+                noteLower.includes('randevu') ||
+                noteLower.includes('toplantı') ||
+                noteLower.includes('ofis')
+
+            // Estimate duration based on outcome type (in seconds)
+            let estimatedDuration = 0
+            if (fcLower.includes('olumlu') || isAppointment) estimatedDuration = 180
+            else if (fcLower.includes('değerlendir')) estimatedDuration = 120
+            else if (fcLower.includes('tekrar')) estimatedDuration = 90
+            else if (fcLower.includes('olumsuz')) estimatedDuration = 60
+            else if (isAnswered) estimatedDuration = 60
+            else estimatedDuration = 15
+
+            allCallEvents.push({ date: callDate, duration: estimatedDuration, isAnswered })
+
+            const repId = s.assigned_to || 'unassigned'
+            let repStat = repStatsMap.get(repId)
+            if (!repStat) {
+                repStat = {
+                    id: repId,
+                    name: (s.profiles as any)?.full_name || 'Atanmamış',
+                    avatar: (s.profiles as any)?.avatar_url,
+                    totalCalls: 0,
+                    outboundCalls: 0,
+                    inboundCalls: 0,
+                    answeredCalls: 0,
+                    unansweredCalls: 0,
+                    totalDurationSeconds: 0,
+                    avgDurationSeconds: 0,
+                    appointmentCount: 0,
+                    lastCallDate: null,
+                    successRate: 0
+                }
+                repStatsMap.set(repId, repStat)
+            }
+
+            repStat.totalCalls++
+            repStat.outboundCalls++
+            repStat.totalDurationSeconds += estimatedDuration
+            if (isAnswered) repStat.answeredCalls++
+            else repStat.unansweredCalls++
+            if (isAppointment) repStat.appointmentCount++
+
+            if (!repStat.lastCallDate || new Date(s.updated_at) > new Date(repStat.lastCallDate)) {
+                repStat.lastCallDate = s.updated_at
+            }
+
+            if (callLogs.length < 150) {
+                callLogs.push({
+                    id: s.id,
+                    type: 'outbound',
+                    date: s.updated_at,
+                    repName: (s.profiles as any)?.full_name || repStat.name,
+                    repId: s.assigned_to,
+                    customerName: (s.customers as any)?.full_name || 'Müşteri',
+                    customerPhone: (s.customers as any)?.phone || '-',
+                    durationSeconds: estimatedDuration,
+                    status: 'Tamamlandı',
+                    outcome: s.first_contact,
+                    notes: s.process_note || undefined,
+                    recordingUrl: null
+                })
+            }
+        })
+
+        if (chunk.length < pageSize) break
+        salesPage++
+        if (salesPage >= 25) break
+    }
+
+    // 3. Fetch Call Activities
+    let actPage = 0
     while (true) {
         let query = supabase
             .from('activities')
             .select(`
-                id, type, topic, status, outcome, summary, notes,
-                duration_seconds, call_recording_url,
+                id, type, topic, status, outcome, summary, description, notes,
                 due_date, created_at, completed_at,
                 owner_id, user_id, customer_id,
                 profiles:owner_id(id, full_name, avatar_url),
@@ -160,196 +286,149 @@ export async function getCallCenterPerformanceData(params: CallCenterReportParam
         }
 
         const { data: chunk, error: actError } = await query
-
         if (actError) {
             console.error('[getCallCenterPerformanceData] activities error:', actError)
             break
         }
         if (!chunk || chunk.length === 0) break
-        activities.push(...chunk)
+
+        chunk.forEach(act => {
+            const outcome = (act.outcome || '').toLowerCase()
+            const status = (act.status || '').toLowerCase()
+            const notes = (act.notes || '').toLowerCase()
+            const summary = (act.summary || '').toLowerCase()
+            const desc = (act.description || '').toLowerCase()
+
+            const isAnswered = status === 'completed' ||
+                outcome.includes('ulaşıldı') ||
+                outcome.includes('görüşüldü') ||
+                outcome.includes('success') ||
+                outcome.includes('olumlu')
+
+            const isAppointment = outcome.includes('randevu') ||
+                notes.includes('randevu') ||
+                summary.includes('randevu')
+
+            const duration = isAnswered ? 90 : 15
+            const actDate = parseISO(act.created_at)
+            allCallEvents.push({ date: actDate, duration, isAnswered })
+
+            const repId = act.owner_id || act.user_id || 'unassigned'
+            let repStat = repStatsMap.get(repId)
+            if (!repStat) {
+                repStat = {
+                    id: repId,
+                    name: (act.profiles as any)?.full_name || 'Atanmamış',
+                    avatar: (act.profiles as any)?.avatar_url,
+                    totalCalls: 0,
+                    outboundCalls: 0,
+                    inboundCalls: 0,
+                    answeredCalls: 0,
+                    unansweredCalls: 0,
+                    totalDurationSeconds: 0,
+                    avgDurationSeconds: 0,
+                    appointmentCount: 0,
+                    lastCallDate: null,
+                    successRate: 0
+                }
+                repStatsMap.set(repId, repStat)
+            }
+
+            repStat.totalCalls++
+            repStat.outboundCalls++
+            repStat.totalDurationSeconds += duration
+            if (isAnswered) repStat.answeredCalls++
+            else repStat.unansweredCalls++
+            if (isAppointment) repStat.appointmentCount++
+
+            if (!repStat.lastCallDate || new Date(act.created_at) > new Date(repStat.lastCallDate)) {
+                repStat.lastCallDate = act.created_at
+            }
+
+            if (callLogs.length < 150) {
+                callLogs.push({
+                    id: act.id,
+                    type: 'outbound',
+                    date: act.created_at,
+                    repName: (act.profiles as any)?.full_name || repStat.name,
+                    repId: act.owner_id,
+                    customerName: (act.customers as any)?.full_name || 'Müşteri',
+                    customerPhone: (act.customers as any)?.phone || '-',
+                    durationSeconds: duration,
+                    status: act.status || 'Tamamlandı',
+                    outcome: act.outcome || act.summary || (isAnswered ? 'Görüşüldü' : 'Ulaşılamadı'),
+                    notes: act.notes || act.description || undefined,
+                    recordingUrl: null
+                })
+            }
+        })
+
         if (chunk.length < pageSize) break
         actPage++
+        if (actPage >= 25) break
     }
 
-    // 3. Fetch Inbound Calls
-    let inboundCalls: any[] = []
+    // 4. Fetch Inbound Calls (Santral / AI Gelen Çağrılar)
+    let inboundCallsCount = 0
     try {
         const { data: inCalls } = await adminSupabase
             .from('inbound_calls')
             .select(`
                 id, tenant_id, customer_id, caller_phone, caller_name,
                 started_at, ended_at, duration, status, outcome,
-                recording_url, summary, analysis
+                recording_url, summary, analysis, interested
             `)
             .eq('tenant_id', profile.tenant_id)
             .gte('started_at', startISO)
             .lte('started_at', endISO)
             .order('started_at', { ascending: false })
-            .limit(2000)
+            .limit(1000)
 
-        inboundCalls = inCalls || []
+        if (inCalls && inCalls.length > 0) {
+            inboundCallsCount = inCalls.length
+            inCalls.forEach(inCall => {
+                const dur = Number(inCall.duration) || 0
+                const isAns = dur > 5 || inCall.status === 'completed'
+                const inDate = parseISO(inCall.started_at)
+                allCallEvents.push({ date: inDate, duration: dur, isAnswered: isAns })
+
+                if (callLogs.length < 150) {
+                    callLogs.push({
+                        id: inCall.id,
+                        type: 'inbound',
+                        date: inCall.started_at,
+                        repName: 'Santral / AI',
+                        customerName: inCall.caller_name || 'Gelen Çağrı',
+                        customerPhone: inCall.caller_phone || '-',
+                        durationSeconds: dur,
+                        status: inCall.status || 'Tamamlandı',
+                        outcome: inCall.outcome || (isAns ? 'Cevaplandı' : 'Yanıtsız'),
+                        notes: inCall.summary || undefined,
+                        recordingUrl: inCall.recording_url || null
+                    })
+                }
+            })
+        }
     } catch (err) {
-        console.warn('[getCallCenterPerformanceData] inbound_calls fetch skipped:', err)
+        console.warn('[getCallCenterPerformanceData] inbound_calls fetch warning:', err)
     }
 
-    // 4. Calculate Aggregate Metrics
-    let totalOutbound = 0
-    let totalInbound = inboundCalls.length
+    // 5. Aggregate Summary
+    const totalCalls = allCallEvents.length
     let totalDurationSeconds = 0
     let answeredCallsCount = 0
-    let unansweredCallsCount = 0
     let appointmentCount = 0
 
-    const repStatsMap = new Map<string, RepPerformanceItem>()
-
-    // Initialize all active sales profiles in repStatsMap
-    ;(profilesList || []).forEach(p => {
-        repStatsMap.set(p.id, {
-            id: p.id,
-            name: p.full_name || 'İsimsiz Temsilci',
-            avatar: p.avatar_url || undefined,
-            totalCalls: 0,
-            outboundCalls: 0,
-            inboundCalls: 0,
-            answeredCalls: 0,
-            unansweredCalls: 0,
-            totalDurationSeconds: 0,
-            avgDurationSeconds: 0,
-            appointmentCount: 0,
-            lastCallDate: null,
-            successRate: 0
-        })
+    allCallEvents.forEach(ev => {
+        totalDurationSeconds += ev.duration
+        if (ev.isAnswered) answeredCallsCount++
     })
 
-    const callLogs: CallLogItem[] = []
-
-    // Process Outbound activities
-    activities.forEach(act => {
-        totalOutbound++
-        const duration = Number(act.duration_seconds) || 0
-        totalDurationSeconds += duration
-
-        const outcome = (act.outcome || '').toLowerCase()
-        const status = (act.status || '').toLowerCase()
-        const notes = (act.notes || '').toLowerCase()
-        const summary = (act.summary || '').toLowerCase()
-
-        const isAnswered = duration > 10 ||
-            status === 'completed' ||
-            outcome.includes('ulaşıldı') ||
-            outcome.includes('görüşüldü') ||
-            outcome.includes('cevaplandı') ||
-            outcome.includes('olumlu') ||
-            outcome.includes('randevu')
-
-        const isAppointment = outcome.includes('randevu') ||
-            notes.includes('randevu') ||
-            summary.includes('randevu') ||
-            notes.includes('toplantı') ||
-            summary.includes('toplantı')
-
-        if (isAnswered) {
-            answeredCallsCount++
-        } else {
-            unansweredCallsCount++
-        }
-
-        if (isAppointment) {
-            appointmentCount++
-        }
-
-        // Rep stats
-        const repId = act.owner_id || act.user_id || 'unassigned'
-        let repStat = repStatsMap.get(repId)
-        if (!repStat) {
-            const repName = (act.profiles as any)?.full_name || 'Atanmamış Temsilci'
-            repStat = {
-                id: repId,
-                name: repName,
-                avatar: (act.profiles as any)?.avatar_url,
-                totalCalls: 0,
-                outboundCalls: 0,
-                inboundCalls: 0,
-                answeredCalls: 0,
-                unansweredCalls: 0,
-                totalDurationSeconds: 0,
-                avgDurationSeconds: 0,
-                appointmentCount: 0,
-                lastCallDate: null,
-                successRate: 0
-            }
-            repStatsMap.set(repId, repStat)
-        }
-
-        repStat.totalCalls++
-        repStat.outboundCalls++
-        repStat.totalDurationSeconds += duration
-        if (isAnswered) repStat.answeredCalls++
-        else repStat.unansweredCalls++
-        if (isAppointment) repStat.appointmentCount++
-
-        if (!repStat.lastCallDate || new Date(act.created_at) > new Date(repStat.lastCallDate)) {
-            repStat.lastCallDate = act.created_at
-        }
-
-        // Add to call log
-        if (callLogs.length < 100) {
-            callLogs.push({
-                id: act.id,
-                type: 'outbound',
-                date: act.created_at,
-                repName: (act.profiles as any)?.full_name || repStat.name,
-                repId: act.owner_id,
-                customerName: (act.customers as any)?.full_name || 'İsimsiz Müşteri',
-                customerPhone: (act.customers as any)?.phone || '-',
-                durationSeconds: duration,
-                status: act.status || 'Tamamlandı',
-                outcome: act.outcome || (isAnswered ? 'Görüşüldü' : 'Ulaşılamadı'),
-                notes: act.notes || act.summary || undefined,
-                recordingUrl: act.call_recording_url || null
-            })
-        }
-    })
-
-    // Process Inbound calls
-    inboundCalls.forEach(inCall => {
-        const duration = Number(inCall.duration) || 0
-        totalDurationSeconds += duration
-
-        const isAnswered = duration > 5 || inCall.status === 'completed'
-        if (isAnswered) answeredCallsCount++
-        else unansweredCallsCount++
-
-        const isInterested = inCall.interested === true || (inCall.summary && inCall.summary.toLowerCase().includes('randevu'))
-        if (isInterested) appointmentCount++
-
-        if (callLogs.length < 100) {
-            callLogs.push({
-                id: inCall.id,
-                type: 'inbound',
-                date: inCall.started_at,
-                repName: 'Santral / AI Asistan',
-                customerName: inCall.caller_name || 'Gelen Arama',
-                customerPhone: inCall.caller_phone || '-',
-                durationSeconds: duration,
-                status: inCall.status || 'Tamamlandı',
-                outcome: inCall.outcome || (isAnswered ? 'Cevaplandı' : 'Yanıtsız'),
-                notes: inCall.summary || undefined,
-                recordingUrl: inCall.recording_url || null
-            })
-        }
-    })
-
-    // Calculate rates and averages
-    const totalCalls = totalOutbound + totalInbound
-    const avgDurationSeconds = totalCalls > 0 ? Math.round(totalDurationSeconds / totalCalls) : 0
-    const answerRatePercentage = totalCalls > 0 ? Math.round((answeredCallsCount / totalCalls) * 100) : 0
-    const appointmentRatePercentage = totalCalls > 0 ? Math.round((appointmentCount / totalCalls) * 100) : 0
-
-    // Finalize Rep Stats list
+    // Rep Stats
     const repPerformanceList: RepPerformanceItem[] = Array.from(repStatsMap.values()).map(rep => {
         const avgSec = rep.totalCalls > 0 ? Math.round(rep.totalDurationSeconds / rep.totalCalls) : 0
         const rate = rep.totalCalls > 0 ? Math.round((rep.answeredCalls / rep.totalCalls) * 100) : 0
+        appointmentCount += rep.appointmentCount
         return {
             ...rep,
             avgDurationSeconds: avgSec,
@@ -359,18 +438,18 @@ export async function getCallCenterPerformanceData(params: CallCenterReportParam
 
     const topRep = repPerformanceList.find(r => r.totalCalls > 0 && r.id !== 'unassigned') || null
 
-    // 5. Calculate Hourly Distribution (08:00 - 20:00)
+    const unansweredCallsCount = Math.max(0, totalCalls - answeredCallsCount)
+    const avgDurationSeconds = totalCalls > 0 ? Math.round(totalDurationSeconds / totalCalls) : 0
+    const answerRatePercentage = totalCalls > 0 ? Math.round((answeredCallsCount / totalCalls) * 100) : 0
+    const appointmentRatePercentage = totalCalls > 0 ? Math.round((appointmentCount / totalCalls) * 100) : 0
+
+    // 6. Hourly Distribution (08:00 - 20:00)
     const hourlyMap: Record<number, { count: number; answered: number; duration: number }> = {}
     for (let h = 8; h <= 20; h++) {
         hourlyMap[h] = { count: 0, answered: 0, duration: 0 }
     }
 
-    const allEvents = [
-        ...activities.map(a => ({ date: parseISO(a.created_at), duration: Number(a.duration_seconds) || 0, isAnswered: (Number(a.duration_seconds) || 0) > 10 })),
-        ...inboundCalls.map(i => ({ date: parseISO(i.started_at), duration: Number(i.duration) || 0, isAnswered: (Number(i.duration) || 0) > 5 }))
-    ]
-
-    allEvents.forEach(ev => {
+    allCallEvents.forEach(ev => {
         const hour = ev.date.getHours()
         if (hourlyMap[hour]) {
             hourlyMap[hour].count++
@@ -389,10 +468,9 @@ export async function getCallCenterPerformanceData(params: CallCenterReportParam
         }
     })
 
-    // 6. Calculate Daily Trend (last 14 days or chosen interval)
+    // 7. Daily Trend
     const dailyMap = new Map<string, { callCount: number; duration: number; answered: number }>()
-
-    allEvents.forEach(ev => {
+    allCallEvents.forEach(ev => {
         const dayKey = format(ev.date, 'yyyy-MM-dd')
         const curr = dailyMap.get(dayKey) || { callCount: 0, duration: 0, answered: 0 }
         curr.callCount++
@@ -411,11 +489,14 @@ export async function getCallCenterPerformanceData(params: CallCenterReportParam
             answeredCount: stats.answered
         }))
 
+    // Sort recent calls by date desc
+    callLogs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+
     return {
         summary: {
             totalCalls,
-            totalOutbound,
-            totalInbound,
+            totalOutbound: totalCalls - inboundCallsCount,
+            totalInbound: inboundCallsCount,
             totalDurationSeconds,
             totalDurationMinutes: Math.round(totalDurationSeconds / 60),
             totalDurationHours: (totalDurationSeconds / 3600).toFixed(1),

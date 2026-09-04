@@ -4078,7 +4078,7 @@ export async function fetchTrackingSales() {
     while (true) {
         const { data: chunk, error: actErr } = await supabase
             .from('activities')
-            .select('id, type, topic, status, outcome, owner_id, user_id, customer_id, due_date, created_at, completed_at, duration_seconds, notes, call_recording_url')
+            .select('id, type, topic, status, outcome, summary, description, owner_id, user_id, customer_id, due_date, created_at, completed_at, notes')
             .in('type', ['Call', 'Meeting', 'OnlineMeeting', 'Whatsapp'])
             .gte('created_at', ninetyDaysAgo.toISOString())
             .range(actPage * pageSize, (actPage + 1) * pageSize - 1)
