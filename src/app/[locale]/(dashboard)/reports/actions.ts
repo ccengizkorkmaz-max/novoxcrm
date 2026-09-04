@@ -2125,35 +2125,64 @@ export async function getActivityTrackingReport() {
 
     const now = new Date()
 
-    // 1. Get all activities for this tenant (last 90 days for context)
+    // 1. Get all activities for this tenant (last 90 days for context) with pagination to bypass Supabase 1000 limit
     const ninetyDaysAgo = new Date(now)
     ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
 
-    const { data: activities } = await supabase
-        .from('activities')
-        .select(`
-            id, type, status, outcome, summary, notes, priority,
-            due_date, created_at, completed_at,
-            owner_id,
-            customer_id,
-            profiles:owner_id(full_name),
-            customers:customer_id(full_name, phone)
-        `)
-        .eq('tenant_id', profile.tenant_id)
-        .gte('created_at', ninetyDaysAgo.toISOString())
-        .order('due_date', { ascending: true })
+    const activities: any[] = []
+    let actPage = 0
+    const pageSize = 1000
 
-    if (!activities) return { error: 'No activity data' }
+    while (true) {
+        const { data: chunk, error: actError } = await supabase
+            .from('activities')
+            .select(`
+                id, type, status, outcome, summary, notes, priority,
+                due_date, created_at, completed_at,
+                owner_id,
+                customer_id,
+                profiles:owner_id(full_name),
+                customers:customer_id(full_name, phone)
+            `)
+            .eq('tenant_id', profile.tenant_id)
+            .gte('created_at', ninetyDaysAgo.toISOString())
+            .order('due_date', { ascending: true })
+            .range(actPage * pageSize, (actPage + 1) * pageSize - 1)
 
-    // 2. Get sales data for pipeline stage context
-    const { data: sales } = await supabase
-        .from('sales')
-        .select('id, customer_id, status, project_id, projects(name), assigned_to, profiles!sales_assigned_to_fkey(full_name)')
-        .eq('tenant_id', profile.tenant_id)
-        .not('status', 'in', '("Lost","Cancelled","Transferred")')
+        if (actError) {
+            console.error('[getActivityTrackingReport] Error fetching activities chunk:', actError)
+            break
+        }
+        if (!chunk || chunk.length === 0) break
+        activities.push(...chunk)
+        if (chunk.length < pageSize) break
+        actPage++
+    }
+
+    // 2. Get sales data for pipeline stage context with pagination
+    const sales: any[] = []
+    let salesPage = 0
+
+    while (true) {
+        const { data: chunk, error: salesError } = await supabase
+            .from('sales')
+            .select('id, customer_id, status, project_id, projects(name), assigned_to, profiles!sales_assigned_to_fkey(full_name)')
+            .eq('tenant_id', profile.tenant_id)
+            .not('status', 'in', '("Lost","Cancelled","Transferred")')
+            .range(salesPage * pageSize, (salesPage + 1) * pageSize - 1)
+
+        if (salesError) {
+            console.error('[getActivityTrackingReport] Error fetching sales chunk:', salesError)
+            break
+        }
+        if (!chunk || chunk.length === 0) break
+        sales.push(...chunk)
+        if (chunk.length < pageSize) break
+        salesPage++
+    }
 
     const salesByCustomer: Record<string, any> = {}
-    ;(sales || []).forEach(s => {
+    sales.forEach(s => {
         salesByCustomer[s.customer_id] = {
             status: s.status,
             project: (s.projects as any)?.name || '-',
