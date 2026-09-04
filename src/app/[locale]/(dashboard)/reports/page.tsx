@@ -33,6 +33,15 @@ import { getTranslations } from 'next-intl/server'
 
 const reportCards = [
     {
+        id: "call-center-performance",
+        href: "/reports/call-center-performance",
+        icon: Phone,
+        color: "text-indigo-600",
+        bgColor: "bg-indigo-100",
+        customTitle: "Temsilci Arama & Çağrı Merkezi Raporu",
+        customDesc: "Satış temsilcilerinin telefon görüşmeleri, konuşma süreleri, arama başarı oranları ve santral dökümü."
+    },
+    {
         id: "rep-tracking",
         href: "/crm/rep-tracking",
         icon: Headphones,

@@ -912,6 +912,10 @@
         "description": "Analyze your business performance with detailed reports.",
         "note": "Note: Reports are currently in draft stage. Soon they will be graphically updated with live data from your database.",
         "cards": {
+            "call-center-performance": {
+                "title": "Representative Calls & Call Center Report",
+                "description": "Outbound/inbound call volume, talk time, reach rate and appointment conversion of sales representatives."
+            },
             "rep-tracking": {
                 "title": "Representative Tracking & Call Performance",
                 "description": "Daily, weekly and monthly call counts, talking durations and lead contact status of sales representatives."
