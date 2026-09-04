@@ -65,6 +65,12 @@ export default function CallCenterPerformanceClient({ initialData, profiles }: C
     const daily = data.dailyTrend || []
     const recentCalls: CallLogItem[] = data.recentCalls || []
 
+    const availableProfiles = useMemo(() => {
+        const list = (data.profiles && data.profiles.length > 0) ? data.profiles : (profiles || [])
+        if (list.length > 0) return list
+        return reps.filter(r => r.id !== 'unassigned').map(r => ({ id: r.id, full_name: r.name }))
+    }, [data.profiles, profiles, reps])
+
     const formatSeconds = (sec: number) => {
         if (!sec) return '0 sn'
         const mins = Math.floor(sec / 60)
@@ -185,7 +191,7 @@ export default function CallCenterPerformanceClient({ initialData, profiles }: C
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="__all__">👥 Tüm Temsilciler</SelectItem>
-                                {profiles.map(p => (
+                                {availableProfiles.map((p: any) => (
                                     <SelectItem key={p.id} value={p.id}>
                                         {p.full_name || 'İsimsiz'}
                                     </SelectItem>

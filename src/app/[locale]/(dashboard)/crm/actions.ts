@@ -4018,7 +4018,9 @@ export async function fetchTrackingSales() {
         return { sales: [], error: 'Not authorized' }
     }
 
-        // Query sales and call activities with pagination loops to bypass Supabase 1000 limit
+    const adminSupabase = createAdminClient()
+
+    // Query sales and call activities with pagination loops to bypass Supabase 1000 limit
     const ninetyDaysAgo = new Date()
     ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
 
@@ -4029,7 +4031,7 @@ export async function fetchTrackingSales() {
     let salesPage = 0
 
     while (true) {
-        const { data: chunk, error: salesErr } = await supabase
+        const { data: chunk, error: salesErr } = await adminSupabase
             .from('sales')
             .select(`
                 id,
@@ -4055,6 +4057,7 @@ export async function fetchTrackingSales() {
                     full_name
                 )
             `)
+            .eq('tenant_id', userProfile.tenant_id)
             .neq('status', 'Inbox')
             .order('updated_at', { ascending: false, nullsFirst: false })
             .order('created_at', { ascending: false })
@@ -4076,9 +4079,10 @@ export async function fetchTrackingSales() {
     let actPage = 0
 
     while (true) {
-        const { data: chunk, error: actErr } = await supabase
+        const { data: chunk, error: actErr } = await adminSupabase
             .from('activities')
             .select('id, type, topic, status, outcome, summary, description, owner_id, user_id, customer_id, due_date, created_at, completed_at, notes')
+            .eq('tenant_id', userProfile.tenant_id)
             .in('type', ['Call', 'Meeting', 'OnlineMeeting', 'Whatsapp'])
             .gte('created_at', ninetyDaysAgo.toISOString())
             .range(actPage * pageSize, (actPage + 1) * pageSize - 1)

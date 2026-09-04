@@ -67,7 +67,7 @@ export async function getCallCenterPerformanceData(params: CallCenterReportParam
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { error: 'Oturum açılmalıdır.' }
 
-    const { data: profile } = await supabase
+    const { data: profile } = await adminSupabase
         .from('profiles')
         .select('tenant_id, role')
         .eq('id', user.id)
@@ -118,9 +118,9 @@ export async function getCallCenterPerformanceData(params: CallCenterReportParam
     const endISO = rangeEnd.toISOString()
 
     // 1. Fetch active profiles for rep metadata
-    const { data: profilesList } = await supabase
+    const { data: profilesList } = await adminSupabase
         .from('profiles')
-        .select('id, full_name, role, avatar_url')
+        .select('id, full_name, role, profile_photo_url')
         .eq('tenant_id', profile.tenant_id)
         .order('full_name')
 
@@ -130,7 +130,7 @@ export async function getCallCenterPerformanceData(params: CallCenterReportParam
             repStatsMap.set(p.id, {
                 id: p.id,
                 name: p.full_name,
-                avatar: p.avatar_url || undefined,
+                avatar: p.profile_photo_url || undefined,
                 totalCalls: 0,
                 outboundCalls: 0,
                 inboundCalls: 0,
@@ -153,12 +153,12 @@ export async function getCallCenterPerformanceData(params: CallCenterReportParam
     // 2. Fetch Sales with first_contact (Temsilcilerin CRM arama ve görüşme kayıtları)
     let salesPage = 0
     while (true) {
-        let query = supabase
+        let query = adminSupabase
             .from('sales')
             .select(`
                 id, assigned_to, first_contact, process_note, updated_at, created_at,
                 customers (id, full_name, phone),
-                profiles:assigned_to (id, full_name, avatar_url)
+                profiles:assigned_to (id, full_name, profile_photo_url)
             `)
             .eq('tenant_id', profile.tenant_id)
             .not('first_contact', 'is', null)
@@ -213,7 +213,7 @@ export async function getCallCenterPerformanceData(params: CallCenterReportParam
                 repStat = {
                     id: repId,
                     name: (s.profiles as any)?.full_name || 'Atanmamış',
-                    avatar: (s.profiles as any)?.avatar_url,
+                    avatar: (s.profiles as any)?.profile_photo_url,
                     totalCalls: 0,
                     outboundCalls: 0,
                     inboundCalls: 0,
@@ -265,13 +265,13 @@ export async function getCallCenterPerformanceData(params: CallCenterReportParam
     // 3. Fetch Call Activities
     let actPage = 0
     while (true) {
-        let query = supabase
+        let query = adminSupabase
             .from('activities')
             .select(`
                 id, type, topic, status, outcome, summary, description, notes,
                 due_date, created_at, completed_at,
                 owner_id, user_id, customer_id,
-                profiles:owner_id(id, full_name, avatar_url),
+                profiles:owner_id(id, full_name, profile_photo_url),
                 customers:customer_id(id, full_name, phone)
             `)
             .eq('tenant_id', profile.tenant_id)
@@ -319,7 +319,7 @@ export async function getCallCenterPerformanceData(params: CallCenterReportParam
                 repStat = {
                     id: repId,
                     name: (act.profiles as any)?.full_name || 'Atanmamış',
-                    avatar: (act.profiles as any)?.avatar_url,
+                    avatar: (act.profiles as any)?.profile_photo_url,
                     totalCalls: 0,
                     outboundCalls: 0,
                     inboundCalls: 0,
