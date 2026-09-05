@@ -94,8 +94,10 @@ export default async function CRMPage(props: {
     if (filterProject) baseQuery = baseQuery.eq('project_id', filterProject)
     if (filterStatus) baseQuery = baseQuery.eq('status', filterStatus)
     if (filterCustomer) baseQuery = baseQuery.eq('customer_id', filterCustomer)
-    if (filterDateFrom) baseQuery = baseQuery.gte('created_at', filterDateFrom)
-    if (filterDateTo) baseQuery = baseQuery.lte('created_at', filterDateTo + 'T23:59:59')
+    // Turkey timezone (UTC+3) conversion: a local date like 2026-08-21 means
+    // start: 2026-08-20T21:00:00Z (midnight TR), end: 2026-08-21T20:59:59Z (23:59:59 TR)
+    if (filterDateFrom) baseQuery = baseQuery.gte('created_at', `${filterDateFrom}T00:00:00+03:00`)
+    if (filterDateTo) baseQuery = baseQuery.lte('created_at', `${filterDateTo}T23:59:59+03:00`)
     if (filterSearch) {
         const { buildCustomerSearchFilter } = await import('@/lib/phone-search-utils')
         const searchFilter = buildCustomerSearchFilter(filterSearch)

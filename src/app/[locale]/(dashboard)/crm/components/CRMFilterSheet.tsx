@@ -33,7 +33,8 @@ import {
     Users, 
     ChevronDown, 
     Check,
-    Phone
+    Phone,
+    CalendarDays
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
@@ -70,6 +71,8 @@ export default function CRMFilterSheet({ projects, profiles, customers }: CRMFil
     const [status, setStatus] = useState(searchParams.get('s') || 'all')
     const [customer, setCustomer] = useState(searchParams.get('c') || 'all')
     const [representative, setRepresentative] = useState(searchParams.get('r') || 'all')
+    const [dateFrom, setDateFrom] = useState(searchParams.get('df') || '')
+    const [dateTo, setDateTo] = useState(searchParams.get('dt') || '')
 
     // Always sync state when params change
     useEffect(() => {
@@ -78,6 +81,8 @@ export default function CRMFilterSheet({ projects, profiles, customers }: CRMFil
         setStatus(searchParams.get('s') || 'all')
         setCustomer(searchParams.get('c') || 'all')
         setRepresentative(searchParams.get('r') || 'all') // Assuming single representative for combobox
+        setDateFrom(searchParams.get('df') || '')
+        setDateTo(searchParams.get('dt') || '')
     }, [searchParams])
 
     const activeFilterCount = useMemo(() => {
@@ -87,8 +92,10 @@ export default function CRMFilterSheet({ projects, profiles, customers }: CRMFil
         if (status && status !== 'all') count++
         if (customer && customer !== 'all') count++
         if (representative && representative !== 'all') count++
+        if (dateFrom) count++
+        if (dateTo) count++
         return count
-    }, [search, project, status, customer, representative])
+    }, [search, project, status, customer, representative, dateFrom, dateTo])
 
     const activeFilterChips = useMemo(() => {
         const chips = []
@@ -112,8 +119,16 @@ export default function CRMFilterSheet({ projects, profiles, customers }: CRMFil
             const c = customers.find(c => c.id === customer)
             if (c) chips.push({ key: 'c', label: c.full_name, value: 'all' })
         }
+        if (dateFrom) {
+            const d = new Date(dateFrom + 'T00:00:00')
+            chips.push({ key: 'df', label: `${d.toLocaleDateString('tr-TR')} 'den`, value: '' })
+        }
+        if (dateTo) {
+            const d = new Date(dateTo + 'T00:00:00')
+            chips.push({ key: 'dt', label: `${d.toLocaleDateString('tr-TR')} 'e kadar`, value: '' })
+        }
         return chips
-    }, [project, status, representative, customer, projects, profiles, customers])
+    }, [project, status, representative, customer, dateFrom, dateTo, projects, profiles, customers])
 
     const handleApply = () => {
         const params = new URLSearchParams(searchParams.toString())
@@ -133,6 +148,12 @@ export default function CRMFilterSheet({ projects, profiles, customers }: CRMFil
         if (representative !== 'all') params.set('r', representative)
         else params.delete('r')
 
+        if (dateFrom) params.set('df', dateFrom)
+        else params.delete('df')
+
+        if (dateTo) params.set('dt', dateTo)
+        else params.delete('dt')
+
         router.push(`?${params.toString()}`)
         setOpen(false)
     }
@@ -143,6 +164,8 @@ export default function CRMFilterSheet({ projects, profiles, customers }: CRMFil
         setStatus('all')
         setCustomer('all')
         setRepresentative('all')
+        setDateFrom('')
+        setDateTo('')
         router.push(`?`)
     }
 
@@ -152,6 +175,8 @@ export default function CRMFilterSheet({ projects, profiles, customers }: CRMFil
         if (key === 'status' || key === 's') setStatus(value)
         if (key === 'customerId' || key === 'c') setCustomer(value)
         if (key === 'representativeId' || key === 'r') setRepresentative(value)
+        if (key === 'df') setDateFrom(value)
+        if (key === 'dt') setDateTo(value)
     }
 
     return (
@@ -232,6 +257,61 @@ export default function CRMFilterSheet({ projects, profiles, customers }: CRMFil
                                 onChange={(e) => setSearch(e.target.value)}
                                 className="h-11 shadow-sm focus-visible:ring-primary"
                             />
+                        </div>
+
+                        <Separator className="opacity-50" />
+
+                        {/* Date Range Filter */}
+                        <div className="space-y-3">
+                            <Label className="text-sm font-semibold flex items-center gap-2">
+                                <CalendarDays className="w-4 h-4 text-muted-foreground" />
+                                Tarih Aralığı
+                            </Label>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-1.5">
+                                    <span className="text-[11px] text-muted-foreground font-medium">Başlangıç</span>
+                                    <Input
+                                        type="date"
+                                        value={dateFrom}
+                                        max={dateTo || undefined}
+                                        onChange={(e) => setDateFrom(e.target.value)}
+                                        className="h-10 shadow-sm text-sm"
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <span className="text-[11px] text-muted-foreground font-medium">Bitiş</span>
+                                    <Input
+                                        type="date"
+                                        value={dateTo}
+                                        min={dateFrom || undefined}
+                                        onChange={(e) => setDateTo(e.target.value)}
+                                        className="h-10 shadow-sm text-sm"
+                                    />
+                                </div>
+                            </div>
+                            {/* Quick date presets */}
+                            <div className="flex flex-wrap gap-1.5">
+                                {[
+                                    { label: 'Bugün', getValue: () => { const d = new Date().toISOString().slice(0, 10); return { from: d, to: d } } },
+                                    { label: 'Dün', getValue: () => { const d = new Date(); d.setDate(d.getDate() - 1); const s = d.toISOString().slice(0, 10); return { from: s, to: s } } },
+                                    { label: 'Son 7 Gün', getValue: () => { const t = new Date(); const f = new Date(); f.setDate(f.getDate() - 6); return { from: f.toISOString().slice(0, 10), to: t.toISOString().slice(0, 10) } } },
+                                    { label: 'Son 30 Gün', getValue: () => { const t = new Date(); const f = new Date(); f.setDate(f.getDate() - 29); return { from: f.toISOString().slice(0, 10), to: t.toISOString().slice(0, 10) } } },
+                                    { label: 'Bu Ay', getValue: () => { const t = new Date(); const f = new Date(t.getFullYear(), t.getMonth(), 1); return { from: f.toISOString().slice(0, 10), to: t.toISOString().slice(0, 10) } } },
+                                ].map(preset => (
+                                    <button
+                                        key={preset.label}
+                                        type="button"
+                                        onClick={() => { const v = preset.getValue(); setDateFrom(v.from); setDateTo(v.to) }}
+                                        className={cn(
+                                            "px-2.5 py-1 rounded-md text-[11px] font-medium border transition-colors",
+                                            "hover:bg-primary/10 hover:border-primary/30 hover:text-primary",
+                                            "bg-muted/50 border-border text-muted-foreground"
+                                        )}
+                                    >
+                                        {preset.label}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
 
                         <Separator className="opacity-50" />

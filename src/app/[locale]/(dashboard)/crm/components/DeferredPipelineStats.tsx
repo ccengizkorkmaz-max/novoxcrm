@@ -43,8 +43,8 @@ export default async function DeferredPipelineStats({
 
         if (filterProject) q = q.eq('project_id', filterProject)
         if (filterCustomer) q = q.eq('customer_id', filterCustomer)
-        if (filterDateFrom) q = q.gte('created_at', filterDateFrom)
-        if (filterDateTo) q = q.lte('created_at', filterDateTo + 'T23:59:59')
+        if (filterDateFrom) q = q.gte('created_at', `${filterDateFrom}T00:00:00+03:00`)
+        if (filterDateTo) q = q.lte('created_at', `${filterDateTo}T23:59:59+03:00`)
         if (filterSearch) {
             const { buildCustomerSearchFilter } = require('@/lib/phone-search-utils')
             const searchFilter = buildCustomerSearchFilter(filterSearch)

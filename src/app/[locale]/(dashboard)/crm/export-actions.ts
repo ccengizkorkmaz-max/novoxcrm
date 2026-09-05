@@ -40,8 +40,8 @@ export async function getSalesForExport(filters: {
     if (filters.project) baseQuery = baseQuery.eq('project_id', filters.project)
     if (filters.status) baseQuery = baseQuery.eq('status', filters.status)
     if (filters.customer) baseQuery = baseQuery.eq('customer_id', filters.customer)
-    if (filters.dateFrom) baseQuery = baseQuery.gte('created_at', filters.dateFrom)
-    if (filters.dateTo) baseQuery = baseQuery.lte('created_at', filters.dateTo + 'T23:59:59')
+    if (filters.dateFrom) baseQuery = baseQuery.gte('created_at', `${filters.dateFrom}T00:00:00+03:00`)
+    if (filters.dateTo) baseQuery = baseQuery.lte('created_at', `${filters.dateTo}T23:59:59+03:00`)
     if (filters.search) {
         const { buildCustomerSearchFilter } = await import('@/lib/phone-search-utils')
         const searchFilter = buildCustomerSearchFilter(filters.search)
