@@ -314,6 +314,27 @@ export function CrmWhatsAppChatDrawer({
                         </div>
                     ) : (
                         <>
+                            {(() => {
+                                const lastInboundMsg = [...messages].reverse().find(m => m.direction === 'inbound')
+                                const lastInboundTime = lastInboundMsg?.created_at ? new Date(lastInboundMsg.created_at).getTime() : 0
+                                const is24hExpired = !lastInboundTime || (Date.now() - lastInboundTime > 24 * 60 * 60 * 1000)
+
+                                if (is24hExpired) {
+                                    return (
+                                        <div className="p-3 bg-amber-50/90 border border-amber-200 rounded-xl text-xs text-amber-900 shadow-xs mb-3 space-y-1">
+                                            <div className="flex items-center gap-1.5 font-bold text-amber-800 text-[11px]">
+                                                <Clock className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+                                                <span>WhatsApp 24 Saat İletişim Penceresi</span>
+                                            </div>
+                                            <p className="text-[11px] text-amber-700 leading-relaxed">
+                                                Meta politikası gereği son müşteri mesajının üzerinden 24 saat geçtiğinde serbest metinler Meta tarafından bekletilir. Müşterinin kurumsal hatta bir mesaj yanıtı vermesiyle serbest yazışma penceresi açılır.
+                                            </p>
+                                        </div>
+                                    )
+                                }
+                                return null
+                            })()}
+
                             {messages.map((msg) => {
                                 const isOutbound = msg.direction === 'outbound'
                                 const isAi = msg.role === 'assistant' && msg.sender_type === 'ai'

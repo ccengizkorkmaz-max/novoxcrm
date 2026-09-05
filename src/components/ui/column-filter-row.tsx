@@ -101,6 +101,61 @@ function MultiSelectDropdown({
     )
 }
 
+function DebouncedTextInput({
+    value: initialValue,
+    onChange,
+    placeholder = 'Filtre...'
+}: {
+    value: string
+    onChange: (val: string) => void
+    placeholder?: string
+}) {
+    const [localVal, setLocalVal] = useState(initialValue || '')
+
+    useEffect(() => {
+        setLocalVal(initialValue || '')
+    }, [initialValue])
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (localVal !== (initialValue || '')) {
+                onChange(localVal)
+            }
+        }, 350)
+        return () => clearTimeout(timer)
+    }, [localVal, initialValue, onChange])
+
+    return (
+        <div className="relative">
+            <input
+                type="text"
+                placeholder={placeholder}
+                value={localVal}
+                onChange={(e) => setLocalVal(e.target.value)}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                        onChange(localVal)
+                    }
+                }}
+                className={cn(
+                    "w-full h-7 text-[11px] rounded-lg border px-2 pr-6 bg-white outline-none transition-all",
+                    localVal
+                        ? "border-blue-400 bg-blue-50 text-blue-700 font-bold ring-1 ring-blue-200"
+                        : "border-slate-200 text-slate-600 placeholder:text-slate-300 hover:border-slate-300 focus:border-blue-400 focus:ring-1 focus:ring-blue-200"
+                )}
+            />
+            {localVal && (
+                <button
+                    onClick={() => { setLocalVal(''); onChange('') }}
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 text-blue-400 hover:text-red-500 transition-colors"
+                >
+                    <X className="w-3 h-3" />
+                </button>
+            )}
+        </div>
+    )
+}
+
 export default function ColumnFilterRow({
     columns,
     visibleColumns,
@@ -167,28 +222,11 @@ export default function ColumnFilterRow({
                                 )}
                             </div>
                         ) : (
-                            <div className="relative">
-                                <input
-                                    type="text"
-                                    placeholder={`Filtre...`}
-                                    value={filters[col.id] || ''}
-                                    onChange={(e) => onFilterChange(col.id, e.target.value)}
-                                    className={cn(
-                                        "w-full h-7 text-[11px] rounded-lg border px-2 pr-6 bg-white outline-none transition-all",
-                                        filters[col.id]
-                                            ? "border-blue-400 bg-blue-50 text-blue-700 font-bold ring-1 ring-blue-200"
-                                            : "border-slate-200 text-slate-600 placeholder:text-slate-300 hover:border-slate-300 focus:border-blue-400 focus:ring-1 focus:ring-blue-200"
-                                    )}
-                                />
-                                {filters[col.id] && (
-                                    <button
-                                        onClick={() => onFilterChange(col.id, '')}
-                                        className="absolute right-1.5 top-1/2 -translate-y-1/2 text-blue-400 hover:text-red-500 transition-colors"
-                                    >
-                                        <X className="w-3 h-3" />
-                                    </button>
-                                )}
-                            </div>
+                            <DebouncedTextInput
+                                value={filters[col.id] || ''}
+                                onChange={(val) => onFilterChange(col.id, val)}
+                                placeholder="Filtre..."
+                            />
                         )}
                     </td>
                 ))}
