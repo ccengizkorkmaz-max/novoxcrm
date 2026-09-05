@@ -1107,9 +1107,12 @@ export default function PipelineList({
                                                                                 <QuickAppointmentModal
                                                                                     customerId={sale.customers.id}
                                                                                     customerName={sale.customers.full_name || 'Müşteri'}
+                                                                                    customerPhone={sale.customers.phone}
                                                                                     saleId={sale.id}
                                                                                     disabled={!sale.assigned_to}
                                                                                     disabledTooltip="Önce bu leade bir satış temsilcisi atamalısınız!"
+                                                                                    initialRepresentativeId={sale.assigned_to}
+                                                                                    profiles={profiles}
                                                                                     onCreated={(newAct) => {
                                                                                         setActivitiesState(prev => [...prev, newAct])
                                                                                     }}

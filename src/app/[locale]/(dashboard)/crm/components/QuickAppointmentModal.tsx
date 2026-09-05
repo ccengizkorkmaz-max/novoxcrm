@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { createQuickAppointment, getTenantSalesOfficesAction } from '../actions'
+import { createQuickAppointment, getTenantSalesOfficesAction, getTenantSalesRepsAction } from '../actions'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import {
@@ -46,6 +46,7 @@ interface QuickAppointmentModalProps {
     trigger?: React.ReactNode
     onCreated?: (newAppointment: any) => void
     initialRepresentativeId?: string
+    profiles?: any[]
     onOpenAdvancedActivity?: () => void
 }
 
@@ -67,6 +68,7 @@ export default function QuickAppointmentModal({
     trigger,
     onCreated,
     initialRepresentativeId,
+    profiles = [],
     onOpenAdvancedActivity
 }: QuickAppointmentModalProps) {
     const router = useRouter()
@@ -94,6 +96,13 @@ export default function QuickAppointmentModal({
     const [selectedRepId, setSelectedRepId] = useState<string>(initialRepresentativeId || '')
     const [activeCustomerPhone, setActiveCustomerPhone] = useState<string>(customerPhone || '')
 
+    // Keep representative updated with initialRepresentativeId when opened
+    useEffect(() => {
+        if (initialRepresentativeId) {
+            setSelectedRepId(initialRepresentativeId)
+        }
+    }, [initialRepresentativeId, open])
+
     // WhatsApp notification toggles
     const [sendCustomerWa, setSendCustomerWa] = useState(true)
     const [sendRepWa, setSendRepWa] = useState(true)
@@ -101,20 +110,22 @@ export default function QuickAppointmentModal({
     // Load representatives, customer data & configured corporate sales offices
     useEffect(() => {
         if (open) {
-            const supabase = createClient()
-            supabase
-                .from('profiles')
-                .select('id, full_name, phone, role, is_external')
-                .eq('is_active', true)
-                .neq('role', 'broker')
-                .or('is_external.is.null,is_external.eq.false')
-                .order('full_name')
-                .then(({ data }) => {
-                    if (data) {
-                        setReps(data.filter(p => !p.is_external && p.role !== 'broker'))
-                    }
-                })
+            // First initialize from props if available
+            if (profiles && profiles.length > 0) {
+                const tenantReps = profiles.filter((p: any) => !p.is_external && p.role !== 'broker')
+                if (tenantReps.length > 0) {
+                    setReps(tenantReps)
+                }
+            }
 
+            // Always fetch authenticated tenant reps via server action
+            getTenantSalesRepsAction().then(res => {
+                if (res?.reps && res.reps.length > 0) {
+                    setReps(res.reps)
+                }
+            }).catch(console.error)
+
+            const supabase = createClient()
             if (customerId) {
                 supabase
                     .from('customers')
@@ -136,13 +147,13 @@ export default function QuickAppointmentModal({
                 if (res?.offices && res.offices.length > 0) {
                     setSalesOffices(res.offices)
                     // Auto-select first registered office if user is on default
-                    if (location === 'Satış Ofisi') {
+                    if (!location || location === 'Satış Ofisi') {
                         setLocation(res.offices[0].name)
                     }
                 }
             }).catch(console.error)
         }
-    }, [open, customerId])
+    }, [open, customerId, profiles])
 
     // Load custom locations from localStorage
     useEffect(() => {

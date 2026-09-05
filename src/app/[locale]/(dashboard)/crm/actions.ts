@@ -4165,6 +4165,33 @@ export async function getTenantSalesOfficesAction() {
     return { offices: Array.isArray(offices) ? offices : [] }
 }
 
+export async function getTenantSalesRepsAction() {
+    try {
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return { reps: [] }
+
+        const { data: profile } = await supabase.from('profiles').select('tenant_id').eq('id', user.id).single()
+        if (!profile?.tenant_id) return { reps: [] }
+
+        const { createAdminClient } = await import('@/lib/supabase/admin')
+        const adminSupabase = createAdminClient()
+        const { data } = await adminSupabase
+            .from('profiles')
+            .select('id, full_name, phone, role, is_external')
+            .eq('tenant_id', profile.tenant_id)
+            .eq('is_active', true)
+            .neq('role', 'broker')
+            .or('is_external.is.null,is_external.eq.false')
+            .order('full_name')
+
+        return { reps: data || [] }
+    } catch (err) {
+        console.error('getTenantSalesRepsAction error:', err)
+        return { reps: [] }
+    }
+}
+
 export async function createQuickAppointment(params: {
     customerId: string
     saleId?: string
@@ -4187,7 +4214,7 @@ export async function createQuickAppointment(params: {
 
     const fullSummary = params.summary || 'Randevu'
 
-    // ── Resolve sales office location details (address + maps link) ──
+    // ── Resolve sales office location details (address + direct Google maps link) ──
     let locationName = params.location || 'Satış Ofisi'
     let locationAddress = ''
     let mapsLink = ''
@@ -4209,18 +4236,28 @@ export async function createQuickAppointment(params: {
             locationName = matchedOffice.name
             locationAddress = [matchedOffice.address, matchedOffice.district, matchedOffice.city].filter(Boolean).join(', ')
             let rawMaps = (matchedOffice.mapsUrl || '').trim()
-            if (rawMaps && !rawMaps.startsWith('http://') && !rawMaps.startsWith('https://')) {
+
+            // Discard broken / deprecated Firebase Dynamic Links (maps.app.goo.gl)
+            if (rawMaps.includes('maps.app.goo.gl') || rawMaps.includes('goo.gl')) {
+                rawMaps = ''
+            } else if (rawMaps && !rawMaps.startsWith('http://') && !rawMaps.startsWith('https://')) {
                 rawMaps = `https://${rawMaps}`
             }
+
+            // Generate clean, direct Google Maps search link
+            const queryTarget = locationAddress ? `${matchedOffice.name}, ${locationAddress}` : matchedOffice.name
             mapsLink = rawMaps || (matchedOffice.latitude && matchedOffice.longitude
                 ? `https://maps.google.com/?q=${matchedOffice.latitude},${matchedOffice.longitude}`
-                : (locationAddress ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${matchedOffice.name} ${locationAddress}`)}` : ''))
+                : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(queryTarget)}`)
+        } else if (params.location && params.location !== 'Satış Ofisi') {
+            // Custom location: generate direct Google Maps query
+            mapsLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(params.location)}`
         }
     }
 
     // Build location display string: "İzmir Satış Ofisi - Karşıyaka, İzmir"
     const locationDisplay = locationAddress ? `${locationName} - ${locationAddress}` : locationName
-    // Full location with maps link for notifications
+    // Full location with direct maps link for notifications
     const locationWithLink = mapsLink ? `${locationDisplay}\n🗺️ Konum: ${mapsLink}` : locationDisplay
 
     const fullNotes = [
@@ -4318,15 +4355,21 @@ export async function createQuickAppointment(params: {
             const waPhoneId = tenantWa?.wa_phone_number_id || process.env.WHATSAPP_PHONE_NUMBER_ID
             const waToken = tenantWa?.wa_access_token || process.env.WHATSAPP_ACCESS_TOKEN
 
+            // Meta Cloud API strictly forbids newlines (\n, \r) in positional parameters (Error 132018)
+            const cleanParam = (txt: string) => (txt || '').replace(/[\r\n]+/g, ' • ').replace(/\s{4,}/g, ' ').trim()
+            const locationWithLinkSingleLine = mapsLink ? `${locationDisplay} Harita: ${mapsLink}` : locationDisplay
+
             // 1. Satış Temsilcisine Meta Template Bildirimi (randevu_hatrlatma)
             if (shouldSendRep && repProfile?.phone) {
-                const appointmentDetailText = `👤 Müşteri: ${customerName} (${customerPhone})\n📅 Tarih: ${formattedDate}\n📍 Yer: ${locationWithLink}\n📝 Konu: ${fullSummary}${params.notes ? `\n📌 Not: ${params.notes}` : ''}`
+                const appointmentDetailText = cleanParam(
+                    `👤 Müşteri: ${customerName} (${customerPhone}) • 📅 Tarih: ${formattedDate} • 📍 Yer: ${locationWithLinkSingleLine} • 📝 Konu: ${fullSummary}${params.notes ? ` • 📌 Not: ${params.notes}` : ''}`
+                )
 
                 let randevuTemplateResult = await sendWhatsAppTemplate(
                     repProfile.phone,
                     'randevu_hatrlatma', // Meta üzerinde resmi onaylı şablon adı
                     [
-                        repProfile.full_name || 'Satış Temsilcisi',
+                        cleanParam(repProfile.full_name || 'Satış Temsilcisi'),
                         appointmentDetailText
                     ],
                     'tr',
@@ -4340,7 +4383,7 @@ export async function createQuickAppointment(params: {
                         repProfile.phone,
                         'randevu_hatirlatma',
                         [
-                            repProfile.full_name || 'Satış Temsilcisi',
+                            cleanParam(repProfile.full_name || 'Satış Temsilcisi'),
                             appointmentDetailText
                         ],
                         'tr',
@@ -4358,9 +4401,9 @@ export async function createQuickAppointment(params: {
                         repProfile.phone,
                         'lead_assignment_alert',
                         [
-                            customerName,
-                            customerPhone,
-                            `📅 RANDEVU: ${formattedDate} | Yer: ${locationDisplay} | ${fullSummary}`
+                            cleanParam(customerName),
+                            cleanParam(customerPhone),
+                            cleanParam(`📅 RANDEVU: ${formattedDate} | Yer: ${locationDisplay} | ${fullSummary}`)
                         ],
                         'tr',
                         waPhoneId,
@@ -4380,16 +4423,66 @@ export async function createQuickAppointment(params: {
                     customer.phone,
                     'randevu_musteri',
                     [
-                        customerName,      // {{1}} Müşteri Adı
-                        formattedDate,     // {{2}} Tarih ve Saat
-                        locationWithLink,  // {{3}} Randevu Yeri (adres + maps linki)
-                        repInfo            // {{4}} Satış Temsilcisi
+                        cleanParam(customerName),                      // {{1}} Müşteri Adı
+                        cleanParam(formattedDate),                     // {{2}} Tarih ve Saat
+                        cleanParam(locationWithLinkSingleLine),        // {{3}} Randevu Yeri (adres + maps linki)
+                        cleanParam(repInfo)                            // {{4}} Satış Temsilcisi
                     ],
                     'tr',
                     waPhoneId,
                     waToken
                 )
                 console.log(`📅 Müşteriye randevu_musteri bildirim sonucu (${customerName} - ${customer.phone}):`, customerWaResult)
+
+                // 3. Mesajı CRM WhatsApp sohbet geçmişine kaydet (Böylece WP Yazış ekranında görünür)
+                try {
+                    let { data: conv } = await adminSupabase
+                        .from('whatsapp_conversations')
+                        .select('id')
+                        .eq('tenant_id', profile.tenant_id)
+                        .eq('phone_number', customer.phone.replace(/[^0-9]/g, ''))
+                        .maybeSingle()
+
+                    if (!conv) {
+                        const { data: newConv } = await adminSupabase
+                            .from('whatsapp_conversations')
+                            .insert({
+                                tenant_id: profile.tenant_id,
+                                customer_id: params.customerId,
+                                lead_id: params.saleId || null,
+                                phone_number: customer.phone.replace(/[^0-9]/g, ''),
+                                contact_name: customerName,
+                                channel: 'whatsapp',
+                                ai_enabled: false,
+                                unread_count: 0,
+                                last_message_at: new Date().toISOString(),
+                                last_message_preview: `📅 Randevu Daveti: ${formattedDate}`
+                            })
+                            .select('id')
+                            .single()
+                        conv = newConv
+                    }
+
+                    if (conv?.id) {
+                        const chatContent = `[Şablon: randevu_musteri]\nSayın ${customerName},\nRandevunuz başarıyla oluşturulmuştur.\n\n📅 Tarih ve Saat: ${formattedDate}\n📍 Randevu Yeri: ${locationWithLink}\n👤 Danışman: ${repInfo}`
+                        await adminSupabase.from('whatsapp_messages').insert({
+                            conversation_id: conv.id,
+                            tenant_id: profile.tenant_id,
+                            direction: 'outbound',
+                            status: 'delivered',
+                            role: 'assistant',
+                            sender_type: 'agent',
+                            content: chatContent
+                        })
+                        await adminSupabase.from('whatsapp_conversations').update({
+                            last_message_at: new Date().toISOString(),
+                            last_message_preview: `📅 Randevu: ${formattedDate}`,
+                            updated_at: new Date().toISOString()
+                        }).eq('id', conv.id)
+                    }
+                } catch (saveChatErr) {
+                    console.error('Randevu mesajı CRM sohbetine kaydedilirken hata:', saveChatErr)
+                }
             }
         }
     } catch (waErr) {
