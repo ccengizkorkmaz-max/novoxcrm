@@ -165,3 +165,130 @@ export async function saveDocumentMetadata(metadata: {
     revalidatePath(`/projects/${metadata.projectId}`)
     return { success: true }
 }
+
+// ========================
+// Construction Site Photos
+// ========================
+
+export async function uploadConstructionPhotos(projectId: string, formData: FormData) {
+    const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', user.id)
+        .single()
+
+    if (!profile?.tenant_id) return { error: 'No tenant found' }
+
+    const files = formData.getAll('photos') as File[]
+    const caption = (formData.get('caption') as string) || ''
+
+    if (!files || files.length === 0) {
+        return { error: 'En az bir fotoğraf seçmelisiniz.' }
+    }
+
+    const results: { success: boolean; fileName?: string; error?: string }[] = []
+
+    for (const file of files) {
+        // Only allow image files
+        if (!file.type.startsWith('image/')) {
+            results.push({ success: false, fileName: file.name, error: 'Sadece resim dosyaları yüklenebilir.' })
+            continue
+        }
+
+        try {
+            const fileExt = file.name.split('.').pop()
+            const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`
+            const filePath = `construction-photos/${projectId}/${fileName}`
+
+            const { error: uploadError } = await supabase.storage
+                .from('crm-images')
+                .upload(filePath, file)
+
+            if (uploadError) {
+                console.error('Construction photo upload error:', uploadError)
+                results.push({ success: false, fileName: file.name, error: 'Yükleme hatası' })
+                continue
+            }
+
+            const { data: urlData } = supabase.storage
+                .from('crm-images')
+                .getPublicUrl(filePath)
+
+            const { error: dbError } = await supabase
+                .from('project_documents')
+                .insert({
+                    tenant_id: profile.tenant_id,
+                    project_id: projectId,
+                    file_name: file.name,
+                    file_url: urlData.publicUrl,
+                    file_type: file.type,
+                    file_size: file.size,
+                    document_name: caption || `Şantiye Fotoğrafı - ${new Date().toLocaleDateString('tr-TR')}`,
+                    description: caption,
+                    category: 'construction_photo',
+                    permissions: 'internal',
+                    uploaded_by: user.id
+                })
+
+            if (dbError) {
+                console.error('Construction photo DB error:', dbError)
+                results.push({ success: false, fileName: file.name, error: 'Kayıt hatası' })
+                continue
+            }
+
+            results.push({ success: true, fileName: file.name })
+        } catch (err) {
+            console.error('Construction photo error:', err)
+            results.push({ success: false, fileName: file.name, error: 'Beklenmeyen hata' })
+        }
+    }
+
+    revalidatePath(`/projects/${projectId}`)
+    const successCount = results.filter(r => r.success).length
+    return { success: successCount > 0, uploaded: successCount, total: files.length, results }
+}
+
+export async function deleteConstructionPhoto(photoId: string, projectId: string) {
+    const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Unauthorized' }
+
+    // Get document info
+    const { data: document } = await supabase
+        .from('project_documents')
+        .select('file_url')
+        .eq('id', photoId)
+        .eq('category', 'construction_photo')
+        .single()
+
+    if (!document) return { error: 'Photo not found' }
+
+    // Delete from storage
+    const urlParts = document.file_url.split('/crm-images/')
+    if (urlParts.length > 1) {
+        const filePath = urlParts[1]
+        await supabase.storage
+            .from('crm-images')
+            .remove([filePath])
+    }
+
+    // Delete from database
+    const { error } = await supabase
+        .from('project_documents')
+        .delete()
+        .eq('id', photoId)
+
+    if (error) {
+        console.error('Delete construction photo error:', error)
+        return { error: 'Silme başarısız' }
+    }
+
+    revalidatePath(`/projects/${projectId}`)
+    return { success: true }
+}

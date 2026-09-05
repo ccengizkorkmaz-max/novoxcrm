@@ -20,6 +20,7 @@ import { BatchUnitCreator } from '@/components/batch-unit-creator'
 import { ExcelImport } from '@/components/excel-import'
 import { BackButton } from '@/components/back-button'
 import { ConstructionProgress } from '@/components/construction-progress'
+import { ConstructionGallery } from '@/components/construction-gallery'
 import { addConstructionStage, updateConstructionStage, deleteConstructionStage, updateUnitProgress } from './actions'
 import { Building2, Save } from 'lucide-react'
 import { ProjectEditForm } from '@/components/projects/ProjectEditForm'
@@ -48,7 +49,8 @@ const CATEGORY_LABELS: Record<string, string> = {
     'Price List': 'Fiyat Listesi',
     '3D/Virtual': '3D/Sanal Tur',
     'Marketing': 'Katalog',
-    'Legal': 'Yasal Evrak'
+    'Legal': 'Yasal Evrak',
+    'construction_photo': 'Şantiye Fotoğrafı'
 };
 
 export const dynamic = 'force-dynamic'
@@ -88,7 +90,7 @@ export default async function ProjectDetailPage(props: {
                 )
             )
         `).eq('project_id', id),
-        supabase.from('project_documents').select('*').eq('project_id', id).order('created_at', { ascending: false }),
+        supabase.from('project_documents').select('*').eq('project_id', id).neq('category', 'construction_photo').order('created_at', { ascending: false }),
         supabase.from('units').select('*').eq('project_id', id).order('unit_number', { ascending: true }),
         supabase.from('construction_stages').select('*').eq('project_id', id).order('order_index', { ascending: true }),
         supabase.from('project_broker_access').select(`
@@ -147,6 +149,30 @@ export default async function ProjectDetailPage(props: {
     const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'super_admin' || currentUser?.role === 'owner' || currentUser?.role === 'manager' || currentUser?.role === 'crm_manager'
     const { data: unitProgress } = unitProgressRes
     const { data: allBrokers } = allBrokersRes
+
+    // Fetch construction photos separately
+    const { data: constructionPhotosRaw } = await supabase
+        .from('project_documents')
+        .select('id, file_url, file_name, document_name, description, created_at, uploaded_by')
+        .eq('project_id', id)
+        .eq('category', 'construction_photo')
+        .order('created_at', { ascending: false })
+
+    // Resolve uploader names for construction photos
+    const constructionPhotos = constructionPhotosRaw || []
+    if (constructionPhotos.length > 0) {
+        const uploaderIds = [...new Set(constructionPhotos.map((p: any) => p.uploaded_by).filter(Boolean))]
+        if (uploaderIds.length > 0) {
+            const { data: uploaders } = await supabase
+                .from('profiles')
+                .select('id, full_name')
+                .in('id', uploaderIds)
+            const uploaderMap = new Map(uploaders?.map(u => [u.id, u.full_name]) || [])
+            constructionPhotos.forEach((p: any) => {
+                p.uploader_name = uploaderMap.get(p.uploaded_by) || ''
+            })
+        }
+    }
 
     // Fetch uploader names for each document
     if (documents && documents.length > 0) {
@@ -643,7 +669,15 @@ export default async function ProjectDetailPage(props: {
                 </TabsContent>
 
                 {/* Construction Site Tab */}
-                <TabsContent value="construction" className="space-y-4">
+                <TabsContent value="construction" className="space-y-6">
+                    {/* Construction Photo Gallery */}
+                    <ConstructionGallery
+                        projectId={id}
+                        photos={constructionPhotos}
+                        isAdmin={isAdmin}
+                    />
+
+                    {/* Construction Progress Tracker */}
                     <ConstructionProgress
                         projectId={id}
                         stages={constructionStages || []}
