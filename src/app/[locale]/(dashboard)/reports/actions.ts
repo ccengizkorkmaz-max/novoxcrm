@@ -1838,8 +1838,8 @@ export async function fetchAdsAnalyticsData(
     let datePreset: string | { since: string; until: string } = datePresetParam
 
     if (startDate && endDate) {
-        sinceDate = new Date(`${startDate}T00:00:00.000Z`)
-        untilDate = new Date(`${endDate}T23:59:59.999Z`)
+        sinceDate = new Date(`${startDate}T00:00:00.000+03:00`)
+        untilDate = new Date(`${endDate}T23:59:59.999+03:00`)
         datePreset = { since: startDate, until: endDate }
     } else {
         sinceDate = new Date()

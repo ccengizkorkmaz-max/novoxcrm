@@ -75,8 +75,8 @@ export async function previewSegment(filters: any) {
         }
         if (filters.assigned_to) query = query.eq('assigned_to', filters.assigned_to)
         if (filters.unassigned) query = query.is('assigned_to', null)
-        if (filters.date_from) query = query.gte('created_at', filters.date_from)
-        if (filters.date_to) query = query.lte('created_at', filters.date_to + 'T23:59:59')
+        if (filters.date_from) query = query.gte('created_at', `${filters.date_from}T00:00:00+03:00`)
+        if (filters.date_to) query = query.lte('created_at', `${filters.date_to}T23:59:59+03:00`)
 
         const { data, count } = await query.limit(200)
         const preview = data?.map(d => ({
@@ -104,8 +104,8 @@ export async function previewSegment(filters: any) {
         if (filters.project_id) query = query.eq('project_id', filters.project_id)
         if (filters.assigned_to) query = query.eq('assigned_to', filters.assigned_to)
         if (filters.unassigned) query = query.is('assigned_to', null)
-        if (filters.date_from) query = query.gte('created_at', filters.date_from)
-        if (filters.date_to) query = query.lte('created_at', filters.date_to + 'T23:59:59')
+        if (filters.date_from) query = query.gte('created_at', `${filters.date_from}T00:00:00+03:00`)
+        if (filters.date_to) query = query.lte('created_at', `${filters.date_to}T23:59:59+03:00`)
         // Extended filters
         if (filters.tags?.length) query = query.contains('customers.tags', filters.tags)
         if (filters.city) query = query.ilike('customers.city', `%${filters.city}%`)
@@ -128,8 +128,8 @@ export async function previewSegment(filters: any) {
     if (filters.project_id) query = query.eq('project_id', filters.project_id)
     if (filters.unassigned) query = query.is('assigned_to', null)
     if (filters.assigned_to) query = query.eq('assigned_to', filters.assigned_to)
-    if (filters.date_from) query = query.gte('created_at', filters.date_from)
-    if (filters.date_to) query = query.lte('created_at', filters.date_to + 'T23:59:59')
+    if (filters.date_from) query = query.gte('created_at', `${filters.date_from}T00:00:00+03:00`)
+    if (filters.date_to) query = query.lte('created_at', `${filters.date_to}T23:59:59+03:00`)
     
     // Extended customer filters
     if (filters.tags?.length) query = query.contains('customers.tags', filters.tags)

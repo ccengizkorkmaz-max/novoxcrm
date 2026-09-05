@@ -275,8 +275,8 @@ export async function getCallCDR(period: PeriodKey, page: number = 1, pageSize: 
     if (!profile?.tenant_id) return { records: [], total: 0 }
 
     const range = getDateRange(period)
-    const fromTs = `${range.from}T00:00:00`
-    const toTs = `${range.to}T23:59:59`
+    const fromTs = `${range.from}T00:00:00+03:00`
+    const toTs = `${range.to}T23:59:59+03:00`
     const offset = (page - 1) * pageSize
 
     // 1. Manuel aramalar (activities) — tüm type='Call' kayıtları (dashboard ile uyumlu)
@@ -460,8 +460,8 @@ export async function getCallCDRExport(period: PeriodKey): Promise<CallCDRRecord
     if (!profile?.tenant_id) return []
 
     const range = getDateRange(period)
-    const fromTs = `${range.from}T00:00:00`
-    const toTs = `${range.to}T23:59:59`
+    const fromTs = `${range.from}T00:00:00+03:00`
+    const toTs = `${range.to}T23:59:59+03:00`
 
     // 1. Manuel aramalar — tümü (dashboard ile uyumlu — filtresiz) — sayfa sayfa tümünü çek
     const manualCalls = await fetchAllRows<any>(
@@ -650,8 +650,8 @@ export async function getCallSummaryBreakdown(period: PeriodKey): Promise<CallSu
     if (!profile?.tenant_id) return { categories: [], total: 0 }
 
     const range = getDateRange(period)
-    const fromTs = `${range.from}T00:00:00`
-    const toTs = `${range.to}T23:59:59`
+    const fromTs = `${range.from}T00:00:00+03:00`
+    const toTs = `${range.to}T23:59:59+03:00`
 
     const counts: Record<string, number> = {}
     let useFallback = true
@@ -865,8 +865,8 @@ export async function getWhatsAppCDR(period: PeriodKey, page: number = 1, pageSi
     if (!profile?.tenant_id) return { records: [], total: 0 }
 
     const range = getDateRange(period)
-    const fromTs = `${range.from}T00:00:00`
-    const toTs = `${range.to}T23:59:59`
+    const fromTs = `${range.from}T00:00:00+03:00`
+    const toTs = `${range.to}T23:59:59+03:00`
     const offset = (page - 1) * pageSize
 
     const { data, count } = await supabase

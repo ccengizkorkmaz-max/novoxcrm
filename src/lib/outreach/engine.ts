@@ -2609,8 +2609,8 @@ export async function resolveSegment(segmentId: string): Promise<string[]> {
                 }
             }
             if (filters.unassigned) query = query.is('assigned_to', null)
-            if (filters.date_from) query = query.gte('created_at', filters.date_from)
-            if (filters.date_to) query = query.lte('created_at', filters.date_to + 'T23:59:59')
+            if (filters.date_from) query = query.gte('created_at', `${filters.date_from}T00:00:00+03:00`)
+            if (filters.date_to) query = query.lte('created_at', `${filters.date_to}T23:59:59+03:00`)
 
             const { data: dbLeads, error } = await query
             if (error) {
@@ -2662,8 +2662,8 @@ export async function resolveSegment(segmentId: string): Promise<string[]> {
                 }
             }
             if (filters.unassigned) query = query.is('assigned_to', null)
-            if (filters.date_from) query = query.gte('created_at', filters.date_from)
-            if (filters.date_to) query = query.lte('created_at', filters.date_to + 'T23:59:59')
+            if (filters.date_from) query = query.gte('created_at', `${filters.date_from}T00:00:00+03:00`)
+            if (filters.date_to) query = query.lte('created_at', `${filters.date_to}T23:59:59+03:00`)
 
             const { data: quals, error } = await query
             if (error) {
@@ -2706,8 +2706,8 @@ export async function resolveSegment(segmentId: string): Promise<string[]> {
         if (filters.project_id) query = query.eq('project_id', filters.project_id)
         if (filters.assigned_to) query = query.eq('assigned_to', filters.assigned_to)
         if (filters.unassigned) query = query.is('assigned_to', null)
-        if (filters.date_from) query = query.gte('created_at', filters.date_from)
-        if (filters.date_to) query = query.lte('created_at', filters.date_to + 'T23:59:59')
+        if (filters.date_from) query = query.gte('created_at', `${filters.date_from}T00:00:00+03:00`)
+        if (filters.date_to) query = query.lte('created_at', `${filters.date_to}T23:59:59+03:00`)
         if (filters.days_inactive) {
             const cutoff = new Date()
             cutoff.setDate(cutoff.getDate() - filters.days_inactive)

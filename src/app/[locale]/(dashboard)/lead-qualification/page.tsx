@@ -74,10 +74,10 @@ export default async function LeadQualificationPage(props: {
             queryCount = queryCount.in('source', sourceFilters)
         }
         if (dateFrom) {
-            queryCount = queryCount.gte('created_at', dateFrom)
+            queryCount = queryCount.gte('created_at', `${dateFrom}T00:00:00+03:00`)
         }
         if (dateTo) {
-            queryCount = queryCount.lte('created_at', dateTo + 'T23:59:59')
+            queryCount = queryCount.lte('created_at', `${dateTo}T23:59:59+03:00`)
         }
         
         const { count } = await queryCount
@@ -108,10 +108,10 @@ export default async function LeadQualificationPage(props: {
                 sQuery = sQuery.in('source', sourceFilters)
             }
             if (dateFrom) {
-                sQuery = sQuery.gte('created_at', dateFrom)
+                sQuery = sQuery.gte('created_at', `${dateFrom}T00:00:00+03:00`)
             }
             if (dateTo) {
-                sQuery = sQuery.lte('created_at', dateTo + 'T23:59:59')
+                sQuery = sQuery.lte('created_at', `${dateTo}T23:59:59+03:00`)
             }
 
             const { count } = await sQuery
@@ -171,10 +171,10 @@ export default async function LeadQualificationPage(props: {
             queryData = queryData.in('source', sourceFilters)
         }
         if (dateFrom) {
-            queryData = queryData.gte('created_at', dateFrom)
+            queryData = queryData.gte('created_at', `${dateFrom}T00:00:00+03:00`)
         }
         if (dateTo) {
-            queryData = queryData.lte('created_at', dateTo + 'T23:59:59')
+            queryData = queryData.lte('created_at', `${dateTo}T23:59:59+03:00`)
         }
             
         const { data, error } = await queryData
