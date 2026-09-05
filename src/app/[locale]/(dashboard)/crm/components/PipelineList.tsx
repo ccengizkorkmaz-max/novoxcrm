@@ -16,7 +16,7 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Calculator, Sparkles, User, Info, Mail, Phone, MessageSquareText, CalendarPlus, CalendarCheck, CheckCircle2, Trash, AlertTriangle, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, Filter, X, Undo2, StickyNote, PhoneOff, Send, XCircle, Share2 } from 'lucide-react'
+import { Calculator, Sparkles, User, Info, Mail, Phone, MessageSquareText, CalendarPlus, CalendarCheck, CheckCircle2, Trash, AlertTriangle, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, Filter, X, Undo2, StickyNote, PhoneOff, Send, XCircle, Share2, MessageCircle } from 'lucide-react'
 import { CollapsibleSection } from '@/components/ui/collapsible-section'
 import ColumnVisibilityPicker from '@/components/ui/column-visibility-picker'
 import ColumnFilterRow from '@/components/ui/column-filter-row'
@@ -49,6 +49,7 @@ const PipelineReservationDialog = dynamic(() => import('./PipelineReservationDia
 const PipelineProposalDialog = dynamic(() => import('./PipelineProposalDialog'), { ssr: false })
 const QuickProposalDialog = dynamic(() => import('./QuickProposalDialog'), { ssr: false })
 const ShareProjectDocumentsModal = dynamic(() => import('./ShareProjectDocumentsModal'), { ssr: false })
+const CrmWhatsAppChatDrawer = dynamic(() => import('./CrmWhatsAppChatDrawer').then(m => m.CrmWhatsAppChatDrawer), { ssr: false })
 import SaleProcessIndicator from './SaleProcessIndicator'
 
 const AiMatchDialog = dynamic(() => import('@/components/customers/AiMatchDialog').then(m => m.AiMatchDialog), { ssr: false })
@@ -297,6 +298,15 @@ export default function PipelineList({
     const [currentPage, setCurrentPage] = useState(initialPage)
     const [pageInputValue, setPageInputValue] = useState(initialPage.toString())
     const [shareDocsModal, setShareDocsModal] = useState<{ isOpen: boolean, customer: any, saleId: string | null, projectId: string | null }>({ isOpen: false, customer: null, saleId: null, projectId: null })
+    const [whatsAppDrawerState, setWhatsAppDrawerState] = useState<{
+        isOpen: boolean;
+        customer: { id?: string; full_name: string; phone?: string | null };
+        saleId?: string;
+        projectName?: string;
+    }>({
+        isOpen: false,
+        customer: { full_name: '' }
+    })
     const itemsPerPage = 50
     const router = useRouter()
     const searchParams = useSearchParams()
@@ -1048,6 +1058,28 @@ export default function PipelineList({
                                                                             <Sparkles className="h-2.5 w-2.5 animate-pulse" />
                                                                             AI Ara
                                                                         </Button>
+                                                                        <Button 
+                                                                            variant="ghost" 
+                                                                            size="sm" 
+                                                                            className="h-5 px-1.5 py-0 text-[10px] font-semibold text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded border border-emerald-200 gap-1 flex-shrink-0 active:scale-95 transition-all shadow-xs"
+                                                                            onClick={(e) => { 
+                                                                                e.stopPropagation(); 
+                                                                                setWhatsAppDrawerState({ 
+                                                                                    isOpen: true, 
+                                                                                    customer: { 
+                                                                                        id: sale.customers?.id, 
+                                                                                        full_name: sale.customers?.full_name || 'Müşteri', 
+                                                                                        phone: sale.customers?.phone 
+                                                                                    }, 
+                                                                                    saleId: sale.id, 
+                                                                                    projectName: sale.units?.projects?.name || sale.projects?.name 
+                                                                                }); 
+                                                                            }}
+                                                                            title="WhatsApp ile Canlı Yazış (Kurumsal Hat: +90 533 602 42 81)"
+                                                                        >
+                                                                            <MessageCircle className="h-2.5 w-2.5 fill-emerald-100" />
+                                                                            WP Yazış
+                                                                        </Button>
 
                                                                         {/* Hızlı Randevu / Aktif Randevu İkoncuğu */}
                                                                         {activeAppointment ? (
@@ -1536,6 +1568,24 @@ export default function PipelineList({
                                                                          variant="outline" 
                                                                          size="icon" 
                                                                          className="h-6 w-6 text-emerald-600 border-emerald-100 hover:bg-emerald-50 hover:border-emerald-200 transition-all active:scale-90" 
+                                                                         onClick={() => setWhatsAppDrawerState({
+                                                                             isOpen: true,
+                                                                             customer: {
+                                                                                 id: sale.customers?.id,
+                                                                                 full_name: sale.customers?.full_name || 'Müşteri',
+                                                                                 phone: sale.customers?.phone
+                                                                             },
+                                                                             saleId: sale.id,
+                                                                             projectName: sale.units?.projects?.name || sale.projects?.name
+                                                                         })} 
+                                                                         title="WhatsApp ile Canlı Yazış (Kurumsal Hat)"
+                                                                     >
+                                                                         <MessageCircle className="h-3 w-3" />
+                                                                     </Button>
+                                                                     <Button 
+                                                                         variant="outline" 
+                                                                         size="icon" 
+                                                                         className="h-6 w-6 text-teal-600 border-teal-100 hover:bg-teal-50 hover:border-teal-200 transition-all active:scale-90" 
                                                                          onClick={() => setShareDocsModal({
                                                                              isOpen: true,
                                                                              customer: sale.customers,
@@ -1653,6 +1703,28 @@ export default function PipelineList({
                                                 >
                                                     <Sparkles className="h-2.5 w-2.5 animate-pulse" />
                                                     AI Ara
+                                                </Button>
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="sm" 
+                                                    className="h-5 px-1.5 py-0 text-[10px] font-semibold text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded border border-emerald-200 gap-1 flex-shrink-0 active:scale-95 transition-all"
+                                                    onClick={(e) => { 
+                                                        e.stopPropagation(); 
+                                                        setWhatsAppDrawerState({ 
+                                                            isOpen: true, 
+                                                            customer: { 
+                                                                id: sale.customers?.id, 
+                                                                full_name: sale.customers?.full_name || 'Müşteri', 
+                                                                phone: sale.customers?.phone 
+                                                            }, 
+                                                            saleId: sale.id, 
+                                                            projectName: sale.units?.projects?.name || sale.projects?.name 
+                                                        }); 
+                                                    }}
+                                                    title="WhatsApp ile Canlı Yazış (Kurumsal Hat)"
+                                                >
+                                                    <MessageCircle className="h-2.5 w-2.5 fill-emerald-100" />
+                                                    WP
                                                 </Button>
                                             </div>
                                         )}
@@ -2318,6 +2390,15 @@ export default function PipelineList({
                     projects={projects}
                 />
             )}
+
+            {/* WhatsApp CRM Live Chat Drawer */}
+            <CrmWhatsAppChatDrawer
+                isOpen={whatsAppDrawerState.isOpen}
+                onClose={() => setWhatsAppDrawerState(prev => ({ ...prev, isOpen: false }))}
+                customer={whatsAppDrawerState.customer}
+                saleId={whatsAppDrawerState.saleId}
+                projectName={whatsAppDrawerState.projectName}
+            />
         </div >
     )
 }

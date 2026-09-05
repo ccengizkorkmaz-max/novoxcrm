@@ -4705,3 +4705,155 @@ export async function shareProjectDocumentsViaWhatsApp(params: {
     return { success: true }
 }
 
+/**
+ * Müşteri için WhatsApp görüşmesini getirir veya oluşturur
+ */
+export async function getOrCreateCustomerWhatsAppConversation(params: {
+    customerId?: string
+    phone: string
+    saleId?: string
+    customerName?: string
+}) {
+    try {
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return { error: 'Unauthorized' }
+
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('tenant_id, full_name')
+            .eq('id', user.id)
+            .single()
+
+        if (!profile?.tenant_id) return { error: 'Tenant bulunamadı' }
+
+        const adminSupabase = createAdminClient()
+        const { normalizePhone } = await import('@/lib/whatsapp')
+        const cleanPhone = normalizePhone(params.phone)
+        const last10 = cleanPhone.slice(-10)
+
+        // 1. Önce telefon no veya customer_id ile var olan sohbeti ara
+        let conv: any = null
+
+        if (params.customerId) {
+            const { data: byCust } = await adminSupabase
+                .from('whatsapp_conversations')
+                .select('*')
+                .eq('tenant_id', profile.tenant_id)
+                .eq('customer_id', params.customerId)
+                .order('last_message_at', { ascending: false, nullsFirst: false })
+                .limit(1)
+                .maybeSingle()
+            if (byCust) conv = byCust
+        }
+
+        if (!conv && last10.length >= 10) {
+            const { data: byPhone } = await adminSupabase
+                .from('whatsapp_conversations')
+                .select('*')
+                .eq('tenant_id', profile.tenant_id)
+                .ilike('phone_number', `%${last10}%`)
+                .order('last_message_at', { ascending: false, nullsFirst: false })
+                .limit(1)
+                .maybeSingle()
+            if (byPhone) conv = byPhone
+        }
+
+        // 2. Bulunamadıysa yeni bir sohbet oturumu oluştur
+        if (!conv) {
+            const { data: newConv, error: createErr } = await adminSupabase
+                .from('whatsapp_conversations')
+                .insert({
+                    tenant_id: profile.tenant_id,
+                    customer_id: params.customerId || null,
+                    lead_id: params.saleId || null,
+                    phone_number: cleanPhone,
+                    channel: 'whatsapp',
+                    ai_enabled: false,
+                    unread_count: 0,
+                    last_message_at: new Date().toISOString(),
+                    last_message_preview: 'Sohbet başlatıldı'
+                })
+                .select('*')
+                .single()
+
+            if (createErr || !newConv) {
+                console.error('[CRM WA] Create conversation error:', createErr)
+                return { error: 'Sohbet oturumu oluşturulamadı: ' + (createErr?.message || '') }
+            }
+            conv = newConv
+        } else {
+            // Eksik bağlantılar varsa güncelle
+            const updates: any = {}
+            if (params.customerId && !conv.customer_id) updates.customer_id = params.customerId
+            if (params.saleId && !conv.lead_id) updates.lead_id = params.saleId
+            if (Object.keys(updates).length > 0) {
+                await adminSupabase.from('whatsapp_conversations').update(updates).eq('id', conv.id)
+            }
+        }
+
+        // 3. Mesaj geçmişini getir
+        const { data: messages } = await adminSupabase
+            .from('whatsapp_messages')
+            .select('*')
+            .eq('conversation_id', conv.id)
+            .order('created_at', { ascending: true })
+            .limit(100)
+
+        return {
+            success: true,
+            conversation: conv,
+            messages: messages || []
+        }
+    } catch (err: any) {
+        console.error('[CRM WA] getOrCreateCustomerWhatsAppConversation error:', err)
+        return { error: err.message || 'Beklenmedik bir hata oluştu' }
+    }
+}
+
+/**
+ * Sohbetin en güncel mesajlarını çeker (Polling / Refresh)
+ */
+export async function fetchCustomerWhatsAppMessages(conversationId: string) {
+    try {
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return { error: 'Unauthorized' }
+
+        const adminSupabase = createAdminClient()
+        const { data: messages, error } = await adminSupabase
+            .from('whatsapp_messages')
+            .select('*')
+            .eq('conversation_id', conversationId)
+            .order('created_at', { ascending: true })
+            .limit(100)
+
+        if (error) return { error: error.message }
+        return { success: true, messages: messages || [] }
+    } catch (err: any) {
+        return { error: err.message }
+    }
+}
+
+/**
+ * Sohbetin AI modunu açıp kapatır
+ */
+export async function toggleCustomerWhatsAppAi(conversationId: string, aiEnabled: boolean) {
+    try {
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return { error: 'Unauthorized' }
+
+        const adminSupabase = createAdminClient()
+        const { error } = await adminSupabase
+            .from('whatsapp_conversations')
+            .update({ ai_enabled: aiEnabled })
+            .eq('id', conversationId)
+
+        if (error) return { error: error.message }
+        return { success: true, ai_enabled: aiEnabled }
+    } catch (err: any) {
+        return { error: err.message }
+    }
+}
+
