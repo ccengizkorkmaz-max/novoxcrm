@@ -28,6 +28,7 @@ import { ProjectSaveButton } from '@/components/projects/ProjectSaveButton'
 import { UnitExportButton } from '@/components/projects/UnitExportButton'
 import { DeleteAllUnitsButton } from '@/components/projects/DeleteAllUnitsButton'
 import { UnitListClient } from './components/UnitListClient'
+import { ProjectDetailTabs } from './components/ProjectDetailTabs'
 import { DynamicAmenities } from '@/components/projects/DynamicAmenities'
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -201,44 +202,13 @@ export default async function ProjectDetailPage(props: {
 
     return (
         <div className="flex flex-col gap-6">
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <BackButton variant="outline" label="Listeye Dön" />
-                    <h1 className="text-2xl font-bold tracking-tight">Proje Detayları: <span className="text-blue-600">{project.name}</span></h1>
-                    {activeTab === 'info' && <ProjectSaveButton />}
-                </div>
-            </div>
-
-            <Tabs defaultValue={activeTab} className="w-full">
-                <TabsList>
-                    <TabsTrigger value="info">Proje Bilgileri</TabsTrigger>
-                    <TabsTrigger value="units">
-                        <Home className="w-4 h-4 mr-2" />
-                        Üniteler
-                        {units && units.length > 0 && (
-                            <Badge variant="secondary" className="ml-2">{units.length}</Badge>
-                        )}
-                    </TabsTrigger>
-                    <TabsTrigger value="documents">
-                        <FileText className="w-4 h-4 mr-2" />
-                        Proje Dokümanları
-                        {documents && documents.length > 0 && (
-                            <Badge variant="secondary" className="ml-2">{documents.length}</Badge>
-                        )}
-                    </TabsTrigger>
-                    <TabsTrigger value="teams">
-                        <Users className="w-4 h-4 mr-2" />
-                        Satış Ekipleri
-                    </TabsTrigger>
-                    <TabsTrigger value="broker-access">
-                        <Users className="w-4 h-4 mr-2" />
-                        Broker Erişimi
-                    </TabsTrigger>
-                    <TabsTrigger value="construction">
-                        <Building2 className="w-4 h-4 mr-2" />
-                        Şantiye & İlerleme
-                    </TabsTrigger>
-                </TabsList>
+            <ProjectDetailTabs
+                projectId={id}
+                projectName={project.name}
+                initialTab={activeTab}
+                unitsCount={units?.length || 0}
+                documentsCount={documents?.length || 0}
+            >
 
                 {/* Broker Access Tab */}
                 <TabsContent value="broker-access" className="space-y-4">
@@ -689,7 +659,7 @@ export default async function ProjectDetailPage(props: {
                         onUpdateUnitProgress={updateUnitProgress}
                     />
                 </TabsContent>
-            </Tabs>
+            </ProjectDetailTabs>
         </div >
     )
 }

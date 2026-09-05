@@ -153,8 +153,15 @@ export function ExcelImport({ projectId }: ExcelImportProps) {
                 toast.success(`${result.count || 0} adet ünite başarıyla içe aktarıldı!`)
                 setOpen(false)
                 resetWizard()
-                // Force reload to update list
-                window.location.reload()
+                // Force reload to update list while staying on units tab
+                if (typeof window !== 'undefined') {
+                    sessionStorage.setItem(`project_tab_${projectId}`, 'units')
+                    if (!window.location.search.includes('tab=')) {
+                        window.location.href = `${window.location.pathname}?tab=units`
+                    } else {
+                        window.location.reload()
+                    }
+                }
             } else {
                 toast.error(result?.error || 'İçe aktarım başarısız oldu.')
             }

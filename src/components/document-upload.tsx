@@ -88,9 +88,16 @@ export function DocumentUpload({ projectId }: DocumentUploadProps) {
                 setOpen(false)
                 setSelectedFile(null)
                 ; (e.target as HTMLFormElement).reset()
-                // Force page reload to show new document after toast is displayed
+                // Force page reload to show new document while staying on documents tab
                 setTimeout(() => {
-                    window.location.reload()
+                    if (typeof window !== 'undefined') {
+                        sessionStorage.setItem(`project_tab_${projectId}`, 'documents')
+                        if (!window.location.search.includes('tab=')) {
+                            window.location.href = `${window.location.pathname}?tab=documents`
+                        } else {
+                            window.location.reload()
+                        }
+                    }
                 }, 1000)
             } else {
                 toast.error(result?.error || 'Yükleme başarısız. Lütfen tekrar deneyin.')

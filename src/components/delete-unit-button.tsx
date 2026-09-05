@@ -40,9 +40,7 @@ export function DeleteUnitButton({ unitId, projectId, disabled = false }: Delete
         }
 
         toast.success("Ünite başarıyla silindi")
-        // Redirect is handled in server action via revalidatePath/redirect or client side router logic if needed
-        // Assuming server action revalidates but doesn't redirect deeply due to Next.js constraints sometimes:
-        router.push(`/projects/${projectId}`)
+        router.push(`/projects/${projectId}?tab=units`)
     }
 
     return (

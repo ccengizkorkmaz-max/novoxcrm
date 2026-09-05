@@ -117,7 +117,7 @@ export default async function UnitDetailPage(props: {
             {/* COMPACT BREADCRUMB & HEADER */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-4 rounded-xl border shadow-sm">
                 <div className="flex items-center gap-4">
-                    <BackButton href="/inventory" />
+                    <BackButton href={unit.project_id ? `/projects/${unit.project_id}?tab=units` : "/inventory"} />
                     <div className="h-10 w-[1px] bg-slate-200 hidden md:block" />
                     <div>
                         <div className="flex items-center gap-2">

@@ -134,8 +134,15 @@ export function ConstructionGallery({ projectId, photos: initialPhotos, isAdmin 
                 setPreviewUrls([])
                 setCaption('')
                 setShowUploadArea(false)
-                // Reload to get fresh data
-                window.location.reload()
+                // Reload to get fresh data while staying on construction tab
+                if (typeof window !== 'undefined') {
+                    sessionStorage.setItem(`project_tab_${projectId}`, 'construction')
+                    if (!window.location.search.includes('tab=')) {
+                        window.location.href = `${window.location.pathname}?tab=construction`
+                    } else {
+                        window.location.reload()
+                    }
+                }
             } else {
                 toast.error(result?.error || 'Yükleme başarısız.')
             }
