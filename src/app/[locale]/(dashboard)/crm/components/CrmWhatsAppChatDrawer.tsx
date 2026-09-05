@@ -257,59 +257,62 @@ export function CrmWhatsAppChatDrawer({
 
     return (
         <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <SheetContent side="right" className="sm:max-w-[500px] w-full p-0 flex flex-col bg-slate-50 border-l shadow-2xl">
+            <SheetContent side="right" className="!max-w-[640px] sm:!max-w-[640px] w-full p-0 flex flex-col bg-[#efeae2] border-l shadow-2xl">
                 {/* Header */}
-                <SheetHeader className="p-4 bg-emerald-600 text-white flex-shrink-0">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center text-white border border-white/20">
-                                <MessageCircle className="h-6 w-6" />
+                <SheetHeader className="p-4 bg-[#008069] text-white flex-shrink-0 shadow-md">
+                    <div className="flex items-center justify-between pr-8">
+                        <div className="flex items-center gap-3.5">
+                            <div className="h-12 w-12 rounded-full bg-white/15 flex items-center justify-center text-white border border-white/20 shadow-inner">
+                                <MessageCircle className="h-7 w-7" />
                             </div>
                             <div>
-                                <SheetTitle className="text-white text-base font-bold flex items-center gap-2">
+                                <SheetTitle className="text-white text-lg font-bold flex items-center gap-2 tracking-tight">
                                     {customer.full_name}
-                                    <span className="inline-flex items-center px-1.5 py-0.2 text-[10px] font-bold bg-white/20 text-white rounded-full">
+                                    <span className="inline-flex items-center px-2.5 py-0.5 text-[11px] font-bold bg-white/25 text-white rounded-full tracking-normal">
                                         WhatsApp
                                     </span>
                                 </SheetTitle>
-                                <p className="text-emerald-100 text-xs font-mono">
+                                <p className="text-emerald-100 text-sm font-semibold font-mono tracking-wide mt-0.5">
                                     {customer.phone || 'Numara yok'}
                                 </p>
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-2">
                             {conversation?.id && (
                                 <Link
                                     href={`/conversations/${conversation.id}`}
                                     target="_blank"
-                                    className="h-8 w-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors"
+                                    className="h-9 px-3 rounded-lg bg-white/15 hover:bg-white/25 flex items-center gap-1.5 text-xs font-semibold text-white transition-all shadow-xs"
                                     title="Tam Ekranda Aç"
                                 >
-                                    <ExternalLink className="h-4 w-4" />
+                                    <span>Tam Ekran</span>
+                                    <ExternalLink className="h-3.5 w-3.5" />
                                 </Link>
                             )}
                         </div>
                     </div>
 
-                    {/* Verified Corporate Number Info */}
-                    <div className="mt-3 pt-2.5 border-t border-emerald-500/50 flex items-center justify-between text-[11px] text-emerald-100">
-                        <div className="flex items-center gap-1.5">
-                            <span className="h-2 w-2 rounded-full bg-emerald-300 animate-pulse" />
-                            <span>Kurumsal Hat: <strong>+90 533 602 42 81</strong> (Novo CRM)</span>
+                    {/* Verified Corporate Number Info & Mode */}
+                    <div className="mt-3 pt-2.5 border-t border-emerald-600/60 flex items-center justify-between text-xs text-emerald-100">
+                        <div className="flex items-center gap-2 bg-[#006e5a] px-3 py-1.5 rounded-lg border border-emerald-500/30">
+                            <span className="h-2.5 w-2.5 rounded-full bg-emerald-300 animate-pulse ring-2 ring-emerald-300/40" />
+                            <span className="font-medium text-white">
+                                Kurumsal Hat: <strong className="font-bold text-emerald-200">+90 533 602 42 81</strong> (Novo CRM)
+                            </span>
                         </div>
 
                         {conversation && (
                             <button
                                 onClick={handleToggleAi}
-                                className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold transition-all ${
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-xs ${
                                     aiEnabled
-                                        ? 'bg-purple-500 text-white hover:bg-purple-600'
+                                        ? 'bg-purple-600 text-white hover:bg-purple-700 ring-2 ring-purple-400/40'
                                         : 'bg-white/20 text-white hover:bg-white/30'
                                 }`}
-                                title="Yapay zeka yanıtlarını aç/kapat"
+                                title="Yapay zeka otomatik yanıtlarını aç/kapat"
                             >
-                                <Bot className="h-3 w-3" />
+                                <Bot className="h-4 w-4" />
                                 {aiEnabled ? 'AI Aktif' : 'Temsilci Modu'}
                             </button>
                         )}
@@ -317,26 +320,26 @@ export function CrmWhatsAppChatDrawer({
                 </SheetHeader>
 
                 {/* Chat Messages Area */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-[#efeae2]/30">
+                <div className="flex-1 overflow-y-auto p-4 md:p-5 space-y-3 bg-[#efeae2]">
                     {loading ? (
-                        <div className="h-full flex flex-col items-center justify-center gap-2 text-muted-foreground py-20">
+                        <div className="h-full flex flex-col items-center justify-center gap-2 text-muted-foreground py-24">
                             <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
-                            <p className="text-xs font-medium">Sohbet geçmişi yükleniyor...</p>
+                            <p className="text-sm font-semibold text-slate-700">Sohbet geçmişi yükleniyor...</p>
                         </div>
                     ) : messages.length === 0 ? (
                         <div className="h-full flex flex-col items-center justify-center text-center p-6 py-16 text-muted-foreground">
-                            <div className="h-14 w-14 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mb-3">
-                                <MessageCircle className="h-7 w-7" />
+                            <div className="h-16 w-16 rounded-full bg-white text-emerald-700 flex items-center justify-center mb-3.5 shadow-md border border-emerald-100">
+                                <MessageCircle className="h-8 w-8" />
                             </div>
-                            <h4 className="text-sm font-bold text-slate-800 mb-1">Henüz Mesajlaşma Başlatılmadı</h4>
-                            <p className="text-xs text-slate-500 max-w-xs mb-4">
+                            <h4 className="text-base font-bold text-slate-900 mb-1">Henüz Mesajlaşma Başlatılmadı</h4>
+                            <p className="text-sm text-slate-600 max-w-sm mb-5 leading-relaxed">
                                 <strong>{customer.full_name}</strong> ile kurumsal WhatsApp hattınız üzerinden doğrudan yazışabilirsiniz.
                             </p>
                             <Button
-                                size="sm"
+                                size="lg"
                                 disabled={sendingTemplate}
                                 onClick={handleSendApprovedTemplate}
-                                className="w-full h-10 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md gap-2 mb-4 active:scale-98 transition-all"
+                                className="w-full max-w-md h-12 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl shadow-md gap-2 mb-5 active:scale-98 transition-all"
                             >
                                 {sendingTemplate ? (
                                     <>
@@ -351,19 +354,19 @@ export function CrmWhatsAppChatDrawer({
                                 )}
                             </Button>
 
-                            <div className="w-full space-y-1.5 text-left">
-                                <p className="text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-2">
-                                    💡 Alternatif Serbest Metin Şablonları:
+                            <div className="w-full max-w-md space-y-2.5 text-left">
+                                <p className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                                    💡 Alternatif Hazır Şablonlar:
                                 </p>
                                 {quickTemplates.map((tmpl, idx) => (
                                     <button
                                         key={idx}
                                         onClick={() => handleSendMessage(tmpl)}
                                         disabled={sending}
-                                        className="w-full text-left p-2.5 rounded-lg bg-white border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50/50 text-xs text-slate-700 transition-all active:scale-[0.99] shadow-sm flex items-start gap-2"
+                                        className="w-full text-left p-3.5 rounded-xl bg-white border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50/50 text-xs text-slate-800 font-medium transition-all active:scale-[0.99] shadow-xs flex items-start gap-2.5"
                                     >
-                                        <Send className="h-3 w-3 text-emerald-600 mt-0.5 shrink-0" />
-                                        <span>{tmpl}</span>
+                                        <Send className="h-4 w-4 text-emerald-600 mt-0.5 shrink-0" />
+                                        <span className="leading-relaxed">{tmpl}</span>
                                     </button>
                                 ))}
                             </div>
@@ -377,33 +380,33 @@ export function CrmWhatsAppChatDrawer({
 
                                 if (is24hExpired) {
                                     return (
-                                        <div className="p-3.5 bg-amber-50/95 border border-amber-200/80 rounded-2xl text-xs text-amber-900 shadow-xs mb-3 space-y-2">
+                                        <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-950 shadow-sm mb-3 space-y-2.5">
                                             <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-1.5 font-bold text-amber-900 text-[11px]">
-                                                    <Clock className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+                                                <div className="flex items-center gap-2 font-bold text-amber-900 text-sm">
+                                                    <Clock className="h-4 w-4 text-amber-600 shrink-0" />
                                                     <span>WhatsApp 24 Saat İletişim Penceresi Kapalı</span>
                                                 </div>
-                                                <Badge variant="outline" className="text-[9px] bg-amber-100/80 text-amber-800 border-amber-300 py-0 h-4">
+                                                <Badge variant="outline" className="text-xs bg-amber-100 text-amber-900 border-amber-300 py-0.5 px-2.5 font-bold">
                                                     Şablon Gerekli
                                                 </Badge>
                                             </div>
-                                            <p className="text-[11px] text-amber-800/90 leading-relaxed">
-                                                Müşteri son 24 saat içinde yazmadığı için serbest metinler Meta tarafından bekletilir. Aşağıdaki butona tıklayarak müşteriye resmi Türkçe bilgilendirme şablonu gönderebilirsiniz:
+                                            <p className="text-xs text-amber-900/90 leading-relaxed font-normal">
+                                                Müşteri son 24 saat içinde yazmadığı için serbest metinler Meta tarafından bekletilir. Aşağıdaki butona basarak müşteriye resmi Türkçe tanıtım şablonunu gönderebilirsiniz:
                                             </p>
                                             <Button
                                                 size="sm"
                                                 disabled={sendingTemplate}
                                                 onClick={handleSendApprovedTemplate}
-                                                className="w-full h-8 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs gap-1.5 active:scale-98 transition-all"
+                                                className="w-full h-10 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs gap-2 active:scale-98 transition-all"
                                             >
                                                 {sendingTemplate ? (
                                                     <>
-                                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                        <Loader2 className="h-4 w-4 animate-spin" />
                                                         Şablon İletiliyor...
                                                     </>
                                                 ) : (
                                                     <>
-                                                        <Send className="h-3.5 w-3.5" />
+                                                        <Send className="h-4 w-4" />
                                                         Resmi Türkçe Tanıtım Şablonu Gönder (Canlı Hattı Aç)
                                                     </>
                                                 )}
@@ -427,27 +430,29 @@ export function CrmWhatsAppChatDrawer({
                                         className={`flex flex-col ${isOutbound ? 'items-end' : 'items-start'}`}
                                     >
                                         <div
-                                            className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-xs shadow-sm relative leading-relaxed ${
+                                            className={`max-w-[86%] rounded-2xl px-4 py-2.5 text-[14.5px] shadow-xs relative leading-relaxed ${
                                                 isOutbound
-                                                    ? 'bg-[#d9fdd3] text-slate-900 rounded-tr-none border border-emerald-200/50'
-                                                    : 'bg-white text-slate-900 rounded-tl-none border border-slate-200'
+                                                    ? 'bg-[#d9fdd3] text-[#111b21] rounded-tr-xs border border-[#c3f4bb]'
+                                                    : 'bg-white text-[#111b21] rounded-tl-xs border border-[#e9edef]'
                                             }`}
                                         >
                                             {isAi && (
-                                                <div className="flex items-center gap-1 text-[10px] font-bold text-purple-700 mb-1">
-                                                    <Sparkles className="h-2.5 w-2.5" />
-                                                    <span>Novo AI Yanıtı</span>
+                                                <div className="flex items-center gap-1.5 text-xs font-bold text-purple-700 mb-1 pb-1 border-b border-purple-100">
+                                                    <Sparkles className="h-3.5 w-3.5" />
+                                                    <span>Novo AI Otomatik Yanıt</span>
                                                 </div>
                                             )}
-                                            <p className="whitespace-pre-wrap break-words">{msg.content}</p>
+                                            <p className="whitespace-pre-wrap break-words font-normal text-[#111b21]">
+                                                {msg.content}
+                                            </p>
                                             <div
-                                                className={`flex items-center justify-end gap-1 mt-1 text-[10px] ${
-                                                    isOutbound ? 'text-emerald-800/70' : 'text-slate-400'
+                                                className={`flex items-center justify-end gap-1.5 mt-1 text-[11.5px] font-medium ${
+                                                    isOutbound ? 'text-[#008069]' : 'text-slate-400'
                                                 }`}
                                             >
                                                 <span>{time}</span>
                                                 {isOutbound && (
-                                                    <CheckCheck className="h-3 w-3 text-emerald-600" />
+                                                    <CheckCheck className="h-4 w-4 text-[#53bdeb]" />
                                                 )}
                                             </div>
                                         </div>
@@ -461,40 +466,40 @@ export function CrmWhatsAppChatDrawer({
 
                 {/* Quick Templates Bar */}
                 {messages.length > 0 && (
-                    <div className="p-2 border-t border-slate-200 bg-slate-100 flex items-center gap-1.5 overflow-x-auto shrink-0 scrollbar-none">
-                        <span className="text-[10px] font-bold text-slate-500 uppercase px-1 shrink-0">Hızlı Şablon:</span>
+                    <div className="px-3.5 py-2.5 border-t border-slate-200 bg-white flex items-center gap-2 overflow-x-auto shrink-0 scrollbar-none">
+                        <span className="text-xs font-bold text-slate-600 uppercase shrink-0">Hızlı Şablon:</span>
                         <button
                             type="button"
                             onClick={() => setInputMessage(`Merhaba ${customer.full_name}, projemizle ilgili detaylı bilgi ve güncel fiyat listesini iletiyorum.`)}
-                            className="text-[11px] whitespace-nowrap bg-white border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50 text-slate-700 px-2 py-1 rounded-full shrink-0 shadow-xs"
+                            className="text-xs font-semibold whitespace-nowrap bg-slate-50 border border-slate-300 hover:border-emerald-500 hover:bg-emerald-50 hover:text-emerald-800 text-slate-800 px-3.5 py-1.5 rounded-lg shrink-0 shadow-2xs transition-all active:scale-95"
                         >
                             📑 Fiyat & Detay
                         </button>
                         <button
                             type="button"
                             onClick={() => setInputMessage(`Sayın ${customer.full_name}, detayları telefonda görüşmek için bugün saat kaçta müsait olursunuz?`)}
-                            className="text-[11px] whitespace-nowrap bg-white border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50 text-slate-700 px-2 py-1 rounded-full shrink-0 shadow-xs"
+                            className="text-xs font-semibold whitespace-nowrap bg-slate-50 border border-slate-300 hover:border-emerald-500 hover:bg-emerald-50 hover:text-emerald-800 text-slate-800 px-3.5 py-1.5 rounded-lg shrink-0 shadow-2xs transition-all active:scale-95"
                         >
                             📞 Arama Randevusu
                         </button>
                         <button
                             type="button"
                             onClick={() => setInputMessage(`Satış ofisimizde örnek dairemizi yerinde görmek üzere bir kahve eşliğinde randevu organize edebiliriz.`)}
-                            className="text-[11px] whitespace-nowrap bg-white border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50 text-slate-700 px-2 py-1 rounded-full shrink-0 shadow-xs"
+                            className="text-xs font-semibold whitespace-nowrap bg-slate-50 border border-slate-300 hover:border-emerald-500 hover:bg-emerald-50 hover:text-emerald-800 text-slate-800 px-3.5 py-1.5 rounded-lg shrink-0 shadow-2xs transition-all active:scale-95"
                         >
                             📍 Ofis Randevusu
                         </button>
                     </div>
                 )}
 
-                {/* Footer / Input */}
-                <div className="p-3 bg-white border-t border-slate-200 shrink-0">
+                {/* Footer / Input Form */}
+                <div className="p-4 bg-white border-t border-slate-200 shrink-0">
                     <form
                         onSubmit={(e) => {
                             e.preventDefault()
                             handleSendMessage()
                         }}
-                        className="flex items-end gap-2"
+                        className="flex items-end gap-3"
                     >
                         <Textarea
                             ref={textareaRef}
@@ -509,21 +514,22 @@ export function CrmWhatsAppChatDrawer({
                             placeholder={customer.phone ? "WhatsApp mesajı yazın... (Gönder için Enter)" : "Müşteri telefonu eksik"}
                             disabled={!customer.phone || sending || loading}
                             rows={2}
-                            className="min-h-[46px] max-h-[120px] resize-none text-xs rounded-xl border-slate-200 focus:border-emerald-500 focus:ring-emerald-500"
+                            className="min-h-[56px] max-h-[140px] resize-none text-[14.5px] rounded-xl border-slate-300 focus:border-[#008069] focus:ring-1 focus:ring-[#008069] text-[#111b21] placeholder:text-slate-400 p-3.5 leading-relaxed shadow-xs"
                         />
                         <Button
                             type="submit"
                             disabled={!inputMessage.trim() || sending || !customer.phone || loading}
-                            className="h-[46px] px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shrink-0 shadow-sm"
+                            className="h-[56px] w-[56px] p-0 rounded-xl bg-[#008069] hover:bg-[#006e5a] text-white shrink-0 shadow-md flex items-center justify-center active:scale-95 transition-all"
+                            title="Gönder (Enter)"
                         >
                             {sending ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
+                                <Loader2 className="h-6 w-6 animate-spin" />
                             ) : (
-                                <Send className="h-4 w-4" />
+                                <Send className="h-6 w-6" />
                             )}
                         </Button>
                     </form>
-                    <p className="text-[10px] text-slate-400 mt-1 text-center">
+                    <p className="text-xs text-slate-500 mt-2 text-center font-medium">
                         Mesajlar kurumsal WhatsApp Business Cloud API ile anında iletilir.
                     </p>
                 </div>
