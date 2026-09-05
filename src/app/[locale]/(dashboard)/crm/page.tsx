@@ -142,9 +142,12 @@ export default async function CRMPage(props: {
         }
     })
 
+    const isUnansweredWpFiltered = filterUnansweredWp && unreadCustomerIds.length > 0
     if (filterUnansweredWp) {
         if (unreadCustomerIds.length > 0) {
-            baseQuery = baseQuery.in('customer_id', unreadCustomerIds)
+            // Slicing unreadCustomerIds prevents URL overflow (HTTP 400 Bad Request) on PostgREST
+            const pagedCustIds = unreadCustomerIds.slice(from, to + 1)
+            baseQuery = baseQuery.in('customer_id', pagedCustIds)
         } else {
             baseQuery = baseQuery.eq('id', '00000000-0000-0000-0000-000000000000')
         }
@@ -156,9 +159,13 @@ export default async function CRMPage(props: {
 
     const showTrackingTab = !isAdvanceMode && !isBroker && isManager
 
+    // When filtering by unread WP, range is already sliced in pagedCustIds
+    const queryRangeFrom = isUnansweredWpFiltered ? 0 : from
+    const queryRangeTo = isUnansweredWpFiltered ? (itemsPerPage - 1) : to
+
     // Fetch sales list + profiles + tracking data + active activities (all in parallel)
     const [salesListRes, profilesRes, projectsRes, templatesRes, trackingSalesRes, activitiesRes] = await Promise.all([
-        baseQuery.order(orderColumn, { ascending: false, nullsFirst: false }).order('updated_at', { ascending: false, nullsFirst: false }).order('created_at', { ascending: false }).range(from, to),
+        baseQuery.order(orderColumn, { ascending: false, nullsFirst: false }).order('updated_at', { ascending: false, nullsFirst: false }).order('created_at', { ascending: false }).range(queryRangeFrom, queryRangeTo),
         supabase.from('profiles')
             .select('id, full_name, is_external, role')
             .eq('tenant_id', userTenantId)
@@ -192,7 +199,7 @@ export default async function CRMPage(props: {
     const projectsData = projectsRes.data || []
     const templates = templatesRes.data || []
     const rawSales = salesListRes.data || []
-    const totalSalesCount = salesListRes.count || 0
+    const totalSalesCount = isUnansweredWpFiltered ? unreadCustomerIds.length : (salesListRes.count || 0)
     const trackingSales = trackingSalesRes.data || []
     const initialActivities = activitiesRes.data || []
 
