@@ -4449,7 +4449,7 @@ export async function createQuickAppointment(params: {
                             .insert({
                                 tenant_id: profile.tenant_id,
                                 customer_id: params.customerId,
-                                lead_id: params.saleId || null,
+                                lead_id: null,
                                 phone_number: customer.phone.replace(/[^0-9]/g, ''),
                                 contact_name: customerName,
                                 channel: 'whatsapp',
@@ -4881,6 +4881,30 @@ export async function getOrCreateCustomerWhatsAppConversation(params: {
             if (byPhone) conv = byPhone
         }
 
+        // Resolve valid lead_id: whatsapp_conversations.lead_id has a foreign key referencing public.leads(id), NOT sales(id)
+        let validLeadId: string | null = null
+        if (params.saleId) {
+            const { data: leadRow } = await adminSupabase
+                .from('leads')
+                .select('id')
+                .eq('id', params.saleId)
+                .maybeSingle()
+            if (leadRow?.id) {
+                validLeadId = leadRow.id
+            }
+        }
+        if (!validLeadId && params.customerId) {
+            const { data: leadByCust } = await adminSupabase
+                .from('leads')
+                .select('id')
+                .eq('converted_customer_id', params.customerId)
+                .limit(1)
+                .maybeSingle()
+            if (leadByCust?.id) {
+                validLeadId = leadByCust.id
+            }
+        }
+
         // 2. Bulunamadıysa yeni bir sohbet oturumu oluştur
         if (!conv) {
             const { data: newConv, error: createErr } = await adminSupabase
@@ -4888,7 +4912,7 @@ export async function getOrCreateCustomerWhatsAppConversation(params: {
                 .insert({
                     tenant_id: profile.tenant_id,
                     customer_id: params.customerId || null,
-                    lead_id: params.saleId || null,
+                    lead_id: validLeadId,
                     phone_number: cleanPhone,
                     channel: 'whatsapp',
                     ai_enabled: false,
@@ -4908,7 +4932,7 @@ export async function getOrCreateCustomerWhatsAppConversation(params: {
             // Eksik bağlantılar varsa güncelle
             const updates: any = {}
             if (params.customerId && !conv.customer_id) updates.customer_id = params.customerId
-            if (params.saleId && !conv.lead_id) updates.lead_id = params.saleId
+            if (validLeadId && !conv.lead_id) updates.lead_id = validLeadId
             if (Object.keys(updates).length > 0) {
                 await adminSupabase.from('whatsapp_conversations').update(updates).eq('id', conv.id)
             }
