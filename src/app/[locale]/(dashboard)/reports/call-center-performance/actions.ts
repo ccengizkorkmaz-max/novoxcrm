@@ -294,7 +294,15 @@ export async function getCallCenterPerformanceData(params: CallCenterReportParam
             }
 
             const results = await Promise.all(dayPromises)
-            const seenUniqueKeys = new Set<string>()
+            const sessionMap = new Map<string, {
+                sessionId: string
+                date: string
+                source: string
+                destination: string
+                duration: number
+                recording: string | null
+                legs: any[]
+            }>()
 
             results.forEach(dayData => {
                 if (Array.isArray(dayData) && dayData.length > 0) {
@@ -302,95 +310,133 @@ export async function getCallCenterPerformanceData(params: CallCenterReportParam
                     dayData.forEach((item: any) => {
                         const uid = item.uniqueid || ''
                         ;(item.values || []).forEach((v: any) => {
-                            const callKey = `${uid}-${v.date}-${v.source}-${v.destination}`
-                            if (seenUniqueKeys.has(callKey)) return
-                            seenUniqueKeys.add(callKey)
-
-                            const callDate = parseNetgsmDate(v.date)
-                            if (callDate < rangeStart || callDate > rangeEnd) return
-
+                            const sessionId = v.commonID || uid || `${v.date}-${v.source}-${v.destination}`
+                            const dur = parseInt(v.duration || '0')
+                            const rec = v.recording || null
                             const src = v.source || ''
                             const dst = v.destination || ''
-                            const dur = parseInt(v.duration || '0')
-                            const isAnswered = dur > 0
-                            const rec = v.recording || null
-                            const playerUrl = buildPlayerUrl(rec)
 
-                            const cleanSrc = normalizePhone(src)
-                            const cleanDst = normalizePhone(dst)
-
-                            // Match Rep
-                            let repId: string | null = null
-                            let repName = 'Santral / Genel'
-                            let customerName = 'Müşteri'
-                            let customerPhone = dst.length > 4 ? dst : src
-
-                            if (repPhoneMap.has(cleanSrc)) {
-                                repId = repPhoneMap.get(cleanSrc)!
-                            } else if (repPhoneMap.has(cleanDst)) {
-                                repId = repPhoneMap.get(cleanDst)!
-                            } else if (custPhoneToSaleMap.has(cleanDst)) {
-                                const sale = custPhoneToSaleMap.get(cleanDst)!
-                                repId = sale.repId
-                                repName = sale.repName
-                                customerName = sale.customerName
-                                customerPhone = sale.customerPhone
-                            } else if (custPhoneToSaleMap.has(cleanSrc)) {
-                                const sale = custPhoneToSaleMap.get(cleanSrc)!
-                                repId = sale.repId
-                                repName = sale.repName
-                                customerName = sale.customerName
-                                customerPhone = sale.customerPhone
-                            }
-
-                            // Filter by rep if selected
-                            if (params.repId && params.repId !== '__all__' && repId !== params.repId) {
-                                return
-                            }
-
-                            if (repId && repStatsMap.has(repId)) {
-                                const rep = repStatsMap.get(repId)!
-                                repName = rep.name
-                                rep.totalCalls++
-                                rep.totalDurationSeconds += dur
-                                if (isAnswered) rep.answeredCalls++
-                                else rep.unansweredCalls++
-                                if (rec) rep.recordingsCount = (rep.recordingsCount || 0) + 1
-
-                                if (src.length <= 4 || repPhoneMap.has(cleanSrc)) {
-                                    rep.outboundCalls++
-                                } else {
-                                    rep.inboundCalls++
+                            if (!sessionMap.has(sessionId)) {
+                                sessionMap.set(sessionId, {
+                                    sessionId,
+                                    date: v.date,
+                                    source: src,
+                                    destination: dst,
+                                    duration: dur,
+                                    recording: rec,
+                                    legs: [v]
+                                });
+                            } else {
+                                const sess = sessionMap.get(sessionId)!
+                                sess.legs.push(v)
+                                if (dur > sess.duration) {
+                                    sess.duration = dur
+                                    sess.date = v.date
                                 }
-
-                                if (!rep.lastCallDate || callDate > new Date(rep.lastCallDate)) {
-                                    rep.lastCallDate = callDate.toISOString()
+                                if (rec && !sess.recording) {
+                                    sess.recording = rec
                                 }
-                            }
-
-                            allCallEvents.push({ date: callDate, duration: dur, isAnswered })
-
-                            if (callLogs.length < 200) {
-                                const isOutbound = src.length <= 4 || repPhoneMap.has(cleanSrc)
-                                const durMin = Math.floor(dur / 60)
-                                const durSec = dur % 60
-                                const durText = durMin > 0 ? `${durMin} dk ${durSec} sn` : `${durSec} sn`
-
-                                callLogs.push({
-                                    id: uid || `${callDate.getTime()}-${src}`,
-                                    type: isOutbound ? 'outbound' : 'inbound',
-                                    date: callDate.toISOString(),
-                                    repName,
-                                    repId: repId || undefined,
-                                    customerName,
-                                    customerPhone,
-                                    durationSeconds: dur,
-                                    status: isAnswered ? 'Ulaşıldı' : 'Ulaşılamadı',
-                                    outcome: isAnswered ? `Görüşme (${durText})` : 'Cevapsız',
-                                    recordingUrl: playerUrl
-                                })
+                                if (src.length > 4 && !src.includes('queue')) sess.source = src
+                                if (dst.length > 4 && !dst.includes('queue')) sess.destination = dst
                             }
                         })
+                    })
+                }
+            })
+
+            sessionMap.forEach((sess) => {
+                const callDate = parseNetgsmDate(sess.date)
+                if (callDate < rangeStart || callDate > rangeEnd) return
+
+                const src = sess.source || ''
+                const dst = sess.destination || ''
+                const dur = sess.duration || 0
+                const isAnswered = dur > 0
+                const rec = sess.recording || null
+                const playerUrl = buildPlayerUrl(rec)
+
+                const cleanSrc = normalizePhone(src)
+                const cleanDst = normalizePhone(dst)
+
+                // Match Rep across legs & phone maps
+                let repId: string | null = null
+                let repName = 'Santral / Genel'
+                let customerName = 'Müşteri'
+                let customerPhone = dst.length > 4 ? dst : src
+
+                if (repPhoneMap.has(cleanSrc)) {
+                    repId = repPhoneMap.get(cleanSrc)!
+                } else if (repPhoneMap.has(cleanDst)) {
+                    repId = repPhoneMap.get(cleanDst)!
+                } else if (custPhoneToSaleMap.has(cleanDst)) {
+                    const sale = custPhoneToSaleMap.get(cleanDst)!
+                    repId = sale.repId
+                    repName = sale.repName
+                    customerName = sale.customerName
+                    customerPhone = sale.customerPhone
+                } else if (custPhoneToSaleMap.has(cleanSrc)) {
+                    const sale = custPhoneToSaleMap.get(cleanSrc)!
+                    repId = sale.repId
+                    repName = sale.repName
+                    customerName = sale.customerName
+                    customerPhone = sale.customerPhone
+                } else {
+                    const matchedLeg = sess.legs.find((l: any) => (l.source === '101' || (l.destination && l.destination.includes('101'))))
+                    if (matchedLeg) {
+                        const nursena = profilesList?.find(p => p.full_name && p.full_name.toLowerCase().includes('nursena'))
+                        if (nursena) {
+                            repId = nursena.id
+                            repName = nursena.full_name
+                        }
+                    }
+                }
+
+                // Filter by rep if selected
+                if (params.repId && params.repId !== '__all__' && repId !== params.repId) {
+                    return
+                }
+
+                const isOutbound = (src === '101' || src.length <= 4 || repPhoneMap.has(cleanSrc))
+
+                if (repId && repStatsMap.has(repId)) {
+                    const rep = repStatsMap.get(repId)!
+                    repName = rep.name
+                    rep.totalCalls++
+                    rep.totalDurationSeconds += dur
+                    if (isAnswered) rep.answeredCalls++
+                    else rep.unansweredCalls++
+                    if (rec) rep.recordingsCount = (rep.recordingsCount || 0) + 1
+
+                    if (isOutbound) {
+                        rep.outboundCalls++
+                    } else {
+                        rep.inboundCalls++
+                    }
+
+                    if (!rep.lastCallDate || callDate > new Date(rep.lastCallDate)) {
+                        rep.lastCallDate = callDate.toISOString()
+                    }
+                }
+
+                allCallEvents.push({ date: callDate, duration: dur, isAnswered })
+
+                if (callLogs.length < 200) {
+                    const durMin = Math.floor(dur / 60)
+                    const durSec = dur % 60
+                    const durText = durMin > 0 ? `${durMin} dk ${durSec} sn` : `${durSec} sn`
+
+                    callLogs.push({
+                        id: sess.sessionId || `${callDate.getTime()}-${src}`,
+                        type: isOutbound ? 'outbound' : 'inbound',
+                        date: callDate.toISOString(),
+                        repName,
+                        repId: repId || undefined,
+                        customerName,
+                        customerPhone,
+                        durationSeconds: dur,
+                        status: isAnswered ? 'Ulaşıldı' : 'Ulaşılamadı',
+                        outcome: isAnswered ? `Görüşme (${durText})` : 'Cevapsız',
+                        recordingUrl: playerUrl
                     })
                 }
             })
