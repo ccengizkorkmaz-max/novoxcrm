@@ -112,7 +112,7 @@ export default async function ActivitiesPage(props: {
         // Projects
         adminSupabase
             .from('projects')
-            .select('id, name')
+            .select('id, name, address, city, district, latitude, longitude')
             .eq('tenant_id', tenantId)
             .order('name')
             .then(r => r.data || []),

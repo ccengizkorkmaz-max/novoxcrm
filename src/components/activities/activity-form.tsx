@@ -101,9 +101,10 @@ interface ActivityFormProps {
     projects?: any[]
     defaultCustomerId?: string
     defaultLeadId?: string
+    defaultProjectId?: string
 }
 
-export function ActivityForm({ open, onOpenChange, mode, activity, customers, profiles, projects, defaultCustomerId, defaultLeadId }: ActivityFormProps) {
+export function ActivityForm({ open, onOpenChange, mode, activity, customers, profiles, projects, defaultCustomerId, defaultLeadId, defaultProjectId }: ActivityFormProps) {
     const t = useTranslations('Activities')
     const router = useRouter()
 
@@ -113,7 +114,7 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
     const [notes, setNotes] = useState(activity?.notes || '')
     const [status, setStatus] = useState(activity?.status || 'Planned')
     const [selectedCustomerId, setSelectedCustomerId] = useState(activity?.customer_id || defaultCustomerId || '')
-    const [selectedProjectId, setSelectedProjectId] = useState(activity?.project_id || '')
+    const [selectedProjectId, setSelectedProjectId] = useState(activity?.project_id || defaultProjectId || '')
     const [isProcessingVoice, setIsProcessingVoice] = useState(false)
     const [isDeleting, setIsDeleting] = useState(false)
 
@@ -161,6 +162,7 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
     }, [activity?.lead_id, defaultLeadId])
 
     const leadName = resolvedLeadName || 'Müşteri Adayı'
+    const [location, setLocation] = useState(activity?.location || activity?.unit_id || '')
 
     useEffect(() => {
         if (open && activity) {
@@ -170,14 +172,51 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
             setStatus(activity?.status || 'Planned')
             setSelectedCustomerId(activity?.customer_id || '')
             setSelectedProjectId(activity?.project_id || '')
+            setLocation(activity?.location || activity?.unit_id || '')
             // Reset lead name from join data when activity changes
             setResolvedLeadName(
                 activity?.leads?.full_name 
                     ? `${activity.leads.full_name} (Müşteri Adayı)` 
                     : (activity?.lead_name || '')
             )
+        } else if (open && !activity) {
+            if (defaultProjectId) {
+                setSelectedProjectId(defaultProjectId)
+                const found = projects?.find((p: any) => p.id === defaultProjectId)
+                if (found) {
+                    const formattedLoc = [found.address, found.district, found.city].filter(Boolean).join(', ') || `${found.name} Satış Ofisi`
+                    setLocation(formattedLoc)
+                }
+            }
         }
-    }, [open, activity])
+    }, [open, activity, defaultProjectId, projects])
+
+    const handleProjectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const projId = e.target.value
+        setSelectedProjectId(projId)
+        if (projId) {
+            const found = projects?.find((p: any) => p.id === projId)
+            if (found) {
+                const formattedLoc = [found.address, found.district, found.city].filter(Boolean).join(', ') || `${found.name} Satış Ofisi`
+                setLocation(formattedLoc)
+            }
+        }
+    }
+
+    const selectedProject = useMemo(() => {
+        return projects?.find((p: any) => p.id === selectedProjectId)
+    }, [projects, selectedProjectId])
+
+    const googleMapsUrl = useMemo(() => {
+        if (!selectedProject) return null
+        if (selectedProject.latitude && selectedProject.longitude) {
+            return `https://maps.google.com/?q=${selectedProject.latitude},${selectedProject.longitude}`
+        }
+        if (selectedProject.address || selectedProject.name) {
+            return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${selectedProject.name} ${selectedProject.address || ''}`.trim())}`
+        }
+        return null
+    }, [selectedProject])
 
     // Ensure the current customer is in the list even if not in the top 1000
     const comboboxItems = useMemo(() => {
@@ -248,6 +287,7 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
             if (description) formData.set('description', description)
             if (notes) formData.set('notes', notes)
             if (status) formData.set('status', status)
+            if (location) formData.set('location', location)
             if (selectedCustomerId) formData.set('customer_id', selectedCustomerId)
             if (selectedProjectId) formData.set('project_id', selectedProjectId)
 
@@ -375,20 +415,53 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
                                 )}
 
                                 <div className="grid gap-2">
-                                    <Label>Proje</Label>
-                                    <select
-                                        name="project_id"
-                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                        value={selectedProjectId}
-                                        onChange={(e) => setSelectedProjectId(e.target.value)}
-                                        disabled={isReadOnly}
-                                    >
-                                        <option value="">Proje Seçiniz (Opsiyonel)</option>
-                                        {projects?.map((p: any) => (
-                                            <option key={p.id} value={p.id}>{p.name}</option>
-                                        ))}
-                                    </select>
-                                </div>
+                                     <div className="flex items-center justify-between">
+                                         <Label>Proje</Label>
+                                         {selectedProject && (
+                                             <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
+                                                 ✅ Lokasyon aktif
+                                             </span>
+                                         )}
+                                     </div>
+                                     <select
+                                         name="project_id"
+                                         className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                         value={selectedProjectId}
+                                         onChange={handleProjectChange}
+                                         disabled={isReadOnly}
+                                     >
+                                         <option value="">Proje Seçiniz (Opsiyonel)</option>
+                                         {projects?.map((p: any) => (
+                                             <option key={p.id} value={p.id}>{p.name}</option>
+                                         ))}
+                                     </select>
+                                 </div>
+
+                                 {selectedProject && (
+                                     <div className="rounded-lg border border-emerald-500/30 bg-emerald-50/70 dark:bg-emerald-950/40 p-3 text-xs space-y-1.5 transition-all animate-in fade-in-50">
+                                         <div className="flex items-center justify-between font-semibold text-emerald-900 dark:text-emerald-200">
+                                             <span className="flex items-center gap-1.5">
+                                                 🏢 <strong>{selectedProject.name}</strong> Satış Ofisi Lokasyonu
+                                             </span>
+                                             {googleMapsUrl && (
+                                                 <a
+                                                     href={googleMapsUrl}
+                                                     target="_blank"
+                                                     rel="noreferrer"
+                                                     className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-semibold inline-flex items-center gap-1 hover:underline"
+                                                 >
+                                                     📍 Haritada Aç ↗
+                                                 </a>
+                                             )}
+                                         </div>
+                                         <div className="text-slate-700 dark:text-slate-300 text-[11.5px]">
+                                             <strong>Adres:</strong> {[selectedProject.address, selectedProject.district, selectedProject.city].filter(Boolean).join(', ') || `${selectedProject.name} Satış Ofisi`}
+                                         </div>
+                                         <div className="text-[11px] text-emerald-800 dark:text-emerald-300 font-medium flex items-center gap-1 pt-0.5">
+                                             <span>📲</span> Bu adres ve Google Maps linki randevu kaydedildiğinde müşteriye WhatsApp ile otomatik iletilecektir.
+                                         </div>
+                                     </div>
+                                 )}
 
                                 <div className="grid gap-2">
                                     <Label>{t('form.topic')}</Label>
@@ -468,7 +541,8 @@ export function ActivityForm({ open, onOpenChange, mode, activity, customers, pr
                                         <Label>Satış Ofisi / Lokasyon</Label>
                                         <Input
                                             name="location"
-                                            defaultValue={activity?.location || activity?.unit_id || ''}
+                                            value={location}
+                                            onChange={(e) => setLocation(e.target.value)}
                                             placeholder="Örn: Proje Satış Ofisi, Merkez Ofis"
                                             disabled={isReadOnly}
                                         />

@@ -130,7 +130,7 @@ export default async function CRMPage(props: {
             .or('is_external.is.null,is_external.eq.false')
             .in('role', ['admin', 'owner', 'manager', 'sales', 'sales_rep', 'agent', 'crm_manager', 'user'])
             .order('full_name'),
-        supabase.from('projects').select('id, name').order('name'),
+        supabase.from('projects').select('id, name, address, city, district, latitude, longitude').order('name'),
         supabase.from('payment_plan_templates').select('*, project_id').order('name', { ascending: true }),
         // Tracking: same table, no pagination, all non-Inbox sales
         showTrackingTab
