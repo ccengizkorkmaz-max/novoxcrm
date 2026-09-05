@@ -65,16 +65,16 @@ import { useTranslations, useLocale } from 'next-intl'
 import { useSupabaseRealtime } from '@/hooks/useSupabaseRealtime'
 import { matchCustomerSearch } from '@/lib/phone-search-utils'
 
-type PipelineColId = 'customer' | 'project' | 'unit' | 'status' | 'first_contact' | 'process_note' | 'lead_score' | 'campaign' | 'date' | 'amount' | 'rep' | 'remaining' | 'actions' | 'quickicons'
-const DEFAULT_PIPELINE_COL_ORDER: PipelineColId[] = ['customer', 'project', 'unit', 'status', 'first_contact', 'process_note', 'lead_score', 'campaign', 'date', 'amount', 'rep', 'remaining', 'actions', 'quickicons']
-const PIPELINE_COL_ORDER_KEY = 'pipeline_list_column_order_v5'
-const PIPELINE_COL_WIDTHS_KEY = 'pipeline_list_column_widths_v5'
-const PIPELINE_HIDDEN_COLS_KEY = 'pipeline_list_hidden_cols_v5'
+type PipelineColId = 'customer' | 'project' | 'unit' | 'status' | 'first_contact' | 'process_note' | 'lead_score' | 'lead_source' | 'campaign' | 'date' | 'amount' | 'rep' | 'remaining' | 'actions' | 'quickicons'
+const DEFAULT_PIPELINE_COL_ORDER: PipelineColId[] = ['customer', 'project', 'unit', 'status', 'first_contact', 'process_note', 'lead_score', 'lead_source', 'campaign', 'date', 'amount', 'rep', 'remaining', 'actions', 'quickicons']
+const PIPELINE_COL_ORDER_KEY = 'pipeline_list_column_order_v6'
+const PIPELINE_COL_WIDTHS_KEY = 'pipeline_list_column_widths_v6'
+const PIPELINE_HIDDEN_COLS_KEY = 'pipeline_list_hidden_cols_v6'
 const DEFAULT_PIPELINE_WIDTHS: Record<PipelineColId, number> = {
-    customer: 240, project: 200, unit: 100, status: 160, first_contact: 140, process_note: 180, lead_score: 100, campaign: 160, date: 140, amount: 160, rep: 180, remaining: 110, actions: 180, quickicons: 130
+    customer: 240, project: 200, unit: 100, status: 160, first_contact: 140, process_note: 180, lead_score: 100, lead_source: 130, campaign: 160, date: 140, amount: 160, rep: 180, remaining: 110, actions: 180, quickicons: 130
 }
 const PIPELINE_COL_LABELS: Record<PipelineColId, string> = {
-    customer: 'Müşteri', project: 'Proje', unit: 'Birim', status: 'Durum', first_contact: 'İlk Temas', process_note: 'Süreç Notu', lead_score: 'Lead Skor', campaign: 'Son Kampanya', date: 'Tarih', amount: 'Tutar', rep: 'Temsilci', remaining: 'Kalan Süre', actions: 'İşlemler', quickicons: 'Kısayollar'
+    customer: 'Müşteri', project: 'Proje', unit: 'Birim', status: 'Durum', first_contact: 'İlk Temas', process_note: 'Süreç Notu', lead_score: 'Lead Skor', lead_source: 'Lead Kaynağı', campaign: 'Son Kampanya', date: 'Tarih', amount: 'Tutar', rep: 'Temsilci', remaining: 'Kalan Süre', actions: 'İşlemler', quickicons: 'Kısayollar'
 }
 
 export default function PipelineList({
@@ -530,6 +530,7 @@ export default function PipelineList({
         const fc = searchParams.get('fc')
         const u = searchParams.get('u')
         const a = searchParams.get('a')
+        const lsrc = searchParams.get('lsrc')
         
         if (q) filters['customer'] = q
         if (s) filters['status'] = s
@@ -538,6 +539,7 @@ export default function PipelineList({
         if (fc) filters['first_contact'] = fc
         if (u) filters['unit'] = u
         if (a) filters['amount'] = a
+        if (lsrc) filters['lead_source'] = lsrc
         
         if (p) {
             const proj = projects.find(proj => proj.id === p)
@@ -603,6 +605,9 @@ export default function PipelineList({
         } else if (colId === 'first_contact') {
             if (value) params.set('fc', value)
             else params.delete('fc')
+        } else if (colId === 'lead_source') {
+            if (value) params.set('lsrc', value)
+            else params.delete('lsrc')
         } else if (colId === 'unit') {
             if (value) params.set('u', value)
             else params.delete('u')
@@ -653,6 +658,7 @@ export default function PipelineList({
             if (colId === 'lead_score') return { id: colId, label: 'Lead Skor', type: 'multiselect' as const, options: ['hot', 'warm', 'cold', 'call_requested', 'disqualified'], optionLabels: { hot: '🔥 Hot', warm: '🌡️ Warm', cold: '❄️ Cold', call_requested: '📞 Arama', disqualified: '⛔ DQ' } }
             if (colId === 'campaign') return { id: colId, label: 'Son Kampanya', type: 'text' as const }
             if (colId === 'first_contact') return { id: colId, label: 'İlk Temas', type: 'select' as const, options: ['Aradım, Olumlu', 'Aradım, Olumsuz', 'Tekrar Aranacak', 'Değerlendiriyor', 'Ulaşamadım - Cevap Vermiyor', 'Ulaşamadım - Meşgul / Reddetti', 'Ulaşamadım - Kapalı / Ulaşılamıyor', 'Ulaşamadım - Hatalı Numara', 'Ulaşamadım - Numara Kullanılmıyor', 'Ulaşamadım - Yanlış Kişi', 'Ulaşamadım - WhatsApp / SMS Atıldı'] }
+            if (colId === 'lead_source') return { id: colId, label: 'Lead Kaynağı', type: 'select' as const, options: ['Facebook Ads', 'facebook_ads', 'WhatsApp Sohbet', 'WhatsApp Button', 'whatsapp_campaign', 'WEB Form', 'Manuel Giriş', 'E-Posta', 'Referans', 'Google Ads'] }
             if (colId === 'actions' || colId === 'quickicons' || colId === 'remaining') return { id: colId, label: colId, type: 'none' as const }
             return { id: colId, label: colId, type: 'text' as const }
         })
@@ -693,6 +699,9 @@ export default function PipelineList({
                 const wName = (sale.campaign_info?.workflowName || '').toLowerCase()
                 const bText = (sale.campaign_info?.buttonText || '').toLowerCase()
                 if (!wName.includes(q) && !bText.includes(q)) return false
+            } else if (colId === 'lead_source') {
+                const src = sale.source || ''
+                if (src !== filterVal) return false
             } else if (colId === 'first_contact') {
                 const fc = sale.first_contact || ''
                 if (fc !== filterVal) return false
@@ -815,6 +824,7 @@ export default function PipelineList({
                                                 {colId === 'first_contact' && 'İlk Temas'}
                                                 {colId === 'process_note' && 'Süreç Notu'}
                                                 {colId === 'lead_score' && 'Lead Skor'}
+                                                {colId === 'lead_source' && 'Lead Kaynağı'}
                                                 {colId === 'campaign' && 'Son Kampanya'}
                                                 {colId === 'date' && t('table.date')}
                                                 {colId === 'amount' && t('table.amount')}
@@ -1217,6 +1227,55 @@ export default function PipelineList({
                                                                     </span>
                                                                 )}
                                                             </div>
+                                                        </TableCell>
+                                                    )
+                                                }
+                                                if (colId === 'lead_source') {
+                                                    const src = sale.source || ''
+                                                    const srcLower = src.toLowerCase()
+                                                    let srcLabel = src || '—'
+                                                    let srcColor = 'bg-slate-50 text-slate-500 border-slate-200'
+                                                    
+                                                    if (srcLower.includes('facebook')) {
+                                                        srcLabel = '📘 Facebook'
+                                                        srcColor = 'bg-blue-50 text-blue-700 border-blue-200'
+                                                    } else if (srcLower.includes('instagram')) {
+                                                        srcLabel = '📸 Instagram'
+                                                        srcColor = 'bg-pink-50 text-pink-700 border-pink-200'
+                                                    } else if (srcLower.includes('google')) {
+                                                        srcLabel = '🔍 Google'
+                                                        srcColor = 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                                    } else if (srcLower.includes('whatsapp') && srcLower.includes('campaign')) {
+                                                        srcLabel = '📢 WA Kampanya'
+                                                        srcColor = 'bg-green-50 text-green-700 border-green-200'
+                                                    } else if (srcLower.includes('whatsapp') && srcLower.includes('button')) {
+                                                        srcLabel = '💬 WA Buton'
+                                                        srcColor = 'bg-green-50 text-green-700 border-green-200'
+                                                    } else if (srcLower.includes('whatsapp') || srcLower.includes('sohbet')) {
+                                                        srcLabel = '💬 WhatsApp'
+                                                        srcColor = 'bg-green-50 text-green-700 border-green-200'
+                                                    } else if (srcLower.includes('web') || srcLower.includes('form')) {
+                                                        srcLabel = '🌐 Web Form'
+                                                        srcColor = 'bg-cyan-50 text-cyan-700 border-cyan-200'
+                                                    } else if (srcLower.includes('e-posta') || srcLower.includes('email')) {
+                                                        srcLabel = '📧 E-Posta'
+                                                        srcColor = 'bg-violet-50 text-violet-700 border-violet-200'
+                                                    } else if (srcLower.includes('referans') || srcLower.includes('referral')) {
+                                                        srcLabel = '🤝 Referans'
+                                                        srcColor = 'bg-amber-50 text-amber-700 border-amber-200'
+                                                    } else if (srcLower.includes('manuel') || srcLower.includes('manual')) {
+                                                        srcLabel = '✏️ Manuel'
+                                                        srcColor = 'bg-slate-100 text-slate-600 border-slate-200'
+                                                    } else if (srcLower.includes('telefon') || srcLower.includes('phone')) {
+                                                        srcLabel = '📞 Telefon'
+                                                        srcColor = 'bg-orange-50 text-orange-700 border-orange-200'
+                                                    }
+
+                                                    return (
+                                                        <TableCell key="lead_source" className={cellCls}>
+                                                            <span className={cn("inline-flex items-center px-1.5 py-0.5 text-[10px] font-semibold rounded border whitespace-nowrap", srcColor)} title={src}>
+                                                                {srcLabel}
+                                                            </span>
                                                         </TableCell>
                                                     )
                                                 }
